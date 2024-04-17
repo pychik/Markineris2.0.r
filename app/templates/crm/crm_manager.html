@@ -1,0 +1,95 @@
+{% extends "crm/base_crm.html" %}
+
+{% block crm_dashboard %}
+
+<div class="mx-3">
+
+    <div id="update_all_info">
+        {% include 'crm/crmm/crmm_main_block.html'%}
+    </div>
+
+</div>
+<div class="modal fade" id="problem_orderModal" tabindex="-1" data-backdrop="static" role="dialog" aria-labelledby="problem_orderModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-error">
+          <h5 class="modal-title" id="problem_orderModalLabel">
+          </h5>
+        <button type="button" class="close" data-dismiss="modal" onclick="clear_problem_order()"  aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+          <div id="order_problem_block"></div>
+
+      </div>
+
+      <div class="modal-footer">
+
+        <button type="button" class="btn btn-sm btn-secondary" onclick="clear_problem_order()" data-dismiss="modal">Отмена</button>
+        <button class="btn btn-sm bg-error mt-1" type="button"
+                onclick="isValid = document.getElementById('problem_order_form').reportValidity();if(isValid){document.getElementById('problem_order_form').submit()}">
+            Отправить заказ в проблемные</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="change_operatorModal" tabindex="-1" data-backdrop="static" role="dialog" aria-labelledby="change_operatorModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+          <h5 class="modal-title" id="change_operatorModalLabel">
+          </h5>
+        <button type="button" class="close" data-dismiss="modal" onclick="clear_change_operator()"  aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+          <div id="change_operator_block"></div>
+
+      </div>
+
+      <div class="modal-footer">
+
+        <button type="button" class="btn btn-sm btn-secondary"  onclick="clear_change_operator()" data-dismiss="modal">Отмена</button>
+        <button class="btn btn-sm btn-info mt-1" type="submit" onclick="isValid = document.getElementById('change_operator_form').reportValidity();if(isValid){document.getElementById('change_operator_form').submit()}">Поменять оператора(менеджера заказа)</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal fade" id="attach_linkModal" tabindex="-1" data-backdrop="static" role="dialog" aria-labelledby="attach_linkModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+          <h5 class="modal-title" id="attach_linkModalLabel">
+          </h5>
+        <button type="button" class="close" data-dismiss="modal" onclick="clear_attach_link()"  aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+          <div id="attach_link_block"></div>
+
+      </div>
+
+      <div class="modal-footer">
+
+        <button type="button" class="btn btn-sm btn-secondary"  onclick="clear_attach_link()" data-dismiss="modal">Отмена</button>
+        <button class="btn btn-sm btn-info mt-1" type="submit" onclick="isValid = document.getElementById('attach_link_form').reportValidity();if(isValid){document.getElementById('attach_link_form').submit()}">Прикрепить ссылку</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+    const managers_list = [{% for m in managers_list %}['{{m[0]}}','{{m[1]}}'], {% endfor %}];
+    const OF_MAX_SIZE = {{ of_max_size }};
+</script>
+
+
+{% endblock %}

@@ -1,0 +1,157 @@
+<div style="min-width: 260px;max-width: 260px;" class="mr-3">
+        <div class="border-sp-10-right pr-3">
+            <h3><span class="badge bg-solved">Проблема решена</span></h3>
+
+            {% for n in m_solved_orders %}
+
+              <div class="card mt-3 mb-3 border-d-3  border-dark">
+                <div class="card-header bg-solved text-center text-secondary ">
+                    <h5 class="card-text">
+                        <a data-toggle="collapse"
+                           href="#collapseOrder6_{{ loop.index }}" role="button"
+                           aria-expanded="false"
+                           class="btn btn-sm btn-outline-dark btn-block">
+                            {% include 'crm/crmm/order_category.html' %}
+                        </a>
+                    </h5>
+                    <h6 class="card-text">{{ n.client_code }}</h6>
+                    <h6 class="card-text" title="Время поступления заказа в систему">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lightning" viewBox="0 0 16 16">
+                          <path d="M5.52.359A.5.5 0 0 1 6 0h4a.5.5 0 0 1 .474.658L8.694 6H12.5a.5.5 0 0 1 .395.807l-7 9a.5.5 0 0 1-.873-.454L6.823 9.5H3.5a.5.5 0 0 1-.48-.641l2.5-8.5zM6.374 1 4.168 8.5H7.5a.5.5 0 0 1 .478.647L6.78 13.04 11.478 7H8a.5.5 0 0 1-.474-.658L9.306 1H6.374z"/>
+                        </svg>
+                        <b>{{ n.crm_created_at.strftime('%Y-%m-%d %H:%M:%S') }}</b>
+                    </h6>
+                    <h6 class="card-text" title="Время старта работы менеджера с заказом">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bag" viewBox="0 0 16 16">
+                              <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1zm3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4h-3.5zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5z"/>
+                        </svg>
+
+                        <b>{{ n.m_started.strftime('%Y-%m-%d %H:%M:%S') }}</b>
+                    </h6>
+                    {% if n.cp_created %}
+                        <h6 class="card-text" title="Время обнаружения проблемы">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-hand-index" viewBox="0 0 16 16">
+                              <path d="M6.75 1a.75.75 0 0 1 .75.75V8a.5.5 0 0 0 1 0V5.467l.086-.004c.317-.012.637-.008.816.027.134.027.294.096.448.182.077.042.15.147.15.314V8a.5.5 0 1 0 1 0V6.435a4.9 4.9 0 0 1 .106-.01c.316-.024.584-.01.708.04.118.046.3.207.486.43.081.096.15.19.2.259V8.5a.5.5 0 0 0 1 0v-1h.342a1 1 0 0 1 .995 1.1l-.271 2.715a2.5 2.5 0 0 1-.317.991l-1.395 2.442a.5.5 0 0 1-.434.252H6.035a.5.5 0 0 1-.416-.223l-1.433-2.15a1.5 1.5 0 0 1-.243-.666l-.345-3.105a.5.5 0 0 1 .399-.546L5 8.11V9a.5.5 0 0 0 1 0V1.75A.75.75 0 0 1 6.75 1zM8.5 4.466V1.75a1.75 1.75 0 1 0-3.5 0v5.34l-1.2.24a1.5 1.5 0 0 0-1.196 1.636l.345 3.106a2.5 2.5 0 0 0 .405 1.11l1.433 2.15A1.5 1.5 0 0 0 6.035 16h6.385a1.5 1.5 0 0 0 1.302-.756l1.395-2.441a3.5 3.5 0 0 0 .444-1.389l.271-2.715a2 2 0 0 0-1.99-2.199h-.581a5.114 5.114 0 0 0-.195-.248c-.191-.229-.51-.568-.88-.716-.364-.146-.846-.132-1.158-.108l-.132.012a1.26 1.26 0 0 0-.56-.642 2.632 2.632 0 0 0-.738-.288c-.31-.062-.739-.058-1.05-.046l-.048.002zm2.094 2.025z"/>
+                            </svg>
+
+                            <b>{{ n.cp_created.strftime('%Y-%m-%d %H:%M:%S') }}</b>
+                        </h6>
+                    {% endif %}
+                    <h6 class="card-text" title="Время завершения работы менеджера по заказу">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bag-check" viewBox="0 0 16 16">
+                          <path fill-rule="evenodd" d="M10.5 3.5a2.5 2.5 0 0 0-5 0V4h5v-.5zm1 0V4H15v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V4h3.5v-.5a3.5 3.5 0 1 1 7 0zm-.646 5.354a.5.5 0 0 0-.708-.708L7.5 10.793 6.354 9.646a.5.5 0 1 0-.708.708l1.5 1.5a.5.5 0 0 0 .708 0l3-3z"/>
+                        </svg>
+                        <b>{{ n.m_finished.strftime('%Y-%m-%d %H:%M:%S') }}</b>
+                    </h6>
+                </div>
+
+                <div class="collapse mb-1" id="collapseOrder6_{{ loop.index }}">
+                    <div class="card-body">
+                        <div class="mb-1">
+                            {% include 'crm/crmm/order_description.html' %}
+                        </div>
+                        <div class="mb-1">
+                            <form method="post" action="{{ url_for('crm_d.download_order', o_id=n.id) }}" title="Скачать таблицу заказа">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <button class="btn btn-sm btn-info btn-block" type="submit">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                        class="bi bi-download" viewBox="0 0 16 16">
+                                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5
+                                            0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5
+                                            10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                                    </svg>
+                                    Скачать таблицу
+
+                                </button>
+                             </form>
+
+                            <button class="btn btn-sm btn-outline-info btn-block mt-1"
+                                    {% if current_user.role == 'superuser' or current_user.role == 'supermanager'%}
+                                    title="Менеджер заказа. Нажмите, чтобы изменить."
+                                    onclick="change_operator('{{ n.id }}', '{{ url_for('crm_d.change_order_manager', manager_id=n.manager_id, o_id= n.id) }}', '{{ csrf_token() }}')"
+                                    {% else %} title="Менеджер заказа"
+                                    {% endif %} readonly>
+
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-person" viewBox="0 0 16 16">
+                                  <path d="M12 1a1 1 0 0 1 1 1v10.755S12 11 8 11s-5 1.755-5 1.755V2a1 1 0 0 1 1-1h8zM4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H4z"/>
+                                  <path d="M8 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                                </svg> <b>{{ n.manager }}</b>&nbsp;
+                            </button>
+                            {% if n.stage_setter_name and n.stage_setter_name != n.manager%}
+                                <button class="btn btn-sm btn-outline-secondary btn-block mt-1" title="Изменил статус заказа"readonly>
+
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-person" viewBox="0 0 16 16">
+                                      <path d="M12 1a1 1 0 0 1 1 1v10.755S12 11 8 11s-5 1.755-5 1.755V2a1 1 0 0 1 1-1h8zM4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H4z"/>
+                                      <path d="M8 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                                    </svg> <b>{{ n.stage_setter_name }}</b>&nbsp;
+                                </button>
+                            {% endif %}
+                        </div>
+
+                        <div class="mt-1">
+                            <button class="btn btn-sm btn-block btn-light" readonly>
+                                КС: <b>{{ n.row_count }}</b>    КМ: <b>{{ n.pos_count }}</b>
+                                {% if n.declar_doc%}РД <b>{{ n.declar_doc }}</b>{% endif %}
+                            </button>
+
+                        </div>
+                        <div class="mt-3 bg-solved card p-1 text-center">
+                            <span class="font-12"><b>Устраненная проблема</b>:<br> {{ n.comment_problem }}</span>
+                        </div>
+                        {% if n.order_file %}
+                            <form method="POST" id="download_file_order{{ n.id }}" action="{{ url_for('crm_d.download_file', manager_id=n.manager_id, o_id=n.id) }}"
+                                    enctype="multipart/form-data">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <button type="submit" class="btn btn-sm btn-warning btn-block mt-1 mb-1"
+                                        title="Скачать архив с файлами заказа">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                        class="bi bi-download" viewBox="0 0 16 16">
+                                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5
+                                            0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5
+                                            10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                                    </svg>
+                                    <b>Скачать заказ</b>
+
+                                </button>
+                            </form>
+                        {%elif n.order_file_link %}
+                               <div class="mt-1 mb-1">
+                                   <button class="btn btn-sm btn-warning btn-block font-12"
+                                                                 onclick="copy_buffer('{{ n.order_file_link }}')"
+                                                                 title="Скопировать ссылку">
+                                        <b><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-files" viewBox="0 0 16 16">
+                                          <path d="M13 0H6a2 2 0 0 0-2 2 2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm0 13V4a2 2 0 0 0-2-2H5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1zM3 4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4z"/>
+                                        </svg>
+                                             Cсылка на файл заказа</b>
+                                    </button>
+                               </div>
+                        {% endif %}
+                         <form method="post" action="{{ url_for('crm_d.m_order_order_bp', o_id = n.id, manager_id=n.manager_id, f_manager_id=filtered_manager_id) }}">
+                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                             <button type="submit" class="btn btn-sm btn-outline-secondary btn-block font-8"
+                                     title="Переместить заказ в статус В ОБРАБОТКЕ У МЕНЕДЖЕРА" name="move_to_mp">
+                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16">
+                                   <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+                                 </svg>
+                                 <br><b>Вернуть заказ в обработку</b>
+                             </button>
+
+                         </form>
+
+                        {% include 'crm/special_alerts.html' %}
+
+                    </div>
+                </div>
+              </div>
+            {% endfor %}
+        </div>
+</div>
+
+
+
+
+
+
+

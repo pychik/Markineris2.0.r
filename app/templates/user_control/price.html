@@ -1,0 +1,73 @@
+
+
+<div class="container mt-3 faded" id="price_block" style="display:none">
+    {% if not agent_info.is_at2 %}
+        {% if user_prices %}
+<!--            <div class="g-5 mt-5 text-center">-->
+<!--                <div>-->
+<!--                    <span style="cursor:pointer"><u>Прайс пользователя <span class="text-warning">{{ user_prices.price_code }}</span></u></span>-->
+<!--                </div>-->
+<!--            </div>-->
+            <div class="price mx-auto my-5">
+                <div class="price-item">
+                    <div class="price-num">от 0 - 100 марок</div>
+                    <div class="price-val">{{ user_prices.price_1 }} руб.</div>
+                </div>
+                <div class="price-item">
+                    <div class="price-num">от 101 - 500 марок</div>
+                    <div class="price-val">{{ user_prices.price_2 }} руб.</div>
+                </div>
+                <div class="price-item">
+                    <div class="price-num">от 501 - 1000 марок</div>
+                    <div class="price-val">{{ user_prices.price_3 }} руб.</div>
+                </div>
+                <div class="price-item">
+                    <div class="price-num">от 1001 - 3000 марок</div>
+                    <div class="price-val">{{ user_prices.price_4 }} руб.</div>
+                </div>
+                <div class="price-item">
+                    <div class="price-num">3000+ марок</div>
+                    <div class="price-val">{{ user_prices.price_5 }} руб.</div>
+                </div>
+            </div>
+
+        {% else %}
+<!--            <div class="g-5 mt-5 text-center">-->
+<!--                <div>-->
+<!--                    <span style="cursor:pointer"><u>Прайс пользователя <span class="text-warning">{{ basic_prices[0] }}</span></u></span>-->
+<!--                </div>-->
+<!--            </div>-->
+            <div class="price mx-auto my-5">
+                <div class="price-item">
+                    <div class="price-num">от 0 - 100 марок</div>
+                    <div class="price-val">{{ basic_prices[1] }} руб.</div>
+                </div>
+                <div class="price-item">
+                    <div class="price-num">от 101 - 500 марок</div>
+                    <div class="price-val">{{ basic_prices[2] }} руб.</div>
+                </div>
+                <div class="price-item">
+                    <div class="price-num">от 501 - 1000 марок</div>
+                    <div class="price-val">{{ basic_prices[3] }} руб.</div>
+                </div>
+                <div class="price-item">
+                    <div class="price-num">от 1001 - 3000 марок</div>
+                    <div class="price-val">{{ basic_prices[4] }} руб.</div>
+                </div>
+                <div class="price-item">
+                    <div class="price-num">3000+ марок</div>
+                    <div class="price-val">{{ basic_prices[5] }} руб.</div>
+                </div>
+            </div>
+
+        {% endif %}
+    {% else %}
+        Ваш агент <span class="badge bg-warning text-black">{{ agent_info.login_name }}</span> работает по типу <u>единый счет</u>, он определяет цены.
+    {% endif %}
+
+
+
+
+
+
+</div>

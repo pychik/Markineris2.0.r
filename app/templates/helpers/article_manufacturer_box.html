@@ -1,0 +1,26 @@
+<div class="col-12 text-center">
+    <label>
+        <h5>
+            <a class="badge badge-light"
+               role="button"
+               data-toggle="collapse" href="#collapseManufacturer"
+               aria-expanded="true"
+               aria-controls="collapseManufacturer">
+                Производитель (необязательно)
+            </a>
+
+        </h5>
+    </label>
+    <div class="row collapse {% if copied_order %}{% if copied_order.article_manufacturer %}show{% endif %}{% endif %}"
+         id="collapseManufacturer">
+{#        <div class="col-md-2"></div>#}
+        <div class="col-12" >
+            <input type="text" name="article_manufacturer" class="form-control" placeholder="Введите производителя"
+                   maxlength="50"
+                 {% if copied_order %}
+                        {% if copied_order.article_manufacturer %} value="{{ copied_order.article_manufacturer }}" {% endif %}
+                {% endif %}>
+        </div>
+    </div>
+</div>
+

@@ -1,0 +1,99 @@
+<div class="container mt-3 faded" id="service_accounts_block" xmlns="http://www.w3.org/1999/html">
+    <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-3">
+        <div class="breadcrumbs">
+            <span style="cursor:pointer"><u>Настройка счетов и qr кодов</u></span>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-md-3 mr-3">
+            <div class="border border-5 p-3 mb-1">
+                <h4>Режим работы сервиса</h4>
+                <form method="POST" action="" enctype="multipart/form-data"
+                      id="service_account_type_form">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <div class="mt-3" title="Настройка работы по счету сервиса">
+
+                        <div class="form-check form-switch my-2" id="desc_account_type">
+                            {% if account_type == 'qr_code' %}
+                                <label>Работа по Qr коду</label>
+                                <input class="form-check-input bg-warning border border-warning" type="checkbox" role="switch" id="account_type_switch"
+                                       name="account_type_switch" checked
+                                    onclick="bck_change_account_type('{{url_for('admin_control.su_bck_change_sa_type', sa_type='requisites')}}', 'requisites')">
+                            {% else %}
+                                <label>Работа по реквизитам</label>
+                                <input class="form-check-input border border-warning" type="checkbox" role="switch" id="account_type_switch"
+                                       name="account_type_switch"
+                                    onclick="bck_change_account_type('{{url_for('admin_control.su_bck_change_sa_type', sa_type='qr_code')}}', 'qr_code')">
+                            {% endif %}
+
+                        </div>
+                        <div class="mt-1 text-warning" id="sa_message_block"></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="col-md-6 border border-5 p-3">
+            <h4>Добавить новый счет</h4>
+            <form method="POST" action="{{url_for('admin_control.su_add_sa')}}" enctype="multipart/form-data"
+                  id="service_account_form">
+                <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                <div class="mt-3" title="Введите настройки промо кода">
+
+                    <div class="form-group my-2" >
+                        <label>Наименование счета</label>
+                        <input class="form-control"  type="text" id="sa_name" name="sa_name"
+                            placeholder="Введите наименование счета" title="Введите наименование счета"
+                            minlength="3" maxlength="100" required
+                            onchange="javascript:if(this.value.length < 3 || this.value.length >= 100)
+                            {this.classList.remove('is-valid');this.classList.add('is-invalid');this.value=''}
+                            else{this.classList.remove('is-invalid');this.classList.add('is-valid');}"/>
+
+                    </div>
+                    <div class="form-group mb-3" >
+                        <label>Тип счета</label>
+                        <select class="form-select" id="sa_type" name="sa_type" required
+                               onchange="sa_form_update_type()">
+                            <option disabled value="" selected>Выберите тип счета</option>
+                            {%for t in sa_types %}
+                                <option value="{{t}}"> {{sa_types[t]}}</option>
+                            {% endfor %}
+                        </select>
+
+                    </div>
+                    <div class="form-group mb-3" id="qr_img_block" style="display:none" >
+                        <label class="control-label">Картинка qr кода</label>
+                        <label class="input-file">
+                          <input type="file" disabled id="sa_qr_file" name="sa_qr_file"
+                                           accept=".png,.jpg,.jpeg" required>
+                           <span class="input-file-btn btn btn-secondary ">Выберите файл</span>
+                          <span class="input-file-text">Не выбрана</span>
+                        </label>
+                    </div>
+                    <div class="form-group mb-3" id="req_block" style="display:none">
+                        <label>Реквизиты счета (от 10 знаков)</label>
+                        <input class="form-control" disabled type="text" id="sa_req" name="sa_req"
+                            placeholder="Введите реквизиты счета" title="Введите реквизиты счета. Минимальное количество символов - 10"
+                            minlength="10" maxlength="150" required
+                            onchange="if(this.value.length < 10 || this.value.length >= 150)
+                            {this.classList.remove('is-valid');this.classList.add('is-invalid');this.value=''}
+                            else{this.classList.remove('is-invalid');this.classList.add('is-valid');}"/>
+                    </div>
+
+
+                    <button type="button" class="btn btn-accent mt-md-1"
+                            onclick="if(check_sa_form()){bck_add_sa('{{url_for('admin_control.su_add_sa')}}', '{{url_for('admin_control.su_bck_sa')}}')}">
+                        Добавить
+                    </button>
+
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="sa_table" class="mb-3">
+        {% include 'admin/sa_table.html' %}
+    </div>
+
+
+
+</div>

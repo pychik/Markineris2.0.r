@@ -1,0 +1,31 @@
+<div class="stepwizard">
+    <div class="stepwizard-row setup-panel">
+        <div class="stepwizard-step">
+            <a href="#step-1" type="button" id="btn-step-1" class="btn {% if not o_id and 'page not in request.url'%}btn-accent{%endif%} btn-circle">1</a>
+            <p>Организация</p>
+        </div>
+        <div class="stepwizard-step">
+            <a href="#step-2" type="button" id="btn-step-2" class="btn btn-default btn-circle {% if o_id and 'page' not in request.url%}btn-accent{%endif%}"
+                disabled>2</a>
+            <p>Позиции</p>
+        </div>
+        <div class="stepwizard-step">
+            <a href="#step-3" type="button" id="btn-step-3" class="btn btn-default btn-circle {% if 'page' in request.url %} btn-accent {% endif %} " disabled>3</a>
+            <p>Оформление</p>
+        </div>
+    </div>
+    {% if o_id %}
+        <div class="mt-3 text-center setup-panel">
+            <h5><span class="customer badge" style="background-color:#cccbc8; color: #868585">Накладная для {{company_type}} {{company_name.split(' ')[0]}} ИНН {{ company_idn}}</span></h5>
+        </div>
+
+    {% endif %}
+</div>
+
+<script>
+window.onload = function(e){
+  check_step();
+};
+
+
+</script>

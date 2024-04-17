@@ -1,0 +1,94 @@
+
+{% if users_list %}
+    <div class="faded">
+        <table class="table mt-3 table-result mt-1">
+          <thead class="text-dark">
+            <tr>
+              <th scope="col">
+              </th>
+              <th scope="col" style="width:200px"><font size="2">Имя&nbsp;пользователя (логин)</font></th>
+              <th scope="col" style="width:150px"><font size="2">Телефон</font></th>
+              <th scope="col"><font size="2">Email</font></th>
+              <th scope="col"><font size="2">Агент</font></th>
+              <th scope="col"><font size="2">Код партнера</font></th>
+              <th scope="col"><font size="2">Статусы</font></th>
+              <th scope="col"><font size="2">Управление пользователем</font></th>
+              <th scope="col"><font size="2"></font></th>
+            </tr>
+          </thead>
+          <tbody>
+
+            {%for u in users_list%}
+                <tr>
+                  <th scope="row">
+                      {{(page - 1) * per_page + loop.index}}
+                  </th>
+
+                  <td>
+                      <span title="Баланс пользователя {{u.balance}} р.">{{u.login_name}}</span> <div class="font-10 text-secondary" title="Дата и время регистрации" style="font-size: 10px">{{ u.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+
+                  </td>
+
+                  <td>
+                      {{u.phone}}
+                  </td>
+                  <td>
+                      {{u.email}}
+                  </td>
+                  <td>
+                      {{u.agent_name}}
+                  </td>
+                  <td>
+                     {% if u.partner_code %} {{ u.partner_code }}{% else %}NO PARTNER{% endif %}
+                  </td>
+                  <td>
+                          <form method="post" id="activate_user_{{ u.id }}">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                              <button type="button" class="btn btn-sm btn-outline-success btn-block"
+                                 onclick="bck_activate_user('{{url_for('admin_control.bck_user_activate', u_id=u.id)}}', '{{url_for('admin_control.users_activate_list', bck=1, page=page)}}', 'activate_user_{{ u.id }}')">
+                                  Активировать
+                              </button>
+                          <input type="text" class="form-control mt-1"
+                             placeholder="Введите код клиента"
+                             name="client_code">
+                          </form>
+
+                  </td>
+                  <td>
+                      <form method="post" id="delete_user_{{ u.id }}">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                          <button type="button" class="btn btn-sm btn-outline-danger"
+                              title="Удалить пользователя {{ u.login_name }}"
+                              onclick="bck_delete_user('{{url_for('admin_control.bck_user_delete', u_id=u.id)}}', '{{url_for('admin_control.users_activate_list', bck=1, page=page)}}', 'delete_user_{{ u.id }}')">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
+                                    <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/>
+                              </svg>
+    {#                                      <input type="hidden" name="delete">#}
+                          </button>
+
+                      </form>
+                  </td>
+
+                </tr>
+
+
+            {%endfor%}
+          </tbody>
+        </table>
+        <div class="pagination_section my-1" >
+            <div class="d-flex">
+                <div class="col-3"></div>
+                <div class="col-md-1"></div>
+                <div class="col-5" style="margin-left: 3%;">
+                    <div class="pagination-page-info my-2">
+                        На этой странице <b>{{ offset + 1 }} - {{ offset + users_list|length }}</b> Всего: <b>{{ pagination.total }}</b>
+                    </div>
+                    {{ pagination.links }}
+                </div>
+
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="faded mt-3">Пока нет пользователей требующих активации</div>
+{% endif %}

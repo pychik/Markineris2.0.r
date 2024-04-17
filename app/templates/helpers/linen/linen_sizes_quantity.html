@@ -1,0 +1,30 @@
+<div class="form-group" id="sizes_quantity_order">
+    <label class="control-label">Размер</label>
+
+    <input type="number" min="10" minlength="2" step="1" name="sizeX_order" id="sizeX_order" class="form-control"
+                               placeholder="Размер Х" >
+    <input type="number" min="10" minlength="2" step="1" name="sizeY_order" id="sizeY_order" class="form-control"
+                               placeholder="Размер Y">
+    <span id="sizes_message"></span>
+
+    <label class="control-label" for="quantity_order">Количество</label>
+    <input type="number" name="quantity_order" id="quantity_order" placeholder="Количество" class="form-control"
+        value="1" min="1"
+        oninput="validity.valid||(value='');javascript:setLinen();">
+    <span onclick="javascript:addLinenCell();" style="cursor: pointer"
+        class="add-nk d-flex align-items-center text-decoration-none">
+        Добавить новый размер
+        <div class="blink-badge" title="Нажмите, чтобы добавить размер и количество в накладную позиции">
+            <svg xmlns="http://www.w3.org/2000/svg" width="23" height="24"
+                viewBox="0 0 17 18" fill="none" class="ms-2">
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                    d="M3.68963 1.20038C6.86084 0.846537 10.1392 0.846537 13.3104 1.20038C15.0801 1.39784 16.5078 2.78982 16.7157 4.56355C17.0948 7.80021 17.0948 11.0699 16.7157 14.3065C16.5078 16.0802 15.0801 17.4722 13.3104 17.6696C10.1392 18.0235 6.86084 18.0235 3.68963 17.6696C1.91992 17.4722 0.492186 16.0802 0.284385 14.3065C-0.094795 11.0699 -0.094795 7.80021 0.284385 4.56355C0.492186 2.78982 1.91992 1.39784 3.68963 1.20038ZM8.50002 4.28485C8.928 4.28485 9.27498 4.63123 9.27498 5.05851V8.66134H12.8839C13.3119 8.66134 13.6588 9.00773 13.6588 9.435C13.6588 9.86227 13.3119 10.2087 12.8839 10.2087H9.27498V13.8114C9.27498 14.2388 8.928 14.5851 8.50002 14.5851C8.07204 14.5851 7.72507 14.2388 7.72507 13.8114V10.2087H4.11625C3.68825 10.2087 3.3413 9.86227 3.3413 9.435C3.3413 9.00773 3.68825 8.66134 4.11625 8.66134H7.72507V5.05851C7.72507 4.63123 8.07204 4.28485 8.50002 4.28485Z"
+                    fill="#00A958" />
+            </svg>
+        </div>
+    </span>
+
+    <!--    this block for adding hidden pairs of sq to our form-->
+    <div id="sizes_quantity_hidden"></div>
+
+</div>

@@ -1,0 +1,27 @@
+<div title="Особенности">
+      <h6 class="card-text text-center" >
+
+
+          {% if n.declar_doc %}
+              <span title="Есть позиции с разрешительной документацией" style="font-size:24px; font-weight: bold" class="text-danger">Д
+              </span>
+          {% endif %}
+          {% if n.has_new_tnveds %}
+              <span title="Есть позиции со новыми ТНВЭД категории одежда" style="font-size:24px; font-weight: bold" class="text-primary"> Т
+              </span>
+          {% endif %}
+          {% if n.user_comment %}
+              <a data-toggle="collapse"
+                 href="#collapseOrderComment_1_{{ loop.index }}" role="button"
+                 aria-expanded="false">
+                  <span title="Комментарий пользователя: {{n.user_comment}}" style="font-size:24px; font-weight: bold" class="text-warning">К
+                  </span>
+              </a>
+          {% endif %}
+      </h6>
+      {% if n.user_comment %}
+          <div class="collapse text-center p-1" id="collapseOrderComment_1_{{ loop.index }}">
+              <textarea class="form-control bg-white" rows="3" readonly>{{n.user_comment}}</textarea>
+          </div>
+      {% endif %}
+ </div>

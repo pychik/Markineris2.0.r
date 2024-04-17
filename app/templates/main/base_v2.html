@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    {% set rz_condition = (current_user.role =='ordinary_user' and current_user.admin_parent_id == 1) or current_user.id == 1  or admin_id == 1%}
+    {% include 'main/base_helpers/title.html' %}
+
+<!--    <link rel="preconnect" href="https://fonts.googleapis.com">-->
+<!--    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>-->
+    <link rel="preconnect" href="{{url_for('static',filename='main_v2/css/service/g_fonts.css')}}" crossorigin>
+    <link href="{{url_for('static',filename='main_v2/css/service/g_fonts.css')}}" rel="stylesheet">
+
+    <link rel="shortcut icon" href="{{url_for('static',filename='main_v2/images/favicon.ico')}}" type="image/x-icon">
+    <link rel="icon" href="{{url_for('static',filename='main_v2/images/favicon.ico')}}">
+    <link rel="apple-touch-icon" href="{{url_for('static',filename='main_v2/images/apple-touch-icon.png')}}">
+
+    <link rel="stylesheet" href="{{url_for('static',filename='main_v2/assets/lib/bootstrap/css/bootstrap.min.css')}}">
+    <link href="{{url_for('static',filename='main_v2/css/service/select2.min.css')}}" rel="stylesheet" />
+    <link rel="stylesheet" href="{{url_for('static',filename='main_v2/css/style.css')}}?v=10">
+    <link rel="stylesheet" href="{{url_for('static',filename='main_v2/css/update_1.css')}}  ">
+    <link rel="stylesheet" href="{{url_for('static',filename='main_v2/css/special.css')}}">
+    <link rel="stylesheet" href="{{url_for('static',filename='main_v2/assets/lib/tablestack/tablesaw.stackonly.css')}}">
+    <link rel="stylesheet" href="{{url_for('static',filename='main_v2/video/css/video.css')}}?v=2">
+
+    <script src="{{url_for('static',filename='main_v2/assets/lib/tablestack/tablesaw.stackonly.js')}}"></script>
+
+    <script src="{{url_for('static',filename='main_v2/js/assets/jquery.min.js')}}"></script>
+<!--    <script src="{{url_for('static',filename='main_v2/js/assets/jquery.inputmask.bundle.min.js')}}"></script>-->
+
+
+
+    <script src="{{url_for('static',filename='main_v2/js/assets/popper.min.js')}}"></script>
+    <script src="{{url_for('static',filename='main_v2/assets/lib/bootstrap/js/bootstrap.bundle.js')}}"></script>
+
+
+<!--    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>-->
+
+    {% if not config['DEBUG'] %}
+        {% include 'main/base_helpers/ym.html' %}
+    {% endif %}
+
+</head>
+
+<body>
+
+    <main>
+        <div class="offcanvas-lg flex-shrink-0 p-3 bg-darken text-light sidebar" id="offcanvasResponsive">
+            <div class="offcanvas-body pb-5">
+                <div class="d-flex justify-content-between justify-content-lg-center">
+
+                    {% if not ('login' in  request.path or 'sign_up' in request.path or 'restore_page' in request.path) %}
+                        {% include 'main/base_helpers/branding_1.html' %}
+                    {% endif %}
+
+                    <a href="" data-bs-dismiss="sidebar" aria-label="Close">
+                        <svg class="d-block d-md-none" xmlns="http://www.w3.org/2000/svg" width="61" height="61"
+                            viewBox="0 0 61 61" fill="none">
+                            <path d="M21.5137 39.4861L39.4859 21.5138" stroke="#FFFFFF" stroke-width="1.5"
+                                stroke-linecap="round" />
+                            <path d="M21.5137 21.5139L39.4859 39.4861" stroke="#FFFFFF" stroke-width="1.5"
+                                stroke-linecap="round" />
+                        </svg>
+                    </a>
+                </div>
+                {% if current_user.is_authenticated %}
+
+                    <div class="mt-4 mb-3">
+                        <div class="contact-links mt-4">
+                                <ul class="nav nav-pills flex-column mb-auto">
+                                    <li class="nav-item">
+                                        <a href="{{url_for('orders_archive.index')}}" class="nav-link {% if 'orders_archive' in request.path %}active{%else%}no-link{% endif %}" aria-current="page">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-inboxes" viewBox="0 0 24 24">
+                                              <path d="M4.98 1a.5.5 0 0 0-.39.188L1.54 5H6a.5.5 0 0 1 .5.5 1.5 1.5 0 0 0 3 0A.5.5 0 0 1 10 5h4.46l-3.05-3.812A.5.5 0 0 0 11.02 1H4.98zm9.954 5H10.45a2.5 2.5 0 0 1-4.9 0H1.066l.32 2.562A.5.5 0 0 0 1.884 9h12.234a.5.5 0 0 0 .496-.438L14.933 6zM3.809.563A1.5 1.5 0 0 1 4.981 0h6.038a1.5 1.5 0 0 1 1.172.563l3.7 4.625a.5.5 0 0 1 .105.374l-.39 3.124A1.5 1.5 0 0 1 14.117 10H1.883A1.5 1.5 0 0 1 .394 8.686l-.39-3.124a.5.5 0 0 1 .106-.374L3.81.563zM.125 11.17A.5.5 0 0 1 .5 11H6a.5.5 0 0 1 .5.5 1.5 1.5 0 0 0 3 0 .5.5 0 0 1 .5-.5h5.5a.5.5 0 0 1 .496.562l-.39 3.124A1.5 1.5 0 0 1 14.117 16H1.883a1.5 1.5 0 0 1-1.489-1.314l-.39-3.124a.5.5 0 0 1 .121-.393zm.941.83.32 2.562a.5.5 0 0 0 .497.438h12.234a.5.5 0 0 0 .496-.438l.32-2.562H10.45a2.5 2.5 0 0 1-4.9 0H1.066z"/>
+                                            </svg>
+                                            История заказов
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a href="{{url_for('main.enter')}}" class="nav-link {% if  'enter' in request.path %}active{%else%}no-link{% endif %}" aria-current="page">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                                fill="none">
+                                                <path
+                                                    d="M20.9346 5.83087L15.3098 0.206016C15.1778 0.0741977 14.999 0.000105395 14.8125 0L4.96875 0C3.80564 0 2.85938 0.946266 2.85938 2.10938V21.8906C2.85938 23.0537 3.80564 24 4.96875 24H19.0312C20.1944 24 21.1406 23.0537 21.1406 21.8906V6.32812C21.1406 6.13641 21.0601 5.95636 20.9346 5.83087ZM15.5156 2.40061L18.74 5.625H16.2188C15.831 5.625 15.5156 5.30958 15.5156 4.92188V2.40061ZM19.0312 22.5938H4.96875C4.58105 22.5938 4.26562 22.2783 4.26562 21.8906V2.10938C4.26562 1.72167 4.58105 1.40625 4.96875 1.40625H14.1094V4.92188C14.1094 6.08498 15.0556 7.03125 16.2188 7.03125H19.7344V21.8906C19.7344 22.2783 19.419 22.5938 19.0312 22.5938Z"
+                                                    fill="#EFEFEF" />
+                                                <path
+                                                    d="M16.2188 9.9375H7.78125C7.39294 9.9375 7.07812 10.2523 7.07812 10.6406C7.07812 11.0289 7.39294 11.3438 7.78125 11.3438H16.2188C16.6071 11.3438 16.9219 11.0289 16.9219 10.6406C16.9219 10.2523 16.6071 9.9375 16.2188 9.9375ZM16.2188 12.75H7.78125C7.39294 12.75 7.07812 13.0648 7.07812 13.4531C7.07812 13.8414 7.39294 14.1562 7.78125 14.1562H16.2188C16.6071 14.1562 16.9219 13.8414 16.9219 13.4531C16.9219 13.0648 16.6071 12.75 16.2188 12.75ZM16.2188 15.5625H7.78125C7.39294 15.5625 7.07812 15.8773 7.07812 16.2656C7.07812 16.6539 7.39294 16.9688 7.78125 16.9688H16.2188C16.6071 16.9688 16.9219 16.6539 16.9219 16.2656C16.9219 15.8773 16.6071 15.5625 16.2188 15.5625ZM13.4062 18.375H7.78125C7.39294 18.375 7.07812 18.6898 7.07812 19.0781C7.07812 19.4664 7.39294 19.7812 7.78125 19.7812H13.4062C13.7946 19.7812 14.1094 19.4664 14.1094 19.0781C14.1094 18.6898 13.7946 18.375 13.4062 18.375Z"
+                                                    fill="#EFEFEF" />
+                                            </svg>
+                                            Новая накладная
+                                        </a>
+                                    </li>
+                                    <li class="nav-item nav-item--sub {% if 'shoes' in request.path %}active{%endif%} ps-5">
+                                        <a href="{{url_for('shoes.index')}}" class="nav-link text-light" aria-current="page">Обувь</a>
+                                    </li>
+                                    <li class="nav-item nav-item--sub {% if 'clothes' in request.path %}active{%endif%} ps-5">
+                                        <a href="{{url_for('clothes.index')}}" class="nav-link text-light" aria-current="page">Одежда</a>
+                                    </li>
+                                    <li class="nav-item nav-item--sub {% if 'linen' in request.path %}active{%endif%} ps-5">
+                                        <a href="{{url_for('linen.index')}}" class="nav-link text-light" aria-current="page">Белье</a>
+                                    </li>
+                                    <li class="nav-item nav-item--sub {% if 'parfum' in request.path %}active{%endif%} ps-5">
+                                        <a href="{{url_for('parfum.index')}}" class="nav-link text-light" aria-current="page">Духи</a>
+                                    </li>
+                                    <li class="nav-item nav-item--sub {% if 'tires' in request.path %}active{%endif%} ps-5">
+                                        <a href="#" class="nav-link text-light" aria-current="page">Шины</a>
+                                    </li>
+                                </ul>
+
+                        </div>
+                    </div>
+                {% else %}
+
+                    <div class="mt-4 mb-3">
+                        <div class="contact-links mt-4">
+                            {% if 'login' in  request.path or 'sign_up' in request.path or 'restore_page' in request.path %}
+                            <div class="mb-3 text-center" style="font-weight: bold">
+                                <a href="{{url_for('auth.login')}}" class="text-white" style="text-decoration:none">Вход</a>
+                            </div>
+                            {%endif%}
+                            <form method="POST"  action="{{url_for('auth.login_post')}}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <input type="email" name="email" class="form-control" placeholder="Введите Email" required=""
+                                    autofocus="">
+
+                                <input type="password" id="password" name="password" class="form-control mt-3" placeholder="Введите пароль"
+                                    required="">
+                                <div class="mb-3 text-right d-flex flex-row-reverse">
+                                    <span class="text-warning" id="eye-toggle-login" onclick="change_input_view('password', 'eye-toggle-login')">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+                                          <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+                                          <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
+                                        </svg>
+                                    </span>
+                                </div>
+
+                                <button class="btn  btn-block btn-accent w-100" type="submit">Войти</button>
+                            </form>
+                        </div>
+                        <a href="{{url_for('user_cp.restore_page')}}" class="text-warning"
+                           style="text-decoration:none">
+                            Забыл пароль
+                        </a>
+                    </div>
+
+                {% endif %}
+
+                {% if not ('login' in  request.path or 'sign_up' in request.path or 'restore_page' in request.path)%}
+                    {% include 'main/base_helpers/contact_links.html' %}
+
+                    <div class="bn mt-4 ">
+
+                        {% include 'main/base_helpers/branding_2.html' %}
+
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="content">
+            <header class="d-flex justify-content-between  py-3 header">
+                <div class="container-fluid">
+                    {% include 'main/base_header.html'%}
+                </div>
+
+            </header>
+
+            <div id="main_content">
+
+
+                <div class="container-fluid">
+                    {% block main %}
+                    {% endblock %}
+
+                    {% block auth %}
+                    {% endblock %}
+
+                    {% block archive %}
+                    {% endblock %}
+
+                    {% block admin_panel %}
+                    {% endblock %}
+
+                    {% block admin_control_panel %}
+                    {% endblock %}
+
+                    {% block admin_control_panel_users %}
+                    {% endblock %}
+
+                    {% block categories_upper_part %}
+                    {% endblock %}
+
+                    {% block categories_upper_part_upload %}
+                    {% endblock %}
+
+                    {% block uc_panel %}
+                    {% endblock %}
+
+                    {% block preload %}
+                    {% endblock %}
+
+                    {% block categories %}
+                    {% endblock %}
+
+                    {% block change_org %}
+                    {% endblock %}
+
+                    {% block org_info %}
+                    {% endblock %}
+
+                    {% block pa_panel %}
+                    {% endblock %}
+
+                    {% block fc_panel %}
+                    {% endblock %}
+
+                </div>
+
+
+            </div>
+        </div>
+    </main>
+
+<!--    <div id="all_messages" class="container-fluid">-->
+<!--       {% with messages = get_flashed_messages(with_categories=true) %}-->
+<!--           {% if messages %}-->
+<!--               {% for category, message in messages %}-->
+<!--                    {% if category == 'error' %}-->
+<!--                       <div class="alert alert-danger alert-dismissible fade show" id="alert-message-error"-->
+<!--                            role="alert">-->
+<!--                           <button type="button"  class="btn-close" data-bs-dismiss="alert" aria-label="Close">-->
+<!--                           </button>-->
+<!--                           {{ message | safe }}-->
+<!--                       </div>-->
+<!--                    {% elif category == 'warning' %}-->
+<!--                        <div class="alert alert-warning alert-dismissible fade show" id="alert-message-warning"-->
+<!--                             role="alert">-->
+<!--                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">-->
+<!--                           </button>-->
+<!--                           {{ message | safe }}-->
+<!--                       </div>-->
+<!--                    {% else %}-->
+<!--                        <div class="alert alert-success alert-dismissible fade show" id="alert-message-success"-->
+<!--                             role="alert">-->
+<!--                           <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">-->
+<!--                           </button>-->
+<!--                           {{ message | safe }}-->
+<!--                       </div>-->
+<!--                   {% endif %}-->
+<!--                {% endfor %}-->
+<!--           {% endif %}-->
+<!--       {% endwith %}-->
+<!--    </div>-->
+    <!-- УВЕДОМЛЕНИЯ  https://getbootstrap.ru/docs/5.1/components/toasts/ -->
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11" id="all_messages">
+       {% with messages = get_flashed_messages(with_categories=true) %}
+           {% if messages %}
+               {% for category, message in messages %}
+                    {% if category == 'error' %}
+                        <div id="alert-message-error" class="toast toast-error" role="alert" data-bs-delay="30000"
+                             aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header">
+                                <strong class="me-auto fw-bold ">Ошибка!</strong>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+                            </div>
+                            <div class="toast-body d-flex align-items-center ">
+                                <img src="{{url_for('static',filename='main_v2/img/icons/error.svg')}}" alt="" width="66" height="66" class="img-fluid ">
+                                <p class="mt-2">{{ message | safe }}</p>
+                            </div>
+                        </div>
+                    {% elif category == 'warning' %}
+                        <div id="alert-message-warning" class="toast toast-warning " role="alert" data-bs-delay="30000"
+                             aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header">
+                                <strong class="me-auto fw-bold ">Предупреждение!</strong>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+                            </div>
+                            <div class="toast-body d-flex align-items-center ">
+                                <img src="{{url_for('static',filename='main_v2/img/icons/warning.svg')}}" alt="" width="66" height="66" class="img-fluid ">
+                                <p class="mt-2">{{ message | safe }}</p>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div id="alert-message-success" class="toast toast-success " role="alert" data-bs-delay="30000"
+                             aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header">
+                                <strong class="me-auto fw-bold ">Успешно!</strong>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+                            </div>
+                            <div class="toast-body d-flex align-items-center ">
+                                <img src="{{url_for('static',filename='main_v2/img/icons/success.svg')}}" alt="" width="66" height="66" class="img-fluid ">
+                                <p class="mt-2">{{ message | safe }}</p>
+                            </div>
+                        </div>
+                    {% endif %}
+               {% endfor %}
+           {% endif %}
+       {% endwith %}
+
+    </div>
+
+    <div id="obDetaildiv"></div>
+    <div id="tgNotifydiv"></div>
+
+    <div class="overlay" id="overlay_loading" >
+        <div class="d-flex justify-content-center">
+          <div class="text-warning over_text text-center">
+             <h3>Производится обработка запроса...</h3>
+             <h5>Если процесс длится более 3 мин, обновите страницу!</h5>
+             <div class="spinner-border" style="width: 5rem; height: 5rem;" role="status">
+                 <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+    </div>
+
+<!--    <script src="assets/lib/bootstrap/js/bootstrap.bundle.min.js"></script> -->
+<!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>-->
+<!--    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>-->
+
+<!--    <script src="js/script.js"></script>-->
+
+
+
+
+    <script src="{{url_for('static',filename='main_v2/js/assets/select2.min.js')}}"></script>
+    <script src="{{url_for('static',filename='main_v2/js/special.js')}}"></script>
+    <script src="{{url_for('static',filename='main_v2/js/script.js')}}"></script>
+    <script src="{{url_for('static',filename='main_v2/js/new_messages.js')}}"></script>
+
+    <script>
+        const message_icon_error = '{{url_for('static',filename='main_v2/img/icons/error.svg')}}';
+        const message_icon_warning = '{{url_for('static',filename='main_v2/img/icons/warning.svg')}}';
+        const message_icon_success = '{{url_for('static',filename='main_v2/img/icons/success.svg')}}';
+         $(document).ready(function() {
+         // сообщение будет закрыто через 10 секунд после загрузки страницы
+             show_user_messages();
+             window.setTimeout(function() {
+             clear_user_messages();
+         }, 10000);
+         });
+        // var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        // var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        //   return new bootstrap.Tooltip(tooltipTriggerEl)
+// })
+
+    </script>
+
+</body>
+
+</html>

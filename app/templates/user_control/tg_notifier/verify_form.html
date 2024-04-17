@@ -1,0 +1,34 @@
+<div class="container">
+      <div class="modal-body text-justify">
+        {% if tg_user and tg_user.flask_user_id %}
+          <h6>Вы подписаны на уведомления от бота <span class="text-warning">{% if not is_at2 %}Маркинерис{% else %} сервиса маркировки{% endif %}</span> в Телеграмм</h6>
+          <h6> Если хотите <span class="text-warning">отписаться</span> от уведомлений, то нажмите на кнопку ниже</h6>
+          <div class="text-right">
+              <button type="button" class="btn btn-accent" onclick="bck_tg_stop_verify('{{url_for('user_cp.bck_tg_markineris_stop_verify')}}', '{{csrf_token()}}');">
+                Отключить уведомления
+            </button>
+          </div>
+
+        {% else %}
+          <div class="container text-justify">
+              <h6><b>Вы не подписаны на уведомления от бота {% if not is_at2 %}Маркинерис{% else %} сервиса маркировки{% endif %}!</b></h6>
+              <h6>Для того, чтобы подписаться, сделайте следующее:</h6>
+              <span class="text-warning">-</span> пройдите по <a href="{{bot_link}}" target="_blank">ссылке</a> и получите код верификации от бота<br>
+              <span class="text-warning">-</span> введите код верификации в форму ниже
+              <form class="form-control mt-1" method="post" action="" id="tgVerificationForm">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <div class="input-group my-3" title="Введите сумму пополнения">
+
+                       <input type="text" id="tg_verification_code" name="tg_verification_code" class="form-control" placeholder="Введите код"
+                                           minlength="32" maxlength="32" required>
+                      <div class="input-group-append">
+                        <span class="input-group-text btn-accent" style="cursor: pointer" id="bill-addon" onclick="bck_tg_markineris_verify('{{url_for('user_cp.bck_tg_markineris_verify')}}');">Отправить</span>
+                      </div>
+                  </div>
+
+              </form>
+          </div>
+        {% endif %}
+      </div>
+
+</div>

@@ -1,0 +1,15 @@
+<div class="form-group">
+    <label class="control-label">Страна</label>
+    <select class="form-control search-select" id="country" name="country">
+
+      <option value="">------------</option>
+      {%for con in countries%}
+            <option value="{{con}}" {% if copied_order %}
+                                      {% if copied_order.country == con %}
+                                          selected
+                                      {% endif %}
+                                  {% endif %}>{{con}}
+          </option>
+      {%endfor%}
+    </select>
+</div>

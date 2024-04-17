@@ -1,0 +1,57 @@
+{%extends 'main/base_v2.html'%}
+
+{% block main %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/video/css/fancybox.css') }}" />
+<!--<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.css" />-->
+<!--<div class="container pb-4">-->
+
+<!--     <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">-->
+<!--        <div class="breadcrumbs">-->
+<!--            <a href="{{url_for('main.index')}}" class="">Главная </a>-->
+<!--            /-->
+<!--            <span>Видеоинструкции</span>-->
+<!--        </div>-->
+<!--    </div>-->
+
+
+<!--</div>-->
+<div class="container">
+    <div class="front text-center">
+        <h1 class="mb-5 fs-2">Видео инструкции</h1>
+    </div>
+    <!-- БЛОК С ВИДЕО  -->
+
+    <div class="row g-4 video-block  pb-5">
+
+        <div class="col-12 col-md-6 col-lg-4 video-block__item">
+            <a href="{{ url_for('static', filename='main_v2/video/video/vid01.mp4')}}" data-fancybox data-width="1900">
+                <img class="img-fluid video-item__img" src="{{ url_for('static', filename='main_v2/video/img/poster1.jpg')}}" />
+            </a>
+        </div>
+        <div class="col-12 col-md-6 col-lg-4 video-block__item">
+            <a href="{{ url_for('static', filename='main_v2/video/video/vid02.mp4')}}" data-fancybox data-width="1900">
+                <img class="img-fluid video-item__img" src="{{ url_for('static', filename='main_v2/video/img/poster2.jpg')}}" />
+            </a>
+        </div>
+        <div class="col-12 col-md-6 col-lg-4 video-block__item">
+            <a href="{{ url_for('static', filename='main_v2/video/video/vid03.mp4')}}" data-fancybox data-width="1900">
+                <img class="img-fluid video-item__img" src="{{ url_for('static', filename='main_v2/video/img/poster3.jpg')}}" />
+            </a>
+        </div>
+        <div class="col-12 col-md-6 col-lg-4 video-block__item">
+            <a href="{{ url_for('static', filename='main_v2/video/video/vid04.mp4')}}" data-fancybox data-width="1900">
+                <img class="img-fluid video-item__img" src="{{ url_for('static', filename='main_v2/video/img/poster4.jpg')}}" />
+            </a>
+        </div>
+        <div class="col-12 col-md-6 col-lg-4 video-block__item">
+            <a href="{{ url_for('static', filename='main_v2/video/video/vid05.mp4')}}" data-fancybox data-width="1900">
+                <img class="img-fluid video-item__img" src="{{ url_for('static', filename='main_v2/video/img/poster5.jpg')}}" />
+            </a>
+        </div>
+
+    </div>
+    <!-- КОНЕЦ БЛОК С ВИДЕО  -->
+
+</div>
+
+{% endblock %}

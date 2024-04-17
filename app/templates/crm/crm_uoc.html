@@ -1,0 +1,356 @@
+{% extends "crm/base_crm.html" %}
+
+{% block crm_uoc %}
+
+<div class="mx-3">
+
+    <div class="row text-center">
+
+            {% if managers_list %}
+                    <div class="col" align="left">
+                        <table class="table table-hover table-bordered mt-1">
+                          <thead class="thead-dark">
+                            <tr>
+                              <th>#</th>
+                              <th>Логин</th>
+                              <th>Роль</th>
+                              <th>Статус</th>
+                              <th>Контроль менеджера</th>
+                              <th></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+
+                            {%for u in managers_list%}
+
+                                <tr>
+                                  <th scope="row">{{loop.index}}</th>
+
+                                  <td>
+                                      {{u.login_name}}
+                                  </td>
+                                  <td>
+                                      <h6>
+                                          <span class="badge-{% if u.role=='manager' %}light{% else %}warning{% endif %}">
+                                              {{u.role}}
+                                          </span>
+                                      {% if u.role == 'manager' %}
+                                          <form method="post" action="{{url_for('crm_uoc.set_supermanager', u_id=u.id)}}">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                                <input class="btn btn-sm btn-outline-warning btn-outline"
+                                                     title="Поменять статус на суперменеджер"
+                                                     type="submit" name="activate"
+                                                     onclick="loadingCircle()" value="Сделать суперменеджером"
+                                                {% if current_user.role != 'superuser' %} disabled{% endif %}>
+                                          </form>
+                                      {% else %}
+                                          <form method="post" action="{{url_for('crm_uoc.set_manager', u_id=u.id)}}">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                                <input class="btn btn-sm btn-outline-secondary btn-outline"
+                                                       title="Поменять статус на обычный менеджер"
+                                                       type="submit" name="activate" value="Сделать менеджером"
+                                                       onclick="loadingCircle()"
+                                                    {% if current_user.role != 'superuser' %} disabled{% endif %}>
+                                          </form>
+                                      {% endif %}
+                                      </h6>
+                                  </td>
+
+                                  <td>
+                                      {% if u.status %}
+                                          <span class="badge badge-success">Активирован</span>
+                                      {% else %}
+                                          <span class="badge badge-danger">Не активирован</span>
+                                      {% endif %}
+                                  </td>
+                                  <td>
+
+                                      {% if not u.status %}
+                                          <form method="post" action="{{url_for('crm_uoc.activate_manager', u_id=u.id)}}">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                                <input class="btn btn-sm btn-outline-success btn-outline"
+                                                       type="submit" name="activate" title="Активировать менеджера"
+                                                       onclick="loadingCircle()" value="Активировать">
+                                          </form>
+                                      {% else %}
+                                          <form method="post" action="{{url_for('crm_uoc.deactivate_manager', u_id=u.id)}}">
+                                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                              <input class="btn btn-sm btn-outline-danger btn-outline"
+                                                     title="Деактивировать менеджера"
+                                                     type="submit" name="activate" value="Деактивировать"
+                                                     onclick="loadingCircle()"
+                                                      {% if u.role == 'superuser' or u.role == 'supermanager' %}disabled{% endif %}>
+                                          </form>
+                                      {% endif %}
+                                  </td>
+                                  <td>
+                                      <form method="post" action="{{ url_for('crm_uoc.delete_manager', u_id=u.id)}}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            <input class="btn btn-sm btn-outline-danger btn-outline"
+                                                 onclick="loadingCircle()" title="Удалить менеджера"
+                                                 type="submit" name="delete" value="&times;"
+                                            {% if u.role == 'superuser' or u.role == 'supermanager' %}disabled{% endif %}>
+                                      </form>
+                                  </td>
+
+                                </tr>
+                            {%endfor%}
+
+                          </tbody>
+                        </table>
+                    </div>
+
+        {% endif %}
+
+    </div>
+
+    <div class="container">
+        <div class="card-header bg-info text-center text-white mt-3"><h3 class="mt-3">Добавить менеджеров</h3></div>
+            <form method="post" action="{{ url_for('crm_uoc.create_manager')}}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="row text-center mt-3">
+                    <div class="col-md-2 text-left"></div>
+                    <div class="col-md-3 col-xs-12 text-right">
+                        <label><font size="5">Логин Менеджера</font></label>
+                    </div>
+                    <div class="col-md-3 col-xs-12 text-left">
+                        <input type="text" name="manager_login_name" class="form-control"
+                                   placeholder="Введите логин менеджера" required readonly
+                               value="{% if new_manager_name %}{{ new_manager_name }}{% else %}manager_1{% endif %}">
+
+                    </div>
+                </div>
+                <div class="row text-center mt-3">
+                    <div class="col-md-2 text-left"></div>
+                    <div class="col-md-3 col-xs-12 text-right">
+                        <label for="manager_password"><font size="5">Пароль менеджера</font></label>
+                    </div>
+                    <div class="col-md-3 col-xs-12 text-left">
+                            <input type="text" id="manager_password" name="manager_password" class="form-control"
+                               placeholder="Введите пароль менеджера" required>
+                    </div>
+
+                    <div class="col-md-3 col-xs-12 text-left">
+                            <button type="button"
+                                    onclick='document.getElementById("manager_password").value = Password.generate(8)'
+                                    class="btn btn-info btn-sm">Сгенерировать пароль</button>
+                    </div>
+                </div>
+
+                <div class="col text-center">
+
+                    <button class="btn btn-sm btn-secondary mt-3 mb-2" type="submit">
+                        <font size="2">+Добавить менеджера</font>
+                    </button>
+                </div>
+            </form>
+        {% if current_user.role == 'superuser' %}
+            <div class="card-header bg-light text-secondary text-center mt-3">
+                <h4>Изменить параметры автоматического переноса заказов в <b>ПУЛ</b> ФИРМЫ.
+                    <br>Установлено Строк: {{ crm_defaults.ap_rows }} Этикеток: {{ crm_defaults.ap_marks }}</h4>
+            </div>
+            <form method="post" action="{{ url_for('crm_uoc.change_auto_order_pool') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="row text-center mt-3">
+                    <div class="col-md-1 text-left"></div>
+                    <div class="col-md-2 col-xs-12 text-right">
+                        <label for="po_limit"><font size="5">Строк</font></label>
+                    </div>
+                    <div class="col-md-3 col-xs-12 text-left">
+                        <input type="number" step="1" min="0" max="1600"  id="ap_rows" name="ap_rows"
+                             placeholder="Укажите количество строк" class="form-control" required>
+
+                    </div>
+                    <div class="col-md-2 col-xs-12 text-right">
+                        <label for="po_limit"><font size="5">Этикеток</font></label>
+                    </div>
+                    <div class="col-md-3 col-xs-12 text-left">
+                        <input type="number" step="1" min="0" max="100000"  id="ap_marks" name="ap_marks"
+                             placeholder="Укажите количество этикеток" class="form-control" required>
+
+                    </div>
+                    <div class="col-md-1 col-xs-12 text-left">
+                        <button class="btn btn-sm bg-light text-grey" title="Изменить" type="submit">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16">
+                              <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+
+            <div class="card-header bg-light text-secondary text-center mt-3">
+                <h4>Изменить время в минутах для автоматического переноса заказов(5-1600)<br>
+                    <b>Операторы Заказ готов</b> &rarr; <b>Агенты Заказ отправлен</b>.
+                    <br>Установлено: {{ crm_defaults.as_minutes }} минут</h4>
+            </div>
+            <form method="post" action="{{ url_for('crm_uoc.change_auto_order_sent') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="row text-center mt-3">
+                    <div class="col-md-1 text-left"></div>
+                    <div class="col-md-2 col-xs-12 text-right">
+                        <label for="as_minutes"><font size="5">Минут</font></label>
+                    </div>
+                    <div class="col-md-3 col-xs-12 text-left">
+                        <input type="number" step="1" min="5" max="1600"  id="as_minutes" name="as_minutes"
+                             placeholder="Укажите количество мин" class="form-control" onchange="if (this.value==='{{crm_defaults.as_minutes}}'){this.value='';}" required>
+
+                    </div>
+                    <div class="col-md-1 col-xs-12 text-left">
+                        <button class="btn btn-sm bg-light text-grey" title="Изменить" type="submit">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16">
+                              <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+
+            <div class="card-header bg-secondary text-center text-white mt-3">
+                <h4>Изменить лимит времени на устранение проблем в заказе. Установлен {{ crm_defaults.ps_limit }} мин.</h4>
+            </div>
+            <form method="post" action="{{ url_for('crm_uoc.change_manager_limit', limit_param='ps_limit') }}" class="form-group mt-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="row text-center">
+                    <div class="col-md-2 text-left"></div>
+                    <div class="col-md-3 col-xs-12 text-right">
+                        <label for="ps_limit"><font size="5">Лимит времени</font></label>
+                    </div>
+                    <div class="col-md-3 col-xs-12 text-left">
+                        <input type="number" step="1" min="1" max="360"  id="ps_limit" name="ps_limit"
+                             placeholder="Укажите время в минутах" class="form-control" required>
+
+                    </div>
+                    <div class="col-md-3 col-xs-12 text-left">
+                        <button class="btn btn-sm btn-secondary" type="submit">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16">
+                              <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+
+            </form>
+
+            <div class="card-header bg-info text-center text-white mt-3">
+                <h4>Изменить лимит количества заказов <b>в работе</b> для менеджеров. Установлен {{ crm_defaults.mo_limit }}</h4>
+            </div>
+            <form method="post" action="{{ url_for('crm_uoc.change_manager_limit', limit_param='mo_limit') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="row text-center mt-3">
+                    <div class="col-md-2 text-left"></div>
+                    <div class="col-md-3 col-xs-12 text-right">
+                        <label for="mo_limit"><font size="5">Количество заказов</font></label>
+                    </div>
+                    <div class="col-md-3 col-xs-12 text-left">
+                        <input type="number" step="1" min="5" max="100"  id="mo_limit" name="mo_limit"
+                             placeholder="Укажите количество заказов" class="form-control" required>
+
+                    </div>
+                    <div class="col-md-3 col-xs-12 text-left">
+                        <button class="btn btn-sm btn-info" type="submit" title="Изменить">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16">
+                              <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+            <div class="card-header bg-error text-center text-white mt-3">
+                <h4>Изменить лимит количества заказов <b>с проблемой</b> для менеджеров. Установлен {{ crm_defaults.po_limit }} </h4>
+            </div>
+            <form method="post" action="{{ url_for('crm_uoc.change_manager_limit', limit_param='po_limit') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="row text-center mt-3">
+                    <div class="col-md-2 text-left"></div>
+                    <div class="col-md-3 col-xs-12 text-right">
+                        <label for="po_limit"><font size="5">Количество заказов</font></label>
+                    </div>
+                    <div class="col-md-3 col-xs-12 text-left">
+                        <input type="number" step="1" min="1" max="10"  id="po_limit" name="po_limit"
+                             placeholder="Укажите количество заказов" class="form-control" required>
+
+                    </div>
+                    <div class="col-md-3 col-xs-12 text-left">
+                        <button class="btn btn-sm bg-error text-white" title="Изменить" type="submit">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16">
+                              <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+
+            <div class="card-header bg-secondary text-center text-white mt-3">
+                <h4 class="mt-3">Очистка отмененных заказов старше 7 дней. Всего ({{ cancelled_orders }})</h4>
+            </div>
+            <form method="post" action="{{ url_for('crm_uoc.clean_oco')}}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+
+                <div class="col text-center">
+
+                    <button class="btn btn-sm btn-secondary mt-3 mb-2" type="submit">
+                        <font size="2">-Очистить все отмененные заказы старше 7 дней</font>
+                    </button>
+                </div>
+            </form>
+        {% endif %}
+    </div>
+</div>
+
+
+<script>
+var Password = {
+
+  _pattern : /[a-zA-Z0-9_\-\+\.]/,
+
+
+  _getRandomByte : function()
+  {
+    // http://caniuse.com/#feat=getrandomvalues
+    if(window.crypto && window.crypto.getRandomValues)
+    {
+      var result = new Uint8Array(1);
+      window.crypto.getRandomValues(result);
+      return result[0];
+    }
+    else if(window.msCrypto && window.msCrypto.getRandomValues)
+    {
+      var result = new Uint8Array(1);
+      window.msCrypto.getRandomValues(result);
+      return result[0];
+    }
+    else
+    {
+      return Math.floor(Math.random() * 256);
+    }
+  },
+
+  generate : function(length)
+  {
+    return Array.apply(null, {'length': length})
+      .map(function()
+      {
+        var result;
+        while(true)
+        {
+          result = String.fromCharCode(this._getRandomByte());
+          if(this._pattern.test(result))
+          {
+            return result;
+          }
+        }
+      }, this)
+      .join('');
+  }
+
+};
+</script>
+
+   {% endblock %}

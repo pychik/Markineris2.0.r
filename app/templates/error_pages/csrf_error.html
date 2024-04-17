@@ -1,0 +1,37 @@
+{% extends 'error_pages/errors_base_template.html' %}
+
+{% block error_message %}
+
+<div class="modal fade" id="Errors_messageModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" role="dialog" aria-labelledby="Errors_messageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-white" style="background-color:#f16676">
+        <h5 class="modal-title" > Во время выполнения запроса произошла ошибка акивности!</h5>
+        <a href="{{ url_for('main.enter') }}">
+          <button type="button" class="btn-close" aria-label="Close"></button></a>
+      </div>
+      <div class="modal-body">
+          Эта ошибка возникла из-за того, что сервер не фиксировал вашей акивности на открытой странице более 3 часов.
+          <br><b>Нажмите Ок</b>, чтобы попробовать снова.
+
+      </div>
+      <div class="modal-footer">
+        <a href="{{ url_for('main.enter') }}">
+            <button type="button"  class="btn text-white" style="background-color:#f16676">Ок</button>
+        </a>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+      window.onload = function () {
+
+
+        $("#Errors_messageModal").modal('show');
+    };
+</script>
+
+{% endblock %}

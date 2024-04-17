@@ -1,0 +1,49 @@
+apm-server:
+  host: "0.0.0.0:8200"
+
+  auth:
+    secret_token: '${ELASTIC_APM_SECRET_TOKEN}'
+
+  ssl:
+    enabled: true
+
+    certificate: "/certs/apm-server.crt"
+
+    key: "/certs/apm-server.key"
+
+output.elasticsearch:
+  hosts: '${ELASTICSEARCH_HOST_PORT}'
+
+  enabled: true
+
+  protocol: "https"
+
+  username: '${ELASTIC_USERNAME}'
+  password: '${ELASTIC_PASSWORD}'
+
+  ssl.enabled: true
+
+  ssl.certificate_authorities: ["/certs/ca.crt"]
+
+  ssl.certificate: "/certs/apm-server.crt"
+
+  ssl.key: "/certs/apm-server.key"
+
+monitoring.enabled: true
+
+monitoring.elasticsearch:
+
+  protocol: "https"
+
+  username: '${ELASTIC_USERNAME}'
+  password: '${ELASTIC_PASSWORD}'
+
+  hosts: '${ELASTICSEARCH_HOST_PORT}'
+
+  ssl.enabled: true
+
+  ssl.certificate_authorities: ["/certs/ca.crt"]
+
+  ssl.certificate: "/certs/apm-server.crt"
+
+  ssl.key: "/certs/apm-server.key"

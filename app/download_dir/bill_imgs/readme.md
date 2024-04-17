@@ -1,0 +1,1 @@
+This folder is used for bill images to confitm user refill transactions

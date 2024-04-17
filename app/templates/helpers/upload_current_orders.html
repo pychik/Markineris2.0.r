@@ -1,0 +1,96 @@
+<div class="row g-3">
+    {% if category in categories_upload %}
+        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 offset-xl-3 offset-lg-2  col-">
+            <div class="table__btn mx-auto">
+                <p>Загрузить накладную из Excel</p>
+
+                <a href="{{ url_for(category_process_name + '.upload') }}" class="btn btn-secondary">Загрузить<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" class="svg-table">
+                  <path d="M18.4401 3.06006H5.56006C4.89759 3.06191 4.26277 3.32589 3.79433 3.79433C3.32589 4.26277 3.06191 4.89759 3.06006 5.56006V18.4401C3.06191 19.1025 3.32589 19.7373 3.79433 20.2058C4.26277 20.6742 4.89759 20.9382 5.56006 20.9401H18.4401C19.102 20.9364 19.7357 20.6718 20.2038 20.2038C20.6718 19.7357 20.9364 19.102 20.9401 18.4401V5.56006C20.9364 4.89815 20.6718 4.2644 20.2038 3.79635C19.7357 3.32831 19.102 3.06373 18.4401 3.06006ZM8.71006 19.9401H5.56006C5.16223 19.9401 4.7807 19.782 4.4994 19.5007C4.21809 19.2194 4.06006 18.8379 4.06006 18.4401V15.3301H8.71006V19.9401ZM8.71006 14.3301H4.06006V9.67006H8.71006V14.3301ZM8.71006 8.67006H4.06006V5.56006C4.06006 5.16223 4.21809 4.7807 4.4994 4.4994C4.7807 4.21809 5.16223 4.06006 5.56006 4.06006H8.71006V8.67006ZM19.9401 18.4401C19.9372 18.837 19.7782 19.2169 19.4975 19.4975C19.2169 19.7782 18.837 19.9372 18.4401 19.9401H9.71006V15.3301H19.9401V18.4401ZM19.9401 14.3301H9.71006V9.67006H19.9401V14.3301ZM19.9401 8.67006H9.71006V4.06006H18.4401C18.837 4.06294 19.2169 4.2219 19.4975 4.50258C19.7782 4.78326 19.9372 5.16312 19.9401 5.56006V8.67006Z" />
+                </svg></a>
+            </div>
+        </div>
+    {% endif %}
+    <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 ">
+        <div class=" table__btn mx-auto">
+            {% if order_list %}
+                <p>Просмотр заказа</p>
+                <a class="btn btn-secondary" href="{{ url_for(categories_dict[category]+'.preload', o_id=o_id, stage=order_stages.CREATING) }}">Смотреть<svg xmlns="http://www.w3.org/2000/svg" width="22" height="18" viewBox="0 0 22 18" fill="none" class="svg-eye">
+                    <path d="M8 1.46004C8.97019 1.15248 9.98223 0.997298 11 1.00004C15.182 1.00004 18.028 3.50004 19.725 5.70404C20.575 6.81004 21 7.36104 21 9.00004C21 10.64 20.575 11.191 19.725 12.296C18.028 14.5 15.182 17 11 17C6.818 17 3.972 14.5 2.275 12.296C1.425 11.192 1 10.639 1 9.00004C1 7.36004 1.425 6.80904 2.275 5.70404C2.79336 5.02674 3.37061 4.39662 4 3.82104"  stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M14 9C14 9.79565 13.6839 10.5587 13.1213 11.1213C12.5587 11.6839 11.7956 12 11 12C10.2044 12 9.44129 11.6839 8.87868 11.1213C8.31607 10.5587 8 9.79565 8 9C8 8.20435 8.31607 7.44129 8.87868 6.87868C9.44129 6.31607 10.2044 6 11 6C11.7956 6 12.5587 6.31607 13.1213 6.87868C13.6839 7.44129 14 8.20435 14 9Z"  stroke-width="1.5"/>
+                  </svg></a>
+                {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-center mt-5 mb-4">
+{% if not o_id %}
+        <h4>Создать заказ</h4>
+{% endif %}
+</div>
+
+<div class="modal fade" id="curOrders_upload_ordersModal" data-bs-backdrop="static" tabindex="-1" role="dialog"
+     aria-labelledby="curOrders_upload_ordersModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header border border-bottom">
+          <h5 class="modal-title" id="curOrders_upload_ordersModalLabel">
+              Список неоформленных заказов в категории <b>{{ category }}</b>
+          </h5>
+        <button type="button"  class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+      {% for ao in active_orders %}
+
+        <div class="text-center ">
+
+            <div class="row">
+                <div class=" col-md-8 col-xs-12" >
+
+                    <p>
+                        <a href="{{ url_for(category_process_name+'.index', o_id=ao.id) }}" style="text-decoration:none">
+                            {{loop.index}}{{'. ' + ao.company_type + ' ' +  ao.company_name +
+                             '   от '}}{{ ao.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                        </a>
+                    </p>
+                </div>
+                <div class=" col-md-4 col-xs-12" >
+                    <h5>
+                        <a class="text-danger" href="{{ url_for(category_process_name+'.clean_orders', o_id=ao.id) }}"
+                            onclick="javascript:loadingCircle();">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                 class="bi bi-trash" viewBox="0 0 16 16">
+                                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5
+                                      -.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3
+                                     .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                                <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2
+                                      2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1
+                                       1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h
+                                       6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                            </svg>
+                        </a>
+
+                    </h5>
+                </div>
+            </div>
+        </div>
+      {% endfor %}
+      {% if specific_order and active_orders|length <=6%}
+        <h5 class="text-center">
+            <a href="{{ url_for(category_process_name + '.index') }}">
+                Новый заказ
+            </a>
+        </h5>
+
+      {% endif %}
+
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-accent border-0" data-bs-dismiss="modal" >Скрыть</button>
+      </div>
+    </div>
+  </div>
+</div>

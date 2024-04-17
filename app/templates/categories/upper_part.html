@@ -1,0 +1,31 @@
+<div class="px-5">
+    <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
+        <div class="breadcrumbs">
+            <a href="{{url_for('main.enter')}}" class="">Категории </a>
+            /
+            <span>{{category.capitalize()}}</span>
+        </div>
+<!--        <div class="partner">-->
+
+<!--            {% if current_user.partner != 'NO_PARTNER_CODE'%}-->
+<!--                Код партнера: <span class="partner-code fw-bold ">-->
+<!--                {% if current_user.partners %}-->
+<!--                    {{ current_user.partners[0].code }}-->
+<!--                {% endif %}-->
+<!--            {% endif %}</span>-->
+<!--        </div>-->
+    </div>
+</div>
+
+<div class="front text-center">
+    <h1 class="mb-5 fs-2">{% if not o_id %}Новая накладная{% else %}Накладная{% endif %} <span class="fw-bolder">«{{category.capitalize()}}»</span></h1>
+</div>
+  {% include 'helpers/upload_current_orders.html' %}
+
+
+
+<!-- ПОШАГОВАЯ ФОРМА -->
+
+{% include 'categories/order_step_control.html' %}
+
+<input type="hidden" readonly="true" id="copy_order_edit_org" value="{{ copy_order_edit_org }}">

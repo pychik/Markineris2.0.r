@@ -1,0 +1,298 @@
+<div class="modal fade" id="processModal" tabindex="-1" role="dialog" aria-labelledby="processModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="processModalLabel">Вы уверены, что хотите оформить заказ?</h5>
+        <button type="button"  class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+          <h4>Заказ из <b>{{ pos_count }}</b> наименований. Суммарно <b>{{ orders_pos_count }}</b> маркировок.</h4><br>
+{#          <h5>Проверьте пожалуйста заполненные позиции перед оформлением!<br>#}
+{#          После того, как вы подтвердите оформление накладной, </h5><span style="font-size: 23px">#}
+{#          <b>обязательно уведомите вашего менеджера о своем заказе</b></span>,#}
+{#          <h5>после этого заказ поступит в обработку!</h5>#}
+          {{ order_notification | safe }}
+          <div id="data_order_check_insert">
+
+          </div>
+      </div>
+      <div class="modal-body mt-3">
+          <label><h5>Комментарий (необязательно заполнять)</h5></label>
+          <input class="form-control mt-1" type="text" maxlength="100" placeholder="Комментарий к заказу"
+               title="Комментарий необязательно заполнять. Нужен для отображения особенных заказов!"
+               id="order_comment_after" name="order_comment_after">
+      </div>
+      <div class="modal-footer" id="process_modal_footer" >
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Нет</button>
+        {% if o_id %}
+            <button type="button" class="btn btn-outline-warning"
+                onclick="location.href='{{ url_for(category_process_name + '.preload', o_id=o_id, stage=order_stages.CREATING) }}'">
+                Предпросмотр заказа
+            </button>
+
+<!--        <button type="button" class="btn btn-warning" id="btn_process" onclick="perform_process();">Да.Оформить накладную!</button>-->
+            <button type="button" class="btn btn-warning" id="btn_process" onclick="perform_order_check('{{ url_for('requests_common.check_user_order_in_archive', category=category, o_id=o_id) }}');">Да.Оформить накладную!</button>
+      {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{% if specific_order %}
+    <div class="modal fade" id="clean_ordersModal" tabindex="-1" role="dialog" aria-labelledby="clean_ordersModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title" id="clean_ordersModalLabel">Вы уверены, что хотите очистить заказ?</h5>
+            <button type="button"  class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+            </button>
+          </div>
+          <div class="modal-body text-justify">
+            После того, как вы подтвердите, накладная полностью очистится! Подтверждаете?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Нет</button>
+
+            <button onclick="$('#clean_ordersModal').modal('hide');loadingCircle();location.href='{{url_for(category_process_name + '.clean_orders', o_id=o_id)}}'" class="btn btn-danger " type="button">Да. Очистить накладную</button>
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+{% endif %}
+
+<div class="modal fade" id="edoModal" tabindex="-1" role="dialog" aria-labelledby="edoModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title" id="edoModalLabel">Вы уверены, что не будуте использовать ЭДО ЛАЙТ?</h5>
+        <button type="button"  class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+        Наша компания использует ЭДО СБИС.<br>
+        Настройка роуминга с другими операторами передачи ЭДО может занимать до 3 рабочих дней.<br>
+          Вы уверены что хотите обмениваться документами не по ЭДО ЛАЙТ?
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn_edo_process" onclick="javascript:back_edo_light()">Нет</button>
+        <button type="button" class="btn btn-warning" data-bs-dismiss="modal">Да!</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal fade" id="markModal" tabindex="-1" role="dialog" aria-labelledby="markModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="markModalLabel">Выберите понравившуюся маркировку и нажмите на нее</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+
+          {% include 'helpers/marks.html' %}
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Close">
+            Выйти из окна выбора типа этикетки</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{% if o_id %}
+<div class="modal fade" id="editOrgCardModal" data-bs-backdrop="static" tabindex="-1" role="dialog"
+     aria-labelledby="editOrgCardModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-info">
+          <h5 class="modal-title" id="editOrgCardModalLabel">
+              Вы уверены, что хотите изменить параметры организации для <b>текущего</b> заказа?
+          </h5>
+        <button type="button"  class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+
+              У вас уже есть заказ- и вы его составляли для
+              <b>{{ company_type + ' ' + company_name }}</b>.
+          После подтверждения, вы будете перенаправлены на форму редактирования <b>параметров организации</b>
+          и типа <b>маркировки</b>.
+          <br>
+          <br>
+          Хотите поменять параметры карточки организация?
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Нет</button>
+        <button type="button" class="btn btn-info" data-bs-dismiss="modal"
+                onclick="javascript:window.location.href='{{ url_for('requests_common.change_order_org_param', o_id=o_id) }}';">Да</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal fade" id="editOrgCardCopyOrderModal" data-bs-backdrop="static" tabindex="-1"
+     role="dialog" aria-labelledby="editOrgCardCopyOrderModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-white" style="background-color: #9d06f6">
+          <h5 class="modal-title" id="editOrgCardCopyOrderModalLabel">
+              Вы успешно скопировали заказ!
+          </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+
+          Скопированный заказ <i>был</i>  составлен для
+              <b>{{ company_type + ' ' + company_name }}</b>.<br><br>
+
+
+          <u>Если вам нужно поменять данные организации</u>, нажмите кнопку ниже <br><b>Да, поменять данные организации!</b><br>
+          Далее, вы будете перенаправлены на форму редактирования <b>параметров организации</b>
+          и типа <b>маркировки</b>.
+          <br>
+          <br>
+          <u>Если вам не нужно менять данные организации</u>, выберите <b>Нет</b><br><br>
+
+          Хотите поменять параметры карточки <i>организация</i> в скопированном заказе?
+      </div>
+
+      <div class="modal-footer">
+
+        <button type="button" class="btn text-white" style="background-color: #aca6af" data-bs-dismiss="modal">Нет</button>
+        <button type="button" class="btn text-white" style="background-color: #9d06f6" data-bs-dismiss="modal"
+                onclick="javascript:window.location.href='{{ url_for('requests_common.change_order_org_param', o_id=o_id) }}';">Да</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="modal fade" id="getIdnDataModal" tabindex="-1" data-bs-backdrop="static" role="dialog" aria-labelledby="getIdnDataModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-white" style="background-color: #5dcbf3">
+          <h5 class="modal-title" id="getIdnDataModalLabel">
+              По введенному ИНН получены данные!
+          </h5>
+
+        <button type="button"  class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+
+          <div id="data_idn_insert"></div>
+
+          Подтверждаете эти данные или хотите попробовать другой <i>ИНН</i>?
+      </div>
+
+      <div class="modal-footer">
+
+        <button type="button" class="btn text-white" style="background-color: #bfe5f3" onclick="document.getElementById('company_idn').value='';" data-dismiss="modal">Нет</button>
+        <button type="button" class="btn text-white" style="background-color: #5dcbf3" data-bs-dismiss="modal" id="data_idn_insert_btn"
+                > Да, поменять данные организации!</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="getIdnDataErrorModal" tabindex="-1" role="dialog" aria-labelledby="getIdnDataErrorModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-white" style="background-color: #f84661">
+          <h5 class="modal-title" id="data_idn_insert_title_error">
+              По введенному ИНН данные не получены!
+          </h5>
+
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+
+          <div id="data_idn_insert_error"></div>
+
+          Хотите ввести <i>тип организации</i> и ее <i>наименование</i> сами?
+      </div>
+
+      <div class="modal-footer">
+
+        <button type="button" class="btn text-white" style="background-color: #aca6af" data-bs-dismiss="modal">Нет</button>
+        <button type="button" class="btn text-white"
+
+                style="background-color: #f84661" data-bs-dismiss="modal"
+                id="data_idn_insert_btn_error"
+                > Да, введу собственноручно!</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="form_errorModal" tabindex="-1" data-bs-backdrop="static" role="dialog" aria-labelledby="form_errorModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="form_errorModalLabel">Ошибки заполнения формы.</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="clear_errorform()" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+        Проверьте следующие поля формы:
+          <div id="form_errormodaldiv">
+
+          </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-accent" data-bs-dismiss="modal" onclick="clear_errorform()"
+                aria-label="Close">
+            Ок</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!--<div class="modal fade" id="checkTnvedModal" tabindex="-1" role="dialog" aria-labelledby="checkTnvedModalLabel" aria-hidden="true">-->
+<!--  <div class="modal-dialog modal-lg" role="document">-->
+<!--    <div class="modal-content">-->
+<!--      <div class="modal-header text-white" style="background-color: #038c9a">-->
+<!--          <h5 class="modal-title" id="checkTnved_title">-->
+<!--              Вы ввели некорректный ТНВЭД!-->
+<!--          </h5>-->
+
+<!--        <button type="button"  class="btn-close" data-bs-dismiss="modal" aria-label="Close">-->
+<!--        </button>-->
+<!--      </div>-->
+<!--      <div class="modal-body text-justify">-->
+
+<!--          <div id="check_tnved_insert"></div>-->
+
+<!--      </div>-->
+
+<!--      <div class="modal-footer">-->
+
+<!--        <button type="button" class="btn text-white" style="background-color: #038c9a" data-bs-dismiss="modal">Закрыть</button>-->
+
+<!--      </div>-->
+<!--    </div>-->
+<!--  </div>-->
+<!--</div>-->

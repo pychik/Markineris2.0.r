@@ -1,0 +1,42 @@
+{% extends "main/base_v2.html" %}
+
+{% block fc_panel %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/service/jquery-ui.min.css')}}" integrity="sha512-ELV+xyi8IhEApPS/pSj66+Jiw+sOT1Mqkzlh8ExXihe4zfqbWkxPRi8wptXIO9g73FSlhmquFlUOuMSoXz5IRw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="{{ url_for('static', filename='main_v2/js/assets/jquery-ui.min.js')}}" integrity="sha512-57oZ/vW8ANMjR/KQ6Be9v/+/h6bq9/l3f0Oc7vn6qMqyhvPd1cvKBRWWpzu0QoneImqr2SkmO4MSqU+RpHom3Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="{{ url_for('static', filename='js/datepicker-ru.js') }}"></script>
+
+<div class="container">
+    <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
+        <div class="breadcrumbs">
+            <a href="{{url_for('admin_control.su_control_finance')}}">Контроль финансов </a>
+            /
+            <span>Контроль транзакций</span>
+            /
+             <a href="{{url_for('admin_control.au_bck_control_ut')}}">Контроль транзакций пользователя агента</a>
+        </div>
+    </div>
+
+    <a class="btn btn-outline-secondary" data-bs-toggle="collapse" href="#form_filters_collapse" role="button" aria-expanded="false" aria-controls="collapseExample">
+        Фильтры транзакций
+    </a>
+
+    {% include 'admin/transactions/transactions_filters.html' %}
+    <div class="row">
+
+        <div class="col-md-12">
+
+
+            <div id="transactions_table">
+                {% include 'admin/transactions/su_transactions_table.html' %}
+            </div>
+        </label>
+        </div>
+    </div>
+
+
+</div>
+
+
+{% include 'admin/transactions/su_transaction_modal.html' %}
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc.js')}}"></script>
+{% endblock %}

@@ -1,0 +1,154 @@
+
+<div class="row row-cols-2  row-cols-lg-4 g-3">
+    <div class="col text-center" onclick="javascript:process_mark('mark_1', 3)">
+        <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">
+            <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/58*40.png')}}">
+            <input type="hidden" id="mark_1" value="11 макет 58*40">
+            <div class="label-text text-center">
+                Тип 1 <br>58мм х 40мм
+            </div>
+        </a>
+    </div>
+    <div class="col text-center" onclick="javascript:process_mark('mark_2', 3)">
+        <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">
+            <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/58*30.png')}}">
+            <input type="hidden" id="mark_2" value="10 макет 58*30">
+            <div class="label-text text-center">
+                Тип 2 <br>58мм х 30мм
+            </div>
+        </a>
+    </div>
+    <div class="col text-center" onclick="javascript:process_mark('mark_3', 2)">
+        <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">
+            <img class="img-fluid w-50" src="{{ url_for('static', filename='marks/8 макет 40*58.png')}}">
+            <input type="hidden" id="mark_3" value="8 макет 40*58">
+            <div class="label-text text-center">
+                Тип 3 <br>58мм х 40мм
+            </div>
+        </a>
+    </div>
+    <div class="col text-center" onclick="javascript:process_mark('mark_4', 2)">
+        <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">
+            <img class="img-fluid w-50" src="{{ url_for('static', filename='marks/7 макет 30*20.png')}}">
+            <input type="hidden" id="mark_4" value="7 макет 30*20">
+            <div class="label-text text-center">
+                Тип 4 <br>30мм х 20мм
+            </div>
+        </a>
+    </div>
+
+    <div class="col text-center" onclick="javascript:process_mark('mark_5', 3)">
+        <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">
+            <img class="img-fluid w-50" src="{{ url_for('static', filename='marks/17 макет WB 58*40.png')}}">
+            <div class="label-text text-center">
+                Тип 5 <br>WB 58мм х 40мм
+            </div>
+        </a>
+        <input type="hidden" id="mark_5" value="17 макет WB 58*40">
+    </div>
+
+    <div class="col text-center" onclick="javascript:process_mark('mark_6', 2)">
+        <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">
+            <img class="img-fluid w-50" src="{{ url_for('static', filename='marks/6 макет 45*25.png')}}">
+            <div class="label-text text-center">
+                Тип 6 <br> 45мм х 25мм
+            </div>
+        </a>
+        <input type="hidden" id="mark_6" value="6 макет 45*25">
+    </div>
+
+    <div class="col text-center" onclick="javascript:process_mark('mark_7', 2)">
+        <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">
+            <img class="img-fluid w-50" src="{{ url_for('static', filename='marks/4 этикетка 43*25.png')}}">
+            <div class="label-text text-center">
+                Тип 7 <br>WB 58мм х 40мм
+            </div>
+        </a>
+        <input type="hidden" id="mark_7" value="4 этикетка 43*25">
+    </div>
+
+
+
+    {% if category == 'обувь' %}
+        <div class="col text-center" onclick="javascript:process_mark('shoes_mark_8_1', 3)">
+            <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">
+                <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/46_полное_описание_сокращенная_90х60.png')}}">
+                <div class="label-text text-center">
+                    Тип 8 <br> 90мм х 60мм
+                </div>
+            </a>
+            <input type="hidden" id="shoes_mark_8_1" value="46_полное_описание_сокращенная_90х60">
+        </div>
+        <div class="col text-center" onclick="javascript:process_mark('shoes_mark_8_2', 3)">
+            <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">
+                <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/45_полное_описание_сокращенная_120х75.png')}}">
+                <div class="label-text text-center">
+                    Тип 8 <br>120мм х 75мм
+                </div>
+            </a>
+            <input type="hidden" id="shoes_mark_8_2" value="45_полное_описание_сокращенная_120х75">
+        </div>
+
+    {% elif category == 'одежда' %}
+        <div class="col text-center" onclick="javascript:process_mark('clothes_mark_8_1', 3)">
+            <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">
+                <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/44_полное_описание_сокращенная_90х60.png')}}">
+                <div class="label-text text-center">
+                    Тип 8 <br> 90мм х 60мм
+                </div>
+            </a>
+            <input type="hidden" id="clothes_mark_8_1" value="44_полное_описание_сокращенная_90х60">
+        </div>
+        <div class="col text-center" onclick="javascript:process_mark('clothes_mark_8_2', 3)">
+            <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">
+                <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/43_полное_описание_сокращенная_120х75.png')}}">
+                <div class="label-text text-center">
+                    Тип 8 <br>120мм х 75мм
+                </div>
+            </a>
+            <input type="hidden" id="clothes_mark_8_2" value="43_полное_описание_сокращенная_120х75">
+        </div>
+
+    {% elif category == 'белье' %}
+        <div class="col text-center" onclick="javascript:process_mark('linen_mark_8_1', 3)">
+            <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">
+                <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/белье_90х60.png')}}">
+                <div class="label-text text-center">
+                    Тип 8 <br> 90мм х 60мм
+                </div>
+            </a>
+            <input type="hidden" id="linen_mark_8_1" value="30_полное_описание_сокращенная_90х60">
+        </div>
+        <div class="col text-center" onclick="javascript:process_mark('linen_mark_8_2', 3)">
+            <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">
+                <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/белье_90х60.png')}}">
+                <div class="label-text text-center">
+                    Тип 8 <br>120мм х 75мм
+                </div>
+            </a>
+            <input type="hidden" id="linen_mark_8_2" value="31_полное_описание_сокращенная_120х75">
+        </div>
+
+    {% elif category == 'парфюм' %}
+        <div class="col text-center" onclick="javascript:process_mark('parfum_mark_8_1', 3)">
+            <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">
+                <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/парфюм_90х60.png')}}">
+                <div class="label-text text-center">
+                    Тип 8 <br> 90мм х 60мм
+                </div>
+            </a>
+            <input type="hidden" id="parfum_mark_8_1" value="20_полное_описание_сокращенная_90х60">
+        </div>
+        <div class="col text-center" onclick="javascript:process_mark('parfum_mark_8_2', 3)">
+            <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">
+                <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/парфюм_90х60.png')}}">
+                <div class="label-text text-center">
+                    Тип 8 <br>120мм х 75мм
+                </div>
+            </a>
+            <input type="hidden" id="parfum_mark_8_2" value="21_полное_описание_сокращенная_120х75">
+        </div>
+
+    {% endif %}
+
+</div>

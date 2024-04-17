@@ -1,0 +1,244 @@
+<div class="col-md-3 col-xs-12 text-center">
+
+    <label>
+        <h5> Код ТНВЭД
+
+        <a data-bs-toggle="tooltip" data-html="true"
+                            title="{% for t in tnved_description %}{{ t }}{% if not loop.last %}<br>
+                                        {% endif %}
+                                    {% endfor %}" ><span class="badge bg-danger">!!!</span></a>
+        </h5>
+    </label>
+    <div class="col-xs-12">
+        <div id="tnved_co_supressor" style="font-size: 12px;color: #ffffff">{% if copied_order %}&nbsp{% endif %}</div>
+
+        <div id="tnved_valid_feedback" class="text-justify" style="font-size: 12px;color: #22d71c"></div>
+            <div id="tnved_nv_feedback" class="text-justify" style="font-size: 12px;color: #f13131"></div>
+        <input type="text" minlength="10" maxlength="10" placeholder="Введите 10-значный код"
+                   title="Введите 10-значный код или не вводите ничего. Просто добавьте артикул в заказ."
+                   name="tnved_code"
+                   id="tnved_code"
+                   class="form-control"
+                   autocomplete="off"
+                   onchange="check_tnved('not_submit');"
+
+                   {% if copied_order %}
+                       {% if copied_order.tnved_code %}
+                            value="{{ copied_order.tnved_code }}"
+                       {% endif %}
+                   {% else %}
+                       {% if category_process_name=='linen' %}
+                            value="{{ linen_tnved }}"
+                        {% endif %}
+                   {% endif %} >
+            <small id="emailHelp" class="form-text text-muted text-justify"> - Определяется системой автоматически
+                (не является точным).
+                 <br>
+                 - Вводите свой код ТНВЭД после того,<br> как заполнили все предшествующие параметры позиции<br>
+                - Проверьте актуальность  вашего кода по <a
+                        href="https://www.alta.ru/tnved/?ysclid=ley5fa8rg7766035472">ссылке</a><br>
+                <span style="color: #ff00fb"> - Для маркетплейсов необходимо указывать тот ТНВЭД,<br>
+                    что указан в карточке товара</span>
+            </small>
+            <input type="hidden" id="check_tnved_code_url" value="{{ url_for('requests_common.check_tnved_code_data', u_id=current_user.id,  from_category=category_process_name, tnved_code='') }}">
+            <input type="hidden" id="check_tnved_flag" {% if copied_order %}{% if copied_order.tnved_code %} value="true"{% else %}value="false"{% endif %}{% endif %}>
+    </div>
+
+
+</div>
+
+<script>
+const category = '{{ category_process_name }}';
+
+document.getElementById("tnved_code").addEventListener("keypress", function (evt) {
+	    if (evt.which < 48 || evt.which > 57)
+	    {
+	        evt.preventDefault();
+	    }
+	});
+var tnved_nv_feedback = document.getElementById("tnved_nv_feedback");
+var t_code = document.getElementById('tnved_code'),
+	cleanTC;
+
+	cleanTC= function(e) {
+	e.preventDefault();
+	var pastedText = '';
+	if (window.clipboardData && window.clipboardData.getData) { // IE
+	pastedText = window.clipboardData.getData('Text');
+	} else if (e.clipboardData && e.clipboardData.getData) {
+	pastedText = e.clipboardData.getData('text/plain');
+	}
+	this.value = pastedText.replace(/\D/g, '');
+
+    check_tnved('not_submit');
+    {#t_code.setAttribute("class", "form-control is-invalid");#}
+    {#tnved_nv_feedback.innerText = "Вы попробовали ввести ТНВЭД вставкой!\n Проверьте корректность!";#}
+    {#setTimeout(clear_tnved_feedback , 5000);#}
+	};
+
+	t_code.onpaste = cleanTC;
+
+
+{#two case function to validate tnved#}
+function check_tnved(submit){
+    {#var tnved_nv_feedback = document.getElementById("tnved_nv_feedback");#}
+    {#var t_code = document.getElementById('tnved_code');#}
+
+    if (submit === 'submit'){
+        if (document.getElementById('check_tnved_flag').value === "false"){
+            set_tnved();
+            return false
+        }
+        else{
+            loadingCircle();
+            return true
+            {#document.getElementById('common_preprocess_form').submit();#}
+        }
+    }
+
+    else{
+        return process_check_tnved();
+       }
+}
+
+{#not used now#}
+function check_tnved_filled_cycle() {
+    if(document.getElementById('tnved_code').value === '') {
+
+        let startTime = new Date().valueOf();
+        window.setInterval(check_tnved_filled_cycle, 100, startTime); /* this checks the flag every 100 milliseconds*/
+    }
+    else{
+        document.getElementById('common_preprocess_form').submit();
+    }
+}
+
+{#process to validate input tnved code#}
+async function process_check_tnved(){
+    var tnved = document.getElementById("tnved_code");
+    var url_link = document.getElementById("check_tnved_code_url").value;
+    var res_link = url_link+tnved.value;
+    var data = await fetchAsync(res_link);
+    var data_list = data.split(';');
+
+    if (data_list[0] === '0' || data_list[0] === '1'){
+        var tnved_nv_feedback = document.getElementById("tnved_nv_feedback");
+        clear_tnved_feedback();
+        tnved.setAttribute("class", "form-control is-invalid");
+        tnved_nv_feedback.innerText = data_list[1];
+        tnved.value = '';
+        document.getElementById('check_tnved_flag').value="false"
+        {#let startTime = new Date().valueOf();#}
+        {#setInterval(clear_tnved_feedback , 8000, startTime);#}
+
+        var tnved_resp_insert = document.getElementById("check_tnved_insert")
+        tnved_resp_insert.innerHTML = `<h5>${data_list[1].replace('Прочитайте инструкцию ниже и подберите другой код!', '')}</h5><br>- <b><i>Проверьте</i></b> актуальность вашего кода по <a href="https://www.alta.ru/tnved/?ysclid=ley5fa8rg7766035472">ссылке</a>`;
+        tnved_resp_insert.innerHTML += "<br>- <b><i>Ознакомьтесь со списком</i></b> корректных кодов, для категории <i>{{ category }}</i> ниже:<br>"
+        var processed_data = data_list[2].split(',');
+            processed_data.forEach(function (el, index) {
+                tnved_resp_insert.innerHTML += `${index+1}. ${el}<br>`;
+                }
+            )
+        $('#checkTnvedModal').modal('show');
+
+        return false
+    }
+    else {
+            var tnved_valid_feedback = document.getElementById("tnved_valid_feedback");
+            document.getElementById('check_tnved_flag').value="true"
+            clear_tnved_feedback();
+            tnved.setAttribute("class", "form-control is-valid");
+            tnved_valid_feedback.innerText = "Пользователь ввел корректный ТНВЭД!"
+            {#let startTime = new Date().valueOf();#}
+            {#setInterval(clear_tnved_feedback , 5000, startTime);#}
+
+        return true
+    }
+}
+
+{#Sets system tnved code#}
+function set_tnved(){
+    var tnved = document.getElementById("tnved_code");
+
+    if (category === 'shoes'){
+        const tnved_list = [{% for s in shoe_tnved %}'{{s}}',{% endfor %}];
+        const shoe_al = [{% for s in shoe_al %}'{{ s }}',{% endfor %}];
+        const shoe_ot = [{% for s in shoe_ot %}'{{ s }}',{% endfor %}];
+        const shoe_nl = [{% for s in shoe_nl %}'{{ s }}',{% endfor %}];
+        const gender_list = [{% for g in genders %}'{{ g }}',{% endfor %}];
+        var gender = document.getElementsByName("gender")[0].value;
+        var material = document.getElementById("material_top").value;
+        tnved.value = tnved_list[0];
+        if (shoe_nl.includes(material) && gender === gender_list[1]) {
+            tnved.value = tnved_list[2];
+        }
+        else if (shoe_nl.includes(material)) {
+            tnved.value = tnved_list[1];
+        }
+
+        else if (shoe_al.includes(material) ){
+            tnved.value = tnved_list[0];
+        }
+        else if (shoe_ot.includes(material) ){
+            tnved.value = tnved_list[3];
+        }
+
+
+    }
+    else if (category === 'clothes'){
+        const tnved_list = [{% for c in clothes_tnved %}'{{c}}',{% endfor %}];
+        const gender_list = [{% for g in genders %}'{{ g }}',{% endfor %}];
+        {#const clothes_list = [{% for cl in types %}'{{ cl }}',{% endfor %}];#}
+        var gender = document.getElementsByName("gender")[0].value;
+        var clothes_type = document.getElementsByName("type")[0].value;
+
+
+        if (clothes_upper_array.includes(clothes_type)){
+            tnved.value =  tnved_list[3];
+        }
+        else if (gender === gender_list[1]){
+            tnved.value = tnved_list[1];
+        }
+        else if (gender === gender_list[0] || gender === gender_list[2] || gender === gender_list[3]){
+            tnved.value = tnved_list[2];
+        }
+
+        if(document.getElementById('nat_materials_check').checked === true){
+            tnved.value = tnved_list[0];
+        }
+    }
+    else if (category === 'parfum') {
+
+        const tnved_list = [{% for p in parfum_tnved %}'{{p}}',{% endfor %}];
+        const parfum_list = [{% for pt in types %}'{{ pt }}',{% endfor %}];
+        var parfum_type = document.getElementsByName("type")[0].value;
+        if (parfum_list.slice(0, 6).includes(parfum_type)) {
+            tnved.value = tnved_list[0];
+        } else {
+            tnved.value = tnved_list[1];
+        }
+    }
+    else if (category === 'linen') {
+
+        tnved.value = '{{linen_tnved}}';
+
+    }
+    var tnved_valid_feedback = document.getElementById("tnved_valid_feedback");
+    document.getElementById('check_tnved_flag').value="true"
+    clear_tnved_feedback();
+    tnved.setAttribute("class", "form-control is-valid");
+    tnved_valid_feedback.innerText = "Система определила ТНВЭД. Вы можете ввести свой!"
+    {#var startTime = new Date().valueOf();#}
+    {#setInterval(clear_tnved_feedback , 5000, startTime);#}
+
+}
+
+function clear_tnved_feedback(){
+
+    document.getElementById("tnved_code").setAttribute('class', 'form-control');
+    document.getElementById('tnved_co_supressor').innerText = '';
+    document.getElementById("tnved_valid_feedback").innerText = '';
+    document.getElementById("tnved_nv_feedback").innerText = '';
+
+}
+</script>

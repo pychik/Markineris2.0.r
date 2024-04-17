@@ -1,0 +1,123 @@
+<div class="collapse border border-1 p-3" id="form_filters_collapse">
+    <form action="" class="me-3">
+
+        <script>
+
+            $( function() {
+                let max_date = new Date();
+                max_date.setDate(max_date.getDate() - 1);
+            var dateFormat = "dd.mm.yy",
+              from = $( "#date_from" )
+                .datepicker({
+                  defaultDate: "-1w",
+                  changeMonth: true,
+                  changeYear: true,
+                  maxDate: max_date,
+                  numberOfMonths: 3
+                })
+                .on( "change", function() {
+                  to.datepicker( "option", "minDate", getDate( this ) );
+                }),
+              to = $( "#date_to" ).datepicker({
+                defaultDate: new Date(),
+                changeMonth: true,
+                changeYear: true,
+                maxDate: new Date(),
+                numberOfMonths: 3
+              })
+              .on( "change", function() {
+                from.datepicker( "option", "maxDate", getDate( this ) );
+              });
+
+            function getDate( element ) {
+              var date;
+              try {
+                date = $.datepicker.parseDate( dateFormat, element.value );
+              } catch( error ) {
+                date = null;
+              }
+
+              return date;
+            }
+          } );
+
+        </script>
+        <div class="row">
+              <div class="col-md-6">
+                  <label for="date_from"
+                          class="col-form-label text-right">Дата "C"</label>
+                  <input type="text" placeholder="Выберите дату"
+                      class="form-control" id="date_from"
+                      onpaste="return false;" oncopy="return false"
+                      oncut="return false" ondrag="return false"
+                      ondrop="return false" autocomplete="off" name="rd_date"
+                         aria-describedby="date_from_input_btn"
+                      readonly
+                         value="">
+              </div>
+
+              <div class="col-md-6">
+
+                <label for="date_to"
+                          class=" col-form-label text-right">Дата "По"</label>
+                <input type="text" placeholder="Выберите дату"
+                      class="form-control" id="date_to"
+                      onpaste="return false;" oncopy="return false"
+                      oncut="return false" ondrag="return false"
+                      ondrop="return false" autocomplete="off" name="rd_date"
+                         aria-describedby="date_from_input_btn"
+                      readonly
+                         value="{{ date_to.strftime('%d.%m.%Y') }}">
+
+
+              </div>
+        </div>
+        <div class="row">
+              <div class="col-md-6">
+                  <label for="transaction_type" class="col-form-label text-right">Тип</label><br>
+                  <select class="form-control search-select" id="transaction_type" name="transaction_type" required>
+<!--                    <option disabled selected value="">Выберите из списка..</option>-->
+                    {%for k, v in transaction_types.items()%}
+                      <option value="{{k}}">{{v}}</option>
+                    {%endfor%}
+
+                  </select>
+              </div>
+              <div class="col-md-6" style="width:max-content">
+                  <label class="col-form-label" for="transaction_status">Статус</label><br>
+                  <select class="form-control search-select" id="transaction_status" name="transaction_status" required>
+<!--                    <option disabled selected value="">Выберите из списка..</option>-->
+                    {%for k,v in transaction_dict.items()%}
+                      <option value="{{k}}">{{v}}</option>
+                    {%endfor%}
+
+                  </select>
+              </div>
+
+
+        </div>
+
+
+        <div class="mt-3">
+          <div class="form-check">
+              <input class="form-check-input" type="radio" name="sort_type" id="asc_type">
+              <label class="form-check-label" for="asc_type">
+                &uarr; По возрастанию (дата)
+              </label>
+          </div>
+          <div class="form-check">
+              <input class="form-check-input" type="radio" name="sort_type" id="desc_type" checked>
+              <label class="form-check-label" for="desc_type">
+                &darr; По убыванию (дата)
+              </label>
+              </div>
+        </div>
+        <div class="mt-3">
+            <a href="javascript:bck_get_transactions_wp('{{url_for('admin_control.su_bck_control_ut')}}')" class="btn btn-accent">Обновить</a>
+        </div>
+
+
+
+
+    </form>
+</div>

@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "smart-orders-380418",
+  "private_key_id": "2b53a29bb857ea719ef89c992d31103e0abb1d42",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDHQTlGACb9/xPH\nt8ihAT1wh6Oep+bgOj1EgctFVncOjMhe6Y6eSAUCjmL9giH6ER76mUxMN1e0xLVQ\n5FENbEGnmZqGrMvtX+IYC7hROO1BJBEH8vtL0PQ55wpxSLTGxvJGETLjGZbx1DRt\nfSK6tiBbY5dHX0ddBXfygSQeOren4F0bjc+b4/2Qgay/onLlQW8vEp6aZna9xdTu\nG4HTSu63/NUdhv5EKMEWRfie9cQQKX1nbmFKg0nDVh1mXc5kaFs3gMRPEKvyy8rv\naY50z6Ox8lh1Fz7TT+ptGlBD33Wn/YFmTxVvwoeBnNFrvq3u5O4Nd86ig74sbpUS\nqEx1nO6hAgMBAAECggEAAmDlIHCZ5o4p//hB2AisEWTgG1GrJg3x62h+ev7Yy9ra\nvTXN5NYsn6LAHCE2mz3jNBf6fv4p4Qu4U51vGYE7YScabu0+/6/VYsa4ifkrTVvT\nK3hvPyDg2nRXZcHpvQX00EjuJeN5P5yiLdSoooiQJzEflhu1Pg81tuaLXiRCqxmD\nVDdWLLq8TWVPaswMqPdwtDVRRkTlBqCw7d4wIs5LCnZkTwjOrb8v0ZDbGocBUrwJ\nK2zL3TfjnTjAWOCYcB/L/vOjbGer9Kh33PcW5I5FPS+h1HWNtW7y1noUAiZh1QOS\ni5oTVIUCHGdSq1MHTtaXtGfhHDoXWBQb4kK4uctBgQKBgQDnksdnkIvRJJv7feje\ngF3FWZBp1Vaqs7YDTdVNYr4ezRBkk6bdTwrsnzbApucwHBOH04zTvdiaYhAJjjky\nl8Huz1HgJPJp2jREDmHSlShqmhlBBWNHIoijBiqc6vJqdqdXW66aGaLHjFtciOz7\nyo7iG4Zz/hxa0CTsT2co45l5YQKBgQDcRb1sNyQ27ozEI9B1kUIYwkwIr/tEzVmc\nt6dUvFQBWUj/z1BHt5Q6B56n3DTU30APkJQ13bz2efZvQ63NCan2mlQyLOjSQgMT\n9aQd6jGrb2J2sXQ5eBMMHXqoVK/wQBKsTki5JxiRvpaTQA6pVGktBE1CzRQlHB/J\nFDXqR1k9QQKBgEU5bGB6JkGr5vEED4PL7bwb7P6mJpU6yZMtRjEu7lR4yoi2VrBb\ne5GGerCWdA++pNv6kmONod1sqQyiNlj4YqHH2dreUJTyBKO/hOCVdBKB5EC6opXW\nLfBF3KEx3quSsq17m7M3LKDoRTthNy6Bu7q9rbCo6sL+67q0dcsUVoGhAoGAIP3x\nGTxJGFEylE4o8vMGy16OtN5m7C81tNttHKv4iRsua+JJS/SbJvXtNYcuApRNrAcj\nq83Cd8hcuN2SMpu38U+8PKetV5C7lUm9gx2Iwvyz6sM5fUIW2EGyFXRZxcpTAavY\nCKNqcqnxM6zshUA3YJ68U70Tv1svB5cXXDfDjgECgYAfZDHrS19Z9Y92djQWEwRE\nMYaeUCDH5tlUyITTNcU1JKHmUAhrkZiiL++uq8ayGCy+GRtvJ9tyyMKlQxsPLIJZ\ng1JKHnPF/JSh220gpJHQZLSEMms7RniPUKJExi3vJ+4V7DcK9voAdekcJqmAlraf\nGi0Co4p8XKlkUo+i5kfG6w==\n-----END PRIVATE KEY-----\n",
+  "client_email": "smart-889@smart-orders-380418.iam.gserviceaccount.com",
+  "client_id": "101663767257215535149",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/smart-889%40smart-orders-380418.iam.gserviceaccount.com"
+}

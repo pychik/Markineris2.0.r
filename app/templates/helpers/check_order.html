@@ -1,0 +1,30 @@
+
+<script>
+    $(document).ready(function(){
+      load_data();
+      function load_data(query)
+      {
+       var csrf_token = "{{ csrf_token() }}";
+       $.ajax({
+        url:"{{ url_for('admin_control.user_search', user_admin_id = user_info.id) }}",
+        headers:{"X-CSRFToken": csrf_token},
+        method:"POST",
+        data:{query:query},
+        success:function(data)
+        {
+          $('#user_search_result').html(data);
+          $("#user_search_result").append(data.htmlresponse);
+        }
+       });
+      }
+      $('#search_text').keyup(function(){
+        var search = $(this).val();
+        if(search !== ''){
+        load_data(search);
+       }
+        else{
+        load_data()
+        }
+      });
+    });
+</script>

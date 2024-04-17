@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  keystore:
+    image: elasticsearch:${ELK_VERSION}
+    build:
+      context: elk/elasticsearch/
+      args:
+        ELK_VERSION: ${ELK_VERSION}
+    command: bash /setup/setup-keystore.sh
+    user: "0"
+    volumes:
+        - ./elk/secrets:/secrets
+        - ./elk/setup/:/setup/
+    environment:
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+
+  certs:
+    image: elasticsearch:${ELK_VERSION}
+    build:
+      context: elk/elasticsearch/
+      args:
+        ELK_VERSION: ${ELK_VERSION}
+    command: bash /setup/setup-certs.sh
+    user: "0"
+    volumes:
+      - ./elk/secrets:/secrets
+      - ./elk/setup/:/setup

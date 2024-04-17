@@ -1,0 +1,24 @@
+{% extends "main/base_v2.html" %}
+
+{% block admin_panel %}
+
+
+<div class="container">
+    <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
+        <div class="breadcrumbs">
+            <a href="{{url_for('admin_control.admin', u_id=current_user.id)}}">Панель управления агента {{current_user.login_name}}</a>
+            /
+            Заказы клиента <span style="font-weight:bold">{{client.login_name}}</span>
+        </div>
+    </div>
+</div>
+
+<div id="orders_stats_table">
+    {% include 'admin/client_orders/orders_table.html' %}
+</div>
+
+<div id="client_service_modal"></div>
+
+{% include 'helpers/error_modal.html' %}
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc.js')}}"></script>
+{% endblock %}

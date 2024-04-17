@@ -1,0 +1,27 @@
+<div class="modal fade" id="tgNotifyModal" tabindex="-1" data-bs-backdrop="static" role="dialog" aria-labelledby="tgNotifyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tgNotifyModalLabel">Модуль уведомлений пользователя через Телеграмм Бота</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="clear_tg_notify_modal()" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+
+          <div id="tgNotifyForm">
+            {% include 'user_control/tg_notifier/verify_form.html' %}
+          </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <div class="text-right">
+        <button type="button" class="btn btn-secondary" id="btnClosetgNotifyModal" data-bs-dismiss="modal" onclick="clear_tg_notify_modal()"
+                aria-label="Close">
+            Закрыть</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

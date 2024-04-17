@@ -1,0 +1,36 @@
+name: filebeat-docker-logs-shipper
+
+filebeat.config:
+  modules:
+    path: ${path.config}/modules.d/*.yml
+    reload.enabled: false
+
+filebeat.inputs:
+  - type: filestream
+    id: flask-app-id
+    tags: ["flask-app"]
+    enabled: true
+    paths:
+      - /var/log/flask-app/*.log
+  - type: filestream
+    id: nginx-id
+    tags: ["nginx"]
+    enabled: true
+    paths:
+      - /var/log/nginx/*.log
+
+processors:
+  - add_cloud_metadata:
+
+output.logstash:
+  hosts: ["logstash:5044"]
+
+setup:
+  kibana:
+    host: '${KIBANA_HOST_PORT}'
+    username: '${ELASTIC_USERNAME}'
+    password: '${ELASTIC_PASSWORD}'
+
+http.enabled: true
+http.host: 0.0.0.0
+http.port: 5066

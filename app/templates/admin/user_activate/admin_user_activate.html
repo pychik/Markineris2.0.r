@@ -1,0 +1,32 @@
+{% extends "main/base_v2.html" %}
+
+{% block admin_control_panel_users %}
+<div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
+        <div class="breadcrumbs">
+            <a href="{{url_for('admin_control.index')}}">Управление пользователями </a>
+            /
+            <span>Контроль неактивированных пользоватлей</span>
+
+        </div>
+    </div>
+<div class="row text-center mt-5">
+
+    <div class="col-12">
+    <h3>
+        Зарегистрировавшиеся пользователи которым требуется активация
+    </h3>
+    <div id="usersActivateTable" class="col" align="left">
+        {% include 'admin/user_activate/user_activate_table.html' %}
+    </div>
+
+
+
+  </div>
+</div>
+
+
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc.js')}}"></script>
+<script>
+
+</script>
+{% endblock %}

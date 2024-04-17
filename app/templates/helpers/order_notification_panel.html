@@ -1,0 +1,103 @@
+
+<div class="col-12 container-fluid text-center mt-3 mb-5">
+    <div class="card bg-light">
+        <div class="card-header bg-secondary text-white text-center mb-2">
+
+            <h3>Настройка <b>уведомления</b> для клиента при оформлении заказа.
+                <a data-bs-toggle="tooltip" data-bs-placement="right" data-bs-html="true"
+                    title="{% for o in order_edit_description %}{{ o }}{% if not loop.last %}<br>
+                                {% endif %}
+                            {% endfor %}" >
+                    <span class="badge badge-secondary">?</span>
+                </a>
+            </h3>
+        </div>
+
+        <form method="post"
+              action="{{ url_for('admin_control.set_order_notification', u_id=u_id)}}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div class="row">
+                <div class="col-md-2"></div>
+                <div class="col-md-8 col-xs-12 text-justify">
+                    <div class="form-group">
+                        <textarea class="form-control" id="order_note" name="order_note" minlength="10" maxlength="500"
+                                  placeholder="Введите уведомление для ваших клиентов. Не меньше 10 символов"
+                                  rows="10">{{ order_notification }}</textarea>
+                    </div>
+                    <div class="container">
+                        <div class="row text-center mt-2 mb-3">
+                            <div class="col-md-4"></div>
+                            <div class="col-md-4 col-xs-12">
+                                <button type="button" onclick="javascript:test_order_notification()"
+                                        class="btn btn-outline-secondary btn-block">Проверить</button>
+                            </div>
+                            <div class="col-md-4 col-xs-12">
+                                <button type="submit" class="btn btn-secondary btn-block">Обновить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<!--modal-->
+
+<div class="modal fade" id="order_note_testModal" tabindex="-1" role="dialog" data-bs-backdrop="static"
+     aria-labelledby="order_note_testModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content p-3 p-md-4">
+        <span type="button" class="close ms-auto" data-bs-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="36" height="35" viewBox="0 0 36 35" fill="none">
+                    <path d="M9.51367 27.4861L27.4859 9.51384" stroke="#575757" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M9.51367 9.51386L27.4859 27.4861" stroke="#575757" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+            </span>
+        </span>
+        <div class="modal-header ">
+            <h5 class="modal-title border-0" id="processModalLabel">Вы уверены, что хотите оформить заказ?</h5>
+
+        </div>
+        <div class="modal-body">
+        <div id="on_test_text_block"></div>
+            <b class="d-flex justify-content-between">Количество маркировок в заказе<div><span>1000</span>шт.</div>
+                </b>
+
+            <div id="data_order_check_insert">
+
+            </div>
+        </div>
+        <div class="modal-body mt-3">
+          <label><h5>Комментарий (необязательно заполнять)</h5></label>
+          <input class="form-control mt-1" type="text" maxlength="100" placeholder="Комментарий к заказу"
+               title="Комментарий необязательно заполнять. Нужен для отображения особенных заказов!"
+               id="order_comment_after" name="order_comment_after">
+        </div>
+        <div class="modal-footer d-flex flex-column" id="process_modal_footer">
+          <button type="button" class="btn btn-accent" data-bs-dismiss="modal">Оформить накладную</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Назад</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+function test_order_notification(){
+    let order_text = document.getElementById("order_note").value;
+    let on_modal = document.getElementById("on_test_text_block");
+    if(order_text.length <= 1){
+        // on_modal.innerHTML= `<h5>Проверьте пожалуйста заполненные позиции перед оформлением!<br>После того, как вы подтвердите оформление накладной, </h5><span style="font-size: 23px"><b>обязательно уведомите вашего менеджера о своем заказе</b></span><h5>после этого заказ поступит в обработку!</h5>`;
+        on_modal.innerHTML= `{{order_notification | safe}}`;
+
+    }
+    else{
+        on_modal.innerHTML = order_text;
+    }
+
+    $('#order_note_testModal').modal('show');
+}
+</script>

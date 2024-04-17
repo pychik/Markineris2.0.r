@@ -1,0 +1,40 @@
+<div class="row setup-content mb-5" id="step-3" {% if not 'page' in request.url %}style="display:none"{% endif %}>
+    <div id="step-3_update">
+        {% include 'helpers/shoes/response_shoes_table.html' %}
+    </div>
+    {% if o_id %}
+        <div class="step-btns mt-3 d-flex flex-wrap justify-content-around flex-column flex-sm-row ">
+            <button type="button"
+                    class="btn btn-outline btn-outline-dark btn-block order-1 order-sm-0 "
+                    data-bs-toggle="modal" data-bs-target="#clean_ordersModal">
+                    Очистить накладную
+            </button>
+
+
+            <form id="form_process" method="post"
+                  action="{{url_for(category_process_name + '.process_order', o_id=o_id)}}">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="orders_pos_count" value="{{orders_pos_count}}">
+                <input type="hidden" maxlength="100"
+                    id="order_comment" name="order_comment">
+
+                <button type="button" class="btn btn-primary nextBtn btn-block btn-accent border-0 text-dark order-0 order-sm-1 mb-3 mb-sm-0"
+                            data-bs-toggle="modal" data-bs-target="#processModal" data-bs-backdrop="static">
+                          Оформить заказ.
+                </button>
+
+            </form>
+
+        </div>
+    {% endif %}
+</div>
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function(event){
+edit_copied_full_order();
+setShoes();
+})
+
+</script>

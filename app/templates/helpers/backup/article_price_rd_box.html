@@ -1,0 +1,127 @@
+<div class="col-md-4 col-xs-12 text-center">
+    <label>
+        <h5>
+            <a class="badge bg-light text-black"
+               role="button"
+               {% if company_idn and price_exist %} data-bs-toggle="collapse" href="#collapsePrice"
+               aria-expanded="true" aria-controls="collapsePrice">
+               {% elif company_idn and not price_exist %}>
+               {% else %} data-bs-toggle="collapse" href="#collapsePrice" aria-expanded="false" aria-controls="collapsePrice">
+               {% endif %}
+
+
+                Цена артикула (необязательно)
+            </a>
+        <a data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="top"
+                            title="{% for p in price_description %}{{ p }}{% if not loop.last %}<br>
+                                        {% endif %}
+                                    {% endfor %}" ><span class="badge bg-secondary">?</span></a>
+        </h5>
+    </label>
+    <div class="row collapse {% if price_exist %}show{% endif %}" id="collapsePrice">
+<!--        <div class="col-md-2"></div>-->
+        <div class="col-md-6 col-xs-12" >
+            <label>
+                <h6>Цена, р</h6>
+            </label>
+            <input type="number" step="0.01" name="article_price" class="form-control"
+                 value="{% if copied_order %}{{ copied_order.article_price }}{% else %}0{% endif %}"
+            {% if price_exist %}required{% endif %}>
+        </div>
+        <div class="col-md-6 col-xs-12">
+            <label><h6>НДС,%</h6></label>
+            <select class="form-control" id="tax" name="tax" {% if price_exist %}required{% endif %}>
+                  <option  selected value="0" >0</option>
+                  {% for el in tax_list%}
+                    <option value="{{el}}" {% if copied_order %}
+                                                    {% if copied_order.tax == el %}
+                                                        selected
+                                                    {% endif %}
+                                                {% endif %}>{{el}}</option>
+                  {%endfor%}
+            </select>
+        </div>
+    </div>
+
+
+
+        <div class="mt-1">
+        <label>
+                <h5 class="mt-2">
+                    <a class="badge bg-light text-black"
+                       role="button"
+                       data-bs-toggle="collapse" href="#collapseDocResolve" aria-expanded="false" aria-controls="collapseDocResolve">
+
+                        Разрешительная документация (необязательно)
+                    </a>
+
+                    <a data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="top"
+                                    title="{% for rd in rd_description %}{{ rd }}{% if not loop.last %}<br>
+                                                {% endif %}
+                                            {% endfor %}" ><span class="badge bg-secondary">?</span></a>
+                </h5>
+        </label>
+            <div class="collapse {% if copied_order %}{% if copied_order.rd_name %}show{% endif %}{% endif %}" id="collapseDocResolve">
+
+                <div class="mt-1 form-group row" title="Тип документа">
+
+                    <select class="form-control col-sm-6" id="rd_type" name="rd_type">
+                          <option selected value="">Выберите тип документа </option>
+                          {% for rd in rd_types_list%}
+                            <option value="{{rd}}" {% if copied_order %}
+                                                            {% if copied_order.rd_type == rd %}
+                                                                selected
+                                                            {% endif %}
+                                                        {% endif %}>{{rd}}
+                            </option>
+                          {%endfor%}
+                    </select>
+
+
+                </div>
+                <div class="mt-2 form-group row" title="Код/название документа">
+
+                    <input type="text" id="rd_name" name="rd_name" class="form-control col-sm-6"
+                           placeholder="Введите код/название документа"
+                           value="{% if copied_order %}{% if copied_order.rd_name %}{{ copied_order.rd_name }}{% endif %}{% endif %}">
+                </div>
+                <div class="mt-2" >
+
+                <div class="form-group row" title="Дата оформления документа">
+
+                    <input type="text" placeholder="Выберите дату" class="form-control col-sm-6" id="rd_date"
+                           onpaste="return false;" onCopy="return false"
+                           onCut="return false" onDrag="return false" onDrop="return false"
+                           autocomplete="off" name="rd_date" readonly
+                           value="{% if copied_order %}{% if copied_order.rd_date %}{{ copied_order.rd_date.strftime('%d-%m-%Y') }}{% endif %}{% endif %}">
+                    <span class="badge bg-danger" title="Очистить дату"
+                          onclick="document.getElementById('rd_date').value = '';">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eraser" viewBox="0 0 16 16">
+                          <path d="M8.086 2.207a2 2 0 0 1 2.828 0l3.879 3.879a2 2 0 0 1 0 2.828l-5.5 5.5A2 2 0 0 1 7.879 15H5.12a2 2 0 0 1-1.414-.586l-2.5-2.5a2 2 0 0 1 0-2.828l6.879-6.879zm2.121.707a1 1 0 0 0-1.414 0L4.16 7.547l5.293 5.293 4.633-4.633a1 1 0 0 0 0-1.414l-3.879-3.879zM8.746 13.547 3.453 8.254 1.914 9.793a1 1 0 0 0 0 1.414l2.5 2.5a1 1 0 0 0 .707.293H7.88a1 1 0 0 0 .707-.293l.16-.16z"/>
+                        </svg>
+                    </span>
+                </div>
+                    <script>
+                        $(function () {
+                         $('#rd_date').datepicker({
+                            dateFormat : "dd-mm-yy",
+                            changeMonth: true,
+                            changeYear: true,
+                            maxDate: new Date(),
+                            });
+                        })
+                    </script>
+
+                </div>
+            </div>
+        </div>
+
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/jquery-ui.min.css" integrity="sha512-ELV+xyi8IhEApPS/pSj66+Jiw+sOT1Mqkzlh8ExXihe4zfqbWkxPRi8wptXIO9g73FSlhmquFlUOuMSoXz5IRw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/jquery-ui.min.js" integrity="sha512-57oZ/vW8ANMjR/KQ6Be9v/+/h6bq9/l3f0Oc7vn6qMqyhvPd1cvKBRWWpzu0QoneImqr2SkmO4MSqU+RpHom3Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="{{ url_for('static', filename='js/datepicker-ru.js') }}"></script>
+
+</div>
+
+
+
+

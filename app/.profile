@@ -1,0 +1,1 @@
+chmod -R 777 download_dir/crm

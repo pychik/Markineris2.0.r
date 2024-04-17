@@ -1,0 +1,45 @@
+{% if user_info.role in ('admin', 'superuser') %}
+    <div class="container mt-5 card p-5 faded mb-5" id="fill_block">
+        <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-3">
+            <div class="breadcrumbs">
+                <span style="cursor:pointer"><u>Запрос на снятие со счета агента</u></span>
+            </div>
+        </div>
+
+
+        <form method="POST" action="{{ url_for('user_cp.agent_wo', u_id=u_id) }}?bck=1"
+              onsubmit="return check_agent_wo_form();" id="agent_wo_form">
+            <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+            <div class="row">
+
+                <div class="col-md-5" title="Прикрепите чек о пополнении">
+                    <div class="btn btn-default btn-circle btn-accent my-1">1</div>
+
+
+                    <div class="small text-muted mb-3">От 5000 руб.</div>
+                    <div class="input-group my-3" title="Введите сумму сисания от 5000">
+
+                       <input type="number" id="wo_summ" name="wo_summ" class="form-control" placeholder="Введите сумму"
+                                           min="5000" step="100" max="1000000" required>
+                      <div class="input-group-append">
+                        <span class="input-group-text" id="wo-addon">руб.</span>
+                      </div>
+                    </div>
+
+                    <div class="form-group my-3" title="Введите реквизиты вашего счета"><label for="wo_account_info" style="display:none" >Информация о счете</label>
+                       <input type="text" id="wo_account_info" name="wo_account_info" class="form-control" placeholder="Введите информацию о счете"
+                                           minlength="5" maxlength="100" required>
+                    </div>
+
+                </div>
+                <div class="col-md-4" title="Нажмите кнопку отправить">
+                    <div class="btn btn-default btn-circle btn-accent my-1">2</div>
+                    <button type="button" onclick="if(check_agent_wo_form()){bck_agent_wo('{{url_for('user_cp.agent_wo', u_id=u_id)}}?bck=1')}" class="btn btn-accent mt-md-2">Отправить запрос на снятие средств</button>
+
+                </div>
+            </div>
+        </form>
+
+
+    </div>
+{%endif%}

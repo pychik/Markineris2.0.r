@@ -1,0 +1,125 @@
+{% if os_list %}
+    <div class="faded mt-3">
+
+        <div class="row">
+            <div class="col-4"></div>
+            <div class="col-4 text-center">
+                <div class="pagination_section my-1" >
+                    <div  style="margin-left: 3%;">{{ pagination.links }}</div>
+                </div>
+            </div>
+        </div>
+
+        <table class="table mt-3 table-result"  id="transactions_table_info" >
+            <thead class="text-dark">
+                <tr>
+                    <th scope="col">
+                        Дата
+                    </th>
+                    <th scope="col">
+                        Номер заказа
+                    </th>
+                    <th scope="col">
+                        Партнер код
+                    </th>
+                    <th scope="col">
+                        Аккаунт ID
+                    </th>
+                    <th scope="col">
+                        Фирма
+                    </th>
+                    <th scope="col">
+                        Телефонный номер
+                    </th>
+                    <th scope="col">
+                        Сколько строк
+                    </th>
+                    <th scope="col">
+                        Сколько марок
+                    </th>
+                    <th scope="col">
+                        Категория
+                    </th>
+                    <th scope="col">
+                        Цена заказа, руб
+                    </th>
+                    <th scope="col">
+                        Статус
+                    </th>
+
+                </tr>
+            </thead>
+
+            <tbody id="os_table_body_info">
+
+            {% for o in os_list %}
+                <tr>
+<!--                    <td class="tablesaw-cell-content">{{ loop.index }}</td>-->
+                    <td class="tablesaw-cell-content">
+
+                        {{o.created_at.strftime('%d.%m.%Y %H:%M')}}
+                    </td>
+                    <td>
+                        {{ o.order_idn}}
+                    </td>
+                    <td>
+                        {{o.partner_code}}
+                    </td>
+                    <td>
+                        {{o.user_name}}
+                    </td>
+                    <td>
+                        <span title="{{o.company_idn}}">{{o.company_type + ' ' + o.company_name}}</span>
+                    </td>
+                    <td>
+                        {{o.phone}}
+                    </td>
+                    <td>
+                        {{o.rows_count}}
+                    </td>
+                    <td>
+                        {{o.marks_count}}
+                    </td>
+                    <td>
+                        {{o.category}}
+                    </td>
+
+                    {%if o.op_cost%}
+                        <td>
+                            <span title="{{o.op_cost }} * {{o.marks_count}} ={{o.op_cost * o.marks_count}}">{{o.op_cost * o.marks_count}}</span>
+                        </td>
+                    <td>
+                        <span class="badge bg-success">Оплачено</span>
+                    </td>
+                    {% else %}
+                        <td>
+
+                        </td>
+                        <td>
+                            <span class="badge bg-danger">Не оплачено</span>
+                        </td>
+                    {% endif %}
+
+
+                </tr>
+
+                {% endfor %}
+
+            <tr>
+            </tr>
+            </tbody>
+        </table>
+        <div class="pagination-page-info text-center">На этой странице <b>{{ offset + 1 }} - {{ offset + os_list|length }}</b> Всего: <b>{{ pagination.total }}</b></div>
+        <div class="pagination_section my-1" >
+        <div class="d-flex">
+            <div class="col-3"></div>
+            <div class="col-md-1"></div>
+            <div class="col-5" style="margin-left: 3%;">{{ pagination.links }}</div>
+
+        </div>
+        </div>
+
+    </div>
+{% else %}
+<div class="faded mt-3">У пользователя <span style="font-weight: bold">{{client.login_name}}</span> пока нет заказов</div>
+{% endif %}

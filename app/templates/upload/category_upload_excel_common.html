@@ -1,0 +1,145 @@
+{% extends "main/base_v2.html" %}
+
+{% block categories_upper_part_upload %}
+
+
+<script>
+    window.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("btn_upload_1").addEventListener("click", function () {
+
+            if (document.getElementById('uploadForm').checkValidity() === true){
+                loadingCircle();
+                setTimeout(() => {reload_upload_page_with_params()}, 4900);
+            }
+
+        });
+        document.getElementById("btn_upload_2").addEventListener("click", function () {
+
+            if (document.getElementById('uploadForm').checkValidity() === true){
+                loadingCircle();
+                setTimeout(() => {reload_upload_page_with_params()}, 4900);
+            }
+
+        });
+    });
+</script>
+
+
+<div class="container-fluid pb-4 content-main">
+
+    <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
+        <div class="breadcrumbs">
+            <a href="{{url_for('main.enter')}}" class="">Категории </a>
+            /
+            <span>{{category.capitalize()}}</span>
+        </div>
+        <div class="partner">
+
+            {% if current_user.partner != 'NO_PARTNER_CODE'%}
+                Код партнера: <span class="partner-code fw-bold ">
+                {% if current_user.partners %}
+                    {{ current_user.partners[0].code }}
+                {% endif %}
+            {% endif %}</span>
+        </div>
+    </div>
+
+
+    <div class="front text-center">
+        <h1 class="mb-5 fs-2">Форма загрузки заказа через Excel</h1>
+    </div>
+    <div class="table__descr mx-auto">
+      <p class=" text-center  mb-3">Эта форма позволяет пользователям загружать заказы в базу сервиса с помощью корректно заполненных шаблонов таблиц ехсеl. Пользователь скачивает шаблон необходимого типа из поля ниже, далее заполняет эту таблицу, с помощью формы загружает таблицу и, если все заполнено корректно, отправляет заказ.</p>
+
+      <p class="text-center"><a href="'{{ url_for('requests_common.download_file',
+                                                         filename=download_instruction) }}'" class=" download-link">Скачать инструкцию</a></p>
+    </div>
+    <div class="template-select mt-5 mb-5">
+
+            <div class="form-group d-flex flex-row justify-content-center flex-wrap ">
+                <select class="form-control search-select" id="DownloadTemplates" name="DownloadTemplates"
+                    readonly="true">
+                    <option disabled value="#" selected>Выбрать шаблон таблицы</option>
+                    {% for el in templates %}
+                        <option value="{{ url_for('requests_common.download_file', filename=el[0])}}">
+                          {{ el[1] }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <button class="btn btn-dark ms-2" onclick="DTTemplate()">Скачать</button>
+            </div>
+
+    </div>
+
+    <form method="post" id="uploadForm"
+              action="{{ url_for(category_process_name + '.process_upload')}}"
+                onsubmit="return check_upload_form()" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <input type="hidden" id="table_type" name="table_type" value="standart">
+
+        {% include 'helpers/organization.html' %}
+
+
+        {% block content %}
+        {% endblock %}
+
+    </form>
+</div>
+
+{% include 'helpers/modal_questions_org.html' %}
+
+<script>
+
+function upload_type_process(type_process){
+    document.getElementById('table_type').value = type_process;
+    check_upload_form();
+
+}
+
+function reload_upload_page_with_params(){
+    var company_type = document.getElementById('company_type').value;
+    var company_name = document.getElementById('company_name').value;
+    var company_idn = document.getElementById('company_idn').value;
+    var edo_type = document.getElementById('edo_type').value;
+    // var edo_id = document.getElementById('edo_id').value;
+    var mark_type = document.getElementById('mark_type').value;
+    // window.location = "{{ request.path }}?company_type="+company_type +
+    //     "&company_name=" + company_name + "&company_idn=" + company_idn + "&edo_type=" + edo_type +
+    //     "&edo_id=" + edo_id + "&mark_type=" + mark_type;
+    window.location = "{{ request.path }}?company_type="+company_type +
+        "&company_name=" + company_name + "&company_idn=" + company_idn + "&edo_type=" + edo_type +
+        "&mark_type=" + mark_type;
+}
+
+function check_upload_form(){
+    var upload_form = document.getElementById('uploadForm');
+
+    if ((!upload_form.checkValidity || upload_form.checkValidity())) {
+        // console.log("good valid form")
+
+            upload_form.submit();
+    }
+    else{
+        var allInputs = $('#uploadForm input, #uploadForm select ');
+        var errors_list = [];
+
+        allInputs.each(function( index ) {
+            // console.log(allInputs[index]);
+            let error_field_id = check_valid(allInputs[index]);
+            if (error_field_id !== true){
+                let label_text = jQuery(`#${error_field_id}`).closest(".form-group").find("label").text();
+                // document.getElementById().parent().label.innerText
+                // errors_list.push(error_field_name);
+                if (label_text){
+                    errors_list.push(label_text);
+                }
+            }
+        })
+        show_form_errors(errors_list);
+        $('#form_errorModal').modal('show');
+    }
+}
+
+</script>
+{% include 'helpers/modal_questions_v2.html' %}
+{% endblock %}

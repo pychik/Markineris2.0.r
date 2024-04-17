@@ -1,0 +1,35 @@
+<div class="container">
+    <div><b>Номер:</b> {{ transaction.id }}</div>
+    <div><b>Дата формирования:</b> {{ transaction.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</div>
+    <div><b>Статус:</b> {{ transaction_dict[transaction.status] }}</div>
+
+    {% if transaction.promo_info %}
+    <div><b>Промо:</b> {{ transaction.promo_info }}</div>
+    {%endif%}
+    {% if transaction.type %}
+        <div><b>Тип транзакции:</b> Пополнение лицевого счета</div>
+        <div><b>Счет:</b> {{ service_account.sa_name }}</div>
+
+    {% else %}
+        <div><b>Тип транзакции:</b> Списание с лицевого счета</div>
+        {% if transaction.wo_account_info%}<div><b>Реквизиты счета:</b> {{ transaction.wo_account_info }}</div>{% endif %}
+        {% if order_prices_marks %}
+            <div class="my-1"><b>Заказы</b>: <!--<a href="{{url_for('orders_archive.index')}}" target="_blank" style="text-decoration: none">-->
+                {% for o in order_prices_marks %}
+                    {% if not loop.index==1%}
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    {%endif%}
+                    <span class="text-warning">{{o.order_idn}}</span> - {{o.category}}, {{o.marks_count}} шт.{% if not is_at2 %} - {{o.marks_count * transaction.op_cost}} р.{%endif%}{% if not loop.last %},<br>{% endif %}
+                {% endfor %}<!--</a>-->
+            </div>
+            {% if not is_at2 %}
+                <b>Цена за марку</b>: {{transaction.op_cost}} р.<br>
+            {% endif %}
+            <b>Всего </b>: {{total_marks}} шт.
+        {% endif %}
+    {% endif %}
+    {% if not is_at2 %}
+        <div><b>Сумма:</b> {{ transaction.amount }} р.</div>
+    {%endif%}
+    <div class="col mt-3" title="Скрин транзакции">{{transaction_image | safe}}</div>
+</div>

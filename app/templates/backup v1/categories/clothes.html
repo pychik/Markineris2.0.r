@@ -1,0 +1,531 @@
+{% extends "categories/category_upper_part.html" %}
+
+{% block content %}
+
+    <div class="row mt-5" align="center">
+        <div class="col-md-1"></div>
+        <div class="col-md-3 col-xs-12">
+          <label><h5>Товарный знак</h5></label>
+          <input type="text" name="trademark" class="form-control" maxlength="50"
+              {% if copied_order %}value="{{ copied_order.trademark }}"
+              {% endif %} required>
+            <small class="text-secondary font-10">Вводимое значение не должно превышать 50 знаков</small>
+        </div>
+        <div class="col-md-2 col-xs-12">
+          <label><h5>Артикул</h5></label>
+          <input type="text" name="article" class="form-control" maxlength="50"
+                 value="{% if copied_order %}{{ copied_order.article }}{% endif %}" required>
+            <small class="text-secondary font-10">Вводимое значение не должно превышать 50 знаков</small>
+        </div>
+
+        <div class="col-md-3 col-xs-12">
+          <label><h5>Вид товара</h5></label>
+          <select class="form-control" id="type" name="type"
+                  onchange="javascript:set_tnved();" required>
+                    <option disabled selected value="">Выберите из списка..</option>
+                    {%for l in types%}
+                      <option value="{{l}}" {% if copied_order %}
+                                                {% if copied_order.type == l %}
+                                                    selected
+                                                {% endif %}
+                                            {% endif %}>{{l}}</option>
+                    {%endfor%}
+          </select>
+        </div>
+        <div class="col-md-2 col-xs-12">
+          <label><h5>Цвет</h5></label>
+<!--          <input type="name" name="color" class="form-control" required>-->
+          <select class="form-control" id="color" name="color" required>
+              <option disabled selected value="">Выберите цвет..</option>
+              {%for c in colors%}
+                      <option value="{{c}}" {% if copied_order %}
+                                                {% if copied_order.color == c %}
+                                                    selected
+                                                {% endif %}
+                                            {% endif %}>{{c}}</option>
+              {%endfor%}
+          </select>
+        </div>
+
+    </div>
+
+
+    <div class="row mt-5">
+        <div class="col-md-1"></div>
+        <div class="col-md-2 col-xs-12 text-center">
+{#                <label><h5>Кол-во упаковок</h5></label>#}
+                <input type="number" min="1" step="1" name="box_quantity" id="box_quantity" class="form-control"
+                    {% if copied_order %}value="{{ copied_order.box_quantity }}"
+                    {% else %}value="1"
+                    {% endif %} hidden required>
+        </div>
+        <div class="col-md-4 col-xs-12 text-center" id="add_container">
+            <label><h5>Размеры/Количество</h5></label>
+            {% if copied_order %}
+                {% for sq in copied_order.sizes_quantities %}
+                    <div class="row mb-2" id="container_element">
+{#                            <div class="col-md-6"></div>#}
+                        <div class="col-md-6 col-xs-12">
+                            <input type="number" name="size" id="size" min="12" max="74" step="2" class="form-control mb-1" placeholder="Размер"
+                                   value="{{ sq.size }}"  required>
+                        </div>
+                        <div class="col-md-6 col-xs-12">
+                          <input type="number" name="quantity" id="quantity" class="form-control ms-1" min="1"
+                               oninput="validity.valid||(value='');javascript:setClothes();" value="{{ sq.quantity }}" required>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="row mb-2" id="container_element">
+{#                        <div class="col-md-6"></div>#}
+                    <div class="col-md-6 col-xs-12">
+                        <input type="number" name="size" id="size" min="12" max="74" step="2" class="form-control mb-1" placeholder="Размер"
+                                required>
+
+                    </div>
+                    <div class="col-md-6 col-xs-12">
+                        <input type="number" name="quantity" id="quantity" class="form-control ms-1" value="1" min="1"
+                           oninput="validity.valid||(value='');javascript:setClothes();" required>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        <div class="col-md-2 mt-3">
+
+            <div class="col-xs-12 mt-2">
+              <input type="button" class="btn btn-sm btn-primary btn-block"
+                     onclick="javascript:addCell();" value="+размер"/>
+            </div>
+
+            <div class="col-xs-12 mt-1">
+                <input type="button" class="btn btn-sm btn-danger btn-block"
+                     onclick="javascript:deleteCell();" value="-размер"/>
+            </div>
+            <div class="col-xs-12 text-center mt-3 ">
+                    <label><h4>В коробке</h4></label>
+                </div>
+                <div class="col-xs-12">
+                    <input type="number" id="clothes_in_box" class="form-control ms-1"  disabled>
+                    <script>
+                        document.addEventListener("DOMContentLoaded", (event) => {
+                            setClothes();
+                        });
+                    </script>
+                </div>
+        </div>
+    </div>
+
+    <div class="row mt-5 text-center">
+        <div class="col-md-1"></div>
+
+        <div class="col-md-2 col-xs-12">
+          <label><h5>Пол</h5></label>
+           <select class="form-control" id="gender" name="gender"
+                   onchange="javascript:set_tnved();" required>
+               <option disabled selected value="">Выберите пол...</option>
+               {%for gen in genders%}
+                      <option value="{{gen}}" {% if copied_order %}
+                                                {% if copied_order.gender == gen %}
+                                                    selected
+                                                {% endif %}
+                                            {% endif %}>{{gen}}</option>
+                    {%endfor%}
+          </select>
+
+        </div>
+        <div class="col-md-5 col-xs-12">
+          <label><h5>Состав</h5></label>
+          <div class="d-flex no-wrap">
+              <div class="col-9">
+                <div class="form-group">
+                    <select class="form-control" id="multi_content"
+                        onchange="clothes_content_add()">
+                      <option disabled selected value="">Выберите состав одежды</option>
+                        {%for con in clothes_content%}
+                            <option value="{{con}}">{{con}}</option>
+                        {%endfor%}
+                    </select>
+                </div>
+              </div>
+              <div class="col-3 text-left form-check">
+
+
+                <label class="font-12" for="manual_content_checkbox" style="color:red"
+                         title="Нажмите, для ручного ввода состава">Ручной ввод<br>
+
+                    <input type="checkbox" id="manual_content_checkbox" name="manual_content_checkbox"
+                        style="width: 18px; height: 18px;" title="Нажмите, для ручного ввода состава"  onchange="manual_content_edit()">
+                </label>
+
+              </div>
+          </div>
+          <textarea type="text" rows="3" title="Итоговый состав позиции" onchange="check_content()"
+                    name="content" id="content" class="form-control" readonly minlength="3" maxlength="100"
+                    required >{% if copied_order %}{{ copied_order.content }}{% endif %}</textarea>
+
+
+
+
+          <small class="text-secondary font-10">Вводимое значение не должно превышать 100 знаков</small>
+
+          <br><label class="font-12" for="nat_materials_check" style="color:red"
+                     title="" disabled>Наличие кожи/замши</label>
+          <input type="checkbox" id="nat_materials_check" name="nat_materials_check"
+                 title="Нажмите, если в составе есть кожа/замша/композиционная кожа" disabled onchange="set_tnved()">
+{#              <div class=" col-2">#}
+{#                <label class="font-12" for="nat_materials_check" style="color:red">Наличие <br>кожи/замши</label>#}
+{#                <input type="checkbox" id="nat_materials_check" name="nat_materials_check">#}
+{#              </div>#}
+        </div>
+
+
+        <div class="col-md-3 col-xs-12">
+              {% include 'helpers/countries_block.html' %}
+        </div>
+
+    </div>
+    <div class="row mt-5">
+        <div class="col-md-3"></div>
+        {% include 'helpers/tnved_code_block.html' %}
+        {% include 'helpers/article_price_rd_box.html' %}
+
+
+    </div>
+    <div class="col text-center">
+        <input type="hidden" id="sort_type_order" name="sort_type_order"
+                   value={{ request.args.sort_type|default('id') +  ';' + request.args.sort_order|default('false')}}>
+        <button class="btn btn-sm btn-primary mt-3 mb-2" onclick="check_materials_submit()" type="button">
+                      <font size="2">{% if 'edit' in request.path %}Изменить позицию{% else %}+Добавить в заказ{% endif %}</font>
+                  </button>
+    </div>
+</div>
+</form>
+
+{% set sort_type = request.args.sort_type|default('id') %}
+{% set sort_order = request.args.sort_order|default('false') %}
+
+{%if order_list%}
+    <div class="col  text-center mt-5 mb-4" id="orders_table">
+        <h3>
+            Заказ
+            <span class="badge badge-xl bg-secondary text-white" style="cursor:pointer;"
+                  onclick="location.href='{{ url_for('clothes.preload', o_id=o_id, stage=order_stages.CREATING) }}'" title="Предпросмотр заказа">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-seam" viewBox="0 0 16 16">
+                    <path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5l2.404.961L10.404 2l-2.218-.887zm3.564 1.426L5.596 5 8 5.961 14.154 3.5l-2.404-.961zm3.25 1.7-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z"/>
+                </svg>
+            </span>
+        </h3>
+    </div>
+
+    <div class="col" align="left">
+
+    {{ pagination.links }}
+
+        <table class="table table-hover table-bordered mt-1">
+          <thead class="table-dark">
+            <tr>
+              <th scope="col" title="Сортировка по порядку">
+                 {% if sort_type == 'id' %}
+                      {% if sort_order == 'true'%}
+                          <div style="font-size:13px; color:#68dc68" id="sort_common_table">
+                              <input type="checkbox" class="sortOrder" id="sort_order_id"
+                                     checked
+                               onchange="javascript:sort_order_list_common('{{ request.path }}', 'id', 'sort_order_id');"
+                               autofocus>
+                              <label for="sort_order_id" class="arrows"></label>&nbsp;&nbsp;&nbsp;&nbsp;№&nbsp;
+                         </div>
+                      {% else %}
+                          <div style="font-size:13px; color:#fccd57" id="sort_common_table">
+                              <input type="checkbox" class="sortOrder" id="sort_order_id"
+                               onchange="javascript:sort_order_list_common('{{ request.path }}', 'id', 'sort_order_id');"
+                               autofocus>
+                              <label for="sort_order_id" class="arrows"></label>&nbsp;&nbsp;&nbsp;&nbsp;№&nbsp;
+                          </div>
+                      {% endif %}
+                 {% else %}
+                     <div style="font-size:13px;" id="sort_common_table">
+                          <input type="checkbox" class="sortOrder" id="sort_order_id"
+                          onchange="javascript:sort_order_list_common('{{ request.path }}', 'id', 'sort_order_id');"
+                          autofocus>
+                          <label for="sort_order_id" class="arrows"></label>&nbsp;&nbsp;&nbsp;&nbsp;№&nbsp;
+                      </div>
+                 {% endif %}
+
+              </th>
+
+              <th scope="col"><font size="2">Товарный_знак</font></th>
+              <th scope="col" title="Сортировка по артикулу">
+                  {% if sort_type == 'article' %}
+                      {% if sort_order == 'true'%}
+                          <div style="font-size:13px; color:#68dc68">
+                              <input type="checkbox" class="sortOrder" id="sort_order_article"
+                                     checked
+                               onchange="javascript:sort_order_list_common('{{ request.path }}', 'article', 'sort_order_article');"
+                               autofocus>
+                              <label for="sort_order_article" class="arrows"></label>&nbsp;&nbsp;&nbsp;&nbsp;Артикул&nbsp;
+                          </div>
+                      {% else %}
+                          <div style="font-size:13px; color:#fccd57">
+                              <input type="checkbox" class="sortOrder" id="sort_order_article"
+                               onchange="javascript:sort_order_list_common('{{ request.path }}', 'article', 'sort_order_article');"
+                               autofocus>
+                              <label for="sort_order_article" class="arrows"></label>&nbsp;&nbsp;&nbsp;&nbsp;Артикул&nbsp;
+                          </div>
+                      {% endif %}
+                  {% else %}
+                      <div style="font-size:13px;">
+                          <input type="checkbox" class="sortOrder" id="sort_order_article"
+                          onchange="javascript:sort_order_list_common('{{ request.path }}', 'article', 'sort_order_article');"
+                          autofocus>
+                          <label for="sort_order_article" class="arrows"></label>&nbsp;&nbsp;&nbsp;&nbsp;Артикул&nbsp;
+                      </div>
+                  {% endif %}
+
+              </th>
+
+              <th scope="col"><font size="2">Вид_товара</font></th>
+              <th scope="col"><font size="2">Цвет</font></th>
+              <th scope="col"><font size="2">Кол-во, шт. </font></th>
+              <th scope="col"><font size="2">Размеры/Количество</font></th>
+              <th scope="col"><font size="2">Пол</font></th>
+              <th scope="col"><font size="2">Состав</font></th>
+              <th scope="col"><font size="2">Страна</font></th>
+              <th scope="col"><font size="2"></font></th>
+              <th scope="col"><font size="2"></font></th>
+            </tr>
+          </thead>
+          <tbody>
+
+    {%for t in order_list%}
+        <tr>
+          <th scope="row">{{ offset+loop.index }}</th>
+
+          <td>
+              {{t.trademark}}
+          </td>
+          <td>
+              {{t.article}}
+          </td>
+          <td>
+              {{t.type}}
+          </td>
+          <td>
+              {{t.color}}
+          </td>
+          <td>
+
+                {{ t.sizes_quantities|count_quantity * t.box_quantity }}
+
+          </td>
+          <td>
+              <div class="container">
+                <div class="row">
+                    {%for sq in t.sizes_quantities%}
+                    {{sq.size}}/{{sq.quantity}} {%if not loop.last%} &nbsp;<b>|</b>&nbsp; {%endif%}
+                    {%endfor%}
+                </div>
+              </div>
+          </td>
+
+          <td>
+              {{t.gender}}
+          </td>
+          <td>
+              {{t.content}}
+          </td>
+          <td>
+              {{t.country}}
+          </td>
+          <td>
+              <div class="d-flex no-wrap">
+                  <button type="button" class="btn btn-sm btn-outline-primary"
+                      onclick="copy_order_with_sort('{{ url_for('clothes.copy_order', o_id=o_id, p_id=t.id, edit_order='edit_order') }}')"
+                      title="Изменить позицию заказа">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
+                          <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+                      </svg>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary ml-1"
+                      onclick="copy_order_with_sort('{{ url_for('clothes.copy_order', o_id=o_id, p_id=t.id) }}')"
+                      title="Копировать позицию заказа">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-files" viewBox="0 0 16 16">
+                        <path d="M13 0H6a2 2 0 0 0-2 2 2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm0 13V4a2 2 0 0 0-2-2H5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1zM3 4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4z"/>
+                      </svg>
+                  </button>
+              </div>
+
+          </td>
+          <td>
+              <form method="post" action="{{ url_for('clothes.delete_order_pos', o_id=o_id, c_id=t.id)}}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <input class="btn btn-sm btn-outline-danger btn-outline"
+                         title="Удалить позицию заказа" type="submit"
+                         name="delete" value="&times;">
+              </form>
+          </td>
+        </tr>
+    {%endfor%}
+          {% include 'helpers/order_pos_count_box.html' %}
+          </tbody>
+        </table>
+        <div class="pagination-page-info text-center">На этой странице <b>{{ offset + 1 }} - {{ offset + order_list|length }}</b> Всего: <b>{{ pagination.total }}</b></div>
+        {{ pagination.links }}
+    </div>
+{%endif%}
+<script>
+const clothes_nat_array = [{% for c in clothes_nat_content %}'{{ c }}',{% endfor %}];
+const clothes_upper_array = [{% for c in clothes_upper %}'{{ c }}',{% endfor %}];
+{% if not copied_order %}
+    document.addEventListener("DOMContentLoaded", (event) => {
+        set_tnved();
+            });
+{% endif %}
+
+
+function countClothes(){
+    var total = 1;
+    document.querySelectorAll('[id=quantity]').forEach(el=>total+=+el.value);
+    return total
+
+}
+
+function setClothes(){
+    var total = 0;
+    document.querySelectorAll('[id=quantity]').forEach(el=>total+=+el.value);
+    document.getElementById('clothes_in_box').value = total;
+}
+
+
+function addCell(){
+    var total = countClothes();
+    document.getElementById('clothes_in_box').value = total;
+
+    var size_vals = document.querySelectorAll('[id=size]');
+    var size_val = size_vals[size_vals.length -1].value
+    var size = parseInt(size_val,10);
+    if ((size / 2 - Math.floor(size / 2)) > 0 || size < 12 || size > 74){
+        alert("Размеры одежды должны быть четными в диапазоне 12-74!");
+        return
+    }
+
+    if (size < 74){
+        size+=2;
+    }
+
+
+    var f = document.getElementById('add_container');
+
+    f.insertAdjacentHTML( 'beforeend', `<div class="row mb-2" id="container_element"><div class="col-md-6 col-xs-12" mt-1"><input type="number" name="size" id="size" min="12" max="74" step="2" class="form-control mb-1" value="${size}"  required></div><div class="col-md-6 col-xs-12"><input type="number" name="quantity" id="quantity" class="form-control ms-1" value="1" min="1" oninput="validity.valid||(value='');javascript:setClothes();" required></div></div>`);
+
+}
+
+
+function deleteCell(){
+    size_vals = document.querySelectorAll('[id=container_element]');
+    var size_el = size_vals[size_vals.length -1]
+    if (size_vals.length > 1){
+    size_el.remove()
+    }
+    var total = countClothes();
+    document.getElementById('clothes_in_box').value = total-1;
+}
+
+function clothes_content_add(){
+    var multi_box = document.getElementById('multi_content');
+    var content = multi_box.value;
+    var content_box = document.getElementById("content");
+    var add_content = ''
+    if(content_box.value.length !==0 ){
+
+        if (content_box.value.includes(content)!== true && content_box.value.length + content.length + 2 <= content_box.maxLength){
+            add_content += ', ' + content;
+            check_nat_content(content);
+        }
+    }
+    else{
+        add_content += content;
+        check_nat_content(content);
+    }
+    {#console.log(content_box.value.length);#}
+    {#console.log(content_box.maxLength);#}
+    content_box.value += add_content;
+}
+
+function check_nat_content(content){
+    if (clothes_nat_array.includes(content)){
+        var nmc =document.getElementById("nat_materials_check")
+        nmc.checked= true;
+        set_tnved();
+    }
+}
+
+function manual_content_edit(){
+    var mccb = document.getElementById('manual_content_checkbox')
+    var nmc =document.getElementById("nat_materials_check")
+    var ctb = document.getElementById("content")
+        if (mccb.checked === true){
+            nmc.disabled=false;
+            ctb.readOnly=false
+        }
+        else{
+            nmc.disabled=true;
+            ctb.readOnly=true
+
+        }
+
+    }
+
+function check_content(){
+    var ctb = document.getElementById("content")
+    if (ctb.value.length > 100){
+    ctb.value = ctb.value.slice(100)
+    }
+
+}
+
+function check_materials_submit(){
+    var clothes_form = document.getElementById('form_process_main');
+    var content_box_value = document.getElementById('content').value;
+
+    // check rd fields
+    var rd_type = document.getElementById('rd_type');
+    var rd_name = document.getElementById('rd_name');
+    var rd_date = document.getElementById('rd_date');
+    if (rd_type.value || rd_name.value || rd_date.value){
+        rd_type.required = true;
+        rd_name.required = true;
+        rd_date.required = true;
+    }
+    else{
+        rd_type.required = false;
+        rd_name.required = false;
+        rd_date.required = false;
+    }
+
+    clothes_form.reportValidity();
+
+    if(clothes_form.checkValidity()!==true){
+        return false
+    }
+
+    if(content_box_value.length < 3){
+        window.location.hash = '#multi_content';
+        alert("Заполните блок состав одежды!");
+
+    }
+    if (rd_date.required === true && rd_date.value===''){
+        window.location.hash = '#rd_date';
+        alert("Заполните блок даты декларации соответствия, либо очистите поля разрешительной документации.")
+        return false
+    }
+
+
+    else{
+        clothes_form.submit()
+    }
+
+}
+
+</script>
+
+{% endblock %}

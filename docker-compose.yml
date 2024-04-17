@@ -1,0 +1,130 @@
+version: "3.8"
+
+services:
+  nginx:
+    image: nginx:1.25.2
+    container_name: nginx
+    volumes:
+      - ./app/static:/app/static
+      - ./maintenance/maintenance.html:/usr/share/nginx/html/maintenance.html
+      - ./app/static/response_pages/429.html:/usr/share/nginx/html/429.html
+      - ./maintenance:/app/maintenance
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - /etc/ssl/certs/ssl_cert.crt:/etc/ssl/certs/bundle.crt
+      - /etc/ssl/private/ssl_pk.key:/etc/ssl/private/default.key
+      - /etc/localtime:/etc/localtime:ro
+      - /var/log/nginx/:/var/log/nginx/
+    ports:
+      - "443:443"
+      - "80:80"
+    depends_on:
+      flask_app:
+        condition: service_started
+    networks:
+      - markineris_r_network
+
+  flask_app:
+    container_name: flask_app
+    build:
+      context: app
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./app/migrations:/app/migrations
+      - ./app/static:/app/static/
+      - ./app/download_dir:/app/download_dir/
+      - /etc/localtime:/etc/localtime:ro
+      - /var/log/flask-app/:/var/log/flask-app/
+    expose:
+      - "5005"
+    entrypoint: ./entrypoint.sh
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - markineris_r_network
+      - elk_shared_network
+
+  bot_notification:
+    restart: on-failure
+    container_name: bot_notification
+    build:
+      context: bot_notifications
+      dockerfile: infra/Dockerfile
+    volumes:
+      - /var/log/bot-notifications/:/var/log/bot-notifications/
+    command: python3 -m main
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - markineris_r_network
+
+  db:
+    container_name: db
+    image: postgres:15.1
+    volumes:
+      - ./postgres_volume:/var/lib/postgresql/data
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - PGUSER=${SU_NAME}
+      - POSTGRES_USER=${SU_NAME}
+      - POSTGRES_PASSWORD=${SU_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_HOST_AUTH_METHOD=${POSTGRES_HOST_AUTH_METHOD}
+      - POSTGRES_INITDB_ARGS=${POSTGRES_INITDB_ARGS}
+    expose:
+      - "5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - markineris_r_network
+
+  redis:
+    container_name: redis
+    image: redis:7.2.1
+    restart: always
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - markineris_r_network
+
+  rq_dashboard:
+    container_name: rq_dashboard
+    image: eoranged/rq-dashboard
+    ports:
+      - "9181:9181"
+    environment:
+      - RQ_DASHBOARD_USERNAME=${SU_NAME}
+      - RQ_DASHBOARD_PASSWORD=${SU_PASSWORD}
+      - RQ_DASHBOARD_REDIS_URL=${REDIS_URL}
+    depends_on:
+      - redis
+    networks:
+      - markineris_r_network
+
+volumes:
+  static_volume:
+  postgres_volume:
+
+networks:
+  markineris_r_network:
+    name: markineris_r_network
+  elk_shared_network:
+    external: true

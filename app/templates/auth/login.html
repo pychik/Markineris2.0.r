@@ -1,0 +1,50 @@
+<!-- templates/login.html -->
+
+{% extends "base.html" %}
+
+{% block auth %}
+<div class="container mt-5 col-lg-3 col-md-6 col-xs-12 text-center">
+
+
+
+        <form method="POST"  action="/login">
+             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+             <h3 class="h3 mb-3 font-weight-normal">Пожалуйста, авторизуйтесь</h3>
+             <label for="inputEmail" class="sr-only">Login</label>
+            <input type="email" name="email" class="form-control" placeholder="Введите email" required autofocus>
+            <label for="inputPassword" class="sr-only">Password</label>
+            <input type="password" name="password" class="form-control mt-3 mb-3" placeholder="Введите пароль" required>
+{#            <div class="checkbox m-3">#}
+{#                <label>#}
+{#                  <input type="checkbox" value="remember-me"> Запомнить#}
+{#                </label>#}
+{#            </div>#}
+
+
+            <button class="btn btn-lg btn-primary btn-block" type="submit">Войти</button>
+            <button onclick="location.href='{{url_for('auth.sign_up')}}'" class="btn btn-lg btn-info btn-block mt-3"
+                type="button">
+                Зарегистрироваться
+            </button>
+            <a class="mt-1" href="{{ url_for('user_cp.restore_page') }}" >
+                Забыл пароль
+            </a>
+
+            <p class="mt-5 mb-3 text-muted">© 2023</p>
+
+
+
+        </form>
+
+{#<div class="col-1 mr-3">#}
+{#        {% if not current_user.is_authenticated %}#}
+{#          <a href="{{ url_for('auth.sign_up') }}" class="navbar-item">#}
+{#            Зарегистрироваться#}
+{#          </a>#}
+{#        {% endif %}#}
+{#      </div>#}
+
+        </div>
+    </div>
+
+{% endblock %}

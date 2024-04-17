@@ -1,0 +1,63 @@
+<div class="form-group" id="sizes_quantity_order">
+    <label class="control-label">Размер <a data-bs-toggle="tooltip" data-html="true"
+                                title="{% for c in clothes_size_description %}{{ c }}{% if not loop.last %}
+                                            {% endif %}
+                                        {% endfor %}" >
+
+            <span class="badge badge-secondary"><svg
+                    xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                    viewBox="0 0 18 18" fill="none">
+                    <path
+                        d="M8.625 11.25C8.625 11.3495 8.66451 11.4448 8.73483 11.5152C8.80516 11.5855 8.90054 11.625 9 11.625C9.09946 11.625 9.19484 11.5855 9.26517 11.5152C9.33549 11.4448 9.375 11.3495 9.375 11.25V8.23575C9.375 8.13629 9.33549 8.04091 9.26517 7.97058C9.19484 7.90026 9.09946 7.86075 9 7.86075C8.90054 7.86075 8.80516 7.90026 8.73483 7.97058C8.66451 8.04091 8.625 8.13629 8.625 8.23575V11.25Z"
+                        fill="#D12600" />
+                    <path
+                        d="M9 7.12427C9.20711 7.12427 9.375 6.95637 9.375 6.74927C9.375 6.54216 9.20711 6.37427 9 6.37427C8.79289 6.37427 8.625 6.54216 8.625 6.74927C8.625 6.95637 8.79289 7.12427 9 7.12427Z"
+                        fill="#D12600" />
+                    <path
+                        d="M8.99982 1.54877C10.4734 1.54877 11.9138 1.98571 13.139 2.80435C14.3642 3.62299 15.3192 4.78655 15.8831 6.14791C16.447 7.50927 16.5946 9.00728 16.3072 10.4525C16.0198 11.8977 15.3103 13.2253 14.2684 14.2673C13.2265 15.3093 11.899 16.019 10.4538 16.3065C9.00859 16.5941 7.51057 16.4466 6.14915 15.8828C4.78774 15.3191 3.62408 14.3642 2.80532 13.1391C1.98655 11.914 1.54946 10.4736 1.54932 9.00002C1.5513 7.02456 2.33688 5.13057 3.73366 3.73365C5.13045 2.33672 7.02436 1.55095 8.99982 1.54877ZM8.99982 15.699C10.3251 15.699 11.6206 15.306 12.7226 14.5697C13.8245 13.8333 14.6833 12.7868 15.1904 11.5623C15.6975 10.3379 15.8301 8.99057 15.5715 7.69076C15.3128 6.39095 14.6745 5.19704 13.7373 4.26002C12.8 3.323 11.606 2.68495 10.3061 2.42658C9.00623 2.16821 7.65894 2.30112 6.43461 2.80849C5.21028 3.31587 4.16391 4.17492 3.42783 5.27701C2.69175 6.3791 2.29902 7.67472 2.29932 9.00002C2.3017 10.7762 3.00845 12.479 4.26457 13.7348C5.52068 14.9907 7.2236 15.697 8.99982 15.699Z"
+                        fill="#D12600" />
+                </svg></span>
+        </a></label>
+
+
+    <input type="text" name="size_order" id="size_order" minlength="2" maxlength="12"
+        class="form-control" placeholder="Размер"
+        autocomplete="off" oninput="this.value=this.value.toUpperCase();check_clothes_size(value)||(value='');">
+
+    <div class="row">
+        <div class="col-6"></div>
+        <div class="col-4 text-right">
+            <div onclick="chooseSizeClothes();"><span class="badge link-secondary font-8" style="font-size: 8px; font-weight:bold; cursor:pointer">ВЫБРАТЬ РАЗМЕР</span></div>
+        </div>
+    </div>
+    <span id="sizes_message"></span>
+
+    <label class="control-label" for="quantity_order">Количество</label>
+    <input type="number" name="quantity_order" id="quantity_order" class="form-control"
+        placeholder="Количество" value="1" min="1"
+        oninput="validity.valid||(value='');javascript:setClothes();">
+    <span onclick="javascript:addClothesCell();" style="cursor: pointer"
+        class="add-nk d-flex align-items-center text-decoration-none">
+        Добавить новый размер
+        <div class="blink-badge" title="Нажмите, чтобы добавить размер и количество в накладную позиции">
+            <svg xmlns="http://www.w3.org/2000/svg" width="23" height="24"
+                viewBox="0 0 17 18" fill="none" class="ms-2">
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                    d="M3.68963 1.20038C6.86084 0.846537 10.1392 0.846537 13.3104 1.20038C15.0801 1.39784 16.5078 2.78982 16.7157 4.56355C17.0948 7.80021 17.0948 11.0699 16.7157 14.3065C16.5078 16.0802 15.0801 17.4722 13.3104 17.6696C10.1392 18.0235 6.86084 18.0235 3.68963 17.6696C1.91992 17.4722 0.492186 16.0802 0.284385 14.3065C-0.094795 11.0699 -0.094795 7.80021 0.284385 4.56355C0.492186 2.78982 1.91992 1.39784 3.68963 1.20038ZM8.50002 4.28485C8.928 4.28485 9.27498 4.63123 9.27498 5.05851V8.66134H12.8839C13.3119 8.66134 13.6588 9.00773 13.6588 9.435C13.6588 9.86227 13.3119 10.2087 12.8839 10.2087H9.27498V13.8114C9.27498 14.2388 8.928 14.5851 8.50002 14.5851C8.07204 14.5851 7.72507 14.2388 7.72507 13.8114V10.2087H4.11625C3.68825 10.2087 3.3413 9.86227 3.3413 9.435C3.3413 9.00773 3.68825 8.66134 4.11625 8.66134H7.72507V5.05851C7.72507 4.63123 8.07204 4.28485 8.50002 4.28485Z"
+                    fill="#00A958" />
+            </svg>
+        </div>
+    </span>
+
+    <!--    this block for adding hidden pairs of sq to our form-->
+    <div id="sizes_quantity_hidden"></div>
+
+</div>
+
+
+
+<script>
+const check_list = {{ clothes_sizes | safe}}
+
+
+</script>

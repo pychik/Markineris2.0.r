@@ -1,0 +1,33 @@
+<!--<div class="row setup-content mt-5" id="step-1">-->
+<div class="row setup-content mt-5 mb-3 faded" id="step-1" {% if o_id or 'page' in request.url %}style="display:none"{% endif %}>
+    <div class="col-xs-12">
+        <div class="col-md-12">
+            {% include 'helpers/organization.html' %}
+
+
+
+            <div class="step-btns mt-5 d-flex flex-wrap justify-content-around flex-column flex-sm-row">
+                {% if specific_order %}
+                <button type="button"
+                    class="btn btn-outline btn-outline-dark btn-block order-1 order-sm-0 "
+                    data-bs-toggle="modal" data-bs-target="#clean_ordersModal">
+                    Очистить накладную
+                </button>
+                {% endif %}
+
+                <button class="btn btn-primary nextBtn  btn-accent border-0 text-dark order-0 order-sm-1 mb-3 mb-sm-0"
+                    type="button">Далее</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="row">
+
+    <div class="return mb-4">
+
+    </div>
+    <div class="row justify-content-end g-3">
+    </div>
+</div>

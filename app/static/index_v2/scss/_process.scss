@@ -1,0 +1,98 @@
+.process-wrapper {
+    max-width: 900px;
+    margin: auto;
+    display: grid; 
+    grid-template-columns: 1.5fr 1fr; 
+    // grid-template-rows: 1.3fr 0.7fr 1fr 0.7fr 1.2fr 1fr; 
+    grid-template-rows: auto; 
+    gap: 30px 30px; 
+    grid-template-areas: 
+        "one image1"
+        "one two"
+        "three two"
+        "three four"
+        "image2 four"
+        "five five"; 
+
+    @media (max-width: 767.85px) {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    }
+
+.process-item {
+    background-color: #F9F9F9;
+    padding: 80px 50px 30px;
+    position: relative;
+
+    @media (max-width: 767.85px) {
+        padding-top: 50px;
+      max-height: 250px;
+    }
+		// .process-item__number
+
+		&__number {
+            position: absolute;
+            left: -25px;
+            top: -25px;
+            font-size: clamp(24px, 3vw, 60px);
+            background-color: $primary;
+            line-height: 1;
+            border-radius: 100%;
+            padding: 15px;
+            aspect-ratio: 1/1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            @media (max-width: 575.85px) {
+                left: -10px;
+                top: -10px;
+              }
+		}
+        & p {
+            font-size: clamp(16px,1.5vw,20px);
+        }
+
+		// .process-item__video
+
+		&__video p+p{
+            font-size: 16px;
+		}
+        &-one { grid-area: one; }
+        &-image1 { grid-area: image1; padding: 10px; text-align: center; }
+        &-two { grid-area: two; }
+        &-three { grid-area: three; }
+        &-four { grid-area: four; }
+        &-image2 { grid-area: image2; padding: 10px;text-align: center }
+        &-five { 
+            grid-area: five;
+            height: 250px;
+            @media (max-width: 767.85px) {
+                height: auto;
+              }
+            & p {
+                @media (max-width: 575.85px) {
+                    max-width: 70%;
+                  }
+            }
+            & img {
+                position: absolute;
+                right: 0;
+                top: -30px;
+                height: auto;
+                flex-shrink: 1;
+                width: 30%;
+                @media (max-width: 767.85px) {
+                    top: -10px;
+                    max-width: 100px;
+                  }
+            }
+        }
+}
+.btn {
+}
+.btn-dark {
+}
+.img-fluid {
+}

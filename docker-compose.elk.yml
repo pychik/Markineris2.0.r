@@ -1,0 +1,164 @@
+version: '3.8'
+
+networks:
+  elk_shared_network:
+    name: elk_shared_network
+    driver: bridge
+
+volumes:
+  elasticsearch-data:
+
+secrets:
+  elasticsearch.keystore:
+    file: ./elk/secrets/keystore/elasticsearch.keystore
+  elasticsearch.service_tokens:
+    file: ./elk/secrets/service_tokens
+  elastic.ca:
+    file: ./elk/secrets/certs/ca/ca.crt
+  elasticsearch.certificate:
+    file: ./elk/secrets/certs/elasticsearch/elasticsearch.crt
+  elasticsearch.key:
+    file: ./elk/secrets/certs/elasticsearch/elasticsearch.key
+  kibana.certificate:
+    file: ./elk/secrets/certs/kibana/kibana.crt
+  kibana.key:
+    file: ./elk/secrets/certs/kibana/kibana.key
+  apm-server.certificate:
+    file: ./elk/secrets/certs/apm-server/apm-server.crt
+  apm-server.key:
+    file: ./elk/secrets/certs/apm-server/apm-server.key
+
+services:
+  elasticsearch:
+    image: elasticsearch:${ELK_VERSION}
+    build:
+      context: elk/elasticsearch/
+      args:
+        ELK_VERSION: ${ELK_VERSION}
+    restart: unless-stopped
+    environment:
+      ELASTIC_USERNAME: ${ELASTIC_USERNAME}
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      ELASTIC_CLUSTER_NAME: ${ELASTIC_CLUSTER_NAME}
+      ELASTIC_NODE_NAME: ${ELASTIC_NODE_NAME}
+      ELASTIC_INIT_MASTER_NODE: ${ELASTIC_INIT_MASTER_NODE}
+      ELASTIC_DISCOVERY_SEEDS: ${ELASTIC_DISCOVERY_SEEDS}
+      ELASTICSEARCH_PORT: ${ELASTICSEARCH_PORT}
+      ES_JAVA_OPTS: "-Xmx${ELASTICSEARCH_HEAP} -Xms${ELASTICSEARCH_HEAP} -Des.enforce.bootstrap.checks=true -Dlog4j2.formatMsgNoLookups=true"
+      bootstrap.memory_lock: "true"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+      - ./elk/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - ./elk/elasticsearch/config/log4j2.properties:/usr/share/elasticsearch/config/log4j2.properties
+    secrets:
+      - source: elasticsearch.keystore
+        target: /usr/share/elasticsearch/config/elasticsearch.keystore
+      - source: elasticsearch.service_tokens
+        target: /usr/share/elasticsearch/config/service_tokens
+      - source: elastic.ca
+        target: /usr/share/elasticsearch/config/certs/ca.crt
+      - source: elasticsearch.certificate
+        target: /usr/share/elasticsearch/config/certs/elasticsearch.crt
+      - source: elasticsearch.key
+        target: /usr/share/elasticsearch/config/certs/elasticsearch.key
+    expose:
+      - ${ELASTICSEARCH_PORT}
+      - 9300
+    networks:
+      - default
+      - elk_shared_network
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 200000
+        hard: 200000
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -sf --insecure https://$ELASTIC_USERNAME:$ELASTIC_PASSWORD@localhost:$ELASTICSEARCH_PORT/_cat/health | grep -ioE 'green|yellow' || echo 'not green/yellow cluster status'"]
+
+  logstash:
+    image: logstash:${ELK_VERSION}
+    build:
+      context: elk/logstash/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    restart: unless-stopped
+    volumes:
+      - ./elk/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./elk/logstash/config/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro
+      - ./elk/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - /var/log/nginx/:/var/log/nginx/:ro
+      - /var/log/flask-app/:/var/log/flask-app/:ro
+    secrets:
+      - source: elastic.ca
+        target: /certs/ca.crt
+    environment:
+      ELASTIC_USERNAME: ${ELASTIC_USERNAME}
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      ELASTICSEARCH_HOST_PORT: https://${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}
+      LS_JAVA_OPTS: "-Xmx${LOGSTASH_HEAP} -Xms${LOGSTASH_HEAP} -Dlog4j2.formatMsgNoLookups=true"
+    expose:
+      - 5044
+      - 9600
+    networks:
+      - default
+      - elk_shared_network
+    healthcheck:
+      test: ["CMD", "curl", "-s" ,"-XGET", "http://127.0.0.1:9600"]
+
+  kibana:
+    image: kibana:${ELK_VERSION}
+    build:
+      context: elk/kibana/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    restart: unless-stopped
+    volumes:
+      - ./elk/kibana/config/:/usr/share/kibana/config:ro
+    environment:
+      ELASTIC_USERNAME: ${ELASTIC_USERNAME}
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      ELASTICSEARCH_HOST_PORT: https://${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}
+      KIBANA_PORT: ${KIBANA_PORT}
+    env_file:
+      - ./elk/secrets/.env.kibana.token
+    networks:
+      - default
+      - elk_shared_network
+    secrets:
+      - source: elastic.ca
+        target: /certs/ca.crt
+      - source: kibana.certificate
+        target: /certs/kibana.crt
+      - source: kibana.key
+        target: /certs/kibana.key
+    ports:
+      - "${KIBANA_PORT}:${KIBANA_PORT}"
+
+  apm-server:
+    image:  elastdocker/apm-server:${ELK_VERSION}
+    build:
+      context: elk/apm-server/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    restart: unless-stopped
+    expose:
+      - 8200
+    networks:
+      - default
+      - elk_shared_network
+    volumes:
+      - ./elk/apm-server/config/apm-server.yml:/usr/share/apm-server/apm-server.yml:ro
+    environment:
+      ELASTIC_USERNAME: ${ELASTIC_USERNAME}
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      ELASTICSEARCH_HOST_PORT: https://${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}
+      ELASTIC_APM_SECRET_TOKEN: ${ELASTIC_APM_SECRET_TOKEN}
+    secrets:
+      - source: elastic.ca
+        target: /certs/ca.crt
+      - source: apm-server.certificate
+        target: /certs/apm-server.crt
+      - source: apm-server.key
+        target: /certs/apm-server.key

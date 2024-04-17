@@ -1,0 +1,613 @@
+{% extends "main/base_v2.html" %}
+
+{% block admin_panel %}
+
+
+<div class="row">
+    <div class="col-md-2"></div>
+    <div class="col-md-8 col-xs-12 text-center">
+        <div class="alert bg-light" role="alert">
+            <h2>Панель администратора</h2>
+            <h6 class="mt-5">
+        Зарегистрированных клиентов
+        <span class="badge bg-info" id="users_total">всего  {{ ou_quantity }}</span>
+    </h6>
+        </div>
+    </div>
+    <div class="col-md-2"></div>
+</div>
+<!--<div class="row">-->
+<!--    <div class="col-md-3"></div>-->
+<!--    <div class="col-md-6 col-xs-12 text-center d-grid gap-2">-->
+<!--        <a class="btn btn-sm btn-accent" href="{{url_for('admin_control.su_control_finance')}}">-->
+<!--            Контроль Финансы-->
+<!--        </a>-->
+<!--    </div>-->
+<!--</div>-->
+
+
+<div class="row mt-5">
+    <div class="col-md-3"></div>
+    <div class="col-md-6 col-xs-12 text-center d-grid gap-2">
+        <a class="btn btn-sm btn-success" data-bs-toggle="collapse" href="#collapseAddBlock" role="button"
+           aria-expanded="false" aria-controls="collapseAddBlock">
+            Раскрыть блок добавить
+        </a>
+    </div>
+</div>
+
+
+<div class="collapse" id="collapseAddBlock">
+
+    <div class="col container-fluid text-center mt-5">
+
+
+        <div class="card col-md-12 col-xs-12 text-center">
+            <div class="card-header bg-success text-white mt-3"><h3 class="mt-3">Добавить админов</h3></div>
+            <form method="post" action="{{ url_for('admin_control.create_admin')}}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="row text-center mt-3">
+                    <div class="col-md-2 text-left"></div>
+                    <div class="col-md-3 col-xs-12 text-right">
+                        <label><font size="5">Логин Админа</font></label>
+                    </div>
+                    <div class="col-md-3 col-xs-12 text-left">
+                        <input type="text" name="admin_login_name" class="form-control"
+                                   placeholder="Введите логин админа" required>
+
+                    </div>
+                </div>
+                <div class="row text-center mt-3">
+                    <div class="col-md-2 text-left"></div>
+                    <div class="col-md-3 col-xs-12 text-right">
+                        <label><font size="5">Пароль админа</font></label>
+                    </div>
+                    <div class="col-md-3 col-xs-12 text-left">
+                            <input type="text" id="admin_password" name="admin_password" class="form-control"
+                               placeholder="Введите пароль админа" required>
+                    </div>
+
+                    <div class="col-md-3 col-xs-12 text-left">
+                            <button type="button"
+                                    onclick='document.getElementById("admin_password").value = Password.generate(8)'
+                                    class="btn btn-info btn-sm">Сгенерировать пароль</button>
+                    </div>
+                </div>
+                <div class="row text-center mt-3">
+                    <div class="col-md-2 col-xs-12 text-left"></div>
+                    <div class="col-md-3 col-xs-12 text-right">
+                        <label><font size="5">Возможности админа</font></label><br>
+                    </div>
+
+                    <div class="col-md-4 col-xs-12 mb-3 text-justify" >
+                        <div class="form-check" >
+                          <input class="form-check-input" type="radio" name="radio_is_telegram"
+                                 id="radio_is_telegram" checked
+                                 onchange="document.getElementById('radio_is_crm').checked=false; telegram_add()">
+                          <label class="form-check-label font-8" for="radio_is_telegram" style="font-size: 8pt">Работа В Телеграм (Агент типа Единый счет)</label>
+                        </div>
+                        <div class="form-check">
+                          <input class="form-check-input" type="radio" name="radio_is_crm" id="radio_is_crm"
+                                 onchange="document.getElementById('radio_is_telegram').checked=false;telegram_add()">
+                          <label class="form-check-label" for="radio_is_crm">Работа В CRM</label>
+                        </div>
+
+                        <select class="form-control" id="tg_select_id" name="tg_select_id" required>
+                            <option hidden disabled selected value >Выберите телеграмм</option>
+                            {%for t in tg_group_list%}
+                              <option value="{{t.id}}">{{t.name}}</option>
+                            {%endfor%}
+                        </select>
+                    </div>
+
+
+                </div>
+                <div class="col text-center ">
+
+                <button class="btn btn-sm btn-success mt-3 mb-2" type="submit">
+                              <font size="2">+Добавить админа</font>
+                          </button>
+                </div>
+            </form>
+
+
+            <div class="card-header bg-info text-white mt-3"><h3 class="mt-3">Добавить телеграмм канал/группу</h3></div>
+            <form method="post" action="{{ url_for('admin_control.telegram_set_group')}}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="row text-center mt-3">
+                    <div class="col-md-1 text-left"></div>
+                    <div class="col-md-3 col-xs-12 text-left">
+                        <label><font size="5">Id канала/группы</font></label>
+                        <input type="text" name="tg_channel_id" class="form-control"
+                                   placeholder="Введите id" required>
+
+                    </div>
+                    <div class="col-md-4 col-xs-12 text-left">
+                        <label><font size="5">Название группы</font></label>
+                        <div class="col-xs-12">
+                            <input type="text" id="tg_name" name="tg_name" class="form-control"
+                               placeholder="Введите название группы" required>
+                        </div>
+
+                    </div>
+                    <div class="col-md-4 col-xs-12 text-left">
+                        <label><font size="5">Комментарий</font></label><br>
+                        <div class="col-xs-12">
+                            <input type="text" id="comment" name="comment" class="form-control"
+                               placeholder="Введите комментарий" required>
+                        </div>
+
+                    </div>
+
+                </div>
+                <div class="col text-center">
+
+                <button class="btn btn-sm btn-info mt-3 mb-2" type="submit">
+                              <font size="2">+Добавить телеграмм группу/канал</font>
+                          </button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-3"></div>
+    <div class="col-md-3 col-xs-12 text-center d-grid gap-2">
+
+        <a class="btn btn-sm btn-secondary" data-bs-toggle="collapse" href="#collapseAdminUserTable" role="button"
+           aria-expanded="{% if expanded == 'users' %}true{% endif %}"
+           aria-controls="collapseAdminUserTable">
+            Раскрыть/Скрыть таблицу админов
+        </a>
+    </div>
+    <div class="col-md-3 col-xs-12 text-center d-grid gap-2">
+        <a class="btn btn-sm btn-secondary"  href="{{url_for('admin_control.users_orders_stats')}}" role="button">
+            Общая статистика заказов
+        </a>
+    </div>
+</div>
+
+<div class="row text-center">
+    <div class="mt-3 collapse {% if expanded == 'users' %}show{% endif %}" id="collapseAdminUserTable">
+        {% if su_list %}
+                <div class="col">
+                    <table class="table table-result tablesaw-stack mt-1">
+                      <thead class="text-dark">
+                        <tr>
+                          <th scope="col">#</th>
+                          <th scope="col">Логин</th>
+                          <th scope="col">Роль</th>
+                          <th scope="col">Ставка агента</th>
+                          <th scope="col">Ценовой пакет</th>
+                          <th scope="col">Тип обработки&nbsp;заказа</th>
+                          <th scope="col">Описание телеграм</th>
+                          <th scope="col">Кол-во клиентов</th>
+                          <th scope="col">Кол-во заказов</th>
+                          <th scope="col">Кол-во строк&nbsp;|&nbsp;марок</th>
+                          <th scope="col">Отчет&nbsp;по&nbsp;агенту</th>
+                          <th scope="col">Активирован</th>
+                          <th scope="col"></th>
+                          <th scope="col"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+
+                        {%for u in su_list%}
+
+                            <tr>
+                              <th scope="row">{{loop.index}}</th>
+
+                              <td>
+                                  <a href="{{ url_for('admin_control.admin', u_id=u.id) }}">
+                                      {{u.login_name}}
+                                  </a>
+                                  <div class="font-6 text-muted">{{u.balance}}р.</div>
+                                  {% if u.login_name.startswith('Agent_')%}
+                                      <span title="Посмотреть пароль агента выгруженного с маркинерис" style="cursor:pointer" onclick="get_agent_info_modal('{{url_for('admin_control.su_agent_info')}}', '{{csrf_token()}}', '{{u.login_name}}', '{{u.email}}')">
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-key" viewBox="0 0 16 16">
+                                              <path d="M0 8a4 4 0 0 1 7.465-2H14a.5.5 0 0 1 .354.146l1.5 1.5a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0L13 9.207l-.646.647a.5.5 0 0 1-.708 0L11 9.207l-.646.647a.5.5 0 0 1-.708 0L9 9.207l-.646.647A.5.5 0 0 1 8 10h-.535A4 4 0 0 1 0 8m4-3a3 3 0 1 0 2.712 4.285A.5.5 0 0 1 7.163 9h.63l.853-.854a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.793-.793-1-1h-6.63a.5.5 0 0 1-.451-.285A3 3 0 0 0 4 5"/>
+                                              <path d="M4 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                                          </svg>
+                                      </span>
+                                  {% endif %}
+                              </td>
+
+                              <td>
+                                  {{u.role}}
+                              </td>
+                              <td>
+                                  <h5>
+                                      <span class="badge bg-warning text-black" style="cursor: pointer" title="Изменить ставку агента"
+                                        onclick="get_change_fee_or_tl_modal('{{csrf_token()}}', '{{u.agent_fee}}','{{u.login_name}}', '{{url_for('admin_control.change_agent_fee', u_id=u.id)}}', 'agent_fee')">
+                                        {{u.agent_fee}} %
+                                      </span>
+                                  {% if u.is_at2%}
+                                      <span class="badge bg-light text-secondary" style="cursor: pointer" title="Изменить лимит для отрицательного баланса"
+                                        onclick="get_change_fee_or_tl_modal('{{csrf_token()}}', '{{u.agent_fee}}','{{u.login_name}}', '{{url_for('admin_control.change_trust_limit', u_id=u.id)}}', 'trust_limit')">
+                                        {{u.trust_limit}} р.
+                                      </span>
+                                  {% endif %}
+                                  </h5>
+
+
+
+                              </td>
+                              <td>
+
+                                  <div id="user_price{{u.id}}">
+                                  {% if u.price_code %}
+                                    <span class="badge bg-{%if not u.price_at2%}warning text-black{% else %}secondary{% endif %}" style="cursor:pointer"
+                                        onclick="perform_modal_prices('{{u.id}}', '{{u.login_name}}', '{{ u.price_code }}', '{{ u.price_1 }}', '{{ u.price_2 }}', '{{ u.price_3 }}', '{{ u.price_4 }}', '{{ u.price_5 }}', '{{url_for('admin_control.bck_set_user_price', u_id=u.id)}}?bck=1', '{{csrf_token()}}')">{{ u.price_code }}</span>
+                                  {% else %}
+                                    <span class="badge bg-warning text-black" style="cursor:pointer"
+                                        onclick="perform_modal_prices('{{u.id}}', '{{u.login_name}}', '{{basic_prices[0]}}', '{{basic_prices[1]}}', '{{basic_prices[2]}}', '{{basic_prices[3]}}', '{{basic_prices[4]}}', '{{basic_prices[5]}}', '{{url_for('admin_control.bck_set_user_price', u_id=u.id)}}?bck=1', '{{csrf_token()}}')">{{basic_prices[0]}}</span>
+                                  {% endif %}
+                                  </div>
+                              </td>
+                              <td>
+
+                                      {% if u.is_crm and not u.is_at2 %}
+                                          <button type="button" class="btn btn-sm btn-outline-success"
+                                                  title="Сменить тип работы на Агент_ТИП2, Единый счет и TELEGRAMM"
+                                                  onclick="change_process_type('{{ u.id }}', '{{ u.login_name }}', '{{url_for('admin_control.set_process_type', u_id=u.id, p_type='process_at2')}}', '{{csrf_token()}}');"                                                      >Crm  &#8652</button>
+                                      {% elif u.is_at2 %}
+                                        <form method="post" action="{{url_for('admin_control.set_process_type', u_id=u.id, p_type='process_crm')}}">
+                                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                                  <input class="btn btn-sm btn-outline-info btn-outline font-12"
+                                                         title="Сменить тип работы на обычный агент"
+                                                         type="submit" name="activate"
+                                                         onclick="loadingCircle()" value="CRM+Telegram+единый счет  &#8652">
+                                        </form>
+                                      {%else%}
+                                        Необходима проверка БД
+                                      {% endif %}
+
+                              </td>
+
+                              <td>
+                                  {% if u.tg_name%}
+                                      <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top"
+                                           data-bs-html="true" title="Название группы/канала: {{  u.tg_name }}<br>Номер канала: {{  u.tg_channel_id }}<br>Комментарий: {{  u.tg_comment }}">
+                                          <svg width="30" height="30" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <g clip-path="url(#clip0_1_87)">
+                                                <path d="M21 42C32.598 42 42 32.598 42 21C42 9.40202 32.598 0 21 0C9.40202 0 0 9.40202 0 21C0 32.598 9.40202 42 21 42Z" fill="url(#paint0_linear_1_87)"></path>
+                                                <path fill-rule="evenodd" clip-rule="evenodd" d="M9.5058 20.7784C15.6277 18.1111 19.71 16.3527 21.7525 15.5032C27.5844 13.0775 28.7963 12.6561 29.5861 12.6422C29.7598 12.6391 30.1482 12.6822 30.3998 12.8864C30.7731 13.1892 30.7752 13.8466 30.7338 14.2817C30.4177 17.6024 29.0502 25.6605 28.3545 29.3797C28.0601 30.9534 27.4805 31.4811 26.9194 31.5327C25.6999 31.6449 24.7739 30.7267 23.5927 29.9525C21.7445 28.7409 20.7003 27.9867 18.9062 26.8045C16.8328 25.4381 18.1769 24.6872 19.3585 23.46C19.6678 23.1388 25.0409 18.2515 25.1449 17.8081C25.1579 17.7526 25.17 17.5459 25.0472 17.4368C24.9244 17.3277 24.7432 17.365 24.6124 17.3947C24.427 17.4367 21.4744 19.3883 15.7545 23.2494C14.9164 23.8249 14.1573 24.1053 13.4772 24.0906C12.7273 24.0745 11.2851 23.6667 10.2128 23.3181C8.89771 22.8907 7.85246 22.6646 7.94352 21.9386C7.99093 21.5604 8.51167 21.1737 9.5058 20.7784Z" fill="white"></path>
+                                            </g>
+                                            <defs>
+                                                <linearGradient id="paint0_linear_1_87" x1="21" y1="0" x2="21" y2="41.6719" gradientUnits="userSpaceOnUse">
+                                                    <stop stop-color="#2AABEE"></stop>
+                                                    <stop offset="1" stop-color="#229ED9"></stop>
+                                                </linearGradient>
+                                                <clipPath id="clip0_1_87">
+                                                    <rect width="42" height="42" fill="white"></rect>
+                                                </clipPath>
+                                            </defs>
+                                        </svg>
+                                      </div>
+
+                                  {% endif %}
+                              </td>
+                              <td>
+                                {{ u.reg_clients }}
+                              </td>
+                              <td>
+                                {{ u.data_orders_array[0]}}
+                              </td>
+                              <td>
+                                {{ u.data_orders_array[1]}} / {{ u.data_orders_array[2]}}
+                              </td>
+                              <td>
+                                  <button type="button" class="btn  btn-sm" name="download_report" style="background-color: #90b5fa; color: white"
+                                            title="Скачать отчет по агенту {{ u.login_name }}"
+                                            onclick="get_request('{{ url_for('admin_control.download_agent_report',u_id=u.id) }}')">
+
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-stack" viewBox="0 0 16 16">
+                                            <path d="m14.12 10.163 1.715.858c.22.11.22.424 0 .534L8.267 15.34a.598.598 0 0 1-.534 0L.165 11.555a.299.299 0 0 1 0-.534l1.716-.858 5.317 2.659c.505.252 1.1.252 1.604 0l5.317-2.66zM7.733.063a.598.598 0 0 1 .534 0l7.568 3.784a.3.3 0 0 1 0 .535L8.267 8.165a.598.598 0 0 1-.534 0L.165 4.382a.299.299 0 0 1 0-.535L7.733.063z"/>
+                                            <path d="m14.12 6.576 1.715.858c.22.11.22.424 0 .534l-7.568 3.784a.598.598 0 0 1-.534 0L.165 7.968a.299.299 0 0 1 0-.534l1.716-.858 5.317 2.659c.505.252 1.1.252 1.604 0l5.317-2.659z"/>
+                                        </svg>
+                                    </button>
+
+                              </td>
+                              <td>
+                                  {% if u.status %}
+                                      <span class="badge bg-success">Активирован</span>
+                                  {% else %}
+                                      <span class="badge bg-danger">Не активирован</span>
+                                  {% endif %}
+                              </td>
+                              <td>
+                                  {% if not u.status %}
+                                      <form method="post" action="{{url_for('admin_control.set_user_admin', u_id=u.id)}}">
+                                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                                  <input class="btn btn-sm btn-outline-success"
+                                                         type="submit" name="activate"
+                                                         onclick="loadingCircle()" value="Активировать">
+                                      </form>
+                                  {% else %}
+                                      <form method="post" action="{{url_for('admin_control.deactivate_user_admin', u_id=u.id)}}">
+                                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                                  <input class="btn btn-outline-danger btn-sm btn-block"
+                                                         type="submit" name="activate" value="Деактивировать"
+                                                         onclick="loadingCircle()"
+                                                          {% if u.role=='superuser' %}disabled{% endif %}>
+                                      </form>
+                                  {% endif %}
+
+                              </td>
+                              <td>
+                                  <form method="post" class="form-group" action="{{ url_for('admin_control.delete_user_admin', u_id=u.id)}}">
+                                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                              <input class="btn btn-sm btn-outline-danger btn-block"
+                                                     onclick="loadingCircle()" {% if u.role == 'superuser' %}disabled{% endif %}
+                                                     type="submit" name="delete" value="&times;">
+                                  </form>
+                              </td>
+
+                            </tr>
+                        {%endfor%}
+
+                      </tbody>
+                    </table>
+                </div>
+
+    {% endif %}
+  </div>
+</div>
+<div class="row mt-5">
+    <div class="col-md-4"></div>
+    <div class="col-md-4 col-xs-12 text-center d-grid gap-2">
+
+      <button class="btn btn-sm btn-primary"
+         type="button" name="etl_button"
+              onclick="bck_get_users_from_markineris('{{url_for('admin_control.etl_process_upload')}}', '{{csrf_token()}}');">Загрузить пользователей от markineris 1</button>
+
+    </div>
+</div>
+<div class="row mt-5">
+    <div class="col-md-4"></div>
+
+    <div class="col-md-4 col-xs-12 text-center d-grid gap-2">
+        <a href="{{url_for('admin_control.users_activate_list')}}" class="btn btn-sm btn-primary">
+            Неактивированныве пользователи
+        </a>
+    </div>
+</div>
+
+    <div class="row mt-5">
+        <div class="col-md-3"></div>
+
+        <div class="col-md-6 col-xs-12 text-center d-grid gap-2">
+
+            <a class="btn btn-sm btn-info text-white" data-bs-toggle="collapse" href="#collapseTelegramTable" role="button"
+               aria-expanded="{% if expanded == 'users' %}true{% endif %}"
+               aria-controls="collapseTelegramTable">
+                Раскрыть/Скрыть таблицу телеграмм групп/каналов
+            </a>
+        </div>
+    </div>
+
+
+
+<div class="row text-center">
+    <div class="col-12 collapse mt-3 {% if expanded == 'telegram' %}show{% endif %}" id="collapseTelegramTable">
+        {% if telegram_list %}
+                <div class="col" align="left">
+                    <table class="table table-result tablesaw-stack mt-1">
+                      <thead class="text-dark">
+                        <tr>
+                          <th scope="col">#</th>
+                          <th scope="col"><font size="2">Название</font></th>
+                          <th scope="col"><font size="2">Id канала / группы</font></th>
+                          <th scope="col"><font size="2">Комментарий</font></th>
+                          <th scope="col"><font size="2">Активирован</font></th>
+                          <th scope="col"><font size="2">Пользователи канала</font></th>
+                          <th scope="col"><font size="2"></font></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+
+                        {%for t in telegram_list%}
+                            <tr>
+                              <th scope="row">{{loop.index}}</th>
+
+                              <td>
+                                    {{ t.name }}
+                              </td>
+                              <td>
+                                  {{ t.channel_id }}
+                              </td>
+                              <td>
+                                  {{ t.comment }}
+                              </td>
+                              <td>
+                                {% if t.status %}
+                                      <span class="badge bg-success">Активирован</span>
+                                  {% else %}
+                                      <span class="badge bg-danger">Не активирован</span>
+                                {% endif %}
+                              </td>
+                              <td >
+                                  <span class="badge bg-info" style="cursor:pointer;"
+                                    onclick="javascript:get_tg_data('{{ url_for('requests_common.get_tg_user_data', tg_id=t.id) }}')">Получить данные
+                                  </span>
+                              </td>
+                              <td>
+                                  <form method="post"
+                                        action="{{url_for('admin_control.delete_telegram_group', t_id=t.id)}}">
+                                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                              <input class="btn btn-sm btn-outline-danger btn-outline"
+                                                     type="submit" name="delete_telegram" value="&times;">
+                                  </form>
+                              </td>
+
+                            </tr>
+                        {%endfor%}
+
+                      </tbody>
+                    </table>
+                </div>
+
+    {% endif %}
+  </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-3"></div>
+    <div class="col-md-6 col-xs-12 text-center d-grid gap-2">
+
+        <a class="btn btn-sm btn-warning" data-bs-toggle="collapse" href="#cross_order_user_search" role="button"
+           aria-expanded="false"
+           aria-controls="cross_user_search">
+            Проверить ИНН в заказах
+        </a>
+    </div>
+</div>
+
+    {% include "helpers/search_cross_user_bar.html" %}
+
+<div class=" row  mt-5">
+    <div class="col-md-3"></div>
+        <div class="col-md-6 col-xs-12">
+            <div class="card bg-light text-center">
+                <h3>Форма повторной отправки заказов по их номеру!</h3>
+                <small class="text-muted">(функционал не отлажен. проверка работоспособности)</small>
+                <form  class="form" method="post"
+                                                action="{{url_for('admin_control.send_order')}}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <div class="form-group">
+
+                    <div class="col mt-3">
+                      <input type="text" class="form-control" id="inputOrderid" name="inputOrderid"
+                             placeholder="Введите номер заказа который пропущен (Например 3_124)">
+                    </div>
+                  </div>
+                    <button type="submit" class="btn btn-primary btn-sm mt-1 mb-3">
+                        Отправить повторно заказ агенту
+                    </button>
+                </form>
+            </div>
+        </div>
+</div>
+
+<div class="modal fade" id="getTgDataModal" tabindex="-1" role="dialog" aria-labelledby="getTgDataModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-white" style="background-color: #5dcbf3">
+          <h5 class="modal-title" id="getTgDataModalLabel">
+              Получены данные для телеграмм группы!
+          </h5>
+
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+          </button>
+      </div>
+      <div class="modal-body text-justify">
+
+          <div id="data_tg_insert"></div>
+
+
+      </div>
+
+      <div class="modal-footer">
+
+        <button type="button" class="btn text-white" style="background-color: #5dcbf3" data-bs-dismiss="modal">Закрыть</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal fade" id="change_process_at2Modal" tabindex="-1" role="dialog" aria-labelledby="change_process_at2ModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-white" style="background-color: #5dcbf3">
+          <h5 class="modal-title" id="change_process_at2ModalLabel">
+
+          </h5>
+
+        <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="clear_submit_change_pt_modal();" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+
+            Для привязки телеграмм канала выберите его из списка и нажмите изменить
+          <div id="data_change_pt_insert"></div>
+
+
+      </div>
+
+      <div class="modal-footer">
+
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+            onclick="clear_submit_change_pt_modal();">Закрыть</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div id="agent_fee_or_tl_modal"></div>
+<div id="agent_info_modal"></div>
+<div id="user_prices_modal">
+</div>
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_main.js')}}"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/prices_block.js')}}"></script>
+<script>
+const prices_array = [{% for p in all_prices %}[{{ p.id }},'{{ p.price_code }}', '{{p.price_at2}}'],{% endfor %}];
+const tg_array = [{% for t in tg_group_list %}[{{ t.id }},'{{ t.name }}'],{% endfor %}];
+
+var Password = {
+
+  _pattern : /[a-kA-Hm-zJ-Z0-9_\-\+\.]/,
+
+
+  _getRandomByte : function()
+  {
+    // http://caniuse.com/#feat=getrandomvalues
+    if(window.crypto && window.crypto.getRandomValues)
+    {
+      var result = new Uint8Array(1);
+      window.crypto.getRandomValues(result);
+      return result[0];
+    }
+    else if(window.msCrypto && window.msCrypto.getRandomValues)
+    {
+      var result = new Uint8Array(1);
+      window.msCrypto.getRandomValues(result);
+      return result[0];
+    }
+    else
+    {
+      return Math.floor(Math.random() * 256);
+    }
+  },
+
+  generate : function(length)
+  {
+    return Array.apply(null, {'length': length})
+      .map(function()
+      {
+        var result;
+        while(true)
+        {
+          result = String.fromCharCode(this._getRandomByte());
+          if(this._pattern.test(result))
+          {
+            return result;
+          }
+        }
+      }, this)
+      .join('');
+  }
+
+};
+
+
+</script>
+
+{% endblock %}

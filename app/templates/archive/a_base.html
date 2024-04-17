@@ -1,0 +1,58 @@
+{% extends "main/base_v2.html" %}
+{% block archive %}
+
+    <div class="container pb-4">
+
+        <div class="front text-center">
+            <h1 class="fs-2">История заказов</h1>
+        </div>
+    </div>
+
+    {% include 'archive/a_shoes.html' %}
+    {% include 'archive/a_clothes.html' %}
+    {% include 'archive/a_linen.html' %}
+    {% include 'archive/a_parfum.html' %}
+
+
+    <div class="modal fade" id="remove_archiveordersModal" tabindex="-1" role="dialog" aria-labelledby="remove_archiveordersModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+
+          <div class="modal-header bg-danger text-white" id="remove_ao_header">
+
+          </div>
+
+          <div class="modal-body text-justify">
+              После того, как вы подтвердите, заказ удалится из вашего архива! Подтверждаете?
+              <small class="form-text text-muted text-justify mt-1">Удаление заказа из архива <span style="color:red">не подразумевает</span> отмену исполнения удаляемого заказа! Для отмены заказа, необходимо связаться с менеджером!</small>
+
+          </div>
+          <input type="hidden" id="remove_modal_input">
+            <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Нет</button>
+
+            <div id="remove_ao_btn">
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+        function delete_archive_order(ao_id, user_order_idn){
+            let div_header = document.getElementById('remove_ao_header');
+            div_header.innerHTML = '';
+            div_header.insertAdjacentHTML( 'beforeend', `<h5 class="modal-title" id="remove_archiveordersModalLabel">Вы уверены, что хотите удалить из архива заказ ${user_order_idn}?</h5><button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>`);
+
+            let div_btn = document.getElementById('remove_ao_btn');
+            div_btn.innerHTML = '';
+            div_btn.insertAdjacentHTML( 'beforeend', `<button onclick="$('#remove_archiveordersModal').modal('hide');loadingCircle();loadingCircle(); document.getElementById('delete_archive_order_${ao_id }').submit()" class="btn btn-danger" type="button">Да</button>`);
+
+            $('#remove_archiveordersModal').modal('show');
+        }
+    </script>
+
+
+{% endblock %}

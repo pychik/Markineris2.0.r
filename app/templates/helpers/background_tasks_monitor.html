@@ -1,0 +1,92 @@
+<div class=" row  mt-5">
+    <div class="col-md-1"></div>
+        <div class="col-md-10 col-xs-12">
+        <div class="card">
+            <h3 class="mt-3">Мониторинг фоновых задач</h3>
+            <small class="text-muted">Задачи <b>в процессе</b> и <b>успешные</b> стираются раз в 180 сек. Неуспешные задачи показываются за все время</small>
+
+            <div class="container">
+              <div class="card-deck mb-3 text-center">
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header">
+                    <h4 class="my-0 font-weight-normal">В процессе</h4>
+                  </div>
+                  <div class="card-body">
+                    <h1 class="card-title pricing-card-title"> {{ bg_workers.started | length}}<small class="text-muted"></small></h1>
+                    <ul class="list-unstyled mt-3 mb-4">
+                      {% for el in bg_workers.started %}
+                        <li style="font-size: 10px">{{ el}}</li>
+                      {% endfor %}
+                    </ul>
+                    <button type="button" class="btn btn-sm btn-block btn-primary">Функционал в разработке</button>
+                  </div>
+                </div>
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header">
+                    <h4 class="my-0 font-weight-normal">Успешные</h4>
+                  </div>
+                  <div class="card-body">
+                    <h1 class="card-title pricing-card-title"> {{ bg_workers.finished | length}}<small class="text-muted"></small></h1>
+                    <ul class="list-unstyled mt-3 mb-4">
+                      {% for el in bg_workers.finished %}
+                          <li style="font-size: 10px">
+                              {{ el}}
+                              <a href="{{ url_for('admin_control.remove_bg_task', job_id=el) }}"
+                                 style="text-decoration: none;">
+                                  &#10060;
+                              </a>
+                          </li>
+                      {% endfor %}
+                    </ul>
+                    <button type="button" class="btn btn-sm btn-block btn-primary">Функционал в разработке</button>
+                  </div>
+                </div>
+
+
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header">
+                    <h4 class="my-0 font-weight-normal">Отмененные</h4>
+                  </div>
+                  <div class="card-body">
+                    <h1 class="card-title pricing-card-title"> {{ bg_workers.cancelled | length}}<small class="text-muted"></small></h1>
+                    <ul class="list-unstyled mt-3 mb-4">
+                      {% for el in bg_workers.cancelled %}
+                          <li style="font-size: 10px">
+                              {{ el}}
+                              <a href="{{ url_for('admin_control.remove_bg_task', job_id=el) }}"
+                                 style="text-decoration: none;">
+                                  &#10060;
+                              </a>
+                          </li>
+                      {% endfor %}
+                    </ul>
+                    <button type="button" class="btn btn-sm btn-block btn-primary">Функционал в разработке</button>
+                  </div>
+                </div>
+
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header">
+                    <h4 class="my-0 font-weight-normal">Неуспешные</h4>
+                  </div>
+                  <div class="card-body">
+                    <h1 class="card-title pricing-card-title"> {{ bg_workers.failed | length}}
+                        <small class="text-muted"></small></h1>
+                    <ul class="list-unstyled mt-3 mb-4">
+                      {% for el in bg_workers.failed %}
+                          <li style="font-size: 10px">
+                              {{ el}}
+                              <a href="{{ url_for('admin_control.remove_bg_task', job_id=el) }}"
+                                 style="text-decoration: none;">
+                                  &#10060;
+                              </a>
+                          </li>
+                      {% endfor %}
+                    </ul>
+                    <button type="button" class="btn btn-sm btn-block btn-primary">Функционал в разработке</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
+</div>

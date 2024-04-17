@@ -1,0 +1,66 @@
+{% extends "crm/base_crm.html" %}
+
+{% block crm_dashboard %}
+
+<div id="update_all_info">
+    {% include 'crm/crma/crma_main_block.html'%}
+</div>
+
+<div class="modal fade" id="cancel_orderModal" tabindex="-1" data-backdrop="static" role="dialog" aria-labelledby="cancel_orderModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title" id="cancel_orderModalLabel">
+          </h5>
+        <button type="button" class="close" data-dismiss="modal" onclick="clear_cancel_order()"  aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+          <div id="order_cancel_block"></div>
+
+      </div>
+
+      <div class="modal-footer">
+
+        <button type="button" class="btn btn-sm btn-secondary"  onclick="clear_cancel_order()" data-dismiss="modal">Отмена</button>
+        <button class="btn btn-sm btn-danger mt-1" type="button" onclick="isValid = document.getElementById('cancel_order_form').reportValidity();if(isValid){document.getElementById('cancel_order_form').submit()}">Отменить заказ</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="problem_orderModal" tabindex="-1" data-backdrop="static" role="dialog" aria-labelledby="problem_orderModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-error">
+          <h5 class="modal-title" id="problem_orderModalLabel">
+          </h5>
+        <button type="button" class="close" data-dismiss="modal" onclick="clear_problem_order()"  aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+          <div id="order_problem_block"></div>
+
+      </div>
+
+      <div class="modal-footer">
+
+        <button type="button" class="btn btn-sm btn-secondary" onclick="clear_problem_order()" data-dismiss="modal">Отмена</button>
+        <button class="btn btn-sm bg-error mt-1" type="button"
+                onclick="isValid = document.getElementById('problem_order_form').reportValidity();if(isValid){document.getElementById('problem_order_form').submit()}">
+            Отправить заказ в проблемные</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{{url_for('static', filename='main_v2/js/crm/crm_agents.js')}}"></script>
+<script>
+    const update_agents_url = "{{url_for('crm_d.agents', bck=1)}}";
+    // window.onload = setTimeout(function() {update_crm_info(update_agents_url);}, 5000);
+</script>
+{% endblock %}

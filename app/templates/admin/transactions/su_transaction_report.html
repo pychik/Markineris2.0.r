@@ -1,0 +1,59 @@
+<div class="container">
+    <div><b>Номер:</b> {{ transaction.id }}</div>
+    <div><b>Дата формирования:</b> {{ transaction.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</div>
+    <div><b>Статус:</b> <span class="badge bg-warning text-black">{{ transaction_dict[transaction.status] }}</span></div>
+    <div><b>Тип:</b> {% if transaction.type %}Пополнение {% else %}Списание{%endif%}</div>
+
+    {% if transaction.promo_info %}
+        <div><b>Промо:</b> {{ transaction.promo_info }}</div>
+    {%endif%}
+
+    {% if transaction.type %}
+        <div><b>Тип транзакции:</b> Пополнение лицевого счета</div>
+        <div><b>Счет:</b> {{ service_account.sa_name }}</div>
+    {% else %}
+        <div><b>Тип транзакции:</b> Списание с лицевого счета</div>
+        {% if transaction.wo_account_info%}<div><b>Реквизиты счета:</b> {{ transaction.wo_account_info }}</div>{% endif %}
+        {%if order_prices_marks%}
+            <div class="my-1"><b>Заказы</b>: <!--<a href="{{url_for('orders_archive.index')}}" target="_blank" style="text-decoration: none">-->
+
+            {% for o in order_prices_marks %}
+                {% if not loop.index==1%}
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                {%endif%}
+                <span class="text-warning">{{o.order_idn}}</span> - {{o.category}}, {{o.marks_count}} шт. - {{o.marks_count * transaction.op_cost}} р.{% if not loop.last %},<br>{% endif %}
+            {% endfor %}<!--</a>-->
+            </div>
+
+            <b>Цена за марку</b>: {{transaction.op_cost}} р.<br>
+
+            <b>Всего</b>: {{total_marks}} шт.
+        {% endif %}
+
+    {% endif %}
+    <div><b>Сумма:</b> {{ transaction.amount }} р.</div>
+    <div class="col mt-3" title="Скрин транзакции">{{transaction_image | safe}}</div>
+    {% if transaction.status == 1 %}
+        <div class="text-center">
+            <button class="btn btn-sm btn-outline-danger my-3" data-bs-dismiss="modal"
+                onclick="bck_pending_transaction_change_status('{{url_for('admin_control.bck_su_pending_transaction_update', u_id = transaction.user_id, t_id=transaction.id)}}',
+                '{{url_for('admin_control.su_bck_control_ut')}}',
+                {{1 if transaction.type else 0}}, 0, '{{csrf_token()}}')">Отменить транзакцию</button>
+
+            <button class="btn btn-sm btn-outline-success" data-bs-dismiss="modal"
+                onclick="bck_pending_transaction_change_status('{{url_for('admin_control.bck_su_pending_transaction_update', u_id = transaction.user_id, t_id=transaction.id)}}',
+                '{{url_for('admin_control.su_bck_control_ut')}}',
+                {{1 if transaction.type else 0}}, 2, '{{csrf_token()}}')">Подтвердить транзакцию</button>
+        </div>
+
+    {#   {% elif transaction.status == 2%}
+        <div class="text-center">
+            <button class="btn btn-sm btn-outline-danger my-3">Отменить транзакцию</button>
+        </div>
+    {% elif transaction.status == 0 %}
+        <div class="text-center">
+            <button class="btn btn-sm btn-outline-success my-3">Подтвердить транзакцию снова</button>
+        </div>-->#}
+
+    {% endif %}
+</div>

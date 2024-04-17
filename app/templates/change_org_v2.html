@@ -1,0 +1,67 @@
+
+
+<!-- templates/shoes.html -->
+
+{% extends "main/base_v2.html" %}
+
+{% block change_org %}
+
+
+<!--
+set hidden input to pass value of copied order_process
+-->
+
+<div class="row">
+    <div class="col-2"></div>
+    <div class="col-8 text-center">
+        <h1>{{category.capitalize()}}</h1>
+<!--        {% if category =='обувь' %}-->
+<!--            <div class="alert alert-primary" role="alert">-->
+<!--                <h2>Обувь</h2>-->
+<!--            </div>-->
+<!--        {% elif category =='одежда'%}-->
+<!--            <div class="alert alert-warning" role="alert">-->
+<!--                <h2>Одежда</h2>-->
+<!--            </div>-->
+<!--        {% elif category =='белье'%}-->
+<!--            <div class="alert alert-info" role="alert">-->
+<!--                <h2>Белье</h2>-->
+<!--            </div>-->
+<!--        {% elif category =='парфюм'%}-->
+<!--            <div class="alert alert-success" role="alert">-->
+<!--                <h2>Духи</h2>-->
+<!--            </div>-->
+<!--        {% endif %}-->
+    </div>
+    <div class="col-2"></div>
+</div>
+
+
+<div class="col container-fluid text-center mt-1">
+    <h2> Форма обновления данных организации и типа маркировки для заказа
+        <a href="{{ url_for(category_process_name + '.index', o_id=o_id) }}"><i><u>{{ o_id }}</u></i></a>
+    </h2>
+
+</div>
+
+   <form id="edit_org" method="post"  action="{{url_for('requests_common.change_order_org_param_form', o_id=o_id)}}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <input type="hidden" id="category_hidden" name="category_hidden" class="form-control"
+                               value="{{ category_process_name }}">
+
+    <div class="row  mt-5">
+        <div class="col-md-2"></div>
+        <div class="col-md-8">
+            {% include 'helpers/organization.html' %}
+        </div>
+    </div>
+
+
+    <div class="mt-5 col text-center">
+        <button class="btn btn-accent" type="submit">Изменить</button>
+    </div>
+   </form>
+
+{% include 'helpers/modal_questions_org.html' %}
+
+{% endblock %}

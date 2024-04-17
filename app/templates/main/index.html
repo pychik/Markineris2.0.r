@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Markineris - Изготовление уникальных кодов Data Matrix для всех товаров</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Изготовление уникальных кодов Data Matrix для всех товаров" />
+
+    <!-- fevicon -->
+    <link rel="shortcut icon" href="{{url_for('static', filename='index_v2/images/favicon.ico')}}">
+
+    <!-- Bootstrap css -->
+    <link rel="stylesheet" href="{{url_for('static', filename='index_v2/css/bootstrap.min.css')}}" type="text/css" />
+
+    <!-- animation -->
+    <link rel="stylesheet" href="{{url_for('static', filename='index_v2/css/aos.css')}}" />
+
+    <!-- Icon -->
+    <link rel="stylesheet" href="{{url_for('static', filename='index_v2/css/materialdesignicons.min.css')}}" type="text/css" />
+
+    <!-- css -->
+    <link rel="stylesheet" href="{{url_for('static', filename='index_v2/css/style.css')}}?v=6" type="text/css" />
+    <link rel="stylesheet" href="{{url_for('static',filename='main_v2/css/update_1.css')}}  ">
+
+    {% if not config['DEBUG'] %}
+        {% include 'main/base_helpers/ym.html' %}
+    {% endif %}
+
+</head>
+
+<body data-bs-spy="scroll" data-bs-target="#navbar" data-bs-offset="71">
+    <nav class="navbar navbar-expand-lg fixed-top navbar-dark navbar-custom sticky" id="navbar">
+        <div class="container">
+            <!-- LOGO -->
+            <a class="navbar-brand text-uppercase " href="/">
+                <!-- <span class="text-dark">Markineris</span> -->
+                <!--?xml version="1.0" standalone="no"?-->
+
+                <svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="100" height="100%"
+                    viewBox="0 0 713.000000 713.000000" preserveAspectRatio="xMidYMid meet" class="logos">
+
+                    <g transform="translate(0.000000,713.000000) scale(0.100000,-0.100000)" fill="#62666A"
+                        stroke="none">
+                        <path d="M1480 4900 l0 -1770 2065 0 2065 0 0 295 0 295 -1772 2 -1773 3 -3
+                    1473 -2 1472 -290 0 -290 0 0 -1770z" class="svg-elem-1"></path>
+                        <path d="M2660 5495 l0 -1175 295 0 295 0 0 885 0 885 295 0 295 0 0 -885 0
+                    -885 295 0 295 0 0 885 0 885 295 0 295 0 0 290 0 290 -1180 0 -1180 0 0
+                    -1175z" class="svg-elem-2"></path>
+                        <path d="M5020 5200 l0 -880 295 0 295 0 0 880 0 880 -295 0 -295 0 0 -880z" class="svg-elem-3">
+                        </path>
+                        <path d="M1485 2528 c-3 -7 -4 -202 -3 -433 l3 -420 89 -3 89 -3 -5 291 c-2
+                    159 -2 290 1 290 3 0 58 -130 121 -288 l115 -287 75 0 75 0 52 121 c28 66 79
+                    192 113 280 34 87 65 163 70 168 5 5 8 -115 7 -280 l-2 -289 88 -3 87 -3 0
+                    436 0 435 -110 0 -110 0 -25 -56 c-14 -31 -71 -173 -127 -315 -57 -142 -106
+                    -259 -110 -259 -3 0 -38 80 -77 178 -39 97 -97 238 -130 312 l-60 135 -111 3
+                    c-83 2 -112 -1 -115 -10z" class="svg-elem-4"></path>
+                        <path d="M2962 2503 c-29 -57 -372 -820 -372 -827 0 -12 187 -6 197 7 6 6 23
+                    45 38 85 l28 72 220 -2 220 -3 35 -82 35 -83 93 0 c51 0 95 3 97 8 3 4 -78
+                    198 -179 432 l-183 425 -105 3 -105 3 -19 -38z m195 -313 l71 -180 -154 0
+                    -153 0 70 171 c76 187 77 189 88 189 4 0 40 -81 78 -180z" class="svg-elem-5"></path>
+                        <path d="M3650 2105 l0 -436 88 3 87 3 3 113 3 112 268 0 268 0 54 -112 54
+                    -113 98 -3 c53 -1 97 1 97 5 0 4 -32 70 -71 145 -38 76 -66 138 -62 138 16 0
+                    95 85 116 125 18 33 22 57 22 135 0 81 -4 102 -25 143 -31 61 -86 112 -159
+                    146 l-56 26 -392 3 -393 3 0 -436z m778 242 c94 -51 95 -197 2 -252 -33 -19
+                    -55 -20 -317 -23 l-283 -3 0 151 0 151 283 -3 c249 -3 286 -5 315 -21z" class="svg-elem-6"></path>
+                        <path d="M4825 2528 c-3 -7 -4 -202 -3 -433 l3 -420 90 0 90 0 3 152 3 152 46
+                    36 47 36 18 -23 c9 -13 77 -97 150 -188 l133 -165 118 -3 c64 -1 117 1 117 6
+                    0 7 -129 158 -397 463 -13 15 6 35 181 200 108 101 196 187 196 191 0 5 -52 8
+                    -116 8 l-116 0 -186 -180 -187 -179 -5 177 -5 177 -88 3 c-64 2 -89 -1 -92
+                    -10z" class="svg-elem-7"></path>
+                        <path d="M5100 1284 c-169 -46 -250 -169 -209 -319 16 -56 81 -117 152 -143
+                    31 -12 112 -29 179 -37 68 -8 139 -20 158 -26 75 -24 101 -80 61 -131 -27 -34
+                    -91 -51 -192 -50 -99 1 -179 24 -247 72 -23 16 -47 30 -52 30 -5 0 -30 -28
+                    -55 -62 l-46 -63 37 -33 c92 -80 224 -116 399 -109 137 5 187 19 259 75 70 53
+                    91 98 91 198 0 70 -3 86 -26 120 -54 81 -149 124 -337 150 -137 18 -198 41
+                    -207 77 -17 67 57 102 201 95 89 -5 103 -9 181 -49 l86 -43 38 45 c54 62 58
+                    78 23 106 -42 35 -140 80 -209 98 -74 19 -213 18 -285 -1z" class="svg-elem-8"></path>
+                        <path d="M1485 1278 c-3 -7 -4 -202 -3 -433 l3 -420 90 0 90 0 0 430 0 430
+                    -88 3 c-64 2 -89 -1 -92 -10z" class="svg-elem-9"></path>
+                        <path d="M1835 1277 c-3 -6 -4 -201 -3 -432 l3 -420 89 -3 89 -3 -6 301 c-3
+                    165 -4 300 -1 300 2 0 49 -64 104 -142 55 -79 156 -214 223 -300 l122 -158 85
+                    3 85 2 0 430 0 430 -89 3 -89 3 5 -301 c3 -165 3 -300 -1 -299 -3 0 -49 61
+                    -101 136 -52 75 -153 210 -224 300 l-128 163 -79 0 c-55 0 -81 -4 -84 -13z" class="svg-elem-10">
+                        </path>
+                        <path d="M2795 1277 c-3 -6 -4 -201 -3 -432 l3 -420 350 0 350 0 0 80 0 80
+                    -262 3 -263 2 0 95 0 95 225 0 225 0 0 85 0 85 -222 2 -223 3 -3 83 -3 82 256
+                    0 255 0 0 85 0 85 -340 0 c-263 0 -342 -3 -345 -13z" class="svg-elem-11"></path>
+                        <path d="M3650 855 l0 -436 88 3 87 3 3 112 3 113 127 0 127 -1 55 -112 55
+                    -112 98 -3 c53 -1 97 1 97 5 0 4 -31 67 -69 140 l-68 132 57 59 c73 74 94 133
+                    88 236 -8 123 -70 210 -188 265 -54 26 -60 26 -307 29 l-253 4 0 -437z m498
+                    242 c94 -51 96 -192 3 -249 -32 -20 -52 -23 -178 -27 l-143 -3 0 152 0 152
+                    143 -4 c112 -3 149 -7 175 -21z" class="svg-elem-12"></path>
+                        <path d="M4555 1277 c-3 -6 -4 -201 -3 -432 l3 -420 88 -3 87 -3 0 436 0 435
+                    -85 0 c-59 0 -87 -4 -90 -13z" class="svg-elem-13"></path>
+                    </g>
+                </svg>
+
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
+                aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="mdi mdi-menu"></span>
+                <!-- toggle button -->
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarCollapse">
+                <ul class="navbar-nav mx-auto" id="navbar-navlist">
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="#features">Что за маркировка?</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="{{ contacts.info_center_link }}">База знаний</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="#products">Какие товары?</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="#search">Проверить <br>ТН ВЭД</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link mb-3 mb-lg-0 text-dark" href="#contact">Контакты</a>
+                    </li>
+
+                </ul>
+                <!-- Button trigger modal -->
+                <a href="/login" class="btn btn-dark " data-bs-target="#exampleModalLong">
+                    Вход
+                </a>
+                <!-- Nav btn -->
+            </div>
+        </div><!-- End container -->
+    </nav>
+    <!-- End Navbar -->
+
+    <div class="overflow-hidden-x">
+        <!-- Start Home -->
+        <section class="section home home-1" id="home">
+            <!-- <div class="bg-overlay"></div> -->
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-lg-7">
+                        <div class="home-heading">
+                            <h1 class="mb-3 text-dark"> Маркируйте с нами - <br> <span
+                                    class="typewrite text-primary  d-inline-block fw-bolder" data-period="2000"
+                                    data-type='[ "Markineris" ]'>
+                                    <span class="wrap"></span> </span>
+                            </h1>
+                        </div>
+                        <p class="text-dark-50 fs-20">Комплексное решение по вопросам маркировки под ключ для всех товаров по всему СНГ</p>
+                        <div class="home-btn hstack gap-2 flex-column d-sm-block">
+                            <a class="btn btn-dark me-1" href="/login">Подключиться</a>
+                        </div>
+                    </div><!-- end col-->
+                    <div class="col-lg-5 text-center">
+                        <img src="{{ url_for('static', filename='index_v2/images/Rectangle-4.png') }}" alt="" class="img-fluid home__img">
+                    </div>
+                </div>
+            </div><!--end container-->
+        </section>
+        <!-- End Home -->
+
+        <div class="container-fluid">
+            <div class="row">
+                <div class="home-shape-arrow">
+                    <a href="#features" class="mouse-down"><i
+                            class="mdi mdi-arrow-down arrow-icon text-dark h5"></i></a>
+                </div>
+            </div><!--end row-->
+        </div><!--end container-->
+
+        <!-- Start features -->
+        <section class="section feature" id="features">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-lg-7">
+                        <div class="text-center mb-4">
+                            <h2 class="heading">Что такое маркировка?</h2>
+                        </div>
+                    </div><!-- end col-->
+                    <div class="col-10">
+                        <p>Маркировка — это регистрация и учёт продукции в государственной системе «Честный ЗНАК». Она
+                            помогает отслеживать весь путь товара от производства до продажи. В маркировке задействованы
+                            все участники рынка, поэтому весь процесс можно поделить на три этапа:</p>
+                        <ul class="list-reset">
+                            <li class="mb-2"><span
+                                    class="mdi mdi-checkbox-marked-circle-outline text-dark fw-bolder fs-5 me-1"></span><b>Этап
+                                    1.</b> Производители и импортёры размещают маркировочные штрихкоды на товарах</li>
+                            <li class="mb-2"><span
+                                    class="mdi mdi-checkbox-marked-circle-outline text-dark fw-bolder fs-5 me-1"></span><b>Этап
+                                    2.</b> Поставщики сверяют маркировку, регистрируют закупку и продажу товара
+                                розничным
+                                продавцам</li>
+                            <li class="mb-2"><span
+                                    class="mdi mdi-checkbox-marked-circle-outline text-dark fw-bolder fs-5 me-1"></span><b>Этап
+                                    3.</b> Розничные продавцы сверяют маркировку, регистрируют закупку и продажу
+                                конечному
+                                потребителю</li>
+                        </ul>
+                        <div class="text-center" data-aos="fade-bootom" data-aos-duration="1800"> <img
+                                src="{{url_for('static', filename='index_v2/images/mark.png')}}" alt=" Что такое маркировка" class="img-fluid mt-5 mx-auto"
+                                loading="lazy"></div>
+                    </div>
+                </div><!-- end row-->
+                <div class="row justify-content-center">
+                    <div class="col-lg-4 col-md-7 mt-sm-4">
+                        <div data-aos="fade-right" data-aos-duration="1800">
+                            <div class="feature-card p-3 py-sm-4 rounded d-flex">
+                                <div class="flex-shrink-0">
+                                    <i class="mdi mdi-responsive text-primary float-start me-3 h1 main-icon"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-2">
+                                    <div class="content">
+                                        <h3 class="title">с 2019</h3>
+                                        <p class="text-muted mt-2">на рынке маркировки товаров</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- end col -->
+                    <div class="col-lg-4 col-md-7 mt-sm-4">
+                        <div class="feature-card p-3 py-sm-4 rounded" data-aos="fade-bottom" data-aos-duration="1800">
+                            <i class="mdi mdi-layers-triple-outline text-primary float-start me-3 h1 main-icon"></i>
+                            <div class="content d-block overflow-hidden">
+                                <h3 class="title">10 000+</h3>
+                                <p class="text-muted mt-2">положительных отзывов</p>
+
+                            </div>
+                        </div>
+                    </div><!-- end col -->
+                    <div class="col-lg-4 col-md-7 mt-sm-4">
+                        <div data-aos="fade-left" data-aos-duration="1800">
+                            <div class="feature-card p-3 py-sm-4 rounded">
+                                <i
+                                    class="mdi mdi-clipboard-flow-outline text-primary float-start me-3 h1 main-icon"></i>
+                                <div class="content d-block overflow-hidden">
+                                    <h3 class="title">5.000.000+</h3>
+                                    <p class="text-muted mt-2">изготовленных маркировок с нашей помощъю</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- end col -->
+                </div><!-- end row -->
+
+            </div><!-- end container -->
+        </section>
+        <!-- end Features -->
+
+        <!-- Start products -->
+        <section id="products" class="section team pt-0" style="z-index: 1;">
+            <div id="particles-js" style="z-index: -1;">
+            </div>
+            <!-- end particles -->
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-lg-7">
+                        <div class="text-center mb-5">
+                            <h2 class="heading">Какие товары?</h2>
+                            <p class="text-muted fs-17">По состоянию на 2023 год маркировка обязательна для восьми
+                                товарных категорий.</p>
+                        </div>
+                    </div><!-- end col-->
+                </div><!-- end row -->
+                <div class="row gy-4">
+                    <div class="col-6 col-lg-4 col-sm-6">
+                        <div class="team-card">
+                            <div class="team-card-img">
+                                <img class="img-fluid" src="{{url_for('static', filename='index_v2/images/type/image 10.jpg')}}" alt="image" loading="lazy">
+
+                            </div>
+                            <div class="team-card-text-2">
+                                <h6 class="fw-bold mb-0">Постельное белье</h6>
+                            </div>
+                        </div>
+                    </div><!-- end col -->
+
+                    <div class="col-6 col-lg-4 col-sm-6">
+                        <div class="team-card">
+                            <div class="team-card-img">
+                                <img class="img-fluid" src="{{url_for('static', filename='index_v2/images/type/image 3.jpg')}}" alt="image" loading="lazy">
+
+                            </div>
+                            <div class="team-card-text-2">
+                                <h6 class="fw-bold mb-0">Товары легкой промышленности</h6>
+                            </div>
+                        </div>
+                    </div><!-- end col -->
+                    <div class="col-6 col-lg-4 col-sm-6">
+                        <div class="team-card">
+                            <div class="team-card-img">
+                                <img class="img-fluid" src="{{url_for('static', filename='index_v2/images/type/image 4.jpg')}}" alt="image" loading="lazy">
+
+                            </div>
+                            <div class="team-card-text-2">
+                                <h6 class="fw-bold mb-0">Обувь</h6>
+                            </div>
+                        </div>
+                    </div><!-- end col -->
+                    <div class="col-6 col-lg-3 col-sm-6">
+                        <div class="team-card">
+                            <div class="team-card-img">
+                                <img class="img-fluid" src="{{url_for('static', filename='index_v2/images/type/image 5.jpg')}}" alt="image" loading="lazy">
+
+                            </div>
+                            <div class="team-card-text-2">
+                                <h6 class="fw-bold mb-0">Шубы</h6>
+                            </div>
+                        </div>
+                    </div><!-- end col -->
+                    <div class="col-6 col-lg-3 col-sm-6">
+                        <div class="team-card">
+                            <div class="team-card-img">
+                                <img class="img-fluid" src="{{url_for('static', filename='index_v2/images/type/image 6.jpg')}}" alt="image" loading="lazy">
+
+                            </div>
+                            <div class="team-card-text-2">
+                                <h6 class="fw-bold mb-0">Духи и туалетная вода</h6>
+                            </div>
+                        </div>
+                    </div><!-- end col -->
+                    <div class="col-6 col-lg-3 col-sm-6">
+                        <div class="team-card">
+                            <div class="team-card-img">
+                                <img class="img-fluid" src="{{url_for('static', filename='index_v2/images/type/image 7.jpg')}}" alt="image" loading="lazy">
+
+                            </div>
+                            <div class="team-card-text-2">
+                                <h6 class="fw-bold mb-0">Шины и покрышки</h6>
+                            </div>
+                        </div>
+                    </div><!-- end col -->
+                    <div class="col-6 col-lg-3 col-sm-6">
+                        <div class="team-card">
+                            <div class="team-card-img">
+                                <img class="img-fluid" src="{{url_for('static', filename='index_v2/images/type/image 8.jpg')}}" alt="image" loading="lazy">
+
+                            </div>
+                            <div class="team-card-text-2">
+                                <h6 class="fw-bold mb-0">Фотоаппараты и лампы-вспышки</h6>
+                            </div>
+                        </div>
+                    </div><!-- end col -->
+                </div><!-- end row-->
+            </div><!-- end cotainer-->
+        </section>
+        <!-- End products -->
+
+        <!-- Start search -->
+        <section class="section search" id="search">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-lg-10">
+                        <div class="text-center mb-4">
+                            <h2 class="heading">Узнайте, нужно ли маркировать свой товар?</h2>
+                        </div>
+                        <p class="text-center">Если код ТН ВЭД присутвует в списке - маркировка обязательна!</p>
+                    </div><!-- end col-->
+                    <div class="col-lg-10 p-2 p-sm-5 pb-5">
+                        <div class="d-flex search-wrapper">
+                            <input type="text" id="searchInput" class="w-100 search-form"
+                                placeholder="Введите код ТН ВЭД, например, 4203"
+                                   oninput="searchByCode('{{ url_for('static', filename='ved.xml') }}', '{{ url_for('static', filename='index_v2/images/checked.svg') }}')"
+                                onkeypress="return validateNumericInput(event)">
+                            <button class="search-btn"><svg width="36" height="25" viewBox="0 0 36 25" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path
+                                        d="M9.04158 6.22917H0.083252V2.64584H9.04158V6.22917ZM9.04158 11.6042H0.083252V15.1875H9.04158V11.6042ZM33.3903 24.1458L26.5283 17.2838C25.0949 18.2154 23.4108 18.7708 21.5833 18.7708C16.6383 18.7708 12.6249 14.7575 12.6249 9.8125C12.6249 4.86751 16.6383 0.854172 21.5833 0.854172C26.5283 0.854172 30.5416 4.86751 30.5416 9.8125C30.5416 11.64 29.9862 13.3242 29.0545 14.7396L35.9166 21.6196L33.3903 24.1458ZM26.9583 9.8125C26.9583 6.85626 24.5395 4.43751 21.5833 4.43751C18.627 4.43751 16.2083 6.85626 16.2083 9.8125C16.2083 12.7688 18.627 15.1875 21.5833 15.1875C24.5395 15.1875 26.9583 12.7688 26.9583 9.8125ZM0.083252 24.1458H17.9999V20.5625H0.083252V24.1458Z"
+                                        fill="#585B5F" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div id="searchResults" class="search-result"></div>
+
+                    </div>
+                    <div class="col-lg-10 text-center">
+                        <a class="btn btn-dark " href="/login">Подключиться</a>
+                    </div>
+                    <div class="col-lg-10 search-whatsapp">
+                        <div class="d-flex flex-column flex-md-row justify-content-md-end align-items-start align-items-md-start ">
+                            <p class="text-md-end me-3">Остались вопросы?<br>
+                                Напишите нашему менеджеру в Whatsapp</p>
+                            <svg width="42" height="42" viewBox="0 0 42 42" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <g clip-path="url(#clip0_33_26)">
+                                    <path fill-rule="evenodd" clip-rule="evenodd"
+                                        d="M26.1359 24.6238C25.9193 25.2315 24.8798 25.7853 24.3797 25.8602C23.9322 25.9271 23.3652 25.9547 22.7417 25.7578C22.2386 25.6008 21.744 25.4177 21.2599 25.2092C18.6507 24.083 16.9457 21.4567 16.8158 21.2835C16.6859 21.1102 15.754 19.8738 15.754 18.5942C15.754 17.3145 16.426 16.6845 16.6649 16.4246C16.9024 16.1647 17.1846 16.0991 17.3579 16.0991C17.5311 16.0991 17.7044 16.1004 17.8566 16.1083C18.0167 16.1162 18.2307 16.0479 18.442 16.5545C18.6585 17.0756 19.1783 18.3553 19.2439 18.4852C19.3082 18.6152 19.3515 18.7674 19.2649 18.9407C19.1783 19.1139 19.135 19.2228 19.005 19.3751C18.8751 19.526 18.732 19.7137 18.6152 19.8305C18.4853 19.9592 18.3488 20.1009 18.501 20.3608C18.6533 20.6207 19.1744 21.4725 19.9474 22.1615C20.941 23.0475 21.7797 23.3218 22.0395 23.453C22.2994 23.583 22.4517 23.5607 22.6026 23.3874C22.7549 23.2142 23.2536 22.6288 23.4269 22.3676C23.6001 22.1077 23.7734 22.151 24.0122 22.2377C24.2498 22.3243 25.5295 22.953 25.7894 23.0842C26.0492 23.2142 26.2225 23.2785 26.2881 23.3874C26.3524 23.4963 26.3524 24.0161 26.1359 24.6238ZM21.0473 12.2574C16.275 12.2574 12.3927 16.1372 12.3914 20.9055C12.3914 22.5395 12.8481 24.1316 13.7144 25.5084L13.9204 25.8352L13.0463 29.0272L16.321 28.1688L16.636 28.3552C17.9688 29.1455 19.4899 29.5621 21.0394 29.5614H21.0434C25.8117 29.5614 29.6927 25.6817 29.6954 20.912C29.6988 19.7754 29.4768 18.6493 29.0422 17.599C28.6077 16.5487 27.9691 15.5951 27.1635 14.7932C26.3623 13.9871 25.4092 13.348 24.3594 12.9127C23.3095 12.4774 22.1838 12.2547 21.0473 12.2574Z"
+                                        fill="#67D449" />
+                                    <path fill-rule="evenodd" clip-rule="evenodd"
+                                        d="M21.0433 31.3189H21.0394C19.2964 31.3189 17.5849 30.8818 16.065 30.0523L10.5459 31.5L12.0238 26.1069C11.1108 24.5252 10.6313 22.7305 10.6339 20.9042C10.6365 15.1673 15.3051 10.5 21.0433 10.5C22.4115 10.496 23.7669 10.7637 25.0309 11.2875C26.2948 11.8113 27.4422 12.5809 28.4064 13.5516C29.3758 14.5162 30.1442 15.6636 30.6671 16.9273C31.19 18.191 31.457 19.5458 31.4528 20.9134C31.4501 26.6503 26.7803 31.3189 21.0433 31.3189ZM21 0C9.40144 0 0 9.40144 0 21C0 32.5973 9.40144 42 21 42C32.5973 42 42 32.5973 42 21C42 9.40144 32.5973 0 21 0Z"
+                                        fill="#67D449" />
+                                </g>
+                                <defs>
+                                    <clipPath id="clip0_33_26">
+                                        <rect width="42" height="42" fill="white" />
+                                    </clipPath>
+                                </defs>
+                            </svg>
+
+                        </div>
+                    </div>
+                </div><!-- end row-->
+
+            </div><!-- end container -->
+        </section>
+        <!-- end search -->
+
+        <!-- Start cta -->
+        <section class="section cta">
+            <marquee behavior="" direction="left">
+                <p class="mb-0">Быстрая и выгодная маркировка ваших товаров под ключ. Быстрая и выгодная маркировка
+                    ваших товаров под ключ. Быстрая и выгодная маркировка ваших товаров под ключ. Быстрая и выгодная
+                    маркировка ваших товаров под ключ. Быстрая и выгодная маркировка ваших товаров под ключ.</p>
+            </marquee>
+            <div class="container">
+                <div class="row justify-content-center text-center">
+                    <div class="col-lg-6">
+                        <div data-aos="fade-down" data-aos-duration="1800">
+                            <div class="cta-heading mb-4">Проверка сканера штрих-кода
+                            </div>
+                            <a class="btn btn-primary text-dark" href="https://честныйзнак.рф/barcode/" target="_blank"
+                                rel="nofollow">Попробовать</a>
+                        </div>
+                    </div><!-- end col-->
+                </div><!-- end row-->
+            </div><!-- end container-->
+        </section>
+        <!-- End cta -->
+
+              <!-- Start Process -->
+              <section class="section process">
+                <div class="container">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-7">
+                            <div class="text-center mb-5">
+                                <h2 class="heading" data-aos="fade-up" data-aos-duration="1800">Как оформить заказ на нашем сайте?</h2>
+                            </div>
+                        </div><!-- end col-->
+                    </div><!-- end row -->
+                    <div class="process-wrapper">
+                        <div class="process-item process-item-one" data-aos="fade-up" data-aos-duration="1800">
+                            <div class="process-item__number ">01</div>
+                            <p class="mb-5">Зарегистрируйтесь на нашей платформе или войдите в существующий аккаунт</p>
+                            <a href="/login" class="btn btn-dark ">
+                                Зарегистрироваться
+                            </a>
+                        </div>
+                        <div class="process-item process-item-image1" data-aos="fade-up" data-aos-duration="1800">
+                            <img src="{{url_for('static', filename='index_v2/images/process/pc1.png')}}" alt="Процесс регистрации" width="285" height="223" class="img-fluid">
+                        </div>
+                        <div class="process-item process-item-two" data-aos="fade-up" data-aos-duration="1800">
+                            <div class="process-item__number">02</div>
+                            <p>Дождитесь активации вашего аккаунта</p>
+                        </div>
+                        <div class="process-item process-item-three process-item__video" data-aos="fade-up" data-aos-duration="1800">
+                            <div class="process-item__number ">03</div>
+                            <p>Заполните накладную по любой из категорий на сайте и нажмите "Оформить накладную"</p>
+                            <p>
+                                Смотреть видеоинструкцию <a href="https://disk.yandex.com/i/RR0pBhCYVRc1Kw"><img src="{{url_for('static', filename='index_v2/images/process/yt.png')}}" class="img-fluid" width="43" alt=""></a>
+                            </p>
+                        </div>
+                        <div class="process-item process-item-image2" data-aos="fade-up" data-aos-duration="1800">
+                            <img src="{{url_for('static', filename='index_v2/images/process/pc2.png')}}" alt="Процесс регистрации" width="349" height="222" class="img-fluid">
+                        </div>
+                        <div class="process-item process-item-four" data-aos="fade-up" data-aos-duration="1800">
+                            <div class="process-item__number">04</div>
+                            <p>По готовности с вами свяжется менеджер в Whatsapp и пришлёт уже готовый заказ</p>
+                        </div>
+                        <div class="process-item process-item-five" data-aos="fade-up" data-aos-duration="1800">
+                            <div class="process-item__number">05</div>
+                            <div class="process-item__content-flex">
+                                <p>Оплатите заказ после проверки</p>
+                                <img src="{{url_for('static', filename='index_v2/images/process/check1.png')}}" alt="" class="img-fluid" width="295" height="298">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        <section>
+            <div class="container">
+                <div class="row my-sm-5 py-5 align-items-center justify-content-between">
+                    <div class="col-lg-6">
+                        <div data-aos="fade-right" data-aos-duration="1800">
+                            <div class="card bg-transparent border-0 mb-3 mb-lg-0">
+                                <img src="{{url_for('static', filename='index_v2/images/qr01.jpg')}}" class="img-fluid rounded-3" alt="" loading="lazy">
+                            </div>
+                        </div>
+                    </div><!-- end col -->
+                    <div class="col-lg-5">
+                        <div data-aos="fade-left" data-aos-duration="1800">
+                            <h3 class="feature-heading mb-2">Почему стоит доверять именно нам?</h3>
+                            <ul class="feature-list list-reset">
+                                <li class="mb-3"><span
+                                        class="mdi mdi-checkbox-marked-circle-outline text-dark fw-bolder fs-5 me-1">
+                                    </span>
+                                    <span class="fw-bolder fs-5">Уникальность</span><br>
+                                    <span class="list-up">Индивидуально работаем с каждым клиентом</span>
+                                </li>
+                                <li class="mb-3"><span
+                                        class="mdi mdi-checkbox-marked-circle-outline text-dark fw-bolder fs-5 me-1">
+                                    </span>
+                                    <span class="fw-bolder fs-5">Скорость</span><br>
+                                    <span class="list-up">В течении 5 часов маркировка будет уже готова</span>
+                                </li>
+                                <li class="mb-3"><span
+                                        class="mdi mdi-checkbox-marked-circle-outline text-dark fw-bolder fs-5 me-1">
+                                    </span>
+                                    <span class="fw-bolder fs-5">Цены</span><br>
+                                    <span class="list-up">У нас самые выгодные цены на рынке</span>
+                                </li>
+                                <li class="mb-3"><span
+                                        class="mdi mdi-checkbox-marked-circle-outline text-dark fw-bolder fs-5 me-1">
+                                    </span>
+                                    <span class="fw-bolder fs-5">Гарантия</span><br>
+                                    <span class="list-up">Если заметили ошибку , то переделаем ваш заказ в тот же день</span>
+                                </li>
+                            </ul>
+                            <a class="btn btn-dark" href="/login">Подключиться</a>
+                        </div>
+                    </div><!-- end col -->
+                </div><!-- end row -->
+                <div class="row align-items-center justify-content-between">
+                    <div class="col-lg-6">
+                        <div data-aos="fade-right" data-aos-duration="1800">
+                            <h3 class="feature-heading">Занимаемся ли мы только маркировкой товаров?</h3>
+                            <ul  class="text-muted mt-3">
+                                <li>Изготовление сертификатов и деклараций для любых брендовых товаров</li>
+                                <li>Установка и настройка программы "Честный знак"
+                                    </li>
+                                    <li>Дальнейшая консультация со всеми процессами с Честном знаке</li>
+                            </ul>
+                        </div>
+                    </div><!-- end col -->
+                    <div class="col-lg-6">
+                        <div data-aos="fade-left" data-aos-duration="1800">
+                            <div class="card bg-transparent border-0">
+                                <img src="{{url_for('static', filename='index_v2/images/qr2.jpg')}}" class="img-fluid" alt="" loading="lazy">
+                            </div>
+                        </div>
+                    </div><!-- end col -->
+                </div><!-- end row-->
+            </div>
+        </section>
+
+
+
+        <!-- Start Partners -->
+        <section class="section partners">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-lg-7">
+                        <div class="text-center mb-5">
+                            <h2 class="heading">Наши парнтеры</h2>
+                        </div>
+                    </div><!-- end col-->
+                </div><!-- end row -->
+                <div class="col-lg-10 m-auto">
+                    <div class="row g-3 g-lg-5">
+                        <div class="col-6 col-lg-4">
+                            <div class="partners-item text-center ">
+                                <img src="{{url_for('static', filename='index_v2/images/partners/wb.png')}}" alt="wb" class="img-fluid mb-3 p-lg-3 pb-lg-0" width="267" height="119">
+                                <h5 class="partners-item__text ">
+                                    Wildberries
+                                </h5>
+                            </div>
+
+                        </div>
+                        <div class="col-6 col-lg-4">
+                            <div class="partners-item text-center ">
+                                <img src="{{url_for('static', filename='index_v2/images/partners/sbis.png')}}" alt="Платформа ЭДО" class="img-fluid mb-3 p-lg-3 pb-lg-0" width="267" height="119">
+                                <h5 class="partners-item__text ">
+                                    Платформа ЭДО
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="col-6 col-lg-4 ">
+                            <div class="partners-item text-center ">
+                                <img src="{{url_for('static', filename='index_v2/images/partners/1c.png')}}" alt="Фирма “1с”" class="img-fluid mb-3 p-lg-3 pb-lg-0" width="267" height="119">
+                                <h5 class="partners-item__text ">
+                                    Фирма “1с”
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="col-6 col-lg-4 offset-lg-2">
+                            <div class="partners-item text-center ">
+                                <img src="{{url_for('static', filename='index_v2/images/partners/ozon.png')}}" alt="Ozon" class="img-fluid mb-3 p-lg-3 pb-lg-0" width="267" height="119">
+                                <h5 class="partners-item__text ">
+                                    Ozon
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="col-6 col-lg-4 ">
+                            <div class="partners-item text-center ">
+                                <img src="{{url_for('static', filename='index_v2/images/partners/ms.png')}}" alt="Мой склад" class="img-fluid mb-3 p-lg-3 pb-lg-0" width="267" height="119">
+                                <h5 class="partners-item__text ">
+                                    Мой склад
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Start contact -->
+        <section class="section contact" id="contact">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-lg-6">
+                        <div class="text-center mb-5">
+                            <h2 class="heading">Контакты</h2>
+                            <p class="text-muted mt-2 fs-17"></p>
+                        </div>
+                    </div><!-- end col -->
+                </div><!-- end row -->
+                <div class="row align-items-center gy-3">
+                    <div class="col-6 align-self-center">
+                        <div data-aos="fade-right" data-aos-duration="1800">
+
+                            Whatsapp : <a href="https://wa.me/79959146126" target="_blank"
+                                class="primary-link text-decoration-underline"> +7 995 914-61-26</a> <br>
+                            Телеграмм : <a href="https://t.me/markinerisss" target="_blank"
+                                class="primary-link text-decoration-underline"> @markinerisss</a> <br>
+                            Email : <a href="mailto:markineris@gmail.com"
+                                class="primary-link text-decoration-underline">markineris@gmail.com</a>
+                        </div>
+                    </div>
+                    <div class="col-6">
+
+                    </div>
+                </div><!--end row-->
+            </div><!--end container-->
+        </section>
+        <!-- End contect -->
+
+        <!-- START FOOTER -->
+        <footer class="section footer py-4">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-lg-6 col-sm-10 text-center">
+
+                        <p class="mx-auto mt-sm-4">MARKINERIS </p>
+
+                    </div><!--end col-->
+                </div><!--end row-->
+                <div class="row justify-content-center">
+                    <div class="col-lg-12">
+                        <div class="text-center mt-3">
+                            <ul class="list-unstyled mb-0">
+                                <li class="list-inline-item mx-lg-3 m-2">
+                                    <a class="text-white" href="/">Главная</a>
+                                </li>
+                                <li class="list-inline-item mx-lg-3 m-2">
+                                    <a class="text-white" href="#features">Что за маркировка?</a>
+                                </li>
+                                <li class="list-inline-item mx-lg-3 m-2">
+                                    <a class="text-white" href="#products">Какие товары?</a>
+                                </li>
+                                <li class="list-inline-item mx-lg-3 m-2">
+                                    <a class="text-white" href="#search">Проверить ТН ВЭД</a>
+                                </li>
+
+                                <li class="list-inline-item mx-lg-3 m-2">
+                                    <a class="text-white" href="#contact">Контакты</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div><!-- end col-->
+                </div><!-- end row-->
+            </div><!--end container-->
+        </footer>
+        <!-- END FOOTER -->
+    </div>
+
+        {% block error_message %}
+        {% endblock %}
+    <!-- FOOTER-ALT -->
+    <div class="footer-alt pt-3 pb-3">
+        <div class="container">
+            <div class="row">
+
+                <div class="col-lg-12">
+                    <div class="text-center">
+                        <p class="mb-0 text-white fs-15">©
+                            <script>document.write(new Date().getFullYear())</script>
+                        </p>
+                    </div>
+                </div>
+                <div class="col-12 mt-3">
+                    <p class="text-white fs-13 text-center ">ИП Мухамадиев Рамазан Эдуардович
+                        ИНН:
+                        023102953804
+                        ОГРНИП:
+                        323169000117644<br>Юридический адрес:
+                            423823, РОССИЯ, Респ ТАТАРСТАН, г НАБЕРЕЖНЫЕ ЧЕЛНЫ, пр-кт ИМ ВАХИТОВА, ДОМ 25, кв 192</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- END FOOTER-ALT -->
+
+    <!--start back-to-top-->
+    <button onclick="topFunction()" id="back-to-top">
+        <i class="mdi mdi-arrow-up"></i>
+    </button>
+    <div class="social-fixed">
+        <a href="https://wa.me/79959146126" target="_blank">
+
+
+            <svg width="42" height="42" viewBox="0 0 42 42" fill="white" xmlns="http://www.w3.org/2000/svg">
+                 <g clip-path="url(#clip0_1_110)">
+                     <path fill-rule="evenodd" clip-rule="evenodd" d="M26.1358 24.6238C25.9193 25.2315 24.8798 25.7853 24.3797 25.8602C23.9321 25.9271 23.3651 25.9547 22.7417 25.7578C22.2386 25.6008 21.7439 25.4177 21.2599 25.2092C18.6506 24.083 16.9457 21.4567 16.8158 21.2835C16.6858 21.1102 15.754 19.8738 15.754 18.5942C15.754 17.3145 16.426 16.6845 16.6648 16.4246C16.9024 16.1647 17.1846 16.0991 17.3578 16.0991C17.5311 16.0991 17.7043 16.1004 17.8566 16.1083C18.0167 16.1162 18.2306 16.0479 18.442 16.5545C18.6585 17.0756 19.1783 18.3553 19.2439 18.4852C19.3082 18.6152 19.3515 18.7674 19.2649 18.9407C19.1783 19.1139 19.135 19.2228 19.005 19.3751C18.8751 19.526 18.732 19.7137 18.6152 19.8305C18.4853 19.9592 18.3488 20.1009 18.501 20.3608C18.6533 20.6207 19.1743 21.4725 19.9474 22.1615C20.941 23.0475 21.7796 23.3218 22.0395 23.453C22.2994 23.583 22.4516 23.5607 22.6026 23.3874C22.7548 23.2142 23.2536 22.6288 23.4268 22.3676C23.6001 22.1077 23.7733 22.151 24.0122 22.2377C24.2498 22.3243 25.5295 22.953 25.7893 23.0842C26.0492 23.2142 26.2225 23.2785 26.2881 23.3874C26.3524 23.4963 26.3524 24.0161 26.1358 24.6238ZM21.0473 12.2574C16.275 12.2574 12.3926 16.1372 12.3913 20.9055C12.3913 22.5395 12.8481 24.1316 13.7143 25.5084L13.9204 25.8352L13.0463 29.0272L16.321 28.1688L16.636 28.3552C17.9688 29.1455 19.4899 29.5621 21.0394 29.5614H21.0433C25.8116 29.5614 29.6927 25.6817 29.6953 20.912C29.6988 19.7754 29.4768 18.6493 29.0422 17.599C28.6076 16.5487 27.9691 15.5951 27.1635 14.7932C26.3623 13.9871 25.4092 13.348 24.3594 12.9127C23.3095 12.4774 22.1838 12.2547 21.0473 12.2574Z" fill="#67D449"></path>
+                     <path fill-rule="evenodd" clip-rule="evenodd" d="M21.0433 31.3189H21.0394C19.2964 31.3189 17.5849 30.8818 16.065 30.0523L10.5459 31.5L12.0238 26.1069C11.1108 24.5252 10.6313 22.7305 10.6339 20.9042C10.6365 15.1673 15.3051 10.5 21.0433 10.5C22.4115 10.496 23.7669 10.7637 25.0309 11.2875C26.2948 11.8113 27.4422 12.5809 28.4064 13.5516C29.3758 14.5162 30.1442 15.6636 30.6671 16.9273C31.19 18.191 31.457 19.5458 31.4528 20.9134C31.4501 26.6503 26.7803 31.3189 21.0433 31.3189ZM21 0C9.40144 0 0 9.40144 0 21C0 32.5973 9.40144 42 21 42C32.5973 42 42 32.5973 42 21C42 9.40144 32.5973 0 21 0Z" fill="#67D449"></path>
+                 </g>
+                 <defs>
+                     <clipPath id="clip0_1_110">
+                         <rect width="42" height="42" fill="white"></rect>
+                     </clipPath>
+                 </defs>
+            </svg>
+         </a>
+         <a href="https://t.me/markinerisss" target="_blank">
+
+
+            <svg width="42" height="42" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <g clip-path="url(#clip0_1_87)">
+                    <path d="M21 42C32.598 42 42 32.598 42 21C42 9.40202 32.598 0 21 0C9.40202 0 0 9.40202 0 21C0 32.598 9.40202 42 21 42Z" fill="url(#paint0_linear_1_87)"></path>
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M9.5058 20.7784C15.6277 18.1111 19.71 16.3527 21.7525 15.5032C27.5844 13.0775 28.7963 12.6561 29.5861 12.6422C29.7598 12.6391 30.1482 12.6822 30.3998 12.8864C30.7731 13.1892 30.7752 13.8466 30.7338 14.2817C30.4177 17.6024 29.0502 25.6605 28.3545 29.3797C28.0601 30.9534 27.4805 31.4811 26.9194 31.5327C25.6999 31.6449 24.7739 30.7267 23.5927 29.9525C21.7445 28.7409 20.7003 27.9867 18.9062 26.8045C16.8328 25.4381 18.1769 24.6872 19.3585 23.46C19.6678 23.1388 25.0409 18.2515 25.1449 17.8081C25.1579 17.7526 25.17 17.5459 25.0472 17.4368C24.9244 17.3277 24.7432 17.365 24.6124 17.3947C24.427 17.4367 21.4744 19.3883 15.7545 23.2494C14.9164 23.8249 14.1573 24.1053 13.4772 24.0906C12.7273 24.0745 11.2851 23.6667 10.2128 23.3181C8.89771 22.8907 7.85246 22.6646 7.94352 21.9386C7.99093 21.5604 8.51167 21.1737 9.5058 20.7784Z" fill="white"></path>
+                </g>
+                <defs>
+                    <linearGradient id="paint0_linear_1_87" x1="21" y1="0" x2="21" y2="41.6719" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#2AABEE"></stop>
+                        <stop offset="1" stop-color="#229ED9"></stop>
+                    </linearGradient>
+                    <clipPath id="clip0_1_87">
+                        <rect width="42" height="42" fill="white"></rect>
+                    </clipPath>
+                </defs>
+            </svg>
+        </a>
+    </div>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11" id="all_messages">
+       {% with messages = get_flashed_messages(with_categories=true) %}
+           {% if messages %}
+               {% for category, message in messages %}
+                    {% if category == 'error' %}
+                        <div id="alert-message-error" class="toast toast-error" role="alert" data-bs-delay="30000"
+                             aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header">
+                                <strong class="me-auto fw-bold ">Ошибка!</strong>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+                            </div>
+                            <div class="toast-body d-flex align-items-center ">
+                                <img src="{{url_for('static',filename='main_v2/img/icons/error.svg')}}" alt="" width="66" height="66" class="img-fluid ">
+                                <p class="mt-2">{{ message | safe }}</p>
+                            </div>
+                        </div>
+                    {% elif category == 'warning' %}
+                        <div id="alert-message-warning" class="toast toast-warning " role="alert" data-bs-delay="30000"
+                             aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header">
+                                <strong class="me-auto fw-bold ">Предупреждение!</strong>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+                            </div>
+                            <div class="toast-body d-flex align-items-center ">
+                                <img src="{{url_for('static',filename='main_v2/img/icons/warning.svg')}}" alt="" width="66" height="66" class="img-fluid ">
+                                <p class="mt-2">{{ message | safe }}</p>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div id="alert-message-success" class="toast toast-success " role="alert" data-bs-delay="30000"
+                             aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header">
+                                <strong class="me-auto fw-bold ">Успешно!</strong>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+                            </div>
+                            <div class="toast-body d-flex align-items-center ">
+                                <img src="{{url_for('static',filename='main_v2/img/icons/success.svg')}}" alt="" width="66" height="66" class="img-fluid ">
+                                <p class="mt-2">{{ message | safe }}</p>
+                            </div>
+                        </div>
+                    {% endif %}
+               {% endfor %}
+           {% endif %}
+       {% endwith %}
+
+    </div>
+    <!--end back-to-top-->
+
+    <!--Bootstrap Js-->
+    <script src="{{url_for('static', filename='index_v2/js/bootstrap.bundle.min.js')}}"></script>
+
+    <!-- animation -->
+    <script src="{{url_for('static', filename='index_v2/js/aos.js')}}"></script>
+
+
+    <!-- Team particles-->
+    <script src="{{url_for('static', filename='index_v2/js/particles.min.js')}}"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="{{url_for('static',filename='main_v2/js/new_messages.js')}}"></script>
+
+    <!-- App Js -->
+    <script src="{{url_for('static', filename='index_v2/js/app.js')}}"></script>
+
+    <script>
+        const message_icon_error = '{{url_for('static',filename='main_v2/img/icons/error.svg')}}';
+        const message_icon_warning = '{{url_for('static',filename='main_v2/img/icons/warning.svg')}}';
+        const message_icon_success = '{{url_for('static',filename='main_v2/img/icons/success.svg')}}';
+         $(document).ready(function() {
+         // сообщение будет закрыто через 10 секунд после загрузки страницы
+             show_user_messages();
+             window.setTimeout(function() {
+             clear_user_messages();
+         }, 10000);
+         });
+
+
+    </script>
+
+</body>
+
+</html>

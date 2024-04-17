@@ -1,0 +1,133 @@
+
+<div class="modal fade" id="markModal" tabindex="-1" role="dialog" aria-labelledby="markModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+    <div class="modal-content p-3 p-md-4">
+      <div class="modal-header">
+        <h5 class="modal-title" id="markModalLabel">Выберите понравившуюся маркировку и нажмите на нее</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body">
+
+          {% include 'helpers/marks.html' %}
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Close">
+            Выйти из окна выбора типа этикетки</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{% if o_id %}
+<div class="modal fade" id="editOrgCardModal" data-bs-backdrop="static" tabindex="-1" role="dialog"
+     aria-labelledby="editOrgCardModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+          <h5 class="modal-title" id="editOrgCardModalLabel">
+              Вы уверены, что хотите изменить параметры организации для <b>текущего</b> заказа?
+          </h5>
+        <button type="button"  class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+
+              У вас уже есть заказ- и вы его составляли для
+              <b>{{ company_type + ' ' + company_name }}</b>.
+          После подтверждения, вы будете перенаправлены на форму редактирования <b>параметров организации</b>
+          и типа <b>маркировки</b>.
+          <br>
+          <br>
+          Хотите поменять параметры карточки организация?
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Нет</button>
+        <button type="button" class="btn btn-accent" data-bs-dismiss="modal"
+                onclick="javascript:window.location.href='{{ url_for('requests_common.change_order_org_param', o_id=o_id) }}';">Да</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{% endif %}
+
+
+<div class="modal fade" id="manual_orgModal" data-bs-backdrop="static" tabindex="-1" role="dialog"
+     aria-labelledby="manual_orgModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+          <h5 class="modal-title" id="manual_orgModalLabel">
+              Вы уверены, что хотите <b>ввести вручную параметры организации</b>?
+          </h5>
+        <button type="button"  class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+
+      <div class="modal-body text-justify">
+
+
+          <div class="container">
+
+            <div class="form-group">
+                <label class="control-label">Тип организации вручную</label>
+
+                    <select class="form-control" id="modal_company_type" name="modal_company_type"
+                          required>
+                    {% for ct in company_types %}
+                        <option value="{{ct}}">
+                            {{ct}}
+                        </option>
+                    {% endfor %}
+                    </select>
+
+
+            </div>
+
+            <div class="form-group">
+                <label class="control-label">Наименование вручную</label>
+<!--                <h5 class="my-0 mr-md-auto font-weight-normal">Наименование</h5>-->
+
+                <input type="name" name="modal_company_name" id="modal_company_name" class="form-control"
+                       placeholder="Для ИП введите только фамилию."
+                       title="Для ИП - введите только фамилию (например для ИП ПЕТРОВ  П.П. введите ПЕТРОВ), для ООО введите наименование (например ООО 'СУПЕРСЕРВИС' введите СУПЕРСЕРВИС)"
+                       minlength="3" onkeyup="javascript:check_blank_start()"
+                       {%if company_name %}value="{{company_name}}"{% endif %} required>
+            </div>
+
+
+
+
+            <div class="form-group">
+                    <label class="control-label">ИНН вручную</label>
+<!--                <h5 class="my-0 mr-md-auto font-weight-normal">ИНН</h5>-->
+
+                <input type="text" name="modal_company_idn" id="modal_company_idn" class="form-control"
+                       autocomplete="off" placeholder="Введите ИНН" maxlength="12"
+                       {%if company_idn %}value="{{company_idn}}"{% endif %} required>
+            </div>
+
+
+
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary border-0 btn-accent text-dark" data-bs-dismiss="modal"
+                onclick="manual_org_change()">Изменить</button>
+<!--                onclick="javascript:org_card_change_edit();">Да</button>-->
+
+
+      </div>
+    </div>
+  </div>
+</div>

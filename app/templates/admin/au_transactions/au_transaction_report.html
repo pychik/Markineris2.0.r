@@ -1,0 +1,30 @@
+<div class="container">
+    <div><b>Номер:</b> {{ transaction.id }}</div>
+    <div><b>Дата формирования:</b> {{ transaction.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</div>
+    <div><b>Статус:</b> <span class="badge bg-warning text-black">{{ transaction_dict[transaction.status] }}</span></div>
+    <div><b>Тип:</b> {% if transaction.type %}Пополнение {% else %}Списание{%endif%}</div>
+
+<!--    <div><b>Тип транзакции:</b> Списание с лицевого счета</div>-->
+
+        {%if order_prices_marks%}
+            <div class="my-1"><b>Заказы</b>: <a href="{{url_for('orders_archive.index')}}" target="_blank" style="text-decoration: none">
+
+            {% for o in order_prices_marks %}
+                {% if not loop.index==1%}
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                {%endif%}
+                <span class="text-warning">{{o.order_idn}}</span> - {{o.category}}, {{o.pos_count}} шт. - {{o.pos_count * transaction.op_cost}} р.{% if not loop.last %},<br>{% endif %}
+            {% endfor %}</a>
+            </div>
+
+
+            <b>Цена за марку</b>: {{transaction.op_cost}} р.<br>
+
+            <b>Всего</b>: {{total_marks}} шт.
+        {% endif %}
+
+
+    <div><b>Сумма:</b> {{ transaction.amount }} р.</div>
+    <div class="col mt-3" title="Скрин транзакции">{{transaction_image | safe}}</div>
+
+</div>

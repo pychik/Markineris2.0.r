@@ -1,0 +1,201 @@
+{% if current_user.is_authenticated %}
+
+    <div class="header-pc user-login d-flex align-items-center justify-content-center  justify-content-sm-between  ">
+
+        <div class="partner d-none d-sm-block">
+            Код партнера: <span class="partner-code fw-bold ">
+                {{ current_user.partners[0].code if current_user.partners else ''}}
+            </span>
+        </div>
+        <div class="header-pc__end d-flex align-items-center ">
+
+            {% if not rz_condition%}
+                <a href="{{ url_for('main.video_instructions')}}" class="learn me-4 d-none d-sm-flex">
+                    <div class="learn__img">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd"
+                                d="M10.1242 6.42338C10.6046 6.41377 11.0794 6.52822 11.5027 6.75569L11.5211 6.768L16.4418 9.57169C16.8678 9.8128 17.2246 10.1612 17.4744 10.5822C17.7241 11.0033 17.8594 11.4823 17.8667 11.9718C17.8741 12.4613 17.7532 12.9442 17.5162 13.3725C17.2792 13.8009 16.9342 14.1598 16.5156 14.4135L16.4935 14.4258L11.5753 17.2308H11.5728C11.1479 17.476 10.6658 17.6049 10.1752 17.6046C9.68452 17.6042 9.20264 17.4746 8.77802 17.2288C8.3534 16.983 8.00104 16.6296 7.75641 16.2043C7.51177 15.779 7.38351 15.2968 7.38453 14.8062V9.18154C7.39366 8.45605 7.68467 7.76256 8.19598 7.2478C8.7073 6.73304 9.39881 6.43739 10.1242 6.42338ZM10.619 8.37784C10.4758 8.30262 10.3158 8.2653 10.1541 8.26941C9.99242 8.27353 9.83449 8.31896 9.69533 8.40137C9.55617 8.48378 9.44041 8.60043 9.35908 8.74022C9.27775 8.88001 9.23355 9.03829 9.23068 9.2V14.8086C9.23021 14.9752 9.27366 15.139 9.35665 15.2834C9.43964 15.4278 9.55923 15.5478 9.70337 15.6313C9.84752 15.7148 10.0111 15.7588 10.1777 15.759C10.3443 15.7591 10.508 15.7153 10.6522 15.632L10.6571 15.6283L15.5679 12.8295C15.7093 12.7415 15.8253 12.6183 15.9046 12.4719C15.984 12.3255 16.0239 12.161 16.0204 11.9945C16.0169 11.828 15.9702 11.6653 15.8848 11.5224C15.7994 11.3794 15.6784 11.2611 15.5335 11.1791L15.531 11.1778L10.619 8.37784Z" />
+                            <path fill-rule="evenodd" clip-rule="evenodd"
+                                d="M5.84615 1.84615C4.78529 1.84615 3.76787 2.26758 3.01773 3.01773C2.26758 3.76787 1.84615 4.78529 1.84615 5.84615V18.1538C1.84615 19.2147 2.26758 20.2321 3.01773 20.9823C3.76787 21.7324 4.78529 22.1538 5.84615 22.1538H18.1538C19.2147 22.1538 20.2321 21.7324 20.9823 20.9823C21.7324 20.2321 22.1538 19.2147 22.1538 18.1538V5.84615C22.1538 4.78529 21.7324 3.76787 20.9823 3.01773C20.2321 2.26758 19.2147 1.84615 18.1538 1.84615H5.84615ZM0 5.84615C0 4.29566 0.615932 2.80867 1.7123 1.7123C2.80867 0.615932 4.29566 0 5.84615 0H18.1538C19.7043 0 21.1913 0.615932 22.2877 1.7123C23.3841 2.80867 24 4.29566 24 5.84615V18.1538C24 19.7043 23.3841 21.1913 22.2877 22.2877C21.1913 23.3841 19.7043 24 18.1538 24H5.84615C4.29566 24 2.80867 23.3841 1.7123 22.2877C0.615932 21.1913 0 19.7043 0 18.1538V5.84615Z" />
+                        </svg>
+                    </div>
+                    Видеообучение
+                </a>
+            {% endif %}
+
+            <div class="header-balance me-4 d-none d-sm-block">
+                <b class="fw-bold">Баланс:</b><br>
+                <span class="header-balance__val">{{ current_user.balance }}</span> руб.
+            </div>
+            <div class="dropdown user-login__dropdown d-none d-sm-block">
+                <a class="dropdown-toggle user d-flex align-items-center  justify-content-end user-info__btn text-decoration-none "
+                    role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="33" height="33" viewBox="0 0 33 33"
+                        fill="none">
+                        <path
+                            d="M33 16.5C33 25.6128 25.6128 33 16.5 33C7.38717 33 0 25.6128 0 16.5C0 7.38717 7.38717 0 16.5 0C25.6128 0 33 7.38717 33 16.5Z"
+                            fill="#CECECE" />
+                        <path
+                            d="M20.2513 15.9804C21.767 14.8388 22.7489 13.0251 22.7489 10.986C22.7489 7.5405 19.9457 4.7373 16.5 4.7373C13.0545 4.7373 10.2512 7.5405 10.2512 10.986C10.2512 13.0251 11.2329 14.8388 12.7486 15.9804C8.69057 17.5035 5.79443 21.4231 5.79443 26.0068H7.72803C7.72803 21.1698 11.6632 17.2349 16.5002 17.2349C21.337 17.2349 25.2722 21.1698 25.2722 26.0068H27.2058C27.2055 21.4231 24.3096 17.5035 20.2513 15.9803V15.9804ZM12.1849 10.986C12.1849 8.60649 14.1205 6.6709 16.5 6.6709C18.8794 6.6709 20.8151 8.60649 20.8151 10.986C20.8151 13.3656 18.8794 15.3013 16.5 15.3013C14.1205 15.3013 12.1849 13.3655 12.1849 10.986Z"
+                            fill="white" />
+                    </svg>
+                    <div class="user-info d-flex align-items-center ">
+                        <div class="user-name fw-bold me-md-2 text-truncate">{{ current_user.login_name }}
+                        </div>
+
+                    </div>
+                </a>
+                <ul class="dropdown-menu mt-2" aria-labelledby="dropdownMenuLink">
+                    <li class=" d-sm-none dropdown-item   ">
+                        <a class="header-balance me-4 " href="#">
+                            <b class="fw-bold">Баланс:</b>
+                            <span class="header-balance__val">{{ current_user.balance }}</span> руб.
+                        </a>
+                    </li>
+                    <li><a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('user_cp.personal_account', u_id=current_user.id)}}">
+                        <img src="{{url_for('static', filename='main_v2/img/icons/rub.svg')}}" class="me-2" width="24" height="24">Лицевой
+                            счет</a></li>
+                    {% if not rz_condition%}
+                        <li><a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('main.video_instructions')}}"><img
+                                                src="{{url_for('static', filename='main_v2/video/img/icons/learn.svg')}}" class="me-2" width="24"
+                                                height="24">Видеоинструкции</a></li>
+                    {% endif %}
+                    <li><a class="dropdown-item d-flex align-items-center py-2" href="javascript:get_order_book('{{url_for('user_cp.bck_order_book_detail', u_id=current_user.id)}}')"><img
+                                src="{{url_for('static', filename='main_v2/img/icons/cart.svg')}}" class="me-2" width="24" height="24">Заказы на оформлении</a></li>
+                    <li><a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('user_cp.user_control_panel', u_id=current_user.id)}}"><img
+                                src="{{url_for('static', filename='main_v2/img/icons/key.svg')}}" class="me-2" width="24" height="24">Смена
+                            пароля</a></li>
+                    <li><a class="dropdown-item d-flex align-items-center py-2" href="javascript:get_tg_notify_info('{{url_for('user_cp.bck_tg_verify_detail', u_id=current_user.id)}}')"><img
+                                src="{{url_for('static', filename='main_v2/img/icons/tg_icon.svg')}}" class="me-2" width="24" height="24">Уведомления ТГ</a></li>
+                    <li><a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('auth.logout')}}"><img
+                                src="{{url_for('static', filename='main_v2/img/icons/exit.svg')}}" class="me-2" width="24"
+                                height="24">Выход</a>
+                    </li>
+                    {% if current_user.role == 'superuser' or current_user.role=='markineris_admin'%}
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_d.agents') }}"
+                               title="Перейти в CRM">
+                                &nbspCRM&nbsp
+                            </a>
+                        </li>
+                    {%endif%}
+                    {% if current_user.role == 'superuser' or current_user.role == 'admin'%}
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.index') }}"
+                                title="Панель управления пользователями">Управление пользователями</a>
+                        </li>
+                    {% endif %}
+                    {% if current_user.role == 'superuser' %}
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.su_control_finance') }}"
+                                title="Панель управления пользователями">Финансы</a>
+                        </li>
+                    {% elif current_user.role == 'admin' %}
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.au_bck_control_ut') }}"
+                                title="Контроль транзакций пользователей агента">Транзакции</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+    </div>
+    <div class="header-mob d-flex d-lg-none justify-content-between align-items-center ">
+
+            {% include 'main/base_helpers/branding_header.html' %}
+
+        <div class="dropdown user-login__dropdown d-sm-none flex-shrink-0 ">
+            <a class="dropdown-toggle user d-flex align-items-center  justify-content-end user-info__btn text-decoration-none "
+                role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
+                <svg xmlns="http://www.w3.org/2000/svg" width="33" height="33" viewBox="0 0 33 33"
+                    fill="none">
+                    <path
+                        d="M33 16.5C33 25.6128 25.6128 33 16.5 33C7.38717 33 0 25.6128 0 16.5C0 7.38717 7.38717 0 16.5 0C25.6128 0 33 7.38717 33 16.5Z"
+                        fill="#CECECE" />
+                    <path
+                        d="M20.2513 15.9804C21.767 14.8388 22.7489 13.0251 22.7489 10.986C22.7489 7.5405 19.9457 4.7373 16.5 4.7373C13.0545 4.7373 10.2512 7.5405 10.2512 10.986C10.2512 13.0251 11.2329 14.8388 12.7486 15.9804C8.69057 17.5035 5.79443 21.4231 5.79443 26.0068H7.72803C7.72803 21.1698 11.6632 17.2349 16.5002 17.2349C21.337 17.2349 25.2722 21.1698 25.2722 26.0068H27.2058C27.2055 21.4231 24.3096 17.5035 20.2513 15.9803V15.9804ZM12.1849 10.986C12.1849 8.60649 14.1205 6.6709 16.5 6.6709C18.8794 6.6709 20.8151 8.60649 20.8151 10.986C20.8151 13.3656 18.8794 15.3013 16.5 15.3013C14.1205 15.3013 12.1849 13.3655 12.1849 10.986Z"
+                        fill="white" />
+                </svg>
+                <div class="user-info d-flex align-items-center ">
+                    <div class="user-name fw-bold me-md-2 text-truncate">{{ current_user.login_name }}
+                    </div>
+
+                </div>
+            </a>
+            <ul class="dropdown-menu mt-2" aria-labelledby="dropdownMenuLink">
+
+                <li class=" d-sm-none dropdown-item   ">
+                    <a class="header-balance me-4 " href="#">
+                        <b class="fw-bold">Баланс:</b>
+                        <span class="header-balance__val">{{ current_user.balance }}</span> руб.
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('user_cp.personal_account', u_id=current_user.id)}}">
+                        <img src="{{url_for('static', filename='main_v2/img/icons/rub.svg')}}" class="me-2" width="24" height="24">Лицевой
+                        счет</a></li>
+                {% if not rz_condition %}
+                    <li><a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('main.video_instructions')}}">
+                        <img src="{{url_for('static', filename='main_v2/video/img/icons/learn.svg')}}" class="me-2" width="24"
+                                    height="24">Видеоинструкции</a></li>
+                {% endif %}
+                <li>
+                    <a class="dropdown-item d-flex align-items-center py-2" href="javascript:get_order_book('{{url_for('user_cp.bck_order_book_detail', u_id=current_user.id)}}')"><img
+                            src="{{url_for('static', filename='main_v2/img/icons/cart.svg')}}" class="me-2" width="24" height="24">Заказы на оформлении</a>
+                </li>
+                <li>
+                    <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('user_cp.user_control_panel', u_id=current_user.id)}}"><img
+                            src="{{url_for('static', filename='main_v2/img/icons/key.svg')}}" class="me-2" width="24" height="24">Смена
+                        пароля</a>
+                </li>
+                <li>
+                    <a class="dropdown-item d-flex align-items-center py-2" href="javascript:get_tg_notify_info('{{url_for('user_cp.bck_tg_verify_detail', u_id=current_user.id)}}')"><img
+                            src="{{url_for('static', filename='main_v2/img/icons/tg_icon.svg')}}" class="me-2" width="24" height="24">Уведомления ТГ</a>
+                </li>
+                <li>
+                    <a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('auth.logout')}}"><img
+                            src="{{url_for('static', filename='main_v2/img/icons/exit.svg')}}" class="me-2" width="24"
+                            height="24">Выход</a>
+                </li>
+                </li>
+                {% if current_user.role == 'superuser' or (current_user.role=='admin' and current_user.is_crm)%}
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_d.agents') }}"
+                           title="Перейти в CRM">
+                            &nbspCRM&nbsp
+                        </a>
+                    </li>
+                {%endif%}
+                {% if current_user.role == 'superuser' or current_user.role == 'admin'%}
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.index') }}"
+                            title="Панель управления пользователями">Управление пользователями</a>
+                    </li>
+                {% endif %}
+                {% if current_user.role == 'superuser' %}
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.su_control_finance') }}"
+                            title="Панель управления пользователями">Финансы</a>
+                    </li>
+                {% elif current_user.role == 'admin' %}
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.au_bck_control_ut') }}"
+                            title="Контроль транзакций пользователей агента">Транзакции</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+        <a class="flex-shrink-1 " data-bs-toggle="offcanvas" data-bs-target="#offcanvasResponsive"
+            aria-controls="offcanvasResponsive" class="d-lg-none">
+            <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38"
+                fill="none">
+                <path
+                    d="M9.5 7.59995C9.5 6.55065 10.3507 5.69995 11.4 5.69995H36.1C37.1493 5.69995 38 6.55065 38 7.59995C38 8.64926 37.1493 9.49995 36.1 9.49995H11.4C10.3507 9.49995 9.5 8.64918 9.5 7.59995ZM36.1 17.1H1.9C0.850695 17.1 0 17.9507 0 19C0 20.0493 0.850695 20.9 1.9 20.9H36.1C37.1493 20.9 38 20.0493 38 19C38 17.9507 37.1493 17.1 36.1 17.1ZM36.1 28.5H19C17.9508 28.5 17.1 29.3506 17.1 30.4C17.1 31.4492 17.9508 32.3 19 32.3H36.1C37.1493 32.3 38 31.4492 38 30.4C38 29.3506 37.1493 28.5 36.1 28.5Z"
+                    fill="#575757" />
+            </svg>
+        </a>
+    </div>
+
+{% endif %}

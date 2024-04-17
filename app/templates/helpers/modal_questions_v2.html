@@ -1,0 +1,128 @@
+
+<div class="modal fade " id="processModal" tabindex="-1" role="dialog"
+     data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="processModalLabel" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content p-3 p-md-4" >
+
+            <div class="modal-header ">
+                <h5 class="modal-title border-0" id="processModalLabel">Вы уверены, что хотите оформить заказ?</h5>
+
+            </div>
+            <div class="modal-body">
+
+                {{ order_notification | safe }}
+                <b class="d-flex justify-content-between">Количество маркировок в заказе<div id="modal_orders_pos_count"><span>{{orders_pos_count}}</span>шт.</div>
+                    </b>
+
+                <div id="data_order_check_insert">
+
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <label class="mb-3">Комментарий (необязательно заполнять)</label>
+                <textarea class="form-control mt-1" type="text" maxlength="100" placeholder="Комментарий к заказу"
+                    title="Комментарий необязательно заполнять. Нужен для отображения особенных заказов!"
+                    id="order_comment_after" name="order_comment_after"></textarea>
+
+            </div>
+            <div class="modal-footer d-flex flex-column" id="process_modal_footer">
+                <button type="button" class="btn btn-accent border-0" id="btn_process"
+                        onclick={%if o_id %}"perform_balance_order_check('{{ url_for('requests_common.cubaa') }}', '{{ csrf_token() }}', '{{ o_id }}', '{{ category }}');"{%endif%} >Оформить накладную</button>
+
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Назад</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if specific_order %}
+    <div class="modal fade" id="clean_ordersModal" tabindex="-1" role="dialog" aria-labelledby="clean_ordersModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title" id="clean_ordersModalLabel">Вы уверены, что хотите очистить заказ?</h5>
+            <button type="button"  class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+            </button>
+          </div>
+          <div class="modal-body text-justify">
+            После того, как вы подтвердите, накладная полностью очистится! Подтверждаете?
+          </div>
+          <div class="modal-footer d-grid gap-2">
+            <button onclick="$('#clean_ordersModal').modal('hide');loadingCircle();location.href='{{url_for(category_process_name + '.clean_orders', o_id=o_id)}}'" class="btn btn-danger " type="button">Да. Очистить накладную</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Нет</button>
+
+          </div>
+        </div>
+      </div>
+    </div>
+{% endif %}
+
+<div class="modal fade" id="edoModal" tabindex="-1" role="dialog" aria-labelledby="edoModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title" id="edoModalLabel">Вы уверены, что не будуте использовать ЭДО ЛАЙТ?</h5>
+        <button type="button"  class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+        Наша компания использует ЭДО СБИС.<br>
+        Настройка роуминга с другими операторами передачи ЭДО может занимать до 3 рабочих дней.<br>
+          Вы уверены что хотите обмениваться документами не по ЭДО ЛАЙТ?
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn_edo_process" onclick="javascript:back_edo_light()">Нет</button>
+        <button type="button" class="btn btn-warning" data-bs-dismiss="modal">Да!</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{% if o_id %}
+
+<div class="modal fade" id="editOrgCardCopyOrderModal" data-bs-backdrop="static" tabindex="-1"
+     role="dialog" aria-labelledby="editOrgCardCopyOrderModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+          <h5 class="modal-title" id="editOrgCardCopyOrderModalLabel">
+              Вы успешно скопировали заказ!
+          </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+
+          Скопированный заказ <i>был</i>  составлен для
+              <b>{{ company_type + ' ' + company_name }}</b>.<br><br>
+
+
+          <u>Если вам нужно поменять данные организации</u>, нажмите кнопку ниже <br><b>Да, поменять данные организации!</b><br>
+          Далее, вы будете перенаправлены на форму редактирования <b>параметров организации</b>
+          и типа <b>маркировки</b>.
+          <br>
+          <br>
+          <u>Если вам не нужно менять данные организации</u>, выберите <b>Нет</b><br><br>
+
+          Хотите поменять параметры карточки <i>организация</i> в скопированном заказе?
+      </div>
+
+      <div class="modal-footer">
+
+        <button type="button" class="btn text-white" style="background-color: #aca6af" data-bs-dismiss="modal">Нет</button>
+        <button type="button" class="btn btn-accent" data-bs-dismiss="modal"
+                onclick="javascript:window.location.href='{{ url_for('requests_common.change_order_org_param', o_id=o_id) }}';">Да</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+
+{% include 'helpers/error_modal.html' %}
+

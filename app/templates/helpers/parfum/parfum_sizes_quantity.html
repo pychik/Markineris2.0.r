@@ -1,0 +1,6 @@
+<div class="form-group" id="sizes_quantity_order">
+    <label class="control-label">Количество</label>
+          <input type="number" name="quantity" id="quantity" placeholder="Количество" class="form-control" min="1"
+                           oninput="validity.valid||(value='');"
+             value="{% if copied_order %}{{ copied_order.quantity }}{% else %}1{% endif %}" required>
+</div>

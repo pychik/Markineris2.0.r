@@ -1,0 +1,96 @@
+<div style="min-width: 260px;max-width: 260px;" class="mr-3">
+        <div class="border-sp-10-right pr-3">
+          <div class="row">
+            <div class="col-8">
+              <h3><span class="badge badge-warning">Новые заказы</span></h3>
+            </div>
+            {%if new_orders%}
+              <div class=" col-4" title="перенести все новые заказы в ПУЛ ">
+                <h3><span class="badge badge-warning" style="cursor: pointer" onclick="bck_all_new_multi_pool(`{{ url_for('crm_d.all_new_multi_pool')}}`, `{{ csrf_token() }}`);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8z"/>
+                    </svg>
+                </span></h3>
+
+              </div>
+            {%endif%}
+          </div>
+          {% for n in new_orders %}
+
+              <div class="card mt-3 mb-1 border-d-3  border-secondary">
+                <div class="card-header bg-warning">
+                    <h5 class="card-text text-center">
+                        <a data-toggle="collapse"
+                           href="#collapseOrder1_{{ loop.index }}" role="button"
+                           aria-expanded="false"
+                           class="btn btn-sm btn-outline-dark btn-block">
+                            {% include 'crm/crma/order_category.html' %}
+                        </a>
+                    </h5>
+                    {% include 'crm/crma/order_payment.html' %}
+                    <h6 class="card-text" title="Время поступления заказа в систему">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lightning" viewBox="0 0 16 16">
+                          <path d="M5.52.359A.5.5 0 0 1 6 0h4a.5.5 0 0 1 .474.658L8.694 6H12.5a.5.5 0 0 1 .395.807l-7 9a.5.5 0 0 1-.873-.454L6.823 9.5H3.5a.5.5 0 0 1-.48-.641l2.5-8.5zM6.374 1 4.168 8.5H7.5a.5.5 0 0 1 .478.647L6.78 13.04 11.478 7H8a.5.5 0 0 1-.474-.658L9.306 1H6.374z"/>
+                        </svg>
+                        <b>{{ n.crm_created_at.strftime('%Y-%m-%d %H:%M:%S') }}</b>
+
+                    </h6>
+                </div>
+
+                <div class="card-body p-3">
+                    <div class="collapse" id="collapseOrder1_{{ loop.index }}">
+                        {% include 'crm/crma/order_description.html' %}
+                    </div>
+
+                    <div class="row">
+
+                        <div class="col-md-4 col-xs-12 text-center">
+                            <form method="post" action="{{ url_for('crm_d.download_order', o_id=n.id) }}" title="Скачать таблицу заказа">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <button class="btn btn-sm btn-info btn-block" type="submit">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                        class="bi bi-download" viewBox="0 0 16 16">
+                                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5
+                                            0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5
+                                            10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                                    </svg>
+
+
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-md-4 col-xs-12 text-center" title="Отменить заказ">
+                             <button type="button" onclick="cancel_order('{{ n.order_idn }}', '{{ url_for('crm_d.cancel_crm_order', o_id=n.id) }}',
+                                     '{{ csrf_token() }}')" class="btn btn-sm btn-outline-danger btn-block">&times;</button>
+                        </div>
+
+
+                        <div class="col-md-4 col-xs-12 text-center" title="Перевести заказ в ОТПРАВЛЕНЫ ФИРМЕ">
+                             <form method="post" action="{{ url_for('crm_d.change_agent_stage', o_id = n.id, stage=order_stages.POOL) }}">
+                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                  <input class="btn btn-sm btn-outline-warning btn-block"
+                                                     type="submit" name="move_to_in_start_company"
+                                             value="&#9658;">
+                             </form>
+                        </div>
+
+                    </div>
+                    <div class="mt-1">
+                        <button class="btn btn-sm btn-warning btn-block" readonly>
+                            КС: <b>{{ n.row_count }}</b>    КМ: <b>{{ n.pos_count }}</b>
+                            {% if n.declar_doc%}РД <b>{{ n.declar_doc }}</b>{% endif %}
+                        </button>
+                    </div>
+
+                    {% include 'crm/special_alerts.html' %}
+
+                </div>
+
+              </div>
+
+
+
+          {% endfor %}
+        </div>
+</div>

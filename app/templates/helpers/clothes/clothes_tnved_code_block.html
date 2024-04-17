@@ -1,0 +1,160 @@
+<div class="form-group">
+    <label class="control-label"> Код ТНВЭД (необязательно) </label>
+    <input type="text" minlength="10" maxlength="10"
+        placeholder="Введите 10-значный код или оставьте пустым"
+        title="Введите 10-значный код или не вводите ничего. Просто добавьте артикул в накладную"
+        name="tnved_code" id="tnved_code" class="form-control"
+        autocomplete="off" onclick="get_tnveds('{{url_for('clothes.bck_clothes_tnved')}}', '{{csrf_token()}}');" readonly
+        {% if copied_order %}
+           {% if copied_order.tnved_code %}
+                value="{{ copied_order.tnved_code }}"
+           {% endif %}
+        {% endif %}>
+    <div id="tnved_co_supressor" style="font-size: 12px;color: #ffffff">{% if copied_order %}&nbsp{% endif %}</div>
+
+</div>
+
+<ul style="font-size: 13px;">
+    <li class="fw-bold"><u>Для маркетплейсов необходимо указывать тот ТНВЭД, что
+        указан в карточке товара</u></li>
+    <li>Определяется пользователем.</li>
+    <li>Нажмите на поле и выберите", подходящий по описанию ТНВЭД</li>
+
+</ul>
+
+
+
+<script>
+const category = '{{ category_process_name }}';
+const all_tnved = [{% for e in clothes_all_tnved%}'{{e}}', {% endfor %}];
+
+document.getElementById("tnved_code").addEventListener("keypress", function (evt) {
+
+        evt.preventDefault();
+
+	});
+var t_code = document.getElementById('tnved_code'),
+	cleanTC;
+
+	cleanTC= function(e) {
+	e.preventDefault();
+	var pastedText = '';
+	if (window.clipboardData && window.clipboardData.getData) { // IE
+	pastedText = window.clipboardData.getData('Text');
+	} else if (e.clipboardData && e.clipboardData.getData) {
+	pastedText = e.clipboardData.getData('text/plain');
+	}
+	this.value = pastedText.replace(/\D/g, '');
+
+	};
+
+	t_code.onpaste = cleanTC;
+
+
+
+function check_tnved(submit){
+
+    if (submit === 'submit'){
+        if (document.getElementById('tnved_code').value.length < 10){
+            show_form_errors(['Заполните тнвэд',]);
+            $('#form_errorModal').modal('show');
+            return false
+        }
+        else{
+
+            return true
+        }
+    }
+}
+
+// function make_message(message, type) {
+//     var block_messages = document.getElementById('all_messages');
+//     block_messages.insertAdjacentHTML('beforeend', `<div class="alert alert-${type} alert-dismissible fade show" id="alert-message-error"
+//                                         role="alert">
+//                                        <button type="button"  class="btn-close" data-dismiss="alert" aria-label="Close">
+//                                        </button>
+//                                        ${message}
+//                                    </div>`);
+// }
+//
+//
+// function show_form_errors(errors){
+//     let errors_block = document.getElementById('form_errormodaldiv');
+//     errors.forEach(function (el, index) {
+//                 errors_block.innerHTML += `${index+1}. <u>${el}</u><br>`;
+//                 }
+//             )
+// }
+//
+// function clear_errorform(){
+//     document.getElementById('form_errormodaldiv').innerHTML='';
+// }
+
+function get_tnveds(url, csrf){
+    let cl_type = document.getElementById('type').value;
+    if(!cl_type){
+
+        show_form_errors(['Выберите тип одежды до выбора ТНВЕД',]);
+        $('#form_errorModal').modal('show');
+        return
+    }
+    $.ajax({
+        url: url,
+        headers:{"X-CSRFToken": csrf},
+        method:"POST",
+        data: {'cl_type': cl_type},
+
+        success:function(data)
+        {
+            if(data.status == 'danger'){
+                 show_form_errors([data.message,]);
+                 $('#form_errorModal').modal('show');
+
+            }
+            else if( data.status == 'success'){
+                $('#manual_tnved_insert').html(data);
+                $("#manual_tnved_insert").append(data.tnved_report);
+                $('#manualTnvedModal').modal('show')
+
+            }
+            else{
+                 show_form_errors(['Обновите страницу...',]);
+                 $('#form_errorModal').modal('show');
+
+            }
+        },
+        error: function() {
+         show_form_errors(['Ошибка CSRF. Обновите страницу и попробуйте снова',]);
+         $('#form_errorModal').modal('show');
+     }
+   });
+  }
+
+function clothes_manual_tnved(){
+    let m_tnved = document.getElementById("manual_tnved_input").value;
+    if (all_tnved.includes(m_tnved)){
+        document.getElementById('tnved_code').value = m_tnved;
+        clear_manual_tnved();
+        $('#manualTnvedModal').modal('hide');
+
+    }
+    else{
+        document.getElementById('manual_tnved_message').innerHTML='Некорректный тнвэд, попробуйте другой' +
+            ' или обратитесь к вашему менеджеру';
+        setTimeout(clear_clothes_tnved_m, 5000);
+    }
+    // console.log(m_tnved);
+}
+
+function clear_manual_tnved(){
+    document.getElementById('manual_tnved_insert').innerHTML='';
+    $('#manual_tnved_input').val('');
+
+}
+
+function clear_clothes_tnved_m(){
+    document.getElementById('manual_tnved_message').innerHTML='';
+}
+
+
+</script>

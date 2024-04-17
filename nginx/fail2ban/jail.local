@@ -1,0 +1,20 @@
+[DEFAULT]
+bantime = 10m
+findtime = 10m
+ignoreip = 127.0.0.1/8 192.168.0.0/16 94.158.62.67 65.21.3.106 93.92.200.215
+maxretry = 3
+
+banaction = iptables-ipset-proto6
+banaction_allports = iptables-ipset-proto6-allports
+
+[sshd]
+enabled = true
+bantime = -1
+
+[nginx-limit-req]
+enabled = true
+port    = http,https
+filter  = nginx-limit-req
+logpath = %(nginx_error_log)s
+banaction = iptables-ipset-proto6-forward
+banaction_allports = iptables-ipset-proto6-allports-forward

@@ -1,0 +1,43 @@
+{% extends 'main/base_v2.html' %}
+
+{% block categories %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/service/jquery-ui.min.css')}}" integrity="sha512-ELV+xyi8IhEApPS/pSj66+Jiw+sOT1Mqkzlh8ExXihe4zfqbWkxPRi8wptXIO9g73FSlhmquFlUOuMSoXz5IRw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="{{ url_for('static', filename='main_v2/js/assets/jquery-ui.min.js')}}" integrity="sha512-57oZ/vW8ANMjR/KQ6Be9v/+/h6bq9/l3f0Oc7vn6qMqyhvPd1cvKBRWWpzu0QoneImqr2SkmO4MSqU+RpHom3Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="{{ url_for('static', filename='js/datepicker-ru.js') }}"></script>
+
+   {% include 'categories/upper_part.html' %}
+
+<div class="px-5">
+    <form role="form" id="form_process_main" method="post" onsubmit="return check_rd_docs() && check_tnved('submit');"
+              action="{% if 'edit_order' in request.path %}{{ url_for(category_process_name + '.preprocess_order',o_id=o_id, p_id=p_id)}}{% else %}{{ url_for(category_process_name + '.preprocess_order', o_id=o_id)}}{% endif %}"> <!-- closed in categories-->
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+        {% include 'categories/categories_1st_step.html' %}
+
+        {% include 'helpers/' + category_process_name + '/' + category_process_name + '_2nd_step.html' %}
+
+<!--        <div class="col text-center">-->
+<!--            <input type="hidden" id="sort_type_order" name="sort_type_order"-->
+<!--                   value={{ request.args.sort_type|default('id') +  ';' + request.args.sort_order|default('false')}}>-->
+
+<!--        </div>-->
+
+
+    </form>
+
+        {% include 'helpers/' + category_process_name + '/' + category_process_name + '_3rd_step.html' %}
+
+</div>
+    <!-- КОНЕЦ ПОШАГОВАЯ ФОРМА -->
+
+<div id="ShowModalTable"></div>
+
+
+{% include 'helpers/modal_questions_v2.html' %}
+{% include 'helpers/modal_questions_org.html' %}
+
+<script src="{{url_for('static',filename='main_v2/js/categories/' + category_process_name + '.js')}}"></script>
+
+
+{% endblock %}

@@ -1,0 +1,12 @@
+<label><h5>Страна</h5></label>
+{% if category != 'одежда' %}<div style="font-size: 12px;color: #ffffff">&nbsp</div>{% endif %}
+<select class="form-control" id="country" name="country">
+    <option value="">------------</option>
+    {%for con in countries%}
+          <option value="{{con}}" {% if copied_order %}
+                                    {% if copied_order.country == con %}
+                                        selected
+                                    {% endif %}
+                                {% endif %}>{{con}}</option>
+        {%endfor%}
+</select>

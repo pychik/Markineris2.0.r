@@ -1,0 +1,815 @@
+
+
+<!-- templates/shoes.html -->
+
+{% extends "main/base_v2.html" %}
+
+{% block categories_upper_part %}
+
+
+<style>
+
+.cellDark {
+  color: white;
+  text-align: center;
+  background-color: #343a40;
+}
+.tooltip-inner {
+    max-width: 350px; /* set this to your maximum fitting width */
+    width: inherit; /* will take up least amount of space */
+}
+
+</style>
+
+<!--
+set hidden input to pass value of copied order_process
+-->
+<input type="hidden" readonly="true" id="copy_order_edit_org" value="{{ copy_order_edit_org }}">
+
+<div class="row">
+    <div class="col-1"></div>
+    <div class="col-10 text-center">
+        {% if category =='обувь' %}
+            <div class="alert alert-primary" role="alert">
+                <h2>Обувь</h2>
+            </div>
+        {% elif category =='одежда'%}
+            <div class="alert alert-warning" role="alert">
+                <h2>Одежда</h2>
+            </div>
+        {% elif category =='белье'%}
+            <div class="alert alert-info" role="alert">
+                <h2>Белье</h2>
+            </div>
+        {% elif category =='парфюм'%}
+            <div class="alert alert-success" role="alert">
+                <h2>Духи</h2>
+            </div>
+        {% endif %}
+    </div>
+    <div class="col-2"></div>
+</div>
+
+<div class="row">
+    <div class="col-md-1"></div>
+
+    <div class="col-md-3 col-xs-10 mb-2 text-center">
+        {% if specific_order %}
+            <a>
+                <button type="button" class="btn btn-outline btn-outline-danger btn-block"
+                        data-bs-toggle="modal" data-bs-target="#clean_ordersModal" data-bs-backdrop="static">
+                        Очистить накладную
+                </button>
+            </a>
+        {% endif %}
+    </div>
+    <div class="col-md-4 col-xs-10 mb-2 text-center">
+
+        <a>
+            <button type="button" class="btn btn btn-outline-secondary btn-block" data-bs-toggle="collapse" href="#collapseUserOrders" role="button"
+                aria-controls="collapseUserOrders">
+                Посмотреть мои текущие заказы
+            </button>
+        </a>
+        <div class="col collapse mt-2" id="collapseUserOrders">
+
+            <div class="col  text-center "><h5>Мои заказы {{ category }}</h5></div>
+            {% for ao in active_orders %}
+
+                <div class="card  text-center ">
+
+                    <div class="row">
+                        <div class=" col-md-8 col-xs-12" >
+
+                            <h6>
+                                <a href="{{ url_for(category_process_name+'.index', o_id=ao.id) }}">
+                                    {{loop.index}}{{'. ' + ao.company_type + ' ' +  ao.company_name +
+                                     '   от '}}{{ ao.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                </a>
+                            </h6>
+                        </div>
+                        <div class=" col-md-4 col-xs-12" >
+                            <h5>
+                                <a class="text-danger" href="{{ url_for(category_process_name+'.clean_orders', o_id=ao.id) }}"
+                                    onclick="javascript:loadingCircle();">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                         class="bi bi-trash" viewBox="0 0 16 16">
+                                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5
+                                              -.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3
+                                             .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                                        <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2
+                                              2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1
+                                               1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h
+                                               6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                                    </svg>
+                                </a>
+
+                            </h5>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+            {% if specific_order and active_orders|length <=6%}
+                <h5 class="text-center">
+                    <a href="{{ url_for(category_process_name + '.index') }}">
+                        <span class="badge bg-primary">Новый заказ</span>
+                    </a>
+                </h5>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3 col-xs-10 text-center">
+        {% if specific_order %}
+            <form id="form_process" method="post"
+                  action="{{url_for(category_process_name + '.process_order', o_id=o_id)}}">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="orders_pos_count" value="{{orders_pos_count}}">
+                <input type="hidden" maxlength="100"
+                    id="order_comment" name="order_comment">
+
+                <button type="button" class="btn btn-outline btn-outline-success btn-block"
+                            data-bs-toggle="modal" data-bs-target="#processModal" data-bs-backdrop="static">
+                          Оформить заказ.
+                </button>
+{#                <button id="btn_process_hidden" class="btn btn-outline-success btn-outline invisible"#}
+{#                                      type="submit" name="process">#}
+
+                </button>
+
+
+            </form>
+        {% endif %}
+    </div>
+
+
+</div>
+
+<div class="col container-fluid text-center mt-5">
+    <h1> Форма настройки накладной </h1>
+    {% if  active_orders|length <=6 %}
+        {% if category in categories_upload %}
+
+                <h4 class="text-center"
+                    title="Загрузить заранее заполненную по шаблону таблицу в систему и оформить заказ!">
+                    <a href="{{ url_for(category_process_name + '.upload') }}">
+                        <span class="badge bg-success">Загрузить накладную из Excel </span>
+                    </a>
+                </h4>
+
+        {% endif %}
+
+    {% endif %}
+
+    {% if current_user.is_send_excel %}
+        <h4 class="text-center"
+            title="Отправить заполненную таблицу своему менеджеру!">
+            <a href="{{ url_for('requests_common.send_table') }}">
+                <span class="badge bg-info">Отправить Excel файл своему менеджеру </span>
+            </a>
+        </h4>
+
+    {% endif %}
+
+    <div id="change_org_card_form_div"></div>
+</div>
+
+        <form id="form_process_main" method="post" onsubmit="return check_rd_docs() && check_tnved('submit');"
+              action="{% if 'edit_order' in request.path %}{{ url_for(category_process_name + '.preprocess_order',o_id=o_id, p_id=p_id)}}{% else %}{{ url_for(category_process_name + '.preprocess_order', o_id=o_id)}}{% endif %}"> <!-- closed in categories-->
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <div class="card mt-3">
+        <div class="row  mt-3">
+            <div class="col-md-4 mb-3 text-justify"></div>
+            <div class="col-md-4 col-xs-12 mb-3 text-justify">
+                <h2 class="text-center">
+                    Организация
+                    {% if o_id %}
+
+                        <span class="badge bg-info" style="cursor:pointer;" id="editOrgbadge" title="Редактировать карточку организации"
+                              data-bs-toggle="modal" data-bs-target="#editOrgCardModal" data-bs-backdrop="static">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
+                                    <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+                                </svg>
+                        </span>
+                        <input type="hidden" id="edit_org_card" name="edit_org_card">
+{#                            </button>#}
+
+                    {% endif %}
+                </h2>
+                <small class="form-text text-muted tex-justified">Заполнение и проверка типа организации, ее наименования
+                    происходит автоматически по выбранному типу юр.лица и введенному ИНН.<br>
+                    - выберите заказ от какого <span style="color:indianred">типа юр. лица</span> собираетесь заполнять<br>
+                    - введите <span style="color:indianred">ИНН</span>.<br>
+                    Произойдет запрос к базе, если введенного ИНН нет в базе,
+                    вы сможете заполнить свои данные ответив на вопросы в модальном окне.
+                </small>
+
+            </div>
+            <div class="col-md-2 col-xs-12 mb-3 text-justify">
+                {% if current_user.partner != 'NO_PARTNER_CODE'%}
+                    <h4 class="my-0 mr-xs-auto font-weight-normal text-center">
+                            Код партнера
+                    </h4>
+
+                    <h5 class="text-center">
+                        {% if current_user.partners %}
+                            <span class="badge bg-primary">
+                                {{ current_user.partners[0].code }}<br>
+                            </span>
+                        {% endif %}
+                    </h5>
+
+
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="row">
+        <div class="col-md-2"></div>
+            <div class="col-md-2 col-xs-12 mb-3 text-right">
+                    <h5 class="my-0 mr-md-auto font-weight-normal">Юр.лицо</h5>
+            </div>
+            <div class="col-md-4 col-xs-12 mb-3 text-justify" >
+                <div class="form-check" >
+                  <input class="form-check-input" type="radio" name="company_type_IP" id="company_type_IP"
+                         onchange="javascript:check_company_type_val('12', 'ИП')"
+                         {% if company_idn %} disabled{% endif %}
+                         {% if not company_type or company_type and company_type=='ИП'%} checked {% endif %}>
+                  <label class="form-check-label" for="company_type_IP">
+                      Заказ от <b><u>ИП</u></b>
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="company_type_OOO" id="company_type_OOO"
+                         onchange="javascript:check_company_type_val('10', 'ООО')"
+                         {% if company_idn %} disabled{% endif %}
+                         {% if company_type and company_type=='ООО'%} checked {% endif %}>
+                  <label class="form-check-label" for="company_type_OOO">
+                      Заказ от <b><u>ООО</u></b>
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="company_type_AO" id="company_type_AO"
+                         onchange="javascript:check_company_type_val('10', 'АО')"
+                         {% if company_idn %} disabled{% endif %}
+                         {% if company_type and company_type=='АО'%} checked {% endif %}>
+                  <label class="form-check-label" for="company_type_AO">
+                      Заказ от <b><u>АО</u></b>
+                  </label>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-3" ></div>
+            <div class="col-md-1 col-xs-12 mb-3 text-right">
+                    <h5 class="my-0 mr-md-auto font-weight-normal">ИНН</h5>
+            </div>
+            <div class="col-md-4 col-xs-12 mb-3 text-justify">
+
+
+                    {%if company_idn%}
+                        <input type="text" id="company_idn" name="company_idn" class="form-control"
+                               autocomplete="on"
+                               onkeyup="javascript:get_idn_info('{{ url_for('requests_common.get_company_data', u_id=current_user.id, from_category=category_process_name, idn='')}}', '{{ url_for('requests_common.process_idn_error',from_category=category_process_name, message='')}}')"
+                               placeholder="Введите ИНН"
+                               {% if not company_type or company_type and company_type=='ИП'%}
+                                   minlength="12" maxlength="12"
+                               {% elif company_type and company_type=='ООО'%}
+                                   minlength="10" maxlength="10"
+                               {% endif %}
+                               value="{{company_idn}}"  readonly="true" required>
+
+                    {% else %}
+                        <input type="text" id="company_idn" name="company_idn" class="form-control"
+                               onkeyup="javascript:get_idn_info('{{ url_for('requests_common.get_company_data', u_id=current_user.id, from_category=category_process_name, idn='')}}', '{{ url_for('requests_common.process_idn_error',from_category=category_process_name, message='')}}')"
+                               autocomplete="on"
+                               placeholder="Введите ИНН"
+                               {% if not company_type or company_type and company_type=='ИП'%}
+                                   minlength="12" maxlength="12"
+                               {% elif company_type and company_type=='ООО'%}
+                                   minlength="10" maxlength="10"
+                               {% endif %}
+                               required>
+                    {%endif%}
+            </div>
+        </div>
+
+        <div class="row mt-2 mb-3" hidden>
+            <div class="col-md-2"></div>
+            <div class="col-md-2 col-xs-12 text-right" style="background-color: #f0f3f3">
+                <h5 class="my-0 mr-md-auto font-weight-normal">Тип</h5>
+            </div>
+            <div class="col-md-4 col-xs-12 text-justify ">
+                {% if company_type %}
+                    <select class="form-control" id="company_type_s"
+                            onchange="javascript:set_company_idn_digits()"
+                         disabled required>
+
+                    {% for ct in company_types %}
+                        <option value="{{ct}}"
+                                {% if company_type == ct %}
+                                    selected
+                            {% endif %}>
+                            {{ct}}
+                        </option>
+                    {% endfor %}
+                    </select>
+                    <input type="hidden" id="company_type" name="company_type" value="{{ company_type }}">
+
+                {% else %}
+                    <select class="form-control" id="company_type_s"
+                            disabled
+                            onchange="javascript:set_company_idn_digits()"
+                            required>
+                    {% for ct in company_types %}
+                        <option value="{{ct}}" {% if copied_order %}
+                                {% if copied_order.company_type == ct %}
+                                    selected
+                                {% endif %}
+                            {% endif %}>
+                            {{ct}}
+                        </option>
+                    {% endfor %}
+                    </select>
+                    <input type="hidden" id="company_type" name="company_type" value="{{ company_types[0] }}">
+                {% endif %}
+
+            </div>
+        </div>
+        <div class="row mt-2 mb-3">
+            <div class="col-md-2" ></div>
+            <div class="col-md-2 col-xs-12 text-right">
+                <h5 class="my-0 mr-md-auto font-weight-normal">Наименование</h5>
+            </div>
+            <div class="col-md-4 col-xs-12 text-justify ">
+                {%if company_name%}
+                    <input type="text" id="company_name" name="company_name" class="form-control"
+                           placeholder=""
+                           title="Для ИП - введите только фамилию (например для ИП ПЕТРОВ  П.П. введите ПЕТРОВ),
+                            для ООО введите наименование (например ООО 'СУПЕРСЕРВИС' введите СУПЕРСЕРВИС)"
+                           value="{{company_name}}" readonly="true"
+                           minlength="3" onkeyup="javascript:check_blank_start()" required>
+
+                {% else %}
+                    <input type="text" id="company_name" name="company_name" class="form-control"
+                           placeholder=""
+
+                           title="Для ИП - введите только фамилию (например для ИП ПЕТРОВ  П.П. введите ПЕТРОВ), для ООО введите наименование (например ООО 'СУПЕРСЕРВИС' введите СУПЕРСЕРВИС)"
+                           readonly="true"
+                           minlength="3" onkeyup="javascript:check_blank_start()" required>
+                {%endif%}
+            </div>
+        </div>
+        <div class="row mt-2 mb-3">
+            <div class="col-md-2 "></div>
+            <div class="col-md-2 col-xs-12 text-right">
+                <h5 class="my-0 mr-md-auto font-weight-normal">ЭДО</h5>
+            </div>
+            <div class="col-md-4 col-xs-12 text-justify ">
+                <select class="form-control" id="edo_type" name="edo_type" readonly="true">
+                    <option value="ЭДО-ЛАЙТ" selected>ЭДО-ЛАЙТ</option>
+{#                <select class="form-control" id="edo_type" #}
+{#                        onchange="processEdoType()" name="edo_type"  {% if edo_type %}#}
+{#                                                                        disabled#}
+{#                                                                    {% else %}required{% endif %}>#}
+{#                    <option value="ЭДО-ЛАЙТ" selected>ЭДО-ЛАЙТ</option>#}
+{#                    {% if edo_type and edo_type != "ЭДО-ЛАЙТ"%}#}
+{#                        <option value="{{edo_type}}" selected>{{ edo_type }}</option>#}
+{#                    {% endif %}#}
+{#                    {% for edo in edo_types %}#}
+{#                        {% if edo != edo_type %}#}
+{#                            <option value="{{edo}}">#}
+{#                                {{edo}}#}
+{#                            </option>#}
+{#                        {% endif %}#}
+{#                    {% endfor %}#}
+
+                </select>
+
+
+{#                {% if edo_type %}#}
+{#                    <input type="hidden" name="edo_type" value="{{edo_type}}" />#}
+{#                {% endif %}#}
+
+                <div class="mt-1">
+                    {%if edo_id and edo_type != 'ЭДО-ЛАЙТ'%}
+                        <input type="text" name="edo_id" minlength="8" id="edo_id" class="form-control"
+                               placeholder="Введите ID" value="{{edo_id}}" disabled  required>
+
+                    {% elif edo_id and edo_type == 'ЭДО-ЛАЙТ'%}
+                        <input type="hidden" name="edo_id" id="edo_id" class="form-control"
+                               placeholder="Введите ID"  value="">
+                    {% elif not edo_id %}
+                        <input type="hidden" name="edo_id" id="edo_id" class="form-control"
+                               placeholder="Введите ID"  required>
+                    {% else %}
+                        <input type="text" name="edo_id" minlength="8" id="edo_id" class="form-control"
+                               placeholder="Введите ID" required>
+                    {%endif%}
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3 mb-2">
+            <div class = "col-md-2"></div>
+            <div class="col-md-2 col-xs-12 text-right " >
+                <h5 class="my-0 mr-md-auto font-weight-normal">Вид Этикетки</h5>
+            </div>
+            <div class = "col-md-4 col-xs-12">
+                <input type="text" id="mark_type" name="mark_type" class="form-control readonly_field"
+                       placeholder="Нажмите чтобы выбрать тип этикетки"
+                       data-bs-toggle="modal" data-bs-target="#markModal"
+                       title="Поле привязки тип этикетки"
+                       autocomplete="off"
+                       {% if mark_type %}value="{{ mark_type }}" disabled{% endif %} required>
+                    <script>
+                        window.onload = () => {
+                         const myInput = document.getElementById('mark_type');
+                         myInput.onpaste = e => e.preventDefault();
+                        }
+                        $(".readonly_field").keydown(function(e){
+                            e.preventDefault();
+                        });
+                    </script>
+                <input type="hidden" id="mark_type_hidden" name="mark_type_hidden" class="form-control"
+                               title="Поле привязки типа маркировки" {% if mark_type %}value="{{ mark_type }}"{% endif %}
+                               data-validate="true">
+            </div>
+        </div>
+
+{#        </div>#}
+        <div class="row mt-3">
+            <div class = "col-md-4"></div>
+            <div class = "col-md-4">
+                <div id="change_org_card_button_div"></div>
+            </div>
+        </div>
+
+
+    </div>
+
+    <div class="card mt-5">
+        <h2 class="text-center mt-3"> Позиции
+
+        </h2>
+        <div class="row mt-2">
+            <div class="col-md-1"></div>
+            <div class="col-md-3 col-xs-12 mb-3 text-center">
+                <h6 class="my-0 mr-md-auto font-weight-normal"><b>Количество строк в накладной (1600 max)</b>
+                </h6>
+
+
+                <input type="text" name="pos_count" class="form-control mt-1"
+                       value="{%if pos_count %}{{pos_count}}{%else%}0{%endif%}" disabled>
+            </div>
+            <div class="col-md-4 col-xs-12 mb-3 text-center">
+                <h6 class="my-0 mr-md-auto font-weight-normal"><b>Общее количество по накладной</b>
+                </h6>
+
+
+                <input type="text" name="orders_pos_count_additional" class="form-control mt-1"
+                       value="{%if orders_pos_count %}{{orders_pos_count}}{%else%}0{%endif%}" disabled>
+            </div>
+            <div class="col-md-3 col-xs-12 mb-3 text-center">
+                <h6 class="my-0 mr-md-auto font-weight-normal"><b>Сумма по накладной</b>
+                </h6>
+
+
+                <input type="text" name="orders_pos_count_additional" class="form-control mt-1"
+                       value="{%if total_price %}{{total_price}}{%else%}Не указано{%endif%}" disabled>
+            </div>
+
+
+        </div>
+
+
+    {% block content %}
+    {% endblock %}
+
+    {% include 'helpers/modal_questions.html' %}
+
+    <div class="mt-5"></div>
+<script>
+document.addEventListener("DOMContentLoaded", function(event){
+edit_copied_full_order(); sorting_focus();})
+// window.onload = edit_copied_full_order(); sorting_focus();
+
+document.getElementById("company_idn").addEventListener("keypress", function (evt) {
+	    if (evt.which < 48 || evt.which > 57)
+	    {
+	        evt.preventDefault();
+	    }
+	});
+var c_idn = document.getElementById('company_idn'),
+	cleanCID;
+
+	cleanCID= function(e) {
+	e.preventDefault();
+	var pastedText = '';
+	if (window.clipboardData && window.clipboardData.getData) { // IE
+	pastedText = window.clipboardData.getData('Text');
+	} else if (e.clipboardData && e.clipboardData.getData) {
+	pastedText = e.clipboardData.getData('text/plain');
+	}
+	{#this.value = pastedText.replace(/\D/g, '');#}
+    this.value = '';
+	};
+
+	c_idn.onpaste = cleanCID;
+
+function perform_process(){
+     var user_comment = document.getElementById("order_comment_after").value
+    document.getElementById("order_comment").setAttribute("value", user_comment);
+
+    document.getElementById('process_modal_footer').innerHTML=`<div class="col text-center"><b>Производится обработка</b><br>
+      <div class="spinner-border text-warning" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>`;
+
+    setTimeout(() => {document.getElementById('form_process').submit()}, 500);
+
+}
+
+function check_blank_start (){
+    var company_name = document.getElementById("company_name");
+
+    if (company_name.value.startsWith(' ')){
+        company_name.value='';
+        alert("Наименование компании не может начинаться с пробела!");
+    }
+}
+
+function edit_copied_full_order(){
+    let copy_order_edit_org = document.getElementById('copy_order_edit_org').value;
+    if (copy_order_edit_org === "edit_org_card"){
+        $('#editOrgCardCopyOrderModal').modal('show');
+    }
+}
+
+function idn_entered_not_digit(message_title, message){
+    var data_idn_insert_title_error = document.getElementById('data_idn_insert_title_error')
+    var data_idn_insert_error = document.getElementById('data_idn_insert_error');
+    var data_idn_insert_btn_error = document.getElementById('data_idn_insert_btn_error');
+    var js_error_link = `javascript:change_org_data_error_by_idn()`;
+    data_idn_insert_title_error.innerHTML = message_title;
+    data_idn_insert_error.innerHTML = message;
+
+    data_idn_insert_btn_error.setAttribute('onclick', js_error_link);
+
+
+    document.getElementById('company_idn').value = '';
+    $('#getIdnDataErrorModal').modal('show');
+}
+
+function check_idn_correct(){
+    var idn_text = document.getElementById('company_idn').value;
+    if (idn_text.match(/^[0-9]+$/) === null) {
+        {#document.getElementById('company_idn').value = '';#}
+        {#alert(`Введите  корректный ИНН из цифр, ${idn_text} - некорреткный ИНН`);#}
+        var message_title = 'Пользователь ввел некорректный ИНН содержащий не только цифры!'
+        var message = `Введите  корректный ИНН из цифр, <br> -  <b>${idn_text}</b> - некорреткный ИНН`
+        idn_entered_not_digit(message_title, message);
+    }
+    else if(`${idn_text.length}`!== document.getElementById('company_idn').getAttribute('minlength')){
+        document.getElementById('company_idn').value = '';
+        var message_title = 'Пользователь ввел некорректный ИНН!'
+        var message = `Введенный ИНН состоит из ${idn_text.length} символов.<br>Введите  корректный ИНН для ИП 12 цифр, для ООО 10 цифр`;
+        idn_entered_not_digit(message_title, message);
+
+    }
+
+}
+function check_company_type_val(length_val, c_type){
+    document.getElementById('company_idn').setAttribute("minlength", length_val)
+    document.getElementById('company_idn').setAttribute("maxlength", length_val)
+    document.getElementById("company_idn").value = '';
+    set_c_type_radio(c_type)
+    document.getElementById('company_type').value = c_type
+    document.getElementById('company_type_s').value = c_type
+}
+
+function set_c_type_radio(c_type){
+     if (c_type === "ИП"){
+        document.getElementById("company_type_IP").checked = true;
+        document.getElementById("company_type_OOO").checked = false;
+        document.getElementById("company_type_AO").checked = false;
+
+    }
+    else if (c_type === "ООО"){
+        document.getElementById("company_type_IP").checked = false;
+        document.getElementById("company_type_OOO").checked = true;
+        document.getElementById("company_type_AO").checked = false;
+    }
+    else{
+        document.getElementById("company_type_IP").checked = false;
+        document.getElementById("company_type_OOO").checked = false;
+        document.getElementById("company_type_AO").checked = true;
+    }
+}
+
+async function get_idn_info(url_link, error_link){
+
+    var idn_text = document.getElementById('company_idn').value;
+    if (idn_text.match(/^[0-9]+$/) === null){
+            var message_title = 'Пользователь ввел некорректный ИНН содержащий не только цифры!';
+            var message = `Введите  корректный ИНН из цифр, <br> -  <b>${idn_text}</b> - некорреткный ИНН`;
+            idn_entered_not_digit(message_title, message);
+            }
+    else if (idn_text.length.toString() === document.getElementById('company_idn').getAttribute("minlength")) {
+        if (idn_text.match(/^[0-9]+$/) === null) {
+            var message_title = 'Пользователь ввел некорректный ИНН содержащий не только цифры!';
+            var message = `Введите  корректный ИНН из цифр, <br> -  <b>${idn_text}</b> - некорреткный ИНН`;
+            idn_entered_not_digit(message_title, message);
+        } else {
+            var res_link = url_link + idn_text
+            var data = await fetchAsync(res_link);
+
+            var data_list = data.split(';');
+            if (data_list[0] === '5') {
+                var type = data_list[1];
+                if (type.endsWith("АО")){
+                    type = "АО"
+                }
+                var name = data_list[2];
+                var data_idn_insert = document.getElementById('data_idn_insert')
+                var data_idn_insert_btn = document.getElementById('data_idn_insert_btn')
+                data_idn_insert.innerHTML = `<b>Тип организации</b>: ${data_list[1]}<br>
+                                            <b>Наименование</b>: ${data_list[2]}<br>
+                                            <b>ИНН</b>: ${data_list[3]}<br>
+                                            <b>ОКПО</b>: ${data_list[4]}<br>
+                                            <b>ОКАТО</b>: ${data_list[5]}<br>
+                                            <b>ОКТМО</b>: ${data_list[6]}<br>
+                                            <b>ОКВЭД</b>: ${data_list[7]}<br>`
+                set_c_type_radio(type)
+                var js_link = `javascript:change_org_data_by_idn('${type}', '${name}')`;
+                data_idn_insert_btn.setAttribute('onclick', js_link);
+                $('#getIdnDataModal').modal('show');
+            } else if (data_list[0] === '0') {
+                window.location.href = error_link + 'error_0';
+            } else if (data_list[0] === '1') {
+                var data_idn_insert_title_error = document.getElementById('data_idn_insert_title_error')
+                var data_idn_insert_error = document.getElementById('data_idn_insert_error')
+                var data_idn_insert_btn_error = document.getElementById('data_idn_insert_btn_error')
+                var js_error_1_link = `javascript:change_org_data_error_by_idn()`;
+                document.getElementById('company_idn').value = '';
+
+                data_idn_insert_title_error.innerHTML = 'По введенному ИНН данные не получены!'
+                data_idn_insert_error.innerHTML = `Произошла ошибка соединения с провайдером!`
+                data_idn_insert_btn_error.setAttribute('onclick', js_error_1_link);
+                $('#getIdnDataErrorModal').modal('show');
+            } else if (data_list[0] === '2') {
+                var data_idn_insert_title_error = document.getElementById('data_idn_insert_title_error')
+                var data_idn_insert_error = document.getElementById('data_idn_insert_error')
+                var data_idn_insert_btn_error = document.getElementById('data_idn_insert_btn_error')
+                var js_error_2_link = `javascript:change_org_data_error_by_idn()`;
+                document.getElementById('company_idn').value = '';
+
+                data_idn_insert_title_error.innerHTML = 'По введенному ИНН данные не получены!'
+                data_idn_insert_error.innerHTML = `Такого ИНН нет в базе!`
+                data_idn_insert_btn_error.setAttribute('onclick', js_error_2_link);
+                $('#getIdnDataErrorModal').modal('show');
+            }
+        }
+    }
+}
+
+function change_org_data_by_idn(type, name){
+    document.getElementById('company_type').value = type;
+    document.getElementById('company_name').value = name;
+    set_company_idn_digits();
+
+}
+
+function change_org_data_error_by_idn(){
+
+    document.getElementById('company_type').disabled= false;
+    document.getElementById('company_name').readOnly = false;
+    document.getElementById('company_name').disabled = false;
+    document.getElementById('company_idn').removeAttribute('onkeyup');
+    document.getElementById('company_idn').setAttribute('onchange', 'javascript:check_idn_correct()');
+    document.getElementById('company_name').setAttribute('placeholder', 'Для ИП введите ФИО')
+    set_company_idn_digits();
+
+
+}
+
+async function fetchAsync (url) {
+  let response = await fetch(url);
+
+  return response.text();
+}
+
+
+function set_company_idn_digits(){
+    document.getElementById('company_type_s').value = document.getElementById("company_type").value;
+    if (document.getElementById("company_type").value === "ИП"){
+        document.getElementById("company_idn").setAttribute('maxlength', '12')
+        document.getElementById("company_idn").setAttribute('minlength', '12')
+        check_idn_correct();
+
+    }
+    else{
+        document.getElementById("company_idn").setAttribute('maxlength', '10')
+        document.getElementById("company_idn").setAttribute('minlength', '10')
+        document.getElementById("company_idn").value=document.getElementById("company_idn").value.slice(0,10)
+    }
+}
+
+function processEdoType(){
+    var edo = document.getElementById('edo_id');
+    if (document.getElementsByName("edo_type")[0].value === "ЭДО-ЛАЙТ") {
+        edo.setAttribute("type", "hidden");
+
+        edo.setAttribute("value", "");
+
+    }
+    else {
+        edo.setAttribute("type", "name");
+        edo.disabled=false;
+
+        edo.setAttribute("value", "");
+        edo.setAttribute("minlength", "8");
+        edo.setAttribute("placeholder", "Введите ID");
+        $('#edoModal').modal('show');
+    }
+}
+
+function back_edo_light(){
+    var edo_id = document.getElementById('edo_id');
+    document.getElementsByName("edo_type")[0].value = "ЭДО-ЛАЙТ";
+    edo_id.setAttribute("type", "hidden");
+
+    edo_id.setAttribute("value", "");
+    $('#edoModal').modal('hide');
+    }
+
+function sort_order_list_common(url, sort_type, elem_id){
+    var sort_order = document.getElementById(elem_id).checked;
+    {#alert(`${url}?sort_type=${sort_type}&sort_order=${sort_order}`);#}
+    window.location.href = `${url}?page={{ page }}&sort_type=${sort_type}&sort_order=${sort_order}&page_type=preprocess_order  `;
+
+}
+
+function sorting_focus(){
+
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const focus_sort = urlParams.get('sort_type');
+    const process_flag = urlParams.get('page_type');
+    if (process_flag === 'preprocess_order'){
+             location.href="#orders_table";
+
+    }
+}
+
+function copy_order_with_sort(url){
+    loadingCircle();
+    var sort_type_order = document.getElementById('sort_type_order').value;
+    {#alert(`${url.replace('%3E', '')}${sort_type_order}`);#}
+    var sort_type_list = sort_type_order.split(';')
+    var sort_type = sort_type_list[0];
+    var sort_order = sort_type_list[1];
+    window.location.href = `${url}?page={{ page  }}&sort_type=${sort_type}&sort_order=${sort_order}`;
+}
+
+function check_rd_docs(){
+    if (document.getElementById("rd_type").value.length > 0 || document.getElementById("rd_name").value.length > 0 || document.getElementById("rd_date").value.length > 0){
+
+        if (document.getElementById("rd_type").value.length > 0 && document.getElementById("rd_name").value.length > 0 && document.getElementById("rd_date").value.length > 0){
+
+            return true
+        }
+        else{
+            alert("Должны быть заполнены все поля формы разрешительной документации, либо все должны быть пусты!");
+            return false
+        }
+    }
+    else{
+        return true
+    }
+}
+
+async function perform_order_check(url_link){
+    document.getElementById('process_modal_footer').innerHTML=`<div class="col"><b>Производится обработка</b><br><div class="spinner-border text-warning" role="status"><span class="sr-only" style="color:#f0ad4e">Loading...</span></div></div>`;
+    var data = await fetchAsync(url_link);
+
+        var data_list = data.split(';');
+        if (data_list[0] !== "1"){
+
+            perform_process();
+        }
+        else{
+            document.getElementById('process_modal_footer').innerHTML = `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Нет</button>{% if o_id %}<button type="button" class="btn btn-outline-warning" onclick="location.href='{{ url_for(category_process_name + '.preload', o_id=o_id, stage=order_stages.CREATING) }}'">Предпросмотр заказа</button><button type="button" class="btn btn-warning" id="btn_process" onclick="perform_process();">Все-равно оформить накладную!</button>{% endif %}`;
+            document.getElementById("data_order_check_insert").innerHTML = `<span style="color:red"><b>${data_list[1]}</b></span><br>`;
+
+        }
+}
+
+
+</script>
+{% endblock %}

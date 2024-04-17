@@ -1,0 +1,82 @@
+
+<div class="container mt-5 faded" id="fill_block">
+    {% if not agent_info.is_at2 %}
+        <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-3">
+            <div class="breadcrumbs">
+                <span style="cursor:pointer"><u>Пополнение счета</u></span>
+            </div>
+        </div>
+
+        {% if cur_sa %}
+            <form method="POST" action="{{ url_for('user_cp.pa_refill', u_id=u_id) }}"
+                  onsubmit="return check_pa_refill_form();" id="pa_refill_form">
+                <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                <div class="row">
+
+                    {% if cur_sa.sa_type == 'qr_code' %}
+                        <div class="col-md-3" title="Отсканируйте qr код для пополнения">
+                            <button type="button" class="btn btn-default btn-circle btn-accent mt-1 mb-3">1</button>
+                            <img src="{{url_for('static', filename='main_v2/images/qr_demo.png')}}" class="rounded">
+                        </div>
+                    {% else %}
+                        <div class="col-md-3" title="Отсканируйте qr код для пополнения">
+                            <button type="button" class="btn btn-default btn-circle btn-accent mt-1 mb-3">1</button>
+                            <div class=" mt-1">
+                                {{ cur_sa.sa_reqs }}
+                            </div>
+                        </div>
+                    {% endif %}
+                    <div class="col-md-5" title="Прикрепите чек о пополнении">
+                        <div class="btn btn-default btn-circle btn-accent my-1">2</div>
+
+                        <div class="text-right form-group mt-3" title="Прикрепить скрин или фото чека">
+                            <label class="input-file">
+                              <input type="file" id="bill_file" name="bill_file"
+                                               accept=".png" required>
+                               <span class="input-file-btn btn btn-secondary ">
+                                   Прикрепить чек
+                                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-paperclip" viewBox="0 0 16 16">
+                                      <path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0V3z"/>
+                                   </svg>
+                               </span>
+                              <span class="input-file-text" id="bill_file_posttext">Не выбран</span>
+                            </label>
+
+                        </div>
+                        <div class="input-group my-3" title="Введите сумму пополнения">
+
+                           <input type="number" id="bill_summ" name="bill_summ" class="form-control" placeholder="Введите сумму"
+                                               min="100" max="1000000" required>
+                          <div class="input-group-append">
+                            <span class="input-group-text" id="bill-addon">руб.</span>
+                          </div>
+                        </div>
+                        <div class="small text-muted mb-3">От 100 руб.</div>
+                        <div class="input-group mb-3" title="Введите промокод, если он у вас есть">
+                          <div class="input-group-prepend">
+                            <span class="input-group-text btn-accent" id="promo-addon">Промокод</span>
+                          </div>
+                          <input type="text" id="promo_code" name="promo_code"  class="form-control" placeholder="Введите промокод (необязательно)"
+                                               minlength="3" maxlength="10">
+
+                        </div>
+
+                    </div>
+                    <div class="col-md-4" title="Нажмите кнопку отправить">
+                        <div class="btn btn-default btn-circle btn-accent my-1">3</div>
+                        <button type="button" onclick="if(check_pa_refill_form()){bck_pa_refill('{{url_for('user_cp.pa_refill', u_id=u_id)}}', '{{url_for('user_cp.bck_update_transactions', u_id=u_id)}}')}" class="btn btn-accent mt-md-5">Отправить запрос на пополнение средств</button>
+
+                    </div>
+                </div>
+            </form>
+        {% else %}
+            <div class="mt-1">Администратор не добавил ни одного аккаунта</div>
+        {% endif %}
+    {% else %}
+     Ваш агент <span class="badge bg-warning text-black">{{ agent_info.login_name }}</span> работает по типу <u>единый счет</u>. Списание происходят со счета агента и его клиенты не могут пополнять личные счета.
+    {% endif %}
+
+    {% include 'user_control/wo_account.html' %}
+</div>
+
+

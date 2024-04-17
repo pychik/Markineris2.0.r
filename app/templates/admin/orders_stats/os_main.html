@@ -1,0 +1,34 @@
+{% extends "main/base_v2.html" %}
+
+{% block admin_panel %}
+<div class="container">
+    <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
+        <div class="breadcrumbs">
+            <a href="{{url_for('admin_control.index')}}">Управление пользователями </a>
+            /
+            <span>Контроль статистики заказов</span>
+
+        </div>
+    </div>
+
+
+    <div class="row">
+
+        <div class="col-md-12">
+
+
+            <div id="orders_stats_table">
+                {% include 'admin/orders_stats/os_table.html' %}
+            </div>
+        </label>
+        </div>
+    </div>
+
+
+
+
+
+
+</div>
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc.js')}}"></script>
+{% endblock %}

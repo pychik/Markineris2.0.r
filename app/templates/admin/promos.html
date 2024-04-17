@@ -1,0 +1,51 @@
+
+<div class="container mt-3 faded" id="promos_block" style="display:none">
+    <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-3">
+        <div class="breadcrumbs">
+            <span style="cursor:pointer"><u>Настройка промо кодов</u></span>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-md-3"></div>
+        <div class="col-md-6 border border-5 p-3">
+            <h4>Добавить новый промокод</h4>
+            <form method="POST" action="{{url_for('admin_control.su_add_promo')}}" enctype="multipart/form-data" id="promo_form">
+                <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                <div class="mt-3" title="Введите настройки промо кода">
+                    <div class="input-group mb-3" title="Введите промокод">
+                      <div class="input-group-prepend">
+                        <span class="input-group-text btn-accent" id="promo-addon">Промокод</span>
+                      </div>
+                      <input type="text" id="promo_code" name="promo_code"  class="form-control" placeholder="Введите промокод"
+                                           minlength="3" maxlength="10" required>
+
+                    </div>
+                    <div class="input-group my-3" title="Введите сумму прибавки для промокода">
+                       <input type="number" id="promo_value" name="promo_value" class="form-control" placeholder="Введите сумму прибавки"
+                                           step="10" min="10" max="1000000" required>
+                       <div class="input-group-append">
+                         <span class="input-group-text" id="bill-addon">руб.</span>
+                       </div>
+                    </div>
+
+                    <button type="button" class="btn btn-accent mt-md-1"
+                            onclick="if(check_promo_form()){bck_add_promo('{{url_for('admin_control.su_add_promo')}}', '{{url_for('admin_control.su_bck_promo')}}')}">
+                        Добавить
+                    </button>
+
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="promos_table" class="mb-3">
+        {% include 'admin/promos_table.html' %}
+    </div>
+
+<script>
+
+</script>
+
+
+</div>

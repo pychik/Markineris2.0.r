@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block org_info %}
+
+
+
+
+<div class="row">
+            <div class="col-md-3" ></div>
+            <div class="col-md-1 col-xs-12 mb-3 text-right">
+                    <h5 class="my-0 mr-md-auto font-weight-normal">ИНН</h5>
+            </div>
+            <div class="col-md-4 col-xs-12 mb-3 text-justify">
+            {%if company_idn%}
+                <input type="text" id="company_idn" name="company_idn" class="form-control"
+                       autocomplete="on"
+                       placeholder="Введите ИНН"
+                       value="{{company_idn}}"  readonly="true" required>
+
+            {% else %}
+                <input type="text" id="company_idn" name="company_idn" class="form-control"
+                       autocomplete="on"
+                       placeholder="Введите ИНН"
+                       required>
+            {%endif%}
+            </div>
+</div>
+
+        <div class="row mt-2 mb-3" >
+            <div class="col-md-2"></div>
+            <div class="col-md-2 col-xs-12 text-right" style="background-color: #f0f3f3">
+                <h5 class="my-0 mr-md-auto font-weight-normal">Тип</h5>
+            </div>
+            <div class="col-md-4 col-xs-12 text-justify ">
+                {% if company_type %}
+
+                    <input type="text" class="form-control" id="company_type" name="company_type" value="{{ company_type }}" readonly="true">
+                {% else %}
+
+                    <input type="text"class="form-control"  id="company_type" name="company_type" readonly="true">
+
+                {% endif %}
+
+            </div>
+        </div>
+        <div class="row mt-2 mb-3">
+            <div class="col-md-2" ></div>
+            <div class="col-md-2 col-xs-12 text-right" style="background-color: #f0f3f3">
+                <h5 class="my-0 mr-md-auto font-weight-normal">Наименование</h5>
+            </div>
+            <div class="col-md-4 col-xs-12 text-justify ">
+                {%if company_name%}
+                    <input type="text" id="company_name" name="company_name" class="form-control"
+                           placeholder=""
+                           value="{{company_name}}" readonly="true"
+                           minlength="3"  required>
+
+                {% else %}
+                    <input type="text" id="company_name" name="company_name" class="form-control"
+                           placeholder=""
+                           readonly="true"
+                           minlength="3"  required>
+                {%endif%}
+            </div>
+        </div>
+
+
+
+<script>
+    // Замените на свой API-ключ
+var token = "9f718259d64da516b18a332936844f88234afb72";
+
+$("#company_idn").change(function(e) {
+  var promise = suggest(e.target.value);
+  promise
+  	.done(function(response) {
+      showParty(response.suggestions)
+      console.log(response);
+    })
+    .fail(function(jqXHR, textStatus, errorThrown) {
+      console.log(textStatus);
+      console.log(errorThrown);
+    });
+});
+
+function suggest(query) {
+  var serviceUrl = "https://suggestions.dadata.ru/suggestions/api/4_1/rs/findById/party";
+  var request = {
+    "query": query
+  };
+  var params = {
+    type: "POST",
+    contentType: "application/json",
+    headers: {
+      "Authorization": "Token " + token
+    },
+    data: JSON.stringify(request)
+  }
+
+	return $.ajax(serviceUrl, params);
+}
+
+function clearParty() {
+  $("#company_name").val("");
+  $("#company_type").val("");
+}
+
+function showParty(suggestions) {
+  clearParty();
+  if (suggestions.length === 0) return;
+  var party = suggestions[0].data;
+  $("#company_name").val(party.name.short_with_opf);
+  var c_type = "";
+  if(party.type=="LEGAL"){ c_type= "ООО"}else{c_type = "ИП"};
+  $("#company_type").val(c_type);
+  showManagement(party);
+}
+
+function showManagement(party) {
+  if (party.management) {
+    $("#management_post").text(party.management.post);
+    $("#management_name").val(party.management.name);
+  } else {
+    $("#management_post").text("");
+    $("#management_name").val("");
+  }
+}
+</script>
+
+{% endblock %}

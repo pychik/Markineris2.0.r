@@ -1,0 +1,66 @@
+<!-- templates/login.html -->
+
+{% extends "main/base_v2.html" %}
+
+{% block preload %}
+<div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
+    <div class="breadcrumbs">
+       <a href="{{url_for('main.enter')}}" class="">Категории </a>
+        /
+        {% if stage == order_stages.CREATING %}
+            <a href="{{ url_for(category_process_name + '.index', o_id=o_id) }}">{{category.capitalize()}} активный заказ</a>
+            /
+        {% elif  stage >= order_stages.TELEGRAM_PROCESSED%}
+            <a href="{{ url_for('orders_archive.index', category=category)}}">История заказов</a>/
+        {% endif %}
+
+        <span>Предпросмотр</span>
+    </div>
+
+</div>
+<div class="mt-1 col-12 text-center">
+    {%if start_list%}
+        <div class="mb-4" id="orders_table">
+            <h3>
+                Предпросмотр
+
+            </h3>
+        </div>
+        <div class="col" align="left">
+        {{ pagination.links }}
+            <table class="table mt-3 table-result tablesaw-stack">
+              <thead class="text-dark">
+                <tr>
+                  <th scope="col">#</th>
+                  {% for el in start_list %}
+                      <th scope="col" style="font-size:14px">{{ el }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+
+
+              {% if order_list %}
+                <tbody>
+                  {% for list_el in order_list %}
+                    <tr>
+                      <th scope="row">{{offset + loop.index}}</th>
+                      {% for el in list_el %}
+                        <td>
+                            {{ el }}
+                        </td>
+                      {% endfor %}
+                    </tr>
+                  {% endfor %}
+                {% include 'helpers/order_pos_count_box.html' %}
+                </tbody>
+              {% endif %}
+            </table>
+        {{ pagination.links }}
+        </div>
+
+
+    {%endif%}
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "main/base_v2.html" %}
+
+{% block uc_panel %}
+
+<div class="container">
+    <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
+        <div class="breadcrumbs">
+            <a href="{{url_for('main.enter')}}" class="">Главная </a>
+            /
+            <span>Смена пароля</span>
+        </div>
+    </div>
+<!--    <div class="row">-->
+<!--        <div class="col-md-2"></div>-->
+<!--        <div class="col-md-4">-->
+<!--            <div class="mb-3 mt-3 text-center" title="Лицевой счет">-->
+<!--                <a href="{{url_for('user_cp.personal_account', u_id = u_id)}}" >-->
+<!--                    <button type="button" class="btn btn-outline-secondary btn-block">-->
+<!--                        <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="currentColor" class="bi bi-credit-card" viewBox="0 0 16 16">-->
+<!--                            <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm2-1a1 1 0 0 0-1 1v1h14V4a1 1 0 0 0-1-1H2zm13 4H1v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V7z"></path>-->
+<!--                            <path d="M2 10a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-1z"></path>-->
+<!--                        </svg>-->
+<!--                        Лицевой счет-->
+<!--                      <span class="visually-hidden">Button</span>-->
+<!--                    </button>-->
+
+<!--                </a>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--        <div class="col-md-4">-->
+<!--            <div class="mb-3 mt-3 text-center" title="Редактирование пароля">-->
+<!--                <a data-bs-toggle="collapse" href="#EditPassBlock" role="button" aria-expanded="false" aria-controls="EditPassBlock">-->
+<!--                    <button type="button" class="btn btn-outline-secondary btn-block">-->
+<!--                      <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="currentColor" class="bi bi-person-gear" viewBox="0 0 16 16">-->
+<!--                          <path d="M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM8 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm.256 7a4.474 4.474 0 0 1-.229-1.004H3c.001-.246.154-.986.832-1.664C4.484 10.68 5.711 10 8 10c.26 0 .507.009.74.025.226-.341.496-.65.804-.918C9.077 9.038 8.564 9 8 9c-5 0-6 3-6 4s1 1 1 1h5.256Zm3.63-4.54c.18-.613 1.048-.613 1.229 0l.043.148a.64.64 0 0 0 .921.382l.136-.074c.561-.306 1.175.308.87.869l-.075.136a.64.64 0 0 0 .382.92l.149.045c.612.18.612 1.048 0 1.229l-.15.043a.64.64 0 0 0-.38.921l.074.136c.305.561-.309 1.175-.87.87l-.136-.075a.64.64 0 0 0-.92.382l-.045.149c-.18.612-1.048.612-1.229 0l-.043-.15a.64.64 0 0 0-.921-.38l-.136.074c-.561.305-1.175-.309-.87-.87l.075-.136a.64.64 0 0 0-.382-.92l-.148-.045c-.613-.18-.613-1.048 0-1.229l.148-.043a.64.64 0 0 0 .382-.921l-.074-.136c-.306-.561.308-1.175.869-.87l.136.075a.64.64 0 0 0 .92-.382l.045-.148ZM14 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z"></path>-->
+<!--                        </svg>-->
+<!--                      Настроить пароль-->
+<!--                    </button>-->
+
+<!--                </a>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+    <div class="row" id="EditPassBlock" >
+        <div class="col-md-3"></div>
+        <div class="col-md-6 col-xs-12 text-center mb-3">
+
+            <form method="post" onsubmit ="return verifyUCPassword()" action="{{ url_for('user_cp.change_user_password', u_id=user_info.id)}}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <h3 class="h3 mb-3 font-weight-normal">Форма редактирования пароля пользователя</h3>
+             <label for="previous_password" class="sr-only mb-3">Старый пароль</label>
+
+            <div class="input-group mt-3">
+              <input type="password" class="form-control" aria-describedby="eye-toggle-pp"
+                     id="previous_password" name="previous_password"  autocomplete="off"
+                     placeholder="Введите ваш старый пароль" required autofocus>
+                <span class="input-group-text bg-white" id="eye-toggle-pp" onclick="change_input_view('previous_password', 'eye-toggle-pp')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+                      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+                      <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
+                    </svg>
+                </span>
+            </div>
+            <span id="message_prev_password" style="color:#e75959"> </span>
+            <p id="passHelp" class="form-text small text-muted">Ввод вашего старого пароля нужен в целях безопасности</p>
+            <label for="new_password" class="sr-only">Новый пароль</label>
+
+            <div class="input-group mt-3">
+              <input type="password" class="form-control" aria-describedby="eye-toggle"
+                     id="new_password" name="new_password" placeholder="Введите новый пароль" required>
+                <span class="input-group-text bg-white" id="eye-toggle" onclick="change_input_view('new_password', 'eye-toggle')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+                      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+                      <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
+                    </svg>
+                </span>
+            </div>
+
+            <div class="input-group mt-3">
+              <input type="password" class="form-control" aria-describedby="eye-toggle-check"
+                     id="password_check_field" name="password_check_field" placeholder="Введите повторно новый пароль" required>
+                <span class="input-group-text bg-white" id="eye-toggle-check" onclick="change_input_view('password_check_field', 'eye-toggle-check')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+                      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+                      <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
+                    </svg>
+                </span>
+            </div>
+            <div id="message_new_password" style="color:#e75959" class="mb-2"> </div>
+
+            <button class="btn btn-lg btn-accent btn-block" type="submit">Сменить пароль</button>
+
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+
+
+
+
+
+</script>
+{% endblock %}

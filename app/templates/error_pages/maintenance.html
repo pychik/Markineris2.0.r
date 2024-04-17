@@ -1,0 +1,37 @@
+{% extends 'error_pages/errors_base_template.html' %}
+
+{% block error_message %}
+
+<div class="modal fade" id="Maintenance_messageModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" role="dialog" aria-labelledby="Maintenance_messageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-secondary" style="background-color:#ffe61a">
+        <h5 class="modal-title" >Происходит ежедневный перезапуск сервера!</h5>
+        <a href="{{ url_for('main.enter') }}">
+          <button type="button" class="btn-close" aria-label="Close"></button></a>
+      </div>
+      <div class="modal-body text-secondary">
+        <b>Сервер перезапускается каждый день в 00:00 по Московскому времени.</b>Попробуйте зайти позже.
+        <br><br><br><b>Нажмите Ок</b>, чтобы попробовать снова.
+
+      </div>
+      <div class="modal-footer">
+        <a href="{{ url_for('main.enter') }}">
+            <button type="button"  class="btn text-secondary" style="background-color:#ffe61a">Ок</button>
+        </a>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+      window.onload = function () {
+
+
+        $("#Maintenance_messageModal").modal('show');
+    };
+</script>
+
+{% endblock %}

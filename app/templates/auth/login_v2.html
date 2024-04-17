@@ -1,0 +1,60 @@
+<!-- templates/login.html -->
+
+{% extends "main/base_v2.html" %}
+
+{% block auth %}
+
+{{ ym_sign_up_goal | safe }}
+
+<div class="container mt-5">
+    <div class="front text-center d-flex flex-column justify-content-center align-items-center">
+        <h1 class="mb-5 fs-2">Добро пожаловать в наш сервис Маркировки</h1>
+        <div class="d-block d-md-none w-100 mb-5">
+            <div class="fs-4 mb-3">Вход</div>
+
+            <form method="POST" action="{{url_for('auth.login_post')}}" >
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="email" name="email" class="form-control " placeholder="Введите Email" required autofocus>
+
+                <input type="password" id="password-mobile" name="password" class="form-control mt-3" placeholder="Введите пароль"
+                    required>
+                <div class="mb-3 text-right d-flex flex-row-reverse">
+                    <span class="text-warning" id="eye-toggle-login-mobile" onclick="change_input_view('password-mobile', 'eye-toggle-login-mobile')">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+                          <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+                          <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
+                        </svg>
+                    </span>
+                </div>
+                <button class="btn  btn-block btn-accent w-100" type="submit">Войти</button>
+            </form>
+            <a href="{{url_for('user_cp.restore_page')}}" class="text-warning"
+                       style="text-decoration:none">
+                        Забыл пароль
+            </a>
+        </div>
+
+
+        <div class="box rounded-4">
+            <div class="box__icon d-flex justify-content-start mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 42 42" fill="none">
+                    <path d="M28.3583 22.2012C31.3315 19.9471 33.2575 16.3655 33.2575 12.339C33.2575 5.53535 27.7588 0 20.9997 0C14.2412 0 8.74237 5.53534 8.74237 12.3391C8.74237 16.3655 10.668 19.9471 13.6412 22.2012C5.681 25.2089 0 32.9486 0 42H3.7929C3.7929 32.4486 11.5121 24.6784 21.0003 24.6784C30.4879 24.6784 38.2071 32.4486 38.2071 42H42C41.9995 32.9487 36.319 25.2089 28.3583 22.2011V22.2012ZM12.5354 12.339C12.5354 7.64031 16.3322 3.81818 20.9997 3.81818C25.6673 3.81818 29.4642 7.64031 29.4642 12.3391C29.4642 17.0379 25.6673 20.8603 20.9997 20.8603C16.3322 20.8603 12.5354 17.0376 12.5354 12.339Z" fill="#F2F2F2"/>
+                  </svg>
+            </div>
+
+            <div class="box__text text-start mb-3">
+                Еще нет аккаунта? <br>
+                Пройдите регистрацию
+            </div>
+            <div class="box__btn">
+                <a href="{{url_for('auth.sign_up')}}" class="btn   btn-block btn-light ">Зарегистрироваться</a>
+            </div>
+<!--            <div class="box__img">-->
+<!--                <img src="{{url_for('static', filename='main_v2/images/image 4.png')}}" alt="Зарегистрироваться" class="img-fluid">-->
+<!--            </div>-->
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

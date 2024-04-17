@@ -1,0 +1,21 @@
+{% extends "upload/category_upper_part_upload.html" %}
+{% block content %}
+
+        <div class="col text-center">
+            <button class="btn btn-lg btn-warning mt-5 mb-4" id="btn_upload_1" type="submit" onclick="upload_type_process('standart')">
+                <font size="2">+Загрузить Excel накладную. <b>(Одежда, по каждому размеру)</b></font>
+            </button>
+        </div>
+    </div>
+
+</form><!-- started in common categoy upper block-->
+
+
+<script>
+
+function reload_page(){
+     window.location.reload();
+}
+
+</script>
+{% endblock %}

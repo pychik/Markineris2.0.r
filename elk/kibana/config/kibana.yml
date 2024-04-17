@@ -1,0 +1,34 @@
+server.name: kibana
+server.host: "0.0.0.0"
+server.port: ${KIBANA_PORT}
+
+elasticsearch.hosts: [ "${ELASTICSEARCH_HOST_PORT}" ]
+
+server.ssl.enabled: true
+server.ssl.certificate: /certs/kibana.crt
+server.ssl.key: /certs/kibana.key
+server.ssl.certificateAuthorities: [ "/certs/ca.crt" ]
+xpack.security.encryptionKey: C1tHnfrlfxSPxPlQ8BlgPB5qMNRtg5V5
+xpack.encryptedSavedObjects.encryptionKey: D12GTfrlfxSPxPlGRBlgPB5qM5GOPDV5
+xpack.reporting.encryptionKey: RSCueeHKzrqzOVTJhkjt17EMnzM96LlN
+
+elasticsearch.serviceAccountToken: "${KIBANA_SERVICE_ACCOUNT_TOKEN}"
+elasticsearch.ssl.certificateAuthorities: [ "/certs/ca.crt" ]
+
+xpack.fleet.packages:
+- name: apm
+  version: latest
+xpack.fleet.agentPolicies:
+- name: Agent policy 1
+  id: agent-policy-1
+  namespace: default
+  monitoring_enabled:
+  - logs
+  - metrics
+  package_policies:
+  - name: apm-1
+    id: default-apm
+    package:
+      name: apm
+
+elasticsearch.requestTimeout: 90000

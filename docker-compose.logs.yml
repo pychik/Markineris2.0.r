@@ -1,0 +1,29 @@
+version: '3.8'
+
+networks:
+  elk_shared_network:
+    external: true
+
+volumes:
+  filebeat-data:
+
+services:
+  filebeat:
+    image: elastic/filebeat:${ELK_VERSION}
+    restart: always
+    command: -e --strict.perms=false
+    user: root
+    environment:
+      ELASTIC_USERNAME: ${ELASTIC_USERNAME}
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      KIBANA_HOST_PORT: ${KIBANA_HOST}:${KIBANA_PORT}
+      ELASTICSEARCH_HOST_PORT: https://${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}
+    volumes:
+      - ./elk/filebeat/filebeat.docker.logs.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - filebeat-data:/var/lib/filebeat/data
+      - /var/log/nginx/:/var/log/nginx/:ro
+      - /var/log/flask-app/:/var/log/flask-app/:ro
+    networks:
+      - elk_shared_network

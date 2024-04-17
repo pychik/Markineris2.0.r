@@ -1,0 +1,31 @@
+<div class="modal fade" id="News_messageModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" role="dialog" aria-labelledby="News_messageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header" style="background-color:#adfc92">
+        <h5 class="modal-title" >Внимание, новость!</h5>
+        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+          </button>
+      </div>
+      <div class="modal-body">
+          В понедельник, <b>07.08.2023, с 21:30 до 23:59 (по МСК)</b> включительно,
+          <span style="background-color:#adfc92"><br>будут проводиться технические работы </span>,<br> наши услуги будут недоступны.<br><br>
+          <b>Приносим извинения за неудобства.</b><br><br>
+
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" style="background-color:#adfc92" data-dismiss="modal">Ок</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+      window.onload = function () {
+
+
+        $("#News_messageModal").modal({backdrop: 'static'}, 'show');
+    };
+</script>

@@ -1,0 +1,73 @@
+<div style="min-width: 260px;max-width: 260px;" class="mr-2">
+        <div class="pr-3">
+          <h3><span class="badge badge-secondary">Отправлены фирме</span></h3>
+          {% for n in pool_orders %}
+
+              <div class="card mt-3 mb-3 border-d-3  border-dark">
+                <div class="card-header bg-secondary text-center text-white">
+                    <h5 class="card-text">
+                        <a data-toggle="collapse"
+                           href="#collapseOrder2_{{ loop.index }}" role="button"
+                           aria-expanded="false"
+                           class="btn btn-sm btn-outline-warning btn-block text-white">
+                        {% include 'crm/crma/order_category.html' %}
+                        </a>
+                    </h5>
+                    {% include 'crm/crma/order_payment.html' %}
+                    <h6 class="card-text" title="Время поступления заказа в систему">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lightning" viewBox="0 0 16 16">
+                          <path d="M5.52.359A.5.5 0 0 1 6 0h4a.5.5 0 0 1 .474.658L8.694 6H12.5a.5.5 0 0 1 .395.807l-7 9a.5.5 0 0 1-.873-.454L6.823 9.5H3.5a.5.5 0 0 1-.48-.641l2.5-8.5zM6.374 1 4.168 8.5H7.5a.5.5 0 0 1 .478.647L6.78 13.04 11.478 7H8a.5.5 0 0 1-.474-.658L9.306 1H6.374z"/>
+                        </svg>
+                        <b>{{ n.crm_created_at.strftime('%Y-%m-%d %H:%M:%S') }}</b>
+                    </h6>
+                </div>
+
+                <div class="card-body">
+                    <div class="collapse mb-1" id="collapseOrder2_{{ loop.index }}">
+                        {% include 'crm/crma/order_description.html' %}
+                    </div>
+                    <div class="mb-1">
+                        <form method="post" action="{{ url_for('crm_d.download_order', o_id=n.id) }}" title="Скачать таблицу заказа">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button class="btn btn-sm btn-info btn-block" type="submit">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                    class="bi bi-download" viewBox="0 0 16 16">
+                                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5
+                                        0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5
+                                        10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                                </svg>
+                                Скачать таблицу
+
+                            </button>
+                         </form>
+                    </div>
+
+                    <div class="mt-1">
+                        <button class="btn btn-sm btn-light btn-block" readonly>
+                            КС: <b>{{ n.row_count }}</b>    КМ: <b>{{ n.pos_count }}</b>
+                            {% if n.declar_doc%}РД <b>{{ n.declar_doc }}</b>{% endif %}
+                        </button>
+                    </div>
+                    {% if n.declar_doc%}
+                        <button class="btn btn-sm btn-warning btn-block mt-1" readonly>
+                            <b>РД позиции {{ n.declar_doc }} шт.</b>
+                        </button>
+                    {% endif %}
+                    {% include 'crm/special_alerts.html' %}
+                </div>
+
+              </div>
+
+
+
+          {% endfor %}
+        </div>
+</div>
+
+
+
+
+
+
+

@@ -1,0 +1,20 @@
+{% if rz_condition %}
+    <a href="https://t.me/ChestniyZnak" target="_blank" class="text-decoration-none" title="ПОЛНЫЙ КОМПЛЕКС УСЛУГ ПО РАБОТЕ С МАРКИРОВКОЙ «ЧЕСТНЫЙ ЗНАК» для производителей и селлеров маркетплейсов">
+        <img src="{{url_for('static',filename='main_v2/img/branding/ruzank.png')}}" width="237" height="242" alt="Telegram-канал Markineris"
+            class="img-fluid ">
+        <div class="bn__text">
+            <p class="text-light mt-3 ">Подпишись на наш телеграм!<br>
+                Будь в курсе всех новостей</p>
+        </div>
+    </a>
+
+{% else %}
+    <a href="https://t.me/markinerisss" target="_blank" class="text-decoration-none">
+        <img src="{{url_for('static',filename='main_v2/img/markineris.jpg')}}" width="237" height="242" alt="Telegram-канал Markineris"
+            class="img-fluid ">
+        <div class="bn__text">
+            <p class="text-light mt-3 ">Подпишись на наш телеграм!<br>
+                Будь в курсе всех новостей</p>
+        </div>
+    </a>
+{% endif %}
