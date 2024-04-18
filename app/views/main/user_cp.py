@@ -78,16 +78,17 @@ def bck_transaction_detail(u_id: int, t_id: int):
     return h_transaction_detail(u_id=u_id, t_id=t_id)
 
 
-@user_cp.route('pa_refill/<int:u_id>', methods=['POST'])
+@user_cp.route('pa_refill/<int:u_id>/<int:sa_id>', methods=['POST'])
 @login_required
 @user_activated
-def pa_refill(u_id: int):
+def pa_refill(u_id: int, sa_id: int):
     """
     personal account refill
     :param u_id:
+    :param sa_id:
     :return:
     """
-    return h_pa_refill(u_id=u_id)
+    return h_pa_refill(u_id=u_id, sa_id=sa_id)
 
 
 @user_cp.route('order_book_detail/<int:u_id>', methods=['GET'])

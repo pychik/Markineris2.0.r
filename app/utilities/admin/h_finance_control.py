@@ -290,6 +290,11 @@ def h_su_bck_change_sa_activity(sa_id: int) -> Response:
         message = settings.Messages.CHANGE_NE_SA_ACTIVITY
         return jsonify(dict(status=status, message=message))
     try:
+        # check if we got an account that is already in use with sa type
+        current_account_use = ServiceAccount.query.filter(ServiceAccount.sa_type == account.sa_type,
+                                                          ServiceAccount.current_use == True).first()
+        account.current_use = False if current_account_use else True
+
         account.is_active = not account.is_active
 
         db.session.commit()

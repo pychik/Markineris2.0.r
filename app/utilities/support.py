@@ -1231,8 +1231,46 @@ def helper_get_current_sa() -> ServiceAccount:
         cur_account = helper_isolated_session(query=f""" UPDATE public.service_accounts
                                          SET current_use=True
                                          WHERE id =(SELECT sa.id FROM public.service_accounts sa WHERE sa.sa_type=(SELECT sp.account_type FROM public.server_params sp ORDER BY ID LIMIT 1) AND sa.is_active=True
-                                         ORDER BY ID LIMIT 1 ) RETURNING *;""")
+                                         ORDER BY id ASC LIMIT 1 ) RETURNING *;""")
     return cur_account
+
+
+def h_choose_sa_id(cur_sa: ServiceAccount, cur_sa_ids_list: list[ServiceAccount.id]) -> int:
+    next_sa_list = list(filter(lambda x: x != cur_sa.id, cur_sa_ids_list))
+    if cur_sa.id == cur_sa_ids_list[-1]:
+        return next_sa_list[0]
+    else:
+        return list(filter(lambda x: x > cur_sa.id, next_sa_list))[0]
+
+
+def helper_process_sa(sa_id: int) -> bool:
+    try:
+        cur_accounts = [a for a in db.session.execute(text(f""" SELECT * from public.service_accounts sa
+                                                  WHERE sa.sa_type=(SELECT sp.account_type FROM public.server_params sp ORDER BY ID LIMIT 1)
+                                                    AND sa.is_active=True
+                                                  ORDER BY sa.id;""")).fetchall()]
+
+        if cur_accounts:
+            cur_accounts_ids = list(map(lambda x: x.id, cur_accounts))
+            if sa_id not in cur_accounts_ids:
+                logger.error('Странные запросы. Такого аккаунта нет')
+                return False
+            if len(cur_accounts) > 1:
+                current_processing_sa = list(filter(lambda x: x.current_use == True, cur_accounts))[0]
+                if current_processing_sa.summ_transfer > settings.ServiceAccounts.SUMM_LIMIT:
+                    choosed_next_sa_id = h_choose_sa_id(cur_sa=current_processing_sa, cur_sa_ids_list=cur_accounts_ids)
+
+                    db.session.execute(text(f"""UPDATE public.service_accounts SET current_use=False, summ_transfer=0 WHERE id = {sa_id};
+                                               UPDATE public.service_accounts SET current_use=True WHERE id = {choosed_next_sa_id}; """))
+                    db.session.commit()
+            return True
+
+        else:
+            return False
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Проверка счета сервиса и обновление не произведена возникла ошибка {e}")
+        return False
 
 
 def helper_check_promo(user: User, promo_code: str) -> tuple[bool, int, str]:
@@ -1277,7 +1315,7 @@ def helper_refill_transaction(amount: int, status: int, promo_info: str,
     query = f"""INSERT into public.user_transactions (type, status, amount, promo_info, user_id, sa_id, bill_path, created_at)
                 VALUES(True, {status}, {amount}, '{promo_info}', {user_id}, {sa_id}, '{bill_path}', '{created_at}');
                 UPDATE public.users SET pending_balance_rf=pending_balance_rf + {amount} WHERE public.users.id = {user_id};
-                UPDATE public.server_params SET pending_balance_rf=pending_balance_rf + {amount}
+                UPDATE public.server_params SET pending_balance_rf=pending_balance_rf + {amount};
             """
     try:
         db.session.execute(text(query))
@@ -1315,9 +1353,10 @@ def helper_agent_wo_transaction(amount: int, status: int, user_id: int, bill_pat
 def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: int, tr_type: int,
                                                 tr_status: int) -> tuple[bool, str]:
 
-    sp_query = ''
-    u_query = ''
-
+    sp_query = ''  # server params
+    u_query = ''  # user
+    sa_query = ''  # service accounts
+    sa_id = None
     # if tr_type is True- process client transaction refill pending
     # else for agent write off pending transactions, not process them for sp and pending balance
     match tr_status:
@@ -1336,6 +1375,14 @@ def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: in
                 u_query = f"""UPDATE public.users SET pending_balance_rf=
                       pending_balance_rf -  
                       {amount}, balance=balance + {amount} WHERE id={u_id};"""
+
+                sa_id_request = UserTransaction.query.with_entities(UserTransaction.sa_id).filter(
+                    UserTransaction.id == t_id, UserTransaction.sa_id.isnot(None)).first()
+                if not sa_id_request:
+                    return False, 'Возникло исключение- счета на который нужно зарегистрировать пополнение не существует. обратитесь к администратору'
+                sa_id = sa_id_request.sa_id
+                sa_query = f"""UPDATE public.service_accounts SET summ_transfer=summ_transfer + {amount} WHERE id = {sa_id};"""
+
             else:
 
                 # check if agent balance is ok
@@ -1346,15 +1393,19 @@ def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: in
 
     if sp_query and u_query:
         try:
-            db.session.execute(text(f"{sp_query}{u_query}{t_query}"))
+            db.session.execute(text(f"{sp_query}{u_query}{sa_query}{t_query}"))
             db.session.commit()
+
+            # make check of current sa
+            if sa_id:
+                helper_process_sa(sa_id=sa_id)
             return True, ''
         except Exception as e:
             logger.error(f"pending_transaction queries processing caused exception: {e}")
             db.session.rollback()
-            return False, 'Возникло исключчение- обратитесь к администратору'
+            return False, 'Возникло исключение- обратитесь к администратору'
     else:
-        return False, 'Возникло исключчение- нет запросов к БД. обратитесь к администратору'
+        return False, 'Возникло исключение- нет запросов к БД. обратитесь к администратору'
 
 
 def helper_get_image_html(img_path: str):

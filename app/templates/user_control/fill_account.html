@@ -8,7 +8,7 @@
         </div>
 
         {% if cur_sa %}
-            <form method="POST" action="{{ url_for('user_cp.pa_refill', u_id=u_id) }}"
+            <form method="POST" action="{{ url_for('user_cp.pa_refill', u_id=u_id, sa_id=cur_sa.id) }}"
                   onsubmit="return check_pa_refill_form();" id="pa_refill_form">
                 <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                 <div class="row">
@@ -64,7 +64,7 @@
                     </div>
                     <div class="col-md-4" title="Нажмите кнопку отправить">
                         <div class="btn btn-default btn-circle btn-accent my-1">3</div>
-                        <button type="button" onclick="if(check_pa_refill_form()){bck_pa_refill('{{url_for('user_cp.pa_refill', u_id=u_id)}}', '{{url_for('user_cp.bck_update_transactions', u_id=u_id)}}')}" class="btn btn-accent mt-md-5">Отправить запрос на пополнение средств</button>
+                        <button type="button" onclick="if(check_pa_refill_form()){bck_pa_refill('{{url_for('user_cp.pa_refill', u_id=u_id, sa_id=cur_sa.id)}}', '{{url_for('user_cp.bck_update_transactions', u_id=u_id)}}')}" class="btn btn-accent mt-md-5">Отправить запрос на пополнение средств</button>
 
                     </div>
                 </div>

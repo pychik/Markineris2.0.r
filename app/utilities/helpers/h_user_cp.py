@@ -230,7 +230,7 @@ def h_tg_verify_detail(u_id: int):
 
 
 # like big methods
-def h_pa_refill(u_id: int):
+def h_pa_refill(u_id: int, sa_id: int):
     status = 'danger'
 
     # all neccessary checks
@@ -244,7 +244,7 @@ def h_pa_refill(u_id: int):
         message = f"{settings.Messages.USER_TRANSACTION_AGENT_ERROR} {agent_info.login_name}"
         return jsonify(dict(status=status, message=message))
 
-    cur_sa = helper_get_current_sa()
+    cur_sa = ServiceAccount.query.with_entities(ServiceAccount.id).filter(ServiceAccount.id == sa_id).first()
     if not cur_sa:
         message = settings.Messages.STRANGE_REQUESTS
         return jsonify(dict(status=status, message=message))
