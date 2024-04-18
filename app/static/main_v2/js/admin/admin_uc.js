@@ -486,6 +486,53 @@ async function bck_delete_sa(url, csrf, update_url){
     }
 }
 
+async function bck_change_sa_activity(url, csrf, update_url, sa_id){
+
+    const settings = {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRFTOKEN': csrf
+        }
+    };
+    try {
+        const fetchResponse = await fetch(`${url}`, settings);
+        const data_r = await fetchResponse;
+        if(data_r.status >= 400){
+            // console.log(data_r.status);
+            make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
+            return false
+        }
+        const data = await data_r.json();
+        // console.log(data.status)
+        if (data.status === 'success'){
+            // make style
+            let sa_check_box = document.getElementById(sa_id);
+
+
+             if (sa_check_box.checked){
+                sa_check_box.classList.add("bg-warning");
+             }
+             else{
+                 sa_check_box.classList.remove("bg-warning");
+             }
+        }
+        else{get_sa_history(update_url)}
+
+        make_message(data.message, data.status);
+        setTimeout(function() {
+                        clear_user_messages();
+                    }, 15000);
+        return true
+
+
+    } catch (e) {
+        console.log(e)
+
+        return false;
+    }
+}
 
 function bck_add_sa(url, update_url)
   {

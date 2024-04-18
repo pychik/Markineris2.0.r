@@ -281,6 +281,28 @@ def h_su_delete_sa(sa_id: int) -> Response:
     return jsonify(dict(status=status, message=message))
 
 
+def h_su_bck_change_sa_activity(sa_id: int) -> Response:
+    account = ServiceAccount.query.filter(ServiceAccount.id == sa_id).first()
+    status = 'danger'
+
+    # check for trickers
+    if not account:
+        message = settings.Messages.CHANGE_NE_SA_ACTIVITY
+        return jsonify(dict(status=status, message=message))
+    try:
+        account.is_active = not account.is_active
+
+        db.session.commit()
+        message = settings.Messages.CHANGE_SA_ACTIVITY.format(status="Активирован" if account.is_active else "Не активен")
+        status = 'success'
+    except Exception as e:
+        db.session.rollback()
+        message = f"{settings.Messages.CHANGE_SA_ACTIVITY_ERROR} {e}"
+        logger.error(message)
+
+    return jsonify(dict(status=status, message=message))
+
+
 def h_su_bck_change_sa_type(sa_type: str = 'qr_code') -> Response:
 
     status = 'danger'

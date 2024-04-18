@@ -1223,14 +1223,14 @@ def helper_get_current_sa() -> ServiceAccount:
 
     cur_account = db.session.execute(text(f""" SELECT * from public.service_accounts sa
                                          WHERE sa.id =(SELECT sa.id FROM public.service_accounts sa WHERE sa.sa_type=(SELECT sp.account_type FROM public.server_params sp ORDER BY ID LIMIT 1)
-                                          AND sa.current_use=True 
+                                          AND sa.current_use=True AND sa.is_active=True
                                          ORDER BY id LIMIT 1 );""")).fetchone()
     if not cur_account:
 
         # creating new session because sqlachemy orm db session makes additional current user query
         cur_account = helper_isolated_session(query=f""" UPDATE public.service_accounts
                                          SET current_use=True
-                                         WHERE id =(SELECT sa.id FROM public.service_accounts sa WHERE sa.sa_type=(SELECT sp.account_type FROM public.server_params sp ORDER BY ID LIMIT 1)
+                                         WHERE id =(SELECT sa.id FROM public.service_accounts sa WHERE sa.sa_type=(SELECT sp.account_type FROM public.server_params sp ORDER BY ID LIMIT 1) AND sa.is_active=True
                                          ORDER BY ID LIMIT 1 ) RETURNING *;""")
     return cur_account
 

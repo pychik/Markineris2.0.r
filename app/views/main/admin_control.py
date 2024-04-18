@@ -15,7 +15,7 @@ from utilities.admin.h_admin_control import h_index, h_admin, h_set_order_notifi
 from utilities.admin.h_finance_control import h_su_control_finance, h_su_bck_promo, h_su_add_promo, h_su_delete_promo, \
     h_su_bck_prices, h_su_add_prices, h_su_delete_prices, h_su_bck_sa, h_su_add_sa, h_su_delete_sa, \
     h_su_bck_change_sa_type, h_su_control_ut, h_su_transaction_detail, h_bck_control_ut, h_au_bck_control_ut, \
-    h_su_pending_transaction_update, h_su_wo_transactions, h_aus_transaction_detail
+    h_su_pending_transaction_update, h_su_wo_transactions, h_aus_transaction_detail, h_su_bck_change_sa_activity
 from utilities.support import au_required, aus_required, bck_aus_required, bck_su_required, su_required, \
                                user_exist_check
 
@@ -281,6 +281,13 @@ def su_add_prices():
 @su_required
 def su_delete_prices(p_id: int):
     return h_su_delete_prices(p_id=p_id)
+
+
+@admin_control.route('/su_change_activity/<int:sa_id>', methods=['POST', ])
+@login_required
+@su_required
+def su_change_activity(sa_id: int):
+    return h_su_bck_change_sa_activity(sa_id=sa_id)
 
 
 @admin_control.route('/su_bck_sa', methods=['GET', ])

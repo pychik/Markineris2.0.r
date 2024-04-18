@@ -16,7 +16,10 @@
                       <span class="font-12">Дата создания</span>
                   </th>
                   <th scope="col">
-                      <span class="font-12">Удалить код</span>
+                      <span class="font-12">Активация счета</span>
+                  </th>
+                  <th scope="col">
+                      <span class="font-12">Удалить счет при отсутствии транзакций</span>
                   </th>
               </tr>
           </thead>
@@ -44,6 +47,18 @@
 
                   <td>
                      {{t.created_at.strftime("%d.%m.%Y %H:%M:%S")}}
+
+                  </td>
+                  <td>
+                        <div class="form-check form-switch">
+
+                            <input {% if t.is_active %}
+                                       class="form-check-input bg-warning border border-warning"  checked
+                                   {% else %}
+                                        class="form-check-input border border-warning"
+                                   {%endif%}
+                                   type="checkbox" role="switch" name="account_type_switch" id="sa_activity_{{t.id}}" onclick="bck_change_sa_activity(`{{url_for('admin_control.su_change_activity', sa_id=t.id)}}`, `{{csrf_token()}}`, `{{url_for('admin_control.su_bck_sa')}}`, `sa_activity_{{t.id}}`);">
+                        </div>
 
                   </td>
                   <td>
