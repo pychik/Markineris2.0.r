@@ -168,3 +168,7 @@ elk/secrets/certs/*
 !elk/secrets/certs/.gitkeep
 elk/secrets/keystore/*
 !elk/secrets/keystore/.gitkeep
+
+/app/download_dir/bill_imgs
+/app/download_dir/crm
+
