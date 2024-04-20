@@ -238,13 +238,13 @@ class Settings(BaseSettings):
         DEFAULT_ORDER_FILE_TO_REMOVE: int = 45  # days for cleaning files from server
 
         # tg user messages
-        M_ORDER_ADDED: str = "Заказ <b>{order_idn}</b>: <u>отправлен в работу!</u>"
-        M_ORDER_OPERATING: str = "Заказ <b>{order_idn}</b>: <u>принят в работу!</u>"
-        M_ORDER_AGAIN_OPERATING: str = "Заказ <b>{order_idn}</b>: <u>обрабатывается!</u>"
-        M_ORDER_READY: str = "Заказ <b>{order_idn}</b>: <u>файлы готовы к скачиванию!</u>"
-        M_ORDER_PROBLEM_ENCOUNTERED: str = "Заказ <b>{order_idn}</b>: <u>проблема решается!</u>"
-        M_ORDER_PROBLEM_SOLVED: str = "Заказ <b>{order_idn}</b>: <u>Проблема решена!</u>"
-        M_ORDER_CANCELLED: str = "Заказ <b>{order_idn}</b>: <u>отменен!</u>"
+        M_ORDER_ADDED: str = "M2R: Заказ <b>{order_idn}</b>: <u>отправлен в работу!</u>"
+        M_ORDER_OPERATING: str = "M2R: Заказ <b>{order_idn}</b>: <u>принят в работу!</u>"
+        M_ORDER_AGAIN_OPERATING: str = "M2R: Заказ <b>{order_idn}</b>: <u>обрабатывается!</u>"
+        M_ORDER_READY: str = "M2R: Заказ <b>{order_idn}</b>: <u>файлы готовы к скачиванию!</u>"
+        M_ORDER_PROBLEM_ENCOUNTERED: str = "M2R: Заказ <b>{order_idn}</b>: <u>проблема решается!</u>"
+        M_ORDER_PROBLEM_SOLVED: str = "M2R: Заказ <b>{order_idn}</b>: <u>Проблема решена!</u>"
+        M_ORDER_CANCELLED: str = "M2R: Заказ <b>{order_idn}</b>: <u>отменен!</u>"
         M_ORDER_MSG_DICT: dict = {
             NEW: M_ORDER_ADDED, POOL: M_ORDER_OPERATING, SENT: M_ORDER_READY,
             MANAGER_PROBLEM: M_ORDER_PROBLEM_ENCOUNTERED, MANAGER_SOLVED: M_ORDER_PROBLEM_SOLVED,
@@ -254,7 +254,7 @@ class Settings(BaseSettings):
     class Telegram:
         URL: str = "https://api.telegram.org/bot"
         TELEGRAM_MAIN_GROUP_ID: str = "-1001858559646"
-        USERS_GROUP: str = "-1001655227819"  # group for sending messsages about new users
+        USERS_GROUP: str = "-1002064886835"  # group for sending messsages about new users
         RB_GROUP: str = "-1002092657810"  # group for sending messages about new refillments checkout
         WO_GROUP: str = "-1002092657810"  # group for sending messages about new refillments checkout
         TELEGRAM_ALERTS_GROUP_ID: str = "-1001969475944"

@@ -371,9 +371,9 @@ class MarkinerisInform:
     def make_message(order_idn: str, problem_order_flag: bool = False):
         message_body = f"<i>Заказ</i>: <b>{order_idn}</b>\n"
         if not problem_order_flag:
-            message = f"🆕\n В обработку добавлен <b>новый заказ</b>\n{message_body}"
+            message = f"🆕\n M2R: В обработку  добавлен <b>новый заказ</b>\n{message_body}"
         else:
-            message = f"🛠\n<b>Проблема в заказе</b>\n{message_body}"
+            message = f"🛠\nM2R: <b>Проблема в заказе</b>\n{message_body}"
         return message
 
     @staticmethod

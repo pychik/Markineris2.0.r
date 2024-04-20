@@ -79,10 +79,12 @@ def h_sign_up(p_link: str) -> Union[Response, str]:
             flash(message=settings.Messages.NO_SUCH_SIGNUP_LINK)
             return redirect(url_for('auth.login'))
     else:
-        super_user = User.query.with_entities(User.id).filter(User.role == settings.SUPER_USER).first()
-        partner_code_info = PartnerCode.query.filter_by(code=settings.NO_PARTNER_CODE).first()
-        admin_id = super_user.id
-        partner_code_id = partner_code_info.id
+        # temporary remove ability to sign up
+        # super_user = User.query.with_entities(User.id).filter(User.role == settings.SUPER_USER).first()
+        # partner_code_info = PartnerCode.query.filter_by(code=settings.NO_PARTNER_CODE).first()
+        # admin_id = super_user.id
+        # partner_code_id = partner_code_info.id
+        return redirect(url_for('auth.login'))
 
     required_phone, required_email = True, True
 

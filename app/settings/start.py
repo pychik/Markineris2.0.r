@@ -46,7 +46,7 @@ def create_app(db: SQLAlchemy, migrate_handler: Migrate):
     app.config['RQ_REDIS_URL'] = settings.REDIS_CONN
     app.config['ELASTIC_APM'] = {
         'DEBUG': settings.APM_IS_DEBUG,
-        'SERVICE_NAME': 'Markineris',
+        'SERVICE_NAME': 'M2R',
         'SECRET_TOKEN': settings.ELASTIC_APM_SECRET_TOKEN,
         "SERVER_URL": settings.APM_SERVER_URL,
         "VERIFY_SERVER_CERT": False,
