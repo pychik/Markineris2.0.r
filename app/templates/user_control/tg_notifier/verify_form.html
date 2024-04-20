@@ -19,7 +19,7 @@
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                   <div class="input-group my-3" title="Введите сумму пополнения">
 
-                       <input type="text" id="tg_verification_code" name="tg_verification_code" class="form-control" placeholder="Введите код"
+                      <input type="text" id="tg_verification_code" name="tg_verification_code" class="form-control" placeholder="Введите код"
                                            minlength="32" maxlength="32" required>
                       <div class="input-group-append">
                         <span class="input-group-text btn-accent" style="cursor: pointer" id="bill-addon" onclick="bck_tg_markineris_verify('{{url_for('user_cp.bck_tg_markineris_verify')}}');">Отправить</span>

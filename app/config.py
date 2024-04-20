@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     MARKINERIS_CHECK_OI_LINK: str
     MARKINERIS_CHECK_CROSS_OI_LINK: str
     TELEGRAMM_GROUP_LINK: str = "https://t.me/markinerisss"
-    TELEGRAMM_USER_NOTIFY_LINK: str = "https://t.me/markineris_un_bot"
+    TELEGRAMM_USER_NOTIFY_LINK: str = "https://t.me/markiservice_un_bot"
     MAIL_LINK: str = "mailto:markineris@gmail.com"
     WHATSAPP_LINK: str = "https://chat.whatsapp.com/CuORC1cadb68OsH7ZFnezF"
     TURTORIAL_VIDEO_LINK: str = "https://disk.yandex.com/i/RR0pBhCYVRc1Kw"
