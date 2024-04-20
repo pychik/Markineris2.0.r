@@ -24,16 +24,16 @@ def enter():
     return render_template('main/enter_v2.html', **locals())
 
 
-@main.route('/video_instructions')
-@login_required
-@user_activated
-@manager_forbidden
-def video_instructions():
-    user = current_user
-    # ruznak hardcode condition
-    if (user.role == 'ordinary_user' and current_user.admin_parent_id == 2503) or current_user.id == 2503:
-        return redirect(url_for('main.enter'))
-    return render_template('main/video_instructions.html', **locals())
+# @main.route('/video_instructions')
+# @login_required
+# @user_activated
+# @manager_forbidden
+# def video_instructions():
+#     user = current_user
+#     # ruznak hardcode condition
+#     if (user.role == 'ordinary_user' and current_user.admin_parent_id == 2) or current_user.id == 2:
+#         return redirect(url_for('main.enter'))
+#     return render_template('main/video_instructions.html', **locals())
 
 
 @main.route('/check_csrf')
