@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     MU_PARTNER: str = "IAMMANAGER"
     AU_CLIENT_CODE: str = "AGENT_CODE"
     SU_COMPANY: str = "Суперпользователи сервиса"
-    MANAGER_EMAIL_POSTFIX: str = "@markineris.com"
+    MANAGER_EMAIL_POSTFIX: str = "@m2rservice.com"
     ADMIN_COMPANY: str = "Администраторы сервиса"
     MANAGER_COMPANY: str = "Менеджеры crm"
     NO_PARTNER_CODE: str = "NO_PARTNER_CODE"
@@ -93,12 +93,12 @@ class Settings(BaseSettings):
     SUPER_USER: str = 'superuser'
     SUPER_MANAGER: str = 'supermanager'
     ADMIN_USER: str = 'admin'
-    MARKINERIS_ADMIN_USER: str = 'markineris_admin'
+    MARKINERIS_ADMIN_USER: str = 'm2r_admin'
     MANAGER_USER: str = 'manager'
     ORD_USER: str = 'ordinary_user'
     USER_TRANSLATE: dict = USER_TRANSLATE_DICT
     USER_ROLES: list = [ORD_USER, MANAGER_USER, SUPER_MANAGER, ADMIN_USER, MARKINERIS_ADMIN_USER, SUPER_USER]
-    ADMIN_USER_POSTFIX: str = "@agentsmarkineris.com"
+    ADMIN_USER_POSTFIX: str = "@agentsm2r.com"
 
     SQ_CATEGORIES: list = ['обувь', 'одежда', 'белье']
     CATEGORIES_PROCESS_NAMES: list = ['shoes', 'clothes', 'linen', 'parfum', 'send_table']
@@ -521,9 +521,9 @@ class Settings(BaseSettings):
         CRM_SEARCH_ORDER_ERROR: str = "Такого заказа нет в системе! {comment}"
         SUPERADMINUSER_REQUIRED: str = "Для того, чтобы контроллировать нужно быть админом или суперпользователем. " \
                                        "Вы уверены, что вы админ или суперпользователь?"
-        SUPERADMIN_MADMIN_USER_REQUIRED: str = "Для того, чтобы контроллировать CRM нужно быть маркинерис админом или суперпользователем. " \
-                                               "Вы уверены, что вы маркинерис админ или суперпользователь?"
         PARTNER_CODE_CREATE: str = "Успешно создан код партнера "
+        SUPERADMIN_MADMIN_USER_REQUIRED: str = "Для того, чтобы контроллировать CRM нужно быть админом или суперпользователем. " \
+                                               "Вы уверены, что вы админ или суперпользователь?"
         PARTNER_CODE_ERROR: str = "Ошибка сохранения кода партнера! "
         PARTNER_CODE_DELETE_SUCCESS: str = "Успешно удален партнер код {partner_code}"
         PARTNER_CODE_DELETE_ERROR: str = "Ошибка удаления кода партнера! Есть привязанные пользователи."
@@ -744,13 +744,13 @@ class Settings(BaseSettings):
         USER_PRICE_TYPE_ADMIN_ERROR: str = "Во время обновления ценового пакета произошла ошибка. Этот пользователь не может корректировать значения"
         USER_PRICE_TYPE_VALUE_ERROR: str = "Во время обновления ценового пакета произошла ошибка. Некорректное значение."
         USER_PRICE_TYPE_DUPLICATE_ERROR: str = "Во время обновления ценового пакета произошла ошибка дублирования"
-        TG_VERIFICATION_SUCCESS: str = "Успешно пройдена верификация для получения уведомлений от Маркинерис."
-        TG_VERIFICATION_NO_NEED: str = "Вы уже верифицированы для получения уведомлений от Маркинерис."
+        TG_VERIFICATION_SUCCESS: str = "Успешно пройдена верификация для получения уведомлений от сервиса M2R."
+        TG_VERIFICATION_NO_NEED: str = "Вы уже верифицированы для получения уведомлений от сервиса M2R."
         TG_VERIFICATION_ERROR: str = "Во время верификации произошла ошибка."
         TG_VERIFICATION_EXISTS: str = "Ваш ТГ уже зарезервирован за другим пользователем."
-        TG_VERIFICATION_ASK_BOT: str = "Введен некорреткный код. Пройдите по <a href=\"{tg_link}\" target=\"_blank\">ссылке</a> бот Маркинерис для получения кода верификации"
-        TG_VERIF_DELETE_SUCCESS: str = "Успешно завершено отключение от уведомлений бота Маркинерис"
-        TG_VERIF_DELETE_ERROR: str = "Во время отключения от бота Маркинерис произошла ошибка  "
+        TG_VERIFICATION_ASK_BOT: str = "Введен некорреткный код. Пройдите по <a href=\"{tg_link}\" target=\"_blank\">ссылке</a> бот сервиса маркировки для получения кода верификации"
+        TG_VERIF_DELETE_SUCCESS: str = "Успешно завершено отключение от уведомлений бота сервиса Маркировки"
+        TG_VERIF_DELETE_ERROR: str = "Во время отключения от бота сервиса Маркировки произошла ошибка  "
 
     class Mail:
         RESTORE_LINK_SUBJECT: str = "Письмо смены пароля от сервиса Маркировки"

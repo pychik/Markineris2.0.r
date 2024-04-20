@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    {% set rz_condition = (current_user.role =='ordinary_user' and current_user.admin_parent_id == 1) or current_user.id == 1  or admin_id == 1%}
+    {% set rz_condition = (current_user.role =='ordinary_user' and current_user.admin_parent_id == 2) or current_user.id == 2  or admin_id == 2%}
     {% include 'main/base_helpers/title.html' %}
 
 <!--    <link rel="preconnect" href="https://fonts.googleapis.com">-->

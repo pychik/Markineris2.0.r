@@ -12,8 +12,8 @@
 <link rel="shortcut icon" href="{{url_for('static',filename='html_1/images/favicon.ico')}}" type="image/x-icon">
 <link rel="icon" href="{{url_for('static',filename='html_1/images/favicon.ico')}}">
 
-<title>CRM 2.0</title>
-<meta name="description" content="CRM MARKINERIS 2.0"/>
+<title>CRM M2R</title>
+<meta name="description" content="CRM M2R"/>
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/crm/special_crm_effects.css') }}">
@@ -60,7 +60,7 @@
                 <a href="{{url_for('crm_d.managers')}}"><span class="badge badge-warning ml-2">&nbspCRM&nbsp</span></a>
             {% else %}
                 <a href="{{ url_for('main.enter') }}">
-                    <span class="badge badge-secondary">&nbspMARKINERIS&nbsp</span></a>
+                    <span class="badge badge-secondary">&nbspM2R&nbsp</span></a>
                 <a href="{{url_for('crm_d.agents')}}">
                     <span class="badge badge-warning ml-2">&nbspCRM&nbsp</span></a>
             {% endif %}

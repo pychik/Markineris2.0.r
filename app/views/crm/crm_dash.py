@@ -6,7 +6,8 @@ from flask_login import current_user, login_required
 from config import settings
 from models import User, Order, ServerParam
 from utilities.download import orders_download_common
-from utilities.support import user_activated, su_required, sumausmumu_required, susmumu_required, susmu_required
+from utilities.support import (user_activated, su_required, sumausmumu_required, susmumu_required, susmu_required,
+                               aus_required)
 
 from .helpers import helper_get_agent_orders, helper_get_manager_orders, helper_m_order_processed, helper_m_order_ps, \
     helper_attach_file, helper_download_file, helper_delete_order_file, helpers_problem_order, helper_cancel_order, \
@@ -19,7 +20,7 @@ crm_d = Blueprint('crm_d', __name__)
 @crm_d.route('/agents', methods=["GET"])
 @login_required
 @user_activated
-@su_required
+@aus_required
 def agents():
     # attempt to decrease sql queries
     all_orders_no_limit = helper_get_agent_orders()
@@ -59,7 +60,7 @@ def agents():
 @crm_d.route('/change_stage/<int:o_id>/<int:stage>', methods=["POST"])
 @login_required
 @user_activated
-@su_required
+@aus_required
 def change_agent_stage(o_id: int, stage: int):
     return helper_change_agent_stage(o_id=o_id, stage=stage, user=current_user)
 
@@ -67,7 +68,7 @@ def change_agent_stage(o_id: int, stage: int):
 @crm_d.route('/all_new_multi_pool', methods=["POST"])
 @login_required
 @user_activated
-@su_required
+@aus_required
 def all_new_multi_pool():
     return h_all_new_multi_pool()
 
@@ -90,7 +91,7 @@ def download_order(o_id: int):
 @crm_d.route('/cancel_crm_order/<int:o_id>', methods=["POST"])
 @login_required
 @user_activated
-@su_required
+@aus_required
 def cancel_crm_order(o_id: int):
     cancel_comment = request.form.get("cancel_order_comment", '').replace("--", '').replace("#", '')
     return helper_cancel_order(user=current_user, o_id=o_id, cancel_comment=cancel_comment)
@@ -257,7 +258,7 @@ def m_order_order_bp(o_id: int, manager_id: int, f_manager_id: int = None):
 @crm_d.route('/move from sent_orders', methods=["POST"])
 @login_required
 @user_activated
-@su_required
+@aus_required
 def move_from_sent_orders():
     """
         change stage for all orders in SENT that are stucked for more than 5 days in daily tasks
@@ -280,7 +281,7 @@ def move_from_sent_orders():
 
 @crm_d.route('/search_crma_order', methods=['POST'])
 @login_required
-@su_required
+@aus_required
 def search_crma_order():
 
     return helper_search_crma_order()
