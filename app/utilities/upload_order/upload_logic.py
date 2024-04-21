@@ -37,7 +37,7 @@ def helper_upload_common_get(category: str, category_process_name: str) -> Union
     edo_id = request.args.get("edo_id")
     mark_type = request.args.get("mark_type")
     templates = settings.TEMPLATES_DICT.get(category)
-    download_instruction = settings.UPLOAD_ORDER_EXCEL_INSTRUCTION
+    # download_instruction = settings.UPLOAD_ORDER_EXCEL_INSTRUCTION
     return render_template(f'upload/{category_process_name}_upload_footer_v2.html', **locals())
 
 

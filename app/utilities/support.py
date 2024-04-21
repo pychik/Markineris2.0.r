@@ -1586,8 +1586,11 @@ def helper_get_user_price2(price_id: Optional[int], pos_count: int) -> int:
 
 
 def helper_check_useroragent_balance(user: User, o_id: int = None) -> tuple[int, int, bool, str]:
+    # get agent info and check for agents
     agent_info = User.query.filter(User.id == user.admin_parent_id) \
-        .with_entities(User.is_at2, User.login_name, User.role, User.balance, User.trust_limit, User.price_id).first()
+        .with_entities(User.is_at2, User.login_name, User.role, User.balance, User.trust_limit, User.price_id).first() \
+        if user.role == settings.ORD_USER else user
+
     if agent_info and agent_info.role == settings.ADMIN_USER and agent_info.is_at2:
         # balance = agent_info.balance + agent_info.trust_limit
 
