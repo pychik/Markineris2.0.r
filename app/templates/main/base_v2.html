@@ -51,9 +51,9 @@
             <div class="offcanvas-body pb-5">
                 <div class="d-flex justify-content-between justify-content-lg-center">
 
-                    {% if not ('login' in  request.path or 'sign_up' in request.path or 'restore_page' in request.path) %}
-                        {% include 'main/base_helpers/branding_1.html' %}
-                    {% endif %}
+{#                    {% if not ('login' in  request.path or 'sign_up' in request.path or 'restore_page' in request.path) %}#}
+{#                        {% include 'main/base_helpers/branding_1.html' %}#}
+{#                    {% endif %}#}
 
                     <a href="" data-bs-dismiss="sidebar" aria-label="Close">
                         <svg class="d-block d-md-none" xmlns="http://www.w3.org/2000/svg" width="61" height="61"
@@ -150,11 +150,11 @@
                 {% if not ('login' in  request.path or 'sign_up' in request.path or 'restore_page' in request.path)%}
                     {% include 'main/base_helpers/contact_links.html' %}
 
-                    <div class="bn mt-4 ">
-
-                        {% include 'main/base_helpers/branding_2.html' %}
-
-                    </div>
+{#                    <div class="bn mt-4 ">#}
+{##}
+{#                        {% include 'main/base_helpers/branding_2.html' %}#}
+{##}
+{#                    </div>#}
                 {% endif %}
             </div>
         </div>

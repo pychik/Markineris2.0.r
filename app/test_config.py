@@ -18,7 +18,7 @@ class Settings(BaseSettings):
 
     class GoogleTables:
         CREDENTIALS_FILE = f"{CUR_PATH}/utilities/google_settings/smart-orders-380418-2b53a29bb857.json"
-        SPREADSHEET_ID = "1YC7Z399nyO39zL8DeZp9jlefbHbehH3wcQyzgLdZACU"
+        SPREADSHEET_ID = "1n-VcgDzIDpWqZEqUWfWtVv2G0DNDKSwp8JTGlpaeeEE"
         SHEET_NAME_ORDERS: str = "Заказы"
         FC_ORDERS: str = "A"  # first column of orders table
         LC_ORDERS: str = "L"  # last column of orders table
