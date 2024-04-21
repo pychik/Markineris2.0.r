@@ -25,8 +25,8 @@ from utilities.support import helper_get_at2_pending_balance, helper_get_limits
 from utilities.telegram import MarkinerisInform
 
 
-# def helper_get_agent_orders(user: User, date_os: int = None) -> list:
-def helper_get_agent_orders() -> list:
+def helper_get_agent_orders(user: User) -> list:
+# def helper_get_agent_orders() -> list:
 
     date_compare = date.today() - timedelta(days=settings.OrderStage.DAYS_CONTENT)
     conditional_stmt = f"((o.stage>{settings.OrderStage.CREATING} AND o.stage!={settings.OrderStage.TELEGRAM_PROCESSED} AND o.stage!={settings.OrderStage.CANCELLED} AND o.stage!={settings.OrderStage.CRM_PROCESSED}) OR ((o.stage={settings.OrderStage.CANCELLED} AND o.cc_created  > '{date_compare}') OR (o.stage={settings.OrderStage.CRM_PROCESSED} AND o.closed_at > '{date_compare}')))"
@@ -42,102 +42,103 @@ def helper_get_agent_orders() -> list:
                                  o.sent_at as sent_at,
                                  o.closed_at as closed_at,
                               """
-    # if user.role != settings.SUPER_USER:
-    #
-    #     stmt_get_agent = f"SELECT public.users.login_name from public.users where public.users.id={admin_id}"
-    #     stmt_users = f"""SELECT users.id AS users_id
-    #                      FROM users
-    #                      WHERE users.admin_parent_id = {admin_id} OR users.id = {admin_id}
-    #                 """
-    #
-    #     stmt_orders = f"""
-    #                           SELECT u.client_code as client_code,
-    #                               ({stmt_get_agent})  as agent_name ,
-    #                               u.login_name as login_name,
-    #                               u.phone as phone,
-    #                               u.email as email,
-    #                               o.id as id,
-    #                               o.stage as stage,
-    #                               o.payment as payment,
-    #                               o.order_idn as order_idn,
-    #                               o.category as category,
-    #                               o.company_type as company_type,
-    #                               o.company_name as company_name,
-    #                               o.company_idn as company_idn,
-    #                               o.edo_type as edo_type,
-    #                               o.mark_type as mark_type,
-    #                               o.user_comment as user_comment,
-    #                               o.has_new_tnveds as has_new_tnveds,
-    #                               o.manager_id as manager_id,
-    #                               MAX(orf.origin_name) as order_file,
-    #                               MAX(orf.file_link) as order_file_link,
-    #                               {stmt_get_manager} as manager,
-    #                               o.stage_setter_name as stage_setter_name,
-    #                               {additional_stmt}
-    #                               COUNT(o.id) as row_count,
-    #                               COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-    #                               SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
-    #                           FROM public.users u
-    #                               JOIN public.orders o ON o.user_id = u.id
-    #                               LEFT JOIN public.order_files orf ON o.id=orf.order_id
-    #                               LEFT JOIN public.shoes sh ON o.id = sh.order_id
-    #                               LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
-    #                               LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-    #                               LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-    #                               LEFT JOIN public.linen l ON o.id = l.order_id
-    #                               LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-    #                               LEFT JOIN public.parfum p ON o.id = p.order_id
-    #                     WHERE u.id in({stmt_users}) AND {conditional_stmt}
-    #                     GROUP BY u.id, o.id
-    #                     ORDER BY o.crm_created_at
-    #                    """
-    # else:
-    # stmt_get_agent = f"SELECT a.login_name FROM public.users a  WHERE ((a.id=u.admin_parent_id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')) OR (a.id=u.id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')))"
-    stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
-    stmt_orders = f"""
-                          SELECT 
-                              u.client_code as client_code,
-                              {stmt_get_agent} as agent_name ,
-                              u.login_name as login_name, 
-                              u.phone as phone, 
-                              u.email as email, 
-                              o.id as id,
-                              o.stage as stage,
-                              o.payment as payment,
-                              o.order_idn as order_idn,
-                              o.category as category,
-                              o.company_type as company_type,
-                              o.company_name as company_name,
-                              o.company_idn as company_idn,
-                              o.edo_type as edo_type,
-                              o.mark_type as mark_type,
-                              o.user_comment as user_comment,
-                              o.has_new_tnveds as has_new_tnveds,
-                              o.manager_id as manager_id,
-                              o.crm_created_at as crm_created_at,
-                              MAX(orf.origin_name) as order_file,
-                              MAX(orf.file_link) as order_file_link,
-                              {stmt_get_manager} as manager,
-                              o.stage_setter_name as stage_setter_name,
-                              {additional_stmt}
-                              COUNT(o.id) as row_count,
-                              COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                              SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
-                          FROM public.users u
-                              JOIN public.orders o ON o.user_id = u.id  
-                              LEFT JOIN public.users a ON u.admin_parent_id = a.id  
-                              LEFT JOIN public.order_files orf ON o.id=orf.order_id 
-                              LEFT JOIN public.shoes sh ON o.id = sh.order_id
-                              LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
-                              LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-                              LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                              LEFT JOIN public.linen l ON o.id = l.order_id
-                              LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                              LEFT JOIN public.parfum p ON o.id = p.order_id 
-                          WHERE  {conditional_stmt}
-                          GROUP BY u.id, o.id, o.crm_created_at
-                          ORDER BY o.crm_created_at
-                           """
+    if user.role != settings.SUPER_USER:
+        admin_id = user.id
+
+        stmt_get_agent = f"SELECT public.users.login_name from public.users where public.users.id={admin_id}"
+        stmt_users = f"""SELECT users.id AS users_id
+                         FROM users
+                         WHERE users.admin_parent_id = {admin_id} OR users.id = {admin_id}
+                    """
+
+        stmt_orders = f"""
+                              SELECT u.client_code as client_code,
+                                  ({stmt_get_agent})  as agent_name ,
+                                  u.login_name as login_name,
+                                  u.phone as phone,
+                                  u.email as email,
+                                  o.id as id,
+                                  o.stage as stage,
+                                  o.payment as payment,
+                                  o.order_idn as order_idn,
+                                  o.category as category,
+                                  o.company_type as company_type,
+                                  o.company_name as company_name,
+                                  o.company_idn as company_idn,
+                                  o.edo_type as edo_type,
+                                  o.mark_type as mark_type,
+                                  o.user_comment as user_comment,
+                                  o.has_new_tnveds as has_new_tnveds,
+                                  o.manager_id as manager_id,
+                                  MAX(orf.origin_name) as order_file,
+                                  MAX(orf.file_link) as order_file_link,
+                                  {stmt_get_manager} as manager,
+                                  o.stage_setter_name as stage_setter_name,
+                                  {additional_stmt}
+                                  COUNT(o.id) as row_count,
+                                  COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                              FROM public.users u
+                                  JOIN public.orders o ON o.user_id = u.id
+                                  LEFT JOIN public.order_files orf ON o.id=orf.order_id
+                                  LEFT JOIN public.shoes sh ON o.id = sh.order_id
+                                  LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
+                                  LEFT JOIN public.clothes  cl ON o.id = cl.order_id
+                                  LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                  LEFT JOIN public.linen l ON o.id = l.order_id
+                                  LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
+                                  LEFT JOIN public.parfum p ON o.id = p.order_id
+                        WHERE u.id in({stmt_users}) AND {conditional_stmt}
+                        GROUP BY u.id, o.id
+                        ORDER BY o.crm_created_at
+                       """
+    else:
+        # stmt_get_agent = f"SELECT a.login_name FROM public.users a  WHERE ((a.id=u.admin_parent_id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')) OR (a.id=u.id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')))"
+        stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
+        stmt_orders = f"""
+                              SELECT 
+                                  u.client_code as client_code,
+                                  {stmt_get_agent} as agent_name ,
+                                  u.login_name as login_name, 
+                                  u.phone as phone, 
+                                  u.email as email, 
+                                  o.id as id,
+                                  o.stage as stage,
+                                  o.payment as payment,
+                                  o.order_idn as order_idn,
+                                  o.category as category,
+                                  o.company_type as company_type,
+                                  o.company_name as company_name,
+                                  o.company_idn as company_idn,
+                                  o.edo_type as edo_type,
+                                  o.mark_type as mark_type,
+                                  o.user_comment as user_comment,
+                                  o.has_new_tnveds as has_new_tnveds,
+                                  o.manager_id as manager_id,
+                                  o.crm_created_at as crm_created_at,
+                                  MAX(orf.origin_name) as order_file,
+                                  MAX(orf.file_link) as order_file_link,
+                                  {stmt_get_manager} as manager,
+                                  o.stage_setter_name as stage_setter_name,
+                                  {additional_stmt}
+                                  COUNT(o.id) as row_count,
+                                  COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                              FROM public.users u
+                                  JOIN public.orders o ON o.user_id = u.id  
+                                  LEFT JOIN public.users a ON u.admin_parent_id = a.id  
+                                  LEFT JOIN public.order_files orf ON o.id=orf.order_id 
+                                  LEFT JOIN public.shoes sh ON o.id = sh.order_id
+                                  LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
+                                  LEFT JOIN public.clothes  cl ON o.id = cl.order_id
+                                  LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                  LEFT JOIN public.linen l ON o.id = l.order_id
+                                  LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
+                                  LEFT JOIN public.parfum p ON o.id = p.order_id 
+                              WHERE  {conditional_stmt}
+                              GROUP BY u.id, o.id, o.crm_created_at
+                              ORDER BY o.crm_created_at
+                               """
 
     res = db.session.execute(text(stmt_orders))
     return res.fetchall()

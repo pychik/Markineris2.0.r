@@ -23,7 +23,7 @@ crm_d = Blueprint('crm_d', __name__)
 @aus_required
 def agents():
     # attempt to decrease sql queries
-    all_orders_no_limit = helper_get_agent_orders()
+    all_orders_no_limit = helper_get_agent_orders(user=current_user)
 
     if all_orders_no_limit:
 
