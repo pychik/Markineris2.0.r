@@ -16,7 +16,7 @@
                                 <th scope="col" class="font-12">ИНН</th>
                                 <th scope="col" class="font-12">Время заказа</th>
                                 <th scope="col" class="font-12">Статус заказа</th>
-                                <th scope="col" class="font-12">Оплата</th>
+                                {% if not user.is_at2 %}<th scope="col" class="font-12">Оплата</th>{% endif %}
                                 <th></th>
                             </tr>
                         </thead>
@@ -67,9 +67,11 @@
 
                                     </td>
 
-                                    <td>
-                                        {% if s.payment %}Оплачен{% else %}Не оплачен{% endif %}
-                                    </td>
+                                    {% if not user.is_at2 %}
+                                        <td>
+                                            {% if s.payment %}Оплачен{% else %}Не оплачен{% endif %}
+                                        </td>
+                                    {% endif %}
                                     <td class="text-end actions">
                                         <a class="btn btn-dark btn-sm btn-watch  ms-md-auto"
                                            href="{{ url_for(categories_dict[category] +'.preload', o_id=s.id, stage=s.stage) }}" title="Просмотреть заказ"
