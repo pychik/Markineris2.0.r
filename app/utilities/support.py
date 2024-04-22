@@ -1900,7 +1900,7 @@ def helper_perform_ut_wo(user_ids: list[tuple[int]]) -> tuple[int, int]:
             transaction_google_packets.append(TransactionRow(u_id=u_id,
                                                              tr_id=tr_id,
                                                              is_at2=is_at2,
-                                                             transaction_price=transaction_price)) if not admin_id == 2503 \
+                                                             transaction_price=transaction_price)) if not admin_id == 2 \
                 else transaction_rz_packets.append(TransactionRow(u_id=u_id,
                                                                   tr_id=tr_id,
                                                                   is_at2=is_at2,
