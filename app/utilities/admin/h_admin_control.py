@@ -596,6 +596,13 @@ def h_set_process_type(u_id: int, p_type: str) -> Response:
                 user.trust_limit = 0
 
                 flash(message=f"{settings.Messages.USER_PROCESS_TYPE_ERROR}")
+
+        # set all clients of admin process type
+        db.session.execute(text("""UPDATE public.users
+                                            SET is_crm=:is_crm, is_at2=:is_at2
+                                          WHERE admin_parent_id=:user_id""")
+                           .bindparams(is_crm=user.is_crm, is_at2=user.is_at2, user_id=user.id))
+
         db.session.commit()
     except Exception as e:
         db.session.rollback()
