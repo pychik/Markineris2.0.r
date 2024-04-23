@@ -16,7 +16,8 @@
                     {% if cur_sa.sa_type == 'qr_code' %}
                         <div class="col-md-3" title="Отсканируйте qr код для пополнения">
                             <button type="button" class="btn btn-default btn-circle btn-accent mt-1 mb-3">1</button>
-                            <img src="{{url_for('static', filename='qr_imgs/' + cur_sa.sa_qr_path)}}" class="rounded">
+                            <img src="{{url_for('static', filename='qr_imgs/' + cur_sa.sa_qr_path)}}" class="rounded"
+                                width="230" height="230">
                         </div>
                     {% else %}
                         <div class="col-md-3" title="Отсканируйте qr код для пополнения">
