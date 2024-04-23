@@ -624,10 +624,10 @@ def h_delete_user_admin(u_id: int) -> Response:
         user.promos = []
 
         helper_delete_tg(user=user)
-
+        user_id = user.id
         db.session.delete(user)
         db.session.commit()
-        flash(message=f"{settings.Messages.DELETE_USER} {user.login_name}")
+        flash(message=f"{settings.Messages.DELETE_USER} {user.login_name} c id {user_id}")
     except Exception as e:
         db.session.rollback()
         message = f"{settings.Messages.DELETE_USER_ERROR} {e}"
