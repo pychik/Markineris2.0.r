@@ -481,11 +481,11 @@ function setClothes(){
 function addClothesCell(){
     var size = document.getElementById('size_order').value;
     var quantity_val = document.getElementById('quantity_order').value;
-    if(size.length < 2){
+    if(size.length < 1){
         // console.log(size.length);
             return false
         }
-    if(check_clothes_size(size)!==true){
+    if(check_clothes_size_on_add(size)!==true){
         return false
     }
     var quantity = parseInt(quantity_val,10);
@@ -582,7 +582,7 @@ function check_clothes_size(value){
 
 
 // console.log(value);
-    if (value.length > 1) {
+    if (value.length > 0) {
 
         for (let i = 0; i < check_list.length; i++) {
 
@@ -596,9 +596,30 @@ function check_clothes_size(value){
         return false
     }
     else{
-        return true
+        return false
     }
 }
+
+function check_clothes_size_on_add(value){
+
+
+    // console.log(value);
+    if (value.length > 0) {
+
+        if (check_list.includes(value)) {
+            // console.log(check_list[i]);
+            return true
+        }
+
+        show_form_errors(["Введите корректный размер: от 12 до 74 с шагом 2, либо особый размер вида 12-14, OVERSIZE !",]);
+        $('#form_errorModal').modal('show');
+        return false
+    }
+    else{
+        return false
+    }
+}
+
 
 function chooseSizeClothes() {
     let divBlock = document.getElementById('sizesClothesDiv');
