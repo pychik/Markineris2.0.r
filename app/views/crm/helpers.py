@@ -453,7 +453,7 @@ def helper_attach_file(manager: str, manager_id: int, o_id: int) -> Response:
 
     # insert data
     stmt = text(f"""UPDATE public.order_files 
-                 SET origin_name='{origin}', file_system_name='{fs_name}', file_link='', order_id={o_id} 
+                 SET origin_name='{origin}', file_system_name='{fs_name}', file_link='', order_id=:o_id 
                  WHERE id={of_id}
                 """ if of_id else f"""
                    INSERT INTO public.order_files (origin_name, file_system_name, file_link, order_id)
