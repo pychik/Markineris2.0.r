@@ -50,7 +50,7 @@ class GoogleProcess:
                 lr_index = self.last_row_index(gt_range=settings.GoogleTables.SHEET_RANGE_ORDERS)
                 return (f"{settings.GoogleTables.SHEET_NAME_ORDERS}!{settings.GoogleTables.FC_ORDERS}"
                         f"{lr_index + 1}:{settings.GoogleTables.LC_ORDERS}")
-            case (settings.GoogleTables.RuZnak, settings.GoogleTables.RuZnak.SHEET_NAME_RUZNAK):
+            case (settings.GoogleTables.RuZnak.SPREADSHEET_ID_RUZNAK, settings.GoogleTables.RuZnak.SHEET_NAME_RUZNAK):
                 lr_index = self.last_row_index(gt_range=settings.GoogleTables.RuZnak.SHEET_RANGE_RUZNAK)
                 return (f"{settings.GoogleTables.RuZnak.SHEET_NAME_RUZNAK}!{settings.GoogleTables.RuZnak.FC_RUZNAK}"
                         f"{lr_index + 1}:{settings.GoogleTables.RuZnak.LC_RUZNAK}")
@@ -105,9 +105,9 @@ if __name__ == "__main__":
 
     # test_row = [date_time, "17_60", "015", "TEST user", "Organization", "+79999999919", 40, 10, "одежда", 8, "ОПЛАЧЕНО", "Единый счет"]
 
-    gp = GoogleProcess(data_list=[test_row, test_row, test_row],)
+    # gp = GoogleProcess(data_list=[test_row, test_row, test_row],)
     # gp = GoogleProcess(data_list=[test_row, test_row, test_row], sheet_name=settings.GoogleTables.SHEET_NAME_PROMOS)
-    # gp = GoogleProcess(data_list=[test_row, test_row, test_row],
-    #                    spreadsheet=settings.GoogleTables.RuZnak.SPREADSHEET_ID_RUZNAK,
-    #                    sheet_name=settings.GoogleTables.RuZnak.SHEET_NAME_RUZNAK)
+    gp = GoogleProcess(data_list=[test_row, test_row, test_row],
+                       spreadsheet=settings.GoogleTables.RuZnak.SPREADSHEET_ID_RUZNAK,
+                       sheet_name=settings.GoogleTables.RuZnak.SHEET_NAME_RUZNAK)
     gp.send_data_packet()
