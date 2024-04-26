@@ -12,6 +12,8 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - /etc/ssl/certs/ssl_cert.crt:/etc/ssl/certs/bundle.crt
       - /etc/ssl/private/ssl_pk.key:/etc/ssl/private/default.key
+      - /etc/ssl/certs/markineriscom.crt:/etc/ssl/certs/mc_bundle.crt
+      - /etc/ssl/private/markineriscom.key:/etc/ssl/private/mc_pr.key
       - /etc/localtime:/etc/localtime:ro
       - /var/log/nginx/:/var/log/nginx/
     ports:
