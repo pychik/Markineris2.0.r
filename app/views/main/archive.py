@@ -59,7 +59,7 @@ def download_oa(o_id: int, category: str):
 #     """
 #     return h_download_opdf(o_id=o_id, category=category)
 
-@orders_archive.route('/download_opdf_common/<int:o_id>/<string:category>', methods=['GET'])
+@orders_archive.route('/download_opdf_common/<int:o_id>/<string:category>', methods=['POST'])
 @login_required
 @user_activated
 def download_opdf_common(o_id: int, category: str):
@@ -70,4 +70,4 @@ def download_opdf_common(o_id: int, category: str):
     :param category:
     :return:
     """
-    return h_download_opdf_common(o_id=o_id, category=category)
+    return h_download_opdf(o_id=o_id, category=category)
