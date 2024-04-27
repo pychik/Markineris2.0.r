@@ -588,6 +588,11 @@ def h_set_process_type(u_id: int, p_type: str) -> Response:
                 telegram.status = True
                 user.telegram.append(telegram)
 
+                # update tg for all users
+                agent_users = [a for a in User.query.filter(User.admin_parent_id == user.id).all()]
+                for u in agent_users:
+                    u.telegram.append(telegram)
+
                 flash(message=f"{settings.Messages.USER_PROCESS_TYPE} {user.login_name}")
             case _:  # not sure about this!  may be here should be logic for crm process
 
