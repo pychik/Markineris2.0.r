@@ -308,7 +308,7 @@ class WriteOffBalance:
         message_body = f"👨‍💼 - <i>{username}</i>\n" \
                        f"📪 - <i>{email}</i>\n" \
                        f"☎️ - <i>{phone}</i>\n\n"
-        wo_account = f"💳 - <i>{wo_account_info}</i>\n"
+        wo_account = f"💳 - \n{wo_account_info}\n"
         message_fin = f"{amount_string}{wo_account}********************\n"
 
         message = f"{message_title}{message_body}{message_fin}"

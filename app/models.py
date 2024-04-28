@@ -173,7 +173,7 @@ class UserTransaction(db.Model, UserMixin):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), index=True)
     sa_id = db.Column(db.Integer, db.ForeignKey('service_accounts.id'), index=True)
     promo_info = db.Column(db.String(100), default='')
-    wo_account_info = db.Column(db.String(100), default='')
+    wo_account_info = db.Column(db.String(500), default='')
 
     service_accounts = db.relationship('ServiceAccount', back_populates='transactions',)
     # orders in process for fixing them whenmake transaction and  changing to POOL stage

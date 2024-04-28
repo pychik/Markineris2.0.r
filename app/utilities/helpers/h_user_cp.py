@@ -336,9 +336,18 @@ def h_agent_wo(u_id: int):
         uuid_prefix = str(uuid4())[:8]
         bill_path = f'{uuid_prefix}_{current_user.login_name}_write_off_patch'
         amount = int(request.form.get('wo_summ', '').replace('--', ''))
+        wo_fio = request.form.get('wo_fio', '').replace('--', '')
+        wo_bill_acc = request.form.get('wo_bill_acc', '').replace('--', '')
+        wo_bik = request.form.get('wo_bik', '').replace('--', '')
         wo_account_info = request.form.get('wo_account_info', '').replace('--', '')
+
+        if not (wo_bill_acc.isdigit() and wo_bik.isdigit()) and amount < 5000:
+            message = f"{settings.Messages.USER_TRANSACTION_ERROR} ошибка ввода данных"
+            return jsonify(dict(status=status, message=message))
+
+        tg_wo_account_info = f"<i>{wo_fio}</i>\n<b>{wo_bill_acc}</b>\n<b>{wo_bik}</b>\n{wo_account_info}"
         check = helper_agent_wo_transaction(amount=amount, status=settings.Transactions.PENDING,
-                                       user_id=current_user.id, bill_path=bill_path, wo_account_info=wo_account_info)
+                                       user_id=current_user.id, bill_path=bill_path, wo_account_info=tg_wo_account_info)
         if check[0]:
 
             # send message to admin TG
@@ -347,7 +356,7 @@ def h_agent_wo(u_id: int):
                 email=email,
                 phone=phone,
                 amount=amount,
-                wo_account_info=wo_account_info,
+                wo_account_info=tg_wo_account_info,
             )
 
             message = f"{settings.Messages.USER_TRANSACTION_CREATE}"

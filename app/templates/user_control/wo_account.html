@@ -26,9 +26,25 @@
                       </div>
                     </div>
 
-                    <div class="form-group my-3" title="Введите реквизиты вашего счета"><label for="wo_account_info" style="display:none" >Информация о счете</label>
-                       <input type="text" id="wo_account_info" name="wo_account_info" class="form-control" placeholder="Введите информацию о счете"
-                                           minlength="5" maxlength="100" required>
+                    <div class="form-group my-3" title="Введите реквизиты вашего счета">
+                        <div class="form-group">
+                            <label for="wo_fio" style="display:none" >ФИО</label>
+                            <input type="text" id="wo_fio" name="wo_fio" class="form-control" placeholder="Введите ФИО"
+                                           minlength="10" maxlength="100" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="wo_bill_acc" style="display:none" >Расчетный счет (20 знаков)</label>
+                            <input type="text" id="wo_bill_acc" name="wo_bill_acc" class="form-control" placeholder="Введите расчетный счет (20 знаков)"
+                                           minlength="20" maxlength="20" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="wo_bik" style="display:none" >БИК (9 знаков)</label>
+                            <input type="text" id="wo_bik"  name="wo_bik" class="form-control" placeholder="Введите БИК (9 знаков)"
+                                           minlength="9" maxlength="9" required>
+                        </div>
+
+                        <input type="text" id="wo_account_info" name="wo_account_info" class="form-control" placeholder="Комментарий (необязательно)"
+                                           minlength="2" maxlength="100">
                     </div>
 
                 </div>

@@ -1328,20 +1328,21 @@ def helper_refill_transaction(amount: int, status: int, promo_info: str,
 
 
 def helper_agent_wo_transaction(amount: int, status: int, user_id: int, bill_path: str,
-                                wo_account_info: str) -> tuple[bool,str]:
-    if not(amount and wo_account_info):
+                                wo_account_info: str) -> tuple[bool, str]:
+    if not (amount and wo_account_info):
         return False, 'Incorrect input: amount-{amount}, wo_account_info-{wo_account_info}'
 
     if helper_get_user_balance(u_id=user_id)[0] < amount:
         return False, settings.Messages.WO_TRANSACTION_BALANCE_ERROR
 
     created_at = datetime.now()
-    query = f"""INSERT into public.user_transactions (type, status, amount, user_id, bill_path, wo_account_info, created_at)
-                VALUES(False, {status}, {amount}, {user_id}, '{bill_path}', '{wo_account_info}', '{created_at}');
-                
-            """
+    query = text(f"""INSERT into public.user_transactions (type, status, amount, user_id, bill_path, wo_account_info, created_at)
+                    VALUES(False, :status, :amount, :user_id, :bill_path, :wo_account_info, :created_at);
+
+                """).bindparams(status=status, amount=amount, user_id=user_id, bill_path=bill_path,
+                                wo_account_info=wo_account_info, created_at=created_at)
     try:
-        db.session.execute(text(query))
+        db.session.execute(query)
         db.session.commit()
         return True, ''
     except Exception as e:
