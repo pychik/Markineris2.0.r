@@ -171,6 +171,7 @@ class Settings(BaseSettings):
     TRUST_LIMIT_MINIMUM: int = 10000
     TRUST_LIMIT_MAXIMUM: int = 1000000
     TG_VERIFICATION_LENGTH: int = 32
+    PA_REFILL_MIN: int = 1000
     CAPTCHA_CONFIG: dict = {'SECRET_CAPTCHA_KEY': 'LONG_KEY',
                             'CAPTCHA_LENGTH': 6,
                             'CAPTCHA_DIGITS': False,

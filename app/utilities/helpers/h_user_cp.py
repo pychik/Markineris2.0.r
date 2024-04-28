@@ -143,6 +143,7 @@ def h_user_personal_account(u_id: int, stage: int = None) -> Union[Response, str
 
     basic_prices = settings.Prices.BASIC_PRICES
     user_prices = Price.query.filter_by(id=user_info.price_id).first()
+    minimum_refill = settings.PA_REFILL_MIN
 
     # current service account
     cur_sa = helper_get_current_sa()
@@ -251,6 +252,12 @@ def h_pa_refill(u_id: int, sa_id: int):
 
     promo_code = request.form.get('promo_code', '').replace('--', '')
 
+    amount_orig = int(request.form.get('bill_summ', '0').replace('--', ''))
+
+    if amount_orig < settings.PA_REFILL_MIN:
+        message = settings.Messages.STRANGE_REQUESTS
+        return jsonify(dict(status=status, message=message))
+
     amount_add = 0
     if promo_code:
         promo_success, amount_add, message = helper_check_promo(user=current_user, promo_code=promo_code)
@@ -279,7 +286,6 @@ def h_pa_refill(u_id: int, sa_id: int):
         email = current_user.email
         phone = current_user.phone
 
-        amount_orig = int(request.form.get('bill_summ', '').replace('--', ''))
         amount = amount_orig + amount_add
         promo_info = f'{promo_code}: {amount_orig} + {amount_add}' if promo_code else ''
         if helper_refill_transaction(amount=amount, status=settings.Transactions.PENDING, promo_info=promo_info,
