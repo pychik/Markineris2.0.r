@@ -310,12 +310,12 @@
 </div>
 
 
-{% include "helpers/order_notification_panel.html" %}
+{% include "admin/helpers/order_notification_panel.html" %}
 
 
-{% include "helpers/search_user_bar.html" %}
+{% include "admin/user_search/search_user_bar.html" %}
 
-{% include "helpers/search_user_by_idn.html" %}
+{% include "admin/user_search/search_user_by_idn.html" %}
 
 {% set sort_type = request.args.sort_type|default('created_at') %}
 

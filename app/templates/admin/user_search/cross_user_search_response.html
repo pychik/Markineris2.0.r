@@ -1,0 +1,111 @@
+<div class="mt-3">
+    <h5><span class="badge bg-info">Найдено на сервисе: {{numrows}}</span> </h5>
+    {%if clients%}
+
+        <div id="users_table_search" class="col" align="left">
+            <table class="table table-hover mt-1">
+              <thead class="thead table-secondary text-white">
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col"><font size="2">Логин</font></th>
+                  <th scope="col"><font size="2">Email</font></th>
+                    {% if not (current_user.role == 'admin' and current_user.is_at2) %}
+                      <th scope="col"><font size="2">Ценовой пакет</font></th>
+                  {% endif %}
+                  <th scope="col"><font size="2">Админ</font></th>
+                  <th scope="col"><font size="2">Количество заказов</font></th>
+                  <th scope="col"><font size="2">Дата крайнего заказа</font></th>
+                  <th scope="col"><font size="2">Управление пользователем</font></th>
+                  <th scope="col"><font size="2"></font></th>
+                </tr>
+              </thead>
+              <tbody>
+
+                {%for u in clients%}
+                    <tr>
+                      <th scope="row">
+                          {{loop.index}}
+                      </th>
+
+                      <td>
+                          {{u.login_name}}
+                      </td>
+                    <td>
+                          {{u.email}}
+                      </td>
+                        {% if not (current_user.role == 'admin' and current_user.is_at2) %}
+                          <td>
+                              <div id="user_price{{u.id}}">
+                              {% if u.price_code %}
+                                <span class="badge bg-warning text-black" style="cursor:pointer"
+                                    onclick="perform_modal_prices('{{u.id}}', '{{u.login_name}}', '{{ u.price_code }}', '{{ u.price_1 }}', '{{ u.price_2 }}', '{{ u.price_3 }}', '{{ u.price_4 }}', '{{ u.price_5 }}', '{{url_for('admin_control.bck_set_user_price', u_id=u.id)}}?bck=1', '{{csrf_token()}}')">{{ u.price_code }}</span>
+                              {% else %}
+                                <span class="badge bg-warning text-black" style="cursor:pointer"
+                                    onclick="perform_modal_prices('{{u.id}}', '{{u.login_name}}', '{{basic_prices[0]}}', '{{basic_prices[1]}}', '{{basic_prices[2]}}', '{{basic_prices[3]}}', '{{basic_prices[4]}}', '{{basic_prices[5]}}', '{{url_for('admin_control.bck_set_user_price', u_id=u.id)}}?bck=1', '{{csrf_token()}}')">{{basic_prices[0]}}</span>
+                              {% endif %}
+                              </div>
+                          </td>
+                      {% endif %}
+                      <td>
+                          {{u.admin}}
+                      </td>
+                      <td>
+                          {{u.orders_count}}
+                      </td>
+                      <td>
+                          {{u.created_at.strftime("%Y.%m.%d %H:%M:%S")}}
+                      </td>
+                      <td>
+                          {% if not u.status %}
+
+
+                              <form method="post" action="{{url_for('admin_control.set_user',
+                                type_set='activate_user', u_id=u.id)}}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <input class="btn btn-sm btn-outline-success btn-block"
+                                     type="submit" name="activate"
+                                    onclick="if (document.getElementById('set_user_{{ u.id }}').validity.valid){loadingCircle();}"
+                                     value="Активировать">
+                                <input type="text" class="form-control mt-1" id="set_user_{{ u.id }}"
+                                         placeholder="Введите код клиента"
+                                     name="client_code"
+                                     {% if u.client_code %}value="{{ u.client_code }}"{% endif %} required>
+                              </form>
+
+
+                          {% else %}
+                              <form method="post" action="{{url_for('admin_control.deactivate_user',
+                                    type_set='deactivate_user', u_id=u.id)}}">
+                                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                          <input class="btn btn-sm btn-outline-danger btn-block"
+                                                 type="submit" name="activate" value="Деактивировать"
+                                                 onclick="loadingCircle()"
+                                                 {% if u.role == 'superuser' %}disabled{% endif %}>
+                              </form>
+                          {% endif %}
+                            <br>
+                      </td>
+                      <td>
+                          <form method="post" action="{{ url_for('admin_control.delete_user', u_id=u.id)}}">
+                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                              <button type="submit" class="btn btn-sm btn-outline-danger"
+                                  title="Удалить пользователя {{ u.login_name }}"
+                                  onclick="loadingCircle()" {% if u.role == 'superuser' %}disabled{% endif %}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
+                                        <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/>
+                                  </svg>
+    {#                                      <input type="hidden" name="delete">#}
+                              </button>
+
+                          </form>
+                      </td>
+                    </tr>
+
+
+                {%endfor%}
+              </tbody>
+            </table>
+
+        </div>
+    {%endif%}
+</div>

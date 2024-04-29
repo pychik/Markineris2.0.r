@@ -1,0 +1,71 @@
+
+
+<div class="collapse text-center" id="cross_order_user_search">
+
+    <small class="form-text text-muted mt-3">Введите интересующий вас ИНН! Будут представлены пользователи, оформившие по нему заказы.<br>
+        Поиск ИНН производится по истории заказов (если пользователь еще не заказал, то информации не будет).<br>
+        Сервис подгружает не более 50 результатов.</small>
+    <div class="row">
+        <div class="col-md-2"></div>
+        <div class="col-md-8 col-xs-12 d-flex">
+            <input type="number" name="cross_order_idn" id="cross_order_idn" class="form-control"
+                   placeholder="Введите ИНН">
+        </div>
+
+    </div>
+    <div id="cross_user_search_result"></div>
+    <div id="cross_user_markineris_search_result"></div>
+</div>
+
+
+<script>
+    $(document).ready(function(){
+      {#load_data();#}
+      function load_data(query)
+      {
+       var csrf_token = "{{ csrf_token() }}";
+       $.ajax({
+        url:"{{ url_for('admin_control.cross_user_search') }}",
+        headers:{"X-CSRFToken": csrf_token},
+        method:"POST",
+        data:{query:query},
+        success:function(data)
+        {
+          $('#cross_user_search_result').html(data);
+          $("#cross_user_search_result").append(data.htmlresponse);
+        }
+       });
+      }
+      $('#cross_order_idn').keyup(function(){
+        var search = $(this).val();
+
+        if(search.length >= 8) {
+            if (search !== '') {
+                load_data(search);
+                // load_markineris_data(search)
+            } else {
+                load_data();
+            }
+        }
+      });
+    });
+
+function load_markineris_data(organization_idn)
+      {
+       var csrf_token = "{{ csrf_token() }}";
+       $.ajax({
+        url:"{{ markineris_url_coi }}",
+        method:"POST",
+        contentType: "application/json",
+        headers:{'X-CSRFToken': csrf_token,
+                 'so_session_secret':'{{ markineris_secret }}'},
+        data: JSON.stringify({organization_idn:organization_idn}),
+        dataType: "json",
+        success:function(data)
+        {
+          $('#cross_user_markineris_search_result').html(data);
+          $("#cross_user_markineris_search_result").append(data.htmlresponse);
+        }
+       });
+      }
+</script>

@@ -103,7 +103,13 @@ function bck_edit_user_price(url, user_price_block)
         // console.log(data);
 
         if(data.status==='success'){
-            document.getElementById(user_price_block).innerHTML = data.user_block;
+            // document.getElementById(user_price_block).innerHTML = data.user_block;
+            var elements = document.querySelectorAll('#'+ user_price_block);
+
+            // Iterate over each selected element and change its content
+            elements.forEach(function(element) {
+                element.innerHTML = data.user_block;
+            });
         }
 
         make_message(data.message, data.status);

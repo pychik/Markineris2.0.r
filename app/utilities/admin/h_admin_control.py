@@ -780,7 +780,7 @@ def h_user_search(user_admin_id: int) -> Response:
     if current_user.role not in [settings.SUPER_USER, ] and current_user.id != user_admin_id:
         return Response('', 403)
     search_word = request.form.get('query')
-
+    basic_prices = None
     if search_word:
         res = db.session.execute(text(
             # f"SELECT * FROM public.users "
@@ -790,6 +790,13 @@ def h_user_search(user_admin_id: int) -> Response:
             f"u.balance as balance, "
             f"u.email as email, "
             f"u.status as status, "
+            f"max(pr.price_code) as price_code, "
+            f"max(pr.price_1) as price_1, "
+            f"max(pr.price_2) as price_2, "
+            f"max(pr.price_3) as price_3, "
+            f"max(pr.price_4) as price_4, "
+            f"max(pr.price_5) as price_5, "
+            f"bool_and(pr.price_at2) as price_at2, "
             f"u.role as role, "
             f"u.client_code as client_code, "
             f"u.created_at as created_at,"
@@ -799,6 +806,7 @@ def h_user_search(user_admin_id: int) -> Response:
             f"MAX(os.created_at) as os_created_at "
             f"FROM public.users u "
             f"LEFT JOIN public.orders_stats as os on os.user_id=u.id "
+            f"LEFT JOIN public.prices pr on pr.id=u.price_id "
             f"LEFT JOIN public.users_partners as up on up.user_id=u.id "
             f"LEFT JOIN public.partner_codes as pc on pc.id=up.partner_code_id "
             f"WHERE u.admin_parent_id=:user_admin_id AND "
@@ -810,18 +818,21 @@ def h_user_search(user_admin_id: int) -> Response:
             f"LIMIT {settings.PAGINATION_PER_PAGE}").bindparams(user_admin_id=user_admin_id, search_word=search_word))
         numrows = int(res.rowcount)
         clients = res.fetchall()[:settings.PAGINATION_PER_PAGE]
+        basic_prices = settings.Prices.BASIC_PRICES
+
     else:
         numrows = 0
         clients = ''
 
-    return jsonify({'htmlresponse': render_template('helpers/user_search_response.html', clients=clients,
-                                                    numrows=numrows, admin_id=user_admin_id)})
+    return jsonify({'htmlresponse': render_template('admin/user_search/user_search_response.html', clients=clients,
+                                                    numrows=numrows, admin_id=user_admin_id, basic_prices=basic_prices)})
 
 
 def h_user_search_idn(user_admin_id: int) -> Response:
     if current_user.role not in [settings.SUPER_USER, ] and current_user.id != user_admin_id:
         return Response('', 403)
     search_idn = request.form.get('query', '').replace("--", "")
+    basic_prices = None
 
     if search_idn:
         res = db.session.execute(text(
@@ -832,6 +843,13 @@ def h_user_search_idn(user_admin_id: int) -> Response:
             f"u.phone as phone, "
             f"u.email as email, "
             f"u.status as status, "
+            f"max(pr.price_code) as price_code, "
+            f"max(pr.price_1) as price_1, "
+            f"max(pr.price_2) as price_2, "
+            f"max(pr.price_3) as price_3, "
+            f"max(pr.price_4) as price_4, "
+            f"max(pr.price_5) as price_5, "
+            f"bool_and(pr.price_at2) as price_at2, "
             f"u.role as role, "
             f"u.created_at as created_at, "
             f"MAX(pc.code) as partners_code, "
@@ -840,6 +858,7 @@ def h_user_search_idn(user_admin_id: int) -> Response:
             f"MAX(os.created_at) as os_created_at "
             f"FROM public.users u "
             f"LEFT JOIN public.orders_stats as os on os.user_id=u.id AND os.company_idn LIKE '%' || '{search_idn}' || '%' "
+            f"LEFT JOIN public.prices pr on pr.id=u.price_id "
             f"LEFT JOIN public.users_partners as up on up.user_id=u.id "
             f"LEFT JOIN public.partner_codes as pc on pc.id=up.partner_code_id "
             f"WHERE u.id in(SELECT pos.user_id FROM public.orders_stats pos "
@@ -849,19 +868,21 @@ def h_user_search_idn(user_admin_id: int) -> Response:
             f"LIMIT {settings.PAGINATION_PER_PAGE}").bindparams(search_idn=search_idn, user_admin_id=user_admin_id))
         numrows = int(res.rowcount)
         clients = res.fetchall()
+        basic_prices = settings.Prices.BASIC_PRICES
     else:
+
         numrows = 0
         clients = ''
 
-    return jsonify({'htmlresponse': render_template('helpers/user_search_response.html', clients=clients,
-                                                    numrows=numrows, admin_id=user_admin_id)})
+    return jsonify({'htmlresponse': render_template('admin/user_search/user_search_response.html', clients=clients,
+                                                    numrows=numrows, admin_id=user_admin_id, basic_prices=basic_prices)})
 
 
 def h_cross_user_search() -> Response:
     search_idn = request.form.get('query')
     if search_idn and not search_idn.isdigit():
         search_idn = None
-
+    basic_prices = None
     if search_idn:
         res = db.session.execute(text(
             f"SELECT "
@@ -870,11 +891,19 @@ def h_cross_user_search() -> Response:
             f"u.email as email, "
             f"u.status as status, "
             f"u.role as role, "
+            f"max(pr.price_code) as price_code, "
+            f"max(pr.price_1) as price_1, "
+            f"max(pr.price_2) as price_2, "
+            f"max(pr.price_3) as price_3, "
+            f"max(pr.price_4) as price_4, "
+            f"max(pr.price_5) as price_5, "
+            f"bool_and(pr.price_at2) as price_at2, "
             f"(SELECT a.login_name from public.users a WHERE ( a.id=u.admin_parent_id AND (a.role in('admin', 'superuser'))) OR (a.id=u.id AND (a.role in('admin', 'superuser')))) as admin, "
             f"COUNT(os.id) as orders_count, "
             f"MAX(os.created_at) as created_at "
             f"FROM public.users u "
             f"LEFT JOIN public.orders_stats as os on os.user_id=u.id AND os.company_idn LIKE '%' || '{search_idn}' || '%' "
+            f"LEFT JOIN public.prices pr on pr.id=u.price_id "
             f"WHERE u.id in(SELECT pos.user_id FROM public.orders_stats pos "
             f"WHERE pos.company_idn LIKE '%' || '{search_idn}' || '%') "
             f"GROUP BY u.id "
@@ -882,12 +911,13 @@ def h_cross_user_search() -> Response:
             f"LIMIT {settings.PAGINATION_PER_PAGE}"))
         numrows = int(res.rowcount)
         clients = res.fetchall()[:settings.PAGINATION_PER_PAGE]
+        basic_prices = settings.Prices.BASIC_PRICES
     else:
         numrows = 0
         clients = ''
 
-    return jsonify({'htmlresponse': render_template('helpers/cross_user_search_response.html', clients=clients,
-                                                    numrows=numrows)})
+    return jsonify({'htmlresponse': render_template('admin/user_search/cross_user_search_response.html', clients=clients,
+                                                    numrows=numrows, basic_prices=basic_prices)})
 
 
 def h_users_orders_stats(admin_id=None):
