@@ -607,9 +607,8 @@ def helper_change_manager(manager_id: int, o_id: int) -> Response:
         flash(message=settings.Messages.ORDER_MANAGER_CHANGE_ABS_ERROR, category='error')
 
     else:
-        stmt = f"""
-                UPDATE public.orders SET manager_id={new_manager_id} WHERE id={o_id};
-                """
+        stmt = (text("UPDATE public.orders SET manager_id=:new_manager_id WHERE id=:o_id;")
+                .bindparams(new_manager_id=new_manager_id, o_id=o_id))
         try:
             db.session.execute(stmt)
             db.session.commit()
