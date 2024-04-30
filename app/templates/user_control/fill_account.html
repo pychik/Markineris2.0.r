@@ -46,14 +46,14 @@
                         </div>
                         <div class="input-group mt-3" title="Введите сумму пополнения">
 
-                           <input type="number" id="bill_summ" name="bill_summ" class="form-control" placeholder="Введите сумму от {{ minimum_refill }} р."
-                                               min="1000" max="1000000" required>
+                           <input type="number" id="bill_summ" name="bill_summ" class="form-control" placeholder="Введите любую сумму"
+                                               min="{{ minimum_refill }}" max="1000000" required>
                           <div class="input-group-append">
                             <span class="input-group-text" id="bill-addon">руб.</span>
                           </div>
 
                         </div>
-                        <div class="small text-danger mb-3">От {{ minimum_refill }} р.</div>
+                        <div class="small text-danger mb-3">Пополнение от любой суммы</div>
                         <div class="input-group mb-3" title="Введите промокод, если он у вас есть">
                           <div class="input-group-prepend">
                             <span class="input-group-text btn-accent" id="promo-addon">Промокод</span>
