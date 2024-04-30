@@ -464,6 +464,10 @@ function perform_balance_order_check(url, csrf, o_id, category){
 
 }
 
+function set_no_tm(){
+    $('#trademark').val('БЕЗ ТОВАРНОГО ЗНАКА');
+}
+
 function set_no_article(){
     $('#article').val('БЕЗ АРТИКУЛА');
 }

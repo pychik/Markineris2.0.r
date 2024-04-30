@@ -12,7 +12,7 @@ from utilities.support import (user_activated, su_required, sumausmumu_required,
 from .helpers import helper_get_agent_orders, helper_get_manager_orders, helper_m_order_processed, helper_m_order_ps, \
     helper_attach_file, helper_download_file, helper_delete_order_file, helpers_problem_order, helper_cancel_order, \
     helper_change_agent_stage, helpers_m_take_order, helper_change_manager, helper_attach_of_link, helper_m_order_bp, \
-    helpers_move_orders_to_processed, helper_search_crma_order, helper_search_crmm_order
+    helpers_move_orders_to_processed, helper_search_crma_order, helper_search_crmm_order, helpers_ceps_order
 from .helpers_mo import h_all_new_multi_pool
 crm_d = Blueprint('crm_d', __name__)
 
@@ -42,7 +42,7 @@ def agents():
         sent_orders = list(filter(lambda x: x.stage == settings.OrderStage.SENT, all_orders_no_limit))
 
         ps_limit_qry = ServerParam.query.get(1)
-        problem_order_time_limit = ps_limit_qry.crm_manager_ps_limit if ps_limit_qry\
+        problem_order_time_limit = ps_limit_qry.crm_manager_ps_limit if ps_limit_qry and ps_limit_qry.crm_manager_ps_limit\
             else settings.OrderStage.DEFAULT_PS_LIMIT
         cur_time = datetime.now()
         of_max_size = settings.OrderStage.MAX_ORDER_FILE_SIZE
@@ -51,7 +51,7 @@ def agents():
                                  User.query.with_entities(User.id, User.login_name).filter(
                                      User.role == settings.MANAGER_USER).all()))
         search_order_url = url_for('crm_d.search_crma_order')
-    # using bck upload flag as 1
+        # using bck upload flag as 1
     bck = request.args.get('bck', 0, int)
     return render_template('crm/crm_agent.html', **locals()) if not bck \
         else jsonify({'htmlresponse': render_template(f'crm/crma/crma_main_block.html', **locals())})
@@ -117,6 +117,29 @@ def set_problem_order(o_id: int, user_type: str = None):
     return redirect(url_for(f'crm_d.{user_type}'))
 
 
+@crm_d.route('/ceps/<int:o_id>/<int:ep>', methods=["POST"])
+@login_required
+@user_activated
+def ceps(o_id: int, ep: int):
+
+    # change external problem stage
+    status = 'danger'
+    if ep not in [0, 1]:
+        message = settings.Messages.SUPER_MOD_REQUIRED
+        return jsonify({'status': status, 'message': message})
+    if ep == 0:
+        if current_user.role not in [settings.SUPER_USER, settings.ADMIN_USER]:
+            message = settings.Messages.SUPERADMIN_MADMIN_USER_REQUIRED
+            return jsonify({'status': status, 'message': message})
+
+    if ep == 1:
+        if current_user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MANAGER_USER]:
+            message = settings.Messages.CRM_MANAGER_USER_REQUIRED
+            return jsonify({'status': status, 'message': message})
+
+    return helpers_ceps_order(o_id=o_id, ep=ep)
+
+
 @crm_d.route('/managers', defaults={'filtered_manager_id': None}, methods=["GET"])
 @crm_d.route('/managers/<int:filtered_manager_id>', methods=["GET"])
 @login_required
@@ -137,7 +160,7 @@ def managers(filtered_manager_id: int = None):
     m_solved_orders = list(filter(lambda x: x.stage == settings.OrderStage.MANAGER_SOLVED, all_orders_raw))
 
     ps_limit_qry = ServerParam.query.get(1)
-    problem_order_time_limit = ps_limit_qry.crm_manager_ps_limit if ps_limit_qry \
+    problem_order_time_limit = ps_limit_qry.crm_manager_ps_limit if ps_limit_qry and ps_limit_qry.crm_manager_ps_limit \
         else settings.OrderStage.DEFAULT_PS_LIMIT
     cur_time = datetime.now()
     of_max_size = settings.OrderStage.MAX_ORDER_FILE_SIZE
@@ -147,7 +170,9 @@ def managers(filtered_manager_id: int = None):
                                  User.role == settings.MANAGER_USER).all()))
     search_order_url = url_for('crm_d.search_crmm_order')
 
-    return render_template('crm/crm_manager.html', **locals())
+    bck = request.args.get('bck', 0, int)
+    return render_template('crm/crm_manager.html', **locals()) if not bck \
+        else jsonify({'htmlresponse': render_template(f'crm/crmm/crmm_main_block.html', **locals())})
 
 
 @crm_d.route('/m_take_order/<int:o_id>', methods=["POST"])

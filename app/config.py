@@ -221,8 +221,8 @@ class Settings(BaseSettings):
         CHECK_CHANGING_STAGES: tuple = ((NEW, POOL), (MANAGER_PROCESSED, SENT), (MANAGER_SOLVED, SENT), )
         ORDER_PROCESS_CRM: str = 'process_crm'
         ORDER_PROCESS_AT2: str = 'process_at2'
-        DAYS_CONTENT: int = 7
-        DAYS_SENT_CONTENT: int = 5
+        DAYS_CONTENT: int = 2
+        DAYS_SENT_CONTENT: int = 1
         MANAGER_ORDERS_LIMIT: int = 10
         PS_DICT = CRM_PS_DICT
         PO_LIMIT = 'po_limit'
@@ -704,6 +704,9 @@ class Settings(BaseSettings):
         ORDER_MANAGER_CHANGE_ERROR: str = "Во время изменения менеджера заказа произошла ошибка базы. "
         ORDER_MANAGER_CHANGE_ABS_ERROR: str = "Во время изменения менеджера заказа произошла ошибка. Такого заказа нет"
         ORDER_PROCESSED_NOT_PAID: str = "Заказ не оплачен. Нельзя перевести в завершенные."
+        ORDER_CEPS_SUCCESS: str = "Успешно изменен флаг внешней проблемы заказа!"
+        ORDER_CEPS_ERROR: str = "Во время смены флага внешней проблемы заказа произошла ошибка"
+        NO_SUCH_ORDER_CRM: str = "Ошибка! Такого заказа нет в CRM"
         OCO_REMOVED: str = "Из бд удалены старые отмененные заказы! "
         OCO_REMOVED_ERROR: str = "Во время удаления старых отмененных заказов произошла ошибка! "
         OS_CHANGE_SUCCESS: str = "Успешно изменены статусы заказов из {stage_from} в {stage_to}"

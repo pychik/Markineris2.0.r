@@ -65,6 +65,7 @@ def helper_get_agent_orders(user: User) -> list:
                                   o.company_type as company_type,
                                   o.company_name as company_name,
                                   o.company_idn as company_idn,
+                                  o.external_problem as external_problem,
                                   o.edo_type as edo_type,
                                   o.mark_type as mark_type,
                                   o.user_comment as user_comment,
@@ -89,7 +90,7 @@ def helper_get_agent_orders(user: User) -> list:
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                   LEFT JOIN public.parfum p ON o.id = p.order_id
                         WHERE u.id in({stmt_users}) AND {conditional_stmt}
-                        GROUP BY u.id, o.id
+                        GROUP BY u.id, o.id, o,crm_created_at
                         ORDER BY o.crm_created_at
                        """
     else:
@@ -110,6 +111,7 @@ def helper_get_agent_orders(user: User) -> list:
                                   o.company_type as company_type,
                                   o.company_name as company_name,
                                   o.company_idn as company_idn,
+                                  o.external_problem as external_problem,
                                   o.edo_type as edo_type,
                                   o.mark_type as mark_type,
                                   o.user_comment as user_comment,
@@ -180,6 +182,7 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                  o.company_type as company_type,
                                  o.company_name as company_name,
                                  o.company_idn as company_idn,
+                                 o.external_problem as external_problem,
                                  o.edo_type as edo_type,
                                  o.mark_type as mark_type,
                                  o.user_comment as user_comment,
@@ -230,6 +233,7 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                   o.company_type as company_type,
                                   o.company_name as company_name,
                                   o.company_idn as company_idn,
+                                  o.external_problem as external_problem,
                                   o.edo_type as edo_type,
                                   o.mark_type as mark_type,
                                   o.user_comment as user_comment,
@@ -860,6 +864,29 @@ def helpers_problem_order(problem_order: Order, problem_comment: str, with_check
         MarkinerisInform.send_message_tg.delay(order_idn=problem_order.order_idn, problem_order_flag=True)
 
 
+def helpers_ceps_order(o_id: int, ep: int):
+    status = 'danger'
+    message = settings.Messages.NO_SUCH_ORDER_CRM
+    try:
+
+        order_info = db.session.execute(text("SELECT id from public.orders WHERE id=:o_id;").bindparams(o_id=o_id)).fetchone()
+        if not order_info:
+            return jsonify({'status': status, 'message': message})
+        ep = True if ep == 1 else False
+        query = text("UPDATE public.orders SET external_problem=:ep WHERE id=:o_id;").bindparams(o_id=o_id, ep=ep)
+
+        db.session.execute(query)
+        db.session.commit()
+
+        status = 'success'
+        message = settings.Messages.ORDER_CEPS_SUCCESS
+        return jsonify({'status': status, 'message': message})
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"{settings.Messages.ORDER_CEPS_ERROR} {e}")
+        return jsonify({'status': status, 'message': message})
+
+
 def helpers_m_take_order(user: User, o_id: int) -> Response:
     order_id = Order.query.with_entities(Order.id, Order.stage).filter_by(id=o_id, stage=settings.OrderStage.POOL).first()
 
@@ -1097,6 +1124,7 @@ def h_get_agent_order_info(search_order_idn):
                                       o.company_type as company_type,
                                       o.company_name as company_name,
                                       o.company_idn as company_idn,
+                                      o.external_problem as external_problem,
                                       o.edo_type as edo_type,
                                       o.mark_type as mark_type,
                                       o.user_comment as user_comment,
@@ -1166,6 +1194,7 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                      o.company_type as company_type,
                                      o.company_name as company_name,
                                      o.company_idn as company_idn,
+                                     o.external_problem as external_problem,
                                      o.edo_type as edo_type,
                                      o.mark_type as mark_type,
                                      o.user_comment as user_comment,
@@ -1217,6 +1246,7 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                       o.company_type as company_type,
                                       o.company_name as company_name,
                                       o.company_idn as company_idn,
+                                      o.external_problem as external_problem,
                                       o.edo_type as edo_type,
                                       o.mark_type as mark_type,
                                       o.user_comment as user_comment,
@@ -1264,7 +1294,7 @@ def helper_search_crma_order() -> Response:
 
     status = 'success'
     ps_limit_qry = ServerParam.query.get(1)
-    problem_order_time_limit = ps_limit_qry.crm_manager_ps_limit if ps_limit_qry \
+    problem_order_time_limit = ps_limit_qry.crm_manager_ps_limit if ps_limit_qry and ps_limit_qry.crm_manager_ps_limit \
         else settings.OrderStage.DEFAULT_PS_LIMIT
     cur_time = datetime.now()
     match order_info.stage:
@@ -1316,7 +1346,7 @@ def helper_search_crmm_order() -> Response:
 
     status = 'success'
     ps_limit_qry = ServerParam.query.get(1)
-    problem_order_time_limit = ps_limit_qry.crm_manager_ps_limit if ps_limit_qry \
+    problem_order_time_limit = ps_limit_qry.crm_manager_ps_limit if ps_limit_qry and ps_limit_qry.crm_manager_ps_limit \
         else settings.OrderStage.DEFAULT_PS_LIMIT
     cur_time = datetime.now()
 

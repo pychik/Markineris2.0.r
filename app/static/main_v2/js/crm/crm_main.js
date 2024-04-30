@@ -154,6 +154,30 @@ function timing_management(delta, obj_id, min_id, sec_id){
 
 }
 
+
+function change_external_problem_stage(url, update_url, csrf) {
+    $.ajax({
+        url: url,
+        headers: {"X-CSRFToken": csrf},
+        method: "POST",
+        data: {},
+        success: function (data) {
+            // make_message(data.message, data.status);
+
+
+            if (data.status === 'success') {
+                update_crm_info(update_url);
+            }
+            make_message(data.message, data.status);
+        },
+        error: function () {
+            make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
+            // close_Loading_circle();
+        }
+    });
+}
+
+
 function update_crm_info(url){
 
    $.ajax({

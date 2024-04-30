@@ -14,3 +14,10 @@
 
     </div>
 </div>
+<script>
+    var update_managers_url = "{{url_for('crm_d.managers', bck=1)}}";
+    var managers_list = [{% for m in managers_list %}['{{m[0]}}','{{m[1]}}'], {% endfor %}];
+    var OF_MAX_SIZE = {{ of_max_size }};
+    var SEARCH_ORDER_URL = "{{search_order_url}}";
+    var delta_timer_color = {{ problem_order_time_limit }};
+</script>

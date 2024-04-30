@@ -92,18 +92,44 @@
 
                     </div>
                     <div class="card mt-3 p-1 text-center">
-                        <div class="text-center">
-                            <h4><span class="badge badge-warning" id="time_counter_po{{ n.id }}"
-                                      title="Время с момента обнаружения проблемы">
+                        <div class="row">
+                            <div class="col-8">
+                                <div class="text-center">
+                                    <h4><span class="badge badge-warning" id="time_counter_po{{ n.id }}"
+                                              title="Время с момента обнаружения проблемы">
 
-                                    <span id="minutes{{ n.id }}"></span>&nbsp;:&nbsp;<span id="seconds{{ n.id }}"></span>
+                                            <span id="minutes{{ n.id }}"></span>&nbsp;:&nbsp;<span id="seconds{{ n.id }}"></span>
 
-                                    <script>
-                                        {#var sec{{ n.id }} = {{(cur_time - n.cp_created).seconds}};#}
-                                        timing_management({{ (cur_time - n.cp_created).total_seconds() | int }}, "time_counter_po{{ n.id }}", "minutes{{ n.id }}", "seconds{{ n.id }}" )
-                                    </script>
-                                </span>
-                            </h4>
+                                            <script>
+                                                timing_management({{ (cur_time - n.cp_created).total_seconds() | int }}, "time_counter_po{{ n.id }}", "minutes{{ n.id }}", "seconds{{ n.id }}" )
+                                            </script>
+                                        </span>
+                                    </h4>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <h4>
+                                {% if n.external_problem %}
+                                    <span class="badge bg-error blink_me" title="Оператор поставил флаг внешней проблемы заказа, Нажмите если проблема устранена"
+                                        >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-lock" viewBox="0 0 16 16">
+                                          <path d="M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0M8 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4m0 5.996V14H3s-1 0-1-1 1-4 6-4q.845.002 1.544.107a4.5 4.5 0 0 0-.803.918A11 11 0 0 0 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664zM9 13a1 1 0 0 1 1-1v-1a2 2 0 1 1 4 0v1a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1zm3-3a1 1 0 0 0-1 1v1h2v-1a1 1 0 0 0-1-1"/>
+                                        </svg>
+                                    </span>
+                                {%else%}
+                                    <span class="badge badge-success text-white" title="Заказ без внешних проблем"
+                                          style="cursor:pointer"
+                                        onclick="change_external_problem_stage(`{{url_for('crm_d.ceps', o_id=n.id, ep=1) }}`, update_managers_url,`{{ csrf_token() }}`)">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard-check" viewBox="0 0 16 16">
+                                          <path fill-rule="evenodd" d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0"></path>
+                                          <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z"></path>
+                                          <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0z"></path>
+                                        </svg>
+                                    </span>
+                                {% endif %}
+                                </h4>
+                            </div>
+
                         </div>
                         <span class="bg-error text-white font-12"><b>Проблема</b>:<br> {{ n.comment_problem }}</span>
 
@@ -237,13 +263,3 @@
           {% endfor %}
         </div>
 </div>
-
-<script>
-    <!-- constant for color change in timer-->
-    const delta_timer_color = {{ problem_order_time_limit }}
-</script>
-
-
-
-
-

@@ -231,13 +231,14 @@ class Order(db.Model, UserMixin):
 
     payment = db.Column(db.Boolean(), default=False)
     processed = db.Column(db.Boolean(), default=False)
+    external_problem = db.Column(db.Boolean(), default=False)
 
     stage = db.Column(db.Integer, default=0, index=True)
     comment_problem = db.Column(db.String(230), default='')
     comment_cancel = db.Column(db.String(230), default='')
 
-    m_started = db.Column(db.DateTime())  # manager have taken order
-    m_finished = db.Column(db.DateTime())  # manager have taken order
+    m_started = db.Column(db.DateTime())  # manager has taken order
+    m_finished = db.Column(db.DateTime())  # manager has taken order
     cp_created = db.Column(db.DateTime())  # problem created
     cc_created = db.Column(db.DateTime())  # cancel made
 

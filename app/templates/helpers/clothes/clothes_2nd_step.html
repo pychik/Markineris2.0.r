@@ -19,6 +19,12 @@
                                title="Вводимое значение не должно превышать 50 знаков"
                             {% if copied_order %}value="{{ copied_order.trademark }}"
                             {% endif %}>
+                        <div class="row">
+                            <div class="col-6"></div>
+                            <div class="col-4 text-right">
+                                <div onclick="set_no_tm();"><span class="badge link-secondary font-8" style="font-size: 8px; font-weight:bold; cursor:pointer">БЕЗ ТОВАРНОГО ЗНАКА</span></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="col-md-4">
