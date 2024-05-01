@@ -131,11 +131,11 @@ class Price(db.Model, UserMixin):
     __tablename__ = 'prices'
     id = db.Column(db.Integer, primary_key=True)
     price_code = db.Column(db.String(50), unique=True)
-    price_1 = db.Column(db.Integer, default=settings.Prices.F_LTE_100)
-    price_2 = db.Column(db.Integer, default=settings.Prices.F_100_500)
-    price_3 = db.Column(db.Integer, default=settings.Prices.F_500_1K)
-    price_4 = db.Column(db.Integer, default=settings.Prices.F_1K_3K)
-    price_5 = db.Column(db.Integer, default=settings.Prices.F_3K_10K)
+    price_1 = db.Column(db.Numeric(10, 2), default=settings.Prices.F_LTE_100)
+    price_2 = db.Column(db.Numeric(10, 2), default=settings.Prices.F_100_500)
+    price_3 = db.Column(db.Numeric(10, 2), default=settings.Prices.F_500_1K)
+    price_4 = db.Column(db.Numeric(10, 2), default=settings.Prices.F_1K_3K)
+    price_5 = db.Column(db.Numeric(10, 2), default=settings.Prices.F_3K_10K)
     price_at2 = db.Column(db.Boolean, default=False)  # price packet for agent type 2
     created_at = db.Column(db.DateTime(), default=datetime.now)
     users = db.relationship('User', back_populates='prices', lazy='dynamic')
@@ -164,7 +164,7 @@ class UserTransaction(db.Model, UserMixin):
     # True if refill and False is write-off
     type = db.Column(db.Boolean, default=False)
     amount = db.Column(db.Integer)
-    op_cost = db.Column(db.Integer, default=0)  # in case transaction for orders write off - price per one mark
+    op_cost = db.Column(db.Numeric(10, 2), default=0)  # in case transaction for orders write off - price per one mark
     agent_fee = db.Column(db.Integer, default=20)
     status = db.Column(db.Integer, default=settings.Transactions.PENDING)
     bill_path = db.Column(db.String(150), unique=True)
@@ -285,7 +285,7 @@ class OrderStat(db.Model, UserMixin):
     rows_count = db.Column(db.Integer, default=1)
     marks_count = db.Column(db.Integer, default=1)
     created_at = db.Column(db.DateTime(),)
-    op_cost = db.Column(db.Integer, default=None)  # order price per one mark cost
+    op_cost = db.Column(db.Numeric(10, 2), default=None)  # order price per one mark cost
     # payment = db.Column(db.Boolean, default=False)
 
     comment_problem = db.Column(db.String(230), default='')

@@ -181,7 +181,10 @@ class UploadClothes(UploadCategory):
             vs = UploadClothes.ValidateStandart()
             return vs.full_validate_standart(order_list=res_list)
         except IndexError as e:
-            logger.error(e)
+            logger.error(str(e))
+            return None, None
+        except Exception as exc:
+            logger.error(str(exc))
             return None, None
 
     class ValidateStandart(ValidateClothesMixin):
@@ -193,31 +196,40 @@ class UploadClothes(UploadCategory):
             row_num = copy(settings.Clothes.UPLOAD_STANDART_ROW)
 
             for data_group in order_list:
-
+                # print(data_group)
                 trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C')
                 article_error = self._article(value=data_group[1].strip(), row_num=row_num, col='E')
                 type_error = self._type(value=data_group[2].strip(), row_num=row_num, col='F',
                                         pos=2, order_list=order_list)
+                # print(type_error)
 
                 color_error = self._color(value=data_group[3].strip(), row_num=row_num, col='G', pos=3,
                                           order_list=order_list)
+                # print(color_error)
                 gender_error = self._gender(value=data_group[4].strip(), row_num=row_num, col='H')
+                # print(gender_error)
                 size_type_error = self._size_type(value=data_group[5].strip(), row_num=row_num, col='I', pos=5,
                                                   order_list=order_list)
+                # print(size_type_error)
                 size_error = self._size(value=data_group[6].strip(), row_num=row_num, col='J', pos=6,
                                         order_list=order_list)
+                # print(size_error)
                 content_error = self._content(order_list=order_list, cloth_material=data_group[7].strip(),
                                               row_num=row_num, col='K', pos=7)
+                # print(content_error)
                 tnved_error = self._tnved(order_list=order_list, clothes_type=data_group[2].strip(),
                                           value=data_group[8].strip(), row_num=row_num, col='L', pos=8)
+                # print(tnved_error)
                 quantity_error = self._quantity(value=data_group[9].strip(), row_num=row_num, col='M')
+                # print(quantity_error)
                 country_error = self._country(value=data_group[10].strip(), row_num=row_num, col='N',
                                               pos=10, order_list=order_list)
-
+                # print(country_error)
                 rd_general_error, rd_type_error, \
                     rd_name_error, rd_date_error = self._rd_general(list_values=data_group[11:14],
                                                                     row_num=row_num, order_list=order_list,
                                                                     cols=('O', 'P', 'Q',))
+                # print(rd_general_error)
                 error_tuple = (trademark_error, article_error, type_error, color_error, size_type_error, size_error,
                                content_error, tnved_error, gender_error, quantity_error, country_error,
                                rd_general_error, rd_type_error, rd_name_error, rd_date_error )

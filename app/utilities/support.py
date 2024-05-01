@@ -1619,12 +1619,12 @@ def helper_check_useroragent_balance(user: User, o_id: int = None) -> tuple[int,
 
     # if not is_at2 and current_price * sum_count > balance:
     # print(type(current_price), current_price, type(sum_count), sum_count)
-    if current_price * sum_count > balance:
+    if round(current_price * sum_count, 2) > balance:
         # make unnecessary check of agent type 2
         return 0, 0, is_at2, settings.Messages.answer_refill_balance(balance=balance, current_price=current_price,
                                                                      sum_count=sum_count, is_at2=is_at2)
     else:
-        return 1, current_price * prev_marks, is_at2, ''
+        return 1, round(current_price * prev_marks), is_at2, ''
 
 
 def helper_utb(user_id: int, admin_id: int, is_at2: bool) -> tuple[int, int, int, str, str]:
@@ -1649,11 +1649,11 @@ def helper_utb(user_id: int, admin_id: int, is_at2: bool) -> tuple[int, int, int
     current_price = helper_get_user_price2(price_id=price_id, pos_count=sum_count)
 
     # hard code defense against huge orders for agent type2
-    if (not is_at2 and current_price * sum_count > balance) \
-            or (is_at2 and current_price * sum_count > balance + trust_limit):
+    if (not is_at2 and round(current_price * sum_count, 2) > balance) \
+            or (is_at2 and round(current_price * sum_count, 2) > balance + trust_limit):
         return 0, 0, 0, login_name, order_idns
     else:
-        return 1, current_price, current_price * prev_marks, login_name, order_idns
+        return 1, current_price, round(current_price * prev_marks), login_name, order_idns
 
 
 def helper_get_transaction_orders_detail(t_id: int) -> tuple:
@@ -1901,11 +1901,11 @@ def helper_perform_ut_wo(user_ids: list[tuple[int]]) -> tuple[int, int]:
             transaction_google_packets.append(TransactionRow(u_id=u_id,
                                                              tr_id=tr_id,
                                                              is_at2=is_at2,
-                                                             transaction_price=transaction_price)) if not admin_id == 2 \
+                                                             transaction_price=str(transaction_price))) if not admin_id == 2 \
                 else transaction_rz_packets.append(TransactionRow(u_id=u_id,
                                                                   tr_id=tr_id,
                                                                   is_at2=is_at2,
-                                                                  transaction_price=transaction_price))
+                                                                  transaction_price=str(transaction_price)))
 
         if transaction_google_packets or transaction_rz_packets:
             update_server_balance_stmt = f"""UPDATE public.server_params set balance=balance-{total_amount} RETURNING balance;"""

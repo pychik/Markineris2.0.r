@@ -40,7 +40,7 @@ scheduler.cron(
 )
 
 scheduler.cron(
-    "* * * * *",
+    "*/30 * * * *",
     func=delete_restore_link_periodic_task,
     on_success=on_success_periodic_task,
     on_failure=on_failure_periodic_task,

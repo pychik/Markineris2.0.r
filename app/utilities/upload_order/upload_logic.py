@@ -89,17 +89,16 @@ def helper_upload_common_post(category: str, category_process_name: str,
                     return redirect(url_for(f'{category_process_name}.index', o_id=order_id))
 
         else:
-
             flash(message=settings.Messages.UPLOAD_FILES_ERROR, category='error')
             return send_file(upload_errors_file(error_list=error_list),
                              as_attachment=True,
                              download_name=settings.UPLOAD_TABLE_ERRORS_FILE,
                              mimetype='text/csv')
     except TypeError as te:
-        logger.error(te)
+        logger.error(str(te))
         flash(message=settings.Messages.UPLOAD_FILE_TYPE_ERROR, category='error')
     except ValueError as ve:
-        logger.error(ve)
+        logger.error(str(ve))
         flash(message=settings.Messages.UPLOAD_FILE_EXTEXSION_ERROR, category='error')
 
     except Exception as exception:

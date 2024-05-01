@@ -40,6 +40,9 @@ class TnvedChecker:
             answer = f"{tnved_code}{settings.Messages.TNVED_INPUT_ERROR_DIGITS}"
             return result_status, answer
         # good checks
+        if cloth_type not in settings.Clothes.CLOTHES_TNVED_DICT.keys():
+            answer = f"{tnved_code}{settings.Messages.TNVED_INPUT_ERROR_CT}"
+            return result_status, answer
         big_tnved_tuple = settings.Clothes.CLOTHES_TNVED_DICT.get(cloth_type)[0]
         if tnved_code in big_tnved_tuple or tnved_code in settings.Tnved.BIG_TNVED_LIST:
             result_status = 5

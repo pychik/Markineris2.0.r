@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from decimal import Decimal
 from os import listdir as o_list_dir
 from os import remove as o_remove
 
@@ -120,11 +121,11 @@ def h_su_add_prices():
 
     status = 'danger'
     try:
-        price_1 = int(request.form.get('price_1').replace('--', ''))
-        price_2 = int(request.form.get('price_2').replace('--', ''))
-        price_3 = int(request.form.get('price_3').replace('--', ''))
-        price_4 = int(request.form.get('price_4').replace('--', ''))
-        price_5 = int(request.form.get('price_5').replace('--', ''))
+        price_1 = Decimal(request.form.get('price_1').replace('--', ''))
+        price_2 = Decimal(request.form.get('price_2').replace('--', ''))
+        price_3 = Decimal(request.form.get('price_3').replace('--', ''))
+        price_4 = Decimal(request.form.get('price_4').replace('--', ''))
+        price_5 = Decimal(request.form.get('price_5').replace('--', ''))
         price = Price(price_code=price_code, price_at2=price_at2,
                       price_1=price_1, price_2=price_2, price_3=price_3, price_4=price_4, price_5=price_5)
 

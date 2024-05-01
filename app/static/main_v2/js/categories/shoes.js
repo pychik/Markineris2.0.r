@@ -186,13 +186,13 @@ function show_shoe_pos(index, trademark, type, color, pos_quantity, box_quantity
                     </div>
                     <div class="important-card__item">
                         <div class="important-card__prop">
-                            Материал подошвы
+                            Материал подкладки
                         </div>
                         <div class="important-card__val">${material_lining}</div>
                     </div>
                     <div class="important-card__item">
                         <div class="important-card__prop">
-                            Материал низа
+                            Материал низа / подошвы
                         </div>
                         <div class="important-card__val">${material_bottom}</div>
                     </div>
