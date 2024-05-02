@@ -846,7 +846,7 @@ CRM_PS_DICT: dict = {'ps_limit': {'name': 'ps_limit', 'min_limit': 1, 'max_limit
                                   'db_param': 'crm_manager_ps_limit'},
                      'mo_limit': {'name': 'mo_limit', 'min_limit': 2, 'max_limit': 100,
                                   'db_param': 'crm_manager_mo_limit'},
-                     'po_limit': {'name': 'po_limit', 'min_limit': 2, 'max_limit': 50,
+                     'po_limit': {'name': 'po_limit', 'min_limit': 2, 'max_limit': 100,
                                   'db_param': 'crm_manager_po_limit'},
                      'ap_rows': {'name': 'ap_rows', 'min_limit': 0, 'max_limit': 1600,
                                  'db_param': 'auto_pool_rows'},

@@ -16,7 +16,22 @@
 
             <div class="personal_acc_info" id="ServerBalance">Баланс сервиса: <span class="link-warning"><b>{{ balance }} р.</b></span></div>
             <div class="personal_acc_info">Зарезервировано на пополенние: <span class="link-warning"><b>{{ pending_balance_rf }} р.</b></span></div>
-            <a href="javascript:perform_wo_transactions('{{url_for('admin_control.bck_su_bck_wo_transactions')}}', '{{csrf_token()}}')" class="btn btn-outline-secondary">Провести заказы пользователей</a>
+            <div class="d-flex mt-3">
+                <div class="me-4">
+                    <a href="javascript:perform_wo_transactions(`{{url_for('admin_control.bck_su_bck_wo_transactions')}}`, `{{csrf_token()}}`)"
+                       id="wo_transactions_link"
+                       class="btn btn-outline-secondary disabled">Провести заказы пользователей</a>
+                </div>
+                <div >
+                    <div class="form-check form-switch">
+                        <input type="checkbox" role="switch" id="perform_wo_switchbox"
+                               class="form-check-input border border-warning" onchange="toggle_perform_wo()"
+                               title="Включатель проведения заказов">
+                        <label for="perform_wo_switchbox" class="form-check-label"></label>
+                    </div>
+                </div>
+
+            </div>
         </div>
 
     </div>

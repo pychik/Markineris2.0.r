@@ -36,6 +36,7 @@ def index():
             int(managers_list[-1].login_name.split('_')[1]) + 1)
 
     crm_defaults = helper_get_limits()
+    limits_defaults = settings.OrderStage.PS_DICT
 
     return render_template('crm/crm_uoc.html', **locals())
 

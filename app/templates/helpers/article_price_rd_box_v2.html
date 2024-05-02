@@ -86,7 +86,7 @@
                 документа</label>
             <input type="text" id="rd_name" name="rd_name" required
                 class="form-control col-sm-6"
-                placeholder="Введите код/название документа"
+                placeholder="Введите код/название документа" minlength="3" maxlength="100"
                    value="{% if copied_order %}{% if copied_order.rd_name %}{{ copied_order.rd_name }}{% endif %}{% endif %}">
         </div>
         <div class="mt-2">

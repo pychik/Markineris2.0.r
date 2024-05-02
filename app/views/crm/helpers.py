@@ -604,7 +604,8 @@ def helper_change_manager(manager_id: int, o_id: int) -> Response:
 
     new_manager_id = int(request.form.get('operator_id')) if request.form.get('operator_id') else None
 
-    managers_ids = User.query.with_entities(User.id).filter(User.role == settings.MANAGER_USER).all()
+    managers_ids = (User.query.with_entities(User.id).
+                    filter((User.role == settings.MANAGER_USER) | (User.role == settings.SUPER_MANAGER)).all())
 
     if (new_manager_id, ) not in managers_ids:
         # print(managers_ids)

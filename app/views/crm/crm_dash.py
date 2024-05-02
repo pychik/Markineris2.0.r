@@ -49,7 +49,7 @@ def agents():
 
         managers_list = list(map(lambda x: [x.id, x.login_name, ],
                                  User.query.with_entities(User.id, User.login_name).filter(
-                                     User.role == settings.MANAGER_USER).all()))
+                                     User.role in [settings.MANAGER_USER, settings.SUPER_MANAGER]).all()))
         search_order_url = url_for('crm_d.search_crma_order')
         # using bck upload flag as 1
     bck = request.args.get('bck', 0, int)
@@ -165,9 +165,9 @@ def managers(filtered_manager_id: int = None):
     cur_time = datetime.now()
     of_max_size = settings.OrderStage.MAX_ORDER_FILE_SIZE
 
-    managers_list = list(map(lambda x: [x.id, x.login_name, ],
+    managers_list = list(map(lambda x: (x.id, x.login_name,),
                              User.query.with_entities(User.id, User.login_name).filter(
-                                 User.role == settings.MANAGER_USER).all()))
+                                 (User.role == settings.MANAGER_USER) | (User.role == settings.SUPER_MANAGER)).all()))
     search_order_url = url_for('crm_d.search_crmm_order')
 
     bck = request.args.get('bck', 0, int)

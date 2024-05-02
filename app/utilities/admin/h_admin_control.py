@@ -620,18 +620,24 @@ def h_set_process_type(u_id: int, p_type: str) -> Response:
 
 def h_delete_user_admin(u_id: int) -> Response:
     user = User.query.filter_by(id=u_id).first()
-
+    if not user:
+        flash(message=f"{settings.Messages.STRANGE_REQUESTS}", category='error')
+        return redirect(url_for('admin_control.index', expanded=settings.EXP_USERS))
+    if user.admin_group:
+        flash(message=f"{settings.Messages.DELETE_USER_ERROR} у агента есть пользователи. Свяжитесь с администратором", category='error')
+        return redirect(url_for('admin_control.index', expanded=settings.EXP_USERS))
     try:
-        partner_codes = user.partners
-        for p in partner_codes:
-            db.session.delete(p)
+        partner_codes = [p for p in user.partners]
         user.partners = []
         user.promos = []
+        for p in partner_codes:
+            db.session.delete(p)
 
         helper_delete_tg(user=user)
         user_id = user.id
         db.session.delete(user)
         db.session.commit()
+
         flash(message=f"{settings.Messages.DELETE_USER} {user.login_name} c id {user_id}")
     except Exception as e:
         db.session.rollback()

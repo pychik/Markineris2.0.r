@@ -931,6 +931,20 @@ function bck_agent_wo(url)
   }
 
 
+function toggle_perform_wo(){
+  var switchbox = document.getElementById("perform_wo_switchbox");
+  var link = document.getElementById("wo_transactions_link");
+
+  if (switchbox.checked) {
+        link.classList.remove('disabled');
+        switchbox.classList.add('bg-warning');
+    } else {
+        link.classList.add('disabled');
+        switchbox.classList.remove('bg-warning');
+    }
+}
+
+
 function perform_wo_transactions(url, csrf){
     $.ajax({
     url:url,

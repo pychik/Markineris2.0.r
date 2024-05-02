@@ -157,7 +157,7 @@
                         <label for="po_limit"><font size="5">Строк</font></label>
                     </div>
                     <div class="col-md-3 col-xs-12 text-left">
-                        <input type="number" step="1" min="0" max="1600"  id="ap_rows" name="ap_rows"
+                        <input type="number" step="1" min="{{limits_defaults.ap_rows.min_limit}}" max="{{limits_defaults.ap_rows.max_limit}}"  id="ap_rows" name="ap_rows"
                              placeholder="Укажите количество строк" class="form-control" required>
 
                     </div>
@@ -165,7 +165,7 @@
                         <label for="po_limit"><font size="5">Этикеток</font></label>
                     </div>
                     <div class="col-md-3 col-xs-12 text-left">
-                        <input type="number" step="1" min="0" max="100000"  id="ap_marks" name="ap_marks"
+                        <<input type="number" step="1" min="{{limits_defaults.ap_marks.min_limit}}" max="{{limits_defaults.ap_marks.max_limit}}"  id="ap_marks" name="ap_marks"
                              placeholder="Укажите количество этикеток" class="form-control" required>
 
                     </div>
@@ -193,7 +193,7 @@
                         <label for="as_minutes"><font size="5">Минут</font></label>
                     </div>
                     <div class="col-md-3 col-xs-12 text-left">
-                        <input type="number" step="1" min="5" max="1600"  id="as_minutes" name="as_minutes"
+                        <input type="number" step="1" min="{{limits_defaults.as_minutes.min_limit}}" max="{{limits_defaults.as_minutes.max_limit}}"  id="as_minutes" name="as_minutes"
                              placeholder="Укажите количество мин" class="form-control" onchange="if (this.value==='{{crm_defaults.as_minutes}}'){this.value='';}" required>
 
                     </div>
@@ -219,7 +219,7 @@
                         <label for="ps_limit"><font size="5">Лимит времени</font></label>
                     </div>
                     <div class="col-md-3 col-xs-12 text-left">
-                        <input type="number" step="1" min="1" max="360"  id="ps_limit" name="ps_limit"
+                        <input type="number" step="1" min="{{limits_defaults.ps_limit.min_limit}}" max="{{limits_defaults.ps_limit.max_limit}}"  id="ps_limit" name="ps_limit"
                              placeholder="Укажите время в минутах" class="form-control" required>
 
                     </div>
@@ -246,7 +246,7 @@
                         <label for="mo_limit"><font size="5">Количество заказов</font></label>
                     </div>
                     <div class="col-md-3 col-xs-12 text-left">
-                        <input type="number" step="1" min="5" max="100"  id="mo_limit" name="mo_limit"
+                        <input type="number" step="1" min="{{limits_defaults.mo_limit.min_limit}}" max="{{limits_defaults.mo_limit.max_limit}}"  id="mo_limit" name="mo_limit"
                              placeholder="Укажите количество заказов" class="form-control" required>
 
                     </div>
@@ -271,7 +271,7 @@
                         <label for="po_limit"><font size="5">Количество заказов</font></label>
                     </div>
                     <div class="col-md-3 col-xs-12 text-left">
-                        <input type="number" step="1" min="1" max="10"  id="po_limit" name="po_limit"
+                        <input type="number" step="1" min="{{limits_defaults.po_limit.min_limit}}" max="{{limits_defaults.po_limit.max_limit}}"  id="po_limit" name="po_limit"
                              placeholder="Укажите количество заказов" class="form-control" required>
 
                     </div>
