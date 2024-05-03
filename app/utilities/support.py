@@ -1880,52 +1880,64 @@ def helper_perform_ut_wo(user_ids: list[tuple[int]]) -> tuple[int, int]:
             #                                     transaction_id={tr_id}, op_cost={transaction_price};"""
 
 
-            upsert_orders_stats_stmt = f"""INSERT INTO public.orders_stats (category, company_idn, company_type, company_name, order_idn, rows_count, marks_count, op_cost, created_at, crm_created_at, user_id, transaction_id, saved_at) 
-                SELECT 
-                    o.category, 
-                    o.company_idn, 
-                    o.company_type, 
-                    o.company_name, 
-                    o.order_idn, 
-                    COUNT(COALESCE(sh.id, cl.id, l.id, p.id)), 
-                    SUM(COALESCE(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)), 
-                    {transaction_price}, 
-                    o.created_at, 
-                    o.crm_created_at, 
-                    o.user_id, 
-                    {tr_id}, 
-                    '{created_at}'
-                FROM 
-                    public.orders o
-                LEFT JOIN 
-                    public.shoes sh ON o.id = sh.order_id
-                LEFT JOIN 
-                    public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
-                LEFT JOIN 
-                    public.clothes  cl ON o.id = cl.order_id
-                LEFT JOIN 
-                    public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                LEFT JOIN 
-                    public.linen l ON o.id = l.order_id
-                LEFT JOIN 
-                    public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                LEFT JOIN 
-                    public.parfum p ON o.id = p.order_id 
-                WHERE 
-                    o.order_idn IN ({order_idns})
-                GROUP BY 
-                    o.category, 
-                    o.company_idn, 
-                    o.company_type, 
-                    o.company_name, 
-                    o.order_idn, 
-                    o.created_at, 
-                    o.crm_created_at, 
-                    o.user_id
-                ON CONFLICT (order_idn) DO UPDATE 
-                SET 
-                    transaction_id = EXCLUDED.transaction_id, 
-                    op_cost = EXCLUDED.op_cost;"""
+            upsert_orders_stats_stmt = f"""WITH inserted_data AS (
+                                            SELECT 
+                                                o.category as category, 
+                                                o.company_idn as company_idn, 
+                                                o.company_type as company_type, 
+                                                o.company_name as company_name, 
+                                                o.order_idn as order_idn, 
+                                                COUNT(COALESCE(sh.id, cl.id, l.id, p.id)) as rows_count, 
+                                                SUM(COALESCE(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count, 
+                                                {transaction_price} AS transaction_price, 
+                                                o.created_at as created_at, 
+                                                o.crm_created_at as crm_created_at, 
+                                                o.user_id as user_id, 
+                                                {tr_id} AS tr_id, 
+                                                '{created_at}'::timestamp AS saved_at
+                                            FROM 
+                                                public.orders o
+                                            LEFT JOIN 
+                                                public.shoes sh ON o.id = sh.order_id
+                                            LEFT JOIN 
+                                                public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
+                                            LEFT JOIN 
+                                                public.clothes  cl ON o.id = cl.order_id
+                                            LEFT JOIN 
+                                                public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                            LEFT JOIN 
+                                                public.linen l ON o.id = l.order_id
+                                            LEFT JOIN 
+                                                public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
+                                            LEFT JOIN 
+                                                public.parfum p ON o.id = p.order_id 
+                                            WHERE 
+                                                o.order_idn IN ({order_idns})
+                                            GROUP BY 
+                                                o.category, 
+                                                o.company_idn, 
+                                                o.company_type, 
+                                                o.company_name, 
+                                                o.order_idn, 
+                                                o.created_at, 
+                                                o.crm_created_at, 
+                                                o.user_id
+                                        )
+                                        INSERT INTO public.orders_stats (
+                                            category, company_idn, company_type, company_name, order_idn, 
+                                            rows_count, marks_count, op_cost, created_at, crm_created_at, 
+                                            user_id, transaction_id, saved_at
+                                        ) 
+                                        SELECT 
+                                            category, company_idn, company_type, company_name, order_idn, 
+                                            rows_count, marks_count, transaction_price, created_at, crm_created_at, 
+                                            user_id, tr_id, saved_at
+                                        FROM 
+                                            inserted_data
+                                        ON CONFLICT (order_idn) DO UPDATE 
+                                        SET 
+                                            transaction_id = EXCLUDED.transaction_id, 
+                                            op_cost = EXCLUDED.op_cost;"""
 
             # update_orders_stats_stmt = f"""UPDATE public.orders_stats set transaction_id={tr_id}, op_cost={transaction_price} WHERE order_idn in ({order_idns});"""
 
