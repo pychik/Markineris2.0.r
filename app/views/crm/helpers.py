@@ -91,7 +91,7 @@ def helper_get_agent_orders(user: User) -> list:
                                   LEFT JOIN public.parfum p ON o.id = p.order_id
                         WHERE u.id in({stmt_users}) AND {conditional_stmt}
                         GROUP BY u.id, o.id, o,crm_created_at
-                        ORDER BY o.crm_created_at
+                        ORDER BY o.crm_created_at ASC 
                        """
     else:
         # stmt_get_agent = f"SELECT a.login_name FROM public.users a  WHERE ((a.id=u.admin_parent_id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')) OR (a.id=u.id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')))"
@@ -139,7 +139,7 @@ def helper_get_agent_orders(user: User) -> list:
                                   LEFT JOIN public.parfum p ON o.id = p.order_id 
                               WHERE  {conditional_stmt}
                               GROUP BY u.id, o.id, o.crm_created_at
-                              ORDER BY o.crm_created_at
+                              ORDER BY o.crm_created_at ASC
                                """
 
     res = db.session.execute(text(stmt_orders))
@@ -209,7 +209,7 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                  LEFT JOIN public.parfum p ON o.id = p.order_id 
                            WHERE {conditional_stmt}
                            GROUP BY u.id, o.id, o.crm_created_at
-                           ORDER BY o.crm_created_at
+                           ORDER BY o.crm_created_at ASC
                           """
     else:
         manager_condition = f" AND o.manager_id={filtered_manager_id}" if filtered_manager_id else ""
@@ -260,7 +260,7 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                   LEFT JOIN public.parfum p ON o.id = p.order_id 
                               WHERE  {conditional_stmt}
                               GROUP BY u.id, o.id, o.crm_created_at
-                              ORDER BY o.crm_created_at
+                              ORDER BY o.crm_created_at ASC
                                """
     res = db.session.execute(text(stmt_orders))
     return res.fetchall()
