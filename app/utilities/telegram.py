@@ -176,7 +176,7 @@ class NewUser:
     ) -> str:
         partner_string = f"🤝 - <i>{partner_code}</i>\n\n" if partner_code and partner_code != settings.NO_PARTNER_CODE \
             else ''
-        message_title = f"<b>Новый пользователь с МАРКИНЕРИС!</b>\n\n" if not new_password \
+        message_title = f"<b>Новый пользователь с M2R!</b>\n\n" if not new_password \
             else f"<b>Запрос нового пароля</b>\n\n"
 
         message_body = f"👨‍💼 - <i>{username}</i>\n" \

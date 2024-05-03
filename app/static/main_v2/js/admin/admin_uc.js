@@ -842,3 +842,18 @@ function bck_pending_transaction_change_status(url, update_url,tr_type, tr_statu
 
    setTimeout(function() {clear_user_messages();}, 15000);
   }
+
+function uncheck_transaction_switch(switch_id, button_id){
+    var bg_color = 'bg-danger';
+    if (switch_id === 'confirm_transaction_switchbox'){
+        bg_color = 'bg-success';
+    }
+    if(document.getElementById(switch_id).checked === true){
+        document.getElementById(button_id).classList.remove('disabled');
+        document.getElementById(switch_id).classList.add(bg_color);
+    }
+    else{
+        document.getElementById(button_id).classList.add('disabled');
+        document.getElementById(switch_id).classList.remove(bg_color)
+    }
+}

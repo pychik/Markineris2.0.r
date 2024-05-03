@@ -34,16 +34,35 @@
     <div><b>Сумма:</b> {{ transaction.amount }} р.</div>
     <div class="col mt-3" title="Скрин транзакции">{{transaction_image | safe}}</div>
     {% if transaction.status == 1 %}
-        <div class="text-center">
-            <button class="btn btn-sm btn-outline-danger my-3" data-bs-dismiss="modal"
-                onclick="bck_pending_transaction_change_status('{{url_for('admin_control.bck_su_pending_transaction_update', u_id = transaction.user_id, t_id=transaction.id)}}',
-                '{{url_for('admin_control.su_bck_control_ut')}}',
-                {{1 if transaction.type else 0}}, 0, '{{csrf_token()}}')">Отменить транзакцию</button>
-
-            <button class="btn btn-sm btn-outline-success" data-bs-dismiss="modal"
-                onclick="bck_pending_transaction_change_status('{{url_for('admin_control.bck_su_pending_transaction_update', u_id = transaction.user_id, t_id=transaction.id)}}',
-                '{{url_for('admin_control.su_bck_control_ut')}}',
-                {{1 if transaction.type else 0}}, 2, '{{csrf_token()}}')">Подтвердить транзакцию</button>
+         <div class="text-center mt-5">
+            <div class="d-flex my-3">
+                <div class="col-10">
+                    <button class="btn btn-sm btn-outline-danger disabled" id="cancel_transaction_btn" data-bs-dismiss="modal"
+                        onclick="bck_pending_transaction_change_status(`{{url_for('admin_control.bck_su_pending_transaction_update', u_id = transaction.user_id, t_id=transaction.id)}}`,
+                        `{{url_for('admin_control.su_bck_control_ut')}}`, {{1 if transaction.type else 0}}, 0, `{{csrf_token()}}`)">Отменить транзакцию</button>
+                </div>
+                <div class="col-2" onclick="uncheck_transaction_switch('cancel_transaction_switchbox', 'cancel_transaction_btn')">
+                    <div class=" form-check form-switch ms-3">
+                        <input type="checkbox" class="form-check-input border border-danger" role="switch" title="Разблокировка отмены транзакции"
+                            id="cancel_transaction_switchbox" >
+                        <label class="switch" for="cancel_transaction_switchbox"></label>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex">
+                <div class="col-10">
+                    <button class="btn btn-sm btn-outline-success disabled" data-bs-dismiss="modal" id="confirm_transaction_btn"
+                        onclick="bck_pending_transaction_change_status(`{{url_for('admin_control.bck_su_pending_transaction_update', u_id = transaction.user_id, t_id=transaction.id)}}`,
+                        `{{url_for('admin_control.su_bck_control_ut')}}`, {{1 if transaction.type else 0}}, 2, `{{csrf_token()}}`)">Подтвердить транзакцию</button>
+                </div>
+                <div class="col-2" onclick="uncheck_transaction_switch('confirm_transaction_switchbox', 'confirm_transaction_btn')">
+                    <div class=" form-check form-switch ms-3">
+                        <input type="checkbox" class="form-check-input border border-success" role="switch" title="Разблокировка подтверждения транзакции"
+                            id="confirm_transaction_switchbox"">
+                        <label class="switch" for="confirm_transaction_switchbox"></label>
+                    </div>
+                </div>
+            </div>
         </div>
 
     {#   {% elif transaction.status == 2%}
