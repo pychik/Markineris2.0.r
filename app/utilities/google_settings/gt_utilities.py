@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 from sqlalchemy import text
 
 from models import db
@@ -69,6 +68,7 @@ def helper_google_order_list(transaction_packets: list[TransactionRow],
     google_orders = []
     if not rz_flag:
         for tr_pack in transaction_packets:
+            price_for_google = str(tr_pack.transaction_price).replace('.', ',')
             res_orders_db = helper_get_orders_for_google(tr_pack=tr_pack)
             if not res_orders_db:
                 continue
@@ -77,10 +77,12 @@ def helper_google_order_list(transaction_packets: list[TransactionRow],
                     OrderRow(date_value=date_info, order_idn=dp.order_idn, partner_code=dp.partner_code,
                              login_name=dp.login_name, company_name=f"{dp.company_type} {dp.company_name}",
                              phone=dp.phone, marks_count=dp.marks_count, rows_count=dp.rows_count,
-                             category=dp.category, price=tr_pack.transaction_price, status="Оплачено",
+                             category=dp.category, price=price_for_google, status="Оплачено",
                              agent_type="Единый счет" if tr_pack.is_at2 else "Обычный агент"))
+
     else:
         for tr_pack in transaction_packets:
+            price_for_google = str(tr_pack.transaction_price).replace('.', ',')
             res_orders_db = helper_get_orders_for_google_rz(tr_pack=tr_pack)
             if not res_orders_db:
                 continue
@@ -88,8 +90,9 @@ def helper_google_order_list(transaction_packets: list[TransactionRow],
                 google_orders.append(
                     RuznakRow(date_value=date_info, company_composed=f"{dp.company_type} {dp.company_name}",
                               marks_count=dp.marks_count, rows_count=dp.rows_count, category=dp.category,
-                              transaction_price=tr_pack.transaction_price,
-                              final_price=round(dp.marks_count * Decimal(tr_pack.transaction_price)), partner_code=dp.partner_code if dp.partner_code else ""))
+                              transaction_price=price_for_google,
+                              final_price=round(dp.marks_count * tr_pack.transaction_price), partner_code=dp.partner_code if dp.partner_code else ""))
+    print(google_orders)
     return google_orders
 
 
