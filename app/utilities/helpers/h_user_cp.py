@@ -245,7 +245,7 @@ def h_pa_refill(u_id: int, sa_id: int):
         message = f"{settings.Messages.USER_TRANSACTION_AGENT_ERROR} {agent_info.login_name}"
         return jsonify(dict(status=status, message=message))
 
-    cur_sa = ServiceAccount.query.with_entities(ServiceAccount.id).filter(ServiceAccount.id == sa_id).first()
+    cur_sa = ServiceAccount.query.with_entities(ServiceAccount.id, ServiceAccount.sa_name).filter(ServiceAccount.id == sa_id).first()
     if not cur_sa:
         message = settings.Messages.STRANGE_REQUESTS
         return jsonify(dict(status=status, message=message))
