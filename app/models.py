@@ -244,7 +244,7 @@ class Order(db.Model, UserMixin):
 
     # save to_delete for bg_tasks not used
     to_delete = db.Column(db.Boolean(), default=False)  # not currently used but can be useful in future
-    order_idn = db.Column(db.String(100), default='')
+    order_idn = db.Column(db.String(100), unique=True, nullable=True, default=None)
 
     created_at = db.Column(db.DateTime(), default=datetime.now)  # user started creating order
     crm_created_at = db.Column(db.DateTime())  # order pushed to NEW stage of crm
