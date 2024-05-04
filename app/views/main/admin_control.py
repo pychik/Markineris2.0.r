@@ -11,7 +11,7 @@ from utilities.admin.h_admin_control import h_index, h_admin, h_set_order_notifi
     h_deactivate_user_admin, h_set_process_type, h_delete_user_admin, h_delete_user, h_create_link_new_password, \
     h_send_order, h_download_agent_report, h_user_search, h_user_search_idn, h_cross_user_search, h_bck_set_user_price, \
     h_change_agent_fee, h_change_trust_limit, h_users_orders_stats, h_users_activate_list, h_bck_user_delete, \
-    h_bck_user_activate, h_client_orders_stats
+    h_bck_user_activate, h_client_orders_stats, h_su_user_search
 from utilities.admin.h_finance_control import h_su_control_finance, h_su_bck_promo, h_su_add_promo, h_su_delete_promo, \
     h_su_bck_prices, h_su_add_prices, h_su_delete_prices, h_su_bck_sa, h_su_add_sa, h_su_delete_sa, \
     h_su_bck_change_sa_type, h_su_control_ut, h_su_transaction_detail, h_bck_control_ut, h_au_bck_control_ut, \
@@ -211,6 +211,13 @@ def change_trust_limit(u_id: int):
     :return:
     """
     return h_change_trust_limit(u_id=u_id)
+
+
+@admin_control.route('/su_user_search', methods=["POST"])
+@login_required
+@su_required
+def su_user_search():
+    return h_su_user_search()
 
 
 @admin_control.route('/user_search/<int:user_admin_id>', methods=["POST"])

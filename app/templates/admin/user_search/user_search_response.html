@@ -15,7 +15,7 @@
                   {% if not (current_user.role == 'admin' and current_user.is_at2) %}
                       <th scope="col"><font size="2">Ценовой пакет</font></th>
                   {% endif %}                  <th scope="col"><font size="2">Статусы</font></th>
-                  <th scope="col"><font size="2">Запрос на ссылку создания<br> нового пароля</font></th>
+                  <th scope="col"><font size="2">Запрос&nbsp;создания<br>&nbsp; нового&nbsp; пароля</font></th>
                   <th scope="col"><font size="2">Управление пользователем</font></th>
                   <th scope="col"><font size="2"></font></th>
                 </tr>
@@ -86,13 +86,11 @@
                       <td>
 
                           <h5><span class="btn btn-sm btn-outline-warning btn-outline"
-                                    onclick='perform_modal_copy_link("{{ u.id }}", "{{ u.login_name }}"); get_information("{{ url_for('admin_control.create_link_new_password', u_id=u.id) }}", function(text) {
-                                        var text_block = document.getElementById("user_link{{ u.id }}");
-                                        {#text_block.innerHTML = text;#}
-                                            text_block.value=text;
-                                         // Do something with the div here, like inserting it into the page
-                             $("#user_linkModal{{ u.id }}").modal({backdrop: "static", keyboard: false},"show");
-                                            })'>Запрос на ссылку</span>
+                                onclick="perform_modal_copy_link(`{{ u.id }}`, `{{ u.login_name }}`); get_information(`{{ url_for('admin_control.create_link_new_password', u_id=u.id) }}`, function(text) {
+                                    var text_block = document.getElementById(`user_link{{ u.id }}`);
+                                        text_block.value=text;
+                                     // Do something with the div here, like inserting it into the page
+                              $('#user_linkModal{{ u.id }}').modal('show');})">Запрос на ссылку</span>
 
                           </h5>
     {#                                  <span id="user_link{{ u.id }}" style="font-size:10px"></span>#}

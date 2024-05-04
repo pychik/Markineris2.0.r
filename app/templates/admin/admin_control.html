@@ -450,7 +450,21 @@
     <div class="col-md-3"></div>
     <div class="col-md-6 col-xs-12 text-center d-grid gap-2">
 
-        <a class="btn btn-sm btn-warning" data-bs-toggle="collapse" href="#cross_order_user_search" role="button"
+        <a class="btn btn-sm btn-light border border-warning" data-bs-toggle="collapse" href="#su_service_user_search" role="button"
+           aria-expanded="false"
+           aria-controls="cross_user_search">
+            Найти пользователя
+        </a>
+    </div>
+</div>
+
+    {% include "admin/user_search/su_search_user_bar.html" %}
+
+<div class="row mt-5">
+    <div class="col-md-3"></div>
+    <div class="col-md-6 col-xs-12 text-center d-grid gap-2">
+
+        <a class="btn btn-sm btn-light border border-warning" data-bs-toggle="collapse" href="#cross_order_user_search" role="button"
            aria-expanded="false"
            aria-controls="cross_user_search">
             Проверить ИНН в заказах
@@ -544,8 +558,12 @@
 
 <div id="agent_fee_or_tl_modal"></div>
 <div id="agent_info_modal"></div>
+<div id="copy_link_modals">
+</div>
 <div id="user_prices_modal">
 </div>
+
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_common.js')}}"></script>
 <script src="{{url_for('static',filename='main_v2/js/admin/admin_main.js')}}"></script>
 <script src="{{url_for('static',filename='main_v2/js/admin/prices_block.js')}}"></script>
 <script>

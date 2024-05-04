@@ -254,3 +254,57 @@ function check_agent_type_form_submit(){
         document.getElementById('tg_select').classList.add('is-invalid');
     }
 }
+
+function su_load_data(query, url, csrf_token){
+   $.ajax({
+    url: url,
+    headers:{"X-CSRFToken": csrf_token},
+    method:"POST",
+    data:{query:query},
+    success:function(data)
+    {
+      $('#su_user_search_result').html(data);
+      $("#su_user_search_result").append(data.htmlresponse);
+    },
+    error: function() {
+     make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
+    }
+   });
+}
+
+function su_search_user(url, csrf_token){
+    var search = $('#search_text').val();
+    if(search !== ''){
+        su_load_data(search, url, csrf_token);
+    }
+    else{
+        $('#su_user_search_result').html('');
+    }
+}
+
+function cus_load_data(search, url, csrf_token){
+    $.ajax({
+        url: url,
+        headers:{"X-CSRFToken": csrf_token},
+        method:"POST",
+        data:{query:search},
+        success:function(data)
+        {
+          $('#cross_user_search_result').html(data);
+          $("#cross_user_search_result").append(data.htmlresponse);
+        },
+        error: function() {
+             make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
+         }
+    });
+}
+
+function search_cross_user(url, csrf_token){
+    var search = $('#cross_order_idn').val();
+    if(search !== ''){
+        cus_load_data(search, url,  csrf_token);
+    }
+    else{
+        $('#cross_user_search_result').html('');
+    }
+}

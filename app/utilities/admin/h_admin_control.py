@@ -782,6 +782,61 @@ def h_change_trust_limit(u_id: int) -> Response:
     return redirect(url_for('admin_control.index'))
 
 
+def h_su_user_search() -> Response:
+    search_word = request.form.get('query')
+    basic_prices = None
+    if search_word:
+        stmt_get_agent_id = f"CASE WHEN MAX(a.id) IS NOT NULL THEN MAX(a.id) ELSE u.id end"
+        stmt_get_agent_name = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
+        res = db.session.execute(text(
+            # f"SELECT * FROM public.users "
+            f"SELECT u.id as id, "
+            f"u.login_name as login_name, "
+            f"u.phone as phone, "
+            f"u.balance as balance, "
+            f"u.email as email, "
+            f"u.role as role, "
+            f"u.status as status, "
+            f"{stmt_get_agent_id} as admin_id , "
+            f"{stmt_get_agent_name} as admin_name , "
+            f"max(pr.price_code) as price_code, "
+            f"max(pr.price_1) as price_1, "
+            f"max(pr.price_2) as price_2, "
+            f"max(pr.price_3) as price_3, "
+            f"max(pr.price_4) as price_4, "
+            f"max(pr.price_5) as price_5, "
+            f"bool_and(pr.price_at2) as price_at2, "
+            f"u.role as role, "
+            f"u.client_code as client_code, "
+            f"u.created_at as created_at,"
+            f"MAX(pc.code) as partners_code, "
+            f"COUNT(os.id) as orders_count, "
+            f"sum(os.marks_count) as total_marks_count, "
+            f"MAX(os.created_at) as os_created_at "
+            f"FROM public.users u "
+            f"LEFT JOIN public.users a ON u.admin_parent_id = a.id "
+            f"LEFT JOIN public.orders_stats as os on os.user_id=u.id "
+            f"LEFT JOIN public.prices pr on pr.id=u.price_id "
+            f"LEFT JOIN public.users_partners as up on up.user_id=u.id "
+            f"LEFT JOIN public.partner_codes as pc on pc.id=up.partner_code_id "
+            f"WHERE (LOWER(u.login_name) LIKE  '%' || LOWER(:search_word) || '%' "
+            f"OR LOWER(u.email) LIKE  '%' || LOWER(:search_word) || '%'"
+            f"OR LOWER(u.phone) LIKE  '%' || LOWER(:search_word) || '%') "
+            f"GROUP BY u.id "
+            f"ORDER BY u.id DESC "
+            f"LIMIT {settings.PAGINATION_PER_PAGE}").bindparams(search_word=search_word))
+        numrows = int(res.rowcount)
+        clients = res.fetchall()[:settings.PAGINATION_PER_PAGE]
+        basic_prices = settings.Prices.BASIC_PRICES
+
+    else:
+        numrows = 0
+        clients = ''
+
+    return jsonify({'htmlresponse': render_template('admin/user_search/su_user_search_response.html', clients=clients,
+                                                    numrows=numrows,  basic_prices=basic_prices)})
+
+
 def h_user_search(user_admin_id: int) -> Response:
     if current_user.role not in [settings.SUPER_USER, ] and current_user.id != user_admin_id:
         return Response('', 403)

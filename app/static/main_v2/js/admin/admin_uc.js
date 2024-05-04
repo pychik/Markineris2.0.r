@@ -33,69 +33,6 @@ function copy_buffer(element_id, message_id){
    }
   }
 
-  function get_information(link, callback) {
-   var xhr = new XMLHttpRequest();
-    xhr.open("GET", link, true);
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4) {
-            if (!xhr.responseText.startsWith('http')){
-                callback(xhr.responseText);
-            }
-            else{
-                window.location.href = window.location.origin;
-            }
-
-        }
-    };
-    xhr.send(null);
-}
-
-function perform_modal_copy_link(u_id, u_name){
-    var modal_block = document.getElementById('copy_link_modals');
-    modal_block.innerHTML = ` <div class="modal fade" id="user_linkModal${u_id}" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-labelledby="user_linkModal${u_id}Label" aria-hidden="true">
-          <div class="modal-dialog modal-lg" data-backdrop="static" role="document">
-            <div class="modal-content">
-              <div class="modal-header bg-warning">
-                <h5 class="modal-title" id="user_linkModal${u_id}Label">Ссылка для смены пароля по запросу.</h5>
-                <button type="button" class="btn-close" onclick="clear_copy_link();" data-bs-dismiss="modal" aria-label="Close">
-                </button>
-              </div>
-              <div class="modal-body">
-                <h5>Ссылка для смены пароля пользователя ${u_name}. Нажмите на дискету, чтобы скопировать</h5>
-                  <div class="row">
-                    <div class="col-11 text-center" >
-                      <input class="form-control" readonly="true" type="text"
-                             onclick=""
-                             id="user_link${u_id}" >
-                    </div>
-                    <div class="col-1 text-center" >
-                      <a id="copyText" type="button"
-                         title="Скопировать ссылку"
-                         onclick="javascript:copy_buffer('user_link${u_id}',
-                                             'user_link_message${u_id}');">&#128190;</a>
-                    </div>
-
-                  </div>
-                  <small class="text-secondary">Срок работы ссылки для смены пароля <b>3 часа</b> с момента ее создания.
-                       После смены пароля ссылка будет недействительна.</small>
-                  <span id="user_link_message${u_id}" style="color:#23c1fc"></span>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="clear_copy_link();" data-bs-dismiss="modal">Закрыть</button>
-
-              </div>
-            </div>
-          </div>
-        </div>`;
-
-}
-
-
-function clear_copy_link(){
-    document.getElementById("copy_link_modals").innerHTML = '';
-}
-
-
 //     #### finance_control ####
 function update_finance_control(category_p){
     if(document.getElementById(`pills-service_accounts`)){
@@ -855,5 +792,59 @@ function uncheck_transaction_switch(switch_id, button_id){
     else{
         document.getElementById(button_id).classList.add('disabled');
         document.getElementById(switch_id).classList.remove(bg_color)
+    }
+}
+
+function ordinary_load_data(query, url, csrf_token)
+  {
+   $.ajax({
+    url: url,
+    headers:{"X-CSRFToken": csrf_token},
+    method:"POST",
+    data:{query:query},
+    success:function(data)
+    {
+      $('#user_search_result').html(data);
+      $("#user_search_result").append(data.htmlresponse);
+    },
+    error: function() {
+         make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
+     }
+   });
+  }
+function ordinary_search_user(url, csrf_token){
+    var search = $('#search_text').val();
+    if(search !== ''){
+    ordinary_load_data(search, url, csrf_token);
+    }
+    else{
+        $('#user_search_result').html('');
+    }
+}
+
+function load_idn_data(query, url, csrf_token){
+   $.ajax({
+    url: url,
+    headers:{"X-CSRFToken": csrf_token},
+    method:"POST",
+    data:{query:query},
+    success:function(data)
+    {
+      $('#user_search_idn_result').html(data);
+      $("#user_search_idn_result").append(data.htmlresponse);
+    },
+    error: function() {
+         make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
+     }
+   });
+  }
+
+function search_user_idn(url, csrf_token){
+    var search = $('#search_user_idn').val();
+    if(search.length > 4){
+        load_idn_data(search, url, csrf_token);
+    }
+    else{
+        $('#user_search_idn_result').html('');
     }
 }

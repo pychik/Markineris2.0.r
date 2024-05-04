@@ -1,42 +1,15 @@
 <div class="container text-center">
     <h3 align="center">Поиск пользователя по логину, email или телефону</h3>
-    <small class="form-text text-muted mt-1">Введите логин, email или телефон пользователя! Сервис подгружает не более 50 результатов.</small>
+    <small class="form-text text-muted mt-1">Введите логин, email или телефон пользователя и нажмите enter (или кликните мышкой вне поля ввода)! Сервис подгружает не более 50 результатов.</small>
     <div class="row">
         <div class="col-md-2"></div>
         <div class="col-md-8 col-xs-12 d-flex">
-            <input type="text" name="search_text" id="search_text" class="form-control" placeholder="Введите логин пользователя, например admin">
+            <input type="text" name="search_text" id="search_text" class="form-control"
+                   onchange="ordinary_search_user(`{{ url_for('admin_control.user_search', user_admin_id = admin_info.id) }}`, `{{ csrf_token() }}`)"
+                   placeholder="Введите логин пользователя, например admin">
         </div>
     </div>
 
 </div>
 <div id="user_search_result"></div>
 
-<script>
-    $(document).ready(function(){
-      {#load_data();#}
-      function load_data(query)
-      {
-       var csrf_token = "{{ csrf_token() }}";
-       $.ajax({
-        url:"{{ url_for('admin_control.user_search', user_admin_id = admin_info.id) }}",
-        headers:{"X-CSRFToken": csrf_token},
-        method:"POST",
-        data:{query:query},
-        success:function(data)
-        {
-          $('#user_search_result').html(data);
-          $("#user_search_result").append(data.htmlresponse);
-        }
-       });
-      }
-      $('#search_text').keyup(function(){
-        var search = $(this).val();
-        if(search !== ''){
-        load_data(search);
-       }
-        else{
-        load_data()
-        }
-      });
-    });
-</script>

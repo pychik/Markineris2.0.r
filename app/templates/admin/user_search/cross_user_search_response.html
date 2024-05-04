@@ -9,9 +9,8 @@
                   <th scope="col">#</th>
                   <th scope="col"><font size="2">Логин</font></th>
                   <th scope="col"><font size="2">Email</font></th>
-                    {% if not (current_user.role == 'admin' and current_user.is_at2) %}
-                      <th scope="col"><font size="2">Ценовой пакет</font></th>
-                  {% endif %}
+                  <th scope="col"><font size="2">Ценовой пакет</font></th>
+                  <th scope="col"><font size="2">Запрос&nbsp;создания<br>&nbsp; нового&nbsp; пароля</font></th>
                   <th scope="col"><font size="2">Админ</font></th>
                   <th scope="col"><font size="2">Количество заказов</font></th>
                   <th scope="col"><font size="2">Дата крайнего заказа</font></th>
@@ -33,18 +32,30 @@
                     <td>
                           {{u.email}}
                       </td>
-                        {% if not (current_user.role == 'admin' and current_user.is_at2) %}
+                      <td>
+                          <div id="user_price{{u.id}}">
+                          {% if u.price_code %}
+                            <span class="badge bg-warning text-black" style="cursor:pointer"
+                                onclick="perform_modal_prices('{{u.id}}', '{{u.login_name}}', '{{ u.price_code }}', '{{ u.price_1 }}', '{{ u.price_2 }}', '{{ u.price_3 }}', '{{ u.price_4 }}', '{{ u.price_5 }}', '{{url_for('admin_control.bck_set_user_price', u_id=u.id)}}?bck=1', '{{csrf_token()}}')">{{ u.price_code }}</span>
+                          {% else %}
+                            <span class="badge bg-warning text-black" style="cursor:pointer"
+                                onclick="perform_modal_prices('{{u.id}}', '{{u.login_name}}', '{{basic_prices[0]}}', '{{basic_prices[1]}}', '{{basic_prices[2]}}', '{{basic_prices[3]}}', '{{basic_prices[4]}}', '{{basic_prices[5]}}', '{{url_for('admin_control.bck_set_user_price', u_id=u.id)}}?bck=1', '{{csrf_token()}}')">{{basic_prices[0]}}</span>
+                          {% endif %}
+                          </div>
+                      </td>
+                      {% if u.role== 'ordinary_user' %}
                           <td>
-                              <div id="user_price{{u.id}}">
-                              {% if u.price_code %}
-                                <span class="badge bg-warning text-black" style="cursor:pointer"
-                                    onclick="perform_modal_prices('{{u.id}}', '{{u.login_name}}', '{{ u.price_code }}', '{{ u.price_1 }}', '{{ u.price_2 }}', '{{ u.price_3 }}', '{{ u.price_4 }}', '{{ u.price_5 }}', '{{url_for('admin_control.bck_set_user_price', u_id=u.id)}}?bck=1', '{{csrf_token()}}')">{{ u.price_code }}</span>
-                              {% else %}
-                                <span class="badge bg-warning text-black" style="cursor:pointer"
-                                    onclick="perform_modal_prices('{{u.id}}', '{{u.login_name}}', '{{basic_prices[0]}}', '{{basic_prices[1]}}', '{{basic_prices[2]}}', '{{basic_prices[3]}}', '{{basic_prices[4]}}', '{{basic_prices[5]}}', '{{url_for('admin_control.bck_set_user_price', u_id=u.id)}}?bck=1', '{{csrf_token()}}')">{{basic_prices[0]}}</span>
-                              {% endif %}
-                              </div>
+                              <h5><span class="btn btn-sm btn-outline-warning btn-outline"
+                                    onclick="perform_modal_copy_link(`{{ u.id }}`, `{{ u.login_name }}`); get_information(`{{ url_for('admin_control.create_link_new_password', u_id=u.id) }}`, function(text) {
+                                        var text_block = document.getElementById(`user_link{{ u.id }}`);
+                                            text_block.value=text;
+                                         // Do something with the div here, like inserting it into the page
+                                  $('#user_linkModal{{ u.id }}').modal('show');})">Запрос на ссылку</span>
+
+                              </h5>
                           </td>
+                      {% else %}
+                          <td></td>
                       {% endif %}
                       <td>
                           {{u.admin}}
@@ -55,7 +66,8 @@
                       <td>
                           {{u.created_at.strftime("%Y.%m.%d %H:%M:%S")}}
                       </td>
-                      <td>
+                      {%  if u.role == 'ordinary_user' %}
+                        <td>
                           {% if not u.status %}
 
 
@@ -84,8 +96,8 @@
                               </form>
                           {% endif %}
                             <br>
-                      </td>
-                      <td>
+                        </td>
+                        <td>
                           <form method="post" action="{{ url_for('admin_control.delete_user', u_id=u.id)}}">
                               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                               <button type="submit" class="btn btn-sm btn-outline-danger"
@@ -98,7 +110,10 @@
                               </button>
 
                           </form>
-                      </td>
+                        </td>
+                      {% else %}
+                        <td></td><td></td>
+                      {% endif %}
                     </tr>
 
 
