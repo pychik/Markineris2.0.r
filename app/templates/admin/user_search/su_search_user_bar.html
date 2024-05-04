@@ -2,7 +2,10 @@
     <div class="row">
         <div class="col-md-2"></div>
         <div class="col-md-8 col-xs-12">
-            <small class="form-text text-muted mt-1"><p>Введите логин, email или телефон пользователя и нажмите enter (или кликните мышкой вне поля ввода)!<br> Сервис подгружает не более 50 результатов.<br> <b>После активации удаления или включения excel найденных пользователей вы будете перенаправлены на страницу агента этого пользователя</b></p></small>
+            <div class="form-text text-muted mt-1" style="text-align: justify;">Введите логин, email или телефон
+                пользователя и нажмите enter (или кликните мышкой вне поля ввода)!<br> Сервис подгружает не более 50 результатов.
+                <br> <b>После активации удаления или включения excel найденных пользователей вы будете перенаправлены на страницу агента этого пользователя</b>
+            </div>
             <input type="text" name="search_text" id="search_text" class="form-control"
                    onchange="su_search_user(`{{ url_for('admin_control.su_user_search') }}`, `{{ csrf_token() }}`)"
                    placeholder="Введите логин пользователя, например admin и нажмите enter!">
