@@ -14,11 +14,11 @@
             </h6>
             <h6>
                 Заказов/Марок за предыдущий день
+                <span class="badge bg-secondary" id="prev_day_orders_mark"
+                      title="{{ prev_day_orders_marks.orders_count }} заказов, {{ prev_day_orders_marks.marks_count }} марок">
+                    {{ prev_day_orders_marks.orders_count }} / {{ prev_day_orders_marks.marks_count }}
+                </span>
             </h6>
-            <span class="badge bg-secondary" id="prev_day_orders_mark"
-                  title="{{ prev_day_orders_marks.orders_count }} заказов, {{ prev_day_orders_marks.marks_count }} марок">
-                {{ prev_day_orders_marks.orders_count }} / {{ prev_day_orders_marks.marks_count }}
-            </span>
         </div>
     </div>
     <div class="col-md-2"></div>
