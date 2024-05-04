@@ -1476,11 +1476,12 @@ def helper_check_user_order_in_archive(category: str, o_id: int) -> tuple[int, s
     return result_status, answer
 
 
-def helper_get_orders_marks(u_id: int, o_id: int = None) -> Optional[tuple | Row]:
+def helper_get_orders_marks(u_id: int, o_id: int = None, wo_flag: bool = False) -> Optional[tuple | Row]:
     if o_id:
         add_stmt = f"o.id={o_id}"
     else:
-        add_stmt = f"o.stage > {settings.OrderStage.CREATING} AND o.stage != {settings.OrderStage.CANCELLED} AND order_idn != ''"
+        start_stage = settings.OrderStage.NEW if wo_flag else settings.OrderStage.CREATING
+        add_stmt = f"o.stage > {start_stage} AND o.stage != {settings.OrderStage.CANCELLED} AND order_idn != ''"
     stmt_orders = f"""SELECT 
                         o.order_idn as order_idn,
                         SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count

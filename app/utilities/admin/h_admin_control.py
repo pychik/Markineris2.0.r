@@ -14,7 +14,8 @@ from models import db, Order, OrderStat, PartnerCode, RestoreLink, Telegram, Tel
 from utilities.download import orders_process_send_order
 from utilities.support import url_encrypt, helper_check_form, helper_update_order_note, \
       helper_paginate_data, helper_strange_response, sql_count
-from utilities.admin.helpers import process_admin_report, helper_get_clients_os, helper_get_orders_stats
+from utilities.admin.helpers import (process_admin_report, helper_get_clients_os, helper_get_orders_stats,
+                                     helper_prev_day_orders_marks)
 
 
 def h_index(expanded: str = None):
@@ -51,60 +52,13 @@ def h_index(expanded: str = None):
                              order by au.id""")
         su_list = db.session.execute(users_stmt).fetchall()
 
-        # previous way to get users with n+1 request and n2
-
-        # prices_query = db.session.query(Price.id.label("price_id"), Price.price_code, Price.price_1, Price.price_2, Price.price_3,
-        #                                 Price.price_4, Price.price_5, Price.price_at2) \
-        #     .filter(User.price_id == Price.id) \
-        #     .subquery()
-        #
-        # telegram_query = db.session.query(users_telegrams.c.user_id, Telegram.channel_id.label("tg_channel_id"),
-        #                                   Telegram.name.label("tg_name"),
-        #                                   Telegram.comment.label("tg_comment"))\
-        #     .join(Telegram, Telegram.id == users_telegrams.c.telegram_id)\
-        #     .subquery()
-        #
-        # super_user_admin_list = User.query.filter(User.role.in_([settings.ADMIN_USER, settings.SUPER_USER]))  \
-        #                             .outerjoin(prices_query, User.price_id == prices_query.c.price_id) \
-        #                             .outerjoin(telegram_query, User.id == telegram_query.c.user_id) \
-        #     .with_entities(User.id, User.role, User.balance, User.login_name, User.email, User.client_code,
-        #                    User.agent_fee, User.trust_limit, User.is_crm,
-        #                    User.is_at2, User.status, User.phone,
-        #                    User.created_at, prices_query.c.price_code, prices_query.c.price_1, prices_query.c.price_2,
-        #                    prices_query.c.price_3, prices_query.c.price_4, prices_query.c.price_5,
-        #                    prices_query.c.price_at2, telegram_query.c.tg_channel_id, telegram_query.c.tg_name,
-        #                    telegram_query.c.tg_comment) \
-        #     .group_by(User.id, prices_query.c.price_code, prices_query.c.price_1,
-        #               prices_query.c.price_2, prices_query.c.price_3,
-        #               prices_query.c.price_4, prices_query.c.price_5, prices_query.c.price_at2,
-        #               telegram_query.c.tg_channel_id, telegram_query.c.tg_name, telegram_query.c.tg_comment) \
-        #     .order_by(User.id).all()
-        #
-        # su_list = [u._asdict() for u in super_user_admin_list]
-        #
-        # orders_rows_marks = [o for o in OrderStat.query.with_entities(OrderStat.user_id, func.count(OrderStat.id),
-        #                                                   func.sum(OrderStat.rows_count).label("rows_count"),
-        #                                                   func.sum(OrderStat.marks_count).label("marks_count"), ).group_by(OrderStat.user_id).all()]
-        # for u in su_list:
-        #     agent_id = u.get('id')
-        #     admin_users_ids = tuple((u[0] for u in User.query.with_entities(User.id)
-        #                             .filter_by(admin_parent_id=agent_id).all())) + (agent_id,)
-        #
-        #     users_info_list = list(filter(lambda x: x.user_id in admin_users_ids, orders_rows_marks))
-        #     u_orders_rows_marks = sum_lists(*users_info_list)
-        #
-        #     u["orders_count"] = u_orders_rows_marks[1] if u_orders_rows_marks else []
-        #     u["rows_count"] = u_orders_rows_marks[2] if u_orders_rows_marks else []
-        #     u["marks_count"] = u_orders_rows_marks[3] if u_orders_rows_marks else []
-        #     u["count_order_rows_marks"] = u_orders_rows_marks[1:] if u_orders_rows_marks else []
-        #     u["reg_clients"] = len(admin_users_ids) - 1
-
         ou_quantity = User.query.filter(User.role == settings.ORD_USER) \
             .order_by(User.id).count()
 
         telegram_list = Telegram.query.all()
         if current_user.role == settings.SUPER_USER:
             tg_group_list = Telegram.query.filter_by(status=False).all()
+            prev_day_orders_marks = helper_prev_day_orders_marks()
 
         markineris_url_coi = settings.MARKINERIS_CHECK_CROSS_OI_LINK
         markineris_secret = settings.MARKINERIS_SECRET

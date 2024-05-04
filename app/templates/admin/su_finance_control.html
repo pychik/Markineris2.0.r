@@ -28,6 +28,9 @@
                                class="form-check-input border border-warning" onchange="toggle_perform_wo()"
                                title="Включатель проведения заказов">
                         <label for="perform_wo_switchbox" class="form-check-label"></label>
+                        <script>
+                            window.onload = function(){document.getElementById("perform_wo_switchbox").checked = false};
+                        </script>
                     </div>
                 </div>
 

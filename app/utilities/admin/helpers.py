@@ -4,6 +4,7 @@ from pandas import DataFrame, ExcelWriter
 from pandas import to_datetime as pd_datetime
 from time import sleep as t_sleep
 from sqlalchemy import text
+from sqlalchemy.engine.row import Row
 from typing import Optional
 
 from config import settings
@@ -123,7 +124,7 @@ def helper_get_clients_os(admin_id: int, client: User) -> Response:
                              LEFT JOIN public.users_partners up on up.user_id =u.id
                              LEFT JOIN public.partner_codes pc on pc.id = up.partner_code_id
                              WHERE os.user_id=:client_id
-                             GROUP BY os.id
+                             GROUP BY os.id, os.created_at
                              ORDER BY os.created_at DESC
                          """).bindparams(client_id=client.id)
 
@@ -146,3 +147,8 @@ def helper_get_clients_os(admin_id: int, client: User) -> Response:
     return render_template('admin/client_orders/main.html', **locals()) if not bck \
         else jsonify({'htmlresponse': render_template(f'admin/client_orders/orders_table.html',
                                                       **locals())})
+
+def helper_prev_day_orders_marks() -> Row:
+    stmt = text(f""" SELECT count(id) as orders_count, sum(marks_count) as marks_count 
+                     FROM public.orders_stats WHERE saved_at > current_date - interval '1 day';""")
+    return db.session.execute(stmt).fetchone()
