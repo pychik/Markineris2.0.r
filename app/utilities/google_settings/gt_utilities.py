@@ -39,7 +39,8 @@ def helper_get_orders_for_google(tr_pack: TransactionRow):
 def helper_get_orders_for_google_rz(tr_pack: TransactionRow):
     data_packet_stmt = f"""SELECT 
                                 u.login_name as login_name,
-                                MAX(p_code.code) as partner_code,  
+                                MAX(p_code.code) as partner_code, 
+                                o.order_idn as order_idn, 
                                 o.category as category,
                                 o.company_type as company_type,
                                 o.company_name as company_name,
