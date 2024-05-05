@@ -10,7 +10,7 @@ PromoRow = namedtuple('PromoRow', 'date_value, login_name, service_account, prom
 
 RuznakRow = namedtuple('RuznakRow',
                        'date_value, company_composed, marks_count, rows_count, category, transaction_price, final_price,'
-                       ' partner_code')
+                       ' partner_code, order_idn')
 
 # from typing import List, Optional
 # from datetime import datetime

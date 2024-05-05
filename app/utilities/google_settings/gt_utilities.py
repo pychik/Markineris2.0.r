@@ -91,8 +91,8 @@ def helper_google_order_list(transaction_packets: list[TransactionRow],
                     RuznakRow(date_value=date_info, company_composed=f"{dp.company_type} {dp.company_name}",
                               marks_count=dp.marks_count, rows_count=dp.rows_count, category=dp.category,
                               transaction_price=price_for_google,
-                              final_price=round(dp.marks_count * tr_pack.transaction_price), partner_code=dp.partner_code if dp.partner_code else ""))
-    print(google_orders)
+                              final_price=round(dp.marks_count * tr_pack.transaction_price), partner_code=dp.partner_code if dp.partner_code else "",
+                              order_idn=dp.order_idn))
     return google_orders
 
 

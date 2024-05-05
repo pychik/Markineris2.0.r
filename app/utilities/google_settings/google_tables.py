@@ -99,7 +99,7 @@ if __name__ == "__main__":
                         company_name="Organization", phone="+79999999919",  marks_count=40, rows_count=10,
                         category="одежда", price=8, status="Оплачено", agent_type="Единый счет")
     # test_row = RuznakRow(date_value=date_time, company_composed="Organization", marks_count=10, rows_count=40,
-    #                      category="одежда", transaction_price=8, final_price=80, partner_code="015")
+    #                      category="одежда", transaction_price=8, final_price=80, partner_code="015", order_idn='2_215')
     # test_row = PromoRow(date_value=date_time, login_name='TEST', service_account='счет ТЕСТ', promo_code='TestPromo',
     #                     promo_summ=5000)
 

@@ -377,7 +377,7 @@ class Settings(BaseSettings):
             SPREADSHEET_ID_RUZNAK = "1UQq_DncaALZwx57Sn5TytTo2Ja0-tQ5GYKIzv5ZgsfU"
             SHEET_NAME_RUZNAK: str = "Заказы"
             FC_RUZNAK: str = "A"  # first column of ruznak orders table
-            LC_RUZNAK: str = "H"  # last column of ruznak orders table
+            LC_RUZNAK: str = "I"  # last column of ruznak orders table
             SHEET_RANGE_RUZNAK: str = f"{SHEET_NAME_RUZNAK}!{FC_RUZNAK}1:{LC_RUZNAK}"
 
     class Messages:
