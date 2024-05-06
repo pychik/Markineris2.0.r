@@ -212,15 +212,23 @@
                                   <a href="{{ url_for('admin_control.admin', u_id=u.id) }}">
                                       {{u.login_name}}
                                   </a>
-                                  <div class="font-6 text-muted">{{u.balance}}р.</div>
-                                  {% if u.login_name.startswith('Agent_')%}
-                                      <span title="Посмотреть пароль агента выгруженного с маркинерис" style="cursor:pointer" onclick="get_agent_info_modal('{{url_for('admin_control.su_agent_info')}}', '{{csrf_token()}}', '{{u.login_name}}', '{{u.email}}')">
+                                  <div class="d-flex">
+                                    <div class="col-10">
+                                      <div class="font-6 text-muted">{{u.balance}}р.</div>
+                                    </div>
+                                    <div class="col-2">
+                                      <span title="Посмотреть пароль агента выгруженного с маркинерис" style="cursor:pointer" onclick="get_agent_info_modal(`{{u.login_name}}`, `{{u.email}}`)">
                                           <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-key" viewBox="0 0 16 16">
                                               <path d="M0 8a4 4 0 0 1 7.465-2H14a.5.5 0 0 1 .354.146l1.5 1.5a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0L13 9.207l-.646.647a.5.5 0 0 1-.708 0L11 9.207l-.646.647a.5.5 0 0 1-.708 0L9 9.207l-.646.647A.5.5 0 0 1 8 10h-.535A4 4 0 0 1 0 8m4-3a3 3 0 1 0 2.712 4.285A.5.5 0 0 1 7.163 9h.63l.853-.854a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.793-.793-1-1h-6.63a.5.5 0 0 1-.451-.285A3 3 0 0 0 4 5"/>
                                               <path d="M4 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
                                           </svg>
                                       </span>
-                                  {% endif %}
+                                    </div>
+                                  </div>
+                                  <div class="collapse mt-3" id="agent_email_info{{ u.id }}">
+                                     {{u.email}}
+                                  </div>
+
                               </td>
 
                               <td>
@@ -568,6 +576,8 @@
 <div id="copy_link_modals">
 </div>
 <div id="user_prices_modal">
+</div>
+<div id="change_user_password_modal">
 </div>
 
 <script src="{{url_for('static',filename='main_v2/js/admin/admin_common.js')}}"></script>

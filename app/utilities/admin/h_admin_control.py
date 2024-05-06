@@ -972,7 +972,7 @@ def h_users_activate_list():
                      LEFT JOIN public.users_partners up on up.user_id =u.id
                      LEFT JOIN public.partner_codes pc on pc.id = up.partner_code_id
                      WHERE u.status=False
-                     GROUP BY u.id
+                     GROUP BY u.id, u.created_at
                      ORDER BY u.created_at DESC
                             """
 
@@ -1075,6 +1075,29 @@ def helper_create_at2_admin(login_name: str, email: str, password: str, tg_id: s
         logger.error(message)
 
         return redirect(url_for('admin_control.index'))
+
+
+def h_bck_change_user_password(u_id: int) -> Response:
+    status = 'danger'
+    user = User.query.filter_by(id=u_id).first()
+    if not user:
+        message = f"{settings.Messages.NO_SUCH_USER}"
+        return jsonify(dict(status=status, message=message))
+    try:
+        new_password = request.form.get('new_password', '').strip()
+        if not new_password:
+            message = f"{settings.Messages.NO_USER_PASSWORD}"
+            return jsonify(dict(status=status, message=message))
+        user.password = generate_password_hash(new_password, method='sha256')
+        db.session.commit()
+        message = f"{settings.Messages.USER_PASSWORD_CHANGE} {user.login_name}"
+        status = 'success'
+    except Exception as e:
+        db.session.rollback()
+        message = f"{settings.Messages.USER_PASSWORD_CHANGE_ERROR}"
+        logger.error(message + str(e))
+
+    return jsonify(dict(status=status, message=message))
 
 
 def helper_create_crm_admin(login_name: str, email: str, password: str) -> Response:

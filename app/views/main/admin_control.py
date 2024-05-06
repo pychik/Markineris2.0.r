@@ -11,7 +11,7 @@ from utilities.admin.h_admin_control import h_index, h_admin, h_set_order_notifi
     h_deactivate_user_admin, h_set_process_type, h_delete_user_admin, h_delete_user, h_create_link_new_password, \
     h_send_order, h_download_agent_report, h_user_search, h_user_search_idn, h_cross_user_search, h_bck_set_user_price, \
     h_change_agent_fee, h_change_trust_limit, h_users_orders_stats, h_users_activate_list, h_bck_user_delete, \
-    h_bck_user_activate, h_client_orders_stats, h_su_user_search
+    h_bck_user_activate, h_client_orders_stats, h_su_user_search, h_bck_change_user_password
 from utilities.admin.h_finance_control import h_su_control_finance, h_su_bck_promo, h_su_add_promo, h_su_delete_promo, \
     h_su_bck_prices, h_su_add_prices, h_su_delete_prices, h_su_bck_sa, h_su_add_sa, h_su_delete_sa, \
     h_su_bck_change_sa_type, h_su_control_ut, h_su_transaction_detail, h_bck_control_ut, h_au_bck_control_ut, \
@@ -450,23 +450,6 @@ def etl_process_upload():
     return jsonify(dict(status=status, info=data)), 200
 
 
-@admin_control.route('su_agent_info', methods=['POST', ])
-@login_required
-@su_required
-def su_agent_info():
-    """
-        makes request for passwords for auto extracted agents from partner codes markineris 1
-    :return:
-    """
-    password = None
-    data = request.form
-    agent_email = data.get("agent_email")
-    if agent_email:
-        password = make_password(agent_email, settings.SALT.get_secret_value())
-
-    return jsonify(dict(password=password)), 200
-
-
 @admin_control.route('/users_orders_stats/', defaults={'admin_id': None}, methods=['GET', ])
 @admin_control.route('/users_orders_stats/<int:admin_id>/', methods=['GET', ])
 @login_required
@@ -509,3 +492,10 @@ def bck_user_delete(u_id: int):
 @bck_su_required
 def bck_user_activate(u_id: int):
     return h_bck_user_activate(u_id=u_id)
+
+
+@admin_control.route('/bck_change_user_password/<int:u_id>', methods=['POST'])
+@login_required
+@bck_su_required
+def bck_change_user_password(u_id: int):
+    return h_bck_change_user_password(u_id=u_id)

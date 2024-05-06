@@ -165,11 +165,9 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
         # conditional_stmt = f"o.stage={settings.OrderStage.POOL}" if pool else conditional_stmt_common + f" AND o.manager_id={manager_id}"
         conditional_stmt = f"({conditional_stmt_common} AND o.manager_id={manager_id}) OR o.stage={settings.OrderStage.POOL}"
 
-        # stmt_get_agent = f"SELECT a.login_name FROM public.users a  WHERE ((a.id=u.admin_parent_id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')) OR (a.id=u.id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')))"
-        stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
+        # stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
         stmt_orders = f"""
                              SELECT u.client_code as client_code,
-                                 ({stmt_get_agent})  as agent_name ,
                                  u.login_name as login_name, 
                                  u.phone as phone, 
                                  u.email as email, 
@@ -215,12 +213,10 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
         manager_condition = f" AND o.manager_id={filtered_manager_id}" if filtered_manager_id else ""
         conditional_stmt = f"({conditional_stmt_common}{manager_condition} OR o.stage={settings.OrderStage.POOL})"
 
-        # stmt_get_agent = f"SELECT a.login_name FROM public.users a  WHERE ((a.id=u.admin_parent_id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')) OR (a.id=u.id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')))"
-        stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
+        # stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
         stmt_orders = f"""
                               SELECT 
                                   u.client_code as client_code,
-                                  ({stmt_get_agent})  as agent_name ,
                                   u.login_name as login_name, 
                                   u.phone as phone, 
                                   u.email as email, 

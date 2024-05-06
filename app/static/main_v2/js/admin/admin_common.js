@@ -58,3 +58,64 @@ function perform_modal_copy_link(u_id, u_name) {
 function clear_copy_link() {
     document.getElementById("copy_link_modals").innerHTML = '';
 }
+
+function change_user_password_main(url, csrf, username){
+    var modal_block = document.getElementById('change_user_password_modal');
+    modal_block.innerHTML = ` <div class="modal fade" id="cup_modal" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-labelledby="cup_modalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-lg" data-backdrop="static" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Вы уверены, что хотите поменять пароль для пользователя ${username}?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"  onclick="clear_change_user_password()" aria-label="Close">
+                </button>
+              </div>
+              <div class="modal-body">
+                
+                  
+                    <div class="input-group mb-3">
+                        <input type="text" name="new_password" id="bck_changed_new_password" minlength="6" maxlength="15" class="form-control" placeholder="Введите новый пароль" aria-label="Recipient's password" aria-describedby="basic-addon2" required autofocus>
+                        <button class="btn btn-sm btn-accent" type="button" id="basic-addon2" onclick="bck_change_user_password('${url}', '${csrf}');" 
+                                data-bs-dismiss="modal">Изменить пароль</button>
+                    </div>
+
+        
+                  </form>
+                  
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="clear_change_user_password();" data-bs-dismiss="modal">Закрыть</button>
+
+              </div>
+            </div>
+          </div>
+        </div>`;
+
+    $('#cup_modal').modal('show');
+    }
+
+function clear_change_user_password(){
+    document.getElementById('change_user_password_modal').innerHTML = '';
+
+    }
+
+function bck_change_user_password(url, csrf) {
+    var new_password = document.getElementById('bck_changed_new_password').value;
+    if (new_password.length < 6) {
+        make_message('Пароль должен быть не менее 6 символов', 'danger');
+        return;
+    }
+    $.ajax({
+        url: url,
+        headers: {"X-CSRFToken": csrf},
+        method: "POST",
+        data: {'new_password': new_password},
+        success: function (data) {
+            make_message(data.message, data.status);
+
+
+        },
+        error: function () {
+            make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
+        }
+    });
+}

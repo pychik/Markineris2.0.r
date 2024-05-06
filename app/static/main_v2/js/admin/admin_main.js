@@ -166,23 +166,19 @@ function bck_get_users_from_markineris(url, csrf)
   }
 
 
-function get_agent_info_modal(url, csrf, u_name, email){
-    if(u_name.startsWith('Agent_') !== true){
-        make_message('Опция помотреть пароль агента работает только для агентов с сервиса маркинерис', 'danger');
-        setTimeout(function() {clear_user_messages();}, 15000);
-        return
-    }
+function get_agent_info_modal(u_name, email){
+
    let form_block= `
         <div class="text-center">
             <div class="row">
-                <div class="col-3"></div>
-                <div class="col-6">
-                    <label for="agent_info_input">Пароль агента</label>
-                    <input id="agent_info_input" class="form-control" type="text" readonly value="">
+                <div class="col-2"></div>
+                <div class="col-8">
+                    <label for="agent_info_input">Email агента</label>
+                    <input id="agent_info_input" class="form-control" type="text" readonly value="${email}">
                 </div>
             </div>
 
-<!--            <button class="btn btn-accent my-2" type="button" onclick="bck_get_agent_info('${url}', '${csrf}', '${email}')">Узнать</button>-->
+
             <button type="button" class="btn btn-secondary mt-3" onclick="clear_agent_info_modal();" data-bs-dismiss="modal">Закрыть</button>
         </div>
     `
@@ -194,7 +190,7 @@ function get_agent_info_modal(url, csrf, u_name, email){
           <div class="modal-dialog" data-backdrop="static" role="document">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title" id="agent_infoModalLabel">Запрос пароля агента ${u_name}.</h5>
+                <h5 class="modal-title" id="agent_infoModalLabel">Запрос данных агента ${u_name}.</h5>
                 <button type="button" class="btn-close" onclick="clear_agent_info_modal();" data-bs-dismiss="modal" aria-label="Close">
                 </button>
               </div>
@@ -207,43 +203,13 @@ function get_agent_info_modal(url, csrf, u_name, email){
             </div>
           </div>
         </div>`;
-    bck_get_agent_info(url, csrf, email);
+
     $("#agent_infoModal").modal("show");
 }
 
 function clear_agent_info_modal(){
     document.getElementById("agent_info_modal").innerHTML = '';
 }
-
-function bck_get_agent_info(url, csrf, email)
-  {
-
-   $.ajax({
-    url:url,
-    headers:{"X-CSRFToken": csrf},
-    method:"POST",
-    data: {'agent_email': email},
-    success:function(data)
-    {
-        if (data.password && data.password.length>4){
-           $('#agent_info_input').val(data.password);
-
-        }
-        else{
-            $('#agent_info_input').val('Ошибка сервера')
-        }
-
-    },
-     error: function() {
-        make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
-        // $("#agent_infoModal").modal("hide");
-        clear_agent_info_modal();
-    }
-   });
-
-   setTimeout(function() {clear_user_messages();}, 15000);
-
-  }
 
 function check_agent_type_form_submit(){
     let form = document.getElementById('change_pt_form');

@@ -25,7 +25,7 @@ def index():
 
     user = current_user
     managers_list = User.query.filter(User.role.in_([settings.SUPER_MANAGER, settings.MANAGER_USER])) \
-        .with_entities(User.id, User.status, User.role, User.login_name ).order_by(User.id).all()
+        .with_entities(User.id, User.status, User.role, User.login_name, User.email ).order_by(User.id).all()
 
     dt_co = date.today() - timedelta(days=settings.OrderStage.DAYS_CONTENT)
     cancelled_orders = Order.query.with_entities(Order.id) \

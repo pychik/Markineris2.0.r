@@ -848,3 +848,13 @@ function search_user_idn(url, csrf_token){
         $('#user_search_idn_result').html('');
     }
 }
+
+function set_current_date_su_filters(){
+    var currentDate = new Date();
+    var day = currentDate.getDate().toString().padStart(2, '0'); // Add leading zero if necessary
+    var month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Add leading zero if necessary
+    var year = currentDate.getFullYear();
+    var formattedDate = day + '.' + month + '.' + year;
+    document.getElementById("date_from").value = formattedDate;
+    document.getElementById("date_to").value = formattedDate;
+}
