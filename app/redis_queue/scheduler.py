@@ -32,7 +32,7 @@ queue_dynamic = Queue(settings.RQ_DYNSCHEDULER_QUEUE_NAME, connection=conn)
 scheduler_dynamic = Scheduler(queue=queue_dynamic, connection=queue_dynamic.connection)
 
 scheduler.cron(
-    "59 23 * * *",
+    "57 23 * * *",
     func=daily_tasks,
     on_success=on_success_periodic_task,
     on_failure=on_failure_periodic_task,
