@@ -260,6 +260,7 @@ class Settings(BaseSettings):
         WO_GROUP: str = "-1002092657810"  # group for sending messages about new refillments checkout
         TELEGRAM_ALERTS_GROUP_ID: str = "-1001969475944"
         TELEGRAMM_ORDER_INFO_SERVICE: str = os.environ.get('TELEGRAMM_ORDER_INFO_SERVICE')  # orig is "-1002124706398" # channel for service admin notifications
+        SPEC_SYMBOLS_LIST: tuple = (('&', '&amp;'), ('<', '&lt;'), ('>', '&gt;'))
 
     class Process:
         DOWNLOAD: str = "download"

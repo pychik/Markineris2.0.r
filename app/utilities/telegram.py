@@ -11,18 +11,13 @@ from models import User, TelegramMessage, db, TgUser
 from redis_queue.constants import TELEGRAM_JOB_PARAMS, NOTIFICATION_TG_JOB_PARAMS
 
 
-class TelegramProcessor:
+def convert_spec_symbols(converted_string: str) -> str:
+    for el in settings.Telegram.SPEC_SYMBOLS_LIST:
+        converted_string = converted_string.replace(el[0], el[1])
+    return converted_string
 
-    @staticmethod
-    def make_message(c_name: str, c_phone: str, company_idn: str, category: str, order_pos_count: int, price: float):
-        message = f"В обработку добавлен заказ:\n" \
-                  f"<i>Клиент</i>: {c_name}\n" \
-                  f"<i>Телефон</i>: {c_phone}\n" \
-                  f"<i>ИНН</i>: {company_idn}\n" \
-                  f"<i>Категория</i>: {category}\n" \
-                  f"<i>Количество марок</i>: {order_pos_count}\n" \
-                  f"<i>Цена</i>: {price}"
-        return message
+
+class TelegramProcessor:
 
     @staticmethod
     def make_message_tg(user: User, admin_user: User, order_comment: str, company_type: str, company_name: str,
@@ -40,7 +35,8 @@ class TelegramProcessor:
                                            f"<b>! ! ! ! ! ВОССТАНОВЛЕННЫЙ ЗАКАЗ ! ! ! ! ! !</b>\n" \
                                            f"<i>НОМЕР ЗАКАЗА</i>: <b>{su_exec_order_name}</b>\n"
 
-        admin_info = f"<i>Админ</i>: {admin_user.login_name if admin_user else None}\n" \
+        admin_info = "<i>Админ</i>: {admin_login}\n".format(
+            admin_login=convert_spec_symbols(admin_user.login_name) if admin_user else None) \
             if telegram_message.send_admin_info else ''
         client_code = f"<i>Код клиента</i>: {user.client_code}\n" if telegram_message.send_client_code else ''
         organization_info = f"<i>Отгрузка на </i>: {company_type} {company_name}\n" \
@@ -48,8 +44,10 @@ class TelegramProcessor:
 
         organization_idn = f"<i>ИНН</i>: {company_idn}\n" if telegram_message.send_organization_idn else ''
         order_numbers = f"КС - {pos_count} КМ - {orders_pos_count}\n"
-        login_name = f"<i>Логин</i>: {user.login_name}\n" if telegram_message.send_login_name else ''
-        email = f"<i>email</i>: {user.email}\n" if telegram_message.send_email else ''
+        login_name = "<i>Логин</i>: {u_login}\n".format(
+            u_login=convert_spec_symbols(user.login_name)) if telegram_message.send_login_name else ''
+        email = "<i>email</i>: {u_email}\n".format(
+            u_email=convert_spec_symbols(user.email)) if telegram_message.send_email else ''
         phone = f"<i>Телефон</i>: {user.phone}\n" \
             if telegram_message.send_phone else ''
         order_comment_send = f"<i>Комментарий к заказу</i>: \n{order_comment}\n" if order_comment else ''
@@ -87,15 +85,14 @@ class TelegramProcessor:
     def make_message_send_file(user: User, admin_user: User, company_type: str, company_name: str,
                                company_idn: str, edo_type: str, edo_id: str, mark_type: str):
 
-        admin_info = f"<i>Админ</i>: {admin_user.login_name if admin_user else None}\n"
+        admin_info = "<i>Админ</i>: {admin_login}\n".format(admin_login=convert_spec_symbols(admin_user.login_name)
+                                                            if admin_user else None)
 
         client_code = f"<i>Код клиента</i>: {user.client_code}\n"
-        organization_info = f"<i>Отгрузка на </i>: {company_type} {company_name}\n" \
-
+        organization_info = f"<i>Отгрузка на </i>: {company_type} {company_name}\n"
         organization_idn = f"<i>ИНН</i>: {company_idn}\n"
-
-        login_name = f"<i>Логин</i>: {user.login_name}\n"
-        email = f"<i>email</i>: {user.email}\n"
+        login_name = "<i>Логин</i>: {u_login}\n".format(u_login=convert_spec_symbols(user.login_name))
+        email = "<i>email</i>: {u_email}\n".format(u_email=convert_spec_symbols(user.email))
         phone = f"<i>Телефон</i>: <a href='http://wa.me/{user.phone}'>{user.phone}</a>\n"
 
         edo_id_send = '' if not edo_id else f"<code>{edo_id}</code>📖\n"
@@ -179,9 +176,10 @@ class NewUser:
         message_title = f"<b>Новый пользователь с M2R!</b>\n\n" if not new_password \
             else f"<b>Запрос нового пароля</b>\n\n"
 
-        message_body = f"👨‍💼 - <i>{username}</i>\n" \
-                       f"📪 - <i>{email}</i>\n" \
-                       f"☎️ - <i>{phone}</i>\n\n"
+        message_body = "👨‍💼 - <i>{u_login}</i>\n" \
+                       "📪 - <i>{u_email}</i>\n" \
+                       "☎️ - <i>{phone}</i>\n\n".format(u_login=convert_spec_symbols(username),
+                                                        u_email=convert_spec_symbols(email), phone=phone)
         message_fin = f"{partner_string}********************\n" if not new_password \
             else f"🥸 - {new_password}\n\n********************\n"
 
@@ -243,9 +241,10 @@ class RefillBalance:
 
         message_title = f"<b>Новое ПОПОЛНЕНИЕ счета на маркинерис 2.0!</b>\n\n"
 
-        message_body = f"👨‍💼 - <i>{username}</i>\n" \
-                       f"📪 - <i>{email}</i>\n" \
-                       f"☎️ - <i>{phone}</i>\n\n"
+        message_body = "👨‍💼 - <i>{u_login}</i>\n" \
+                       "📪 - <i>{u_email}</i>\n" \
+                       "☎️ - <i>{phone}</i>\n\n".format(u_login=convert_spec_symbols(username),
+                                                        u_email=convert_spec_symbols(email), phone=phone)
         message_fin = f"{amount_string}{promo_string}********************\n"
 
         message = f"{message_title}{message_body}{message_fin}"
@@ -305,9 +304,10 @@ class WriteOffBalance:
 
         message_title = f"<b>Новый запрос на СПИСАНИЕ со счета агента маркинерис 2.0!</b>\n\n"
 
-        message_body = f"👨‍💼 - <i>{username}</i>\n" \
-                       f"📪 - <i>{email}</i>\n" \
-                       f"☎️ - <i>{phone}</i>\n\n"
+        message_body = "👨‍💼 - <i>{u_login}</i>\n" \
+                       "📪 - <i>{u_email}</i>\n" \
+                       "☎️ - <i>{phone}</i>\n\n".format(u_login=convert_spec_symbols(username),
+                                                        u_email=convert_spec_symbols(email), phone=phone)
         wo_account = f"💳 - \n{wo_account_info}\n"
         message_fin = f"{amount_string}{wo_account}********************\n"
 
