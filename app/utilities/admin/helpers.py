@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from flask import jsonify, request, render_template, Response, url_for
 from io import BytesIO
 from pandas import DataFrame, ExcelWriter
@@ -148,7 +149,12 @@ def helper_get_clients_os(admin_id: int, client: User) -> Response:
         else jsonify({'htmlresponse': render_template(f'admin/client_orders/orders_table.html',
                                                       **locals())})
 
+
 def helper_prev_day_orders_marks() -> Row:
-    stmt = text(f""" SELECT count(id) as orders_count, sum(marks_count) as marks_count 
-                     FROM public.orders_stats WHERE saved_at > current_date - interval '1 day';""")
+    yesterday = datetime.now() - timedelta(days=1)
+    stmt = text(""" SELECT count(id) as orders_count, sum(marks_count) as marks_count 
+                         FROM public.orders_stats WHERE saved_at >= '{yesterday_from}' 
+                        AND saved_at < '{yesterday_to}';""".format(
+        yesterday_from=yesterday.strftime('%Y-%m-%d 00:00:00'),
+        yesterday_to=yesterday.strftime('%Y-%m-%d 23:59:59')))
     return db.session.execute(stmt).fetchone()
