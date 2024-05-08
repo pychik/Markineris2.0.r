@@ -1,7 +1,8 @@
 from io import BytesIO
 import rarfile
-from PyPDF2 import PdfMerger, PdfReader, PdfWriter, Transformation
+from pdfrw import PageMerge, PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
 
 
 from config import settings
@@ -14,7 +15,7 @@ class RarPdfProcessor:
 
     @staticmethod
     def get_rar_archive_data(rar_file: str) -> bytes:
-        with open(file=rar_file, mode='rb') as rar_file:
+        with open(rar_file, 'rb') as rar_file:
             rar_data = rar_file.read()
         return rar_data
 
@@ -24,66 +25,62 @@ class RarPdfProcessor:
                 if settings.Pdf.PDF_FOLDER_NAME in file_info.filename and file_info.filename.endswith('.pdf'):
                     pdf_data = rf.read(file_info.filename)
                     self.pdf_files.append(BytesIO(pdf_data))
-                # else:
-                #     return None
-        pdf_merger = PdfMerger()
-        for pdf_file in self.pdf_files:
-            pdf_merger.append(pdf_file)
 
-        return self.add_page_numbers(pdf_merger=pdf_merger)
+        pdf_merger = PdfWriter()
+        for pdf_file in self.pdf_files:
+            pdf_reader = PdfReader(pdf_file)
+            for page in pdf_reader.pages:
+                pdf_merger.addpage(page)
+
+        return self.add_page_numbers(pdf_merger)
 
     @staticmethod
-    def add_page_numbers(pdf_merger: PdfMerger) -> BytesIO:
-        """
-            Add page numbers to each page
-        :param pdf_merger:
-        :return:
-        """
-
-        # Create buffer for editing pages
+    def add_page_numbers(pdf_merger: PdfWriter) -> BytesIO:
         io_pdf = BytesIO()
         pdf_merger.write(io_pdf)
         io_pdf.seek(0)
 
-        pdf_reader = PdfReader(io_pdf)
-        pdf_writer = PdfWriter()
+        output = PdfReader(io_pdf)
+        for i, page in enumerate(output.pages, start=1):
+            page_number_text = f"{i} - {len(output.pages)}"
+            RarPdfProcessor.add_text_to_page(page, page_number_text)
 
-        pages_quantity = len(pdf_reader.pages)
-        for page_number in range(pages_quantity):
-            page = pdf_reader.pages[page_number]
+        io_pdf = BytesIO()
+        io_pdf_writer = PdfWriter()
+        io_pdf_writer.addpages(output.pages)
+        io_pdf_writer.write(io_pdf)
+        io_pdf.seek(0)
 
-            page_number_text = f"{page_number + 1} - {pages_quantity}"
-            page.merge_page(RarPdfProcessor.create_text_page(page_number_text, pdf_reader.pages[0].mediabox))
-
-            pdf_writer.add_page(page)
-
-        # Create buffer for returning stream
-        io_writer = BytesIO()
-        pdf_writer.write(io_writer)
-        io_writer.seek(0)
-        return io_writer
+        return io_pdf
 
     @staticmethod
-    def create_text_page(text, media_box):
-        """
-            Create a new page with text as page number
-        :param text:
-        :param media_box:
-        :return:
-        """
-        packet = BytesIO()
-        can = canvas.Canvas(packet)
-        can.setFontSize(size=settings.Pdf.TEXT_FONT_SIZE)
-        can.drawString(settings.Pdf.TEXT_TX, settings.Pdf.TEXT_TY, text)
+    def add_text_to_page(page, text):
+        # Create a buffer to hold the PDF data
+        overlay_buffer = BytesIO()
+
+        # Create a canvas with ReportLab
+
+        can = canvas.Canvas(overlay_buffer, pagesize=letter)
+        can.setFontSize(size=6)  # Setting font size to 6
+        # Calculate the absolute position based on percentage of canvas size
+        width, height = letter
+        tx_absolute = int(width * settings.Pdf.TEXT_TX)
+        ty_absolute = int(height * settings.Pdf.TEXT_TY)
+
+        # Draw the text on the canvas
+        can.drawString(tx_absolute, ty_absolute, text)
+
+        # Save the canvas content to the buffer
         can.save()
 
-        packet.seek(0)
-        new_pdf = PdfReader(packet)
+        # Reset the buffer position to the beginning
+        overlay_buffer.seek(0)
 
-        new_page = new_pdf.pages[0]
-        new_page.add_transformation(Transformation().translate(0, 0))
-        new_page.merge_page(page2=new_page, expand=media_box[3])
-        return new_page
+        # Read the generated PDF from the buffer using pdfrw
+        overlay_pdf = PdfReader(overlay_buffer)
+
+        # Merge the overlay PDF with the existing page
+        PageMerge(page).add(overlay_pdf.pages[0]).render()
 
 
 # if __name__ == '__main__':

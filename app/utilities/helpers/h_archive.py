@@ -1,6 +1,5 @@
 from flask import Blueprint, jsonify, render_template, redirect, url_for, flash, Response, send_file, \
     send_from_directory, make_response
-from io import BytesIO
 from flask_login import current_user
 from sqlalchemy import desc
 

@@ -771,8 +771,8 @@ class Settings(BaseSettings):
     class Pdf:
         PDF_FOLDER_NAME = 'ЭтикеткиPDF'
         TEXT_FONT_SIZE = 7.2
-        TEXT_TX = 135
-        TEXT_TY = 10
+        TEXT_TX = 15 / 100  # X position as a percentage absolete 135
+        TEXT_TY = 1 / 100  # Y position as a percentage absolete 10
 
     class Upload:
         STANDART: str = 'standart'
