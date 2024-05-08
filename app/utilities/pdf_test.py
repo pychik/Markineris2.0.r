@@ -1,4 +1,5 @@
 from io import BytesIO
+import fitz
 import rarfile
 from PyPDF2 import PdfMerger, PdfReader, PdfWriter, Transformation
 from reportlab.pdfgen import canvas
@@ -88,6 +89,25 @@ def merge_pdfs_pdfrw(pdf_files, output_file):
     # Save the merged PDF
     output_pdf.write(output_file)
 
+@time_counter
+def merge_pdfs_fitz(pdf_files, output_file):
+    output_pdf = fitz.open()
+
+    # Iterate through input PDFs
+    for pdf_file in pdf_files:
+        input_pdf = fitz.open(pdf_file)
+
+        # Iterate through pages in the input PDF
+        for page_number in range(input_pdf.page_count):
+            # Extract page content
+            page = input_pdf.load_page(page_number)
+            output_pdf.insert_pdf(input_pdf, from_page=page_number, to_page=page_number)
+
+        input_pdf.close()
+
+    # Save the merged PDF
+    output_pdf.save(output_file)
+    output_pdf.close()
 
 # Example usage
 if __name__ == "__main__":
@@ -100,7 +120,8 @@ if __name__ == "__main__":
 
     # Merge PDFs using threading
 
-    merge_pdfs_nt(pdf_files, output_file_1)
+    # merge_pdfs_nt(pdf_files, output_file_1)
+    merge_pdfs_fitz(pdf_files, output_file_1)
     merge_pdfs_pdfrw(pdf_files, output_file_2)
 
     print("PDFs merged successfully!")
