@@ -312,6 +312,16 @@ class Settings(BaseSettings):
         # C_20K_50K: int = 50000
         RANGES: tuple = (C_LT100, C_100_500, C_500_1K, C_1K_3K, C_3K_10K)
 
+    class Users:
+        DEFAULT_DAYS_RANGE: int = 30
+        FILTER_DATE_HOURS: str = 'Часов'
+        FILTER_DATE_DAYS: str = 'Дней'
+        FILTER_DATE_MONTH: str = 'Месяцев'
+        FILTER_DATE_TYPES: tuple = (FILTER_DATE_HOURS, FILTER_DATE_DAYS, FILTER_DATE_MONTH,)
+        FILTER_DATE_DICT: dict = {FILTER_DATE_HOURS: 'Час(ов)', FILTER_DATE_DAYS: 'День(Дней)',
+                                  FILTER_DATE_MONTH: 'Месяц(ев)'}
+        FILTER_MAX_QUANTITY: int = 30
+
     class Transactions:
         CANCELLED: int = 0
         PENDING: int = 1

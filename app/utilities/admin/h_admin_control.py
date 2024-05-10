@@ -13,9 +13,9 @@ from models import db, Order, OrderStat, PartnerCode, RestoreLink, Telegram, Tel
     Price, TgUser
 from utilities.download import orders_process_send_order
 from utilities.support import url_encrypt, helper_check_form, helper_update_order_note, \
-      helper_paginate_data, helper_strange_response, sql_count
+      helper_paginate_data, helper_strange_response, sql_count, helper_get_filter_users
 from utilities.admin.helpers import (process_admin_report, helper_get_clients_os, helper_get_orders_stats,
-                                     helper_prev_day_orders_marks)
+                                     helper_prev_day_orders_marks, helper_get_users_reanimate)
 
 
 def h_index(expanded: str = None):
@@ -1098,6 +1098,41 @@ def h_bck_change_user_password(u_id: int) -> Response:
         logger.error(message + str(e))
 
     return jsonify(dict(status=status, message=message))
+
+
+def h_bck_reanimate():
+    """
+       background update of agent users transactions  write_off for agent commission counter
+    :return:
+    """
+
+    # set manually type and status for render page case
+    date_quantity, date_type, link_filters, sort_type = helper_get_filter_users()
+
+    link = f'javascript:bck_get_users_reanimate(\'' + url_for(
+        'admin_control.bck_control_reanimate') + f'?bck=1&{link_filters}' + 'page={0}\');'
+
+    users = helper_get_users_reanimate(date_quantity=date_quantity, date_type=date_type, sort_type=sort_type)
+    numrows = len(users)
+
+    basic_prices = settings.Prices.BASIC_PRICES
+    all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2).filter(
+        Price.price_at2.isnot(True)) \
+        .order_by(desc(Price.created_at)).all()
+
+
+    page, per_page, \
+        offset, pagination, \
+        users_list = helper_paginate_data(data=users, per_page=settings.PAGINATION_PER_PAGE, href=link)
+
+    bck = request.args.get('bck', 0, type=int)
+    basic_prices = settings.Prices.BASIC_PRICES
+    date_range_types = settings.Users.FILTER_DATE_TYPES
+    date_quant_max = settings.Users.FILTER_MAX_QUANTITY
+    converted_date_type = settings.Users.FILTER_DATE_DICT.get(date_type)
+    return jsonify({'htmlresponse': render_template(f'admin/ra/user_reanimate_response.html', **locals())}) \
+        if bck else render_template('admin/ra/main_reanimate.html', **locals())
+
 
 
 def helper_create_crm_admin(login_name: str, email: str, password: str) -> Response:

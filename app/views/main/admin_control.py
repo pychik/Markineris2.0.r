@@ -11,7 +11,7 @@ from utilities.admin.h_admin_control import h_index, h_admin, h_set_order_notifi
     h_deactivate_user_admin, h_set_process_type, h_delete_user_admin, h_delete_user, h_create_link_new_password, \
     h_send_order, h_download_agent_report, h_user_search, h_user_search_idn, h_cross_user_search, h_bck_set_user_price, \
     h_change_agent_fee, h_change_trust_limit, h_users_orders_stats, h_users_activate_list, h_bck_user_delete, \
-    h_bck_user_activate, h_client_orders_stats, h_su_user_search, h_bck_change_user_password
+    h_bck_user_activate, h_client_orders_stats, h_su_user_search, h_bck_change_user_password, h_bck_reanimate
 from utilities.admin.h_finance_control import h_su_control_finance, h_su_bck_promo, h_su_add_promo, h_su_delete_promo, \
     h_su_bck_prices, h_su_add_prices, h_su_delete_prices, h_su_bck_sa, h_su_add_sa, h_su_delete_sa, \
     h_su_bck_change_sa_type, h_su_control_ut, h_su_transaction_detail, h_bck_control_ut, h_au_bck_control_ut, \
@@ -478,6 +478,17 @@ def client_orders_stats(admin_id: int, client_id: int):
 @bck_su_required
 def users_activate_list():
     return h_users_activate_list()
+
+
+@admin_control.route('/bck_control_reanimate', methods=['GET', ])
+@login_required
+@bck_su_required
+def bck_control_reanimate():
+    """
+        background update filtered users not active for specified conditions to control
+    :return:
+    """
+    return h_bck_reanimate()
 
 
 @admin_control.route('/bck_user_delete/<int:u_id>', methods=["POST", ])

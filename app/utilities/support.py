@@ -1191,6 +1191,28 @@ def helper_get_filters_transactions(tr_type: int = None, tr_status: int = None) 
         date_from, date_to, link_filters, model_conditions, model_order_type
 
 
+def helper_get_filter_users() -> tuple:
+    """
+        returns tuple of params with  filter conditions, link string and order type
+    :param tr_type:
+    :param tr_status:
+    :return:
+    """
+    date_quantity_raw = request.args.get('date_quantity', '', type=str)
+    date_type_raw = request.args.get('date_type', '', type=str)
+
+    sort_type = request.args.get('sort_type', 1, type=int)
+
+    link_filters = f'date_quantity={date_quantity_raw}&date_type={date_type_raw}&'
+
+    date_quantity = int(date_quantity_raw) if date_quantity_raw else settings.Users.DEFAULT_DAYS_RANGE
+    date_type = date_type_raw if date_type_raw and date_type_raw in settings.Users.FILTER_DATE_TYPES \
+        else settings.Users.FILTER_DATE_DAYS
+
+    # print(date_from, date_to, sort_type)
+    return date_quantity, date_type, link_filters, sort_type
+
+
 def helper_isolated_session(query: str, return_flag: bool = True) -> tuple | bool:
 
     plain_engine = create_engine(settings.SQL_DATABASE_URL)

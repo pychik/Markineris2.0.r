@@ -119,3 +119,45 @@ function bck_change_user_password(url, csrf) {
         }
     });
 }
+
+
+function bck_get_users_reanimate(url) {
+
+    let sort_mode = 0;
+    if (document.getElementById("asc_type").checked) {
+        sort_mode = 1;
+    }
+    $.ajax({
+        url: url,
+        method: "GET",
+        data: {
+            date_quantity: $('#date_quantity').val(),
+            date_type: $('#date_type').val(),
+            sort_type: sort_mode
+        },
+        success: function (data) {
+            $('#user_response').html(data);
+            $("#user_response").append(data.htmlresponse);
+
+        }
+    });
+
+}
+function check_ra_filter_Validity(input) {
+// Get the maximum value allowed
+    var maxValue = parseFloat(input.getAttribute("max"));
+    var minValue = parseFloat(input.getAttribute("min"));
+
+// Get the current value of the input
+    var value = parseFloat(input.value);
+
+// Check if the value is greater than the maximum allowed value
+    if (value > maxValue) {
+        // Clear the input value
+        input.value = maxValue;
+    }
+    else if (value < minValue) {
+        // Clear the input value
+        input.value = minValue;
+    }
+}
