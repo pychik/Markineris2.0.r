@@ -2,8 +2,6 @@ from io import BytesIO
 import rarfile
 from pdfrw import PageMerge, PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-
 
 from config import settings
 
@@ -55,17 +53,19 @@ class RarPdfProcessor:
 
     @staticmethod
     def add_text_to_page(page, text):
+        # Get the width and height of the page
+        width = float(page.MediaBox[2]) - float(page.MediaBox[0])
+        height = float(page.MediaBox[3]) - float(page.MediaBox[1])
+
+        # Calculate the absolute position based on percentage of canvas size
+        tx_absolute = int(width * settings.Pdf.TEXT_TX)
+        ty_absolute = int(height * settings.Pdf.TEXT_TY)
         # Create a buffer to hold the PDF data
         overlay_buffer = BytesIO()
 
         # Create a canvas with ReportLab
-
-        can = canvas.Canvas(overlay_buffer, pagesize=letter)
+        can = canvas.Canvas(overlay_buffer, pagesize=(width, height))
         can.setFontSize(size=6)  # Setting font size to 6
-        # Calculate the absolute position based on percentage of canvas size
-        width, height = letter
-        tx_absolute = int(width * settings.Pdf.TEXT_TX)
-        ty_absolute = int(height * settings.Pdf.TEXT_TY)
 
         # Draw the text on the canvas
         can.drawString(tx_absolute, ty_absolute, text)
