@@ -4,7 +4,7 @@ from flask import Response, jsonify, request, render_template, url_for
 from sqlalchemy import desc
 
 from config import settings
-from models import db, User, Shoe
+from models import db, Order, User, Shoe
 
 
 def h_shoe_sba(o_id: int) -> Response:
@@ -23,33 +23,31 @@ def h_shoe_sba(o_id: int) -> Response:
                                                     numrows=numrows)})
 
 
-def h_category_sba(o_id: int, model_c: db.Model, category: str) -> Response:
-    search_query = request.form.get('query', '').replace("--", "")
-    if search_query:
-        order_list = model_c.query.filter(model_c.order_id == o_id, model_c.article.ilike(f"%{search_query}%"))\
-            .order_by(desc(model_c.id)).limit(settings.PAGINATION_PER_PAGE).all()
+def h_category_sba(u_id: int, o_id: int, model_c: db.Model, category: str) -> Response:
+    numrows = 0
+    order_list = ''
+    if Order.query.with_entities(Order.id).filter(Order.user_id == u_id, Order.id == o_id).first():
+        search_query = request.form.get('query', '').replace("--", "")
+        if search_query:
+            order_list = model_c.query.filter(model_c.order_id == o_id, model_c.article.ilike(f"%{search_query}%"))\
+                .order_by(desc(model_c.id)).limit(settings.PAGINATION_PER_PAGE).all()
 
-        numrows = len(order_list)
-
-    else:
-        numrows = 0
-        order_list = ''
+            numrows = len(order_list)
 
     return jsonify({'htmlresponse': render_template(f'helpers/{category}/response_{category}_sba.html', o_id=o_id, order_list=order_list,
                                                     numrows=numrows)})
 
 
-def h_category_trademark_sba(o_id: int, model_c: db.Model, category: str) -> Response:
-    search_query = request.form.get('query', '').replace("--", "")
-    if search_query:
-        order_list = model_c.query.filter(model_c.order_id == o_id, model_c.trademark.ilike(f"%{search_query}%"))\
-            .order_by(desc(model_c.id)).limit(settings.PAGINATION_PER_PAGE).all()
+def h_category_trademark_sba(u_id: int, o_id: int, model_c: db.Model, category: str) -> Response:
+    numrows = 0
+    order_list = ''
+    if Order.query.with_entities(Order.id).filter(Order.user_id == u_id, Order.id == o_id).first():
+        search_query = request.form.get('query', '').replace("--", "")
+        if search_query:
+            order_list = model_c.query.filter(model_c.order_id == o_id, model_c.trademark.ilike(f"%{search_query}%"))\
+                .order_by(desc(model_c.id)).limit(settings.PAGINATION_PER_PAGE).all()
 
-        numrows = len(order_list)
-
-    else:
-        numrows = 0
-        order_list = ''
+            numrows = len(order_list)
 
     return jsonify({'htmlresponse': render_template(f'helpers/{category}/response_{category}_sba.html', o_id=o_id, order_list=order_list,
                                                     numrows=numrows)})

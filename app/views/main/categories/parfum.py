@@ -96,7 +96,7 @@ def process_order(o_id: int):
 @login_required
 @user_activated
 def search_by_trademark(o_id: int):
-    return h_category_trademark_sba(o_id=o_id, model_c=Parfum, category=settings.Parfum.CATEGORY_PROCESS)
+    return h_category_trademark_sba(u_id=current_user.id, o_id=o_id, model_c=Parfum, category=settings.Parfum.CATEGORY_PROCESS)
 
 
 @parfum.route('/upload', methods=['GET', ])

@@ -99,7 +99,7 @@ def process_order(o_id):
 @login_required
 @user_activated
 def search_by_article(o_id: int):
-    return h_category_sba(o_id=o_id, model_c=Shoe, category=settings.Shoes.CATEGORY_PROCESS)
+    return h_category_sba(u_id=current_user.id, o_id=o_id, model_c=Shoe, category=settings.Shoes.CATEGORY_PROCESS)
 
 
 @shoes.route('/upload', methods=['GET', ])
