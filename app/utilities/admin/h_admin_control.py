@@ -903,6 +903,7 @@ def h_cross_user_search() -> Response:
             f"SELECT "
             f"u.id as id, "
             f"u.login_name as login_name, "
+            f"u.balance as balance, "
             f"u.email as email, "
             f"u.status as status, "
             f"u.role as role, "

@@ -23,7 +23,7 @@
                 {%for u in clients%}
                     <tr>
                       <th scope="row">
-                          {{loop.index}}
+                          <span title="Баланс пользователя {{u.balance}} р.">{{loop.index}}</span>
                       </th>
 
                       <td>
