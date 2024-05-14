@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy import text
 
 from models import db
@@ -99,8 +99,10 @@ def helper_google_order_list(transaction_packets: list[TransactionRow],
 
 def helper_google_collect_and_send_stat(transaction_google_packets: list[TransactionRow],
                                         transaction_rz_packets: list[TransactionRow]) -> None:
+    _date = datetime.now() - timedelta(days=1)
 
-    date_info = datetime.now().strftime("%d.%m.%Y %H:%M")
+    # Set the time to 23:59:59
+    date_info = _date.replace(hour=23, minute=59, second=59).strftime("%d.%m.%Y %H:%M")
     if transaction_google_packets:
         gp_common = GoogleProcess(data_list=helper_google_order_list(transaction_packets=transaction_google_packets,
                                                                      date_info=date_info))
