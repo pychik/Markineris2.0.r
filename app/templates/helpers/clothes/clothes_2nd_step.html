@@ -35,7 +35,7 @@
                                value="{% if copied_order %}{{ copied_order.article }}{% endif %}"
                                required>
                         <div class="row">
-                            <div class="col-6"></div>
+                            <div class="col-7"></div>
                             <div class="col-4 text-right">
                                 <div onclick="set_no_article();"><span class="badge link-secondary font-8" style="font-size: 8px; font-weight:bold; cursor:pointer">БЕЗ АРТИКУЛА</span></div>
                             </div>
@@ -155,7 +155,7 @@
                                 <label><h4>В коробке</h4></label>
                             </div>
                             <div class="col-xs-12">
-                                <input type="number" id="clothes_in_box" class="form-control ms-1"  disabled>
+                                <input type="number" id="clothes_in_box" class="form-control ms-1" disabled>
 
                             </div>
                         {% endif %}
@@ -227,16 +227,14 @@
                                             d="M4.34074 0.312213C8.07158 -0.104071 11.9285 -0.104071 15.6593 0.312213C17.7413 0.544517 19.4209 2.18214 19.6655 4.26889C20.1115 8.07671 20.1115 11.9234 19.6655 15.7312C19.4209 17.8179 17.7413 19.4555 15.6593 19.6878C11.9285 20.1041 8.07158 20.1041 4.34074 19.6878C2.25873 19.4555 0.579043 17.8179 0.33457 15.7312C-0.111523 11.9234 -0.111523 8.07671 0.33457 4.26889C0.579043 2.18214 2.25873 0.544517 4.34074 0.312213ZM10 9.08981H10.9117H15.1575C15.661 9.08981 16.0692 9.49734 16.0692 10C16.0692 10.5027 15.661 10.9102 15.1575 10.9102H10.9117C10.9117 10.9102 10.2506 10.9102 10 10.9102C9.74947 10.9102 9.46208 10.9102 9.46208 10.9102H9.08832H4.84265C4.33912 10.9102 3.93094 10.5027 3.93094 10C3.93094 9.49734 4.33912 9.08981 4.84265 9.08981H9.08832H10Z"
                                             fill="white" />
                                     </svg>
-                                    <div class="ms-2" title="Нажать для изменения позиции. При нажатии, размер и количество перемещаются из накладной в форму!">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" onclick="clothes_edit_size($(this).closest('div').parent());"
-                                             fill="none" class="bi bi-pencil" viewBox="0 0 20 20">
-                                          <path fill-rule="evenodd" clip-rule="evenodd" d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325" fill="white"/>
-                                        </svg>
+                                    <div class="ms-2">
+<!--                                        <span id="size_type_info">{{sq.size_type}}</span>&nbsp;размер-->
+                                        <span id="size_info">{{sq.size}}</span>
+                                        <span id="size_type_info" style="font-size: 8px">{% if sq.size_type %}{{sq.size_type}}{%endif%}</span>
                                     </div>
-                                    <div class="ms-2"><span id="size_info">{{sq.size}}</span> размер</div>
                                 </div>
                                 <div class="important-card__val"><span id="quantity_info">{{sq.quantity}}</span> <span>шт.</span></div>
-                                <input type="hidden" id="size" name="size" value="{{sq.size}}"><input type="hidden" id="quantity" name="quantity" value="{{sq.quantity}}">
+                                <input type="hidden" id="size" name="size" value="{{sq.size}}"><input type="hidden" id="quantity" name="quantity" value="{{sq.quantity}}"><input type="hidden" id="size_type" name="size_type" value="{{sq.size_type}}">
                             </div>
                         {% endfor %}
                     {% endif %}

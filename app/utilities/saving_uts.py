@@ -53,7 +53,7 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list) -> Order
     new_clothes_order = Clothes(trademark=process_input_str(form_dict.get("trademark")),
                                 article=process_input_str(form_dict.get("article")),
                                 type=form_dict.get("type"),
-                                color=form_dict.get("color"), size_type=settings.Clothes.SIZE_TYPE,
+                                color=form_dict.get("color"),
                                 content=form_dict.get("content"), box_quantity=form_dict.get("box_quantity"),
                                 gender=form_dict.get("gender"), country=form_dict.get("country"),
                                 tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
@@ -61,7 +61,9 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list) -> Order
                                 rd_name=form_dict.get("rd_name"),
                                 rd_date=rd_date)
 
-    extend_sq = (ClothesQuantitySize(size=el[0], quantity=el[1]) for el in sizes_quantities)
+    extend_sq = (ClothesQuantitySize(size=el[0], quantity=el[1],
+                                     size_type=el[2] if el[0] != settings.Clothes.UNITE_SIZE_VALUE
+                                     else settings.Clothes.DEFAULT_SIZE_TYPE) for el in sizes_quantities)
     new_clothes_order.sizes_quantities.extend(extend_sq)
     order.clothes.append(new_clothes_order)
     return order
@@ -188,13 +190,13 @@ def save_copy_order_shoes(order_category_list: list[Shoe], new_order: Order) -> 
 def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order) -> Order:
     new_order.clothes.extend(Clothes(trademark=clothes.trademark,
                                      article=clothes.article, type=clothes.type,
-                                     color=clothes.color, size_type=clothes.size_type, content=clothes.content,
+                                     color=clothes.color, content=clothes.content,
                                      box_quantity=clothes.box_quantity,
                                      gender=clothes.gender, country=clothes.country,
                                      tnved_code=clothes.tnved_code, article_price=clothes.article_price,
                                      tax=clothes.tax, rd_type=clothes.rd_type, rd_name=clothes.rd_name,
                                      rd_date=clothes.rd_date,
-                                     sizes_quantities=list((ClothesQuantitySize(size=sq.size, quantity=sq.quantity)
+                                     sizes_quantities=list((ClothesQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
                                                             for sq in clothes.sizes_quantities)))
                              for clothes in order_category_list)
     return new_order

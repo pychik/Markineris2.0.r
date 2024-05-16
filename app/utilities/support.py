@@ -249,16 +249,23 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
                       company_idn=form_dict.get("company_idn"), mark_type=form_dict.get("mark_type_hidden"),
                       category=category, stage=settings.OrderStage.CREATING, processed=False, to_delete=False)
     try:
-        if category != settings.Linen.CATEGORY:
+        if category == settings.Clothes.CATEGORY:
+            sizes = form_data_raw.getlist("size")
+            quantities = form_data_raw.getlist("quantity")
+            size_types = form_data_raw.getlist("size_type")
+            sizes_quantities = sorted(list(zip(sizes, quantities, size_types)), key=lambda x: x[0])
+        elif category == settings.Shoes.CATEGORY:
             sizes = form_data_raw.getlist("size")
             quantities = form_data_raw.getlist("quantity")
             sizes_quantities = sorted(list(zip(sizes, quantities)), key=lambda x: x[0])
-        else:
+        elif category == settings.Linen.CATEGORY:
             sizesX = form_data_raw.getlist("sizeX")
             sizesY = form_data_raw.getlist("sizeY")
             sizes = list(map(lambda x: f"{x[0]}*{x[1]}", zip(sizesX, sizesY)))
             quantities = form_data_raw.getlist("quantity")
             sizes_quantities = sorted(list(zip(sizes, quantities)), key=lambda x: x[0])
+        else:
+            raise IntegrityError('Выбрана некорректная категория')
 
         updated_order = common_save_db(order=order, form_dict=form_dict,
                                        category=category, sizes_quantities=sizes_quantities)
@@ -410,6 +417,8 @@ def helper_clothes_index(o_id: int, p_id: int = None, update_flag: int = None,
     clothes_nat_content = settings.Clothes.CLOTHES_NAT_CONTENT
     clothes_upper = settings.Clothes.UPPER_TYPES
     clothes_sizes = settings.Clothes.SIZES_ALL
+    clothes_types_sizes_dict = settings.Clothes.SIZE_ALL_DICT
+
     clothes_size_description = settings.Clothes.CLOTHES_SIZE_DESC
     category = settings.Clothes.CATEGORY
     category_process_name = settings.Clothes.CATEGORY_PROCESS

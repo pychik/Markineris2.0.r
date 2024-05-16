@@ -173,3 +173,47 @@
     .blink-badge {
         animation: blink 2.3s infinite;
     }
+
+@keyframes y_border_blink {
+        0% { border-color: yellow; }
+        50% { border-color: transparent; }
+        100% { border-color: yellow; }
+    }
+
+.y_border_blinking {
+        animation: y_border_blink 3s infinite;
+    }
+@keyframes fadeInLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.fadeInLeft {
+  animation: fadeInLeft 0.5s ease-in-out;
+}
+@keyframes fadeInRight {
+      0% {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+      100% {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+.fadeInRight {
+  animation: fadeInRight 0.5s ease-in-out;
+}
+
+.input-light-grey {
+    background-color: #f0f0f0; /* light grey */
+}
+
+.input-white {
+    background-color: #ffffff; /* white */
+}

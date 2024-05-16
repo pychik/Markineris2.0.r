@@ -12,10 +12,9 @@ from utilities.param_lists import SHOE_GENDERS, SHOE_MATERIALS_UP_LINEN, SHOE_MA
     LINEN_PRELOAD_START, LINEN_TEXTILE_TYPES, PARFUM_MATERIAL_PACKAGES, PARFUM_PACKAGE_TYPES, \
     PARFUM_START, PARFUM_PRELOAD_START, PARFUM_TNVED, PARFUM_TYPES, PARFUM_VOLUMES, \
     CLOTHES_DICT, CLOTHES_GENDERS, \
-    CLOTHES_GENDERS_ORDER, CLOTHES_SIZE_TYPES, CLOTHES_START, \
-    CLOTHES_PRELOAD_START, CLOTHES_TNVED, CLOTHES_TYPES, CLOTHES_SIZES, \
+    CLOTHES_GENDERS_ORDER, CLOTHES_START, CLOTHES_PRELOAD_START, CLOTHES_TNVED, CLOTHES_TYPES, \
     COUNTRIES_LIST, COUNTRIES_LIST_C, TEMPLATE_TABLES_DICT, ORDER_EDIT_DESCRIPTION, \
-    SHOE_TNVED_CHECK_LIST, BIG_CLOTHES_TNVED_4DIGIT, CATEGORIES_DICT, \
+    SHOE_TNVED_CHECK_LIST, CLOTHES_TYPES_SIZES_DICT, CATEGORIES_DICT, \
     BIG_TNVED_LIST, BIG_TNVED_DICT, ADMIN_REPORT_HEAD, AGENT_DEFAULT_NOTE, ORDER_STAGES, \
     CHECK_ORDER_STAGES, COMMON_COLORS, SHOE_START_EXT, LINEN_START_EXT, PARFUM_START_EXT, \
     CLOTHES_START_EXT, CRM_PS_DICT, CLOTHES_CONTENT, CLOTHES_NAT_CONTENT, CLOTHES_UPPER, \
@@ -905,7 +904,6 @@ class Settings(BaseSettings):
         TYPES: list = CLOTHES_TYPES
         UPPER_TYPES: list = CLOTHES_UPPER
         COLORS: tuple = COMMON_COLORS
-        SIZES: tuple = CLOTHES_SIZES
         SIZES_ALL: list = CLOTHES_SIZES_FULL
         CLOTHES_SIZE_DESC: tuple = CLOTHES_SIZES_DESCRIPTION
         CLOTHES_CONTENT: list = CLOTHES_CONTENT
@@ -913,9 +911,11 @@ class Settings(BaseSettings):
         GENDERS: list = CLOTHES_GENDERS
         GENDERS_ORDER: list = CLOTHES_GENDERS_ORDER
         DEC: dict = CLOTHES_DICT
-        SIZE_TYPES: list = CLOTHES_SIZE_TYPES
-        SIZE_TYPE: str = "РОССИЯ"
-        SIZE_TYPES_ALL: list = ["РОССИЯ", ]  # temporary before all types are ok to use
+
+        SIZE_ALL_DICT: dict = CLOTHES_TYPES_SIZES_DICT
+        DEFAULT_SIZE_TYPE: str = "РОССИЯ"
+        UNITE_SIZE_VALUE: str = "ЕДИНЫЙ РАЗМЕР"
+        SIZE_TYPES_ALL: list = CLOTHES_TYPES_SIZES_DICT.keys()  # temporary before all types are ok to use
         TNVED_CODE: tuple = CLOTHES_TNVED  # "6202900001"
         # TNVED_CHECK_LIST: tuple = BIG_CLOTHES_TNVED_4DIGIT
         TNVED_ALL: tuple = ALL_CLOTHES_TNVED
@@ -930,8 +930,7 @@ class Settings(BaseSettings):
         UPLOAD_COLOR_ERROR: str = "Проверьте правильность указанного цвета одежды (посмотрите вкладку справочник)"
         UPLOAD_SIZE_TYPE_ERROR: str = "Проверьте правильность указанного типа размера одежды (справочник)"
 
-        UPLOAD_SIZE_ERROR: str = "Проверьте правильность указанного размера одежды (диапазон от 12 до 72, шаг 2)" \
-                                 "т.е. 12, 14, 16, 18 ... 68, 70, 72"
+        UPLOAD_SIZE_ERROR: str = "Проверьте правильность указанного размера одежды во вкладке справочник"
 
         UPLOAD_CONTENT_ERROR: str = "Проверьте правильность указанного состава одежды (это не может быть цифра или пустое поле)"
         UPLOAD_GENDER_ERROR: str = "Проверьте правильность указанного пола (посмотрите вкладку справочник)"
@@ -940,7 +939,6 @@ class Settings(BaseSettings):
         CLOTHES_TNVED_DICT: dict = CLOTHES_TNVED_DICT
         OLD_TNVEDS: set = CLOTHES_OLD_TNVED
         # OLD_TNVEDS_SQL: str = ', '.join(list(map(lambda x: '\'' + x + '\'', CLOTHES_OLD_TNVED)))
-
 
     # class Config:
     #     env_file = '.env'

@@ -390,7 +390,6 @@ class Clothes(db.Model, UserMixin, OrderCommon):
     gender = db.Column(db.String(50))
 
     content = db.Column(db.String(100))
-    size_type = db.Column(db.String(50))
     sizes_quantities = db.relationship('ClothesQuantitySize', backref='clothes', cascade="all,delete", lazy='joined')
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), index=True)
 
@@ -401,6 +400,7 @@ class ClothesQuantitySize(db.Model, UserMixin):
     id = db.Column(db.BigInteger, primary_key=True)
     size = db.Column(db.String())
     quantity = db.Column(db.Integer())
+    size_type = db.Column(db.String(50))
     cl_id = db.Column(db.Integer, db.ForeignKey('clothes.id', ondelete='CASCADE'), index=True)
 
 

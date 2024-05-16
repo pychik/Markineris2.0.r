@@ -60,14 +60,13 @@ def upload_clothes_st(order_list: list, order: Order) -> Order:
                                     article=el[1].strip(), type=el[2].strip(),
                                     color=el[3].strip(), box_quantity=1,
                                     gender=el[4].strip(),
-                                    size_type=el[5].strip(),
                                     content=el[7].strip(),
                                     tnved_code=el[8].strip(),
                                     country=el[10].strip(),
                                     rd_type=el[11].strip(), rd_name=el[12].strip(), rd_date=rd_date,
                                     article_price=0, tax=0)
 
-        new_size_quantity = ClothesQuantitySize(size=el[6].strip(), quantity=el[9].strip())
+        new_size_quantity = ClothesQuantitySize(size=el[6].strip(), quantity=el[9].strip(), size_type=el[5].strip(), )
         new_clothes_order.sizes_quantities.append(new_size_quantity)
 
         order.clothes.append(new_clothes_order)

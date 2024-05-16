@@ -277,7 +277,7 @@ class ClothesProcessor(OrdersProcessor):
                             f'{el.trademark} арт. {el.article} цвет {el.color} р. {sq.size}'
 
                 temp_list = [tnved[:4] if tnved != '4304000000' else tnved, full_name,
-                             el.trademark, 'Артикул', el.article, el.type, el.color, gender, el.size_type, sq.size,
+                             el.trademark, 'Артикул', el.article, el.type, el.color, gender, sq.size_type, sq.size,
                              el.content, tnved, settings.Clothes.NUMBER_STANDART,
                              '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,
                              declar_doc, ]

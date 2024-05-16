@@ -47,21 +47,36 @@ class ValidateClothesMixin:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_COLOR_ERROR}"
 
     @staticmethod
-    @empty_value
-    def _size_type(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
-        # temporary comments
-        corrected_value = value.strip().replace(' ', '')
+    def _size_type(size_value: str, row_num: int, size_col: str, pos: int, order_list: list) -> Optional[str]:
+        """
+         searches for size_type in size_types_all and if not searches for size_type using size
+        :param value:
+        :param row_num:
+        :param size_col:
+        :param pos:
+        :param size_pos:
+        :param order_list:
+        :return:
+        """
 
-        if corrected_value not in settings.Clothes.SIZE_TYPES_ALL:
-            return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_SIZE_TYPE_ERROR}"
+        # corrected_value = value.strip().replace(' ', '')
+        # size_value.replace not making because of spaces in sizes
+        if size_value == settings.Clothes.UNITE_SIZE_VALUE:
+            order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = settings.Clothes.DEFAULT_SIZE_TYPE
+            return
+        for el in settings.Clothes.SIZE_TYPES_ALL:
+            if size_value in settings.Clothes.SIZE_ALL_DICT.get(el):
+                order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = el
+                return
+        return f"{val_error_start(row_num=row_num, col=size_col)} {settings.Clothes.UPLOAD_SIZE_ERROR}"
+        # order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = corrected_value
 
     @staticmethod
     @empty_value
     def _size(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
-        corrected_value = value.strip().replace(' ', '')
-        order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = corrected_value
+        order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = value
 
-        if corrected_value not in settings.Clothes.SIZES_ALL:
+        if value not in settings.Clothes.SIZES_ALL:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_SIZE_ERROR}"
 
     @staticmethod
@@ -208,8 +223,8 @@ class UploadClothes(UploadCategory):
                 # print(color_error)
                 gender_error = self._gender(value=data_group[4].strip(), row_num=row_num, col='H')
                 # print(gender_error)
-                size_type_error = self._size_type(value=data_group[5].strip(), row_num=row_num, col='I', pos=5,
-                                                  order_list=order_list)
+                size_type_error = self._size_type(size_value=data_group[6].strip(),
+                                                  row_num=row_num, size_col='J', pos=5, order_list=order_list)
                 # print(size_type_error)
                 size_error = self._size(value=data_group[6].strip(), row_num=row_num, col='J', pos=6,
                                         order_list=order_list)
