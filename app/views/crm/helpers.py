@@ -841,6 +841,7 @@ def of_delete_remove(order_info: Order, o_id: int) -> None:
 def helpers_problem_order(problem_order: Order, problem_comment: str, with_check: bool = False) -> None:
     try:
         problem_order.stage = settings.OrderStage.MANAGER_PROBLEM
+        problem_order.external_problem = True
         problem_order.comment_problem = problem_comment
         problem_order.cp_created = datetime.now()
         problem_order.m_finished = None
