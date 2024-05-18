@@ -424,6 +424,7 @@ function perform_balance_order_check(url, csrf, o_id, category){
         // console.log(data);
 
         // balance - 1 ok 0 not ok, orders - 1 got orders in history, 0 - no orders in history
+        let agent_2_str = 'Обратитесь к агенту, на данный момент активность невозможна'
         if(data.status_balance === 1 && data.status_order === 0){
             // console.log("performing_process");
             perform_process();
@@ -431,13 +432,24 @@ function perform_balance_order_check(url, csrf, o_id, category){
         }
         else if(data.status_balance !== 1 && data.status_order === 0){
             // console.log("balance needs refill");
-            document.getElementById("data_order_check_insert").innerHTML = `<span style="color:red"><b>${data.answer_balance}</b></span><br>`;
+
+            if (!data.agent_at2) {
+                document.getElementById("data_order_check_insert").innerHTML = `<span style="color:red"><b>${data.answer_balance}</b></span><br>`;
+            }
+            else{
+                document.getElementById("data_order_check_insert").innerHTML = `<span style="color:red"><b>${agent_2_str}</b></span><br>`;
+            }
             document.getElementById('process_modal_footer').innerHTML = `<button type="button" class="btn btn-secondary" onclick="perfom_process_model_update('${url}', '${csrf}', ${o_id}, '${category}');" data-bs-dismiss="modal">Ок</button>`;
         }
        else if(data.status_balance !== 1 && data.status_order !== 0){
             // console.log("balance not ok, orders - duplicates");
             document.getElementById('process_modal_footer').innerHTML = `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="perfom_process_model_update('${url}', '${csrf}', ${o_id}, '${category}');">Ок</button>`;
-            document.getElementById("data_order_check_insert").innerHTML = `<span style="color:red"><b>${data.answer_balance}</b></span><br><span style="color:#ffc400"><b>${data.answer_orders}</b></span><br>`;
+            if (!data.agent_at2) {
+                document.getElementById("data_order_check_insert").innerHTML = `<span style="color:red"><b>${data.answer_balance}</b></span><br>`;
+            }
+            else{
+                document.getElementById("data_order_check_insert").innerHTML = `<span style="color:red"><b>${agent_2_str}</b></span><br>`;
+            }
 
         }
         else if(data.status_balance === 1 && data.status_order !== 0){

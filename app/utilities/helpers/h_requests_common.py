@@ -195,4 +195,4 @@ def h_cubaa():
         agent_at2, answer_balance = helper_check_useroragent_balance(user=current_user, o_id=o_id)
 
     return jsonify(dict(status_order=status_order, answer_orders=f"{answer_order}",
-                        status_balance=status_balance, answer_balance=answer_balance, ))
+                        status_balance=status_balance, answer_balance=answer_balance,  agent_at2=agent_at2))
