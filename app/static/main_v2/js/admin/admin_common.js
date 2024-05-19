@@ -161,3 +161,16 @@ function check_ra_filter_Validity(input) {
         input.value = minValue;
     }
 }
+
+function uncheck_agent_type_switch(switch_id, button_id){
+    var bg_color = 'bg-warning';
+
+    if(document.getElementById(switch_id).checked === true){
+        document.getElementById(button_id).classList.remove('disabled');
+        document.getElementById(switch_id).classList.add(bg_color);
+    }
+    else{
+        document.getElementById(button_id).classList.add('disabled');
+        document.getElementById(switch_id).classList.remove(bg_color)
+    }
+}

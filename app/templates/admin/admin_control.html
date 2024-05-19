@@ -275,21 +275,52 @@
                               </td>
                               <td>
 
-                                      {% if u.is_crm and not u.is_at2 %}
-                                          <button type="button" class="btn btn-sm btn-outline-success"
-                                                  title="Сменить тип работы на Агент_ТИП2, Единый счет и TELEGRAMM"
-                                                  onclick="change_process_type('{{ u.id }}', '{{ u.login_name }}', '{{url_for('admin_control.set_process_type', u_id=u.id, p_type='process_at2')}}', '{{csrf_token()}}');"                                                      >Crm  &#8652</button>
-                                      {% elif u.is_at2 %}
-                                        <form method="post" action="{{url_for('admin_control.set_process_type', u_id=u.id, p_type='process_crm')}}">
-                                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                                  <input class="btn btn-sm btn-outline-info btn-outline font-12"
-                                                         title="Сменить тип работы на обычный агент"
-                                                         type="submit" name="activate"
-                                                         onclick="loadingCircle()" value="CRM+Telegram+единый счет  &#8652">
-                                        </form>
-                                      {%else%}
-                                        Необходима проверка БД
-                                      {% endif %}
+                                 {% if u.is_crm and not u.is_at2 %}
+                                      <div class="d-flex">
+                                        <div class="col-10">
+                                            <button type="button" class="btn btn-sm btn-outline-success disabled"
+                                                title="Сменить тип работы на Агент_ТИП2, Единый счет и TELEGRAMM"
+                                                id="change_agent_type_{{u.id}}"
+                                                onclick="change_process_type('{{ u.id }}', '{{ u.login_name }}', '{{url_for('admin_control.set_process_type', u_id=u.id, p_type='process_at2')}}', '{{csrf_token()}}');">
+                                              Crm  &#8652
+                                            </button>
+                                        </div>
+                                        <div class="col-2" onclick="uncheck_agent_type_switch('cat_save_trigger_{{u.id}}', 'change_agent_type_{{u.id}}')">
+                                            <div class=" form-check form-switch ms-3">
+                                                <input type="checkbox" class="form-check-input border border-secondary" role="switch" title="Предохранитель изменения типа агента"
+                                                    id="cat_save_trigger_{{u.id}}">
+                                                <label class="switch" for="cat_save_trigger_{{u.id}}"></label>
+                                            </div>
+                                        </div>
+                                      </div>
+                                 {% elif u.is_at2 %}
+                                      <div class="d-flex">
+                                        <div class="col-10">
+                                            <form method="post" action="{{url_for('admin_control.set_process_type', u_id=u.id, p_type='process_crm')}}">
+                                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                              <input class="btn btn-sm btn-outline-info btn-outline font-12 disabled"
+                                                     title="Сменить тип работы на обычный агент"
+                                                     type="submit" name="activate"
+                                                     id="change_agent_type_{{u.id}}"
+                                                     onclick="loadingCircle()" value="CRM+Telegram+единый счет  &#8652">
+                                            </form>
+
+                                        </div>
+                                        <div class="col-2" onclick="uncheck_agent_type_switch('cat_save_trigger_{{u.id}}', 'change_agent_type_{{u.id}}')">
+                                            <div class=" form-check form-switch ms-3">
+                                                <input type="checkbox" class="form-check-input border border-secondary" role="switch" title="Предохранитель изменения типа агента"
+                                                    id="cat_save_trigger_{{u.id}}">
+                                                <label class="switch" for="cat_save_trigger_{{u.id}}"></label>
+                                            </div>
+                                        </div>
+                                      </div>
+
+
+
+                                 {%else%}
+                                    Необходима проверка БД
+                                 {% endif %}
+
 
                               </td>
 
