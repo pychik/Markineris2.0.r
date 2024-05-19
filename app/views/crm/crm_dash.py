@@ -9,10 +9,11 @@ from utilities.download import orders_download_common
 from utilities.support import (user_activated, su_required, sumausmumu_required, susmumu_required, susmu_required,
                                aus_required)
 
-from .helpers import helper_get_agent_orders, helper_get_manager_orders, helper_m_order_processed, helper_m_order_ps, \
-    helper_attach_file, helper_download_file, helper_delete_order_file, helpers_problem_order, helper_cancel_order, \
-    helper_change_agent_stage, helpers_m_take_order, helper_change_manager, helper_attach_of_link, helper_m_order_bp, \
-    helpers_move_orders_to_processed, helper_search_crma_order, helper_search_crmm_order, helpers_ceps_order
+from .helpers import (helper_get_agent_orders, helper_get_manager_orders, helper_m_order_processed, helper_m_order_ps,
+                      helper_attach_file, helper_download_file, helper_delete_order_file, helpers_problem_order,
+                      helper_cancel_order, helper_change_agent_stage, helpers_m_take_order, helper_change_manager,
+                      helper_attach_of_link, helper_m_order_bp, helpers_move_orders_to_processed,
+                      helper_search_crma_order, helper_search_crmm_order, helpers_ceps_order, helper_crm_preload)
 from .helpers_mo import h_all_new_multi_pool
 crm_d = Blueprint('crm_d', __name__)
 
@@ -240,10 +241,18 @@ def attach_of_link(manager: str, manager_id: int, o_id: int):
 @crm_d.route('/download_file/<int:manager_id>/<int:o_id><string:user_type>', methods=["POST"])
 @login_required
 @user_activated
-@sumausmumu_required
+@susmumu_required
 def download_file(manager_id: int, o_id: int, user_type: str = None):
     user_type = 'managers' if not user_type else 'agents'
     return helper_download_file(manager_id=manager_id, o_id=o_id, user_type=user_type)
+
+
+@crm_d.route('/crm_preload/<int:o_id>', methods=["GET"])
+@login_required
+@user_activated
+@aus_required
+def crm_preload(o_id: int):
+    return helper_crm_preload(o_id=o_id)
 
 
 @crm_d.route('/delete_order_file/<int:manager_id>/<int:o_id>', methods=["POST"])

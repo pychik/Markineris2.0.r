@@ -949,14 +949,15 @@ def helper_get_sort_model(category: str) -> db.Model:
 
 
 def helper_paginate_data(data: list, key_page: str = 'page', href: str = None,
-                         per_page: int = settings.PAGINATION_PER_PAGE, anchor: str = 'orders_table') -> tuple[int, int, int,  Pagination, list]:
+                         per_page: int = settings.PAGINATION_PER_PAGE, anchor: str = 'orders_table',
+                         css_framework: str = 'semantic') -> tuple[int, int, int,  Pagination, list]:
     page = request.args.get(key_page, 1, type=int)
 
     offset = per_page * (page - 1)
 
     pagination = Pagination(page=page, page_parameter=key_page, per_page=per_page, offset=offset, total=len(data),
                             search=False, href=href,
-                            record_name='order_list', anchor=anchor, alignment='right', css_framework='semantic')
+                            record_name='order_list', anchor=anchor, alignment='right', css_framework=css_framework)
     order_list = data[offset:offset + per_page]
 
     return page, per_page, offset, pagination, order_list

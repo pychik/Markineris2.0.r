@@ -170,6 +170,13 @@ border-style:solid;
   font-size: 8px;
 }
 
+.no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
 .blink_me {
   animation: blinker 1.5s linear infinite;
 }

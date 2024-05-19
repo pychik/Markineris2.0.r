@@ -871,4 +871,3 @@ USER_TRANSLATE_DICT: dict = {'superuser': 'Администратор серви
                              'admin': 'Агент',
                              'manager': 'Оператор',
                              'ordinary_user': 'Клиент'}
-

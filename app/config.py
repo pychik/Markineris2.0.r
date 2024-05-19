@@ -819,6 +819,7 @@ class Settings(BaseSettings):
         START: list = SHOE_START
         START_EXT: list = SHOE_START_EXT
         START_PRELOAD: list = SHOE_PRELOAD_START
+        START_CRM_PRELOAD: list = SHOE_PRELOAD_START[1:11] + SHOE_PRELOAD_START[12:]
         SHEET_NAME_STANDART: str = "IMPORT_TNVED_6405"
         SHEET_NAME_EXT: str = "Данные"
         UPLOAD_STANDART_ROW: int = 7
@@ -854,6 +855,7 @@ class Settings(BaseSettings):
         START: list = LINEN_START
         START_EXT: list = LINEN_START_EXT
         START_PRELOAD: list = LINEN_PRELOAD_START
+        START_CRM_PRELOAD: list = LINEN_PRELOAD_START[1:11] + LINEN_PRELOAD_START[12:]
 
         UPLOAD_STANDART_ROW: int = 7
         MAX_QUANTITY: int = 100000000
@@ -878,6 +880,7 @@ class Settings(BaseSettings):
         START: list = PARFUM_START
         START_EXT: list = PARFUM_START_EXT
         START_PRELOAD: list = PARFUM_PRELOAD_START
+        START_CRM_PRELOAD: list = PARFUM_PRELOAD_START[1:8] + PARFUM_PRELOAD_START[9:]
 
         MAX_VOLUME: int = 1000000
         MAX_QUANTITY: int = 100000000
@@ -922,6 +925,7 @@ class Settings(BaseSettings):
         START: list = CLOTHES_START
         START_EXT: list = CLOTHES_START_EXT
         START_PRELOAD: list = CLOTHES_PRELOAD_START
+        START_CRM_PRELOAD: list = CLOTHES_PRELOAD_START[1:11] + CLOTHES_PRELOAD_START[12:]
         UPLOAD_STANDART_ROW: int = 7
         MAX_QUANTITY: int = 100000000
         NUMBER_STANDART: str = "ТР ТС 017/2011 \"О безопасности продукции легкой промышленности\""

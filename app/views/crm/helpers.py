@@ -19,9 +19,10 @@ from config import settings
 from logger import logger
 from models import User, Order, OrderStat, db, ServerParam
 from redis_queue.callbacks import on_success_periodic_task, on_failure_periodic_task
+from utilities.download import crm_orders_common_preload
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify, helper_suotls
 from utilities.saving_uts import get_rows_marks
-from utilities.support import helper_get_at2_pending_balance, helper_get_limits
+from utilities.support import (helper_get_at2_pending_balance, helper_get_limits, orders_list_common)
 from utilities.telegram import MarkinerisInform
 
 
@@ -1460,3 +1461,30 @@ def helper_change_auto_order_sent() -> Response:
     else:
         flash(message=settings.Messages.LIMIT_INPUT_ERROR, category='error')
     return redirect(url_for('crm_uoc.index'))
+
+
+def helper_crm_preload(o_id: int):
+    order_info = (Order.query.with_entities(Order.category, Order.stage, Order.order_idn, Order.user_id)
+                  .filter(Order.id == o_id).first())
+    if not order_info:
+        flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
+        return redirect(url_for(f'crm_d.agents'))
+
+    stage, category, order_idn, user_id = order_info.stage, order_info.category, order_info.order_idn, order_info.user_id
+    category_process_name = settings.CATEGORIES_DICT.get(order_info.category)
+    stage_name = settings.OrderStage.STAGES[stage][1]
+
+    orders, company_type, company_name, company_idn, \
+        edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
+        total_price, price_exist = orders_list_common(category=category, user=User.query.get(user_id), o_id=o_id, stage=order_info.stage)
+
+    if not orders:
+        flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
+        return redirect(url_for(f'crm_d.agents'))
+
+    start_list, page, per_page, offset, pagination, order_list = crm_orders_common_preload(category=category,
+                                                                                       company_idn=company_idn,
+                                                                                       orders_list=orders,)
+    print(order_list)
+
+    return render_template('crm/preload/crm_preload.html', **locals())

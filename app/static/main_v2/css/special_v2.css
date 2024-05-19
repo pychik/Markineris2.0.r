@@ -217,3 +217,10 @@
 .input-white {
     background-color: #ffffff; /* white */
 }
+
+.no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
