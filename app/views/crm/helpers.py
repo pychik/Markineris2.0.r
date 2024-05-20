@@ -24,6 +24,7 @@ from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify, help
 from utilities.saving_uts import get_rows_marks
 from utilities.support import (helper_get_at2_pending_balance, helper_get_limits, orders_list_common)
 from utilities.telegram import MarkinerisInform
+from .crm_support import h_cancel_order_process_payment
 
 
 def helper_get_agent_orders(user: User) -> list:
@@ -628,6 +629,8 @@ def helper_cancel_order(user: User, o_id: int, cancel_comment: str):
                     SELECT o.id as id,
                         o.user_id as user_id,
                         o.order_idn as order_idn,
+                        o.payment as payment,
+                        o.transaction_id as transaction_id,
                         ({stmt_get_agent}) as agent_id,
                         orf.id as of_id,
                         orf.file_system_name as file_system_name
@@ -637,7 +640,7 @@ def helper_cancel_order(user: User, o_id: int, cancel_comment: str):
                   """
     order_info = db.session.execute(text(order_stmt)).fetchone()
     # check for order exist and admin correct
-    if not order_info or (((user.id != order_info.agent_id and user.id != order_info.user_id) and user.role != settings.SUPER_USER)):
+    if not order_info or ((user.id != order_info.agent_id and user.id != order_info.user_id) and user.role != settings.SUPER_USER):
         flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
         return redirect(url_for('crm_d.agents'))
 
@@ -646,21 +649,33 @@ def helper_cancel_order(user: User, o_id: int, cancel_comment: str):
 
     # update order stage
     dt_agent = datetime.now()
-    stmt = f"""
+    order_query = text(f"""
                UPDATE public.orders 
-               SET stage={settings.OrderStage.CANCELLED},
+               SET payment=False,
+                   stage={settings.OrderStage.CANCELLED},
                    comment_cancel='{cancel_comment}',
                    cc_created='{dt_agent}'
-               WHERE id={o_id} 
-            """
+               WHERE id=:o_id 
+            """).bindparams(o_id=o_id)
+
     try:
-        db.session.execute(text(stmt))
+        db.session.execute(order_query)
+
+        if order_info.payment:
+            # make restore balance and cancel userTransaction and update orders_stats
+            h_cancel_order_process_payment(order_idn=order_info.order_idn,
+                                           user_id=order_info.user_id)
+
         db.session.commit()
         flash(message=settings.Messages.ORDER_CANCEL)
-    except IntegrityError:
+    except IntegrityError as ie:
         db.session.rollback()
-        flash(message=settings.Messages.ORDER_CANCEL_ERROR)
-        logger.error(settings.Messages.ORDER_CANCEL_ERROR)
+        flash(message=settings.Messages.ORDER_CANCEL_ERROR, category="error")
+        logger.error(f"{settings.Messages.ORDER_CANCEL_ERROR} {ie}")
+    except Exception as e:
+        db.session.rollback()
+        flash(message=settings.Messages.ORDER_CANCEL_ERROR, category="error")
+        logger.error(str(e))
     else:
         helper_send_user_order_tg_notify(user_id=order_info.user_id, order_idn=order_info.order_idn,
                                          order_stage=settings.OrderStage.CANCELLED)
@@ -767,23 +782,10 @@ def helper_crm_process_order_stats(o_id: int, order_info, stage: int, additional
                                    """
     try:
         db.session.execute(text(stmt))
-        db.session.commit()
+
+        db.session.commit()  # not sure
 
         row_count, mark_count = get_rows_marks(o_id=o_id, category=order_info.category)
-
-        # new_stat = OrderStat(category=order_info.category, company_idn=order_info.company_idn,
-        #                      company_type=order_info.company_type,
-        #                      company_name=order_info.company_name, order_idn=order_info.order_idn,
-        #                      rows_count=row_count, marks_count=mark_count, op_cost=order_info.op_cost,
-        #                      created_at=order_info.created_at,
-        #                      comment_problem=order_info.comment_problem, cp_created=order_info.cp_created,
-        #                      m_started=order_info.m_started, m_finished=order_info.m_finished,
-        #                      crm_created_at=order_info.crm_created_at, sent_at=order_info.sent_at,
-        #                      stage_setter_name=order_info.stage_setter_name,
-        #                      manager_id=order_info.manager_id, user_id=order_info.user_id,
-        #                      transaction_id=order_info.transaction_id)
-        #                      # closed_at = datetime.now(),
-        # db.session.add(new_stat)
 
         # Create the INSERT statement with ON CONFLICT DO NOTHING
         stmt = insert(OrderStat).values(

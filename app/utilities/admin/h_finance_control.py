@@ -451,15 +451,16 @@ def h_su_transaction_detail(u_id: int, t_id: int):
                                                       UserTransaction.amount, UserTransaction.op_cost, UserTransaction.bill_path,
                                                       UserTransaction.user_id, UserTransaction.promo_info,
                                                       UserTransaction.wo_account_info,
-                                                      UserTransaction.sa_id, UserTransaction.created_at)\
+                                                      UserTransaction.sa_id, UserTransaction.created_at, User.login_name, User.email, User.phone) \
+        .join(User, User.id == UserTransaction.user_id)\
         .filter(UserTransaction.user_id == u_id, UserTransaction.id == t_id).first()
 
     transaction_dict = settings.Transactions.TRANSACTIONS
     sa_types = settings.ServiceAccounts.TYPES_DICT
-    if transaction.type:
+    if transaction.type and not transaction.op_cost:
         transaction_image = helper_get_image_html(img_path=f"{settings.DOWNLOAD_DIR_BILLS}{transaction.bill_path}")
         service_account = ServiceAccount.query.filter(ServiceAccount.id == transaction.sa_id).first()
-    elif not transaction.type and transaction.status == settings.Transactions.SUCCESS:
+    elif (not transaction.type or (transaction.type and transaction.op_cost)) and transaction.status == settings.Transactions.SUCCESS:
         order_prices_marks = helper_get_transaction_orders_detail(t_id=t_id)
 
         if order_prices_marks:

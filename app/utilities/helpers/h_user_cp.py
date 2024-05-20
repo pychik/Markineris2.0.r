@@ -190,7 +190,7 @@ def h_transaction_detail(u_id: int, t_id: int):
     sa_types = settings.ServiceAccounts.TYPES_DICT
     if not transaction:
         return '', 404
-    if transaction.type:
+    if transaction.type and not transaction.op_cost:
         transaction_image = helper_get_image_html(img_path=f"{settings.DOWNLOAD_DIR_BILLS}{transaction.bill_path}")
         service_account = ServiceAccount.query.filter(ServiceAccount.id == transaction.sa_id).first()
     else:

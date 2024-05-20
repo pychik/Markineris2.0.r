@@ -8,11 +8,16 @@
     {%endif%}
     {% if transaction.type %}
         <div><b>Тип транзакции:</b> Пополнение лицевого счета</div>
-        <div><b>Счет:</b> {{ service_account.sa_name }}</div>
+        <div><b>Счет:</b> {% if not transaction.op_cost%}
+                                {{ service_account.sa_name }}
+                          {%else%}Возврат средств отмененного заказа
+                            <span class="text-warning">{{ transaction.wo_account_info }}</span>
+                          {%endif%}
+        </div>
 
     {% else %}
         <div><b>Тип транзакции:</b> Списание с лицевого счета</div>
-        {% if transaction.wo_account_info%}<div><b>Реквизиты счета:</b> {{ transaction.wo_account_info }}</div>{% endif %}
+        {% if transaction.wo_account_info%}<div><b>Реквизиты счета:</b> {{ transaction.wo_account_info | safe }}</div>{% endif %}
         {% if order_prices_marks %}
             <div class="my-1"><b>Заказы</b>: <!--<a href="{{url_for('orders_archive.index')}}" target="_blank" style="text-decoration: none">-->
                 {% for o in order_prices_marks %}

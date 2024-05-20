@@ -1,4 +1,7 @@
 <div class="container">
+    <div><b>Логин:</b> {{ transaction.login_name }}</div>
+    <div><b>Почта:</b> {{ transaction.email }}</div>
+    <div><b>Телефон:</b> {{ transaction.phone }}</div>
     <div><b>Номер:</b> {{ transaction.id }}</div>
     <div><b>Дата формирования:</b> {{ transaction.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</div>
     <div><b>Статус:</b> <span class="badge bg-warning text-black">{{ transaction_dict[transaction.status] }}</span></div>
@@ -10,10 +13,15 @@
 
     {% if transaction.type %}
         <div><b>Тип транзакции:</b> Пополнение лицевого счета</div>
-        <div><b>Счет:</b> {{ service_account.sa_name }}</div>
+        <div><b>Счет:</b> {% if not transaction.op_cost%}
+                                {{ service_account.sa_name }}
+                          {%else%}Возврат средств отмененного заказа
+                            <span class="text-warning">{{ transaction.wo_account_info }}</span>
+                          {%endif%}
+        </div>
     {% else %}
         <div><b>Тип транзакции:</b> Списание с лицевого счета</div>
-        {% if transaction.wo_account_info%}<div><b>Реквизиты счета:</b> {{ transaction.wo_account_info }}</div>{% endif %}
+        {% if transaction.wo_account_info%}<div><b>Реквизиты счета:</b> {{ transaction.wo_account_info | safe }}</div>{% endif %}
         {%if order_prices_marks%}
             <div class="my-1"><b>Заказы</b>: <!--<a href="{{url_for('orders_archive.index')}}" target="_blank" style="text-decoration: none">-->
 
@@ -64,15 +72,6 @@
                 </div>
             </div>
         </div>
-
-    {#   {% elif transaction.status == 2%}
-        <div class="text-center">
-            <button class="btn btn-sm btn-outline-danger my-3">Отменить транзакцию</button>
-        </div>
-    {% elif transaction.status == 0 %}
-        <div class="text-center">
-            <button class="btn btn-sm btn-outline-success my-3">Подтвердить транзакцию снова</button>
-        </div>-->#}
 
     {% endif %}
 </div>

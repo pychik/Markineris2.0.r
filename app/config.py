@@ -535,6 +535,7 @@ class Settings(BaseSettings):
         PARTNER_CODE_CREATE: str = "Успешно создан код партнера "
         SUPERADMIN_MADMIN_USER_REQUIRED: str = "Для того, чтобы контроллировать CRM нужно быть админом или суперпользователем. " \
                                                "Вы уверены, что вы админ или суперпользователь?"
+        SUPER_MOD_REQUIRED: str = "Для того, чтобы продолжить нужна роль супера или модератора"
         PARTNER_CODE_ERROR: str = "Ошибка сохранения кода партнера! "
         PARTNER_CODE_DELETE_SUCCESS: str = "Успешно удален партнер код {partner_code}"
         PARTNER_CODE_DELETE_ERROR: str = "Ошибка удаления кода партнера! Есть привязанные пользователи."
