@@ -605,8 +605,8 @@ def process_admin_order_num(user: User) -> tuple[Optional[str], Optional[bool], 
         admin_id = user.id
         # admin.admin_order_num += 1
     stmt = text(
-        """UPDATE public.users SET admin_order_num=admin_order_num + 1 WHERE id=:admin_id RETURNING admin_order_num, is_crm;""").bindparams(
-        admin_id=admin_id)
+        """UPDATE public.users SET admin_order_num=admin_order_num + 1 
+           WHERE id=:admin_id RETURNING admin_order_num, is_crm, is_at2;""").bindparams(admin_id=admin_id)
     res = db.session.execute(stmt).fetchone()
 
     db.session.commit()  # make commit to fix order_num
