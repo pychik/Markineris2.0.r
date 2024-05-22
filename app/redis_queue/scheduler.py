@@ -7,7 +7,7 @@ from config import settings
 from redis_queue.callbacks import on_success_periodic_task, on_failure_periodic_task
 from redis_queue.connection import conn
 from redis_queue.tasks import daily_tasks, delete_order_files_from_server, delete_restore_link_periodic_task
-from views.crm.helpers import helpers_crm_mpo_so_task
+from views.crm.helpers import helpers_crm_mpo_so_task, helper_auto_problem_cancel_order
 
 warnings.filterwarnings("ignore")
 
@@ -42,6 +42,14 @@ scheduler.cron(
 scheduler.cron(
     "*/30 * * * *",
     func=delete_restore_link_periodic_task,
+    on_success=on_success_periodic_task,
+    on_failure=on_failure_periodic_task,
+    queue_name=settings.RQ_SCHEDULER_QUEUE_NAME
+)
+
+scheduler.cron(
+    "0 * * * *",
+    func=helper_auto_problem_cancel_order,
     on_success=on_success_periodic_task,
     on_failure=on_failure_periodic_task,
     queue_name=settings.RQ_SCHEDULER_QUEUE_NAME

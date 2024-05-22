@@ -598,14 +598,20 @@ def helper_get_clothes_divided_list(order_id: int) -> tuple[list, list, list]:
 
 
 def process_admin_order_num(user: User) -> tuple[Optional[str], Optional[bool], Optional[bool]]:
-    # no commit for stability in logic
     if user.role == settings.ORD_USER:
-        admin = User.query.filter_by(id=user.admin_parent_id).order_by(desc(User.id)).first()
+        admin_id = User.query.with_entities(User.id).filter_by(id=user.admin_parent_id).order_by(
+            desc(User.id)).first().id
     else:
-        admin = user
-    admin.admin_order_num += 1
+        admin_id = user.id
+        # admin.admin_order_num += 1
+    stmt = text(
+        """UPDATE public.users SET admin_order_num=admin_order_num + 1 WHERE id=:admin_id RETURNING admin_order_num, is_crm;""").bindparams(
+        admin_id=admin_id)
+    res = db.session.execute(stmt).fetchone()
 
-    return f"{admin.id}_{admin.admin_order_num}", admin.is_crm, admin.is_at2
+    db.session.commit()  # make commit to fix order_num
+    return ("{admin_id}_{admin_order_num}".format(admin_id=admin_id, admin_order_num=res.admin_order_num), res.is_crm,
+            res.is_at2)
 
 
 def get_process_stage(o_id: int, category: str) -> int:

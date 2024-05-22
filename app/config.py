@@ -221,7 +221,10 @@ class Settings(BaseSettings):
         ORDER_PROCESS_CRM: str = 'process_crm'
         ORDER_PROCESS_AT2: str = 'process_at2'
         DAYS_CONTENT: int = 2
+        DAYS_SEARCH_CONTENT: int = 30
         DAYS_SENT_CONTENT: int = 1
+        AUTO_HOURS_CP: int = 24  # quantity of hours before changing order stage from MANAGER PROBLEM TO CANCEL
+        AUTO_MINUTES_CP: int = 30  # quantity of minutes before changing order stage from MANAGER PROBLEM TO CANCEL
         MANAGER_ORDERS_LIMIT: int = 10
         PS_DICT = CRM_PS_DICT
         PO_LIMIT = 'po_limit'
@@ -250,6 +253,9 @@ class Settings(BaseSettings):
             MANAGER_PROBLEM: M_ORDER_PROBLEM_ENCOUNTERED, MANAGER_SOLVED: M_ORDER_PROBLEM_SOLVED,
             CANCELLED: M_ORDER_CANCELLED, MANAGER_START: M_ORDER_AGAIN_OPERATING
         }
+        APCO_NOORDERS: str = "Нет заказов для отмены"  # AUTO PROBLEM TO CANCELL  ORDERS
+        APCO_MESSAGE: str = "Отменен автоматически по истечению срока решения вопроса"
+        APCO_SUCCESS: str = "Перенос проблемных заказов в отмененные завершен успешно"
 
     class Telegram:
         URL: str = "https://api.telegram.org/bot"

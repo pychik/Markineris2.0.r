@@ -1095,7 +1095,7 @@ def check_manager_orders(u_id: int) -> int:
 
 
 def h_get_agent_order_info(search_order_idn):
-    date_compare = date.today() - timedelta(days=settings.OrderStage.DAYS_CONTENT)
+    date_compare = date.today() - timedelta(days=settings.OrderStage.DAYS_SEARCH_CONTENT)
     conditional_stmt = f"((o.stage>{settings.OrderStage.CREATING} AND o.stage!={settings.OrderStage.TELEGRAM_PROCESSED} AND o.stage!={settings.OrderStage.CANCELLED} AND o.stage!={settings.OrderStage.CRM_PROCESSED}) OR ((o.stage={settings.OrderStage.CANCELLED} AND o.cc_created  > '{date_compare}') OR (o.stage={settings.OrderStage.CRM_PROCESSED} AND o.closed_at > '{date_compare}')))"
     stmt_get_manager = f"(select managers.login_name from public.users managers where managers.id=o.manager_id)"
     additional_stmt = """
@@ -1290,7 +1290,7 @@ def helper_search_crma_order() -> Response:
         return jsonify({'status': status, 'message': message})
     order_info = h_get_agent_order_info(search_order_idn=search_order_idn,)
     if not order_info:
-        message = settings.Messages.CRM_SEARCH_ORDER_ERROR.format(comment=f"Либо заказ отсутствует, либо отменен и готов и старше {settings.OrderStage.DAYS_CONTENT} дней!")
+        message = settings.Messages.CRM_SEARCH_ORDER_ERROR.format(comment=f"Либо заказ отсутствует, либо отменен и готов и старше {settings.OrderStage.DAYS_SEARCH_CONTENT} дней!")
         return jsonify({'status': status, 'message': message})
 
     status = 'success'
@@ -1298,6 +1298,8 @@ def helper_search_crma_order() -> Response:
     problem_order_time_limit = ps_limit_qry.crm_manager_ps_limit if ps_limit_qry and ps_limit_qry.crm_manager_ps_limit \
         else settings.OrderStage.DEFAULT_PS_LIMIT
     cur_time = datetime.now()
+
+    htmlresponse = ''
     match order_info.stage:
         case settings.OrderStage.NEW:
             new_orders = [order_info, ]
@@ -1465,6 +1467,72 @@ def helper_change_auto_order_sent() -> Response:
     return redirect(url_for('crm_uoc.index'))
 
 
+def helper_auto_problem_cancel_order():
+    """
+    scheduler tasks change order stage from manager problem to cancel
+    """
+
+    current_date = datetime.now()
+    date_compare = current_date - timedelta(hours=settings.OrderStage.AUTO_HOURS_CP, minutes= settings.OrderStage.AUTO_MINUTES_CP)
+    orders_stmt = f"""
+                    SELECT o.id as id,
+                        o.user_id as user_id,
+                        o.order_idn as order_idn,
+                        o.payment as payment,
+                        o.transaction_id as transaction_id,
+                        orf.id as of_id,
+                        orf.file_system_name as file_system_name
+                    FROM public.orders o 
+                    LEFT JOIN public.order_files orf ON o.id=orf.order_id
+                    WHERE o.stage={settings.OrderStage.MANAGER_PROBLEM} AND o.cp_created < '{date_compare}';
+                  """
+
+    orders_info = db.session.execute(text(orders_stmt)).fetchall()
+    # check for order exist and admin correct
+    if not orders_info:
+        logger.info(settings.OrderStage.APCO_NOORDERS)
+        return jsonify({'status': 'error', 'message': settings.OrderStage.APCO_NOORDERS})
+
+    for order in orders_info:
+        # delete rows from db and delete file from syst
+        of_delete_remove(order_info=order, o_id=order.id)
+
+        # update order stage
+
+        order_query = text(f"""
+                   UPDATE public.orders 
+                   SET payment=False,
+                       stage={settings.OrderStage.CANCELLED},
+                       comment_cancel='{settings.OrderStage.APCO_MESSAGE}',
+                       cc_created='{current_date}'
+                   WHERE id=:o_id 
+                """).bindparams(o_id=order.id)
+
+        try:
+            db.session.execute(order_query)
+
+            if order.payment:
+                # make restore balance and cancel userTransaction and update orders_stats
+                h_cancel_order_process_payment(order_idn=order.order_idn,
+                                               user_id=order.user_id)
+
+            db.session.commit()
+
+        except IntegrityError as ie:
+            db.session.rollback()
+            logger.error(f"{settings.Messages.ORDER_CANCEL_ERROR} {ie}")
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(str(e))
+
+        else:
+            helper_send_user_order_tg_notify(user_id=order.user_id, order_idn=order.order_idn,
+                                             order_stage=settings.OrderStage.CANCELLED)
+
+    return jsonify({'status': 'success', 'message': settings.OrderStage.APCO_SUCCESS})
+
+
 def helper_crm_preload(o_id: int):
     order_info = (Order.query.with_entities(Order.category, Order.stage, Order.order_idn, Order.user_id)
                   .filter(Order.id == o_id).first())
@@ -1487,6 +1555,5 @@ def helper_crm_preload(o_id: int):
     start_list, page, per_page, offset, pagination, order_list = crm_orders_common_preload(category=category,
                                                                                        company_idn=company_idn,
                                                                                        orders_list=orders,)
-    print(order_list)
 
     return render_template('crm/preload/crm_preload.html', **locals())

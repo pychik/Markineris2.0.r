@@ -13,7 +13,8 @@ from .helpers import (helper_get_agent_orders, helper_get_manager_orders, helper
                       helper_attach_file, helper_download_file, helper_delete_order_file, helpers_problem_order,
                       helper_cancel_order, helper_change_agent_stage, helpers_m_take_order, helper_change_manager,
                       helper_attach_of_link, helper_m_order_bp, helpers_move_orders_to_processed,
-                      helper_search_crma_order, helper_search_crmm_order, helpers_ceps_order, helper_crm_preload)
+                      helper_search_crma_order, helper_search_crmm_order, helpers_ceps_order, helper_crm_preload,
+                      helper_auto_problem_cancel_order)
 from .helpers_mo import h_all_new_multi_pool
 crm_d = Blueprint('crm_d', __name__)
 
@@ -300,6 +301,17 @@ def move_from_sent_orders():
     """
     return helpers_move_orders_to_processed()
 
+
+# @crm_d.route('/move from problem_orders', methods=["POST"])
+# @login_required
+# @user_activated
+# @aus_required
+# def move_from_problem_orders():
+#     """
+#         change stage for all orders in MANAGER_PROBLEM that are stucked for more than 24hour and 30 minutes
+#     :return:
+#     """
+#     return helper_auto_problem_cancel_order()
 
 # todo
 # @crm_d.route('/move from sent_orders', methods=["POST"])
