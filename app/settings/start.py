@@ -39,6 +39,18 @@ def create_app(db: SQLAlchemy, migrate_handler: Migrate):
     app.config['MAINTENANCE_MODE'] = False
     app.config['SQLALCHEMY_DATABASE_URI'] = settings.SQL_DATABASE_URL
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    # preping settings to avoid 'Operation error connection closed unexpectedly'
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 1800,  # Recycle connections every 30 minutes
+        'pool_size': 5,  # Maximum number of connections in the pool
+        'max_overflow': 5,  # Maximum number of additional connections beyond pool_size
+        'connect_args': {
+            'connect_timeout': 40  # Increase connection timeout to accommodate long transactions
+        }
+    }
+
     app.config["UPLOAD_FOLDER"] = settings.DOWNLOAD_DIR
     app.config['MAX_CONTENT_LENGTH'] = settings.FILE_SIZE * 1024 * 1024
     app.config['UPLOAD_EXTENSIONS'] = settings.ALLOWED_EXTENSIONS
