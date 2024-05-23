@@ -1481,7 +1481,8 @@ def helper_auto_problem_cancel_order():
                         o.payment as payment,
                         o.transaction_id as transaction_id,
                         orf.id as of_id,
-                        orf.file_system_name as file_system_name
+                        orf.file_system_name as file_system_name,
+                        o.cp_created as cp_created
                     FROM public.orders o 
                     LEFT JOIN public.order_files orf ON o.id=orf.order_id
                     WHERE o.stage={settings.OrderStage.MANAGER_PROBLEM} AND o.cp_created < '{date_compare}';
