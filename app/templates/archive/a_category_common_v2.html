@@ -14,7 +14,7 @@
                                 <th scope="col" class="font-12">Номер&nbsp;заказа</th>
                                 <th scope="col" class="font-12">Компания</th>
                                 <th scope="col" class="font-12">ИНН</th>
-                                <th scope="col" class="font-12">Время заказа</th>
+                                <th scope="col" class="font-12">Время оформления заказа</th>
                                 <th scope="col" class="font-12">Статус заказа</th>
                                 {% if not user.is_at2 %}<th scope="col" class="font-12">Оплата</th>{% endif %}
                                 <th></th>
@@ -37,7 +37,7 @@
                                     </td>
 
                                     <td>
-                                        {{s.created_at.strftime('%d.%m.%Y %H:%M:%S')}}
+                                        {{s.crm_created_at.strftime('%d.%m.%Y %H:%M:%S')}}
                                     </td>
                                     <td>
                                         <div class="d-flex">
