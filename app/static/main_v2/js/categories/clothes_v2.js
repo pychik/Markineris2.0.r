@@ -188,7 +188,7 @@ function show_clothes_pos(index, trademark, type, color, pos_quantity, box_quant
                         </div>
                     </div>
                     ${sq_block}
-                    <div class="important-card__item">
+                    <div class="important-card__item" style="overflow: scroll">
                         <div class="important-card__prop">
                             Состав
                         </div>
