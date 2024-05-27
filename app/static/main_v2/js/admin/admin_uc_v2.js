@@ -595,6 +595,7 @@ function bck_get_transactions_wp(url){
         tr_status: $('#transaction_status').val(),
         date_from: $('#date_from').val(),
         date_to: $('#date_to').val(),
+        amount: $('#transaction_amount').val(),
         sort_type: sort_mode
       },
     success:function(data)
@@ -857,4 +858,22 @@ function set_current_date_su_filters(){
     var formattedDate = day + '.' + month + '.' + year;
     document.getElementById("date_from").value = formattedDate;
     document.getElementById("date_to").value = formattedDate;
+}
+
+function admin_uc_isValid(block) {
+    const match = block.value.match(/^\d+/);
+    block.value = match ? match[0] : '';
+     // Change input type to text temporarily (because working with cursor is available only with text type)
+    const originalType = block.type;
+    block.type = 'text';
+
+    // Set cursor position to the end of input
+    block.setSelectionRange(block.value.length, block.value.length);
+
+    // Change input type back to number
+    block.type = originalType;
+    let number = parseInt(block.value, 10);
+    let min = parseInt(block.getAttribute('min'), 10);
+    let max = parseInt(block.getAttribute('max'), 10);
+    return !isNaN(number) && number <= max && number >= min;
 }

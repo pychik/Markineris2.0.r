@@ -8,12 +8,17 @@
     {%endif%}
     {% if transaction.type %}
         <div><b>Тип транзакции:</b> Пополнение лицевого счета</div>
-        <div><b>Счет:</b> {% if transaction.status !=3 %}
-                                {% if service_account %}{{ service_account.sa_name }}{% endif %}
-                          {%else%}Возврат средств отмененного заказа
-                            <span class="text-warning">{{ transaction.wo_account_info }}</span>
-                          {%endif%}
-        </div>
+        {% if transaction.status == 2 %}
+            <div>
+                <b>Счет:</b> {% if service_account %}{{ service_account.sa_name }}{% endif %}
+            </div>
+
+        {% elif transaction.status == 3%}
+            <div>
+                <b>Описание:</b> Возврат средств отмененного заказа <span class="text-warning">{{ transaction.wo_account_info }}</span>
+
+            </div>
+        {% endif %}
 
     {% else %}
         <div><b>Тип транзакции:</b> Списание с лицевого счета</div>

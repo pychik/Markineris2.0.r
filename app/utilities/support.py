@@ -1182,6 +1182,7 @@ def helper_get_filters_transactions(tr_type: int = None, tr_status: int = None) 
     tr_type_raw = request.args.get('tr_type', 0, type=int) if not tr_type else tr_type
     sort_type = request.args.get('sort_type', 0, type=int)
     tr_type = True if tr_type_raw else False
+    amount = request.args.get('amount', 0, type=int)
 
     link_filters = f'tr_type={tr_type_raw}&tr_status={tr_status}&date_from={date_from_raw}&date_to={date_to_raw}&'
     model_conditions_list_raw = UserTransaction.status == tr_status \
@@ -1200,7 +1201,10 @@ def helper_get_filters_transactions(tr_type: int = None, tr_status: int = None) 
         date_range_conditions = UserTransaction.created_at >= date_from, UserTransaction.created_at <= date_to + timedelta(days=1)
     else:
         date_range_conditions = tuple()
-    model_conditions = tuple(filter(lambda x: x is not None, model_conditions_list_raw + date_range_conditions))
+
+    amount_conditions = (UserTransaction.amount == amount,) if amount else (None,)
+    model_conditions = tuple(
+        filter(lambda x: x is not None, model_conditions_list_raw + date_range_conditions + amount_conditions))
     model_order_type = desc(UserTransaction.created_at) if (sort_type == 0 or not sort_type) else asc(UserTransaction.created_at)
 
     return settings.Transactions.TRANSACTION_TYPES[tr_type_raw], settings.Transactions.TRANSACTIONS.get(tr_status),\

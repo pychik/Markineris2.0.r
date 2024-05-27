@@ -34,3 +34,16 @@ if __name__ == "__main__":
     res_dict = make_shoes_materials(path='upload_tests/shoe_materials.txt')
 
     print(res_dict)
+# from models import db, UserTransaction
+#
+# try:
+#     processing_transactions = UserTransaction.query.filter(UserTransaction.type == True, UserTransaction.op_cost!=0).all()
+#
+#     for el in processing_transactions:
+#         print(el.id, el.orders, el.wo_account_info)
+#         el.order= []
+#         el.status=3
+#     db.session.commit()
+# except Exception as e:
+#     db.session.rollback()
+#     print(e)
