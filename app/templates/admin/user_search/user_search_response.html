@@ -141,6 +141,7 @@
                           {% else %}
                               <form method="post" action="{{url_for('admin_control.deactivate_user',
                                     type_set='deactivate_is_send', u_id=u.id)}}">
+                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                           <input class="btn btn-sm btn-outline-secondary btn-block"
                                                  title="Оключить возможность отправки таблиц Excel"
                                                  type="submit" name="activate" value="Откл. EXCEL"
@@ -152,6 +153,7 @@
                       </td>
                       <td>
                           <form method="post" action="{{ url_for('admin_control.delete_user', u_id=u.id)}}">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                               <button type="submit" class="btn btn-sm btn-outline-danger"
                                   title="Удалить пользователя {{ u.login_name }}"
                                   onclick="loadingCircle()" {% if u.role == 'superuser' %}disabled{% endif %}>
