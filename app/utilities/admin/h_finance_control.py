@@ -375,7 +375,7 @@ def h_su_control_ut(user_ids: list = None):
 
     link_filters = f'tr_type=1&tr_status={settings.Transactions.PENDING}&'
     link = f'javascript:bck_get_transactions(\'' + url_for(
-        'admin_control.su_bck_control_ut') + f'?{link_filters}' + 'page={0}\');'
+        'admin_control.su_bck_control_ut') + f'?bck=1{link_filters}' + 'page={0}\');'
     page, per_page, \
         offset, pagination, \
         transactions_list = helper_paginate_data(data=transactions, per_page=settings.PAGINATION_PER_PAGE, href=link)
@@ -395,7 +395,7 @@ def h_bck_control_ut():
         .join(User, User.id == UserTransaction.user_id).filter(*model_conditions) \
         .order_by(model_order_type).all()
 
-    link = f'javascript:bck_get_transactions(\'' + url_for('admin_control.su_bck_control_ut') + f'?{link_filters}' + 'page={0}\');'
+    link = f'javascript:bck_get_transactions(\'' + url_for('admin_control.su_bck_control_ut') + f'?bck=1{link_filters}' + 'page={0}\');'
 
     page, per_page, \
         offset, pagination, \

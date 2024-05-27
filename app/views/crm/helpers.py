@@ -684,9 +684,9 @@ def helper_cancel_order(user: User, o_id: int, cancel_comment: str):
 
 def helper_change_agent_stage(o_id: int, stage: int, user: User):
 
-    stmt_get_agent = f"SELECT a.admin_parent_id FROM public.users a  WHERE a.id  = (SELECT o.user_id FROM public.orders o WHERE o.id={o_id} LIMIT 1)"
+    stmt_get_agent = "SELECT a.admin_parent_id FROM public.users a  WHERE a.id  = (SELECT o.user_id FROM public.orders o WHERE o.id=:o_id LIMIT 1)"
 
-    order_stmt = f"""
+    order_stmt = text(f"""
                         SELECT o.id as id,
                             o.category as category,
                             o.company_type as company_type,
@@ -712,9 +712,9 @@ def helper_change_agent_stage(o_id: int, stage: int, user: User):
                         FROM public.orders o 
                         LEFT JOIN public.order_files orf ON o.id=orf.order_id
                         LEFT JOIN public.user_transactions ut ON o.transaction_id=ut.id
-                        WHERE o.id={o_id};
-                      """
-    order_info = db.session.execute(text(order_stmt)).fetchone()
+                        WHERE o.id=:o_id;
+                      """).bindparams(o_id=o_id)
+    order_info = db.session.execute(order_stmt).fetchone()
 
     # check for order exist and admin correct
     # ordinary user change state check for his admin

@@ -356,7 +356,7 @@ def su_control_ut():
 
 @admin_control.route('/su_bck_control_ut', methods=['GET', ])
 @login_required
-@su_required
+@bck_su_required
 def su_bck_control_ut():
     """
         background update filtered user transactions to control

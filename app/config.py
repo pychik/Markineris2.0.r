@@ -331,8 +331,10 @@ class Settings(BaseSettings):
         CANCELLED: int = 0
         PENDING: int = 1
         SUCCESS: int = 2
+        SUCCESS_RETURN: int = 3
         DEFAULT_DAYS_RANGE: int = 90
-        TRANSACTIONS: dict = {PENDING: 'Ожидается подтверждение', CANCELLED: 'Отменена', SUCCESS: 'Успешно проведена'}
+        TRANSACTIONS: dict = {PENDING: 'Ожидается подтверждение', CANCELLED: 'Отменена', SUCCESS: 'Успешно проведена',
+                              SUCCESS_RETURN: 'Возврат средств отмененного заказа'}
         TRANSACTION_WRITEOFF: int = 0
         TRANSACTION_REFILL: int = 1
         TRANSACTION_TYPES: dict = {TRANSACTION_REFILL: 'Пополнение', TRANSACTION_WRITEOFF: 'Снятие средств'}

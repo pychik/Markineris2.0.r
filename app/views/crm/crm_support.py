@@ -38,7 +38,7 @@ def h_cancel_order_process_payment(order_idn: int, user_id: int) -> None:
                               UPDATE public.orders_stats SET op_cost=NULL WHERE order_idn=:order_idn;
                               UPDATE public.users SET balance=balance+:order_cost WHERE id=:user_id_refill;
                               UPDATE public.server_params SET balance=balance+:order_cost;""")
-                      .bindparams(order_idn=order_idn, new_transaction_status=settings.Transactions.SUCCESS,
+                      .bindparams(order_idn=order_idn, new_transaction_status=settings.Transactions.SUCCESS_RETURN,
                                   bill_path=bill_path, created_at=_created_at, order_cost=order_cost, op_cost=op_cost,
                                   user_id_refill=user_id_refill, ))
     db.session.execute(combined_query)

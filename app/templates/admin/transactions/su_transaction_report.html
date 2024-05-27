@@ -5,7 +5,7 @@
     <div><b>Номер:</b> {{ transaction.id }}</div>
     <div><b>Дата формирования:</b> {{ transaction.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</div>
     <div><b>Статус:</b> <span class="badge bg-warning text-black">{{ transaction_dict[transaction.status] }}</span></div>
-    <div><b>Тип:</b> {% if transaction.type %}Пополнение {% else %}Списание{%endif%}</div>
+{#    <div><b>Тип:</b> {% if transaction.type %}Пополнение {% else %}Списание{%endif%}</div>#}
 
     {% if transaction.promo_info %}
         <div><b>Промо:</b> {{ transaction.promo_info }}</div>
@@ -13,8 +13,8 @@
 
     {% if transaction.type %}
         <div><b>Тип транзакции:</b> Пополнение лицевого счета</div>
-        <div><b>Счет:</b> {% if not transaction.op_cost%}
-                                {{ service_account.sa_name }}
+        <div><b>Счет:</b> {% if transaction.status !=3 %}
+                                {% if service_account %}{{ service_account.sa_name }}{% endif %}
                           {%else%}Возврат средств отмененного заказа
                             <span class="text-warning">{{ transaction.wo_account_info }}</span>
                           {%endif%}
@@ -47,7 +47,7 @@
                 <div class="col-10">
                     <button class="btn btn-sm btn-outline-danger disabled" id="cancel_transaction_btn" data-bs-dismiss="modal"
                         onclick="bck_pending_transaction_change_status(`{{url_for('admin_control.bck_su_pending_transaction_update', u_id = transaction.user_id, t_id=transaction.id)}}`,
-                        `{{url_for('admin_control.su_bck_control_ut')}}`, {{1 if transaction.type else 0}}, 0, `{{csrf_token()}}`)">Отменить транзакцию</button>
+                        `{{url_for('admin_control.su_bck_control_ut')}}?bck=1`, {{1 if transaction.type else 0}}, 0, `{{csrf_token()}}`)">Отменить транзакцию</button>
                 </div>
                 <div class="col-2" onclick="uncheck_transaction_switch('cancel_transaction_switchbox', 'cancel_transaction_btn')">
                     <div class=" form-check form-switch ms-3">
@@ -61,7 +61,7 @@
                 <div class="col-10">
                     <button class="btn btn-sm btn-outline-success disabled" data-bs-dismiss="modal" id="confirm_transaction_btn"
                         onclick="bck_pending_transaction_change_status(`{{url_for('admin_control.bck_su_pending_transaction_update', u_id = transaction.user_id, t_id=transaction.id)}}`,
-                        `{{url_for('admin_control.su_bck_control_ut')}}`, {{1 if transaction.type else 0}}, 2, `{{csrf_token()}}`)">Подтвердить транзакцию</button>
+                        `{{url_for('admin_control.su_bck_control_ut')}}?bck=1`, {{1 if transaction.type else 0}}, 2, `{{csrf_token()}}`)">Подтвердить транзакцию</button>
                 </div>
                 <div class="col-2" onclick="uncheck_transaction_switch('confirm_transaction_switchbox', 'confirm_transaction_btn')">
                     <div class=" form-check form-switch ms-3">
