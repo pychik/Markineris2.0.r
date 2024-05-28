@@ -457,7 +457,8 @@ def h_su_transaction_detail(u_id: int, t_id: int):
 
     transaction_dict = settings.Transactions.TRANSACTIONS
     sa_types = settings.ServiceAccounts.TYPES_DICT
-    if transaction.type and transaction.status == settings.Transactions.SUCCESS:
+    if transaction.type and transaction.status in [settings.Transactions.SUCCESS, settings.Transactions.PENDING,
+                                                   settings.Transactions.CANCELLED]:
         transaction_image = helper_get_image_html(img_path=f"{settings.DOWNLOAD_DIR_BILLS}{transaction.bill_path}")
         service_account = ServiceAccount.query.filter(ServiceAccount.id == transaction.sa_id).first()
     # elif (not transaction.type or (transaction.type and transaction.op_cost)) and transaction.status == settings.Transactions.SUCCESS:
