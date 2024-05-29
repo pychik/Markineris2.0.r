@@ -35,7 +35,7 @@ async def check_user_by_email_handler(
         user_service: UserService,
         tg_user_schema: TgUserSchema,
 ) -> None:
-    is_user_exist = await user_service.check_user_exist_by_email(email=message.text.lower().strip())
+    is_user_exist = await user_service.check_user_exist_by_email(email=message.text.strip())
 
     if is_user_exist:
         return await create_user_handler(message, state, user_service, tg_user_schema)
