@@ -1156,13 +1156,28 @@ def helper_create_crm_admin(login_name: str, email: str, password: str) -> Respo
 
 
 def helper_delete_tg(user: User) -> None:
+
     telegram = user.telegram
-    tm = user.telegram_message
+
     if telegram:
-        telegram[0].status = False
-        telegram[0].users = []
+        telegram_ids = [tg.id for tg in telegram]
+
+        # trying to avoid strange error
+        telegram_ids_str = ','.join(map(str, telegram_ids))
+
+        # Hard deleting from users_telegrams
+        query = f"""
+            DELETE FROM users_telegrams WHERE telegram_id IN ({telegram_ids_str})
+        """
+        db.session.execute(text(query))
+        for tg in telegram:
+            tg.status = False
+            tg.users = []
+
+    tm = user.telegram_message
     if tm:
-        db.session.delete(tm[0])
+        for message in tm:
+            db.session.delete(message)
 
 
 def util_get_agent_passwords():
