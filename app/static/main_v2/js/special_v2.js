@@ -576,62 +576,6 @@ function update_category(category_p){
     }
 
 
-// function download_with_js_order_pdf(url, csrf){
-//
-//     $('#overlay_loading').show();
-//     $.ajax({
-//     url:url,
-//     headers:{"X-CSRFToken": csrf},
-//     method:"POST",
-//     data:{},
-//     xhrFields: {
-//                 responseType: 'blob' // Set response type to blob
-//             },
-//     success:function(response, status, xhr)
-//     {
-//         console.log(response);
-//         $('#overlay_loading').hide();
-//
-//         var data_status= xhr.getResponseHeader('data_status');
-//         if (data_status && data_status === 'success'){
-//             var filename = "";
-//             var disposition = xhr.getResponseHeader('Content-Disposition');
-//             if (disposition && disposition.indexOf('attachment') !== -1) {
-//                 var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-//                 var matches = filenameRegex.exec(disposition);
-//                 if (matches != null && matches[1]) filename = matches[1].replace(/['"]/g, '');
-//             }
-//             console.log(filename);
-//             // let filename = response.filename;
-//             var link = document.createElement('a');
-//
-//             link.href = window.URL.createObjectURL(response);
-//             link.download = filename || 'marks.pdf'; // Change the filename if needed
-//             document.body.appendChild(link);
-//             link.click();
-//             document.body.removeChild(link);
-//         }
-//         else if(data_status==="file_link_download"){
-//             var data_message = "Ваш файл был загружен в виде ссылки - " + xhr.getResponseHeader('data_message');
-//             // data_message =  + data_message;
-//             make_message(data_message, 'success');
-//             // location.reload();
-//             // make_message('Ошибка. Обратитесь к администратору', 'danger');
-//         }
-//         else {
-//             make_message('Нет файлов для скачивания', 'danger');
-//         }
-//     },
-//      error: function() {
-//         $('#overlay_loading').hide();
-//         // make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
-//         setTimeout(function() {make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');}, 1500);
-//      }
-//    });
-//
-//    setTimeout(function() {clear_user_messages();}, 15000);
-//
-// }
 function download_with_js_order_pdf(url, csrf) {
     $('#overlay_loading').show();
     $.ajax({
@@ -648,8 +592,12 @@ function download_with_js_order_pdf(url, csrf) {
                 // PDF downloaded successfully
                 var blob = new Blob([response], { type: 'application/pdf' });
                 var link = document.createElement('a');
+
+                // Extract the value of the custom header 'data_name'
+                var dataName = xhr.getResponseHeader('data_file_name');
+
                 link.href = window.URL.createObjectURL(blob);
-                link.download = "order.pdf";
+                link.download = dataName || 'order.pdf'; // Change the filename if needed
                 link.click();
             } else {
                 // Handle other status codes

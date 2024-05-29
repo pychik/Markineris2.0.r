@@ -120,7 +120,8 @@ def h_download_oa(o_id: int, category: str = settings.Shoes.CATEGORY) -> Respons
 def h_download_opdf(o_id: int, category: str = settings.Shoes.CATEGORY) -> Response:
     user = current_user
 
-    order = Order.query.with_entities(Order.id, Order.user_id).filter_by(id=o_id, category=category, user_id=user.id).first()
+    order = Order.query.with_entities(Order.id, Order.user_id, Order.order_idn).filter_by(id=o_id, category=category,
+                                                                                          user_id=user.id).first()
     response = jsonify()
     response.headers['Content-Type'] = 'text/plain; charset=utf-8'
     if not order:
@@ -143,13 +144,11 @@ def h_download_opdf(o_id: int, category: str = settings.Shoes.CATEGORY) -> Respo
         rar_file = f"{settings.DOWNLOAD_DIR_CRM}{fs_name}"
         rar_pdf_proc = RarPdfProcessor(rar_file=rar_file)
         pdf_io = rar_pdf_proc.get_extract_and_merge_pdfs()
-        pdf_name = f"order_{o_id}.pdf"
+        pdf_name = "order_{order_idn}.pdf".format(order_idn=order.order_idn)
         # response = make_response(send_file(pdf_io, as_attachment=True, download_name=pdf_name))
         response = make_response(pdf_io.getvalue())
-        response.headers['Content-Disposition'] = 'attachment; filename={filename}'.format(filename=pdf_name)
+        response.headers['data_file_name'] = pdf_name
         response.headers['Content-type'] = 'text/plain'
-        response.headers['Content-Disposition'] = 'attachment; filename=example.txt'
-        # response.headers['Content-Type'] = 'application/octet-stream'
         response.headers['data_status'] = 'success'
 
     elif f_link is not None:
