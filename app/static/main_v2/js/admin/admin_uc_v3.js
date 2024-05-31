@@ -608,6 +608,53 @@ function bck_get_transactions_wp(url){
 
 }
 
+function bck_get_transactions_excel_report(url, csrf) {
+    let sort_mode = 0;
+    if (document.getElementById("asc_type").checked) {
+        sort_mode = 1;
+    }
+    let date_from =  $('#date_from').val();
+    let date_to =  $('#date_to').val();
+    $('#overlay_loading').show();
+    $.ajax({
+        url: url,
+        headers: { "X-CSRFToken": csrf },
+        method: "POST",
+        data: {tr_type: $('#transaction_type').val(),
+            tr_status: $('#transaction_status').val(),
+            date_from: date_from,
+            date_to: date_to,
+            amount: $('#transaction_amount').val(),
+            sort_type: sort_mode},
+        xhrFields: {
+            responseType: 'blob' // Set response type to blob
+        },
+        success: function(response, status, xhr) {
+            $('#overlay_loading').hide();
+            if (xhr.status === 200) {
+                // PDF downloaded successfully
+                var blob = new Blob([response], { type: 'application/xlsx' });
+                var link = document.createElement('a');
+
+                var dataName = xhr.getResponseHeader('data_file_name');
+
+                link.href = window.URL.createObjectURL(blob);
+                link.download = dataName || 'report.pdf'; //
+                link.click();
+            } else {
+                // Handle other status codes
+                console.error('Error:', xhr.status);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#overlay_loading').hide();
+            // Error handling
+            console.error('Error:', error);
+        }
+    });
+
+}
+
 
 function bck_su_transaction_detalization(url){
     $.ajax({

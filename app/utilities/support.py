@@ -1169,20 +1169,28 @@ def helper_get_server_balance() -> tuple[int, int]:
     return res.balance, res.pending_balance_rf
 
 
-def helper_get_filters_transactions(tr_type: int = None, tr_status: int = None) -> tuple:
+def helper_get_filters_transactions(tr_type: int = None, tr_status: int = None, report: bool = False) -> tuple:
     """
         returns tuple of params with  filter conditions, link string and model conditions and order type
     :param tr_type:
     :param tr_status:
+    :param report:
     :return:
     """
-    date_from_raw = request.args.get('date_from', '', type=str)
-    date_to_raw = request.args.get('date_to', '', type=str)
-    tr_status = request.args.get('tr_status', 0, type=int) if not tr_status else tr_status
-    tr_type_raw = request.args.get('tr_type', 0, type=int) if not tr_type else tr_type
-    sort_type = request.args.get('sort_type', 0, type=int)
-    tr_type = True if tr_type_raw else False
-    amount = request.args.get('amount', 0, type=int)
+    if report:
+        date_from_raw = request.form.get('date_from', '', type=str)
+        date_to_raw = request.form.get('date_to', '', type=str)
+        tr_status = request.form.get('tr_status', 0, type=int) if not tr_status else tr_status
+        tr_type_raw = request.form.get('tr_type', 0, type=int) if not tr_type else tr_type
+        sort_type = request.form.get('sort_type', 0, type=int)
+        amount = request.form.get('amount', 0, type=int)
+    else:
+        date_from_raw = request.args.get('date_from', '', type=str)
+        date_to_raw = request.args.get('date_to', '', type=str)
+        tr_status = request.args.get('tr_status', 0, type=int) if not tr_status else tr_status
+        tr_type_raw = request.args.get('tr_type', 0, type=int) if not tr_type else tr_type
+        sort_type = request.args.get('sort_type', 0, type=int)
+        amount = request.args.get('amount', 0, type=int)
 
     link_filters = f'tr_type={tr_type_raw}&tr_status={tr_status}&date_from={date_from_raw}&date_to={date_to_raw}&'
     model_conditions_list_raw = UserTransaction.status == tr_status \
@@ -1205,7 +1213,8 @@ def helper_get_filters_transactions(tr_type: int = None, tr_status: int = None) 
     amount_conditions = (UserTransaction.amount == amount,) if amount else (None,)
     model_conditions = tuple(
         filter(lambda x: x is not None, model_conditions_list_raw + date_range_conditions + amount_conditions))
-    model_order_type = desc(UserTransaction.created_at) if (sort_type == 0 or not sort_type) else asc(UserTransaction.created_at)
+    model_order_type = desc(UserTransaction.created_at) if (sort_type == 0 or not sort_type) \
+        else asc(UserTransaction.created_at)
 
     return settings.Transactions.TRANSACTION_TYPES[tr_type_raw], settings.Transactions.TRANSACTIONS.get(tr_status),\
         date_from, date_to, link_filters, model_conditions, model_order_type

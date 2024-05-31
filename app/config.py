@@ -19,7 +19,7 @@ from utilities.param_lists import SHOE_GENDERS, SHOE_MATERIALS_UP_LINEN, SHOE_MA
     CHECK_ORDER_STAGES, COMMON_COLORS, SHOE_START_EXT, LINEN_START_EXT, PARFUM_START_EXT, \
     CLOTHES_START_EXT, CRM_PS_DICT, CLOTHES_CONTENT, CLOTHES_NAT_CONTENT, CLOTHES_UPPER, \
     USER_TRANSLATE_DICT, CLOTHES_SIZES_FULL, CLOTHES_SIZES_DESCRIPTION, CLOTHES_OLD_TNVED, ALL_CLOTHES_TNVED, \
-    COMPLICATED_COLORS, ALL_COLORS
+    COMPLICATED_COLORS, ALL_COLORS, UT_REPORT_START
 
 CUR_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -338,6 +338,7 @@ class Settings(BaseSettings):
         TRANSACTION_WRITEOFF: int = 0
         TRANSACTION_REFILL: int = 1
         TRANSACTION_TYPES: dict = {TRANSACTION_REFILL: 'Пополнение', TRANSACTION_WRITEOFF: 'Снятие средств'}
+        TRANSACTIONS_TYPES_LATIN1: dict = {'Пополнение': 'refill', 'Снятие средств': 'write_off'}
 
     class Tnved:
         BIG_TNVED_LIST: tuple = BIG_TNVED_LIST
@@ -792,6 +793,9 @@ class Settings(BaseSettings):
         TEXT_FONT_SIZE = 6.9
         TEXT_TX = 73.2 / 100  # X position as a percentage absolete 135
         TEXT_TY = 5 / 100  # Y position as a percentage absolete 10
+
+    class Reports:
+        UT_START: list = UT_REPORT_START
 
     class Upload:
         STANDART: str = 'standart'

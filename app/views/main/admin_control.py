@@ -3,19 +3,19 @@ from flask_login import login_required
 
 from config import settings
 from data_migrations.instance import etl_service
-from data_migrations.utils import make_password
 from models import User
-from utilities.admin.h_admin_control import h_index, h_admin, h_set_order_notification, h_create_admin, \
-    h_partner_code, h_delete_partner_code, h_telegram_set_group, h_telegram_message_set, h_telegram_group_bind, \
-    h_delete_telegram_group, h_set_user_admin, h_set_user, h_deactivate_user, h_activate_all_admin_users, \
-    h_deactivate_user_admin, h_set_process_type, h_delete_user_admin, h_delete_user, h_create_link_new_password, \
-    h_send_order, h_download_agent_report, h_user_search, h_user_search_idn, h_cross_user_search, h_bck_set_user_price, \
-    h_change_agent_fee, h_change_trust_limit, h_users_orders_stats, h_users_activate_list, h_bck_user_delete, \
-    h_bck_user_activate, h_client_orders_stats, h_su_user_search, h_bck_change_user_password, h_bck_reanimate
-from utilities.admin.h_finance_control import h_su_control_finance, h_su_bck_promo, h_su_add_promo, h_su_delete_promo, \
-    h_su_bck_prices, h_su_add_prices, h_su_delete_prices, h_su_bck_sa, h_su_add_sa, h_su_delete_sa, \
-    h_su_bck_change_sa_type, h_su_control_ut, h_su_transaction_detail, h_bck_control_ut, h_au_bck_control_ut, \
-    h_su_pending_transaction_update, h_su_wo_transactions, h_aus_transaction_detail, h_su_bck_change_sa_activity
+from utilities.admin.h_admin_control import (h_index, h_admin, h_set_order_notification, h_create_admin,
+    h_partner_code, h_delete_partner_code, h_telegram_set_group, h_telegram_message_set, h_telegram_group_bind,
+    h_delete_telegram_group, h_set_user_admin, h_set_user, h_deactivate_user, h_activate_all_admin_users,
+    h_deactivate_user_admin, h_set_process_type, h_delete_user_admin, h_delete_user, h_create_link_new_password,
+    h_send_order, h_download_agent_report, h_user_search, h_user_search_idn, h_cross_user_search, h_bck_set_user_price,
+    h_change_agent_fee, h_change_trust_limit, h_users_orders_stats, h_users_activate_list, h_bck_user_delete,
+    h_bck_user_activate, h_client_orders_stats, h_su_user_search, h_bck_change_user_password, h_bck_reanimate, )
+from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_promo, h_su_add_promo, h_su_delete_promo,
+     h_su_bck_prices, h_su_add_prices, h_su_delete_prices, h_su_bck_sa, h_su_add_sa, h_su_delete_sa,
+     h_su_bck_change_sa_type, h_su_control_ut, h_su_transaction_detail, h_bck_control_ut, h_au_bck_control_ut,
+     h_su_pending_transaction_update, h_su_wo_transactions, h_aus_transaction_detail, h_su_bck_change_sa_activity,
+                                               h_bck_ut_excel_report)
 from utilities.support import au_required, aus_required, bck_aus_required, bck_su_required, su_required, \
                                user_exist_check
 
@@ -363,6 +363,17 @@ def su_bck_control_ut():
     :return:
     """
     return h_bck_control_ut()
+
+
+@admin_control.route('/su_bck_ut_report', methods=['POST', ])
+@login_required
+@bck_su_required
+def su_bck_ut_report():
+    """
+        background update filtered user transactions to control
+    :return:
+    """
+    return h_bck_ut_excel_report()
 
 
 @admin_control.route('/au_bck_control_ut', methods=['GET', ])

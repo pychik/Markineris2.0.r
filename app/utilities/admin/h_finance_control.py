@@ -3,7 +3,7 @@ from decimal import Decimal
 from os import listdir as o_list_dir
 from os import remove as o_remove
 
-from flask import render_template, url_for, request, Response, jsonify
+from flask import render_template, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
 from sqlalchemy import desc, text, create_engine, null
 from sqlalchemy.exc import IntegrityError
@@ -13,6 +13,7 @@ from config import settings
 from logger import logger
 from models import Promo, Price, ServiceAccount, ServerParam, User, UserTransaction
 from models import db
+from utilities.admin.excel_report import ExcelReportProcessor
 from utilities.support import helper_paginate_data, check_file_extension, get_file_extension, \
     helper_get_server_balance, helper_get_filters_transactions, \
     helper_update_pending_rf_transaction_status, helper_get_image_html, \
@@ -430,7 +431,7 @@ def h_au_bck_control_ut():
                                                        UserTransaction.created_at, UserTransaction.user_id,
                                                        User.login_name) \
                                   .join(User, User.id == UserTransaction.user_id) \
-                                  .filter(*model_conditions, User.id.in_(user_ids), UserTransaction.agent_fee != None,) \
+                                  .filter(*model_conditions, User.id.in_(user_ids), UserTransaction.agent_fee.isnot(None),) \
                                   .order_by(model_order_type).all()
 
     link = f'javascript:bck_get_transactions(\'' + url_for(
@@ -443,6 +444,43 @@ def h_au_bck_control_ut():
     bck = request.args.get('bck', 0, type=int)
     return jsonify({'htmlresponse': render_template(f'admin/au_transactions/au_transactions_table.html', **locals())}) \
         if bck else render_template('admin/au_transactions/au_control_transactions.html', **locals())
+
+
+def h_bck_ut_excel_report() -> Response:
+    """
+    fetching a blob report of transactions
+    :return:
+    """
+    tr_type, tr_status, date_from, date_to, \
+        link_filters, model_conditions, model_order_type = helper_get_filters_transactions(report=True)
+
+    transactions = [t for t in UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount,
+                                                                   UserTransaction.promo_info, UserTransaction.type,
+                                                                   UserTransaction.status,
+                                                                   UserTransaction.wo_account_info,
+                                                                   UserTransaction.created_at, UserTransaction.user_id,
+                                                                   User.login_name, User.email)
+            .join(User, User.id == UserTransaction.user_id).filter(*model_conditions)
+            .order_by(model_order_type).all()]
+
+    transaction_summ = sum(t.amount for t in transactions)
+
+    name_start = settings.Transactions.TRANSACTIONS_TYPES_LATIN1.get(tr_type)
+    date_range = f"{date_from} - {date_to}".replace(' 00:00:00', '')
+    excel_proc = ExcelReportProcessor(transactions=transactions, transaction_summ=transaction_summ, tr_type=tr_type,
+                                      tr_status=tr_status, date_range=date_range)
+
+    excel_io = excel_proc.get_excel_report()
+
+    response = make_response(excel_io.getvalue())
+    response.headers['data_file_name'] = "{name_start} {date_range}.xlsx".format(name_start=name_start,
+                                                                                 date_range=date_range)
+    response.headers['Content-type'] = 'text/plain'
+
+    # response.headers['Content-Type'] = 'application/octet-stream'
+    response.headers['data_status'] = 'success'
+
+    return response
 
 
 def h_su_transaction_detail(u_id: int, t_id: int):

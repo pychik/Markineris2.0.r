@@ -26,15 +26,15 @@
                 {%for u in users_list%}
                     <tr>
                       <th scope="row">
-                          {{offset  + loop.index}}
+                          <span title="Баланс пользователя {{u.balance}} р.">{{offset  + loop.index}}</span>
                       </th>
 
                       <td>
-                          <span title="Баланс пользователя {{u.balance}} р.">
-                              <a href="{{url_for('admin_control.client_orders_stats', admin_id=u.admin_id, client_id=u.id)}}" title="Посмотреть историю заказов клиента">
+
+                          <a href="{{url_for('admin_control.client_orders_stats', admin_id=u.admin_id, client_id=u.id)}}" title="Посмотреть историю заказов клиента">
                                           {{u.login_name}}
-                                      </a>
-                          </span>
+                          </a>
+
                           {% if u.created_at %}
                             <div class="font-10 text-secondary" title="Дата и время регистрации" style="font-size:12px">{{ u.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
                           {% endif %}
