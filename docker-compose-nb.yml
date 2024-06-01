@@ -48,8 +48,8 @@ services:
       - elk_shared_network
 
   bot_notification:
-    container_name: elastic-bot_notification
-    image: yourusername/bot_notification_image:latest  # Replace with your actual image name
+    container_name: bot_notification
+    image: elastic-bot_notification:latest  # Replace with your actual image name
     volumes:
       - /var/log/bot-notifications/:/var/log/bot-notifications/
     command: python3 -m main
