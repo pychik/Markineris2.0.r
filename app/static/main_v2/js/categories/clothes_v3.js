@@ -433,7 +433,7 @@ function manual_content_edit() {
 function check_content() {
     var ctb = document.getElementById("content")
     if (ctb.value.length > 100) {
-        ctb.value = ctb.value.slice(100)
+        ctb.value = ctb.value.slice(0,100);
     }
 
 }
