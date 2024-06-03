@@ -160,11 +160,17 @@ def helper_prev_day_orders_marks() -> Row:
     return db.session.execute(stmt).fetchone()
 
 
-def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: str) -> None | list:
+def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: str, u_id: int = None) -> None | list:
     if sort_type == 0:
         order_clause = desc('u.login_name')
     else:
         order_clause = asc('u.login_name')
+
+    user_filter = ''
+    if u_id:
+        user_filter = f'and u.admin_parent_id = :u_id'
+
+
     date_condition = f"HAVING max(os.saved_at) <= CURRENT_DATE - INTERVAL '{settings.Users.FILTER_MAX_QUANTITY} days' OR COUNT(os.id) = 0"
     match date_type:
         case settings.Users.FILTER_DATE_HOURS:
@@ -173,7 +179,7 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
             date_condition = f"HAVING max(os.saved_at) <= CURRENT_DATE - INTERVAL '{date_quantity} days' OR COUNT(os.id) = 0"
         case settings.Users.FILTER_DATE_MONTH:
             date_condition = f"HAVING max(os.saved_at) <= CURRENT_DATE - INTERVAL '{date_quantity} month' OR COUNT(os.id) = 0"
-    return db.session.execute(text(f"""SELECT u.id as id,
+    query = text(f"""SELECT u.id as id,
                                            u.login_name as login_name,
                                            u.phone as phone,
                                            u.balance as balance,
@@ -202,6 +208,10 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
                                     LEFT JOIN public.users_partners as up on up.user_id=u.id
                                     LEFT JOIN public.partner_codes as pc on pc.id=up.partner_code_id
                                     WHERE u.role='{settings.ORD_USER}'
+                                    {user_filter}
                                     GROUP BY u.id, u.login_name
                                     {date_condition}
-                                    ORDER BY """ + str(order_clause) + ";")).fetchall()
+                                    ORDER BY """ + str(order_clause) + ";")
+
+    stmt = query.bindparams(u_id=u_id) if u_id else query
+    return db.session.execute(stmt).fetchall()

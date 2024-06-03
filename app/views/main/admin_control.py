@@ -19,6 +19,8 @@ from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_pr
 from utilities.support import au_required, aus_required, bck_aus_required, bck_su_required, su_required, \
                                user_exist_check
 
+from utilities.admin.h_admin_control import h_bck_agent_reanimate
+
 admin_control = Blueprint('admin_control', __name__)
 
 
@@ -500,6 +502,17 @@ def bck_control_reanimate():
     :return:
     """
     return h_bck_reanimate()
+
+
+@admin_control.route('/bck_control_reanimate/<int:u_id>', methods=['GET', ])
+@login_required
+@bck_aus_required
+def bck_agent_control_reanimate(u_id: int):
+    """
+        background update filtered users not active for specified conditions to control
+    :return:
+    """
+    return h_bck_agent_reanimate(u_id=u_id)
 
 
 @admin_control.route('/bck_user_delete/<int:u_id>', methods=["POST", ])

@@ -1,4 +1,12 @@
 <div class="mt-3">
+    {% if current_user.role == 'superuser' and u_id %}
+      <h5>Пользователи агента {{ agent.login_name }} для реанимации</h5>
+    {% elif current_user.role == 'superuser'%}
+      <h5>Пользователи <b>всего</b> сервиса для реанимации</h5>
+    {% else  %}
+      <h5>Доступные для реанимации пользователи</h5>
+    {% endif %}
+
     <h5>Найдено: {{numrows}}</h5>
     <h5>Представлены пользователи не сделавшие заказ за : <b>{{date_quantity}} {{converted_date_type}}</b></h5>
     {%if users%}
