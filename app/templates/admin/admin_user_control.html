@@ -14,14 +14,14 @@
             </form>
 
         </div>
-
+        {% if current_user.role in ['superuser', 'm2r_admin'] or (current_user.role == 'admin' and current_user.is_at2)%}
         <div class="d-flex justify-content-center">
           <a href="{{ url_for('admin_control.bck_agent_control_reanimate', u_id=admin_info.id) }}"
              class="col-md-5 text-center btn btn-sm btn-outline-warning btn-outline">
             Реанимация клиентов
           </a>
         </div>
-
+        {% endif %}
     </div>
     <div class="col-md-2"></div>
 </div>
