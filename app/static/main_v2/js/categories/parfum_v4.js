@@ -402,7 +402,7 @@ function updateVolumeParams() {
 
 function check_volume_input(field){
     if (!field.checkValidity()){
-        if (parseInt(field.value, 10) > 10){
+        if (parseInt(field.value, 10) > 10 || parseInt(field.value, 10) < 1){
             field.value= field.min;
             make_message('Проверьте корретность заполняемого значения Объема. в соответсвии с выбранными единицами измерения', 'error')}
         }
