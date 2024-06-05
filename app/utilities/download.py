@@ -477,16 +477,8 @@ def orders_download_common(user: User, o_id: int):
     return send_file(files_list[0][0], download_name=files_list[0][1], as_attachment=True)
 
 
-def orders_process_send_order(o_id: int, user: User, order_comment: str, su_exec_order_name: str = None,
+def orders_process_send_order(o_id: int, user: User,  order_comment: str, order_num: int, order_idn: str, su_exec_order_name: str = None,
                               clothes_divider_flag: bool = False) -> bool:
-    if user.role == settings.ORD_USER and user.admin_parent_id:
-        order_num = User.query.filter_by(id=user.admin_parent_id).order_by(desc(User.id)).first().admin_order_num
-
-    elif user.role in [settings.ADMIN_USER, settings.SUPER_USER]:
-        order_num = user.admin_order_num
-    else:
-        flash(message=settings.Messages.TELEGRAM_SEND_ERROR, category='error')
-        return False
 
     if user.is_at2:
         telegram_raw = user.telegram
@@ -510,7 +502,7 @@ def orders_process_send_order(o_id: int, user: User, order_comment: str, su_exec
                                                 edo_type=edo_type, edo_id=edo_id, mark_type=mark_type,
                                                 pos_count=pos_count, orders_pos_count=orders_pos_count,
                                                 su_exec_order_name=su_exec_order_name, reports_quantity=len(files_list),
-                                                rd_exist=rd_exist
+                                                rd_exist=rd_exist, tg_order_num=order_idn
                                                 )
 
     TelegramProcessor.send_message_tg.delay(

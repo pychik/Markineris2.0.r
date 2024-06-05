@@ -661,7 +661,7 @@ def h_send_order() -> Response:
     if not order_idn_form:
         flash(message=settings.Messages.NO_SUCH_ORDER)
         return redirect(url_for('admin_control.index'))
-    order = Order.query.with_entities(Order.id, Order.category, Order.user_id).filter(Order.order_idn == order_idn_form).first()
+    order = Order.query.with_entities(Order.id, Order.category, Order.user_id, Order.order_idn).filter(Order.order_idn == order_idn_form).first()
     if not order:
         flash(message=settings.Messages.NO_SUCH_ORDER)
         return redirect(url_for('admin_control.index'))
@@ -672,6 +672,7 @@ def h_send_order() -> Response:
             o_id=order.id,
             user=user,
             order_comment='',
+            order_idn=order.order_idn, order_num=0,
             su_exec_order_name=order_idn_form,
             clothes_divider_flag=True if order.category == settings.Clothes.CATEGORY else False,
         ):

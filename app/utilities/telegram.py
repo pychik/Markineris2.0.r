@@ -22,14 +22,14 @@ class TelegramProcessor:
     @staticmethod
     def make_message_tg(user: User, admin_user: User, order_comment: str, company_type: str, company_name: str,
                         company_idn: str, edo_type: str, edo_id: str, mark_type: str,
-                        pos_count: str, orders_pos_count: str, rd_exist: bool, su_exec_order_name: str = None,
-                        reports_quantity: int = 1):
+                        pos_count: str, orders_pos_count: str, rd_exist: bool, tg_order_num: str = None,
+                        su_exec_order_name: str = None, reports_quantity: int = 1):
         telegram_message: TelegramMessage = admin_user.telegram_message[0]
 
         # message = f"В обработку добавлен заказ:\n" \
         reports_decl = TelegramProcessor.helper_get_reports_decl(reports_quantity=reports_quantity)
         report_info = f"<b>Итого:  {reports_quantity} файл{reports_decl}</b>\n"
-        order_info = f"<i>Номер заказа</i>: <b>{admin_user.id}_{admin_user.admin_order_num}</b>\n" \
+        order_info = f"<i>Номер заказа</i>: <b>{tg_order_num}</b>\n" \
             if not su_exec_order_name else f"<b>! ! ! ! ! ВОССТАНОВЛЕННЫЙ ЗАКАЗ ! ! ! ! ! !</b>\n" \
                                            f"<b>! ! ! ! ! ВОССТАНОВЛЕННЫЙ ЗАКАЗ ! ! ! ! ! !</b>\n" \
                                            f"<b>! ! ! ! ! ВОССТАНОВЛЕННЫЙ ЗАКАЗ ! ! ! ! ! !</b>\n" \

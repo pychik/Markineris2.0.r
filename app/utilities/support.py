@@ -597,7 +597,7 @@ def helper_get_clothes_divided_list(order_id: int) -> tuple[list, list, list]:
     return old_t_list + new_t_list, old_t_list, new_t_list
 
 
-def process_admin_order_num(user: User) -> tuple[Optional[str], Optional[bool], Optional[bool]]:
+def process_admin_order_num(user: User) -> tuple[Optional[int], Optional[str], Optional[bool], Optional[bool]]:
     if user.role == settings.ORD_USER:
         admin_id = User.query.with_entities(User.id).filter_by(id=user.admin_parent_id).order_by(
             desc(User.id)).first().id
@@ -610,7 +610,7 @@ def process_admin_order_num(user: User) -> tuple[Optional[str], Optional[bool], 
     res = db.session.execute(stmt).fetchone()
 
     db.session.commit()  # make commit to fix order_num
-    return ("{admin_id}_{admin_order_num}".format(admin_id=admin_id, admin_order_num=res.admin_order_num), res.is_crm,
+    return (res.admin_order_num, "{admin_id}_{admin_order_num}".format(admin_id=admin_id, admin_order_num=res.admin_order_num), res.is_crm,
             res.is_at2)
 
 
@@ -1073,7 +1073,7 @@ def helper_process_category_order(user: User, category: str, o_id: int, order_co
 
     try:
         # commit in the end of method
-        order_idn, is_crm, is_at2 = process_admin_order_num(user=user)
+        order_num, order_idn, is_crm, is_at2 = process_admin_order_num(user=user)
 
         if not order_idn:
             db.session.rollback()
@@ -1090,6 +1090,8 @@ def helper_process_category_order(user: User, category: str, o_id: int, order_co
             sent_flag = orders_process_send_order(
                 o_id=o_id, user=user,
                 order_comment=order_comment,
+                order_num=order_num,
+                order_idn=order_idn,
                 clothes_divider_flag=clothes_divider_flag,
             )
 
