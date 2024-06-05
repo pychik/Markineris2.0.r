@@ -379,3 +379,32 @@ function setParfum(){
     document.getElementById('parfum_in_box_info').innerText = total;
 }
 
+function updateVolumeParams() {
+        let volumeType = document.getElementById('volume_type').value;
+        let volumeInput = document.getElementById('volume');
+
+
+        if (volumeType === 'мл') {
+            volumeInput.min = 5;
+            volumeInput.step = 5;
+            volumeInput.max = 5000;
+        } else if (volumeType === 'л') {
+            volumeInput.min = 1;
+            volumeInput.step = 1;
+            volumeInput.max = 100;
+        } else {
+            volumeInput.min = 1;
+            volumeInput.step = 1;
+            volumeInput.max = 10000;
+        }
+        volumeInput.value = volumeInput.min;
+    }
+
+function check_volume_input(field){
+    if (!field.checkValidity()){
+        if (parseInt(field.value, 10) > 10){
+            field.value= field.min;
+            make_message('Проверьте корретность заполняемого значения Объема. в соответсвии с выбранными единицами измерения', 'error')}
+        }
+
+}
