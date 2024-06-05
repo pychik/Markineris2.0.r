@@ -1135,6 +1135,51 @@ def h_bck_reanimate():
         if bck else render_template('admin/ra/main_reanimate.html', **locals())
 
 
+def h_bck_agent_reanimate(u_id: int):
+    """
+       background update of agent users transactions  write_off for agent commission counter
+    :return:
+    """
+    bck = request.args.get('bck', 0, type=int)
+    # check if current user is not a superuser and try to pass another u_id or
+    # send request with bck equal 1
+    if current_user.role != 'superuser' and current_user.id != u_id and not bck:
+        flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
+        return redirect(url_for('admin_control.admin', u_id=current_user.id))
+
+    elif current_user.role != 'superuser' and current_user.id != u_id and bck:
+        return jsonify({'message': 'something went wrong'})
+
+    if current_user.role == 'superuser' and u_id:
+        agent = User.query.with_entities(User.login_name).filter(User.id == u_id).first()
+
+    # set manually type and status for render page case
+    date_quantity, date_type, link_filters, sort_type = helper_get_filter_users()
+
+    link = f'javascript:bck_get_users_reanimate(\'' + url_for(
+        'admin_control.bck_agent_control_reanimate', u_id=u_id) + f'?bck=1&{link_filters}' + 'page={0}\');'
+
+    users = helper_get_users_reanimate(date_quantity=date_quantity, date_type=date_type, sort_type=sort_type, u_id=u_id)
+    numrows = len(users)
+
+    basic_prices = settings.Prices.BASIC_PRICES
+    all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2).filter(
+        Price.price_at2.isnot(True)) \
+        .order_by(desc(Price.created_at)).all()
+
+
+    page, per_page, \
+        offset, pagination, \
+        users_list = helper_paginate_data(data=users, per_page=settings.PAGINATION_PER_PAGE, href=link)
+
+
+    basic_prices = settings.Prices.BASIC_PRICES
+    date_range_types = settings.Users.FILTER_DATE_TYPES
+    date_quant_max = settings.Users.FILTER_MAX_QUANTITY
+    converted_date_type = settings.Users.FILTER_DATE_DICT.get(date_type)
+    return jsonify({'htmlresponse': render_template(f'admin/ra/user_reanimate_response.html', **locals())}) \
+        if bck else render_template('admin/ra/main_reanimate.html', **locals())
+
 
 def helper_create_crm_admin(login_name: str, email: str, password: str) -> Response:
     try:
