@@ -36,7 +36,7 @@ def h_all_new_multi_pool():
                            LEFT JOIN public.linen l ON o.id = l.order_id
                            LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                            LEFT JOIN public.parfum p ON o.id = p.order_id 
-                    WHERE o.stage = {settings.OrderStage.NEW} AND (o.processed = null or o.processed=false)
+                    WHERE o.stage = {settings.OrderStage.NEW} AND (o.processed = null or o.processed=false) AND o.to_delete != True 
                     GROUP BY o.id, o.category, o.company_idn, o.company_type, o.company_name, o.order_idn, o.stage,
                      o.created_at, o.crm_created_at, o.user_id, o.payment, ut.op_cost, o.transaction_id
                     order by o.created_at

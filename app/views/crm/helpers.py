@@ -73,6 +73,7 @@ def helper_get_agent_orders(user: User) -> list:
                                   o.user_comment as user_comment,
                                   o.has_new_tnveds as has_new_tnveds,
                                   o.manager_id as manager_id,
+                                  o.to_delete as to_delete,
                                   MAX(orf.origin_name) as order_file,
                                   MAX(orf.file_link) as order_file_link,
                                   {stmt_get_manager} as manager,
@@ -91,7 +92,7 @@ def helper_get_agent_orders(user: User) -> list:
                                   LEFT JOIN public.linen l ON o.id = l.order_id
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                   LEFT JOIN public.parfum p ON o.id = p.order_id
-                        WHERE u.id in({stmt_users}) AND {conditional_stmt}
+                        WHERE u.id in({stmt_users}) AND {conditional_stmt} AND o.to_delete != True
                         GROUP BY u.id, o.id, o,crm_created_at
                         ORDER BY o.crm_created_at ASC 
                        """
@@ -119,6 +120,7 @@ def helper_get_agent_orders(user: User) -> list:
                                   o.user_comment as user_comment,
                                   o.has_new_tnveds as has_new_tnveds,
                                   o.manager_id as manager_id,
+                                  o.to_delete as to_delete,
                                   o.crm_created_at as crm_created_at,
                                   MAX(orf.origin_name) as order_file,
                                   MAX(orf.file_link) as order_file_link,
@@ -139,7 +141,7 @@ def helper_get_agent_orders(user: User) -> list:
                                   LEFT JOIN public.linen l ON o.id = l.order_id
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                   LEFT JOIN public.parfum p ON o.id = p.order_id 
-                              WHERE  {conditional_stmt}
+                              WHERE  {conditional_stmt} AND o.to_delete != True
                               GROUP BY u.id, o.id, o.crm_created_at
                               ORDER BY o.crm_created_at ASC
                                """
@@ -187,6 +189,7 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                  o.mark_type as mark_type,
                                  o.user_comment as user_comment,
                                  o.has_new_tnveds as has_new_tnveds,
+                                 o.to_delete as to_delete,
                                  MAX(orf.origin_name) as order_file,
                                  MAX(orf.file_link) as order_file_link,
                                  o.manager_id as manager_id,
@@ -207,7 +210,7 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                  LEFT JOIN public.linen l ON o.id = l.order_id
                                  LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                  LEFT JOIN public.parfum p ON o.id = p.order_id 
-                           WHERE {conditional_stmt}
+                           WHERE {conditional_stmt} AND o.to_delete != True
                            GROUP BY u.id, o.id, o.crm_created_at
                            ORDER BY o.crm_created_at ASC
                           """
@@ -236,6 +239,7 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                   o.mark_type as mark_type,
                                   o.user_comment as user_comment,
                                   o.has_new_tnveds as has_new_tnveds,
+                                  o.to_delete as to_delete,
                                   MAX(orf.origin_name) as order_file,
                                   MAX(orf.file_link) as order_file_link,
                                   o.manager_id as manager_id,
@@ -256,7 +260,7 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                   LEFT JOIN public.linen l ON o.id = l.order_id
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                   LEFT JOIN public.parfum p ON o.id = p.order_id 
-                              WHERE  {conditional_stmt}
+                              WHERE  {conditional_stmt} AND o.to_delete != True
                               GROUP BY u.id, o.id, o.crm_created_at
                               ORDER BY o.crm_created_at ASC
                                """
@@ -291,7 +295,7 @@ def helper_m_order_processed(user: User, o_id: int, manager_id: int, f_manager_i
                         orf.file_link as file_link
                     FROM public.orders o 
                     LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                    WHERE o.id=:o_id AND o.manager_id=:manager_id;
+                    WHERE o.id=:o_id AND o.manager_id=:manager_id AND o.to_delete != True;
                   """).bindparams(o_id=o_id, manager_id=manager_id)
     order_info = db.session.execute(order_stmt).fetchone()
 
@@ -337,7 +341,7 @@ def helper_m_order_ps(user: User, o_id: int, manager_id: int, f_manager_id: int 
                         orf.file_link as file_link
                     FROM public.orders o 
                     LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                    WHERE o.id=:o_id AND o.manager_id=:manager_id;
+                    WHERE o.id=:o_id AND o.manager_id=:manager_id AND o.to_delete != True;
                   """).bindparams(o_id=o_id, manager_id=manager_id)
     order_info = db.session.execute(order_stmt).fetchone()
 
@@ -380,7 +384,7 @@ def helper_m_order_bp(user: User, o_id: int, manager_id: int, f_manager_id: int 
                         o.stage as stage
                     FROM public.orders o 
                     LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                    WHERE o.id=:o_id AND o.manager_id=:manager_id;
+                    WHERE o.id=:o_id AND o.manager_id=:manager_id AND o.to_delete != True;
                   """).bindparams(o_id=o_id, manager_id=manager_id)
     order_info = db.session.execute(order_stmt).fetchone()
 
@@ -421,7 +425,7 @@ def helper_attach_file(manager: str, manager_id: int, o_id: int) -> Response:
                             orf.file_system_name as file_system_name
                         FROM public.orders o 
                         LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                        WHERE o.id=:o_id AND o.manager_id=:manager_id;
+                        WHERE o.id=:o_id AND o.manager_id=:manager_id AND o.to_delete != True;
                       """).bindparams(o_id=o_id, manager_id=manager_id)
     order_info = db.session.execute(order_stmt).fetchone()
 
@@ -488,7 +492,7 @@ def helper_attach_of_link(manager: str, manager_id: int, o_id: int) -> Response:
                             orf.file_system_name as file_system_name
                         FROM public.orders o 
                         LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                        WHERE o.id={o_id} AND o.manager_id={manager_id};
+                        WHERE o.id={o_id} AND o.manager_id={manager_id} AND o.to_delete != True;
                       """
     order_info = db.session.execute(text(order_stmt)).fetchone()
 
@@ -534,7 +538,7 @@ def helper_download_file(manager_id: int, o_id: int, user_type: str) -> Response
                             orf.file_system_name as file_system_name
                         FROM public.orders o 
                         LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                        WHERE o.id={o_id} AND o.manager_id={manager_id};
+                        WHERE o.id={o_id} AND o.manager_id={manager_id} AND o.to_delete != True;
                       """
     order_info = db.session.execute(text(order_stmt)).fetchone()
 
@@ -557,7 +561,7 @@ def helper_delete_order_file(manager_id: int, o_id: int) -> Response:
                             orf.file_system_name as file_system_name
                         FROM public.orders o 
                         LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                        WHERE o.id={o_id} AND o.manager_id={manager_id};
+                        WHERE o.id={o_id} AND o.manager_id={manager_id} AND o.to_delete != True;
                       """
     order_info = db.session.execute(text(order_stmt)).fetchone()
 
@@ -592,7 +596,7 @@ def helper_change_manager(manager_id: int, o_id: int) -> Response:
                                 
                             FROM public.orders o 
                             LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                            WHERE o.id={o_id} AND o.manager_id={manager_id};
+                            WHERE o.id={o_id} AND o.manager_id={manager_id} AND o.to_delete != True;
                           """
     order_info = db.session.execute(text(order_stmt)).fetchone()
 
@@ -636,7 +640,7 @@ def helper_cancel_order(user: User, o_id: int, cancel_comment: str):
                         orf.file_system_name as file_system_name
                     FROM public.orders o 
                     LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                    WHERE o.id={o_id};
+                    WHERE o.id={o_id} AND o.to_delete != True;
                   """
     order_info = db.session.execute(text(order_stmt)).fetchone()
     # check for order exist and admin correct
@@ -706,13 +710,14 @@ def helper_change_agent_stage(o_id: int, stage: int, user: User):
                             o.sent_at as sent_at,
                             o.stage_setter_name as stage_setter_name,
                             o.payment as payment,
+                            o.to_delete as to_delete,
                             ({stmt_get_agent}) as agent_id,
                             orf.id as of_id,
                             orf.file_system_name as file_system_name
                         FROM public.orders o 
                         LEFT JOIN public.order_files orf ON o.id=orf.order_id
                         LEFT JOIN public.user_transactions ut ON o.transaction_id=ut.id
-                        WHERE o.id=:o_id;
+                        WHERE o.id=:o_id AND o.to_delete != True;
                       """).bindparams(o_id=o_id)
     order_info = db.session.execute(order_stmt).fetchone()
 
@@ -870,7 +875,7 @@ def helpers_ceps_order(o_id: int, ep: int):
     message = settings.Messages.NO_SUCH_ORDER_CRM
     try:
 
-        order_info = db.session.execute(text("SELECT id from public.orders WHERE id=:o_id;").bindparams(o_id=o_id)).fetchone()
+        order_info = db.session.execute(text("SELECT id from public.orders WHERE id=:o_id AND o.to_delete != True;").bindparams(o_id=o_id)).fetchone()
         if not order_info:
             return jsonify({'status': status, 'message': message})
         ep = True if ep == 1 else False
@@ -889,7 +894,8 @@ def helpers_ceps_order(o_id: int, ep: int):
 
 
 def helpers_m_take_order(user: User, o_id: int) -> Response:
-    order_id = Order.query.with_entities(Order.id, Order.stage).filter_by(id=o_id, stage=settings.OrderStage.POOL).first()
+    order_id = (Order.query.with_entities(Order.id, Order.stage).filter_by(id=o_id, stage=settings.OrderStage.POOL)
+                .filter(~Order.to_delete).first())
 
     if not order_id:
         flash(message=settings.Messages.ORDER_MANAGER_TAKE_ABS_ERROR, category='error')
@@ -936,8 +942,8 @@ def helper_clean_oco() -> Response:
     try:
         dt_co = date.today() - timedelta(days=settings.OrderStage.DAYS_CONTENT)
 
-        stmt = f"DELETE FROM public.orders pof " \
-               f"WHERE pof.stage={settings.OrderStage.CANCELLED} AND pof.cc_created<'{dt_co}'"
+        stmt = f"UPDATE public.orders SET to_delete=True " \
+               f"WHERE stage={settings.OrderStage.CANCELLED} AND cc_created<'{dt_co}' AND to_delete != True"
 
         db.session.execute(text(stmt))
         db.session.commit()
@@ -1031,7 +1037,8 @@ def helpers_move_orders_to_processed() -> Response:
                UPDATE public.orders 
                SET stage={settings.OrderStage.CRM_PROCESSED},
                    closed_at='{closed_at}', processed={True}
-               WHERE stage={settings.OrderStage.SENT} AND sent_at < '{date_compare}' AND payment=True; 
+               WHERE stage={settings.OrderStage.SENT}
+                AND sent_at < '{date_compare}' AND payment=True AND o.to_delete != True; 
             """)
     try:
         db.session.execute(stmt)
@@ -1088,7 +1095,7 @@ def helpers_bck_change_orders_stage() -> Response:
 def check_manager_orders(u_id: int) -> int:
 
     stmt = f"SELECT COUNT(*) FROM public.orders o " \
-           f"WHERE o.manager_id={u_id} and o.stage<{settings.OrderStage.SENT};"
+           f"WHERE o.manager_id={u_id} and o.stage<{settings.OrderStage.SENT} AND o.to_delete != True;"
 
     res = db.session.execute(text(stmt)).fetchone()[0]
     return res
@@ -1132,6 +1139,7 @@ def h_get_agent_order_info(search_order_idn):
                                       o.has_new_tnveds as has_new_tnveds,
                                       o.manager_id as manager_id,
                                       o.crm_created_at as crm_created_at,
+                                      o.to_delete as to_delete,
                                       MAX(orf.origin_name) as order_file,
                                       MAX(orf.file_link) as order_file_link,
                                       {stmt_get_manager} as manager,
@@ -1200,6 +1208,7 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                      o.mark_type as mark_type,
                                      o.user_comment as user_comment,
                                      o.has_new_tnveds as has_new_tnveds,
+                                     o.to_delete as to_delete,
                                      MAX(orf.origin_name) as order_file,
                                      MAX(orf.file_link) as order_file_link,
                                      o.manager_id as manager_id,
@@ -1252,6 +1261,7 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                       o.mark_type as mark_type,
                                       o.user_comment as user_comment,
                                       o.has_new_tnveds as has_new_tnveds,
+                                      o.to_delete as to_delete,
                                       MAX(orf.origin_name) as order_file,
                                       MAX(orf.file_link) as order_file_link,
                                       o.manager_id as manager_id,
@@ -1411,7 +1421,8 @@ def helpers_crm_mpo_so_task():
     orders_users = [o for o in Order.query.with_entities(Order.id,
                                                          Order.order_idn,
                                                          Order.user_id)
-                                          .filter_by(stage=settings.OrderStage.MANAGER_PROCESSED).all()]
+                                          .filter_by(stage=settings.OrderStage.MANAGER_PROCESSED)
+                    .filter(~Order.to_delete).all()]
     if not orders_users:
         return {'status': status,
                 'message': settings.Messages.OS_CHANGE_EMPTY.format(stage_from=settings.OrderStage.
@@ -1422,7 +1433,7 @@ def helpers_crm_mpo_so_task():
                      UPDATE public.orders 
                      SET stage={settings.OrderStage.SENT},
                          sent_at='{sent_at}'
-                     WHERE stage={settings.OrderStage.MANAGER_PROCESSED}; 
+                     WHERE stage={settings.OrderStage.MANAGER_PROCESSED} AND o.to_delete != True; 
                   """)
     try:
         db.session.execute(stmt)
@@ -1485,7 +1496,8 @@ def helper_auto_problem_cancel_order():
                         o.cp_created as cp_created
                     FROM public.orders o 
                     LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                    WHERE o.stage={settings.OrderStage.MANAGER_PROBLEM} AND o.cp_created < '{date_compare}';
+                    WHERE o.stage={settings.OrderStage.MANAGER_PROBLEM}
+                     AND o.cp_created < '{date_compare}' AND o.to_delete != True;
                   """
 
     orders_info = db.session.execute(text(orders_stmt)).fetchall()
@@ -1536,7 +1548,7 @@ def helper_auto_problem_cancel_order():
 
 def helper_crm_preload(o_id: int):
     order_info = (Order.query.with_entities(Order.category, Order.stage, Order.order_idn, Order.user_id)
-                  .filter(Order.id == o_id).first())
+                  .filter(Order.id == o_id).filter(~Order.to_delete).first())
     if not order_info:
         flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
         return redirect(url_for(f'crm_d.agents'))
@@ -1554,7 +1566,7 @@ def helper_crm_preload(o_id: int):
         return redirect(url_for(f'crm_d.agents'))
 
     start_list, page, per_page, offset, pagination, order_list = crm_orders_common_preload(category=category,
-                                                                                       company_idn=company_idn,
-                                                                                       orders_list=orders,)
+                                                                                           company_idn=company_idn,
+                                                                                           orders_list=orders,)
 
     return render_template('crm/preload/crm_preload.html', **locals())

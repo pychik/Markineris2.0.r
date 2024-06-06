@@ -4,7 +4,7 @@
 
             {% for n in m_problem_orders %}
 
-              <div class="card mt-3 mb-3 custom-rounded border-secondary">
+              <div class="card mt-3 mb-3 custom-rounded border-secondary{% if n.to_delete %} div-disabled {%endif%}">
                 <div class="card-header bg-error text-center text-white">
                     <h5 class="card-text">
                         <a data-toggle="collapse"
