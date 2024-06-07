@@ -200,3 +200,8 @@ border-style:solid;
     opacity: 0;
   }
 }
+
+.div-disabled {
+    opacity: 0.5;
+    pointer-events: none; /* Prevents any interaction with the element */
+}

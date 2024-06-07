@@ -211,8 +211,8 @@ def h_order_book_detail(u_id: int):
                         "белье": 'linen',
                         "парфюм": 'parfum', }
 
-    active_orders_raw = (current_user.orders.filter_by(processed=False, to_delete=False,
-                                                       stage=settings.OrderStage.CREATING)
+    active_orders_raw = (current_user.orders.filter_by(stage=settings.OrderStage.CREATING)
+                         .filter(~Order.processed, ~Order.to_delete)
                          .with_entities(Order.id, Order.order_idn, Order.category, Order.company_type,
                                         Order.company_name, Order.company_idn, Order.to_delete,
                                         Order.created_at, Order.stage, Order.closed_at)
@@ -466,20 +466,3 @@ def h_change_user_password_na() -> Response:
 
     flash(message=f"Пользователь {user_info.login_name} {settings.Messages.CHANGE_PASSWORD_SUCCESS}")
     return redirect(url_for('user_cp.user_control_panel', u_id=user_info.id))
-
-
-def helper_get_summ_marks(u_id: int) -> int:
-
-    orders = Order.query.with_entities(Order.category, Order.id).filter(Order.stage > 0,
-                                                                        Order.payment == False,
-                                                                        Order.user_id == u_id).all()
-
-    return sum(tuple(map(lambda x: get_rows_marks(o_id=x.id, category=x.category)[1], orders)))
-
-
-def h_order_write_off_check(o_id: int, service_flag: bool = True) -> bool:
-    balance = current_user.balance
-    prices = current_user.prices
-    summary_marks = helper_get_summ_marks(o_id)
-    ...
-

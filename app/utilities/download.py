@@ -331,10 +331,10 @@ def orders_list_get(model: db.Model) -> Optional[Union[tuple, list]]:
 
 def get_download_info(o_id, user: User, order_num: int, batching: bool = True,
                       clothes_divider_flag: bool = False) -> Union[Response, tuple]:
-    order = Order.query.filter_by(id=o_id).first() if not clothes_divider_flag \
+    order = Order.query.filter(Order.id == o_id, ~Order.to_delete).first() if not clothes_divider_flag \
         else Order.query.with_entities(Order.id, Order.category, Order.company_idn, Order.company_type,
                                        Order.company_name, Order.edo_type, Order.edo_type, Order.edo_id,
-                                       Order.mark_type).filter_by(id=o_id).first()
+                                       Order.mark_type).filter(Order.id == o_id, ~Order.to_delete).first()
     if not order:
         flash(message=settings.Messages.EMPTY_ORDER, category='error')
         return redirect(url_for('main.enter'))

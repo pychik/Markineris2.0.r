@@ -26,7 +26,7 @@ def h_shoe_sba(o_id: int) -> Response:
 def h_category_sba(u_id: int, o_id: int, model_c: db.Model, category: str) -> Response:
     numrows = 0
     order_list = ''
-    if Order.query.with_entities(Order.id).filter(Order.user_id == u_id, Order.id == o_id).first():
+    if Order.query.with_entities(Order.id).filter(Order.user_id == u_id, Order.id == o_id, ~Order.to_delete).first():
         search_query = request.form.get('query', '').replace("--", "")
         if search_query:
             order_list = model_c.query.filter(model_c.order_id == o_id, model_c.article.ilike(f"%{search_query}%"))\
@@ -41,7 +41,7 @@ def h_category_sba(u_id: int, o_id: int, model_c: db.Model, category: str) -> Re
 def h_category_trademark_sba(u_id: int, o_id: int, model_c: db.Model, category: str) -> Response:
     numrows = 0
     order_list = ''
-    if Order.query.with_entities(Order.id).filter(Order.user_id == u_id, Order.id == o_id).first():
+    if Order.query.with_entities(Order.id).filter(Order.user_id == u_id, Order.id == o_id, ~Order.to_delete).first():
         search_query = request.form.get('query', '').replace("--", "")
         if search_query:
             order_list = model_c.query.filter(model_c.order_id == o_id, model_c.trademark.ilike(f"%{search_query}%"))\

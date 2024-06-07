@@ -125,7 +125,7 @@ def h_send_table_order() -> Response:
 
 def h_change_order_org_param(o_id: int) -> Union[str, Response]:
 
-    order = Order.query.filter_by(id=o_id, processed=False).first()
+    order = Order.query.filter_by(id=o_id, processed=False).filter(~Order.to_delete).first()
     if not order:
         flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
         return redirect(url_for('main.enter'))
@@ -148,7 +148,7 @@ def h_change_order_org_param(o_id: int) -> Union[str, Response]:
 
 
 def h_change_order_org_param_form(o_id: int) -> Response:
-    order = Order.query.filter_by(id=o_id, processed=False).first()
+    order = Order.query.filter_by(id=o_id, processed=False).filter(~Order.to_delete).first()
     if not order:
         flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
         return redirect(url_for('main.enter'))
@@ -184,7 +184,7 @@ def h_cubaa():
                                                                   settings.Messages.STRANGE_REQUESTS,
                                                                   settings.Messages.STRANGE_REQUESTS)
 
-    order_check = Order.query.with_entities(Order.id).filter(Order.user_id == current_user.id).first()
+    order_check = Order.query.with_entities(Order.id).filter(Order.user_id == current_user.id, ~Order.to_delete).first()
     if not order_check:
         return jsonify(dict(status_order=status_order, answer_orders=f"{answer_order}",
                             status_balance=status_balance, answer_balance=answer_balance))

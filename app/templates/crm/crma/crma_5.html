@@ -3,7 +3,7 @@
           <h3><span class="badge badge-secondary">Заказ готов</span></h3>
           {% for n in m_processed_orders %}
 
-              <div class="card mt-3 mb-3 custom-rounded border-secondary">
+              <div class="card mt-3 mb-3 custom-rounded border-secondary{% if n.to_delete %} div-disabled {%endif%}">
                 <div class="card-header bg-secondary text-center text-white">
                     <div class="row mb-1">
                         <div class="col-8">

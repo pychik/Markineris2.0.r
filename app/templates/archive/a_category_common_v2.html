@@ -98,7 +98,7 @@
                                             </form>
 
                                             <form method="post" class="btn-table me-2" id="delete_archive_order_{{ s.id }}"
-                                                      title="Удалить позицию заказа" action="{{url_for('orders_archive.delete_order', o_id=s.id, stage=s.stage, category=category)}}">
+                                                      title="Удалить заказ" action="{{url_for('orders_archive.delete_order', o_id=s.id, stage=s.stage, category=category)}}">
                                                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                                   <span style="cursor:pointer;"
                                                      onclick="javascript:delete_archive_order({{ s.id }}, '{{ s.order_idn }}');">

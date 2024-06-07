@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta
 
 import sqlalchemy.exc
-from sqlalchemy import delete, select, and_, text
+from sqlalchemy import delete, select, and_, or_, text
 
 from config import settings
 from logger import logger
@@ -28,7 +28,8 @@ def delete_order_files_from_server() -> dict[str, int]:
     with db.session.begin():
         threshold_time = datetime.now() - timedelta(days=settings.OrderStage.DEFAULT_ORDER_FILE_TO_REMOVE)
 
-        stmt = select(OrderFile).join(Order).where(and_(Order.processed, Order.closed_at < threshold_time))
+        stmt = select(OrderFile).join(Order).where(or_(Order.to_delete == True,
+                                                       and_(Order.processed, Order.closed_at < threshold_time)))
         order_files = db.session.scalars(stmt).fetchall()
 
         links = [order_file.file_link for order_file in order_files]

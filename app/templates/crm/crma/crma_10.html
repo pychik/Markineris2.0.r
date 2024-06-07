@@ -3,7 +3,7 @@
           <h3><span class="badge badge-success">Обработка заказа завершена</span></h3>
           {% for n in crm_processed_orders %}
 
-              <div class="card mt-3 mb-3 custom-rounded border-secondary">
+              <div class="card mt-3 mb-3 custom-rounded border-secondary{% if n.to_delete %} div-disabled {%endif%}">
                 <div class="card-header bg-success text-white text-center">
                     <h5 class="card-text">
                         <a data-toggle="collapse"
