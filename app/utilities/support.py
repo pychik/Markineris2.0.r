@@ -237,7 +237,7 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
     #     return o_id, None, None
 
     if o_id:
-        order = user.orders.filter_by(category=category, processed=False, id=o_id).first()
+        order = user.orders.filter_by(category=category, processed=False, id=o_id).filter(~Order.to_delete).first()
         if not check_order_pos(category=category, order=order):
             return o_id, None, None
         if p_id:
@@ -307,7 +307,7 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
         order = user.orders.filter_by(category=settings.Parfum.CATEGORY, processed=False, id=o_id).first()
 
         if not check_order_pos(category=settings.Parfum.CATEGORY, order=order):
-            return redirect(url_for('parfum.index', o_id=order.id))
+            return (None, )*3
 
         if p_id:
             process_delete_order_pos(o_id=o_id, m_id=p_id, category=settings.Parfum.CATEGORY, edit=True)
@@ -630,7 +630,7 @@ def process_order_start(user: User, category: str, o_id: int, order_idn: str, or
             return any(tnveds)
 
     order = user.orders.filter(Order.category == category, Order.id == o_id, Order.stage == settings.OrderStage.CREATING,
-                               Order.processed == False).first()
+                               ~Order.processed,  ~Order.to_delete).first()
 
     if order:
         # row_count, mark_count = get_rows_marks(o_id=o_id, category=category)
@@ -701,7 +701,7 @@ def common_process_delete_order(o_id: int, stage: int,) -> Optional[str]:
 
     order = current_user.orders.with_entities(Order.id, Order.category, Order.company_type,
                                               Order.company_name, Order.created_at, Order.stage)\
-                        .filter(Order.id == o_id, Order.stage == stage).first()
+                        .filter(Order.id == o_id, Order.stage == stage, ~Order.to_delete).first()
     if order:
         if order.stage not in (settings.OrderStage.CREATING, settings.OrderStage.NEW,
                                settings.OrderStage.CANCELLED, settings.OrderStage.TELEGRAM_PROCESSED, settings.OrderStage.CRM_PROCESSED):
@@ -710,7 +710,9 @@ def common_process_delete_order(o_id: int, stage: int,) -> Optional[str]:
 
         try:
 
-            db.session.execute(text(f"DELETE FROM public.orders AS o WHERE o.id={order.id}"))
+            # db.session.execute(text(f"DELETE FROM public.orders AS o WHERE o.id={order.id}"))
+            db.session.execute(
+                text(f"UPDATE public.orders set to_delete = True  WHERE id=:o_id").bindparams(o_id=order.id))
             db.session.commit()
 
         except Exception as e:
@@ -735,7 +737,7 @@ def process_delete_order_pos(category: str, o_id: int, m_id: int, edit: bool = F
                              async_type: int = None) -> Optional[str]:
     order = current_user.orders.with_entities(Order.id, Order.category, Order.company_type,
                                               Order.company_name, Order.created_at) \
-        .filter(Order.id == o_id, Order.stage == settings.OrderStage.CREATING).first()
+        .filter(Order.id == o_id, Order.stage == settings.OrderStage.CREATING, ~Order.to_delete).first()
     if not order:
         flash(message=settings.Messages.CLEAN_EMPTY, category='error')
         return settings.Messages.CLEAN_EMPTY
@@ -972,14 +974,14 @@ def helper_paginate_data(data: list, key_page: str = 'page', href: str = None,
 def helper_get_order(user: User, category: str, o_id: int, stage: int) -> Optional[Order]:
 
     if not o_id:
-        order = user.orders.filter_by(category=category, stage=stage, to_delete=False).\
-            with_entities(Order.company_idn,
-            Order.company_type,
-            Order.company_name,
-            Order.edo_type, Order.edo_id,
-            Order.mark_type, Order.stage).first()
+        order = user.orders.filter_by(category=category, stage=stage).filter(~Order.to_delete)\
+            .with_entities(Order.company_idn,
+                           Order.company_type,
+                           Order.company_name,
+                           Order.edo_type, Order.edo_id,
+                           Order.mark_type, Order.stage).first()
     else:
-        order = user.orders.filter_by(category=category, id=o_id, stage=stage, to_delete=False)\
+        order = user.orders.filter_by(category=category, id=o_id, stage=stage).filter(~Order.to_delete)\
             .with_entities(Order.company_idn, Order.company_type, Order.company_name, Order.edo_type, Order.edo_id,
                            Order.mark_type, Order.stage).first()
 
@@ -989,21 +991,22 @@ def helper_get_order(user: User, category: str, o_id: int, stage: int) -> Option
 def get_category_p_orders(user: User, category: str, processed: bool) -> list:
     match processed:
         case True:
-            return user.orders.filter_by(category=category, processed=True, to_delete=False). \
-               with_entities(Order.id, Order.order_idn, Order.category, Order.company_type,
-                             Order.company_name, Order.company_idn, Order.to_delete,
-                             Order.created_at, Order.stage, Order.closed_at).order_by(desc(Order.created_at)).all()
+            return (user.orders.filter_by(category=category, processed=True).filter(~Order.to_delete)
+                        .with_entities(Order.id, Order.order_idn, Order.category, Order.company_type,
+                                       Order.company_name, Order.company_idn, Order.to_delete,
+                                       Order.created_at, Order.stage, Order.closed_at)
+                        .order_by(desc(Order.created_at)).all())
         case False:
-            return user.orders.filter_by(category=category, processed=False, to_delete=False,
-                                         stage=settings.OrderStage.CREATING). \
-                        with_entities(Order.id, Order.company_type,
-                                      Order.company_name, Order.to_delete, Order.created_at).\
-                        order_by(desc(Order.created_at)).all()
+            return user.orders.filter_by(category=category, processed=False,
+                                         stage=settings.OrderStage.CREATING).filter(~Order.to_delete) \
+                        .with_entities(Order.id, Order.company_type,
+                                       Order.company_name, Order.to_delete, Order.created_at) \
+                        .order_by(desc(Order.created_at)).all()
 
 
 def get_category_archive_all(user: User) -> list:
 
-    return user.orders.filter(Order.to_delete == False). \
+    return user.orders.filter(~Order.to_delete). \
                with_entities(Order.id, Order.stage, Order.order_idn, Order.category, Order.company_type,
                              Order.company_name, Order.company_idn, Order.to_delete, Order.processed,
                              Order.created_at, Order.stage, Order.closed_at).order_by(desc(Order.created_at)).all()
@@ -1072,7 +1075,7 @@ def helper_process_category_order(user: User, category: str, o_id: int, order_co
         return redirect(url_for(f'{_category_name}.index'))
 
     try:
-        # commit in the end of method
+
         order_num, order_idn, is_crm, is_at2 = process_admin_order_num(user=user)
 
         if not order_idn:
@@ -1546,7 +1549,7 @@ def helper_get_orders_marks(u_id: int, o_id: int = None, wo_flag: bool = False) 
                           LEFT JOIN public.linen l ON o.id = l.order_id
                           LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                           LEFT JOIN public.parfum p ON o.id = p.order_id 
-                      WHERE o.user_id = {u_id} AND o.processed != True AND o.payment != True AND {add_stmt}
+                      WHERE o.user_id = {u_id} AND o.processed != True AND o.payment != True AND o.to_delete != True AND {add_stmt}
                       GROUP BY o.order_idn  
                       ORDER BY o.order_idn DESC 
                    """
@@ -1811,7 +1814,7 @@ def helper_perform_ut_wo_test(users: list[User]):
     total_amount = 0
     try:
         for u in users:
-            pending_orders = Order.query.filter(Order.payment != True, Order.processed != True,
+            pending_orders = Order.query.filter(~Order.payment, ~Order.processed,~Order.to_delete,
                                                 Order.stage > settings.OrderStage.CREATING,
                                                 Order.stage != settings.OrderStage.CANCELLED,
                                                 Order.user_id == u.id).all()

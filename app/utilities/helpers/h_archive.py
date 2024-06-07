@@ -30,7 +30,7 @@ def h_category(category: str = settings.Shoes.CATEGORY, upload_flag: int = None)
     user = current_user
     admin_id = user.admin_parent_id
     order_notification, admin_name, crm = helper_get_order_notification(admin_id=admin_id if admin_id else user.id)
-    category_orders = user.orders.filter(Order.to_delete == False, Order.category == category,
+    category_orders = user.orders.filter(~Order.to_delete, Order.category == category,
                                          Order.stage > 0).with_entities(Order.id, Order.stage, Order.order_idn,
                                                                         Order.category, Order.company_type,
                              Order.company_name, Order.company_idn, Order.to_delete, Order.processed, Order.payment,
@@ -61,9 +61,9 @@ def h_copy_order(o_id: int, category: str) -> Response:
         return redirect(url_for('orders_archive.index'))
     user = current_user
     u_id = user.id
-    orders_id = [o.id for o in user.orders.with_entities(Order.id).all()]
+    orders_id = [o.id for o in user.orders.with_entities(Order.id).filter(~Order.to_delete).all()]
 
-    order = Order.query.filter_by(id=o_id, category=category).first()
+    order = Order.query.filter_by(id=o_id, category=category).filter(~Order.to_delete).first()
 
     if order.id not in orders_id:
         flash(message=f"{settings.Messages.NO_SUCH_ORDER_REMOVE}", category='error')
@@ -91,7 +91,8 @@ def h_copy_order(o_id: int, category: str) -> Response:
 def h_download_oa(o_id: int, category: str = settings.Shoes.CATEGORY) -> Response:
     user = current_user
 
-    order = Order.query.with_entities(Order.id, Order.user_id).filter_by(id=o_id, category=category, user_id=user.id).first()
+    order = (Order.query.with_entities(Order.id, Order.user_id).filter_by(id=o_id, category=category, user_id=user.id)
+             .filter(~Order.to_delete).first())
 
     if not order:
         flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
@@ -120,8 +121,9 @@ def h_download_oa(o_id: int, category: str = settings.Shoes.CATEGORY) -> Respons
 def h_download_opdf(o_id: int, category: str = settings.Shoes.CATEGORY) -> Response:
     user = current_user
 
-    order = Order.query.with_entities(Order.id, Order.user_id, Order.order_idn).filter_by(id=o_id, category=category,
-                                                                                          user_id=user.id).first()
+    order = (Order.query.with_entities(Order.id, Order.user_id, Order.order_idn).filter_by(id=o_id, category=category,
+                                                                                           user_id=user.id)
+             .filter(~Order.to_delete).first())
     response = jsonify()
     response.headers['Content-Type'] = 'text/plain; charset=utf-8'
     if not order:
@@ -165,7 +167,8 @@ def h_download_opdf(o_id: int, category: str = settings.Shoes.CATEGORY) -> Respo
 def h_download_opdf_common(o_id: int, category: str = settings.Shoes.CATEGORY) -> Response:
     user = current_user
 
-    order = Order.query.with_entities(Order.id, Order.user_id).filter_by(id=o_id, category=category, user_id=user.id).first()
+    order = (Order.query.with_entities(Order.id, Order.user_id).filter_by(id=o_id, category=category, user_id=user.id)
+             .filter(~Order.to_delete).first())
 
     if not order:
         flash(message=settings.Messages.STRANGE_REQUESTS, category='error')

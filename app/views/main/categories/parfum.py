@@ -2,7 +2,7 @@ from flask import Blueprint, flash, redirect, url_for, request
 from flask_login import current_user, login_required
 
 from config import settings
-from models import Parfum
+from models import Order, Parfum
 from utilities.download import orders_download_common
 from utilities.helpers.h_categories import h_category_trademark_sba
 from utilities.support import check_order_pos, common_process_delete_order, helper_delete_order_pos, user_activated, \
@@ -67,7 +67,8 @@ def clean_orders(o_id: int):
 @user_activated
 def download_order(o_id: int):
     user = current_user
-    order = user.orders.filter_by(category=settings.Parfum.CATEGORY, processed=False, id=o_id).first()
+    order = (user.orders.filter_by(category=settings.Parfum.CATEGORY, processed=False, id=o_id)
+             .filter(~Order.to_delete).first())
     if not order:
         flash(message=settings.Messages.EMPTY_ORDER, category='error')
         return redirect(url_for('parfum.index'))
