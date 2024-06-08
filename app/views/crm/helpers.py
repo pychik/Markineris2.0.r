@@ -1433,7 +1433,7 @@ def helpers_crm_mpo_so_task():
                      UPDATE public.orders 
                      SET stage={settings.OrderStage.SENT},
                          sent_at='{sent_at}'
-                     WHERE stage={settings.OrderStage.MANAGER_PROCESSED} AND o.to_delete != True; 
+                     WHERE stage={settings.OrderStage.MANAGER_PROCESSED} AND to_delete != True; 
                   """)
     try:
         db.session.execute(stmt)
