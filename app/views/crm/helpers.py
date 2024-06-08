@@ -1435,6 +1435,7 @@ def helpers_crm_mpo_so_task():
                          sent_at='{sent_at}'
                      WHERE stage={settings.OrderStage.MANAGER_PROCESSED} AND to_delete != True; 
                   """)
+
     try:
         db.session.execute(stmt)
         db.session.commit()
