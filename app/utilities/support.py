@@ -1872,7 +1872,7 @@ def helper_get_admin_info(u_id: int) -> tuple[Optional[int], Optional[int], Opti
             # if user is and agent or superuser
             admin_info = db.session.execute(text(
                 f"SELECT u.agent_fee as agent_fee, u.is_at2 as is_at2 FROM public.users u WHERE u.id={u_id};")).fetchone()
-            return u_id, admin_info.agent_fee, admin_info.is_at2
+            return u_id, 0, admin_info.is_at2  # we set agent_fee 0 for agent orders
         else:
             return None, None, None
 
@@ -2004,7 +2004,7 @@ def helper_perform_ut_wo(user_ids: list[tuple[int]]) -> tuple[int, int]:
 
             balance_user_id = admin_id if is_at2 else u_id
             update_user_stmt = f"""UPDATE public.users set balance=balance-{total_order_price} WHERE id = {balance_user_id};"""
-            if not is_at2:
+            if not is_at2 and agent_fee != 0:
                 agent_fee_part = m_floor(total_order_price * agent_fee / 100)
                 update_agent_balance_stmt = f"""UPDATE public.users set balance=balance+{agent_fee_part} WHERE id = {admin_id};"""
             else:

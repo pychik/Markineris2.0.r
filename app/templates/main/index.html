@@ -150,7 +150,7 @@
                         </div>
                         <p class="text-dark-50 fs-20">Комплексное решение по вопросам маркировки под ключ для всех товаров по всему СНГ</p>
                         <div class="home-btn hstack gap-2 flex-column d-sm-block">
-                            <a class="btn btn-dark me-1" href="/login">Подключиться</a>
+                            <a class="btn btn-dark me-1" href="{{url_for('auth.sign_up')}}">Подключиться</a>
                         </div>
                     </div><!-- end col-->
 {#                    <div class="col-lg-5 text-center">#}
@@ -374,7 +374,7 @@
 
                     </div>
                     <div class="col-lg-10 text-center">
-                        <a class="btn btn-dark " href="/login">Подключиться</a>
+                        <a class="btn btn-dark " href="{{url_for('auth.sign_up')}}">Подключиться</a>
                     </div>
 {#                    <div class="col-lg-10 search-whatsapp">#}
 {#                        <div class="d-flex flex-column flex-md-row justify-content-md-end align-items-start align-items-md-start ">#}
