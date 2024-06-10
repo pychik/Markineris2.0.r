@@ -97,12 +97,12 @@
                                 <div class="text-center">
                                     <h4><span class="badge badge-warning" id="time_counter_po{{ n.id }}"
                                               title="Время с момента обнаружения проблемы">
-
-                                            <span id="minutes{{ n.id }}"></span>&nbsp;:&nbsp;<span id="seconds{{ n.id }}"></span>
-
-                                            <script>
-                                                timing_management({{ (cur_time - n.cp_created).total_seconds() | int }}, "time_counter_po{{ n.id }}", "minutes{{ n.id }}", "seconds{{ n.id }}" )
-                                            </script>
+                                              <span id="minutes{{ n.id }}"></span>{{ '%02d' | format((cur_time - n.cp_created).total_seconds() // 60) }}&nbsp;минут
+{#                                            <span id="minutes{{ n.id }}"></span>&nbsp;:&nbsp;<span id="seconds{{ n.id }}"></span>#}
+{##}
+{#                                            <script>#}
+{#                                                timing_management({{ (cur_time - n.cp_created).total_seconds() | int }}, "time_counter_po{{ n.id }}", "minutes{{ n.id }}", "seconds{{ n.id }}" )#}
+{#                                            </script>#}
                                         </span>
                                     </h4>
                                 </div>
