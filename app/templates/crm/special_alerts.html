@@ -14,14 +14,14 @@
               <a data-toggle="collapse"
                  href="#collapseOrderComment_1_{{ loop.index }}" role="button"
                  aria-expanded="false">
-                  <span title="Комментарий пользователя: {{n.user_comment}}" style="font-size:24px; font-weight: bold" class="text-warning">К
+                  <span title="Комментарий пользователя: {{n.user_comment}}" style="font-size:24px; font-weight: bold" class="text-warning blink_me">К
                   </span>
               </a>
           {% endif %}
       </h6>
       {% if n.user_comment %}
           <div class="collapse text-center p-1" id="collapseOrderComment_1_{{ loop.index }}">
-              <textarea class="form-control bg-white" rows="3" readonly>{{n.user_comment}}</textarea>
+              <textarea class="form-control" style="background-color: #f6f6a1" rows="3" readonly>{{n.user_comment}}</textarea>
           </div>
       {% endif %}
  </div>
