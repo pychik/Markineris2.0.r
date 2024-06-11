@@ -1385,10 +1385,32 @@ def helper_refill_transaction(amount: int, status: int, promo_info: str,
         return False
 
 
+def helper_get_agent_wo_pending_transactions(u_id: int) -> bool | int:
+    query = text("""SELECT SUM(ut.amount) as pending_amount 
+                    FROM public.user_transactions ut
+                    WHERE ut.user_id = :u_id AND ut.type=False AND ut.status=1;""").bindparams(u_id=u_id)
+    try:
+        res = db.session.execute(query).fetchone().pending_amount
+    except Exception as e:
+        logger.error(f"Во время проверки всех транзакций на списание агента: {e}")
+        return False
+    return res if res else 0
+
+
 def helper_agent_wo_transaction(amount: int, status: int, user_id: int, bill_path: str,
                                 wo_account_info: str) -> tuple[bool, str]:
     if not (amount and wo_account_info):
         return False, 'Incorrect input: amount-{amount}, wo_account_info-{wo_account_info}'
+
+    pending_amount = helper_get_agent_wo_pending_transactions(u_id=user_id)
+    if pending_amount is False:
+        return False, settings.Messages.WO_TRANSACTION_PENDING_AMOUNT_ERROR
+
+    balance = helper_get_user_balance(u_id=user_id)[0]
+    summary_request = amount + pending_amount
+    if balance < summary_request:
+        return False, settings.Messages.WO_TRANSACTION_BALANCE_ERROR.format(request_summ=summary_request,
+                                                                            balance=balance)
 
     if helper_get_user_balance(u_id=user_id)[0] < amount:
         return False, settings.Messages.WO_TRANSACTION_BALANCE_ERROR

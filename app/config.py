@@ -765,8 +765,9 @@ class Settings(BaseSettings):
         CHANGE_SA_ACTIVITY_ERROR: str = "Во время изменения статуса активности счета сервиса произошла ошибка!"
         WO_TRANSACTION_USER_ERROR: str = "Во время формирования транзакции списания произошла ошибка. Нет такого пользователя"
         WO_TRANSACTION_BALANCE_ERROR_1: str = "Во время формирования транзакции списания произошла ошибка."
-        WO_TRANSACTION_BALANCE_ERROR_2: str = " На балансе меньше средств чем указано в транзакции "
+        WO_TRANSACTION_BALANCE_ERROR_2: str = " На балансе меньше средств чем указано в в сумме всех транзакций на списание.<br> Суммарный запрос {request_summ} р > Баланс {balance} р "
         WO_TRANSACTION_BALANCE_ERROR: str = WO_TRANSACTION_BALANCE_ERROR_1 + WO_TRANSACTION_BALANCE_ERROR_2
+        WO_TRANSACTION_PENDING_AMOUNT_ERROR: str = "Во время проверки все транзакций на списание произошло исключение. Обратитесь к администратору!"
         USER_PRICE_PLUG: str = "Успешно обновлен ценовой пакет для пользователя "
         USER_PRICE_TYPE_ERROR: str = "Во время обновления ценового пакета произошла ошибка. Обратитесь к администратору"
         USER_PRICE_TYPE_ADMIN_ERROR: str = "Во время обновления ценового пакета произошла ошибка. Этот пользователь не может корректировать значения"
