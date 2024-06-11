@@ -1,0 +1,4 @@
+REFILL_BALANCE_COMMAND_TEXT = "Пополнить баланс"
+CANCEL_COMMAND_TEXT = "Отмена"
+HELP_COMMAND_TEXT = "Помощь"
+START_COMMAND_TEXT = "Старт"

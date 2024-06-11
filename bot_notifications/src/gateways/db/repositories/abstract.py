@@ -26,3 +26,6 @@ class AbstractUserRepository(ABC):
 
     async def update(self, user_id: int, data: dict[str, Any]) -> TgUser:
         """Update telegram user."""
+
+    async def delete_user(self, user_id: int,) -> None:
+        """Delete telegram user."""
