@@ -120,6 +120,9 @@ class Settings(BaseSettings):
     # MARKETPLACE_TYPES: tuple = ('wildberries', 'ozon')
     SQL_DATABASE_URL: str
     REDIS_CONN: str = os.getenv('REDIS_URL', 'redis://localhost:6379')
+    REDIS_HOST: str = os.getenv('REDIS_HOST', 'localhost')
+    REDIS_PORT: int = os.getenv('REDIS_PORT', 6379)
+    REDIS_TG_NOTIFY_DB_NUMBER: int = os.getenv('REDIS_BOT_STORAGE_DB', 5)
     QUEUES: list = ['default']
     REPORT_EXCEL_FILENAME: str = f"{CUR_PATH}/"
     SHEET_NAME_2: str = "Доп. информация"
