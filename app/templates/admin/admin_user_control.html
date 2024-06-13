@@ -19,7 +19,7 @@
     <div class="d-flex justify-content-center my-2">
       <a href="{{ url_for('admin_control.bck_ar_orders', u_id=admin_info.id) }}"
          class="col-md-5 text-center btn btn-sm btn-outline-secondary btn-outline">
-        Статсистика по заказам клиентов
+        Статистика по заказам клиентов
       </a>
     </div>
     {% if current_user.role in ['superuser', 'm2r_admin'] or (current_user.role == 'admin' and current_user.is_at2)%}
