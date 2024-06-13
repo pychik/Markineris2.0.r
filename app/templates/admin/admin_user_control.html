@@ -14,16 +14,24 @@
             </form>
 
         </div>
-        {% if current_user.role in ['superuser', 'm2r_admin'] or (current_user.role == 'admin' and current_user.is_at2)%}
+    </div>
+    <div class="col-md-2"></div>
+    <div class="d-flex justify-content-center my-2">
+      <a href="{{ url_for('admin_control.bck_ar_orders', u_id=admin_info.id) }}"
+         class="col-md-5 text-center btn btn-sm btn-outline-secondary btn-outline">
+        Статсистика по заказам клиентов
+      </a>
+    </div>
+    {% if current_user.role in ['superuser', 'm2r_admin'] or (current_user.role == 'admin' and current_user.is_at2)%}
         <div class="d-flex justify-content-center">
           <a href="{{ url_for('admin_control.bck_agent_control_reanimate', u_id=admin_info.id) }}"
              class="col-md-5 text-center btn btn-sm btn-outline-warning btn-outline">
             Реанимация клиентов
           </a>
         </div>
-        {% endif %}
-    </div>
-    <div class="col-md-2"></div>
+    {% endif %}
+
+
 </div>
 
 <div class="col-12 container-fluid text-center mt-5">
@@ -585,7 +593,7 @@
 </div>
 
 <script src="{{url_for('static',filename='main_v2/js/admin/admin_common_v2.js')}}"></script>
-<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc_v3.js')}}"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc_v4.js')}}"></script>
 <script src="{{url_for('static',filename='main_v2/js/admin/prices_block.js')}}"></script>
 <script>
     const prices_array = [{% for p in all_prices %}[{{ p.id }},'{{ p.price_code }}'],{% endfor %}];

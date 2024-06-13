@@ -1,0 +1,69 @@
+{% extends "main/base_v2.html" %}
+
+{% block fc_panel %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/service/jquery-ui.min.css')}}" integrity="sha512-ELV+xyi8IhEApPS/pSj66+Jiw+sOT1Mqkzlh8ExXihe4zfqbWkxPRi8wptXIO9g73FSlhmquFlUOuMSoXz5IRw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script src="{{ url_for('static', filename='main_v2/js/assets/jquery-ui.min.js')}}" integrity="sha512-57oZ/vW8ANMjR/KQ6Be9v/+/h6bq9/l3f0Oc7vn6qMqyhvPd1cvKBRWWpzu0QoneImqr2SkmO4MSqU+RpHom3Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="{{ url_for('static', filename='js/datepicker-ru.js') }}"></script>
+
+<div class="container">
+    {% if current_user.role != 'markineris_admin' %}
+        <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
+            <div class="breadcrumbs">
+                <a href="{{url_for('admin_control.admin', u_id=u_id)}}">Управление пользователями </a>
+                /
+                <span>Отчеты по заказам</span>
+
+            </div>
+        </div>
+
+    {% endif %}
+
+
+
+    <div class="row">
+
+        <div class="col-md-6 mb-5">
+            {% include 'admin/ar_orders/ar_filters.html' %}
+        </div>
+        <div class="col-md-6" id="ar_orders_report_block">
+
+                {% include 'admin/ar_orders/ar_info.html' %}
+
+        </div>
+    </div>
+
+
+</div>
+
+
+
+{% include 'admin/transactions/su_transaction_modal.html' %}
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc_v4.js')}}"></script>
+<script>
+const acTypes = {
+        обувь: {{ ac_types.обувь | tojson | safe }},
+        белье: {{ ac_types.белье | tojson | safe }},
+        парфюм: {{ ac_types.парфюм | tojson | safe }},
+        одежда: {{ ac_types.одежда | tojson | safe }},
+    };
+
+    function updateCategoryPosType() {
+        const category = document.getElementById('category').value;
+        const categoryPosType = document.getElementById('category_pos_type');
+
+        // Clear existing options
+        categoryPosType.innerHTML = '<option selected value="">Выберите из списка..</option>';
+
+        // Get the new options based on the selected category
+        const options = acTypes[category] || [];
+
+        // Populate the select box with new options
+        options.forEach(option => {
+            const opt = document.createElement('option');
+            opt.value = option;
+            opt.text = option.toUpperCase();
+            categoryPosType.appendChild(opt);
+        });
+    }
+</script>
+{% endblock %}

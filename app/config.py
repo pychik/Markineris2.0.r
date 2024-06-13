@@ -178,6 +178,8 @@ class Settings(BaseSettings):
                             'BACKGROUND_COLOR': '#7c7c7c',  # RGB(A?) background color (default black)
                             'TEXT_COLOR': (255, 255, 255)
                             }
+    AR_ORDERS_DAYS_DEFAULT: int = 7
+    ALL_CATEGORY_TYPES: str = 'ALL_CATEGORY_TYPES'
 
     class OrderStage:
         @staticmethod

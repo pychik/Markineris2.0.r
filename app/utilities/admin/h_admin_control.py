@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import flash, render_template, redirect, send_file, url_for, request, Response, jsonify
 from flask_login import current_user
@@ -14,6 +14,7 @@ from models import db, Order, OrderStat, PartnerCode, RestoreLink, Telegram, Tel
 from utilities.download import orders_process_send_order
 from utilities.support import url_encrypt, helper_check_form, helper_update_order_note, \
       helper_paginate_data, helper_strange_response, sql_count, helper_get_filter_users
+from utilities.admin.schemas import AROrdersSchema, ar_categories_types
 from utilities.admin.helpers import (process_admin_report, helper_get_clients_os, helper_get_orders_stats,
                                      helper_prev_day_orders_marks, helper_get_users_reanimate)
 
@@ -1180,6 +1181,78 @@ def h_bck_agent_reanimate(u_id: int):
     converted_date_type = settings.Users.FILTER_DATE_DICT.get(date_type)
     return jsonify({'htmlresponse': render_template(f'admin/ra/user_reanimate_response.html', **locals())}) \
         if bck else render_template('admin/ra/main_reanimate.html', **locals())
+
+
+def helper_get_ar_orders_stat(ar_schema: AROrdersSchema) -> tuple:
+    """
+    Returns a tuple of orders quantity and marks quantity.
+
+    :param ar_schema: AROrdersSchema instance containing the necessary parameters.
+    :return: A tuple containing the orders count and marks count.
+    """
+    category_type_condition_stmt = "AND coalesce(sh.type, cl.type, l.type, p.type) = '{category_pos_type}' ".format(category_pos_type=ar_schema.category_pos_type) if ar_schema.category_pos_type != settings.ALL_CATEGORY_TYPES else ''
+    category_pos_type_stmt = "max(coalesce(sh.type, cl.type, l.type, p.type))" if ar_schema.category_pos_type != settings.ALL_CATEGORY_TYPES else "\'Все типы\'"
+
+    stmt = text(f"""
+        SELECT max(o.category) as category,
+               {category_pos_type_stmt} as category_pos_type, 
+               COUNT(DISTINCT o.id) as orders_count,
+               COUNT(coalesce(sh.id, cl.id, l.id, p.id)) as pos_count, 
+               SUM(coalesce(sh.box_quantity * sh_qs.quantity, cl.box_quantity * cl_qs.quantity, l.box_quantity * l_qs.quantity, p.quantity)) as marks_count
+        FROM public.orders o
+        LEFT JOIN public.shoes sh ON o.id = sh.order_id
+        LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
+        LEFT JOIN public.clothes cl ON o.id = cl.order_id
+        LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+        LEFT JOIN public.linen l ON o.id = l.order_id
+        LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
+        LEFT JOIN public.parfum p ON o.id = p.order_id 
+        WHERE o.category=:category
+        {category_type_condition_stmt}
+        AND o.sent_at >= :date_from
+        AND o.sent_at <= :date_to
+    """).bindparams(category=ar_schema.category,
+                    date_from=ar_schema.date_from,
+                    date_to=ar_schema.date_to + timedelta(days=1))
+
+    return db.session.execute(stmt).fetchone()
+
+
+def h_bck_ar_orders(u_id: int):
+    bck = request.args.get('bck', 0, type=int)
+    status = 0
+    message = ''
+    ac_types = ar_categories_types
+
+    try:
+        if current_user.role not in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER] and current_user.id != u_id:
+            return '', 400
+        date_from_str = request.args.get('date_from', '', type=str)
+        date_to_str = request.args.get('date_to', '', type=str)
+        date_from = datetime.strptime(date_from_str, '%d.%m.%Y') \
+            if date_from_str else datetime.now() - timedelta(days=settings.AR_ORDERS_DAYS_DEFAULT)
+        date_to = datetime.strptime(date_to_str, '%d.%m.%Y') if date_to_str else datetime.now()
+
+        data = {
+            'date_from': date_from,
+            'date_to': date_to,
+            'category': request.args.get('category', settings.Clothes.CATEGORY),
+            'category_pos_type': request.args.get('category_pos_type', settings.ALL_CATEGORY_TYPES)
+        }
+        ar_schema = AROrdersSchema(**data)
+        res_data = helper_get_ar_orders_stat(ar_schema=ar_schema)
+        status = 1
+    except ValueError as ve:
+        message = 'Некорректные данные в форме фильтр'
+        logger.error(str(ve))
+    except Exception as e:
+        message = 'Возникло исключение'
+        logger.error(str(e))
+
+    return jsonify({'htmlresponse': render_template(f'admin/ar_orders/ar_info.html', **locals()),
+                    'status': status, 'message': message}) \
+        if bck else render_template('admin/ar_orders/ar_main.html', **locals())
+
 
 
 def helper_create_crm_admin(login_name: str, email: str, password: str) -> Response:

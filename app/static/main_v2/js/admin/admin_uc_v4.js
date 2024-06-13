@@ -656,6 +656,39 @@ function bck_get_transactions_excel_report(url, csrf) {
 }
 
 
+
+function bck_get_ar_orders_report(url) {
+    loadingCircle();
+    $.ajax({
+        url: url,
+        method: "GET",
+        data: {
+            category: $('#category').val(),
+            category_pos_type: $('#category_pos_type').val(),
+            date_from: $('#date_from').val(),
+            date_to: $('#date_to').val()
+        },
+        success: function (data) {
+            if (data.status===1) {
+                $('#ar_orders_report_block').html(data);
+                $("#ar_orders_report_block").append(data.htmlresponse);
+            }
+            else{
+                make_message(data.message, 'error')
+            }
+
+        },
+        error: function() {
+            $('#overlay_loading').hide();
+            make_message('Ошиба обработки данных, перезагрузите страницу', 'error');
+        }
+
+    });
+    close_Loading_circle();
+
+}
+
+
 function bck_su_transaction_detalization(url){
     $.ajax({
     url: url,

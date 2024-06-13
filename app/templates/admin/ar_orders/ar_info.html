@@ -1,0 +1,35 @@
+<div class="faded">
+    <div class="container d-flex justify-content-center">
+        {% if res_data and res_data.category %}
+            <div class="card shadow-sm" style="max-width: 600px; width: 100%;">
+                <div class="card-header btn-accent">
+                    <h5 class="mb-0">Информация о товарах</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                    <div class="col-12">
+                        <p class="content"><strong class="text-uppercase text-secondary">От:</strong> <span class="text-dark">{{ date_from.strftime('%d.%m.%Y') }}</span> <strong class="text-uppercase text-secondary">до:</strong> <span class="text-dark">{{ date_to.strftime('%d.%m.%Y') }}</span></p>
+                        <p><strong class="text-uppercase text-secondary">Категория товаров:</strong> <span class="text-secondary" style="font-weight:bold">{{ res_data.category | upper}}</span></p>
+                        <p><strong class="text-uppercase text-secondary">Тип в категории:</strong> <span class="text-secondary" style="font-weight:bold">{{ res_data.category_pos_type | upper}}</span></p>
+                        <p><strong class="text-uppercase text-secondary">Общее количество заказов:</strong> <span class="text-secondary" style="font-weight:bold">{{ res_data.orders_count }}</span></p>
+                        <p><strong class="text-uppercase text-secondary">Общее количество строк:</strong> <span class="text-secondary" style="font-weight:bold">{{ res_data.pos_count }}</span></p>
+                        <p><strong class="text-uppercase text-secondary">Общее количество марок:</strong> <span class="text-secondary" style="font-weight:bold">{{ res_data.marks_count }}</span></p>
+
+                    </div>
+                    <div class="col-12 d-flex align-items-center mt-3">
+                        <div class="w-100">
+                            <!-- Pagination content can be added here -->
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="alert alert-warning mt-3" role="alert">
+                По вашему запросу данных не найдено
+            </div>
+        {% endif %}
+    </div>
+
+
+</div>

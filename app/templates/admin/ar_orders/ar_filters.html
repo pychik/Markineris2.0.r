@@ -1,0 +1,116 @@
+<div class="border border-1 p-3" >
+    <form action="" class="me-3">
+
+        <script>
+
+            $( function() {
+                let max_date = new Date();
+                max_date.setDate(max_date.getDate() - 1);
+            var dateFormat = "dd.mm.yy",
+              from = $( "#date_from" )
+                .datepicker({
+                  defaultDate: "-1w",
+                  changeMonth: true,
+                  changeYear: true,
+                  maxDate: max_date,
+                  numberOfMonths: 3
+                })
+                .on( "change", function() {
+                  to.datepicker( "option", "minDate", getDate( this ) );
+                }),
+              to = $( "#date_to" ).datepicker({
+                defaultDate: new Date(),
+                changeMonth: true,
+                changeYear: true,
+                maxDate: new Date(),
+                numberOfMonths: 3
+              })
+              .on( "change", function() {
+                from.datepicker( "option", "maxDate", getDate( this ) );
+              });
+
+            function getDate( element ) {
+              var date;
+              try {
+                date = $.datepicker.parseDate( dateFormat, element.value );
+              } catch( error ) {
+                date = null;
+              }
+
+              return date;
+            }
+          } );
+
+        </script>
+        <div class="row">
+              <div class="col-md-6">
+                  <label for="date_from"
+                          class="col-form-label text-right">Дата "C"</label>
+                  <input type="text" placeholder="Выберите дату"
+                      class="form-control" id="date_from"
+                      onpaste="return false;" oncopy="return false"
+                      oncut="return false" ondrag="return false"
+                      ondrop="return false" autocomplete="off" name="rd_date"
+                         aria-describedby="date_from_input_btn"
+                      readonly
+                         value="">
+              </div>
+
+              <div class="col-md-6">
+
+                <label for="date_to"
+                          class=" col-form-label text-right">Дата "По"</label>
+                <input type="text" placeholder="Выберите дату"
+                      class="form-control" id="date_to"
+                      onpaste="return false;" oncopy="return false"
+                      oncut="return false" ondrag="return false"
+                      ondrop="return false" autocomplete="off" name="rd_date"
+                         aria-describedby="date_from_input_btn"
+                      readonly
+                         value="{{ date_to.strftime('%d.%m.%Y') }}">
+
+
+              </div>
+        </div>
+        <div>
+            <span class="badge bg-light text-secondary" style="cursor:pointer" onclick="set_current_date_su_filters();"> За сегодня</span>
+        </div>
+        <div class="row mt-3">
+
+            <div class="col-md-6">
+                  <label class="col-form-label" for="category">Категория</label><br>
+                  <select class="form-control search-select" id="category" name="category"
+                          onchange="updateCategoryPosType();" required>
+<!--                    <option disabled selected value="">Выберите из списка..</option>-->
+                    {% for k in ac_types %}
+                      <option value="{{k}}">{{k | upper}}</option>
+                    {% endfor %}
+
+                  </select>
+              </div>
+            <div class="col-md-6" >
+                  <label class="col-form-label" for="category_pos_type">Тип товара выбранной категории</label><br>
+                  <select class="form-control search-select" id="category_pos_type" name="category_pos_type" required>
+                    <option selected value="">Выберите из списка..</option>
+                    {% for k in ac_types.одежда %}
+                      <option value="{{k}}">{{k | upper}}</option>
+                    {% endfor %}
+
+                  </select>
+              </div>
+
+        </div>
+
+
+        <div class="row mt-3">
+            <div class="col-md-6 mb-1" title="Подгрузить транзакции">
+                <a href="javascript:bck_get_ar_orders_report(`{{url_for('admin_control.bck_ar_orders', u_id=u_id)}}?bck=1`)" class="btn btn-accent">Обновить</a>
+            </div>
+        </div>
+
+
+
+
+    </form>
+    <div class="muted mt-3" style="font-size: 10px"> По умолчанию установлен старт даты отчета - 7 дней назад.<br>Если не указать тип товара категории, будут посчитаны все типы указанной категории</div>
+</div>
