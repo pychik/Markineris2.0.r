@@ -1207,7 +1207,7 @@ def helper_get_ar_orders_stat(ar_schema: AROrdersSchema) -> tuple:
         LEFT JOIN public.linen l ON o.id = l.order_id
         LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
         LEFT JOIN public.parfum p ON o.id = p.order_id 
-        WHERE o.category=:category
+        WHERE o.category=:category AND o.payment=True
         {category_type_condition_stmt}
         AND o.sent_at >= :date_from
         AND o.sent_at <= :date_to
