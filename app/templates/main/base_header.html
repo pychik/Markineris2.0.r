@@ -62,7 +62,7 @@
 {#                                                height="24">Видеоинструкции</a></li>#}
 {#                    {% endif %}#}
                     <li><a class="dropdown-item d-flex align-items-center py-2" href="javascript:get_order_book('{{url_for('user_cp.bck_order_book_detail', u_id=current_user.id)}}')"><img
-                                src="{{url_for('static', filename='main_v2/img/icons/cart.svg')}}" class="me-2" width="24" height="24">Заказы на оформлении</a></li>
+                                src="{{url_for('static', filename='main_v2/img/icons/cart.svg')}}" class="me-2" width="24" height="24">Черновик заказов</a></li>
                     <li><a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('user_cp.user_control_panel', u_id=current_user.id)}}"><img
                                 src="{{url_for('static', filename='main_v2/img/icons/key.svg')}}" class="me-2" width="24" height="24">Смена
                             пароля</a></li>
@@ -143,7 +143,7 @@
 {#                {% endif %}#}
                 <li>
                     <a class="dropdown-item d-flex align-items-center py-2" href="javascript:get_order_book('{{url_for('user_cp.bck_order_book_detail', u_id=current_user.id)}}')"><img
-                            src="{{url_for('static', filename='main_v2/img/icons/cart.svg')}}" class="me-2" width="24" height="24">Заказы на оформлении</a>
+                            src="{{url_for('static', filename='main_v2/img/icons/cart.svg')}}" class="me-2" width="24" height="24">Черновик заказов</a>
                 </li>
                 <li>
                     <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('user_cp.user_control_panel', u_id=current_user.id)}}"><img

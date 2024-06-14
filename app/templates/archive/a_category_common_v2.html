@@ -42,8 +42,9 @@
 
                                     <td>
                                         <div class="d-flex">
-                                            {{stages_description[s.stage][1]}}
+                                            <div>{{stages_description[s.stage][1]}}</div>
                                             {% if s.stage in [8, 11]%}
+                                                <h4 class="mx-2 blink-badge">&#8594;</h4>
                                                 <form method="post" class="btn-table me-2" action="{{url_for('orders_archive.download_oa', o_id=s.id, category=s.category)}}">
                                                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                                   <span title="Скачать архив заказа"
