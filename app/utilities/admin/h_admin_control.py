@@ -1183,7 +1183,7 @@ def h_bck_agent_reanimate(u_id: int):
         if bck else render_template('admin/ra/main_reanimate.html', **locals())
 
 
-def helper_get_ar_orders_stat(ar_schema: AROrdersSchema) -> tuple:
+def helper_get_ar_orders_stat(ar_schema: AROrdersSchema, u_id: int) -> tuple:
     """
     Returns a tuple of orders quantity and marks quantity.
 
@@ -1208,12 +1208,13 @@ def helper_get_ar_orders_stat(ar_schema: AROrdersSchema) -> tuple:
         LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
         LEFT JOIN public.parfum p ON o.id = p.order_id 
         WHERE o.category=:category AND o.payment=True
+        AND o.user_id in (SELECT u.id from public.users u where u.admin_parent_id=:u_id OR u.id=:u_id)
         {category_type_condition_stmt}
         AND o.sent_at >= :date_from
         AND o.sent_at <= :date_to
     """).bindparams(category=ar_schema.category,
                     date_from=ar_schema.date_from,
-                    date_to=ar_schema.date_to + timedelta(days=1))
+                    date_to=ar_schema.date_to + timedelta(days=1), u_id=u_id)
 
     return db.session.execute(stmt).fetchone()
 
@@ -1227,6 +1228,9 @@ def h_bck_ar_orders(u_id: int):
     try:
         if current_user.role not in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER] and current_user.id != u_id:
             return '', 400
+
+        if not bck:
+            admin = User.query.with_entities(User.login_name).filter(User.id == u_id).first()
         date_from_str = request.args.get('date_from', '', type=str)
         date_to_str = request.args.get('date_to', '', type=str)
         date_from = datetime.strptime(date_from_str, '%d.%m.%Y') \
@@ -1240,7 +1244,7 @@ def h_bck_ar_orders(u_id: int):
             'category_pos_type': request.args.get('category_pos_type', settings.ALL_CATEGORY_TYPES)
         }
         ar_schema = AROrdersSchema(**data)
-        res_data = helper_get_ar_orders_stat(ar_schema=ar_schema)
+        res_data = helper_get_ar_orders_stat(ar_schema=ar_schema, u_id=u_id)
         status = 1
     except ValueError as ve:
         message = 'Некорректные данные в форме фильтр'

@@ -957,3 +957,23 @@ function admin_uc_isValid(block) {
     let max = parseInt(block.getAttribute('max'), 10);
     return !isNaN(number) && number <= max && number >= min;
 }
+
+
+function updateCategoryPosType() {
+    const category = document.getElementById('category').value;
+    const categoryPosType = document.getElementById('category_pos_type');
+
+    // Clear existing options
+    categoryPosType.innerHTML = '<option selected value="">Выберите из списка..</option>';
+
+    // Get the new options based on the selected category
+    const options = acTypes[category] || [];
+
+    // Populate the select box with new options
+    options.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option;
+        opt.text = option.toUpperCase();
+        categoryPosType.appendChild(opt);
+    });
+}

@@ -11,7 +11,7 @@
             <div class="breadcrumbs">
                 <a href="{{url_for('admin_control.admin', u_id=u_id)}}">Управление пользователями </a>
                 /
-                <span>Отчеты по заказам</span>
+                <span>Отчеты по заказам (категории и типы) <b>{% if current_user.role in['superuser', markineris_admin] %} {{ admin.login_name }}{% endif %}</b></span>
 
             </div>
         </div>
@@ -38,7 +38,7 @@
 
 
 {% include 'admin/transactions/su_transaction_modal.html' %}
-<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc_v4.js')}}"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc_v5.js')}}"></script>
 <script>
 const acTypes = {
         обувь: {{ ac_types.обувь | tojson | safe }},
@@ -46,24 +46,5 @@ const acTypes = {
         парфюм: {{ ac_types.парфюм | tojson | safe }},
         одежда: {{ ac_types.одежда | tojson | safe }},
     };
-
-    function updateCategoryPosType() {
-        const category = document.getElementById('category').value;
-        const categoryPosType = document.getElementById('category_pos_type');
-
-        // Clear existing options
-        categoryPosType.innerHTML = '<option selected value="">Выберите из списка..</option>';
-
-        // Get the new options based on the selected category
-        const options = acTypes[category] || [];
-
-        // Populate the select box with new options
-        options.forEach(option => {
-            const opt = document.createElement('option');
-            opt.value = option;
-            opt.text = option.toUpperCase();
-            categoryPosType.appendChild(opt);
-        });
-    }
 </script>
 {% endblock %}
