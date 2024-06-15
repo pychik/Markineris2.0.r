@@ -407,7 +407,7 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                """)
         stmt_orders = stmt_orders_qry.bindparams(
             filtered_manager_id=filtered_manager_id) if filtered_manager_id else stmt_orders_qry
-    res = db.session.execute(text(stmt_orders))
+    res = db.session.execute(stmt_orders)
     return res.fetchall()
 
 
