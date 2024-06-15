@@ -31,7 +31,7 @@ def helper_get_agent_orders(user: User) -> list:
 # def helper_get_agent_orders() -> list:
 
     date_compare = date.today() - timedelta(days=settings.OrderStage.DAYS_CONTENT)
-    conditional_stmt = f"((o.stage>{settings.OrderStage.CREATING} AND o.stage!={settings.OrderStage.TELEGRAM_PROCESSED} AND o.stage!={settings.OrderStage.CANCELLED} AND o.stage!={settings.OrderStage.CRM_PROCESSED}) OR ((o.stage={settings.OrderStage.CANCELLED} AND o.cc_created  > '{date_compare}') OR (o.stage={settings.OrderStage.CRM_PROCESSED} AND o.closed_at > '{date_compare}')))"
+    conditional_stmt = f"o.stage>{settings.OrderStage.CREATING}  AND o.stage < {settings.OrderStage.SENT}"
     stmt_get_manager = f"(select managers.login_name from public.users managers where managers.id=o.manager_id)"
     additional_stmt = """
                                  o.comment_problem as comment_problem,
@@ -44,10 +44,11 @@ def helper_get_agent_orders(user: User) -> list:
                                  o.sent_at as sent_at,
                                  o.closed_at as closed_at,
                               """
+    stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
     if user.role != settings.SUPER_USER:
         admin_id = user.id
 
-        stmt_get_agent = f"SELECT public.users.login_name from public.users where public.users.id={admin_id}"
+        # stmt_get_agent = f"SELECT public.users.login_name from public.users where public.users.id={admin_id}"
         stmt_users = f"""SELECT users.id AS users_id
                          FROM users
                          WHERE users.admin_parent_id = {admin_id} OR users.id = {admin_id}
@@ -55,7 +56,7 @@ def helper_get_agent_orders(user: User) -> list:
 
         stmt_orders = f"""
                               SELECT u.client_code as client_code,
-                                  ({stmt_get_agent})  as agent_name ,
+                                  {stmt_get_agent}  as agent_name ,
                                   u.login_name as login_name,
                                   u.phone as phone,
                                   u.email as email,
@@ -76,7 +77,7 @@ def helper_get_agent_orders(user: User) -> list:
                                   o.to_delete as to_delete,
                                   MAX(orf.origin_name) as order_file,
                                   MAX(orf.file_link) as order_file_link,
-                                  {stmt_get_manager} as manager,
+                                  MAX(managers.login_name) as manager,
                                   o.stage_setter_name as stage_setter_name,
                                   {additional_stmt}
                                   COUNT(o.id) as row_count,
@@ -84,6 +85,7 @@ def helper_get_agent_orders(user: User) -> list:
                                   SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id
+                                  LEFT JOIN public.users a ON u.admin_parent_id = a.id
                                   LEFT JOIN public.order_files orf ON o.id=orf.order_id
                                   LEFT JOIN public.shoes sh ON o.id = sh.order_id
                                   LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
@@ -92,13 +94,14 @@ def helper_get_agent_orders(user: User) -> list:
                                   LEFT JOIN public.linen l ON o.id = l.order_id
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                   LEFT JOIN public.parfum p ON o.id = p.order_id
+                                  LEFT JOIN public.users managers ON o.manager_id = managers.id
                         WHERE u.id in({stmt_users}) AND {conditional_stmt} AND o.to_delete != True
                         GROUP BY u.id, o.id, o,crm_created_at
                         ORDER BY o.crm_created_at ASC 
                        """
     else:
         # stmt_get_agent = f"SELECT a.login_name FROM public.users a  WHERE ((a.id=u.admin_parent_id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')) OR (a.id=u.id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')))"
-        stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
+
         stmt_orders = f"""
                               SELECT 
                                   u.client_code as client_code,
@@ -124,7 +127,7 @@ def helper_get_agent_orders(user: User) -> list:
                                   o.crm_created_at as crm_created_at,
                                   MAX(orf.origin_name) as order_file,
                                   MAX(orf.file_link) as order_file_link,
-                                  {stmt_get_manager} as manager,
+                                  MAX(managers.login_name) as manager,
                                   o.stage_setter_name as stage_setter_name,
                                   {additional_stmt}
                                   COUNT(o.id) as row_count,
@@ -140,13 +143,149 @@ def helper_get_agent_orders(user: User) -> list:
                                   LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
                                   LEFT JOIN public.linen l ON o.id = l.order_id
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                  LEFT JOIN public.parfum p ON o.id = p.order_id 
+                                  LEFT JOIN public.parfum p ON o.id = p.order_id
+                                  LEFT JOIN public.users managers ON o.manager_id = managers.id 
                               WHERE  {conditional_stmt} AND o.to_delete != True
                               GROUP BY u.id, o.id, o.crm_created_at
                               ORDER BY o.crm_created_at ASC
                                """
 
     res = db.session.execute(text(stmt_orders))
+    return res.fetchall()
+
+
+def helper_get_agent_stage_orders(stage: int, user: User) -> list:
+    """
+    returns a list of orders for cancelled sent and performed stages asynchroniously
+    :param stage: stage of order
+    :param user: current agent
+    :return:
+    """
+    date_compare = date.today() - timedelta(days=settings.OrderStage.DAYS_UPDATE_CONTENT)
+    time_field = settings.OrderStage.STAGES_TF.get(stage)
+
+    if user.role != settings.SUPER_USER:
+        admin_id = user.id
+
+        stmt_users = f"""SELECT users.id AS users_id
+                                 FROM users
+                                 WHERE users.admin_parent_id = {admin_id} OR users.id = {admin_id}
+                            """
+
+        stmt_orders = text(f"""
+                                      SELECT u.client_code as client_code,
+                                          CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end as agent_name ,
+                                          u.login_name as login_name,
+                                          u.phone as phone,
+                                          u.email as email,
+                                          o.id as id,
+                                          o.stage as stage,
+                                          o.payment as payment,
+                                          o.order_idn as order_idn,
+                                          o.category as category,
+                                          o.company_type as company_type,
+                                          o.company_name as company_name,
+                                          o.company_idn as company_idn,
+                                          o.external_problem as external_problem,
+                                          o.edo_type as edo_type,
+                                          o.mark_type as mark_type,
+                                          o.user_comment as user_comment,
+                                          o.has_new_tnveds as has_new_tnveds,
+                                          o.manager_id as manager_id,
+                                          o.to_delete as to_delete,
+                                          MAX(orf.origin_name) as order_file,
+                                          MAX(orf.file_link) as order_file_link,
+                                          MAX(managers.login_name) as manager,
+                                          o.stage_setter_name as stage_setter_name,
+                                          o.comment_problem as comment_problem,
+                                          o.comment_cancel as comment_cancel,
+                                          o.cp_created as cp_created,
+                                          o.cc_created as cc_created,
+                                          o.crm_created_at as crm_created_at,
+                                          o.m_started as m_started,
+                                          o.m_finished as m_finished,
+                                          o.sent_at as sent_at,
+                                          o.closed_at as closed_at,
+                                          COUNT(o.id) as row_count,
+                                          COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                          SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                      FROM public.users u
+                                          JOIN public.orders o ON o.user_id = u.id
+                                          LEFT JOIN public.users a ON u.admin_parent_id = a.id  
+                                          LEFT JOIN public.order_files orf ON o.id=orf.order_id
+                                          LEFT JOIN public.shoes sh ON o.id = sh.order_id
+                                          LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
+                                          LEFT JOIN public.clothes  cl ON o.id = cl.order_id
+                                          LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                          LEFT JOIN public.linen l ON o.id = l.order_id
+                                          LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
+                                          LEFT JOIN public.parfum p ON o.id = p.order_id
+                                          LEFT JOIN public.users managers ON o.manager_id = managers.id
+                                WHERE o.stage=:stage AND u.id in({stmt_users}) AND o.{time_field} > :date_compare AND o.to_delete != True
+                                GROUP BY u.id, o.id, o,crm_created_at
+                                ORDER BY o.crm_created_at ASC 
+                               """.format(time_field=time_field)).bindparams(stage=stage, date_compare=date_compare)
+    else:
+
+        stmt_orders = text(f"""
+                              SELECT 
+                                  u.client_code as client_code,
+                                  CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end as agent_name ,
+                                  u.login_name as login_name, 
+                                  u.phone as phone, 
+                                  u.email as email, 
+                                  u.is_at2 as is_at2,
+                                  o.id as id,
+                                  o.stage as stage,
+                                  o.payment as payment,
+                                  o.order_idn as order_idn,
+                                  o.category as category,
+                                  o.company_type as company_type,
+                                  o.company_name as company_name,
+                                  o.company_idn as company_idn,
+                                  o.external_problem as external_problem,
+                                  o.edo_type as edo_type,
+                                  o.mark_type as mark_type,
+                                  o.user_comment as user_comment,
+                                  o.has_new_tnveds as has_new_tnveds,
+                                  o.manager_id as manager_id,
+                                  o.to_delete as to_delete,
+                                  o.crm_created_at as crm_created_at,
+                                  MAX(orf.origin_name) as order_file,
+                                  MAX(orf.file_link) as order_file_link,
+                                  MAX(managers.login_name) as manager,
+                                  o.stage_setter_name as stage_setter_name,
+                                  o.comment_problem as comment_problem,
+                                  o.comment_cancel as comment_cancel,
+                                  o.cp_created as cp_created,
+                                  o.cc_created as cc_created,
+                                  o.crm_created_at as crm_created_at,
+                                  o.m_started as m_started,
+                                  o.m_finished as m_finished,
+                                  o.sent_at as sent_at,
+                                  o.closed_at as closed_at,
+                                  COUNT(o.id) as row_count,
+                                  COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                              FROM public.users u
+                                  JOIN public.orders o ON o.user_id = u.id  
+                                  LEFT JOIN public.users a ON u.admin_parent_id = a.id  
+                                  LEFT JOIN public.order_files orf ON o.id=orf.order_id 
+                                  LEFT JOIN public.shoes sh ON o.id = sh.order_id
+                                  LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
+                                  LEFT JOIN public.clothes  cl ON o.id = cl.order_id
+                                  LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                  LEFT JOIN public.linen l ON o.id = l.order_id
+                                  LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
+                                  LEFT JOIN public.parfum p ON o.id = p.order_id 
+                                  LEFT JOIN public.users managers ON o.manager_id = managers.id
+                              WHERE  o.stage=:stage AND o.{time_field} > :date_compare AND o.to_delete != True
+                              GROUP BY u.id, o.id, o.crm_created_at
+                              ORDER BY o.crm_created_at ASC
+                               """.format(time_field=time_field)).bindparams(stage=stage, date_compare=date_compare)
+
+    res = db.session.execute(stmt_orders)
+
     return res.fetchall()
 
 
@@ -163,14 +302,14 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
 
     conditional_stmt_common = f"(o.stage!={settings.OrderStage.POOL} AND o.stage>{settings.OrderStage.CREATING} AND o.stage<={settings.OrderStage.MANAGER_SOLVED} AND o.stage!={settings.OrderStage.CRM_PROCESSED})"
 
-    stmt_get_manager = f"(select login_name from public.users managers where managers.id=o.manager_id)"
+    # stmt_get_manager = f"(select login_name from public.users managers where managers.id=o.manager_id)"
 
     if user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, ]:
         # conditional_stmt = f"o.stage={settings.OrderStage.POOL}" if pool else conditional_stmt_common + f" AND o.manager_id={manager_id}"
-        conditional_stmt = f"({conditional_stmt_common} AND o.manager_id={manager_id}) OR o.stage={settings.OrderStage.POOL}"
+        conditional_stmt = f"({conditional_stmt_common} AND o.manager_id=:manager_id) OR o.stage={settings.OrderStage.POOL}"
 
         # stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
-        stmt_orders = f"""
+        stmt_orders = text(f"""
                              SELECT u.client_code as client_code,
                                  u.login_name as login_name, 
                                  u.phone as phone, 
@@ -193,7 +332,7 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                  MAX(orf.origin_name) as order_file,
                                  MAX(orf.file_link) as order_file_link,
                                  o.manager_id as manager_id,
-                                 {stmt_get_manager} as manager,
+                                  MAX(managers.login_name) as manager,
                                  o.stage_setter_name as stage_setter_name,
                                  {additional_stmt}
                                  COUNT(o.id) as row_count,
@@ -209,17 +348,18 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                  LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
                                  LEFT JOIN public.linen l ON o.id = l.order_id
                                  LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                 LEFT JOIN public.parfum p ON o.id = p.order_id 
+                                 LEFT JOIN public.parfum p ON o.id = p.order_id
+                                 LEFT JOIN public.users managers ON o.manager_id = managers.id 
                            WHERE {conditional_stmt} AND o.to_delete != True
                            GROUP BY u.id, o.id, o.crm_created_at
                            ORDER BY o.crm_created_at ASC
-                          """
+                          """).bindparams(manager_id=manager_id)
     else:
-        manager_condition = f" AND o.manager_id={filtered_manager_id}" if filtered_manager_id else ""
+        manager_condition = f" AND o.manager_id=:filtered_manager_id" if filtered_manager_id else ""
         conditional_stmt = f"({conditional_stmt_common}{manager_condition} OR o.stage={settings.OrderStage.POOL})"
 
         # stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
-        stmt_orders = f"""
+        stmt_orders_qry = text(f"""
                               SELECT 
                                   u.client_code as client_code,
                                   u.login_name as login_name, 
@@ -243,7 +383,7 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                   MAX(orf.origin_name) as order_file,
                                   MAX(orf.file_link) as order_file_link,
                                   o.manager_id as manager_id,
-                                  {stmt_get_manager} as manager,
+                                  MAX(managers.login_name) as manager,
                                   o.stage_setter_name as stage_setter_name,
                                   {additional_stmt}
                                   COUNT(o.id) as row_count,
@@ -259,11 +399,14 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                   LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
                                   LEFT JOIN public.linen l ON o.id = l.order_id
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                  LEFT JOIN public.parfum p ON o.id = p.order_id 
+                                  LEFT JOIN public.parfum p ON o.id = p.order_id
+                                  LEFT JOIN public.users managers ON o.manager_id = managers.id 
                               WHERE  {conditional_stmt} AND o.to_delete != True
                               GROUP BY u.id, o.id, o.crm_created_at
                               ORDER BY o.crm_created_at ASC
-                               """
+                               """)
+        stmt_orders = stmt_orders_qry.bindparams(
+            filtered_manager_id=filtered_manager_id) if filtered_manager_id else stmt_orders_qry
     res = db.session.execute(text(stmt_orders))
     return res.fetchall()
 
@@ -1117,6 +1260,16 @@ def h_get_agent_order_info(search_order_idn):
                                          o.closed_at as closed_at,
                                       """
     stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
+    agent_condition = ''
+    if current_user.role != settings.SUPER_USER:
+        admin_id = current_user.id
+
+        # stmt_get_agent = f"SELECT public.users.login_name from public.users where public.users.id={admin_id}"
+        stmt_users = f"""SELECT users.id AS users_id
+                         FROM users
+                         WHERE users.admin_parent_id = {admin_id} OR users.id = {admin_id}
+                    """
+        agent_condition = f"u.id in ({stmt_users}) AND"
     stmt_search_order = text(f"""
                                   SELECT 
                                       u.client_code as client_code,
@@ -1159,7 +1312,7 @@ def h_get_agent_order_info(search_order_idn):
                                       LEFT JOIN public.linen l ON o.id = l.order_id
                                       LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                       LEFT JOIN public.parfum p ON o.id = p.order_id 
-                                  WHERE  {conditional_stmt} AND o.order_idn=:search_order_idn
+                                  WHERE  {agent_condition}{conditional_stmt} AND o.order_idn=:search_order_idn
                                   GROUP BY u.id, o.id, o.crm_created_at
                                   ORDER BY o.crm_created_at
                                    """).bindparams(search_order_idn=search_order_idn)
@@ -1330,14 +1483,14 @@ def helper_search_crma_order() -> Response:
             m_solved_orders = [order_info, ]
             htmlresponse = render_template(f'crm/crma/crma_7.html', **locals())
         case settings.OrderStage.SENT:
-            sent_orders = [order_info, ]
-            htmlresponse = render_template(f'crm/crma/crma_8.html', **locals())
+            update_orders = [order_info, ]
+            htmlresponse = render_template(f'crm/crma/updated_stages/crma_search_8.html', **locals())
         case settings.OrderStage.CANCELLED:
-            cancelled_orders = [order_info, ]
-            htmlresponse = render_template(f'crm/crma/crma_9.html', **locals())
+            update_orders = [order_info, ]
+            htmlresponse = render_template(f'crm/crma/updated_stages/crma_search_9.html', **locals())
         case settings.OrderStage.CRM_PROCESSED:
-            crm_processed_orders = [order_info, ]
-            htmlresponse = render_template(f'crm/crma/crma_10.html', **locals())
+            update_orders = [order_info, ]
+            htmlresponse = render_template(f'crm/crma/updated_stages/crma_search_10.html', **locals())
     return jsonify({'htmlresponse': htmlresponse, 'status': status})
 
 

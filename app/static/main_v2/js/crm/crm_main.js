@@ -280,3 +280,32 @@ function search_crm_order(url, csrf){
 
    setTimeout(function() {clear_user_messages();}, 15000);
 }
+
+
+
+function update_spec_block_info(url, block, stage, csrf){
+   loadingCircle();
+   $.ajax({
+    url:url,
+    method:"POST",
+    headers:{"X-CSRFToken": csrf},
+    data:{'stage': stage},
+    success:function(data)
+    {
+        // console.log(data)
+      close_Loading_circle();
+      $('#' + block).html(data);
+      $('#' + block).append(data.htmlresponse);
+      // make_message('Страница обновлена успешно', 'success');
+        // make_message(msg, data.status);
+        // setTimeout(function() {location.reload(true);}, 5000);
+    },
+     error: function() {
+        close_Loading_circle();
+        make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
+    }
+   });
+
+   setTimeout(function() {clear_user_messages();}, 15000);
+
+}

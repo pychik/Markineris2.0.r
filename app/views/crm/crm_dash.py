@@ -1,4 +1,5 @@
 from datetime import datetime
+from logger import logger
 
 from flask import Blueprint, flash, render_template, redirect, url_for, request, jsonify
 from flask_login import current_user, login_required
@@ -14,7 +15,7 @@ from .helpers import (helper_get_agent_orders, helper_get_manager_orders, helper
                       helper_cancel_order, helper_change_agent_stage, helpers_m_take_order, helper_change_manager,
                       helper_attach_of_link, helper_m_order_bp, helpers_move_orders_to_processed,
                       helper_search_crma_order, helper_search_crmm_order, helpers_ceps_order, helper_crm_preload,
-                      helper_auto_problem_cancel_order)
+                      helper_auto_problem_cancel_order, helper_get_agent_stage_orders)
 from .helpers_mo import h_all_new_multi_pool
 crm_d = Blueprint('crm_d', __name__)
 
@@ -57,6 +58,23 @@ def agents():
     bck = request.args.get('bck', 0, int)
     return render_template('crm/crm_agent.html', **locals()) if not bck \
         else jsonify({'htmlresponse': render_template(f'crm/crma/crma_main_block.html', **locals())})
+
+
+@crm_d.route('/update_agent_stage', methods=["POST"])
+@login_required
+@user_activated
+@aus_required
+def update_agent_stage():
+    # attempt to decrease sql queries
+    stage = int(request.form.get("stage"))
+    if not stage or stage not in [settings.OrderStage.SENT, settings.OrderStage.CANCELLED,
+                                  settings.OrderStage.CRM_PROCESSED]:
+        logger.error(f"Invalid stage: {stage}")
+        return jsonify({'htmlresponse': None})
+
+    update_orders = helper_get_agent_stage_orders(stage=stage, user=current_user)
+    # using bck upload flag as 1
+    return jsonify({'htmlresponse': render_template('crm/crma/updated_stages/orders_{stage}.html'.format(stage=stage), **locals())})
 
 
 @crm_d.route('/change_stage/<int:o_id>/<int:stage>', methods=["POST"])

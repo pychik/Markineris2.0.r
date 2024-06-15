@@ -1,0 +1,89 @@
+<div class="faded">
+    {% for n in update_orders %}
+
+      <div class="card mt-3 mb-3 custom-rounded border-secondary {% if n.to_delete %} div-disabled {%endif%}">
+        <div class="card-header bg-danger text-white text-center">
+            <h5 class="card-text">
+                <a data-toggle="collapse"
+                   href="#collapseOrder9_{{ loop.index }}" role="button"
+                   aria-expanded="false"
+                   class="btn btn-sm btn-outline-dark btn-block">
+                    {% include 'crm/crma/order_category.html' %}
+                </a>
+            </h5>
+            {% include 'crm/crma/order_payment.html' %}
+
+            <h6 class="card-text" title="Время поступления заказа в систему">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lightning" viewBox="0 0 16 16">
+                  <path d="M5.52.359A.5.5 0 0 1 6 0h4a.5.5 0 0 1 .474.658L8.694 6H12.5a.5.5 0 0 1 .395.807l-7 9a.5.5 0 0 1-.873-.454L6.823 9.5H3.5a.5.5 0 0 1-.48-.641l2.5-8.5zM6.374 1 4.168 8.5H7.5a.5.5 0 0 1 .478.647L6.78 13.04 11.478 7H8a.5.5 0 0 1-.474-.658L9.306 1H6.374z"/>
+                </svg>
+                <b>{{ n.crm_created_at.strftime('%Y-%m-%d %H:%M:%S') }}</b>
+            </h6>
+            <h6 class="card-text" title="Время отмены заказа ">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bag-x" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M6.146 8.146a.5.5 0 0 1 .708 0L8 9.293l1.146-1.147a.5.5 0 1 1 .708.708L8.707 10l1.147 1.146a.5.5 0 0 1-.708.708L8 10.707l-1.146 1.147a.5.5 0 0 1-.708-.708L7.293 10 6.146 8.854a.5.5 0 0 1 0-.708z"/>
+                    <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1zm3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4h-3.5zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5z"/>
+                </svg>
+                <b>{{ n.cc_created.strftime('%Y-%m-%d %H:%M:%S') }}</b>
+            </h6>
+
+
+
+        </div>
+
+        <div class="card-body">
+            <div class="collapse mb-1" id="collapseOrder9_{{ loop.index }}">
+                {% include 'crm/crma/order_description.html' %}
+            </div>
+            <div class="mb-1">
+                <form method="post" action="{{ url_for('crm_d.download_order', o_id=n.id) }}" title="Скачать таблицу заказа">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button class="btn btn-sm btn-info btn-block" type="submit">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                            class="bi bi-download" viewBox="0 0 16 16">
+                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5
+                                0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5
+                                10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                        </svg>
+                        Скачать таблицу
+
+                    </button>
+                 </form>
+
+            </div>
+
+            <div class="mt-1">
+                <button class="btn btn-sm btn-block bg-danger text-white" readonly>
+                    КС: <b>{{ n.row_count }}</b>    КМ: <b>{{ n.pos_count }}</b>
+                    {% if n.declar_doc%}РД <b>{{ n.declar_doc }}</b>{% endif %}
+                </button>
+                {% if n.manager %}
+                <button class="btn btn-sm btn-outline-info btn-block mt-1" title="Менеджер заказа"readonly>
+
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-person" viewBox="0 0 16 16">
+                      <path d="M12 1a1 1 0 0 1 1 1v10.755S12 11 8 11s-5 1.755-5 1.755V2a1 1 0 0 1 1-1h8zM4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H4z"/>
+                      <path d="M8 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                    </svg> <b>{{ n.manager }}</b>&nbsp;
+                </button>
+                {% endif %}
+            </div>
+            <div class="card mt-1 p-1">
+                <span class="bg-error text-white">Комментарий: <br>{% if n.cc_created %}{{ n.comment_cancel }}{% endif %}</span>
+            </div>
+            {% if n.declar_doc%}
+                <button class="btn btn-sm btn-warning btn-block mt-1" readonly>
+                    <b>РД позиции {{ n.declar_doc }} шт.</b>
+                </button>
+            {% endif %}
+
+            {% include 'crm/special_alerts.html' %}
+
+        </div>
+
+      </div>
+
+
+
+    {% endfor %}
+</div>
