@@ -51,23 +51,29 @@ async def validate_photo_and_get_filename(file_id: str, user_service, tg_user_sc
 
 async def download_bill_img(message: Message, user_service, tg_user_schema) -> str | None:
     if message.content_type == "photo":
+        file_id = message.photo[-1].file_id
+    elif message.content_type == "document":
+        file_id = message.document.file_id
+    else:
+        return
+
+    try:
+        filename = await validate_photo_and_get_filename(
+            file_id=file_id,
+            user_service=user_service,
+            tg_user_schema=tg_user_schema
+        )
+    except Exception as e:
+        logger.exception("Ошибка валидации файла фото чека.")
+        raise ValueError(str(e))
+    else:
         try:
-            filename = await validate_photo_and_get_filename(
-                file_id=message.photo[-1].file_id,
-                user_service=user_service,
-                tg_user_schema=tg_user_schema
-            )
-        except Exception as e:
-            logger.exception("Ошибка валидации файла фото чека.")
-            raise ValueError(str(e))
-        else:
-            try:
-                destination = f"{settings.bill_image_dir_path}/{filename}"
-                await bot.download(message.photo[-1].file_id, destination)
-            except Exception as e:
-                logger.exception("Ошибка при скачивании и сохранении фото чека на сервер")
-                return
-            return filename
+            destination = f"{settings.bill_image_dir_path}/{filename}"
+            await bot.download(file_id, destination)
+        except Exception:
+            logger.exception("Ошибка при скачивании и сохранении фото чека на сервер")
+            return
+        return filename
 
 
 def get_qr_code(filename: str):
