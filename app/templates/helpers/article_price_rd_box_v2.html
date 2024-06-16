@@ -32,7 +32,7 @@
             </label>
             <input type="number" step="0.01" id="article_price" name="article_price"
                 class="form-control" value="{% if copied_order %}{{ copied_order.article_price }}{% else %}0{% endif %}"
-            {% if price_exist %}min="1" required{% endif %}>
+            {% if price_exist %}min="1" required{% else %}min="0"{% endif %} oninput="if (!this.value  && this.value !== 0){this.value=0}">
         </div>
         <div class="col-md-6 col-xs-12 form-group">
             <label>
