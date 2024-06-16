@@ -1,7 +1,10 @@
+import fitz
 from io import BytesIO
 import rarfile
+from base64 import b64encode
 from pdfrw import PageMerge, PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
+from PIL import Image
 
 from config import settings
 
@@ -81,6 +84,24 @@ class RarPdfProcessor:
 
         # Merge the overlay PDF with the existing page
         PageMerge(page).add(overlay_pdf.pages[0]).render()
+
+
+def get_first_page_as_image(pdf_path: str):
+    pdf_document = fitz.open(pdf_path)
+    first_page = pdf_document.load_page(0)  # Load the first page
+
+    zoom = 2  # Adjust this value for higher/lower DPI
+    mat = fitz.Matrix(zoom, zoom)
+    pix = first_page.get_pixmap(matrix=mat)
+
+    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    img_str = b64encode(buffer.getvalue()).decode()
+
+    transaction_image = f"""<img id="bill-modal-image" class="border border-1 rounded img-zoom-orig" onclick="zoom_image();" src="data:image/png;base64,{img_str}">"""
+    return transaction_image
 
 
 # if __name__ == '__main__':

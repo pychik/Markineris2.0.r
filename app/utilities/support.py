@@ -24,6 +24,7 @@ from models import Order, OrderStat, User, EmailMessage, db, Shoe, Clothes, Clot
 from utilities.google_settings.schema import TransactionRow
 from utilities.google_settings.gt_utilities import helper_google_collect_and_send_stat
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
+from utilities.pdf_processor import get_first_page_as_image
 from utilities.validators import ValidatorProcessor
 from views.crm.schema import CrmDefaults
 from .cipher.instance import encryptor
@@ -1490,7 +1491,8 @@ def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: in
 
 
 def helper_get_image_html(img_path: str):
-
+    if img_path.endswith('.pdf'):
+        return get_first_page_as_image(pdf_path=img_path)
     with open(img_path, 'rb') as fd:
         transaction_image = f"""<img id="bill-modal-image" class="border border-1 rounded img-zoom-orig" onclick="zoom_image();" src="data:image/png;base64,
                                 {encodebytes(fd.read()).decode()}">"""
