@@ -34,9 +34,9 @@ async def validate_photo_and_get_filename(file_id: str, user_service, tg_user_sc
     file_info = await bot.get_file(file_id)
 
     extension = get_file_extension(file_info.file_path)
-    if not check_file_extension(extension=extension, extensions=settings.ALLOWED_IMG_EXTENSIONS):
+    if not check_file_extension(extension=extension, extensions=settings.ALLOWED_BILL_EXTENSIONS):
         raise ValueError(
-            f"File extension {extension} not allowed, allowed: {','.join(settings.ALLOWED_IMG_EXTENSIONS)}"
+            f"File extension {extension} not allowed, allowed: {','.join(settings.ALLOWED_BILL_EXTENSIONS)}"
         )
 
     tg_user = await user_service.get_user(user_id=tg_user_schema.tg_user_id)

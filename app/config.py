@@ -155,7 +155,8 @@ class Settings(BaseSettings):
     ALL_COLORS: tuple = ALL_COLORS
     ORDER_EDIT_DESCRIPTION: tuple = ORDER_EDIT_DESCRIPTION
     ALLOWED_EXTENSIONS: tuple = ('xlsx',)
-    ALLOWED_IMG_EXTENSIONS: tuple = ('png', 'jpg', 'jpeg',)
+    ALLOWED_IMG_EXTENSIONS: tuple = ('png', 'jpg', 'jpeg', )
+    ALLOWED_BILL_EXTENSIONS: tuple = ('png', 'jpg', 'jpeg', 'pdf', )
     CRM_ALLOWED_EXTENSIONS: tuple = ('rar', )
     UPLOAD_TABLE_ERRORS_FILE: str = "Ошибки_загрузки_заказа.txt"
     SEND_TABLE_NAME: str = "таблица_заказ.xlsx"
@@ -586,7 +587,7 @@ class Settings(BaseSettings):
         SU_TRANSACTION_CHANGE: str = "Статус транзакции успешно изменен"
         SU_TRANSACTION_CHANGE_ERROR: str = "При изменении статуса транзакции произошла ошибка"
         UT_TYPE_FILE_ERROR: str = "Ошибка сохранения транзакции! Проверьте файл с картинкой счета." \
-                                  " Разрешенные форматы .png, .jpg, .jpeg "
+                                  " Разрешенные форматы .png, .jpg, .jpeg, .pdf "
         TELEGRAM_SET_SUCCESS: str = "Успешно сохранен новый телеграмм канал для агентов!"
         TELEGRAM_SET_ERROR: str = "Ошибка сохранения телеграмм группы/канала! "
         TELEGRAM_MPSET_SUCCESS: str = "Успешно сохранены настройки сообщения телеграмм канала агента! "

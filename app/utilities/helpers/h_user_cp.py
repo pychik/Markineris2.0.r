@@ -270,7 +270,7 @@ def h_pa_refill(u_id: int, sa_id: int):
         bill_file = request.files.get('bill_file')
         # check file
         if bill_file is None or bill_file is False or check_file_extension(filename=bill_file.filename,
-                                                                           extensions=settings.ALLOWED_IMG_EXTENSIONS) is False:
+                                                                           extensions=settings.ALLOWED_BILL_EXTENSIONS) is False:
             message = settings.Messages.UT_TYPE_FILE_ERROR
             return jsonify(dict(status=status, message=message))
 

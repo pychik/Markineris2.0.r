@@ -43,8 +43,8 @@ class UserMessages:
         "Введите другой промокод. Если у вас нет промокода нажмите кнопку 'Нет промокода'"
     )
     SEND_RECEIPT_PHOTO: str = "Отправьте фото чека"
-    INVALID_FORMAT_PHOTO: str = f"Фото должно быть формата {', '.join(settings.ALLOWED_IMG_EXTENSIONS)}"
-    SEND_RECEIPT_PHOTO_HELP_TEXT: str = f"Отправьте фото чека в формата {', '.join(settings.ALLOWED_IMG_EXTENSIONS)}"
+    INVALID_FORMAT_PHOTO: str = f"Фото должно быть формата {', '.join(settings.ALLOWED_BILL_EXTENSIONS)}"
+    SEND_RECEIPT_PHOTO_HELP_TEXT: str = f"Отправьте фото чека в формата {', '.join(settings.ALLOWED_BILL_EXTENSIONS)}"
     PHOTO_PROCESSING_ERROR: str = "Ошибка загрузки фото, попробуйте отправить чек снова."
     TRANSACTION_CREATE_SUCCESSFULLY: str = "Транзакция успешно создана"
     TRANSACTION_CREATE_FAILED: str = "Транзакция не создана. Попробуйте еще раз"
