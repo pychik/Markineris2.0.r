@@ -16,7 +16,7 @@ class Setting(BaseSettings):
     DB_HOST: str
     DB_PORT: str
 
-    ALLOWED_BILL_EXTENSIONS: tuple = ('png', 'jpg', 'jpeg', "pdf",)
+    ALLOWED_BILL_EXTENSIONS: tuple = ('png', 'jpg', 'jpeg', 'pdf',)
 
     BOT_API_TOKEN: SecretStr = Field(..., alias="VERIFY_NOTIFICATION_BOT_API_TOKEN")
 
