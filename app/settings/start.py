@@ -69,6 +69,7 @@ def create_app(db: SQLAlchemy, migrate_handler: Migrate):
     db.init_app(app)
     migrate_handler.init_app(app, db)
     csrf.init_app(app)
+    csrf.exempt('views.main.endpoints.create_transaction')
 
     if not app.debug:
         apm = ElasticAPM()
@@ -112,6 +113,9 @@ def create_app(db: SQLAlchemy, migrate_handler: Migrate):
 
     from views.crm.crm_uoc import crm_uoc as crm_uoc_blueprint
     app.register_blueprint(crm_uoc_blueprint, url_prefix='/crm_uoc')
+
+    from views.main.endpoints import api as api_blueprint
+    app.register_blueprint(api_blueprint, url_prefix='/api')
 
     from models import User
 

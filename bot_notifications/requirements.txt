@@ -4,3 +4,4 @@ sqlalchemy>=2.0.28
 asyncpg==0.28.0
 redis>=5.0.0
 requests>=2.31.0
+loguru==0.7.2

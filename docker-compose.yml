@@ -57,6 +57,8 @@ services:
       dockerfile: infra/Dockerfile
     volumes:
       - /var/log/bot-notifications/:/var/log/bot-notifications/
+      - ./app/download_dir/bill_imgs/:/app/files/bill_imgs/
+      - ./app/static/qr_imgs/:/app/files/qr_imgs/
     command: python3 -m main
     env_file:
       - .env
@@ -98,6 +100,8 @@ services:
     restart: always
     expose:
       - "6379"
+    volumes:
+      - ./redis_storage_backups:/data
     healthcheck:
       test: ["CMD-SHELL", "redis-cli", "ping"]
       interval: 5s

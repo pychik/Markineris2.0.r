@@ -4,7 +4,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from src.schemas.keyboard import ButtonListSchema
 
 
-async def get_inline_keyboard(button_list: list[dict[str, str]]) -> InlineKeyboardMarkup:
+async def get_inline_keyboard(button_list: list[dict[str, str]], rows: int = 2) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.add(
         *[
@@ -13,4 +13,4 @@ async def get_inline_keyboard(button_list: list[dict[str, str]]) -> InlineKeyboa
         ]
     )
 
-    return builder.adjust().as_markup()
+    return builder.adjust(rows).as_markup()

@@ -11,13 +11,15 @@ from sqlalchemy.orm import Session
 
 from config import settings
 from logger import logger
-from models import Promo, Price, ServiceAccount, ServerParam, User, UserTransaction
+from models import Promo, Price, ServiceAccount, ServerParam, User, UserTransaction, TgUser
 from models import db
 from utilities.admin.excel_report import ExcelReportProcessor
 from utilities.support import helper_paginate_data, check_file_extension, get_file_extension, \
     helper_get_server_balance, helper_get_filters_transactions, \
     helper_update_pending_rf_transaction_status, helper_get_image_html, \
     helper_perform_ut_wo, helper_get_transaction_orders_detail
+from utilities.telegram import NotificationTgUser
+from utilities.tg_verify.service import send_tg_message_with_transaction_updated_status
 
 
 def h_su_control_finance():
@@ -590,6 +592,8 @@ def h_su_pending_transaction_update(u_id: int, t_id: int,):
         message = settings.Messages.SU_TRANSACTION_CHANGE
     else:
         message += ': ' + process_transaction[1]
+    if user:
+        send_tg_message_with_transaction_updated_status(user.id, t_id)
 
     return jsonify(dict(status=status, message=message))
 
