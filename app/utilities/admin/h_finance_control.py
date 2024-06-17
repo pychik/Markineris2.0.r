@@ -1,3 +1,4 @@
+import urllib
 from datetime import datetime, timedelta
 from decimal import Decimal
 from os import listdir as o_list_dir
@@ -13,11 +14,12 @@ from config import settings
 from logger import logger
 from models import Promo, Price, ServiceAccount, ServerParam, User, UserTransaction, TgUser
 from models import db
-from utilities.admin.excel_report import ExcelReportProcessor
+from utilities.admin.excel_report import ExcelReportProcessor, ExcelReport
 from utilities.support import helper_paginate_data, check_file_extension, get_file_extension, \
     helper_get_server_balance, helper_get_filters_transactions, \
     helper_update_pending_rf_transaction_status, helper_get_image_html, \
-    helper_perform_ut_wo, helper_get_transaction_orders_detail
+    helper_perform_ut_wo, helper_get_transaction_orders_detail, helper_get_stmt_for_fin_order_report, \
+    helper_get_filter_fin_order_report
 from utilities.telegram import NotificationTgUser
 from utilities.tg_verify.service import send_tg_message_with_transaction_updated_status
 
@@ -484,6 +486,87 @@ def h_bck_ut_excel_report() -> Response:
 
     return response
 
+
+def h_su_fin_order_report():
+    date_from = datetime.now() - timedelta(settings.ORDERS_REPORT_TIMEDELTA)
+    date_to = datetime.now()
+    stmt = helper_get_stmt_for_fin_order_report()
+    orders = db.session.execute(stmt, ).fetchall()
+    link = f'javascript:bck_get_fin_order_report(\'' + url_for(
+        'admin_control.su_bck_fin_order_report') + f'?bck=1' + '&page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        orders_list = helper_paginate_data(data=orders, per_page=settings.PAGINATION_PER_PAGE, href=link)
+    return render_template('admin/fin_order_report/su_order_report.html', **locals())
+
+
+def h_bck_fin_order_report():
+    date_from, date_to, sort_type, order_type, payment_status = helper_get_filter_fin_order_report()
+    stmt = helper_get_stmt_for_fin_order_report(
+        date_from=date_from,
+        date_to=date_to,
+        sort_type=sort_type,
+        order_type=order_type,
+        payment_status=payment_status,
+    )
+    orders = db.session.execute(stmt,).fetchall()
+    link = f'javascript:bck_get_orders_report(\'' + url_for(
+        'admin_control.su_bck_fin_order_report') + f'?bck=1' + '&page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        orders_list = helper_paginate_data(data=orders, per_page=settings.PAGINATION_PER_PAGE, href=link)
+    return jsonify({'htmlresponse': render_template(f'admin/fin_order_report/su_order_table.html', **locals())})
+
+
+def h_bck_fin_order_report_excel():
+    date_from, date_to, sort_type, order_type, payment_status = helper_get_filter_fin_order_report(report=True)
+    stmt = helper_get_stmt_for_fin_order_report(
+        order_type=order_type,
+        sort_type=sort_type,
+        date_from=date_from,
+        date_to=date_to,
+        payment_status=payment_status
+    )
+    orders = db.session.execute(stmt).fetchall()
+    # convert payment_status and order_type to readable filter
+    order_type = 'отменен' if order_type == (settings.OrderStage.CANCELLED,) else 'отправлен'
+
+    if payment_status == (True,):
+        payment_status = 'оплачен'
+    elif payment_status == (False,):
+        payment_status = 'ожидает оплаты'
+    else:
+        payment_status = 'оплачен или ожидает оплаты'
+
+    excel_filters = {
+        'дата начала': date_from,
+        'дата окончания': (datetime.strptime(date_to, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d'),
+        'статус заказа': order_type,
+    }
+
+    if order_type == 'отправлен':
+        excel_filters['статус платежа'] = payment_status
+
+    if order_type == 'отменен':
+        report_name = f'отмененные заказы({datetime.today().strftime("%d.%m.%y %H-%M")})'
+    else:
+        report_name = f'отправленные заказы({datetime.today().strftime("%d.%m.%y %H-%M")})'
+    excel = ExcelReport(
+        data=orders,
+        filters=excel_filters,
+        columns_name=['дата', 'номер заказа', 'компания', 'тел. номер клиента', 'агент', 'КМ', 'КС', 'Чего', 'Цена за марку',],
+        sheet_name='Отчет по заказам',
+        output_file_name=report_name,
+    )
+
+    excel_io = excel.create_report()
+    content = excel_io.getvalue()
+    response = make_response(content)
+    response.headers['data_file_name'] = urllib.parse.quote(excel.output_file_name)
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    response.headers['data_status'] = 'success'
+
+    return response
 
 def h_su_transaction_detail(u_id: int, t_id: int):
     # background retrieving info
