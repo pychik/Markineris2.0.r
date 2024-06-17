@@ -68,11 +68,13 @@
             <div class="col-md-4 mt-md-3">
                 <label>Статус заказа</label>
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="order_type" id="cancel_order" value="cancel">
+                   <input class="form-check-input" type="radio" name="order_type" id="cancel_order" value="cancel"
+                          onclick="toggleOrderStatusBlock(true);">
                     <label class="form-check-label" for="cancel_order">Отменен</label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="order_type" id="sent_order" value="sent" checked>
+                    <input class="form-check-input" type="radio" name="order_type" id="sent_order" value="sent"
+                           onclick="toggleOrderStatusBlock(false);" checked>
                     <label class="form-check-label" for="sent_order">Отправлен</label>
                 </div>
             </div>

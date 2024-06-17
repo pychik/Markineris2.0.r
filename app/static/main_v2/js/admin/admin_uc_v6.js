@@ -1049,3 +1049,8 @@ function get_fin_order_report_excel(url, csrf) {
     });
 
 }
+
+function toggleOrderStatusBlock(disable) {
+     console.log(disable);
+     // Тут твой код
+}
