@@ -510,7 +510,7 @@ def h_bck_fin_order_report():
         payment_status=payment_status,
     )
     orders = db.session.execute(stmt,).fetchall()
-    link = f'javascript:bck_get_orders_report(\'' + url_for(
+    link = f'javascript:bck_get_fin_order_report(\'' + url_for(
         'admin_control.su_bck_fin_order_report') + f'?bck=1' + '&page={0}\');'
     page, per_page, \
         offset, pagination, \
