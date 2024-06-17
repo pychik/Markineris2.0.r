@@ -22,9 +22,10 @@ from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_pr
                                                h_su_transaction_detail, h_bck_control_ut, h_au_bck_control_ut,
                                                h_su_pending_transaction_update, h_su_wo_transactions,
                                                h_aus_transaction_detail, h_su_bck_change_sa_activity,
-                                               h_bck_ut_excel_report)
+                                               h_bck_ut_excel_report, h_su_fin_order_report, h_bck_fin_order_report,
+                                               h_bck_fin_order_report_excel)
 from utilities.support import au_required, aus_required, bck_aus_required, bck_su_required, su_required, \
-                               user_exist_check
+    user_exist_check, su_mod_required
 
 from utilities.admin.h_admin_control import h_bck_agent_reanimate
 
@@ -372,6 +373,33 @@ def su_bck_control_ut():
     :return:
     """
     return h_bck_control_ut()
+
+
+@admin_control.route('/su_fin_order_report', methods=['GET',])
+@login_required
+@su_mod_required
+def su_fin_order_report():
+    """
+        default page with orders report
+    """
+    return h_su_fin_order_report()
+
+
+@admin_control.route('/su_bck_fin_order_report', methods=['GET',])
+@login_required
+@su_mod_required
+def su_bck_fin_order_report():
+    return h_bck_fin_order_report()
+
+
+@admin_control.route('/su_fin_order_report_excel', methods=['POST'])
+@login_required
+@su_mod_required
+def su_fin_order_report_excel():
+    """
+    load excel with orders
+    """
+    return h_bck_fin_order_report_excel()
 
 
 @admin_control.route('/su_bck_ut_report', methods=['POST', ])

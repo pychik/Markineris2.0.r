@@ -15,6 +15,7 @@ from sqlalchemy import asc, create_engine, desc, text, null
 from sqlalchemy.engine.row import Row
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.elements import TextClause
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
 from config import settings
@@ -1250,6 +1251,105 @@ def helper_get_filter_users() -> tuple:
     return date_quantity, date_type, link_filters, sort_type
 
 
+def helper_get_filter_fin_order_report(report: bool = False):
+    default_day_to = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d')
+    default_day_from = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d')
+    if report:
+        url_date_from = request.form.get('date_from', '', type=str)
+        url_date_to = request.form.get('date_to', '', type=str)
+        sort_type = request.form.get('sort_type', 'desc', str)
+        order_type = (settings.OrderStage.SENT, settings.OrderStage.CRM_PROCESSED) if request.form.get('order_type', 'sent', str) == 'sent' else (settings.OrderStage.CANCELLED,)
+        payment_status = request.form.get('payment_status', 'pay_in_full', str)
+
+    else:
+        url_date_from = request.args.get('date_from', '', type=str)
+        url_date_to = request.args.get('date_to', '',  type=str)
+
+        sort_type = request.args.get('sort_type', 'desc', str)
+        order_type = (settings.OrderStage.SENT, settings.OrderStage.CRM_PROCESSED) if request.args.get('order_type', 'sent', str) == 'sent' else (settings.OrderStage.CANCELLED,)
+        payment_status = request.args.get('payment_status', 'pay_in_full', str)
+
+    date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from else default_day_to
+    date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
+        '%Y-%m-%d') if url_date_to else default_day_from
+    if payment_status == 'pay_in_full':
+        payment_status = (True,)
+    elif payment_status == 'waiting_for_payment':
+        payment_status = (False,)
+    else:
+        payment_status = (True, False,)
+    return date_from, date_to, sort_type, order_type, payment_status
+
+
+def helper_get_stmt_for_fin_order_report(
+        date_from: str = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d'),
+        date_to: str = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d'),
+        order_type: tuple[int] = (settings.OrderStage.SENT, settings.OrderStage.CRM_PROCESSED),
+        payment_status: tuple[bool] = (True, ),
+        sort_type: str = 'DESC'
+) -> TextClause:
+    if order_type == (9,):
+        # cancel order
+        stmt = text(f"""
+                SELECT 
+                o.cc_created as handle_date,
+                o.order_idn as order_idn,
+                o.company_type ||' ' || o.company_name || ' '|| o.company_idn as company,
+                cli.phone as cli_phone_number,
+	            CASE WHEN MAX(agnt.login_name) IS NOT NULL THEN MAX(agnt.login_name) ELSE cli.login_name end as agent_login,
+                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count,
+                COUNT(coalesce(sh.id, cl.id, l.id, p.id)) as rows_count, 
+                o.category as category,
+                utr.op_cost as op_cost,
+                utr.op_cost*SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as amount
+            FROM public.orders o
+                LEFT JOIN public.shoes sh ON o.id = sh.order_id
+                LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
+                LEFT JOIN public.clothes  cl ON o.id = cl.order_id
+                LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                LEFT JOIN public.linen l ON o.id = l.order_id
+                LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
+                LEFT JOIN public.parfum p ON o.id = p.order_id 
+                LEFT JOIN public.user_transactions utr ON o.transaction_id = utr.id
+                JOIN public.users cli on cli.id = o.user_id
+ 	            LEFT JOIN public.users agnt on cli.admin_parent_id = agnt.id
+                WHERE (o.cc_created >= :date_from AND o.cc_created < :date_to)  AND o.stage in :order_type
+                GROUP BY o.id, o.order_idn, utr.op_cost, utr.amount , o.sent_at, cli.phone, agnt.login_name, cli.login_name
+                ORDER BY o.sent_at {sort_type};
+
+            """).bindparams(date_from=date_from, date_to=date_to, order_type=order_type)
+    else:
+        stmt = text(f"""
+                SELECT 
+                o.sent_at as handle_date,
+                o.order_idn as order_idn,
+                o.company_type ||' ' || o.company_name || ' '|| o.company_idn as company,
+                cli.phone as cli_phone_number,
+	            CASE WHEN MAX(agnt.login_name) IS NOT NULL THEN MAX(agnt.login_name) ELSE cli.login_name end as agent_login,
+                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count,
+                COUNT(coalesce(sh.id, cl.id, l.id, p.id)) as rows_count, 
+                o.category as category,
+                utr.op_cost as op_cost,
+                utr.op_cost*SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as amount
+            FROM public.orders o
+                LEFT JOIN public.shoes sh ON o.id = sh.order_id
+                LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
+                LEFT JOIN public.clothes  cl ON o.id = cl.order_id
+                LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                LEFT JOIN public.linen l ON o.id = l.order_id
+                LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
+                LEFT JOIN public.parfum p ON o.id = p.order_id 
+                LEFT JOIN public.user_transactions utr ON o.transaction_id = utr.id
+                JOIN public.users cli on cli.id = o.user_id
+ 	            LEFT JOIN public.users agnt on cli.admin_parent_id = agnt.id
+                WHERE o.payment in :payment_status AND (o.sent_at >= :date_from AND o.sent_at  < :date_to)  AND o.stage in :order_type
+                GROUP BY o.id, o.order_idn, utr.op_cost, utr.amount , o.sent_at, cli.phone, agnt.login_name, cli.login_name
+                ORDER BY o.sent_at {sort_type};
+
+            """).bindparams(date_from=date_from, date_to=date_to, order_type=order_type, payment_status=payment_status)
+    return stmt
+
+
 def helper_isolated_session(query: str, return_flag: bool = True) -> tuple | bool:
 
     plain_engine = create_engine(settings.SQL_DATABASE_URL)
@@ -2204,6 +2304,17 @@ def crmau_required(func):
             return func(*args, **kwargs)
         else:
             flash(message=settings.Messages.SUPERADMIN_MADMIN_USER_REQUIRED, category='error')
+            return redirect(url_for('main.index'))
+    return wrapper
+
+
+def su_mod_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.status is True and current_user.role in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]:
+            return func(*args, **kwargs)
+        else:
+            flash(message=settings.Messages.SUPER_MOD_REQUIRED, category='error')
             return redirect(url_for('main.index'))
     return wrapper
 

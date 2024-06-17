@@ -977,3 +977,75 @@ function updateCategoryPosType() {
         categoryPosType.appendChild(opt);
     });
 }
+
+function bck_get_fin_order_report(url) {
+    let sort_mode = $('input[name="sort_type"]:checked').val();
+    let date_from = $('#date_from').val();
+    let date_to = $('#date_to').val();
+    let order_type = $('input[name="order_type"]:checked').val()
+    let payment_status = $('input[name="payment_status"]:checked').val()
+
+    $.ajax({
+        url: url,
+        method: "GET",
+        data: {
+            date_from: date_from,
+            date_to: date_to,
+            sort_type: sort_mode,
+            order_type: order_type,
+            payment_status: payment_status,
+        },
+        success: function (data) {
+            $('#orders_table').html(data);
+            $("#orders_table").append(data.htmlresponse);
+        }
+    });
+}
+
+
+function get_fin_order_report_excel(url, csrf) {
+    let sort_mode = $('input[name="sort_type"]:checked').val();
+    let date_from = $('#date_from').val();
+    let date_to = $('#date_to').val();
+    let order_type = $('input[name="order_type"]:checked').val()
+    let payment_status = $('input[name="payment_status"]:checked').val()
+
+    $('#overlay_loading').show();
+    $.ajax({
+        url: url,
+        headers: { "X-CSRFToken": csrf },
+        method: "POST",
+        data: {date_from: date_from,
+            date_to: date_to,
+            sort_type: sort_mode,
+            order_type: order_type,
+            payment_status: payment_status,},
+        xhrFields: {
+            responseType: 'blob' // Set response type to blob
+        },
+
+        success: function(response, status, xhr) {
+            $('#overlay_loading').hide();
+            if (xhr.status === 200) {
+                var blob = new Blob([response], { type: 'application/xlsx' });
+                var link = document.createElement('a');
+
+                var dataName = xhr.getResponseHeader('data_file_name');
+
+                link.href = window.URL.createObjectURL(blob);
+                // console.log()
+                link.download = decodeURIComponent(dataName) || 'отчет_по_заказам.xlsx'; //
+                link.click();
+            } else {
+                // Handle other status codes
+                console.error('Error:', xhr.status);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#overlay_loading').hide();
+            // Error handling
+            console.error('Error:', error);
+        }
+    });
+
+}
