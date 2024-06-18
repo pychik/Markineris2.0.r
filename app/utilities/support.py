@@ -1314,8 +1314,8 @@ def helper_get_stmt_for_fin_order_report(
                 JOIN public.users cli on cli.id = o.user_id
  	            LEFT JOIN public.users agnt on cli.admin_parent_id = agnt.id
                 WHERE (o.cc_created >= :date_from AND o.cc_created < :date_to)  AND o.stage in :order_type
-                GROUP BY o.id, o.order_idn, utr.op_cost, utr.amount , o.sent_at, cli.phone, agnt.login_name, cli.login_name
-                ORDER BY o.sent_at {sort_type};
+                GROUP BY o.id, o.order_idn, utr.op_cost, utr.amount , o.cc_created, cli.phone, agnt.login_name, cli.login_name
+                ORDER BY o.cc_created {sort_type};
 
             """).bindparams(date_from=date_from, date_to=date_to, order_type=order_type)
     else:
