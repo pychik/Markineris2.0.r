@@ -51,17 +51,19 @@
         <div class="col-md-12 mt-md-3 d-flex flex-row" >
             <div class="col-md-4 mt-md-3">
                 <label>Статус платежа</label>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="payment_status" id="pay_in_full" checked value="pay_in_full">
-                    <label class="form-check-label" for="pay_in_full">Оплачен</label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="payment_status" id="waiting_for_payment" value="waiting_for_payment">
-                    <label class="form-check-label" for="waiting_for_payment">Ожидает оплаты</label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="payment_status" id="both_payment_status" value="both_payment_status">
-                    <label class="form-check-label" for="both_payment_status">Оплаченные и ожидающие оплаты</label>
+                <div id="PaymentStatusBlock">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="payment_status" id="pay_in_full" checked value="pay_in_full">
+                        <label class="form-check-label" for="pay_in_full">Оплачен</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="payment_status" id="waiting_for_payment" value="waiting_for_payment">
+                        <label class="form-check-label" for="waiting_for_payment">Ожидает оплаты</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="payment_status" id="both_payment_status" value="both_payment_status">
+                        <label class="form-check-label" for="both_payment_status">Оплаченные и ожидающие оплаты</label>
+                    </div>
                 </div>
             </div>
 
