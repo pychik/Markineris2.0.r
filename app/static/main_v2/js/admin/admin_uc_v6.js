@@ -1050,7 +1050,19 @@ function get_fin_order_report_excel(url, csrf) {
 
 }
 
+
 function toggleOrderStatusBlock(disable) {
-     console.log(disable);
-     // Тут твой код
+     const paymentStatusRadios = document.getElementsByName('payment_status');
+            for (let i = 0; i < paymentStatusRadios.length; i++) {
+                paymentStatusRadios[i].disabled = disable;
+                if (disable) {
+                    paymentStatusRadios[i].checked = false;
+                }
+                else {
+                    let default_payment_status = document.getElementById('pay_in_full');
+                    default_payment_status.checked = true;
+                }
+            }
+
+
 }
