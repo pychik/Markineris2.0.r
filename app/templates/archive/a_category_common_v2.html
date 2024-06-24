@@ -53,7 +53,7 @@
                                                         </svg>
                                                     </span>
                                                 </div>
-                                                 <form method="post" class="btn-table me-2" action="{{url_for('orders_archive.download_oa', o_id=s.id, category=s.category)}}">
+                                                <form method="post" class="btn-table me-2" action="{{url_for('orders_archive.download_oa', o_id=s.id, category=s.category)}}">
                                                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                                   <span title="Скачать архив заказа"
                                                          type="submit" name="download archive"

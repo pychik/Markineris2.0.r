@@ -1181,7 +1181,7 @@ def helpers_move_orders_to_processed() -> Response:
                SET stage={settings.OrderStage.CRM_PROCESSED},
                    closed_at='{closed_at}', processed={True}
                WHERE stage={settings.OrderStage.SENT}
-                AND sent_at < '{date_compare}' AND payment=True AND o.to_delete != True; 
+                AND sent_at < '{date_compare}' AND payment=True AND to_delete != True; 
             """)
     try:
         db.session.execute(stmt)
