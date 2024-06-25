@@ -185,6 +185,7 @@ class Settings(BaseSettings):
     AR_ORDERS_DAYS_DEFAULT: int = 7
     ALL_CATEGORY_TYPES: str = 'ALL_CATEGORY_TYPES'
     ORDERS_REPORT_TIMEDELTA: int = 7
+    PROMO_HISTORY_TIMEDELTA: int = 7
 
     class OrderStage:
         @staticmethod

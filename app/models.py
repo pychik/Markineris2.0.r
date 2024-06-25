@@ -79,7 +79,8 @@ users_telegrams = db.Table('users_telegrams',
 
 users_promos = db.Table('users_promos',
                         db.Column('user_id', db.Integer, db.ForeignKey('users.id')),
-                        db.Column('promo_id', db.Integer, db.ForeignKey('promos.id'))
+                        db.Column('promo_id', db.Integer, db.ForeignKey('promos.id')),
+                        db.Column('activated_at', db.DateTime, default=datetime.now)
                         )
 
 
