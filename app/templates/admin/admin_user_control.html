@@ -2,601 +2,641 @@
 
 {% block admin_control_panel %}
 
-<div class="row">
+  <div class="row">
     <div class="col-md-2"></div>
     <div class="col-md-8 col-xs-12 text-center">
-        <div class="alert bg-light" role="alert">
-            <h2>Панель управления клиентами агента <b>{{ admin_info.login_name }}</b></h2>
-            <form method="post" action="{{url_for('admin_control.activate_all_admin_users', au_id=admin_info.id)}}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <input class="btn btn-sm btn-outline-success btn-outline"
-                       type="submit"value="Активировать всех пользователей из группы {{ admin_info.login_name }}">
-            </form>
-
-        </div>
+      <div class="alert bg-light" role="alert">
+        <h2>Панель управления клиентами агента <b>{{ admin_info.login_name }}</b></h2>
+        <form method="post" action="{{ url_for('admin_control.activate_all_admin_users', au_id=admin_info.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <input class="btn btn-sm btn-outline-success btn-outline"
+                 type="submit" value="Активировать всех пользователей из группы {{ admin_info.login_name }}">
+        </form>
+      </div>
     </div>
     <div class="col-md-2"></div>
     <div class="d-flex justify-content-center my-2">
-      <a href="{{ url_for('admin_control.bck_ar_orders', u_id=admin_info.id) }}"
-         class="col-md-5 text-center btn btn-sm btn-outline-secondary btn-outline">
-        Статистика по заказам клиентов
-      </a>
-    </div>
-    {% if current_user.role in ['superuser', 'm2r_admin'] or (current_user.role == 'admin' and current_user.is_at2)%}
-        <div class="d-flex justify-content-center">
-          <a href="{{ url_for('admin_control.bck_agent_control_reanimate', u_id=admin_info.id) }}"
-             class="col-md-5 text-center btn btn-sm btn-outline-warning btn-outline">
-            Реанимация клиентов
+          <a href="{{ url_for('admin_control.bck_ar_orders', u_id=admin_info.id) }}"
+             class="col-md-5 text-center btn btn-sm btn-outline-secondary btn-outline">
+            Статистика по заказам клиентов
           </a>
-        </div>
+    </div>
+    {% if current_user.role in ['superuser', 'markineris_admin'] or (current_user.role == 'admin' and current_user.is_at2 )%}
+          <div class="d-flex justify-content-center">
+            <a href="{{ url_for('admin_control.bck_agent_control_reanimate', u_id=admin_info.id) }}"
+               class="col-md-5 text-center btn btn-sm btn-outline-warning btn-outline">
+              Реанимация клиентов
+            </a>
+          </div>
     {% endif %}
 
+  </div>
 
-</div>
+  {% if current_user.is_at2 %}
+    <div class="col-12 container-fluid text-center mt-5">
+      <div class="card bg-light">
+        <a href="{{ url_for('admin_control.at2_new_orders') }}">
+          <div class="card-header primary text-white text-center">
 
-<div class="col-12 container-fluid text-center mt-5">
-    <div class="card bg-light">
-        <div class="card-header bg-success primary text-white text-center">
-            <a class="btn btn-sm btn-success" style="text-decoration: none;" data-bs-toggle="collapse" href="#collapsePartnerBlock" role="button"
-                        aria-expanded="false" aria-controls="collapsePartnerBlock">
-                <h3>Ссылки для регистрации новых клиентов</h3>
-            </a>
-        </div>
-        <div class="collapse" id="collapsePartnerBlock">
-            <div class="col" align="left">
-                    <table class="table mt-3 table-result tablesaw-stack mt-1">
-                      <thead class="text-dark">
-                        <tr>
-                          <th scope="col">#</th>
-                          <th scope="col"><font size="2">Код партнера</font></th>
-                          <th scope="col"><font size="2">Cсылка для пользователя&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</font></th>
+            <span class="btn btn-sm btn-secondary"><h3>Контроль заказов клиентов</h3></span>
+          </div>
+        </a>
 
-                        </tr>
-                      </thead>
-                      <tbody>
-
-
-                      {% if partner_sign_up_list %}
-                        {%for data_link in partner_sign_up_list%}
-                            <tr>
-                              <th scope="row">{{loop.index}}</th>
-
-                              <td>
-                                  {{data_link[0]}}
-                              </td>
-                              <td>
-                                  <div class="row">
-                                      <div class="col-10">
-                                        <input type="text"
-                                         value="{{ request.url_root[:-1] }}{{ data_link[1] }}" class="form-control"
-                                         id="copy_{{ data_link[0] }}" readonly>
-                                      </div>
-
-                                      <div class="col-2 mt-2">
-
-                                          <a id="copyText" type="button"
-                                                  title="Скопировать ссылку"
-                                         onclick="javascript:copy_buffer('copy_{{ data_link[0] }}',
-                                                 'copy_message_{{ data_link[0] }}');">&#128190;</a>
-
-                                      </div>
-                                  </div>
-                                  <span id="copy_message_{{ data_link[0] }}" style="color:#23c1fc"></span>
-                              </td>
-
-
-                            </tr>
-                        {%endfor%}
-                      {% else %}
-                          <tr><td></td><td>Нет партнер кодов</td><td></td></tr>
-                      {% endif %}
-                      </tbody>
-                    </table>
-            </div>
-
-        </div>
+      </div>
     </div>
-</div>
+  {% endif %}
 
 
-<div class="col-12 container-fluid text-center mt-5">
+  <div class="col-12 container-fluid text-center mt-5">
     <div class="card bg-light">
-        <div class="card-header bg-warning text-white text-center">
-            <h3>Добавление кодов партнеров</h3>
+      <div class="card-header bg-success primary text-white text-center">
+        <a class="btn btn-sm btn-success" style="text-decoration: none;" data-bs-toggle="collapse"
+           href="#collapsePartnerBlock" role="button"
+           aria-expanded="false" aria-controls="collapsePartnerBlock">
+          <h3>Ссылки для регистрации новых клиентов</h3>
+        </a>
+      </div>
+      <div class="collapse" id="collapsePartnerBlock">
+        <div class="col" align="left">
+          <table class="table mt-3 table-result tablesaw-stack mt-1">
+            <thead class="text-dark">
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col"><font size="2">Код партнера</font></th>
+              <th scope="col"><font size="2">Cсылка для пользователя&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</font></th>
+
+            </tr>
+            </thead>
+            <tbody>
+
+
+            {% if partner_sign_up_list %}
+              {% for data_link in partner_sign_up_list %}
+                <tr>
+                  <th scope="row">{{ loop.index }}</th>
+
+                  <td>
+                    {{ data_link[0] }}
+                  </td>
+                  <td>
+                    <div class="row">
+                      <div class="col-10">
+                        <input type="text"
+                               value="{{ request.url_root[:-1] }}{{ data_link[1] }}" class="form-control"
+                               id="copy_{{ data_link[0] }}" readonly>
+                      </div>
+
+                      <div class="col-2 mt-2">
+
+                        <a id="copyText" type="button"
+                           title="Скопировать ссылку"
+                           onclick="javascript:copy_buffer('copy_{{ data_link[0] }}',
+                             'copy_message_{{ data_link[0] }}');">&#128190;</a>
+
+                      </div>
+                    </div>
+                    <span id="copy_message_{{ data_link[0] }}" style="color:#23c1fc"></span>
+                  </td>
+
+
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td></td>
+                <td>Нет партнер кодов</td>
+                <td></td>
+              </tr>
+            {% endif %}
+            </tbody>
+          </table>
         </div>
-        <form method="post" action="{{ url_for('admin_control.partner_code', u_id=u_id)}}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <div class="row text-center mt-3">
-                <div class="col-md-1 text-left"></div>
-                <div class="col-md-3 col-xs-12 text-left">
-                    <label><h5>Код партнера</h5></label>
-                    <input type="text" name="code" class="form-control"
-                               placeholder="Введите код партнера" required>
 
-                </div>
-                <div class="col-md-4 col-xs-12 text-left">
-                    <label><h5>Имя партнера</h5></label>
-                    <input type="text" name="name" class="form-control"
-                               placeholder="Введите имя партнера" required>
-
-                </div>
-                <div class="col-md-3 col-xs-12 text-left">
-                    <label><h5>Телефон партнера</h5></label>
-                    <input type="tel" name="phone" class="form-control"
-                               placeholder="Введите телефон партнера" required>
-
-                </div>
-
-            </div>
-
-            <div class="col text-center">
-                    <button class="col-md-3 col-xs-12 btn btn-sm btn-warning mt-3 mb-2" type="submit">
-                              <font size="2">+Добавить</font>
-                          </button>
-            </div>
-        </form>
-        <form method="post" id=autoAddPartner" action="{{ url_for('admin_control.partner_code', u_id=u_id, auto=1)}}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      </div>
+    </div>
+  </div>
 
 
-                <div class="col text-center">
-                        <button class="col-md-3 col-xs-12 btn btn-sm btn-warning mt-3 mb-2" type="submit">
-                                  <font size="2">+Добавить автоматически {{admin_info.login_name}}_{{partner_sign_up_list | length + 1}}</font>
-                          </button>
-                </div>
-            </form>
+  <div class="col-12 container-fluid text-center mt-5">
+    <div class="card bg-light">
+      <div class="card-header bg-warning text-white text-center">
+        <h3>Добавление кодов партнеров</h3>
+      </div>
+      <form method="post" action="{{ url_for('admin_control.partner_code', u_id=u_id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="row text-center mt-3">
+          <div class="col-md-1 text-left"></div>
+          <div class="col-md-3 col-xs-12 text-left">
+            <label><h5>Код партнера</h5></label>
+            <input type="text" name="code" class="form-control"
+                   placeholder="Введите код партнера" required>
+
+          </div>
+          <div class="col-md-4 col-xs-12 text-left">
+            <label><h5>Имя партнера</h5></label>
+            <input type="text" name="name" class="form-control"
+                   placeholder="Введите имя партнера" required>
+
+          </div>
+          <div class="col-md-3 col-xs-12 text-left">
+            <label><h5>Телефон партнера</h5></label>
+            <input type="tel" name="phone" class="form-control"
+                   placeholder="Введите телефон партнера" required>
+
+          </div>
+
+        </div>
+
+        <div class="col text-center">
+          <button class="col-md-3 col-xs-12 btn btn-sm btn-warning mt-3 mb-2" type="submit">
+            <font size="2">+Добавить</font>
+          </button>
+        </div>
+      </form>
+      <form method="post" id=autoAddPartner" action="{{ url_for('admin_control.partner_code', u_id=u_id, auto=1) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+
+        <div class="col text-center">
+          <button class="col-md-3 col-xs-12 btn btn-sm btn-warning mt-3 mb-2" type="submit">
+            <font size="2">+Добавить
+              автоматически {{ admin_info.login_name }}_{{ partner_sign_up_list | length + 1 }}</font>
+          </button>
+        </div>
+      </form>
 
     </div>
-</div>
+  </div>
 
-{% if telegram_message %}
-<div class="col-12 container-fluid text-center mt-5">
-    <div class="card bg-light">
+  {% if telegram_message %}
+    <div class="col-12 container-fluid text-center mt-5">
+      <div class="card bg-light">
         <div class="card-header bg-info primary text-white text-center mb-2">
-            <h3>Настройка <b>телеграмм</b> сообщений.</h3>
+          <h3>Настройка <b>телеграмм</b> сообщений.</h3>
 
         </div>
 
         <form method="post"
-              action="{{ url_for('admin_control.telegram_message_set', u_id=u_id, t_id=telegram_message.id)}}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <div class="row">
-                <div class="col-md-3"></div>
-                <div class="col-md-6 col-xs-12 text-justify">
-                    <div class="col">
-                        <div class="form-check form-check-inline">
-                            <h4>
-                                <input class="form-check-input" type="checkbox" name="send_admin_info"
-                                          id="send_admin_info"
-                                          {% if telegram_message.send_admin_info%}checked="true"{% endif %}>
-                                <label class="form-check-label" style="font-size:18px"
-                                       for="send_admin_info">Информация об администраторе</label>
-                            </h4>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="form-check form-check-inline">
-                            <h4>
-                                <input class="form-check-input" type="checkbox" name="send_organization_name"
-                                          id="send_organization_name"
-                                   {% if telegram_message.send_organization_name %}checked="true"{% endif %}>
-                                <label class="form-check-label" for="send_organization_name">Организация</label>
-                            </h4>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <h4>
-                                <input class="form-check-input" type="checkbox" name="send_organization_idn"
-                                          id="send_organization_idn"
-                                          {% if telegram_message.send_organization_idn%}checked="true"{% endif %}>
-                                <label class="form-check-label" for="send_organization_idn">ИНН</label>
-                            </h4>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="form-check form-check-inline">
-                            <h4>
-                                <input class="form-check-input" type="checkbox" name="send_login_name"
-                                          id="send_login_name"
-                                          {% if telegram_message.send_login_name%}checked="true"{% endif %}>
-                                <label class="form-check-label" for="send_login_name">Логин пользователя</label>
-                            </h4>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <h4>
-                                <input class="form-check-input" type="checkbox" name="send_email"
-                                          id="send_email"
-                                          {% if telegram_message.send_email%}checked="true"{% endif %}>
-                                <label class="form-check-label" for="send_email">Email пользователя</label>
-                            </h4>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <h4>
-                                <input class="form-check-input" type="checkbox" name="send_phone"
-                                          id="send_phone"
-                                          {% if telegram_message.send_phone%}checked="true"{% endif %}>
-                                <label class="form-check-label" for="send_phone">Телефон пользователя</label>
-                            </h4>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <h4>
-                                <input class="form-check-input" type="checkbox" name="send_client_code"
-                                          id="send_client_code"
-                                          {% if telegram_message.send_client_code%}checked="true"{% endif %}>
-                                <label class="form-check-label" for="send_client_code">Код пользователя</label>
-                            </h4>
-                        </div>
-                    </div>
-                    <div class="col text-center mt-2 mb-3">
-                        <button type="submit" class="btn btn-outline-primary btn-block">Обновить</button>
-                    </div>
+              action="{{ url_for('admin_control.telegram_message_set', u_id=u_id, t_id=telegram_message.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <div class="row">
+            <div class="col-md-3"></div>
+            <div class="col-md-6 col-xs-12 text-justify">
+              <div class="col">
+                <div class="form-check form-check-inline">
+                  <h4>
+                    <input class="form-check-input" type="checkbox" name="send_admin_info"
+                           id="send_admin_info"
+                           {% if telegram_message.send_admin_info %}checked="true"{% endif %}>
+                    <label class="form-check-label" style="font-size:18px"
+                           for="send_admin_info">Информация об администраторе</label>
+                  </h4>
                 </div>
+              </div>
+              <div class="col">
+                <div class="form-check form-check-inline">
+                  <h4>
+                    <input class="form-check-input" type="checkbox" name="send_organization_name"
+                           id="send_organization_name"
+                           {% if telegram_message.send_organization_name %}checked="true"{% endif %}>
+                    <label class="form-check-label" for="send_organization_name">Организация</label>
+                  </h4>
+                </div>
+                <div class="form-check form-check-inline">
+                  <h4>
+                    <input class="form-check-input" type="checkbox" name="send_organization_idn"
+                           id="send_organization_idn"
+                           {% if telegram_message.send_organization_idn %}checked="true"{% endif %}>
+                    <label class="form-check-label" for="send_organization_idn">ИНН</label>
+                  </h4>
+                </div>
+              </div>
+              <div class="col">
+                <div class="form-check form-check-inline">
+                  <h4>
+                    <input class="form-check-input" type="checkbox" name="send_login_name"
+                           id="send_login_name"
+                           {% if telegram_message.send_login_name %}checked="true"{% endif %}>
+                    <label class="form-check-label" for="send_login_name">Логин пользователя</label>
+                  </h4>
+                </div>
+                <div class="form-check form-check-inline">
+                  <h4>
+                    <input class="form-check-input" type="checkbox" name="send_email"
+                           id="send_email"
+                           {% if telegram_message.send_email %}checked="true"{% endif %}>
+                    <label class="form-check-label" for="send_email">Email пользователя</label>
+                  </h4>
+                </div>
+                <div class="form-check form-check-inline">
+                  <h4>
+                    <input class="form-check-input" type="checkbox" name="send_phone"
+                           id="send_phone"
+                           {% if telegram_message.send_phone %}checked="true"{% endif %}>
+                    <label class="form-check-label" for="send_phone">Телефон пользователя</label>
+                  </h4>
+                </div>
+                <div class="form-check form-check-inline">
+                  <h4>
+                    <input class="form-check-input" type="checkbox" name="send_client_code"
+                           id="send_client_code"
+                           {% if telegram_message.send_client_code %}checked="true"{% endif %}>
+                    <label class="form-check-label" for="send_client_code">Код пользователя</label>
+                  </h4>
+                </div>
+              </div>
+              <div class="col text-center mt-2 mb-3">
+                <button type="submit" class="btn btn-outline-primary btn-block">Обновить</button>
+              </div>
             </div>
+          </div>
 
         </form>
+      </div>
     </div>
-</div>
-{% endif %}
+  {% endif %}
 
 
-<div class="row mt-3 text-center">
+  <div class="row mt-3 text-center">
     <div class="col-md-3"></div>
     <div class="col-md-6 col-xs-12"><h3>Зарегистрированные коды партнеров</h3>
 
-        <a class="btn btn-sm btn-secondary" data-bs-toggle="collapse" href="#collapsePartnerCodesTable" role="button"
-           aria-expanded="true"
-           aria-controls="collapsePartnerCodesTable">
-            Раскрыть/Скрыть таблицу кодов
-        </a>
+      <a class="btn btn-sm btn-secondary" data-bs-toggle="collapse" href="#collapsePartnerCodesTable" role="button"
+         aria-expanded="true"
+         aria-controls="collapsePartnerCodesTable">
+        Раскрыть/Скрыть таблицу кодов
+      </a>
     </div>
-</div>
+  </div>
 
 
-<div class="row text-center mt-5">
+  <div class="row text-center mt-5">
     <div class="col collapse {% if expanded == 'partners' %}show{% endif %}" id="collapsePartnerCodesTable">
 
-                <div class="col  text-center "><h3>Зарегистрированные коды партнеров</h3></div>
-                <div class="col" align="left">
-                    <table class="table mt-3 table-result tablesaw-stack mt-1">
-                      <thead class="text-dark">
-                        <tr>
-                          <th scope="col">#</th>
-                          <th scope="col"><font size="2">Код</font></th>
-                          <th scope="col"><font size="2">Имя&nbspпартнера</font></th>
-                          <th scope="col"><font size="2">Телефон</font></th>
-                          <th scope="col"><font size="2">Обязательный параметр <br> при регистрации телефон</font></th>
-                          <th scope="col"><font size="2"></font></th>
+      <div class="col  text-center "><h3>Зарегистрированные коды партнеров</h3></div>
+      <div class="col" align="left">
+        <table class="table mt-3 table-result tablesaw-stack mt-1">
+          <thead class="text-dark">
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col"><font size="2">Код</font></th>
+            <th scope="col"><font size="2">Имя&nbspпартнера</font></th>
+            <th scope="col"><font size="2">Телефон</font></th>
+            <th scope="col"><font size="2">Обязательный параметр <br> при регистрации телефон</font></th>
+            <th scope="col"><font size="2"></font></th>
 
-                        </tr>
-                      </thead>
-                      <tbody>
+          </tr>
+          </thead>
+          <tbody>
 
-                        {%for pc in admin_info.partners%}
-                            <tr>
-                              <th scope="row">{{loop.index}}</th>
+          {% for pc in admin_info.partners %}
+            <tr>
+              <th scope="row">{{ loop.index }}</th>
 
-                              <td>
-                                  {{pc.code}}
-                              </td>
-                              <td>
-                                  {{pc.name}}
-                              </td>
-                              <td>
-                                  {{pc.phone}}
-                              </td>
-                              <td class="text-center">
+              <td>
+                {{ pc.code }}
+              </td>
+              <td>
+                {{ pc.name }}
+              </td>
+              <td>
+                {{ pc.phone }}
+              </td>
+              <td class="text-center">
 
                                   <span
                                     class="badge badge-{% if pc.required_phone %}success{% else %}danger{% endif %}
                                      mr-5">
                                       {{ pc.required_phone }}
                                   </span>
-<!--{#                                  <span#}-->
-<!--{#                                    class="badge badge-{% if pc.required_email %}success{% else %}danger{% endif %}">#}-->
-<!--{#                                      {{ pc.required_email }}#}-->
-<!--{#                                  </span>#}-->
-<!--{#                                  <a data-toggle="tooltip" data-html="true"#}-->
-<!--{#                                    title="Менее 500  {{pc.p_lte_500}}<br>#}-->
-<!--{#                                      500-1k  {{pc.p_500_1k}}<br>#}-->
-<!--{#                                      1k-3k  {{pc.p_1k_3k}}<br>#}-->
-<!--{#                                      3k-10k  {{pc.p_3k_10k}}<br>#}-->
-<!--{#                                      10k-20k  {{pc.p_10k_20k}}<br>#}-->
-<!--{#                                      20k-50k  {{pc.p_20k_50k}}<br>#}-->
-<!--{#                                      Более 50k  {{pc.p_gte_50k}}<br>">#}-->
-<!--{#                                      <span class="badge badge-secondary">&nbsp&nbsp...&nbsp&nbsp</span>#}-->
-<!--{#                                  </a>#}-->
+                <!--{#                                  <span#}-->
+                <!--{#                                    class="badge badge-{% if pc.required_email %}success{% else %}danger{% endif %}">#}-->
+                <!--{#                                      {{ pc.required_email }}#}-->
+                <!--{#                                  </span>#}-->
+                <!--{#                                  <a data-toggle="tooltip" data-html="true"#}-->
+                <!--{#                                    title="Менее 500  {{pc.p_lte_500}}<br>#}-->
+                <!--{#                                      500-1k  {{pc.p_500_1k}}<br>#}-->
+                <!--{#                                      1k-3k  {{pc.p_1k_3k}}<br>#}-->
+                <!--{#                                      3k-10k  {{pc.p_3k_10k}}<br>#}-->
+                <!--{#                                      10k-20k  {{pc.p_10k_20k}}<br>#}-->
+                <!--{#                                      20k-50k  {{pc.p_20k_50k}}<br>#}-->
+                <!--{#                                      Более 50k  {{pc.p_gte_50k}}<br>">#}-->
+                <!--{#                                      <span class="badge badge-secondary">&nbsp&nbsp...&nbsp&nbsp</span>#}-->
+                <!--{#                                  </a>#}-->
 
-                              </td>
+              </td>
 
-                              <td>
-                                  <form method="post" action="{{url_for('admin_control.delete_partner_code', u_id=admin_info.id, p_id=pc.id)}}">
-                                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                      <input class="btn btn-sm btn-outline-danger btn-outline"
-                                                     type="submit" name="activate" value="&times;">
-                                  </form>
-                              </td>
+              <td>
+                <form method="post"
+                      action="{{ url_for('admin_control.delete_partner_code', u_id=admin_info.id, p_id=pc.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <input class="btn btn-sm btn-outline-danger btn-outline"
+                         type="submit" name="activate" value="&times;">
+                </form>
+              </td>
 
 
-                            </tr>
-                        {%endfor%}
-                      </tbody>
-                    </table>
-                </div>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
     </div>
-</div>
+  </div>
 
 
-{% include "admin/helpers/order_notification_panel.html" %}
+  {% include "admin/helpers/order_notification_panel.html" %}
 
 
-{% include "admin/user_search/search_user_bar.html" %}
+  {% include "admin/user_search/search_user_bar.html" %}
 
-{% include "admin/user_search/search_user_by_idn.html" %}
+  {% include "admin/user_search/search_user_by_idn.html" %}
 
-{% set sort_type = request.args.sort_type|default('created_at') %}
+  {% set sort_type = request.args.sort_type|default('created_at') %}
 
-<div class="row text-center mt-5">
+  <div class="row text-center mt-5">
 
     <div class="col-12">
-    <h3>
+      <h3>
         Зарегистрированные пользователи
-        <a href="{{url_for('admin_control.users_orders_stats', admin_id=admin_info.id)}}" title="Посмотреть статистику заказов пользователей агента {{admin_info.login_name}}"><span class="badge bg-info"> Всего  {{ users_pagination.total }}</span></a>
-    </h3>
+        <a href="{{ url_for('admin_control.users_orders_stats', admin_id=admin_info.id) }}"
+           title="Посмотреть статистику заказов пользователей агента {{ admin_info.login_name }}"><span
+          class="badge bg-info"> Всего {{ users_pagination.total }}</span></a>
+      </h3>
 
-        {%if users_pagination%}
+      {% if users_pagination %}
 
-                <div id="users_table" class="col" align="left">
-                    <table class="table mt-3 table-result tablesaw-stack mt-1">
-                      <thead class="text-dark">
-                        <tr>
-                          <th scope="col">
-                              <div class="d-flex">
+        <div id="users_table" class="col" align="left">
+          <table class="table mt-3 table-result tablesaw-stack mt-1">
+            <thead class="text-dark">
+            <tr>
+              <th scope="col">
+                <div class="d-flex">
 
-                                  <div class="me-1" title="Сортировка по времени добавления пользователей">
-                                      <a href="{{url_for('admin_control.admin', u_id=u_id,)}}/?sort_type=created_at#users_table" class="{%if sort_type != 'orders'%}link-warning{%else%}link-secondary{%endif%}">
-                                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clock" viewBox="0 0 16 16">
-                                              <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z"/>
-                                              <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0"/>
-                                          </svg>
-                                      </a>
-                                  </div>
+                  <div class="me-1" title="Сортировка по времени добавления пользователей">
+                    <a href="{{ url_for('admin_control.admin', u_id=u_id,)}}/?sort_type=created_at#users_table"
+                       class="{% if sort_type != 'orders' %}link-warning{% else %}link-secondary{% endif %}">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                           class="bi bi-clock" viewBox="0 0 16 16">
+                        <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z"/>
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0"/>
+                      </svg>
+                    </a>
+                  </div>
 
-                                  <div title="Сортировка по дате заказа">
-                                      <a href="{{url_for('admin_control.admin', u_id=u_id,)}}/?sort_type=orders#users_table" class="{%if sort_type=='orders'%}link-warning{%else%}link-secondary{%endif%}">
-                                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-card-checklist" viewBox="0 0 16 16">
-                                              <path d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2z"/>
-                                              <path d="M7 5.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0M7 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0"/>
-                                          </svg>
-                                      </a>
-                                  </div>
-                              </div>
-                          </th>
-                          <th scope="col" style="width:200px"><font size="2">Логин</font></th>
-                          <th scope="col"style="width:150px"><font size="2">Телефон</font></th>
-                          <th scope="col"><font size="2">Email</font></th>
-{#                          <th scope="col"><font size="2">Возможность отправки excel</font></th>#}
-                          <th scope="col"><font size="2">Код партнера</font></th>
-                          <th scope="col"><font size="2">Код клиента</font></th>
-                          {% if not admin_info.is_at2 %}
-                            <th scope="col"><font size="2">Ценовой пакет</font></th>
-                          {% endif %}
-                          <th scope="col"><font size="2">Статусы</font></th>
-                          <th scope="col"><font size="2">Запрос на ссылку создания<br> нового пароля</font></th>
-                          <th scope="col"><font size="2">Управление пользователем</font></th>
-                          <th scope="col"><font size="2"></font></th>
-                        </tr>
-                      </thead>
-                      <tbody>
+                  <div title="Сортировка по дате заказа">
+                    <a href="{{ url_for('admin_control.admin', u_id=u_id,)}}/?sort_type=orders#users_table"
+                       class="{% if sort_type=='orders' %}link-warning{% else %}link-secondary{% endif %}">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                           class="bi bi-card-checklist" viewBox="0 0 16 16">
+                        <path
+                          d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2z"/>
+                        <path
+                          d="M7 5.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0M7 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0"/>
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              </th>
+              <th scope="col" style="width:200px"><font size="2">Логин</font></th>
+              <th scope="col" style="width:150px"><font size="2">Телефон</font></th>
+              <th scope="col"><font size="2">Email</font></th>
+              {#                          <th scope="col"><font size="2">Возможность отправки excel</font></th>#}
+              <th scope="col"><font size="2">Код партнера</font></th>
+              <th scope="col"><font size="2">Код клиента</font></th>
+              {% if not admin_info.is_at2 %}
+                <th scope="col"><font size="2">Ценовой пакет</font></th>
+              {% endif %}
+              <th scope="col"><font size="2">Статусы</font></th>
+              <th scope="col"><font size="2">Запрос на ссылку создания<br> нового пароля</font></th>
+              <th scope="col"><font size="2">Управление пользователем</font></th>
+              <th scope="col"><font size="2"></font></th>
+            </tr>
+            </thead>
+            <tbody>
 
-                        {%for u in users_pagination%}
-                            <tr>
-                              <th scope="row">
-                                  <span title="Баланс пользователя {{u.balance}} р.">{{(users_pagination.page - 1) * users_pagination.per_page + loop.index}}</span>
-                              </th>
+            {% for u in users_pagination %}
+              <tr>
+                <th scope="row">
+                  <span
+                    title="Баланс пользователя {{ u.balance }} р.">{{ (users_pagination.page - 1) * users_pagination.per_page + loop.index }}</span>
+                </th>
 
-                              <td>
-                                  <a href="{{url_for('admin_control.client_orders_stats', admin_id=admin_info.id, client_id=u.id)}}" title="Посмотреть историю заказов клиента">
-                                      {{u.login_name}}
-                                  </a>
+                <td>
 
-                                  {% if u.created_at %}
-                                    <div class="font-10 text-secondary" title="Дата и время регистрации" style="font-size: 10px">{{ u.created_at.strftime('%Y-%m-%d %H:%M:%S') if u.created_at else '_'}}</div>
-                                  {%endif%}
+                  <a href="{{ url_for('admin_control.client_orders_stats', admin_id=admin_info.id, client_id=u.id) }}"
+                     title="Посмотреть историю заказов клиента">
+                    {{ u.login_name }}
+                  </a>
 
-                                  <div style="font-size: 8px" title="Количество заказов, количество этикеток и дата крайнего заказа">
-                                      <span style="background-color: #dbf8b6;">{{ u.orders_count if u.orders_count else '_'}}</span> |
-                                      <span title="крайний заказ зарегистрирован {{ u.os_created_at.strftime('%d.%m.%Y %H:%M:%S ') if u.os_created_at else '_'}}" style="background-color: #fcf0b5;">{{ u.total_marks_count if u.total_marks_count else '_' }}</span> |
-                                      <span>{{ u.os_created_at.strftime('%d.%m.%Y %H:%M:%S ') if u.os_created_at else '_'}}</span>
-                                  </div>
-                              </td>
+                  {% if u.created_at %}
+                    <div class="font-10 text-secondary" title="Дата и время регистрации"
+                         style="font-size: 10px">{{ u.created_at.strftime('%Y-%m-%d %H:%M:%S') if u.created_at else '_' }}</div>
+                  {% endif %}
 
-                              <td>
-                                  {{u.phone}}
-                              </td>
-                              <td>
-                                  {{u.email}}{% if admin_info.role == 'superuser'%}&nbsp;<span class="ml-1" title="Изменить пароль"
-                                            onclick="change_user_password_main(`{{ url_for('admin_control.bck_change_user_password', u_id=u.id) }}`, `{{csrf_token()}}`, `{{ u.login_name }}`)">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="grey" class="bi bi-pencil" viewBox="0 0 16 16">
-                                                <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+                  <div style="font-size: 8px" title="Количество заказов, количество этикеток и дата крайнего заказа">
+                    <span style="background-color: #dbf8b6;">{{ u.orders_count if u.orders_count else '_' }}</span> |
+                    <span
+                      title="крайний заказ зарегистрирован {{ u.os_created_at.strftime('%d.%m.%Y %H:%M:%S ') if u.os_created_at else '_' }}"
+                      style="background-color: #fcf0b5;">{{ u.total_marks_count if u.total_marks_count else '_' }}</span>
+                    |
+                    <span>{{ u.os_created_at.strftime('%d.%m.%Y %H:%M:%S ') if u.os_created_at else '_' }}</span>
+                  </div>
+                </td>
+
+                <td>
+                  {{ u.phone }}
+                </td>
+                <td>
+                  {{ u.email }}{% if admin_info.role == 'superuser' %}&nbsp;<span class="ml-1" title="Изменить пароль"
+                                                                                  onclick="change_user_password_main(`{{ url_for('admin_control.bck_change_user_password', u_id=u.id) }}`, `{{ csrf_token() }}`, `{{ u.login_name }}`)">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="grey"
+                                                 class="bi bi-pencil" viewBox="0 0 16 16">
+                                                <path
+                                                  d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
                                             </svg>
                                   </span>{% endif %}
-                              </td>
+                </td>
 
-                              <td>
-                                 {% if u.code %} {{ u.code }}{% else %}NO PARTNER{% endif %}
-                              </td>
-                              <td>
-                                  {% if u.client_code %}{{ u.client_code }}{% endif %}
-                              </td>
-                              {%if not admin_info.is_at2%}
-                                <td>
-                                  <div id="user_price{{u.id}}">
-                                  {% if u.price_code %}
-                                    <span class="badge bg-warning text-black" style="cursor:pointer"
-                                        onclick="perform_modal_prices('{{u.id}}', '{{u.login_name}}', '{{ u.price_code }}', '{{ u.price_1 }}', '{{ u.price_2 }}', '{{ u.price_3 }}', '{{ u.price_4 }}', '{{ u.price_5 }}', '{{url_for('admin_control.bck_set_user_price', u_id=u.id)}}?bck=1', '{{csrf_token()}}')">{{ u.price_code }}</span>
-                                  {% else %}
-                                    <span class="badge bg-warning text-black" style="cursor:pointer"
-                                        onclick="perform_modal_prices('{{u.id}}', '{{u.login_name}}', '{{basic_prices[0]}}', '{{basic_prices[1]}}', '{{basic_prices[2]}}', '{{basic_prices[3]}}', '{{basic_prices[4]}}', '{{basic_prices[5]}}', '{{url_for('admin_control.bck_set_user_price', u_id=u.id)}}?bck=1', '{{csrf_token()}}')">{{basic_prices[0]}}</span>
-                                  {% endif %}
-                                  </div>
-                                </td>
-                              {% endif %}
-                              <td>
-                                  {% if u.status %}
-                                      <span class="badge bg-warning text-black">user активирован </span>
-                                  {% else %}
-                                      <span class="badge bg-secondary">user не активирован</span>
-                                  {% endif %}
-                                  <br>
-                                  {% if u.is_send_excel %}
-                                      <span class="badge bg-warning text-black">excel активирован</span>
-                                  {% else %}
-                                      <span class="badge bg-secondary">excel не активирован</span>
-                                  {% endif %}
-                              </td>
-                              <td>
+                <td>
+                  {% if u.code %} {{ u.code }}{% else %}NO PARTNER{% endif %}
+                </td>
+                <td>
+                  {% if u.client_code %}{{ u.client_code }}{% endif %}
+                </td>
+                {% if not admin_info.is_at2 %}
+                  <td>
+                    <div id="user_price{{ u.id }}">
+                      {% if u.price_code %}
+                        <span class="badge bg-warning text-black" style="cursor:pointer"
+                              onclick="perform_modal_prices('{{ u.id }}', '{{ u.login_name }}', '{{ u.price_code }}', '{{ u.price_1 }}', '{{ u.price_2 }}', '{{ u.price_3 }}', '{{ u.price_4 }}', '{{ u.price_5 }}', '{{ url_for('admin_control.bck_set_user_price', u_id=u.id) }}?bck=1', '{{ csrf_token() }}')">{{ u.price_code }}</span>
+                      {% else %}
+                        <span class="badge bg-warning text-black" style="cursor:pointer"
+                              onclick="perform_modal_prices('{{ u.id }}', '{{ u.login_name }}', '{{ basic_prices[0] }}', '{{ basic_prices[1] }}', '{{ basic_prices[2] }}', '{{ basic_prices[3] }}', '{{ basic_prices[4] }}', '{{ basic_prices[5] }}', '{{ url_for('admin_control.bck_set_user_price', u_id=u.id) }}?bck=1', '{{ csrf_token() }}')">{{ basic_prices[0] }}</span>
+                      {% endif %}
+                    </div>
+                  </td>
+                {% endif %}
+                <td>
+                  {% if u.status %}
+                    <span class="badge bg-warning text-black">user активирован </span>
+                  {% else %}
+                    <span class="badge bg-secondary">user не активирован</span>
+                  {% endif %}
+                  <br>
+                  {% if u.is_send_excel %}
+                    <span class="badge bg-warning text-black">excel активирован</span>
+                  {% else %}
+                    <span class="badge bg-secondary">excel не активирован</span>
+                  {% endif %}
+                </td>
+                <td>
 
-                                  <h5><span class="btn btn-sm btn-outline-warning btn-outline"
-                                            onclick='perform_modal_copy_link("{{ u.id }}", "{{ u.login_name }}"); get_information("{{ url_for('admin_control.create_link_new_password', u_id=u.id) }}", function(text) {
-                                                var text_block = document.getElementById("user_link{{ u.id }}");
-                                                    text_block.value=text;
-                                                 // Do something with the div here, like inserting it into the page
-                                     $("#user_linkModal{{ u.id }}").modal("show");
-                                                    })'>Запрос на ссылку</span>
+                  <h5><span class="btn btn-sm btn-outline-warning btn-outline"
+                            onclick='perform_modal_copy_link("{{ u.id }}", "{{ u.login_name }}"); get_information("{{ url_for('admin_control.create_link_new_password', u_id=u.id) }}", function(text) {
+                              var text_block = document.getElementById("user_link{{ u.id }}");
+                              text_block.value=text;
+                              // Do something with the div here, like inserting it into the page
+                              $("#user_linkModal{{ u.id }}").modal("show");
+                              })'>Запрос на ссылку</span>
 
-                                  </h5>
-{#                                  <span id="user_link{{ u.id }}" style="font-size:10px"></span>#}
+                  </h5>
+                  {#                                  <span id="user_link{{ u.id }}" style="font-size:10px"></span>#}
 
-                              </td>
-                              <td>
-                                  {% if not u.status %}
+                </td>
+                <td>
+                  {% if not u.status %}
 
-                                      <form method="post" action="{{url_for('admin_control.set_user',
-                                        type_set='activate_user', u_id=u.id)}}">
-                                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                          <input class="btn btn-sm btn-outline-success btn-block"
-                                             type="submit" name="activate"
-                                             onclick="if (document.getElementById('set_user_{{ u.id }}').validity.valid){loadingCircle();}"
-                                             value="Активировать">
-                                      <input type="text" class="form-control mt-1" id="set_user_{{ u.id }}"
-                                         placeholder="Введите код клиента"
-                                         name="client_code"
-                                        {% if u.client_code %}value="{{ u.client_code }}"{% endif %} required>
-                                      </form>
+                    <form method="post" action="{{ url_for('admin_control.set_user',
+                                        type_set='activate_user', u_id=u.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                      <input class="btn btn-sm btn-outline-success btn-block"
+                             type="submit" name="activate"
+                             onclick="if (document.getElementById('set_user_{{ u.id }}').validity.valid){loadingCircle();}"
+                             value="Активировать">
+                      <input type="text" class="form-control mt-1" id="set_user_{{ u.id }}"
+                             placeholder="Введите код клиента"
+                             name="client_code"
+                             {% if u.client_code %}value="{{ u.client_code }}"{% endif %} required>
+                    </form>
 
-                                  {% else %}
-                                      <form method="post" action="{{url_for('admin_control.deactivate_user',
-                                            type_set='deactivate_user', u_id=u.id)}}">
-                                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                                  <input class="btn btn-sm btn-outline-danger btn-block"
-                                                         type="submit" name="activate" value="Деактивировать"
-                                                         onclick="loadingCircle()"
-                                                         {% if u.role=='superuser' %}disabled{% endif %}>
-                                      </form>
-                                  {% endif %}
-                                    <br>
-                                  {% if not u.is_send_excel %}
-                                      <form method="post" action="{{url_for('admin_control.set_user',
-                                       type_set='activate_is_send', u_id=u.id)}}">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                          <input class="btn btn-sm btn-outline-info btn-block"
-                                                 title="Включить возможность отправки таблиц Excel"
-                                                 type="submit" name="activate"
-                         onclick="{loadingCircle();}"
-                                                 value="Вкл. EXCEL">
+                  {% else %}
+                    <form method="post" action="{{ url_for('admin_control.deactivate_user',
+                                            type_set='deactivate_user', u_id=u.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                      <input class="btn btn-sm btn-outline-danger btn-block"
+                             type="submit" name="activate" value="Деактивировать"
+                             onclick="loadingCircle()"
+                             {% if u.role=='superuser' %}disabled{% endif %}>
+                    </form>
+                  {% endif %}
+                  <br>
+                  {% if not u.is_send_excel %}
+                    <form method="post" action="{{ url_for('admin_control.set_user',
+                                       type_set='activate_is_send', u_id=u.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                      <input class="btn btn-sm btn-outline-info btn-block"
+                             title="Включить возможность отправки таблиц Excel"
+                             type="submit" name="activate"
+                             onclick="{loadingCircle();}"
+                             value="Вкл. EXCEL">
 
-                                      </form>
-                                  {% else %}
-                                      <form method="post" action="{{url_for('admin_control.deactivate_user',
-                                            type_set='deactivate_is_send', u_id=u.id)}}">
-                                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                                  <input class="btn btn-sm btn-outline-secondary btn-block"
-                                                         title="Оключить возможность отправки таблиц Excel"
-                                                         type="submit" name="activate" value="Откл. EXCEL"
-                                                         onclick="loadingCircle()"
-                                                         {% if u.role == 'superuser' %}disabled{% endif %}>
-                                      </form>
-                                  {% endif %}
+                    </form>
+                  {% else %}
+                    <form method="post" action="{{ url_for('admin_control.deactivate_user',
+                                            type_set='deactivate_is_send', u_id=u.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                      <input class="btn btn-sm btn-outline-secondary btn-block"
+                             title="Оключить возможность отправки таблиц Excel"
+                             type="submit" name="activate" value="Откл. EXCEL"
+                             onclick="loadingCircle()"
+                             {% if u.role == 'superuser' %}disabled{% endif %}>
+                    </form>
+                  {% endif %}
 
-                              </td>
-                              <td>
-                                  <form method="post" action="{{ url_for('admin_control.delete_user', u_id=u.id)}}">
-                                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                      <button type="submit" class="btn btn-sm btn-outline-danger"
-                                          title="Удалить пользователя {{ u.login_name }}"
-                                          onclick="loadingCircle()">
-                                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
-                                                <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/>
-                                          </svg>
-{#                                      <input type="hidden" name="delete">#}
-                                      </button>
+                </td>
+                <td>
+                  <form method="post" action="{{ url_for('admin_control.delete_user', u_id=u.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                            title="Удалить пользователя {{ u.login_name }}"
+                            onclick="loadingCircle()">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                           class="bi bi-trash3" viewBox="0 0 16 16">
+                        <path
+                          d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/>
+                      </svg>
+                      {#                                      <input type="hidden" name="delete">#}
+                    </button>
 
-                                  </form>
-                              </td>
+                  </form>
+                </td>
 
-                            </tr>
+              </tr>
 
 
-                        {%endfor%}
-                      </tbody>
-                    </table>
+            {% endfor %}
+            </tbody>
+          </table>
 
-                </div>
-        {%endif%}
+        </div>
+      {% endif %}
 
-    <nav id="paginated_nav" aria-label="Навигация по страничкам с пользователями">
-      <ul class="pagination justify-content-center">
+      <nav id="paginated_nav" aria-label="Навигация по страничкам с пользователями">
+        <ul class="pagination justify-content-center">
           {% if users_pagination.has_prev %}
             <li class="page-item">
-               <a class='page-link'
-                  href="{{ url_for('admin_control.admin', u_id=admin_info.id, page=users_pagination.prev_num) }}&sort_type={{sort_type}}#users_table"
-                  aria-label="Previous">
-                  Пред.
-               </a>
+              <a class='page-link'
+                 href="{{ url_for('admin_control.admin', u_id=admin_info.id, page=users_pagination.prev_num) }}&sort_type={{ sort_type }}#users_table"
+                 aria-label="Previous">
+                Пред.
+              </a>
             </li>
           {% endif %}
           {% for number in users_pagination.iter_pages() %}
-              {% if number != None %}
-                  <li class="page-item {% if users_pagination.page == number %}active{% endif %}">
-                      <a class="page-link"
-                         href="{{ url_for('admin_control.admin', u_id=admin_info.id, page=number) }}&sort_type={{sort_type}}#users_table">
-                          {{ number }}
-                      </a>
-                  </li>
-              {% else %}
-                  <span class="page-link">...</span>
-              {% endif %}
-
-        {% endfor %}
-
-        {% if users_pagination.has_next %}
-            <li class="page-item">
+            {% if number != None %}
+              <li class="page-item {% if users_pagination.page == number %}active{% endif %}">
                 <a class="page-link"
-                   href="{{ url_for('admin_control.admin', u_id=admin_info.id, page=users_pagination.next_num)}}&sort_type={{sort_type}}#users_table"
-                    aria-label="Next">
-                    След.
+                   href="{{ url_for('admin_control.admin', u_id=admin_info.id, page=number) }}&sort_type={{ sort_type }}#users_table">
+                  {{ number }}
                 </a>
+              </li>
+            {% else %}
+              <span class="page-link">...</span>
+            {% endif %}
+
+          {% endfor %}
+
+          {% if users_pagination.has_next %}
+            <li class="page-item">
+              <a class="page-link"
+                 href="{{ url_for('admin_control.admin', u_id=admin_info.id, page=users_pagination.next_num) }}&sort_type={{ sort_type }}#users_table"
+                 aria-label="Next">
+                След.
+              </a>
             </li>
 
-        {% endif %}
+          {% endif %}
 
-      </ul>
-    </nav>
+        </ul>
+      </nav>
+    </div>
   </div>
-</div>
 
-<div id="copy_link_modals">
-</div>
-<div id="user_prices_modal">
-</div>
-<div id="change_user_password_modal">
-</div>
+  <div id="copy_link_modals">
+  </div>
+  <div id="user_prices_modal">
+  </div>
+  <div id="change_user_password_modal">
+  </div>
 
-<script src="{{url_for('static',filename='main_v2/js/admin/admin_common_v2.js')}}"></script>
-<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc_v6.js')}}"></script>
-<script src="{{url_for('static',filename='main_v2/js/admin/prices_block.js')}}"></script>
-<script>
-    const prices_array = [{% for p in all_prices %}[{{ p.id }},'{{ p.price_code }}'],{% endfor %}];
-</script>
+
+  <script src="{{ url_for('static',filename='main_v2/js/admin/admin_common_v2.js') }}"></script>
+  <script src="{{ url_for('static',filename='main_v2/js/admin/admin_uc_v7.js') }}"></script>
+  <script src="{{ url_for('static',filename='main_v2/js/admin/prices_block.js') }}"></script>
+  <script>
+      const prices_array = [{% for p in all_prices %}[{{ p.id }},'{{ p.price_code }}'],{% endfor %}];
+  </script>
 
 {% endblock %}

@@ -5,7 +5,7 @@
     <div><b>Номер:</b> {{ transaction.id }}</div>
     <div><b>Дата формирования:</b> {{ transaction.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</div>
     <div><b>Статус:</b> <span class="badge bg-warning text-black">{{ transaction_dict[transaction.status] }}</span></div>
-{#    <div><b>Тип:</b> {% if transaction.type %}Пополнение {% else %}Списание{%endif%}</div>#}
+<!--    <div><b>Тип:</b> {% if transaction.type %}Пополнение {% else %}Списание{%endif%}</div>-->
 
     {% if transaction.promo_info %}
         <div><b>Промо:</b> {{ transaction.promo_info }}</div>
@@ -13,6 +13,12 @@
 
     {% if transaction.type %}
         <div><b>Тип транзакции:</b> Пополнение лицевого счета</div>
+<!--        <div><b>Счет:</b> {% if not transaction.op_cost%}-->
+<!--                                {% if service_account %}{{ service_account.sa_name }}{% endif %}-->
+<!--                          {%else%}Возврат средств отмененного заказа-->
+<!--                            <span class="text-warning">{{ transaction.wo_account_info }}</span>-->
+<!--                          {%endif%}-->
+<!--        </div>-->
         {% if transaction.status ==2 %}
             <div>
                 <b>Счет:</b> {% if service_account %}{{ service_account.sa_name }}{% endif %}
@@ -47,7 +53,7 @@
     <div><b>Сумма:</b> {{ transaction.amount }} р.</div>
     <div class="col mt-3" title="Скрин транзакции">{{transaction_image | safe}}</div>
     {% if transaction.status == 1 %}
-         <div class="text-center mt-5">
+        <div class="text-center mt-5">
             <div class="d-flex my-3">
                 <div class="col-10">
                     <button class="btn btn-sm btn-outline-danger disabled" id="cancel_transaction_btn" data-bs-dismiss="modal"
@@ -77,6 +83,15 @@
                 </div>
             </div>
         </div>
+
+<!--    {#   {% elif transaction.status == 2%}-->
+<!--        <div class="text-center">-->
+<!--            <button class="btn btn-sm btn-outline-danger my-3">Отменить транзакцию</button>-->
+<!--        </div>-->
+<!--    {% elif transaction.status == 0 %}-->
+<!--        <div class="text-center">-->
+<!--            <button class="btn btn-sm btn-outline-success my-3">Подтвердить транзакцию снова</button>-->
+<!--        </div>&ndash;&gt;#}-->
 
     {% endif %}
 </div>

@@ -656,6 +656,76 @@ function bck_get_transactions_excel_report(url, csrf) {
 }
 
 
+function bck_get_fin_promo_history(url) {
+    let sort_mode = $('input[name="sort_type"]:checked').val();
+    let date_from = $('#date_from').val();
+    let date_to = $('#date_to').val();
+    let selectElement = document.getElementById('promo_codes_select');
+    let promo_code = selectElement.value;
+
+    $.ajax({
+        url: url,
+        method: "GET",
+        data: {
+            date_from: date_from,
+            date_to: date_to,
+            sort_type: sort_mode,
+            promo_code: promo_code,
+        },
+        success: function (data) {
+            $('#fin_promo_history_table').html(data);
+            $("#fin_promo_history_table").append(data.htmlresponse);
+        }
+    });
+}
+
+
+function get_fin_promo_history_report_excel(url, csrf) {
+    let sort_mode = $('input[name="sort_type"]:checked').val();
+    let date_from = $('#date_from').val();
+    let date_to = $('#date_to').val();
+    let selectElement = document.getElementById('promo_codes_select');
+    let promo_code = selectElement.value;
+
+    $('#overlay_loading').show();
+    $.ajax({
+        url: url,
+        headers: { "X-CSRFToken": csrf },
+        method: "POST",
+        data: {date_from: date_from,
+            date_to: date_to,
+            sort_type: sort_mode,
+            promo_code: promo_code,
+            },
+        xhrFields: {
+            responseType: 'blob' // Set response type to blob
+        },
+
+        success: function(response, status, xhr) {
+            $('#overlay_loading').hide();
+            if (xhr.status === 200) {
+                var blob = new Blob([response], { type: 'application/xlsx' });
+                var link = document.createElement('a');
+
+                var dataName = xhr.getResponseHeader('data_file_name');
+
+                link.href = window.URL.createObjectURL(blob);
+                // console.log()
+                link.download = decodeURIComponent(dataName) || 'история промокодов.xlsx'; //
+                link.click();
+            } else {
+                // Handle other status codes
+                console.error('Error:', xhr.status);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#overlay_loading').hide();
+            // Error handling
+            console.error('Error:', error);
+        }
+    });
+}
+
 
 function bck_get_ar_orders_report(url) {
     loadingCircle();

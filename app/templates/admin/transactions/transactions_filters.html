@@ -76,17 +76,23 @@
             <span class="badge bg-light text-secondary" style="cursor:pointer" onclick="set_current_date_su_filters();"> За сегодня</span>
         </div>
         <div class="row">
-              <div class="col-md-6">
-                  <label for="transaction_type" class="col-form-label text-right">Тип</label><br>
-                  <select class="form-control search-select" id="transaction_type" name="transaction_type" required>
-<!--                    <option disabled selected value="">Выберите из списка..</option>-->
-                    {%for k, v in transaction_types.items()%}
-                      <option value="{{k}}">{{v}}</option>
-                    {%endfor%}
 
-                  </select>
-              </div>
-              <div class="col-md-6" style="width:max-content">
+            {% if current_user.role == 'markineris_admin'%}
+                    <input type="hidden" id="transaction_type" name="transaction_type" value="1">
+            {%else%}
+                  <div class="col-md-6">
+                      <label for="transaction_type" class="col-form-label text-right">Тип</label><br>
+                      <select class="form-control search-select" id="transaction_type" name="transaction_type" required>
+    <!--                    <option disabled selected value="">Выберите из списка..</option>-->
+
+                          {%for k, v in transaction_types.items()%}
+                          <option value="{{k}}">{{v}}</option>
+                        {%endfor%}
+
+                      </select>
+                  </div>
+            {% endif %}
+            <div class="col-md-6" style="width:max-content">
                   <label class="col-form-label" for="transaction_status">Статус</label><br>
                   <select class="form-control search-select" id="transaction_status" name="transaction_status" required>
 <!--                    <option disabled selected value="">Выберите из списка..</option>-->

@@ -6,7 +6,7 @@
 <script src="{{ url_for('static', filename='js/datepicker-ru.js') }}"></script>
 
 <div class="container">
-    {% if current_user.role != 'markineris_admin' %}
+
         <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
             <div class="breadcrumbs">
                 <a href="{{url_for('admin_control.admin', u_id=u_id)}}">Управление пользователями </a>
@@ -15,8 +15,6 @@
 
             </div>
         </div>
-
-    {% endif %}
 
 
 
@@ -38,7 +36,7 @@
 
 
 {% include 'admin/transactions/su_transaction_modal.html' %}
-<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc_v6.js')}}"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc_v7.js')}}"></script>
 <script>
 const acTypes = {
         обувь: {{ ac_types.обувь | tojson | safe }},

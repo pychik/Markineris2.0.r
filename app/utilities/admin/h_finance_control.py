@@ -6,7 +6,7 @@ from os import remove as o_remove
 
 from flask import render_template, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
-from sqlalchemy import desc, text, create_engine, null
+from sqlalchemy import desc, text, create_engine, null, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -19,7 +19,7 @@ from utilities.support import helper_paginate_data, check_file_extension, get_fi
     helper_get_server_balance, helper_get_filters_transactions, \
     helper_update_pending_rf_transaction_status, helper_get_image_html, \
     helper_perform_ut_wo, helper_get_transaction_orders_detail, helper_get_stmt_for_fin_order_report, \
-    helper_get_filter_fin_order_report
+    helper_get_filter_fin_order_report, helper_get_stmt_for_fin_promo_history, helper_get_filter_fin_promo_history
 from utilities.telegram import NotificationTgUser
 from utilities.tg_verify.service import send_tg_message_with_transaction_updated_status
 
@@ -486,6 +486,73 @@ def h_bck_ut_excel_report() -> Response:
 
     return response
 
+
+def h_fin_promo_history():
+    date_from = datetime.today() - timedelta(days=7)
+    date_to = datetime.today()
+    promo_stmt = select(Promo.code)
+    promo_codes = db.session.execute(promo_stmt).all()
+    promo_hist_stmt = helper_get_stmt_for_fin_promo_history()
+    promo_codes_history = db.session.execute(promo_hist_stmt).all()
+
+    link = ''
+    page, per_page, \
+        offset, pagination, \
+        promo_codes_history = helper_paginate_data(data=promo_codes_history, per_page=settings.PAGINATION_PER_PAGE, href=link)
+    return render_template('admin/fin_promo_history/main.html', **locals())
+
+
+def h_bck_fin_promo_history():
+    date_from, date_to, promo_code, sort_type = helper_get_filter_fin_promo_history()
+    stmt = helper_get_stmt_for_fin_promo_history(
+        date_from=date_from,
+        date_to=date_to,
+        sort_type=sort_type,
+        promo_code=promo_code,
+    )
+    promo_codes_history = db.session.execute(stmt, ).fetchall()
+    link = f'javascript:bck_get_fin_promo_history(\'' + url_for(
+        'admin_control.su_bck_fin_promo_history') + f'?bck=1' + '&page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        promo_codes_history = helper_paginate_data(data=promo_codes_history, per_page=settings.PAGINATION_PER_PAGE, href=link)
+    return jsonify({'htmlresponse': render_template(f'admin/fin_promo_history/table.html', **locals())})
+
+
+def h_bck_fin_promo_history_excel():
+    date_from, date_to, promo_code, sort_type = helper_get_filter_fin_promo_history(report=True)
+    stmt = helper_get_stmt_for_fin_promo_history(
+        date_from=date_from,
+        date_to=date_to,
+        sort_type=sort_type,
+        promo_code=promo_code,
+    )
+    promo_codes_history = db.session.execute(stmt, ).fetchall()
+
+    excel_filters = {
+        'дата начала': date_from,
+        'дата окончания': (datetime.strptime(date_to, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d'),
+    }
+    if promo_code:
+        excel_filters['промокод'] = promo_code
+    report_name = f'история промокодов({datetime.today().strftime("%d.%m.%y %H-%M")})'
+
+    excel = ExcelReport(
+        data=promo_codes_history,
+        filters=excel_filters,
+        columns_name=['дата активации', 'e-mail пользователя', 'логин агента', 'промокод',],
+        sheet_name='История промокодов',
+        output_file_name=report_name,
+    )
+
+    excel_io = excel.create_report()
+    content = excel_io.getvalue()
+    response = make_response(content)
+    response.headers['data_file_name'] = urllib.parse.quote(excel.output_file_name)
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    response.headers['data_status'] = 'success'
+
+    return response
 
 def h_su_fin_order_report():
     date_from = datetime.now() - timedelta(settings.ORDERS_REPORT_TIMEDELTA)

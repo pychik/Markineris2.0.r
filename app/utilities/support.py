@@ -1402,6 +1402,69 @@ def h_choose_sa_id(cur_sa: ServiceAccount, cur_sa_ids_list: list[ServiceAccount.
         return list(filter(lambda x: x > cur_sa.id, next_sa_list))[0]
 
 
+def helper_get_stmt_for_fin_promo_history(
+        date_from: str = (datetime.today() - timedelta(settings.PROMO_HISTORY_TIMEDELTA)).strftime('%Y-%m-%d'),
+        date_to: str = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d'),
+        promo_code: Optional[str] = None,
+        sort_type: str = 'DESC'
+) -> TextClause:
+    stmt = text(f"""select
+                        usr_promo.activated_at as activate_date,
+                        cli.email as user_email,
+                        COALESCE(agent.login_name, cli.login_name) as agent_login,
+                        promo.code as code
+                        from
+                            public.users cli
+                            left join public.users agent on agent.id = cli.admin_parent_id
+                            join public.users_promos usr_promo on usr_promo.user_id = cli.id
+                            join public.promos  promo on promo.id = usr_promo.promo_id
+                        where
+                            activated_at >= :date_from
+                            and activated_at < :date_to
+                        order by activated_at {sort_type}
+                        """
+                ).bindparams(date_from=date_from, date_to=date_to) if not promo_code else text(f"""select
+                        usr_promo.activated_at as activate_date,
+                        cli.email as user_email,
+                        COALESCE(agent.login_name, cli.login_name) as agent_login,
+                        promo.code
+                        from
+                            public.users cli
+                            left join public.users agent on agent.id = cli.admin_parent_id
+                            join public.users_promos usr_promo on usr_promo.user_id = cli.id
+                            join public.promos  promo on promo.id = usr_promo.promo_id
+                        where
+                            activated_at >= :date_from
+                            and activated_at < :date_to
+                            and promo.code = :promo_code
+                        order by activated_at {sort_type}
+                        """).bindparams(
+        date_from=date_from, date_to=date_to, promo_code=promo_code)
+    return stmt
+
+
+def helper_get_filter_fin_promo_history(report: bool = False) -> tuple[str, str, str, str]:
+    default_day_to = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d')
+    default_day_from = (datetime.today() - timedelta(days=settings.PROMO_HISTORY_TIMEDELTA)).strftime('%Y-%m-%d')
+    if report:
+        url_date_from = request.form.get('date_from', '', type=str)
+        url_date_to = request.form.get('date_to', '', type=str)
+        sort_type = request.form.get('sort_type', 'desc', str)
+        promo_code = request.form.get('promo_code', '', str)
+
+    else:
+        url_date_from = request.args.get('date_from', '', type=str)
+        url_date_to = request.args.get('date_to', '', type=str)
+        sort_type = request.args.get('sort_type', 'desc', str)
+        promo_code = request.args.get('promo_code', '', str)
+
+    date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from else default_day_to
+    date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
+        '%Y-%m-%d') if url_date_to else default_day_from
+
+    return date_from, date_to, promo_code, sort_type
+
+
 def helper_process_sa(sa_id: int) -> bool:
     try:
         cur_accounts = [a for a in db.session.execute(text(f""" SELECT * from public.service_accounts sa
@@ -1433,7 +1496,6 @@ def helper_process_sa(sa_id: int) -> bool:
 
 
 def helper_check_promo(user: User, promo_code: str) -> tuple[bool, int, str]:
-
     all_promos_raw = Promo.query.with_entities(Promo.id, Promo.code, Promo.value)
 
     all_promos = all_promos_raw.all()
@@ -1446,10 +1508,12 @@ def helper_check_promo(user: User, promo_code: str) -> tuple[bool, int, str]:
     else:
 
         promo_append = all_promos_raw.filter(Promo.code == promo_code).first()
-        res = helper_isolated_session(query=f"""INSERT into public.users_promos VALUES({user.id}, {promo_append.id});""",
-                                       return_flag=False)
+        res = helper_isolated_session(
+            query="INSERT into public.users_promos VALUES({user_id}, {promo_append_id}, '{date_val}');"
+            .format(user_id=user.id, promo_append_id=promo_append.id, date_val=datetime.now()),
+            return_flag=False)
         if not res:
-            logger.error(msg=f"{settings.Messages.PROMO_ADD_USER_ERROR}")
+            logger.error(f"{settings.Messages.PROMO_ADD_USER_ERROR}")
             return False, 0, settings.Messages.PROMO_ADD_USER_ERROR
         return True, promo_append.value, ''
 
