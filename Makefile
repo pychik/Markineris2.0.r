@@ -41,6 +41,7 @@ maintenance-off:				## Выключение режима "технических
 	sleep 68
 	rm -fr ./maintenance/maintenance.flag
 	docker image prune -f
+	docker volume prune -f
 
 service-logs:					## Отображение в режиме реального времени всех логов поступающих в сеть контейнеров сервиса маркинерис(Flask app, db, nginx).
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} logs -f
