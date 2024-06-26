@@ -162,7 +162,7 @@ class ShoesProcessor(OrdersProcessor):
 
             tnved = ShoesProcessor.get_tnved(material=el.material_top, gender=el.gender) \
                 if not el.tnved_code else el.tnved_code
-            declar_doc = f"{el.rd_type[0]}№{el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
+            declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
             for sq in el.sizes_quantities:
                 full_name = f'{el.type} {el.gender} {el.trademark} ' \
                             f'арт. {el.article} цвет. {el.color} р.{sq.size}'
@@ -201,7 +201,7 @@ class LinenProcessor(OrdersProcessor):
 
         for el in orders_list:
             tnved = settings.Linen.TNVED_CODE if not el.tnved_code else el.tnved_code
-            declar_doc = f"{el.rd_type[0]}№{el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
+            declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
             for sq in el.sizes_quantities:
                 if el.with_packages == 'да':
                     full_name = f'Комплект {el.type} {el.trademark} {sq.quantity} шт. ' \
@@ -237,7 +237,7 @@ class ParfumProcessor(OrdersProcessor):
                 fin_quantity = el.quantity
 
             tnved = ParfumProcessor.get_tnved(parfum_type=el.type) if not el.tnved_code else el.tnved_code
-            declar_doc = f"{el.rd_type[0]}№{el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
+            declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
             temp_list = [tnved[:4], full_name,
                          el.trademark, el.volume_type, el.volume,
                          el.package_type, el.material_package, el.type,
@@ -267,7 +267,7 @@ class ClothesProcessor(OrdersProcessor):
             #     if not el.tnved_code else el.tnved_code
             tnved = el.tnved_code
 
-            declar_doc = f"{el.rd_type[0]}№{el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" \
+            declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" \
                 if all([el.rd_date, el.rd_type, el.rd_name]) else ''
             for sq in el.sizes_quantities:
 

@@ -38,7 +38,8 @@ def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
                           gender=form_dict.get("gender"), country=form_dict.get("country"),
                           with_packages=True if form_dict.get("with_packages") == "True" else False,
                           tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
-                          tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"), rd_name=form_dict.get("rd_name"),
+                          tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
+                          rd_name=form_dict.get("rd_name").replace('№', ''),
                           rd_date=rd_date)
 
     extend_sq = (ShoeQuantitySize(size=el[0], quantity=el[1]) for el in sizes_quantities)
@@ -58,7 +59,7 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list) -> Order
                                 gender=form_dict.get("gender"), country=form_dict.get("country"),
                                 tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                                 tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
-                                rd_name=form_dict.get("rd_name"),
+                                rd_name=form_dict.get("rd_name").replace('№', ''),
                                 rd_date=rd_date)
 
     extend_sq = (ClothesQuantitySize(size=el[0], quantity=el[1],
@@ -83,7 +84,7 @@ def save_linen(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
                             content=form_dict.get("content"), country=form_dict.get("country"),
                             tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                             tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
-                            rd_name=form_dict.get("rd_name"),
+                            rd_name=form_dict.get("rd_name").replace('№', ''),
                             rd_date=rd_date)
 
     if with_p == "True":
@@ -111,7 +112,7 @@ def save_parfum(order: Order, form_dict: dict) -> Order:
                               quantity=form_dict.get("quantity"), country=form_dict.get("country"),
                               tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                               tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
-                              rd_name=form_dict.get("rd_name"),
+                              rd_name=form_dict.get("rd_name").replace('№', ''),
                               rd_date=rd_date)
 
     order.parfum.append(new_parfum_order)
@@ -180,7 +181,8 @@ def save_copy_order_shoes(order_category_list: list[Shoe], new_order: Order) -> 
                                 gender=shoe.gender, country=shoe.country,
                                 with_packages=shoe.with_packages,
                                 tnved_code=shoe.tnved_code, article_price=shoe.article_price,
-                                tax=shoe.tax, rd_type=shoe.rd_type, rd_name=shoe.rd_name, rd_date=shoe.rd_date,
+                                tax=shoe.tax, rd_type=shoe.rd_type, rd_name=shoe.rd_name.replace('№', ''),
+                                rd_date=shoe.rd_date,
                                 sizes_quantities=list((ShoeQuantitySize(size=sq.size, quantity=sq.quantity)
                                                                     for sq in shoe.sizes_quantities)))
                            for shoe in order_category_list)
@@ -194,7 +196,7 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
                                      box_quantity=clothes.box_quantity,
                                      gender=clothes.gender, country=clothes.country,
                                      tnved_code=clothes.tnved_code, article_price=clothes.article_price,
-                                     tax=clothes.tax, rd_type=clothes.rd_type, rd_name=clothes.rd_name,
+                                     tax=clothes.tax, rd_type=clothes.rd_type, rd_name=clothes.rd_name.replace('№', ''),
                                      rd_date=clothes.rd_date,
                                      sizes_quantities=list((ClothesQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
                                                             for sq in clothes.sizes_quantities)))
@@ -211,7 +213,8 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
                                  content=linen.content,
                                  country=linen.country,
                                  tnved_code=linen.tnved_code, article_price=linen.article_price,
-                                 tax=linen.tax, rd_type=linen.rd_type, rd_name=linen.rd_name, rd_date=linen.rd_date,
+                                 tax=linen.tax, rd_type=linen.rd_type, rd_name=linen.rd_name.replace('№', ''),
+                                 rd_date=linen.rd_date,
                                  sizes_quantities=list((LinenQuantitySize(size=sq.size, quantity=sq.quantity)
                                                         for sq in linen.sizes_quantities)))
                            for linen in order_category_list)
@@ -229,7 +232,7 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
                             quantity=parfum.quantity,
                             country=parfum.country,
                             tnved_code=parfum.tnved_code, article_price=parfum.article_price,
-                            tax=parfum.tax, rd_type=parfum.rd_type, rd_name=parfum.rd_name, rd_date=parfum.rd_date)
+                            tax=parfum.tax, rd_type=parfum.rd_type, rd_name=parfum.rd_name.replace('№', ''), rd_date=parfum.rd_date)
                              for parfum in order_category_list))
     return new_order
 

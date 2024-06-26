@@ -1125,3 +1125,10 @@ function bck_tg_markineris_verify(url){
 function clear_tg_notify_modal(){
     document.getElementById('tgNotifydiv').innerHTML = '';
 }
+
+function oiremoveSymbol(inputId, symbol) {
+        // oninput remove symbol
+        var inputField = document.getElementById(inputId);
+        var symbolRegex = new RegExp(symbol, 'g');
+        inputField.value = inputField.value.replace(symbolRegex, '');
+}
