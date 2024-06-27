@@ -40,7 +40,7 @@ maintenance-off:				## Выключение режима "технических
 	@make flask-up
 	sleep 68
 	rm -fr ./maintenance/maintenance.flag
-	docker system prune --volumes -f
+	docker image prune -f
 
 service-logs:					## Отображение в режиме реального времени всех логов поступающих в сеть контейнеров сервиса маркинерис(Flask app, db, nginx).
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} logs -f
