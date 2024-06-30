@@ -103,6 +103,17 @@
                   </select>
               </div>
 
+            <div class="col-md-6" style="width:max-content">
+                  <label class="col-form-label" for="user_filter">Агент</label><br>
+                  <select class="form-control search-select" id="user_filter" name="user_filter" required>
+                    <option selected value="">Выбирете агента</option>
+                    {%for id,login_name in users_filter%}
+                      <option value="{{id}}">{{login_name}}</option>
+                    {%endfor%}
+
+                  </select>
+              </div>
+
 
         </div>
 
