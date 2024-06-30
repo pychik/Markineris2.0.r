@@ -1229,17 +1229,20 @@ def helper_get_filters_transactions(tr_type: int = None, tr_status: int = None, 
         date_from, date_to, link_filters, model_conditions, model_order_type
 
 
-def helper_get_filter_users() -> tuple:
+def helper_get_filter_users(excel_report: bool = False) -> tuple:
     """
         returns tuple of params with  filter conditions, link string and order type
-    :param tr_type:
-    :param tr_status:
+    :param excel_report
     :return:
     """
-    date_quantity_raw = request.args.get('date_quantity', '', type=str)
-    date_type_raw = request.args.get('date_type', '', type=str)
-
-    sort_type = request.args.get('sort_type', 1, type=int)
+    if not excel_report:
+        date_quantity_raw = request.args.get('date_quantity', '', type=str)
+        date_type_raw = request.args.get('date_type', '', type=str)
+        sort_type = request.args.get('sort_type', 1, type=int)
+    else:
+        date_quantity_raw = request.form.get('date_quantity', '', type=str)
+        date_type_raw = request.form.get('date_type', '', type=str)
+        sort_type = request.form.get('sort_type', 1, type=int)
 
     link_filters = f'date_quantity={date_quantity_raw}&date_type={date_type_raw}&'
 
@@ -2355,6 +2358,30 @@ def bck_su_required(func):
             else:
                 flash(message=settings.Messages.SUPERADMINUSER_REQUIRED, category='error')
                 return redirect(url_for('main.index'))
+    return wrapper
+
+
+def bck_su_mod_required(func):
+    """
+        Checks if user is SUPERUSER or Markineris admin and returns dict with message if not
+    :param func:
+    :return:
+    """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+
+        if current_user.status is True and (current_user.role in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]):
+            return func(*args, **kwargs)
+        else:
+            # check if its bck request error
+            bck = request.args.get('bck', 0, type=int)
+            if bck:
+                return jsonify(dict(status='danger', message=settings.Messages.SUPERADMINUSER_REQUIRED))
+            else:
+                flash(message=settings.Messages.SUPERADMINUSER_REQUIRED, category='error')
+                return redirect(url_for('main.index'))
+
     return wrapper
 
 

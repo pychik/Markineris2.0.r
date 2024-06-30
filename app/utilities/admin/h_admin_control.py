@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
 
-from flask import flash, render_template, redirect, send_file, url_for, request, Response, jsonify
+from flask import flash, render_template, redirect, send_file, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
 from sqlalchemy import asc, desc, func, text
 
 from sqlalchemy.exc import IntegrityError
+from urllib import parse
 from werkzeug.security import generate_password_hash
 
 from config import settings
@@ -17,6 +18,7 @@ from utilities.support import url_encrypt, helper_check_form, helper_update_orde
 from utilities.admin.schemas import AROrdersSchema, ar_categories_types
 from utilities.admin.helpers import (process_admin_report, helper_get_clients_os, helper_get_orders_stats,
                                      helper_prev_day_orders_marks, helper_get_users_reanimate)
+from utilities.admin.excel_report import ExcelReport
 
 
 def h_index(expanded: str = None):
@@ -1174,13 +1176,42 @@ def h_bck_agent_reanimate(u_id: int):
         offset, pagination, \
         users_list = helper_paginate_data(data=users, per_page=settings.PAGINATION_PER_PAGE, href=link)
 
-
     basic_prices = settings.Prices.BASIC_PRICES
     date_range_types = settings.Users.FILTER_DATE_TYPES
     date_quant_max = settings.Users.FILTER_MAX_QUANTITY
     converted_date_type = settings.Users.FILTER_DATE_DICT.get(date_type)
     return jsonify({'htmlresponse': render_template(f'admin/ra/user_reanimate_response.html', **locals())}) \
         if bck else render_template('admin/ra/main_reanimate.html', **locals())
+
+
+def h_bck_su_control_reanimate_excel():
+
+    date_quantity, date_type, link_filters, sort_type = helper_get_filter_users(excel_report=True)
+
+    users = helper_get_users_reanimate(date_quantity=date_quantity, date_type=date_type, sort_type=sort_type)
+
+    users_processed = list(map(lambda x: (x.created_at, x.os_created_at, x.login_name, x.phone, x.email, x.partners_code), users))
+    excel_filters = {
+        'Временная единица': date_type,
+        'Количество временных единиц': date_quantity,
+    }
+
+    excel = ExcelReport(
+        data=users_processed,
+        filters=excel_filters,
+        columns_name=['дата регистрации', 'Дата крайнего заказа', 'Логин', 'Телефон', 'Email', 'Код партнера', ],
+        sheet_name='Отчет реанимации пользователей',
+        output_file_name=f'реанимация клиентов({datetime.today().strftime("%d.%m.%y %H-%M")})',
+    )
+
+    excel_io = excel.create_report()
+    content = excel_io.getvalue()
+    response = make_response(content)
+    response.headers['data_file_name'] = parse.quote(excel.output_file_name)
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    response.headers['data_status'] = 'success'
+
+    return response
 
 
 def helper_get_ar_orders_stat(ar_schema: AROrdersSchema, u_id: int) -> tuple:

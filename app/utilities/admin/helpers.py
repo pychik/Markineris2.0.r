@@ -170,7 +170,6 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
     if u_id:
         user_filter = f'and u.admin_parent_id = :u_id'
 
-
     date_condition = f"HAVING max(os.saved_at) <= CURRENT_DATE - INTERVAL '{settings.Users.FILTER_MAX_QUANTITY} days' OR COUNT(os.id) = 0"
     match date_type:
         case settings.Users.FILTER_DATE_HOURS:

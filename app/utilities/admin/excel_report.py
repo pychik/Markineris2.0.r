@@ -223,6 +223,8 @@ class ExcelReport(BaseExcelReport):
             sheet.write(row, col + 1, filter_value)
             row += 1
 
+        row += 1
+
         if self.columns_name:
             col = 0
             for column_name in self.columns_name:
