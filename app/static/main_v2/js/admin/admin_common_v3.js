@@ -143,6 +143,50 @@ function bck_get_users_reanimate(url) {
     });
 
 }
+
+function get_users_reanimate_report_excel(url, csrf) {
+    let sort_mode = 0;
+    if (document.getElementById("asc_type").checked) {
+        sort_mode = 1;
+    }
+
+    $('#overlay_loading').show();
+    $.ajax({
+        url: url,
+        headers: { "X-CSRFToken": csrf },
+        method: "POST",
+        data: {date_quantity: $('#date_quantity').val(),
+               date_type: $('#date_type').val(),
+               sort_type: sort_mode},
+        xhrFields: {
+            responseType: 'blob' // Set response type to blob
+        },
+        success: function(response, status, xhr) {
+            $('#overlay_loading').hide();
+            if (xhr.status === 200) {
+                var blob = new Blob([response], { type: 'application/xlsx' });
+                var link = document.createElement('a');
+
+                var dataName = xhr.getResponseHeader('data_file_name');
+
+                link.href = window.URL.createObjectURL(blob);
+                // console.log()
+                link.download = decodeURIComponent(dataName) || 'отчет_реанимация_пользователей.xlsx'; //
+                link.click();
+            } else {
+                // Handle other status codes
+                console.error('Error:', xhr.status);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#overlay_loading').hide();
+            // Error handling
+            console.error('Error:', error);
+        }
+    });
+
+}
+
 function check_ra_filter_Validity(input) {
 // Get the maximum value allowed
     var maxValue = parseFloat(input.getAttribute("max"));
