@@ -355,32 +355,37 @@ def h_su_bck_change_sa_type(sa_type: str = 'qr_code') -> Response:
 
 def h_su_control_ut(user_ids: list = None):
     # PENDING transactions refill, WITH default DATE filter
+    roles = (settings.SUPER_USER, settings.ADMIN_USER)
     transaction_types = settings.Transactions.TRANSACTION_TYPES
     transaction_dict = settings.Transactions.TRANSACTIONS
 
     tr_type = transaction_types.get(1)
+
     tr_status = transaction_dict[settings.Transactions.PENDING]
 
     # default date range conditions
     date_to = datetime.now()
     date_from = date_to - timedelta(days=settings.Transactions.DEFAULT_DAYS_RANGE)
+    users_filter = User.query.with_entities(User.id, User.login_name).filter(User.role.in_(roles)).all()
 
-    transactions = UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount,
+    transactions = [t for t in UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount,
                                                        UserTransaction.promo_info, UserTransaction.type,
                                                        UserTransaction.status,
                                                        UserTransaction.created_at, UserTransaction.user_id,
-                                                       User.login_name)\
-        .join(User, User.id == UserTransaction.user_id)\
+                                                       User.login_name, User.email)\
+        .join(User, User.id == UserTransaction.user_id) \
         .filter(UserTransaction.status == settings.Transactions.PENDING, UserTransaction.type.is_(True),
-                UserTransaction.created_at >= date_from)\
-        .order_by(desc(UserTransaction.created_at)).all()
+                UserTransaction.created_at >= date_from) \
+        .order_by(desc(UserTransaction.created_at)).all()]
 
     sa_types = settings.ServiceAccounts.TYPES_DICT
     transaction_types = settings.Transactions.TRANSACTION_TYPES
 
+    transaction_summ = sum(t.amount for t in transactions)
+
     link_filters = f'tr_type=1&tr_status={settings.Transactions.PENDING}&'
     link = f'javascript:bck_get_transactions(\'' + url_for(
-        'admin_control.su_bck_control_ut') + f'?bck=1{link_filters}' + 'page={0}\');'
+        'admin_control.su_bck_control_ut') + f'?bck=1&{link_filters}' + 'page={0}\');'
     page, per_page, \
         offset, pagination, \
         transactions_list = helper_paginate_data(data=transactions, per_page=settings.PAGINATION_PER_PAGE, href=link)
@@ -400,7 +405,7 @@ def h_bck_control_ut():
         .join(User, User.id == UserTransaction.user_id).filter(*model_conditions) \
         .order_by(model_order_type).all()
 
-    link = f'javascript:bck_get_transactions(\'' + url_for('admin_control.su_bck_control_ut') + f'?bck=1{link_filters}' + 'page={0}\');'
+    link = f'javascript:bck_get_transactions(\'' + url_for('admin_control.su_bck_control_ut') + f'?bck=1&{link_filters}' + 'page={0}\');'
 
     page, per_page, \
         offset, pagination, \
