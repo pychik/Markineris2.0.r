@@ -110,6 +110,8 @@ class Settings(BaseSettings):
     DOWNLOAD_DIR: str = f"{CUR_PATH}/download_dir"
     DOWNLOAD_DIR_CRM: str = f"{CUR_PATH}/download_dir/crm/"
     DOWNLOAD_DIR_STATIC: str = f"{CUR_PATH}/static/"
+    DB_BACKUP: str = "db_backups/"
+    DB_BACKUP_DIR: str = f"{CUR_PATH}/{DB_BACKUP}"
     DOWNLOAD_QA_BASIC: str = f"qr_imgs/"
     DOWNLOAD_BILL_BASIC: str = f"bill_imgs/"
     DOWNLOAD_DIR_SA_QR: str = f"{DOWNLOAD_DIR_STATIC}{DOWNLOAD_QA_BASIC}"

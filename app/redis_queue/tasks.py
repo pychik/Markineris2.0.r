@@ -65,6 +65,7 @@ def daily_tasks():
     # change maintenance mode to OFF here
     return {"status": "transactions performed; orders from sent moved to PROCESSED"}
 
+
 def backup_database():
     def delete_oldest_backup(backup_dir: str) -> None:
 
@@ -83,6 +84,7 @@ def backup_database():
     delete_oldest_backup(backup_dir)
 
     backup_file = os.path.join(backup_dir, f'backup_{datetime.now().strftime("%Y%m%d%H%M%S")}.sql')
+
     from settings.start import app
     engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
     sm = sessionmaker(bind=engine)
@@ -90,7 +92,6 @@ def backup_database():
 
     metadata = MetaData()
     metadata.reflect(bind=engine)
-
 
     try:
         with open(backup_file, 'w') as f:
