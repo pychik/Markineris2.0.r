@@ -1205,7 +1205,7 @@ def helper_get_filters_transactions(tr_type: int = None, tr_status: int = None, 
         agent_id = current_user_id
 
     tr_type = True if tr_type_raw else False
-    link_filters = f'tr_type={tr_type_raw}&tr_status={tr_status}&date_from={date_from_raw}&date_to={date_to_raw}&'
+    link_filters = f'tr_type={tr_type_raw}&tr_status={tr_status}&date_from={date_from_raw}&date_to={date_to_raw}&agent_id={agent_id}&'
     model_conditions_list_raw = UserTransaction.status == tr_status \
         if tr_status in settings.Transactions.TRANSACTIONS.keys() else None, UserTransaction.type == tr_type \
         if tr_type in [False, True] else None, or_(User.id == agent_id, User.admin_parent_id == agent_id) if agent_id else None
