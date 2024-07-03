@@ -11,6 +11,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from config import settings
 from logger import logger
 from models import db, Order, User, RestoreLink, Price, ServiceAccount, UserTransaction, TgUser
+from utilities.daily_price import get_cocmd
 from utilities.mailer import MailSender
 from utilities.support import url_encrypt, url_decrypt, check_email, check_user_messages, \
     helper_get_order_notification, helper_get_current_sa, \
@@ -147,6 +148,8 @@ def h_user_personal_account(u_id: int, stage: int = None) -> Union[Response, str
 
     # current service account
     cur_sa = helper_get_current_sa()
+
+    po_rep = get_cocmd(user_id=current_user.id, price_id=current_user.price_id)  # price order report
 
     return render_template('user_control/personal_account.html', **locals())
 

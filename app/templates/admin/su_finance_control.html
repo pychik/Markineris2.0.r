@@ -16,6 +16,8 @@
 
             <div class="personal_acc_info" id="ServerBalance">Баланс сервиса: <span class="link-warning"><b>{{ balance }} р.</b></span></div>
             <div class="personal_acc_info">Зарезервировано на пополенние: <span class="link-warning"><b>{{ pending_balance_rf }} р.</b></span></div>
+            <div class="personal_acc_info">Баланс агентов тип 1: <span class="link-warning"><b>{{ summ_at1 }} р.</b></span></div>
+            <div class="personal_acc_info">Долг агентов тип2: <span class="link-warning"><b>{{ summ_at2 }} р.</b></span></div>
             <div class="d-flex mt-3">
                 <div class="me-4">
                     <a href="javascript:perform_wo_transactions(`{{url_for('admin_control.bck_su_bck_wo_transactions')}}`, `{{csrf_token()}}`)"

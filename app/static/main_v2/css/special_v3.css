@@ -193,6 +193,38 @@
     transform: translateX(0);
   }
 }
+
+@keyframes blink-yb {
+      0% {
+        border-color: #ffc107;
+      }
+      50% {
+        border-color: transparent;
+      }
+      100% {
+        border-color: #ffc107;
+      }
+    }
+
+.blink-y-border {
+  border: 2px solid #ffc107; /* Bootstrap warning color */
+  animation: blink-yb 3s infinite;
+}
+
+.blink-y-border-rounded {
+      border: 2px solid #ffc107; /* Bootstrap warning color */
+      border-radius: 50%; /* Makes the border rounded for a circle effect */
+      animation: blink-yb 3s infinite;
+      transition: transform 0.3s ease; /* Smooth transition for the hover effect */
+      display: inline-block; /* Ensures the element respects its original size */
+      overflow: hidden; /* Prevents overflow issues during animation */
+    }
+
+.blink-y-border-rounded:hover {
+  transform: scale(1.4); /* Enlarge by 30% on hover */
+}
+
+
 .fadeInLeft {
   animation: fadeInLeft 0.5s ease-in-out;
 }

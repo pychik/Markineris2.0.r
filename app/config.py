@@ -1,4 +1,5 @@
 import os
+from decimal import Decimal
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -413,17 +414,22 @@ class Settings(BaseSettings):
 
     class Messages:
         @staticmethod
-        def answer_refill_balance(balance: int, current_price: int, sum_count: int, is_at2: bool = False) -> str:
+        def answer_refill_balance(balance: int, current_price: int, sum_count: int, is_at2: bool = False,
+                                  all_marks: int = 0, sum_cost: Decimal = 0) -> str:
             """
                 helps to make user message with balance and orders info
             :return:
             """
             # mes_part = f"Недостаточно средств на счете агента  для оформления заказа. Баланс агента: {balance} р. <br>" if agent_at2 else f"Недостаточно средств на личном счете для оформления заказа. Баланс пользователя: {balance} р. <br>"
-            mes_part = f"Недостаточно средств на личном счете для оформления заказа. Баланс пользователя: {balance} р. <br>"
+            mes_part = (f"Недостаточно средств на личном счете для оформления заказа."
+                        f" Баланс пользователя: {balance} р. <br>") if not is_at2 \
+                else f"Недостаточно средств на личном счете агента."
             return f"{mes_part}" \
-                   f"Общее количество марок под заказ со всеми непроведенными заказами - {sum_count} шт. <br>" \
+                   f"Количество марок по текущему заказу - {sum_count} шт. <br>" \
+                   f"Стоимость текущего заказа - {sum_count * current_price} р. <br>" \
+                   f"Общее количество марок в непроведенных заказах - {all_marks} шт. <br>" \
                    f"Цена за марку - {current_price} р./шт.<br>" \
-                   f"Всего нужно - {current_price * sum_count} р.<br>"
+                   f"Всего по всем заказам нужно - {sum_cost} р.<br>"
 
         AUTH_OR_SIGNUP: str = "Пожалуйста авторизуйтесь для работы с сервисом!"
         INCORRECT_AUTH: str = "Введены некорректные данные учетной записи! Проверьте email или пароль!"
