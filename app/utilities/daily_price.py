@@ -17,7 +17,7 @@ def get_cocmd(user_id: int, price_id: int, order_id: str | None = None) -> dict:
     lpc is a list of less prior company_idns dictionaries that contain
         order_idns: list, marks_count: int, op_cost: Decimal for less prior companies
     report_data sum marks count(smc), sum count orders(sco), ao_price(all_orders price sum = marks_count*price)
-    current_order consists of cost+type , order_idn, order_op_cost, order_cost, order_marks_count for cases if order_idn is not None
+    current_order consists of cost_type, new_idn_flag(if order with company_idn is already in pc or lpc), order_idn, order_op_cost, order_cost, order_marks_count for cases if order_idn is not None
     """
     unpaid_orders = db.session.execute(get_unpaid_orders_stmt(u_id=user_id, o_id=order_id)).fetchall()
 
@@ -45,13 +45,15 @@ def get_cocmd(user_id: int, price_id: int, order_id: str | None = None) -> dict:
         result['pc']['company_idns'] = pc_idns
         result['pc']['marks_count'] = pc_marks_count
         result['pc']['op_cost'] = pc_op_cost
-        result['current_order'] = {
-            'cost_type': 'pmc',
-            'order_id': order_id,
-            'op_cost': pc_op_cost,
-            'order_cost': pc_op_cost * current_order_info.marks_count if current_order_info else None,
-            'marks_count': current_order_info.marks_count if current_order_info else None
-        } if order_id else {}
+        if current_order_info and current_order_info.company_idn in pc_idns:
+            result['current_order'] = {
+                'cost_type': 'pmc',
+                'new_idn': False,
+                'order_id': order_id,
+                'op_cost': pc_op_cost,
+                'order_cost': pc_op_cost * current_order_info.marks_count,
+                'marks_count': current_order_info.marks_count
+            }
     else:
         pc_marks_count = sum(o.marks_count for o in unpaid_orders if o.company_idn in pc_idns)
         pc_op_cost = helper_get_user_price(price_id=price_id, pos_count=pc_marks_count)
@@ -61,6 +63,7 @@ def get_cocmd(user_id: int, price_id: int, order_id: str | None = None) -> dict:
         result['pc']['op_cost'] = pc_op_cost
         result['current_order'] = {
             'cost_type': 'pc',
+            'new_idn': False,
             'order_id': order_id,
             'op_cost': pc_op_cost,
             'order_cost': pc_op_cost * current_order_info.marks_count,
@@ -80,11 +83,23 @@ def get_cocmd(user_id: int, price_id: int, order_id: str | None = None) -> dict:
             if current_order_info and current_order_info.company_idn == lpc:
                 result['current_order'] = {
                     'cost_type': 'lpc',
+                    'new_idn': False,
                     'order_id': order_id,
                     'op_cost': lpc_op_cost,
                     'order_cost': lpc_op_cost * current_order_info.marks_count,
                     'marks_count': current_order_info.marks_count
                 }
+    if current_order_info and not result['current_order']:
+        new_op_cost = helper_get_user_price(price_id=price_id, pos_count=current_order_info.marks_count)
+        result['current_order'] = {
+            'cost_type': 'lpc',
+            'new_idn': True,
+            'order_id': order_id,
+            'op_cost': new_op_cost,
+            'order_cost': new_op_cost * current_order_info.marks_count,
+            'marks_count': current_order_info.marks_count
+        }
+
     result['report_data']['ao_price'] = round(result['pc']['marks_count'] * result['pc']['op_cost'], 2) + sum(round(lpc['lpc_marks_count'] * lpc['lpc_op_cost'], 2) for lpc in result['lpc'])
     return result
 
