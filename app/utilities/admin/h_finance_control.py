@@ -18,7 +18,7 @@ from utilities.admin.excel_report import ExcelReportProcessor, ExcelReport
 from utilities.support import helper_paginate_data, check_file_extension, get_file_extension, \
     helper_get_server_balance, helper_get_filters_transactions, \
     helper_update_pending_rf_transaction_status, helper_get_image_html, \
-    helper_perform_ut_wo, helper_get_transaction_orders_detail, helper_get_stmt_for_fin_order_report, \
+    helper_perform_ut_wo_mod, helper_get_transaction_orders_detail, helper_get_stmt_for_fin_order_report, \
     helper_get_filter_fin_order_report, helper_get_stmt_for_fin_promo_history, helper_get_filter_fin_promo_history
 from utilities.telegram import NotificationTgUser
 from utilities.tg_verify.service import send_tg_message_with_transaction_updated_status
@@ -711,7 +711,7 @@ def h_su_wo_transactions() -> Response:
                       """
     user_ids = db.session.execute(text(user_ids_stmt)).fetchall()
     if user_ids:
-        status, server_balance = helper_perform_ut_wo(user_ids=user_ids)
+        status, server_balance = helper_perform_ut_wo_mod(user_ids=user_ids)
     else:
         status, server_balance = 0, 'No orders to write off'
 
