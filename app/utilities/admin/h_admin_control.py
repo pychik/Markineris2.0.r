@@ -59,7 +59,7 @@ def h_index(expanded: str = None):
                 FROM public.users
                 WHERE
                     created_at >= DATE_TRUNC('DAY', NOW()::timestamp) - interval '1 DAY'
-                    and created_at < DATE_TRUNC('DAY', NOW());
+                    and created_at < DATE_TRUNC('DAY', NOW()::timestamp);
                     """)
         new_user_cnt = db.session.execute(new_user_stmt).one()
         registration_date = datetime.today() - timedelta(days=1)
