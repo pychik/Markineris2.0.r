@@ -35,7 +35,7 @@ def h_su_control_finance():
         JOIN public.orders_stats os on ut.id = os.transaction_id
         WHERE
             ut.op_cost is not null
-            and ut.created_at >= DATE_TRUNC('DAY', NOW()::timestamp) - INTERVAL '1 DAY';
+            and ut.created_at >= DATE_TRUNC('DAY', NOW()::timestamp);
         """)
     stat = db.session.execute(stat_stmt).first()
 
