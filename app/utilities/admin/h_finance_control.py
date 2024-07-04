@@ -25,6 +25,20 @@ from utilities.tg_verify.service import send_tg_message_with_transaction_updated
 
 
 def h_su_control_finance():
+    stat_date = datetime.today() - timedelta(days=1)
+    stat_stmt = text("""
+        SELECT 
+            round(coalesce(sum(amount), 0), 2) as amount, 
+            coalesce(sum(marks_count), 0) as marks_cnt, 
+            round(case when coalesce(sum(marks_count), 0) = 0 then 0 else coalesce(sum(amount), 0) / coalesce(sum(marks_count), 0) end, 2) as avg_price
+        FROM public.user_transactions ut
+        JOIN public.orders_stats os on ut.id = os.transaction_id
+        WHERE
+            ut.op_cost is not null
+            and ut.created_at >= DATE_TRUNC('DAY', NOW()::timestamp) - INTERVAL '1 DAY';
+        """)
+    stat = db.session.execute(stat_stmt).first()
+
     promos = Promo.query.with_entities(Promo.id, Promo.code, Promo.value, Promo.created_at).order_by(desc(Promo.created_at)).all()
     prices = Price.query.order_by(desc(Price.created_at)).all()
 

@@ -55,6 +55,17 @@ def h_index(expanded: str = None):
                              order by au.id""")
         su_list = db.session.execute(users_stmt).fetchall()
 
+        new_user_stmt = text("""
+                SELECT
+                    count(1) as new_user_cnt  
+                FROM public.users
+                WHERE
+                    created_at >= DATE_TRUNC('DAY', NOW()::timestamp) - interval '1 DAY'
+                    and created_at < DATE_TRUNC('DAY', NOW()::timestamp);
+                    """)
+        new_user_cnt = db.session.execute(new_user_stmt).one()
+        registration_date = datetime.today() - timedelta(days=1)
+
         ou_quantity = User.query.filter(User.role == settings.ORD_USER) \
             .order_by(User.id).count()
 
