@@ -58,7 +58,7 @@ def h_index(expanded: str = None):
                     count(1) as new_user_cnt  
                 FROM public.users
                 WHERE
-                    created_at >= DATE_TRUNC('DAY', NOW()) - interval '1 DAY'
+                    created_at >= DATE_TRUNC('DAY', NOW()::timestamp) - interval '1 DAY'
                     and created_at < DATE_TRUNC('DAY', NOW());
                     """)
         new_user_cnt = db.session.execute(new_user_stmt).one()
