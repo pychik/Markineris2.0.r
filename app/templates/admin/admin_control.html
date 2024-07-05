@@ -8,21 +8,21 @@
     <div class="col-md-8 col-xs-12 text-center">
         <div class="alert bg-light" role="alert">
             <h2>Панель администратора</h2>
-            <h6 class="mt-5">
-                Зарегистрированных клиентов
-                <span class="badge bg-warning text-black" id="users_total">всего  {{ ou_quantity }}</span>
-            </h6>
-            <h6>
-                Зарегистрированных клиентов за {{ registration_date.strftime('%d.%m.%Y') }}
-                <span class="badge bg-warning text-black" id="new_user_cnt">{{ new_user_cnt.new_user_cnt }}</span>
-            </h6>
-            <h6>
-                Заказов/Марок за предыдущий день
-                <span class="badge bg-secondary" id="prev_day_orders_mark"
-                      title="{{ prev_day_orders_marks.orders_count }} заказов, {{ prev_day_orders_marks.marks_count }} марок">
-                    {{ prev_day_orders_marks.orders_count }} / {{ prev_day_orders_marks.marks_count }}
-                </span>
-            </h6>
+{#            <h6 class="mt-5">#}
+{#                Зарегистрированных клиентов#}
+{#                <span class="badge bg-warning text-black" id="users_total">всего  {{ ou_quantity }}</span>#}
+{#            </h6>#}
+{#            <h6>#}
+{#                Зарегистрированных клиентов за {{ registration_date.strftime('%d.%m.%Y') }}#}
+{#                <span class="badge bg-warning text-black" id="new_user_cnt">{{ new_user_cnt.new_user_cnt }}</span>#}
+{#            </h6>#}
+{#            <h6>#}
+{#                Заказов/Марок за предыдущий день#}
+{#                <span class="badge bg-secondary" id="prev_day_orders_mark"#}
+{#                      title="{{ prev_day_orders_marks.orders_count }} заказов, {{ prev_day_orders_marks.marks_count }} марок">#}
+{#                    {{ prev_day_orders_marks.orders_count }} / {{ prev_day_orders_marks.marks_count }}#}
+{#                </span>#}
+{#            </h6>#}
         </div>
     </div>
     <div class="col-md-2"></div>
