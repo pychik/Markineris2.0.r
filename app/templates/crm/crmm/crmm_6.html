@@ -1,7 +1,7 @@
 <div style="min-width: 260px;max-width: 260px;" class="mr-3">
         <div class="border-sp-10-right pr-3">
-            <h3><span class="badge bg-solved">Проблема решена</span></h3>
-
+            <h4><span class="badge bg-solved">Проблема решена</span></h4>
+            <h4><span class="badge bg-solved">{%if m_solved_orders%}{{m_solved_orders | length}} шт.{%endif%}</span></h4>
             {% for n in m_solved_orders %}
 
               <div class="card mt-3 mb-3 custom-rounded border-secondary{% if n.to_delete %} div-disabled {%endif%}">

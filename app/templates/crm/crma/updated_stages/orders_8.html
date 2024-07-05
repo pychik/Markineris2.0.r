@@ -1,5 +1,5 @@
 <div class="faded">
-
+<h4><span class="badge badge-warning">{% if update_orders %}{{update_orders | length}} шт.{%endif%}</span></h4>
 {% for n in update_orders %}
   <div class="card mt-3 mb-3 custom-rounded border-secondary {% if n.to_delete %} div-disabled {%endif%}">
     <div class="card-header bg-warning text-center">

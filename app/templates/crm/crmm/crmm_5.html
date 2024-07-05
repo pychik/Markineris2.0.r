@@ -1,6 +1,7 @@
 <div style="min-width: 260px;max-width: 260px;" class="mr-2">
         <div class=" pr-3">
           <h3><span class="badge bg-error">Проблема в заказе</span></h3>
+          <h3><span class="badge bg-error">{%if m_problem_orders%}{{m_problem_orders | length}} шт.{%endif%}</span></h3>
 
 
           {% for n in m_problem_orders %}

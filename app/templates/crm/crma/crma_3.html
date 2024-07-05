@@ -1,6 +1,7 @@
 <div style="min-width: 260px;max-width: 260px;" class="mr-2">
         <div class="pr-3">
           <h4><span class="badge badge-secondary mb-1">В обработке у менеджера</span></h4>
+          <h4><span class="badge badge-secondary mb-1">{%if m_start_orders%}{{m_start_orders | length}} шт.{%endif%}</span></h4>
           {% for n in m_start_orders %}
 
               <div class="card mt-3 mb-3 custom-rounded border-secondary{% if n.to_delete %} div-disabled {%endif%}">

@@ -15,6 +15,7 @@
               </div>
             {%endif%}
           </div>
+         <h3><span class="badge badge-warning">{%if new_orders%}{{new_orders | length}} шт.{%endif%}</span></h3>
           {% for n in new_orders %}
 
               <div class="card mt-3 mb-1 custom-rounded border-secondary{% if n.to_delete %} div-disabled {%endif%}">
