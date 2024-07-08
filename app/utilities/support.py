@@ -1099,6 +1099,7 @@ def helper_process_category_order(user: User, category: str, o_id: int, order_co
                 order_num=order_num,
                 order_idn=order_idn,
                 clothes_divider_flag=clothes_divider_flag,
+                flag_046=False,
             )
 
             flash(message=Markup(f"{settings.Messages.PROCESS_SUCCESS}<b>{order_idn}</b>!")) if sent_flag else None

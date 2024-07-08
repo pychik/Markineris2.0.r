@@ -128,7 +128,7 @@ class ValidateClothesMixin:
         # value is shoe_country
         country_value = value.upper()
         order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = country_value
-        if value not in settings.COUNTRIES_LIST and value not in settings.COUNTRIES_LIST_C:
+        if value not in settings.COUNTRIES_LIST:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_COUNTRY_ERROR}"
 
     @staticmethod

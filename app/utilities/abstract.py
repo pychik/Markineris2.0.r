@@ -28,12 +28,12 @@ class ProcessorInterface(ABC):
         ...
 
     @staticmethod
-    def prepare_ext_data(orders_list: list):
+    def prepare_ext_data(orders_list: list, flag_046: bool = False):
         ...
 
     @staticmethod
     def get_filename(order_num: int, category: str, pos_count: int, count: int,
-                     partner_code: str, company_type: str, company_name: str) -> str:
+                     partner_code: str, company_type: str, company_name: str, flag_046: bool = False) -> str:
         ...
 
     @staticmethod
@@ -49,7 +49,7 @@ class ProcessorInterface(ABC):
         ...
 
     @staticmethod
-    def excel_start_data_ext(category: str):
+    def excel_start_data_ext(category: str,  flag_046: bool = False):
         ...
 
     @staticmethod
