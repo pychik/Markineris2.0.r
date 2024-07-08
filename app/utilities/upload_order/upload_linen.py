@@ -115,7 +115,7 @@ class ValidateLinenMixin:
         # value is shoe_country
         country_value = value.upper()
         order_list[row_num - settings.Linen.UPLOAD_STANDART_ROW][pos] = country_value
-        if country_value not in settings.COUNTRIES_LIST and value not in settings.COUNTRIES_LIST_C:
+        if country_value not in settings.COUNTRIES_LIST:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Linen.UPLOAD_COUNTRY_ERROR}"
 
     @staticmethod

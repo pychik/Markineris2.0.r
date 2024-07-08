@@ -105,7 +105,7 @@ def download_order(o_id: int):
 
     u_id = Order.query.filter_by(id=o_id).with_entities(Order.user_id).scalar_subquery()
     user = User.query.filter_by(id=u_id).first()
-    return orders_download_common(user=user, o_id=o_id)
+    return orders_download_common(user=user, o_id=o_id, flag_046=request.args.get("flag_046", False, bool))
 
 
 @crm_d.route('/cancel_crm_order/<int:o_id>', methods=["POST"])

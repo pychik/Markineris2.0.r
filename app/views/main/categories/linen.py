@@ -65,16 +65,16 @@ def clean_orders(o_id: int):
     return redirect(url_for('linen.index'))
 
 
-@linen.route('/download_order/<int:o_id>', methods=['POST', ])
-@login_required
-@user_activated
-def download_order(o_id: int):
-    user = current_user
-    order = user.orders.filter_by(category=settings.Linen.CATEGORY, processed=False, id=o_id).first()
-    if not order:
-        flash(message=settings.Messages.EMPTY_ORDER, category='error')
-        return redirect(url_for('linen.index'))
-    return orders_download_common(user=user, o_id=order.id)
+# @linen.route('/download_order/<int:o_id>', methods=['POST', ])
+# @login_required
+# @user_activated
+# def download_order(o_id: int):
+#     user = current_user
+#     order = user.orders.filter_by(category=settings.Linen.CATEGORY, processed=False, id=o_id).first()
+#     if not order:
+#         flash(message=settings.Messages.EMPTY_ORDER, category='error')
+#         return redirect(url_for('linen.index'))
+#     return orders_download_common(user=user, o_id=order.id)
 
 
 @linen.route('/process_order/<int:o_id>', methods=['POST', ])

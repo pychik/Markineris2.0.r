@@ -14,13 +14,14 @@ from utilities.param_lists import SHOE_GENDERS, SHOE_MATERIALS_UP_LINEN, SHOE_MA
     PARFUM_START, PARFUM_PRELOAD_START, PARFUM_TNVED, PARFUM_TYPES, PARFUM_VOLUMES, \
     CLOTHES_DICT, CLOTHES_GENDERS, \
     CLOTHES_GENDERS_ORDER, CLOTHES_START, CLOTHES_PRELOAD_START, CLOTHES_TNVED, CLOTHES_TYPES, \
-    COUNTRIES_LIST, COUNTRIES_LIST_C, TEMPLATE_TABLES_DICT, ORDER_EDIT_DESCRIPTION, \
+    COUNTRIES_LIST, TEMPLATE_TABLES_DICT, ORDER_EDIT_DESCRIPTION, \
     SHOE_TNVED_CHECK_LIST, CLOTHES_TYPES_SIZES_DICT, CATEGORIES_DICT, \
     BIG_TNVED_LIST, BIG_TNVED_DICT, ADMIN_REPORT_HEAD, AGENT_DEFAULT_NOTE, ORDER_STAGES, \
-    CHECK_ORDER_STAGES, COMMON_COLORS, SHOE_START_EXT, LINEN_START_EXT, PARFUM_START_EXT, \
-    CLOTHES_START_EXT, CRM_PS_DICT, CLOTHES_CONTENT, CLOTHES_NAT_CONTENT, CLOTHES_UPPER, \
+    CHECK_ORDER_STAGES, COMMON_COLORS, SHOE_START_EXT_029, SHOE_START_EXT_046, LINEN_START_EXT, PARFUM_START_EXT, \
+    CRM_PS_DICT, CLOTHES_CONTENT, CLOTHES_NAT_CONTENT, CLOTHES_UPPER, SHOE_TYPES_CODES, SHOE_SIZES_ND, SHOE_SIZES_CODES, \
     USER_TRANSLATE_DICT, CLOTHES_SIZES_FULL, CLOTHES_SIZES_DESCRIPTION, CLOTHES_OLD_TNVED, ALL_CLOTHES_TNVED, \
-    COMPLICATED_COLORS, ALL_COLORS, UT_REPORT_START
+    COMPLICATED_COLORS, ALL_COLORS, UT_REPORT_START, CLOTHES_TYPES_CODES, CLOTHES_START_EXT_029, CLOTHES_START_EXT_046, \
+    CLOTHES_GENDERS_ORDER_046
 
 CUR_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -106,7 +107,6 @@ class Settings(BaseSettings):
     COMPANY_TYPES: list = ["ИП", "ООО", "АО"]
     CATEGORIES_DICT: dict = CATEGORIES_DICT
     COUNTRIES_LIST: list = COUNTRIES_LIST
-    COUNTRIES_LIST_C: list = COUNTRIES_LIST_C
     EDO_TYPES: list = ["СБИС", "КОНТУР", "ТАКСКОМ", "КАЛУГА АСТРАЛ"]
     DOWNLOAD_DIR: str = f"{CUR_PATH}/download_dir"
     DOWNLOAD_DIR_CRM: str = f"{CUR_PATH}/download_dir/crm/"
@@ -826,6 +826,7 @@ class Settings(BaseSettings):
         CATEGORY: str = 'обувь'
         CATEGORY_PROCESS: str = 'shoes'
         TYPES: list = SHOE_TYPES
+        TYPES_CODES: dict = SHOE_TYPES_CODES
         COLORS: tuple = COMMON_COLORS
         GENDERS: list = SHOE_GENDERS
         MATERIALS_UP_LINEN: list = SHOE_MATERIALS_UP_LINEN
@@ -840,6 +841,8 @@ class Settings(BaseSettings):
         TNVED_CHECK_LIST: list = SHOE_TNVED_CHECK_LIST
         SIZES: tuple = SHOE_SIZES
         SIZES_ALL: list = SHOE_SIZES_FULL
+        SIZES_ND: tuple = SHOE_SIZES_ND  # sizes not in dict
+        SIZES_CODES: dict = SHOE_SIZES_CODES
         SHOE_SIZE_DESC: tuple = SHOES_SIZES_DESCRIPTION
         BOX_DESCRIPTION: list = ["Если вы собираете заказ <b>коробами</b>, ",
                                  "то в поле <i><u>Количество коробов</u></i>",
@@ -849,7 +852,8 @@ class Settings(BaseSettings):
                                  " а в графе <i><u>Количество в коробе</u></i> ",
                                  "оставьте цифру 1."]
         START: list = SHOE_START
-        START_EXT: list = SHOE_START_EXT
+        START_EXT: list = SHOE_START_EXT_029
+        START_EXT_046: list = SHOE_START_EXT_046
         START_PRELOAD: list = SHOE_PRELOAD_START
         START_CRM_PRELOAD: list = SHOE_PRELOAD_START[1:11] + SHOE_PRELOAD_START[12:]
         SHEET_NAME_STANDART: str = "IMPORT_TNVED_6405"
@@ -858,11 +862,11 @@ class Settings(BaseSettings):
         MAX_QUANTITY: int = 100000000
         UPLOAD_TYPE_ERROR: str = "Проверьте правильность выбора типа обуви (посмотрите вкладку справочник)"
         UPLOAD_COLOR_ERROR: str = "Проверьте правильность указанного цвета обуви (посмотрите вкладку справочник)"
-        UPLOAD_SIZE_ERROR: str = "Проверьте правильность указанного размера обуви (диапазон от 16 до 56, шаг 0.5)" \
-                                 "т.е. 16, 16.5, 17, 17.5 ... 55.5, 56, 56.5, либо размеры особого вида:" \
-                                 "16-17, 17-18 ... 54-55, 55-56"
+        UPLOAD_SIZE_ERROR: str = "Проверьте правильность указанного размера обуви (диапазон от 16 до 60, шаг 0.5)" \
+                                 "т.е. 16, 16.5, 17, 17.5 ... 59, 59.5, 60, либо размеры особого вида:" \
+                                 "16-17, 17-18 ... 59-60"
         UPLOAD_SIZES_QUANTITIES_ERROR: str = "Проверьте корректность указанных размеров и количеств обуви " \
-                                             "(диапазон размеров  от 16 до 56.5, шаг 0.5)"
+                                             "(диапазон размеров  от 16 до 60, шаг 0.5)"
         UPLOAD_SIZES_QUANTITIES_DATA_INPUT_ERROR: str = "Проверьте корреткность указанной размерной сетки"
         UPLOAD_SIZES_QUANTITIES_LEN_ERROR: str = "Проверьте корректность указанных размеров и количеств обуви, " \
                                                  "список размеров не совпадает со списком количеств"
@@ -937,6 +941,7 @@ class Settings(BaseSettings):
         CATEGORY: str = 'одежда'
         CATEGORY_PROCESS: str = 'clothes'
         TYPES: list = CLOTHES_TYPES
+        TYPES_CODES: dict = CLOTHES_TYPES_CODES
         UPPER_TYPES: list = CLOTHES_UPPER
         COLORS: tuple = COMMON_COLORS
         SIZES_ALL: list = CLOTHES_SIZES_FULL
@@ -945,6 +950,7 @@ class Settings(BaseSettings):
         CLOTHES_NAT_CONTENT: list = CLOTHES_NAT_CONTENT
         GENDERS: list = CLOTHES_GENDERS
         GENDERS_ORDER: list = CLOTHES_GENDERS_ORDER
+        GENDERS_ORDER_046: dict = CLOTHES_GENDERS_ORDER_046
         DEC: dict = CLOTHES_DICT
 
         SIZE_ALL_DICT: dict = CLOTHES_TYPES_SIZES_DICT
@@ -955,7 +961,8 @@ class Settings(BaseSettings):
         # TNVED_CHECK_LIST: tuple = BIG_CLOTHES_TNVED_4DIGIT
         TNVED_ALL: tuple = ALL_CLOTHES_TNVED
         START: list = CLOTHES_START
-        START_EXT: list = CLOTHES_START_EXT
+        START_EXT: list = CLOTHES_START_EXT_029
+        START_EXT_046: list = CLOTHES_START_EXT_046
         START_PRELOAD: list = CLOTHES_PRELOAD_START
         START_CRM_PRELOAD: list = CLOTHES_PRELOAD_START[1:11] + CLOTHES_PRELOAD_START[12:]
         UPLOAD_STANDART_ROW: int = 7
