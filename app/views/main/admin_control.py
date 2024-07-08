@@ -72,7 +72,7 @@ def partner_code(u_id: int, auto: int = None):
 
 @admin_control.route('/delete_partner_code/<int:u_id>/<p_id>', methods=['POST'])
 @login_required
-@au_required
+@su_required
 def delete_partner_code(u_id: int, p_id: int):
     return h_delete_partner_code(u_id=u_id, p_id=p_id)
 

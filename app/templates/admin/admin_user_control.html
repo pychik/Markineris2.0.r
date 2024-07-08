@@ -327,12 +327,14 @@
               </td>
 
               <td>
-                <form method="post"
-                      action="{{ url_for('admin_control.delete_partner_code', u_id=admin_info.id, p_id=pc.id) }}">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                  <input class="btn btn-sm btn-outline-danger btn-outline"
-                         type="submit" name="activate" value="&times;">
-                </form>
+                  {% if current_user.role in ['superuser', 'markineris_admin'] %}
+                    <form method="post"
+                          action="{{ url_for('admin_control.delete_partner_code', u_id=admin_info.id, p_id=pc.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                      <input class="btn btn-sm btn-outline-danger btn-outline"
+                             type="submit" name="activate" value="&times;">
+                    </form>
+                  {% endif %}
               </td>
 
 
