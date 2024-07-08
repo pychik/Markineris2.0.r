@@ -1,0 +1,32 @@
+{% extends "main/base_v2.html" %}
+
+{% block admin_control_panel_orders %}
+<div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
+        <div class="breadcrumbs">
+            <a href="{{url_for('admin_control.index')}}">Управление пользователями </a>
+            /
+            <span>Контроль заказов пользователей</span>
+
+        </div>
+    </div>
+<div class="row text-center mt-5">
+
+    <div class="col-12">
+    <h3>
+        Заказы пользователей ожидающие подтверждения
+    </h3>
+    <div id="OrdersTable" class="col" align="left">
+        {% include 'admin/crm_specific/at2_orders_table.html' %}
+    </div>
+
+
+
+  </div>
+</div>
+
+
+<div id="modalWindows"></div>
+
+<script src="{{url_for('static',filename='main_v2/js/admin/orders.js')}}"></script>
+
+{% endblock %}
