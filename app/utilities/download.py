@@ -203,7 +203,7 @@ class ShoesProcessor(OrdersProcessor):
 class LinenProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list) -> list:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> list:
         res_list = []
 
         for el in orders_list:
@@ -230,7 +230,7 @@ class LinenProcessor(OrdersProcessor):
 class ParfumProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list) -> list:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> list:
         res_list = []
 
         for el in orders_list:
