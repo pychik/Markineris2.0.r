@@ -451,7 +451,7 @@
                   {{ u.phone }}
                 </td>
                 <td>
-                  {{ u.email }}{% if admin_info.role == 'superuser' %}&nbsp;<span class="ml-1" title="Изменить пароль"
+                  {{ u.email }}{% if current_user.role == 'superuser' %}&nbsp;<span class="ml-1" title="Изменить пароль"
                                                                                   onclick="change_user_password_main(`{{ url_for('admin_control.bck_change_user_password', u_id=u.id) }}`, `{{ csrf_token() }}`, `{{ u.login_name }}`)">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="grey"
                                                  class="bi bi-pencil" viewBox="0 0 16 16">
