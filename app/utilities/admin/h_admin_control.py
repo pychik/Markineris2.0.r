@@ -17,7 +17,8 @@ from utilities.support import url_encrypt, helper_check_form, helper_update_orde
       helper_paginate_data, helper_strange_response, sql_count, helper_get_filter_users
 from utilities.admin.schemas import AROrdersSchema, ar_categories_types
 from utilities.admin.helpers import (process_admin_report, helper_get_clients_os, helper_get_orders_stats,
-                                     helper_prev_day_orders_marks, helper_get_users_reanimate)
+                                     helper_prev_day_orders_marks, helper_get_users_reanimate,
+                                     helper_check_new_order_at2, helper_get_new_orders_at2)
 from utilities.admin.excel_report import ExcelReport
 
 
@@ -973,6 +974,66 @@ def h_client_orders_stats(admin_id: int, client_id: int) -> Response:
         return helper_get_clients_os(admin_id=admin_id, client=client)
 
     return helper_strange_response()
+
+def h_at2_new_orders() -> Response:
+    admin_id = current_user.id
+    pool = settings.OrderStage.POOL
+    cancelled = settings.OrderStage.CANCELLED
+
+    orders_list_raw = helper_get_new_orders_at2(admin_id=admin_id)
+
+    bck = request.args.get('bck', 0, type=int)
+
+    if not orders_list_raw:
+        return render_template('admin/crm_specific/at2_orders.html', **locals()) if not bck \
+            else jsonify(
+            {'status': 'success', 'htmlresponse': render_template(f'admin/crm_specific/at2_orders_table.html',
+                                                                  **locals())})
+    link_filters = 'bck=1&'
+    link = f'javascript:bck_get_orders(\'' + url_for(
+        'admin_control.at2_new_orders') + f'?{link_filters}' + 'page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        orders_list = helper_paginate_data(data=orders_list_raw, per_page=settings.PAGINATION_PER_PAGE, href=link,
+                                          anchor="OrdersTable")
+    return render_template('admin/crm_specific/at2_orders.html', **locals()) if not bck \
+        else jsonify(
+        {'status': 'success', 'htmlresponse': render_template(f'admin/crm_specific/at2_orders_table.html',
+                                                              **locals())})
+
+
+def h_at2_orders_process(o_id: int, change_stage: int) -> Response:
+    admin_id = current_user.id
+    status = 'danger'
+
+    if change_stage not in [settings.OrderStage.POOL, settings.OrderStage.CANCELLED]:
+        message = f"{settings.Messages.AT2_ORDER_CHANGE_ERROR} - Указаны некорректные данные для изменения!"
+        return jsonify(dict(status=status, message=message))
+
+    # check for trickers
+    order_check = helper_check_new_order_at2(admin_id=admin_id, o_id=o_id)
+
+    if not order_check:
+        message = f"{settings.Messages.AT2_ORDER_CHANGE_ERROR} - Нет такого заказа!"
+        return jsonify(dict(status=status, message=message))
+    try:
+        cancel_stmt = (", cc_created='{date}', comment_cancel='{auto_comment}'"
+                       .format(date=str(datetime.now()), auto_comment=settings.Messages.AT2_ORDER_CANCEL_TEXT)) if change_stage == settings.OrderStage.CANCELLED else ""
+        update_order_stmt = (text(f"""UPDATE public.orders SET stage=:change_stage{cancel_stmt} WHERE id=:o_id""")
+                             .bindparams(o_id=o_id, change_stage=change_stage))
+
+        db.session.execute(update_order_stmt)
+        db.session.commit()
+
+        order_idn = order_check.order_idn
+        message = f"{settings.Messages.AT2_ORDER_CHANGE} {order_idn} {settings.OrderStage.STAGES[change_stage][1]}"
+        status = 'success'
+    except Exception as e:
+        db.session.rollback()
+        message = f"{settings.Messages.AT2_ORDER_CHANGE_ERROR} {e}"
+        logger.error(message)
+
+    return jsonify(dict(status=status, message=message))
 
 
 def h_users_activate_list():

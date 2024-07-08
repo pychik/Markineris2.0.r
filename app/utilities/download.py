@@ -54,7 +54,7 @@ class OrdersProcessor(ProcessorInterface):
         worksheet_2 = workbook.add_worksheet(name=settings.SHEET_NAME_2)
 
         # Some data we want to write to the worksheet.
-        main_data = self.excel_start_data_ext(category=self.category)
+        main_data = self.excel_start_data_ext(category=self.category, flag_046=self.flag_046)
         main_data.extend(orders_list)
 
         df_dict = {}
@@ -142,7 +142,7 @@ class OrdersProcessor(ProcessorInterface):
         self.path = self.get_filename(order_num=order_num, category=category,
                                       pos_count=pos_count, count=orders_pos_count,
                                       partner_code=c_partner_code, company_type=company_type,
-                                      company_name=company_name)
+                                      company_name=company_name, flag_046=self.flag_046)
         self.excel_add_worksheet_data(company_idn=company_idn, company_name=company_name,
                                       company_type=company_type,
                                       edo_type=edo_type, edo_id=edo_id, mark_type=mark_type,
@@ -389,7 +389,7 @@ def get_download_info(o_id, user: User, order_num: int, batching: bool = True,
         rd_exist, quantity_list_raw, pos_count, orders_pos_count = order_count(category=category, order_list=order_list)
 
         if not batching:
-            op = ClothesProcessor(category=category, company_idn=company_idn, orders_list=order_list)
+            op = ClothesProcessor(category=category, company_idn=company_idn, orders_list=order_list, flag_046=flag_046)
             files_list = [op.make_file(order_num=order_num, category=category, pos_count=pos_count,
                                        orders_pos_count=orders_pos_count,
                                        c_partner_code=c_partner_code, company_type=company_type,

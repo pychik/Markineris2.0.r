@@ -15,8 +15,8 @@ from utilities.param_lists import SHOE_GENDERS, SHOE_MATERIALS_UP_LINEN, SHOE_MA
     CLOTHES_DICT, CLOTHES_GENDERS, \
     CLOTHES_GENDERS_ORDER, CLOTHES_START, CLOTHES_PRELOAD_START, CLOTHES_TNVED, CLOTHES_TYPES, \
     COUNTRIES_LIST, TEMPLATE_TABLES_DICT, ORDER_EDIT_DESCRIPTION, \
-    SHOE_TNVED_CHECK_LIST, CLOTHES_TYPES_SIZES_DICT, CATEGORIES_DICT, \
-    BIG_TNVED_LIST, BIG_TNVED_DICT, ADMIN_REPORT_HEAD, AGENT_DEFAULT_NOTE, ORDER_STAGES, \
+    SHOE_TNVED_CHECK_LIST, CLOTHES_TYPES_SIZES_DICT, CATEGORIES_DICT, CLOTHES_ST_DICT, \
+    BIG_TNVED_LIST, BIG_TNVED_DICT, ADMIN_REPORT_HEAD, AGENT_DEFAULT_NOTE, ORDER_STAGES, COUNTRIES_CODES, \
     CHECK_ORDER_STAGES, COMMON_COLORS, SHOE_START_EXT_029, SHOE_START_EXT_046, LINEN_START_EXT, PARFUM_START_EXT, \
     CRM_PS_DICT, CLOTHES_CONTENT, CLOTHES_NAT_CONTENT, CLOTHES_UPPER, SHOE_TYPES_CODES, SHOE_SIZES_ND, SHOE_SIZES_CODES, \
     USER_TRANSLATE_DICT, CLOTHES_SIZES_FULL, CLOTHES_SIZES_DESCRIPTION, CLOTHES_OLD_TNVED, ALL_CLOTHES_TNVED, \
@@ -107,6 +107,7 @@ class Settings(BaseSettings):
     COMPANY_TYPES: list = ["ИП", "ООО", "АО"]
     CATEGORIES_DICT: dict = CATEGORIES_DICT
     COUNTRIES_LIST: list = COUNTRIES_LIST
+    COUNTRIES_CODES: dict = COUNTRIES_CODES
     EDO_TYPES: list = ["СБИС", "КОНТУР", "ТАКСКОМ", "КАЛУГА АСТРАЛ"]
     DOWNLOAD_DIR: str = f"{CUR_PATH}/download_dir"
     DOWNLOAD_DIR_CRM: str = f"{CUR_PATH}/download_dir/crm/"
@@ -563,6 +564,10 @@ class Settings(BaseSettings):
         SUPERADMIN_MADMIN_USER_REQUIRED: str = "Для того, чтобы контроллировать CRM нужно быть админом или суперпользователем. " \
                                                "Вы уверены, что вы админ или суперпользователь?"
         SUPER_MOD_REQUIRED: str = "Для того, чтобы продолжить нужна роль супера или модератора"
+        AT2_USER_REQUIRED: str = "Для того, чтобы пользоваться этим функционалом необходимо быть пользователем типа Единый счет и у пользователей должны быть заказы"
+        AT2_ORDER_CHANGE: str = "Статус заказа успешно изменен"
+        AT2_ORDER_CHANGE_ERROR: str = "При изменении статуса заказа произошла ошибка"
+        AT2_ORDER_CANCEL_TEXT: str = "Заказ отменен агентом типа 2 на стадии передачи в ПУЛ"
         PARTNER_CODE_ERROR: str = "Ошибка сохранения кода партнера! "
         PARTNER_CODE_DELETE_SUCCESS: str = "Успешно удален партнер код {partner_code}"
         PARTNER_CODE_DELETE_ERROR: str = "Ошибка удаления кода партнера! Есть привязанные пользователи."
@@ -956,6 +961,7 @@ class Settings(BaseSettings):
         SIZE_ALL_DICT: dict = CLOTHES_TYPES_SIZES_DICT
         DEFAULT_SIZE_TYPE: str = "РОССИЯ"
         UNITE_SIZE_VALUE: str = "ЕДИНЫЙ РАЗМЕР"
+        SYZE_TYPES_CODES: dict = CLOTHES_ST_DICT
         SIZE_TYPES_ALL: list = CLOTHES_TYPES_SIZES_DICT.keys()  # temporary before all types are ok to use
         TNVED_CODE: tuple = CLOTHES_TNVED  # "6202900001"
         # TNVED_CHECK_LIST: tuple = BIG_CLOTHES_TNVED_4DIGIT

@@ -150,6 +150,52 @@ def helper_get_clients_os(admin_id: int, client: User) -> Response:
                                                       **locals())})
 
 
+
+def helper_get_new_orders_at2(admin_id: int) -> list:
+    stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
+    stmt_orders = text(f"""
+                              SELECT 
+                                  {stmt_get_agent} as agent_name ,
+                                  u.login_name as login_name, 
+                                  u.phone as phone, 
+                                  u.email as email, 
+                                  o.id as id,
+                                  o.order_idn as order_idn,
+                                  o.company_type as company_type,
+                                  o.company_name as company_name,
+                                  o.crm_created_at as crm_created_at,
+                                  COUNT(o.id) as row_count,
+                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                              FROM public.users u
+                                  JOIN public.orders o ON o.user_id = u.id  
+                                  LEFT JOIN public.users a ON u.admin_parent_id = a.id  
+                                  LEFT JOIN public.shoes sh ON o.id = sh.order_id
+                                  LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
+                                  LEFT JOIN public.clothes  cl ON o.id = cl.order_id
+                                  LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                  LEFT JOIN public.linen l ON o.id = l.order_id
+                                  LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
+                                  LEFT JOIN public.parfum p ON o.id = p.order_id 
+                              WHERE ((a.id=:admin_id  and a.is_at2=True) OR (u.id=:admin_id AND u.is_at2 = True)) AND o.stage=:order_stage AND o.to_delete != True
+                              GROUP BY u.id, o.id, o.crm_created_at
+                              ORDER BY o.crm_created_at DESC 
+                               """).bindparams(admin_id=admin_id, order_stage=settings.OrderStage.NEW)
+
+    return db.session.execute(stmt_orders).fetchall()
+
+
+def helper_check_new_order_at2(admin_id: int, o_id: int) -> Row | None:
+    stmt_order = text(f"""
+                              SELECT 
+                                  o.order_idn as order_idn
+                              FROM public.users u
+                                  JOIN public.orders o ON o.user_id = u.id  
+                              WHERE  (u.admin_parent_id=:admin_id OR u.id=:admin_id) AND o.id=:order_id AND o.stage={settings.OrderStage.NEW} AND o.to_delete != True
+                               """).bindparams(admin_id=admin_id, order_id=o_id)
+
+    return db.session.execute(stmt_order).fetchone()
+
+
 def helper_prev_day_orders_marks() -> Row:
     yesterday = datetime.now() - timedelta(days=1)
     stmt = text(""" SELECT count(id) as orders_count, sum(marks_count) as marks_count 

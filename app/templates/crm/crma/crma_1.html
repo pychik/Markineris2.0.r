@@ -43,18 +43,17 @@
                         {% include 'crm/crma/order_description.html' %}
                     </div>
 
+                    {% include 'crm/helpers/crma_download_preload.html' %}
+
                     <div class="row">
 
-                        <div class="col-md-4 col-xs-12 text-center">
-                            {% include 'crm/helpers/crma_download_preload.html' %}
-                        </div>
-                        <div class="col-md-4 col-xs-12 text-center" title="Отменить заказ">
+                        <div class="col-md-6 col-xs-12 text-center" title="Отменить заказ">
                              <button type="button" onclick="cancel_order('{{ n.order_idn }}', '{{ url_for('crm_d.cancel_crm_order', o_id=n.id) }}',
                                      '{{ csrf_token() }}')" class="btn btn-sm btn-outline-danger btn-block">&times;</button>
                         </div>
 
 
-                        <div class="col-md-4 col-xs-12 text-center" title="Перевести заказ в ОТПРАВЛЕНЫ ФИРМЕ">
+                        <div class="col-md-6 col-xs-12 text-center" title="Перевести заказ в ОТПРАВЛЕНЫ ФИРМЕ">
                              <form method="post" action="{{ url_for('crm_d.change_agent_stage', o_id = n.id, stage=order_stages.POOL) }}">
                                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                   <input class="btn btn-sm btn-outline-warning btn-block"

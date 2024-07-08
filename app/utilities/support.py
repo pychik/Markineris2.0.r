@@ -2555,6 +2555,30 @@ def au_required(func):
     return wrapper
 
 
+def bck_at2_required(func):
+    """
+        Checks if user is TYPE 2 and returns dict with message if not or redirects
+    :param func:
+    :return:
+    """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+
+        if current_user.status is True and current_user.is_at2:
+            return func(*args, **kwargs)
+        else:
+            # check if its bck request error
+            bck = request.args.get('bck', 0, type=int)
+            if bck:
+                return jsonify(dict(status='danger', message=settings.Messages.AT2_USER_REQUIRED))
+            else:
+                flash(message=settings.Messages.AT2_USER_REQUIRED, category='error')
+                return redirect(url_for('main.index'))
+
+    return wrapper
+
+
 # admin user simplified required
 def aus_required(func):
     @wraps(func)
