@@ -589,6 +589,7 @@ def h_set_process_type(u_id: int, p_type: str) -> Response:
 
 def h_delete_user_admin(u_id: int) -> Response:
     user = User.query.filter_by(id=u_id).first()
+    user_balance = user.balance
     if not user:
         flash(message=f"{settings.Messages.STRANGE_REQUESTS}", category='error')
         return redirect(url_for('admin_control.index', expanded=settings.EXP_USERS))
@@ -605,6 +606,8 @@ def h_delete_user_admin(u_id: int) -> Response:
         helper_delete_tg(user=user)
         user_id = user.id
         db.session.delete(user)
+        db.session.execute(text("UPDATE public.server_params set balance = balance - :user_balance").bindparams(
+            user_balance=user_balance)) if user.is_at2 and user_balance else None
         db.session.commit()
 
         flash(message=f"{settings.Messages.DELETE_USER} {user.login_name} c id {user_id}")
@@ -619,6 +622,7 @@ def h_delete_user_admin(u_id: int) -> Response:
 
 def h_delete_user(u_id: int) -> Response:
     user = User.query.filter_by(id=u_id).first()
+    user_balance = user.balance
     admin_id = user.admin_parent_id
     # check for trickers
     if current_user.role != settings.SUPER_USER and current_user.id != admin_id:
@@ -632,6 +636,8 @@ def h_delete_user(u_id: int) -> Response:
         user.promos = []
         tg_user = TgUser.query.filter_by(flask_user_id=user.id).first()
         db.session.delete(user)
+        db.session.execute(text("UPDATE public.server_params set balance = balance - :user_balance").bindparams(
+            user_balance=user_balance)) if user_balance else None
         if tg_user:
             db.session.delete(tg_user)
         db.session.commit()
@@ -1075,6 +1081,7 @@ def h_users_activate_list():
 
 def h_bck_user_delete(u_id: int) -> Response:
     user = User.query.get(u_id)
+    user_balance = user.balance
     status = 'danger'
     # check for trickers
     if not user:
@@ -1085,8 +1092,10 @@ def h_bck_user_delete(u_id: int) -> Response:
         user.partners = []
         user.promos = []
         db.session.delete(user)
+        db.session.execute(text("UPDATE public.server_params set balance = balance - :user_balance").bindparams(
+            user_balance=user_balance)) if user_balance else None
         db.session.commit()
-        db.session.commit()
+
 
         message = f"{settings.Messages.DELETE_USER} {user.login_name}"
         status = 'success'

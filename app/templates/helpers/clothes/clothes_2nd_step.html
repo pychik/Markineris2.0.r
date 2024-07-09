@@ -97,7 +97,7 @@
                 <div class="col-md-4">
                     <div class="form-group">
                         <label class="control-label">Пол</label>
-                        <select class="form-control search-select" id="gender" name="gender"
+                        <select class="form-control search-select" id="gender" name="gender" onchange="check_gender_ruznak(this.value)"
                             required>
 {#                            onchange="javascript:set_tnved();" required>#}
                             <option disabled selected value="">Выберите пол...</option>
