@@ -1018,7 +1018,7 @@ def helpers_ceps_order(o_id: int, ep: int):
     message = settings.Messages.NO_SUCH_ORDER_CRM
     try:
 
-        order_info = db.session.execute(text("SELECT id from public.orders WHERE id=:o_id AND o.to_delete != True;").bindparams(o_id=o_id)).fetchone()
+        order_info = db.session.execute(text("SELECT o.id from public.orders o WHERE o.id=:o_id AND o.to_delete != True;").bindparams(o_id=o_id)).fetchone()
         if not order_info:
             return jsonify({'status': status, 'message': message})
         ep = True if ep == 1 else False
