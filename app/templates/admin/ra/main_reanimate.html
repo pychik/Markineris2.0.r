@@ -37,7 +37,7 @@
     const prices_array = [{% for p in all_prices %}[{{ p.id }},'{{ p.price_code }}'],{% endfor %}];
 </script>
 <script src="{{url_for('static',filename='main_v2/js/admin/admin_uc_v7.js')}}"></script>
-<script src="{{url_for('static',filename='main_v2/js/admin/admin_common_v3.js')}}"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_common_v2.js')}}?v=1"></script>
 <script src="{{url_for('static',filename='main_v2/js/admin/admin_main.js')}}"></script>
 <script src="{{url_for('static',filename='main_v2/js/admin/prices_block.js')}}"></script>
 
