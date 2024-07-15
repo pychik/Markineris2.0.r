@@ -1263,7 +1263,6 @@ def helper_get_filter_users(excel_report: bool = False) -> tuple:
     date_type = date_type_raw if date_type_raw and date_type_raw in settings.Users.FILTER_DATE_TYPES \
         else settings.Users.FILTER_DATE_DAYS
 
-    # print(date_from, date_to, sort_type)
     return date_quantity, date_type, link_filters, sort_type
 
 

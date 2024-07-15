@@ -15,8 +15,7 @@ from utilities.admin.h_admin_control import (h_index, h_admin, h_set_order_notif
                                              h_change_trust_limit, h_users_orders_stats, h_users_activate_list,
                                              h_bck_user_delete, h_bck_user_activate, h_client_orders_stats,
                                              h_su_user_search, h_bck_change_user_password, h_bck_reanimate,
-                                             h_bck_ar_orders, h_bck_su_control_reanimate_excel, h_at2_new_orders,
-                                             h_at2_orders_process)
+                                             h_bck_ar_orders)
 from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_promo, h_su_add_promo, h_su_delete_promo,
                                                h_su_bck_prices, h_su_add_prices, h_su_delete_prices, h_su_bck_sa,
                                                h_su_add_sa, h_su_delete_sa, h_su_bck_change_sa_type, h_su_control_ut,
@@ -25,9 +24,9 @@ from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_pr
                                                h_aus_transaction_detail, h_su_bck_change_sa_activity,
                                                h_bck_ut_excel_report, h_su_fin_order_report, h_bck_fin_order_report,
                                                h_bck_fin_order_report_excel, h_fin_promo_history,
-                                               h_bck_fin_promo_history, h_bck_fin_promo_history_excel, )
+                                               h_bck_fin_promo_history, h_bck_fin_promo_history_excel)
 from utilities.support import au_required, aus_required, bck_aus_required, bck_su_required, su_required, \
-    user_exist_check, su_mod_required, bck_su_mod_required, bck_at2_required
+    user_exist_check, su_mod_required
 
 from utilities.admin.h_admin_control import h_bck_agent_reanimate
 
@@ -73,7 +72,7 @@ def partner_code(u_id: int, auto: int = None):
 
 @admin_control.route('/delete_partner_code/<int:u_id>/<p_id>', methods=['POST'])
 @login_required
-@su_required
+@au_required
 def delete_partner_code(u_id: int, p_id: int):
     return h_delete_partner_code(u_id=u_id, p_id=p_id)
 
@@ -544,28 +543,6 @@ def client_orders_stats(admin_id: int, client_id: int):
     return h_client_orders_stats(admin_id=admin_id, client_id=client_id)
 
 
-@admin_control.route('/at2_new_orders', methods=['GET', ])
-@login_required
-@bck_at2_required
-def at2_new_orders():
-    """
-        gets all client and self orders of specific agent type2
-    :return:
-    """
-    return h_at2_new_orders()
-
-
-@admin_control.route('/at2_orders_process/<int:o_id>/<int:change_stage>', methods=['POST', ])
-@login_required
-@bck_at2_required
-def at2_orders_process(o_id: int, change_stage: int):
-    """
-        change order of specific agents client to stage POOL
-    :return:
-    """
-    return h_at2_orders_process(o_id=o_id, change_stage=change_stage)
-
-
 @admin_control.route('/users_activate_list', methods=["GET", ])
 @login_required
 @bck_su_required
@@ -582,16 +559,6 @@ def bck_control_reanimate():
     :return:
     """
     return h_bck_reanimate()
-
-
-@admin_control.route('/bck_su_control_reanimate_excel', methods=['POST'])
-@login_required
-@bck_su_mod_required
-def bck_su_control_reanimate_excel():
-    """
-    load excel with user reanimate report
-    """
-    return h_bck_su_control_reanimate_excel()
 
 
 @admin_control.route('/bck_control_reanimate/<int:u_id>', methods=['GET', ])
