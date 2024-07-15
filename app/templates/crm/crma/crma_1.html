@@ -2,19 +2,20 @@
         <div class="border-sp-10-right pr-3">
           <div class="row">
             <div class="col-8">
-              <h3><span class="badge badge-warning">Новые заказы</span></h3>
+              <h4><span class="badge badge-warning">Новые заказы</span></h4>
             </div>
             {%if new_orders%}
               <div class=" col-4" title="перенести все новые заказы в ПУЛ ">
-                <h3><span class="badge badge-warning" style="cursor: pointer" onclick="bck_all_new_multi_pool(`{{ url_for('crm_d.all_new_multi_pool')}}`, `{{ csrf_token() }}`);">
+                <h4><span class="badge badge-warning" style="cursor: pointer" onclick="bck_all_new_multi_pool(`{{ url_for('crm_d.all_new_multi_pool')}}`, `{{ csrf_token() }}`);">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16">
                         <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8z"/>
                     </svg>
-                </span></h3>
+                </span></h4>
 
               </div>
             {%endif%}
           </div>
+         <h4><span class="badge badge-warning">{%if new_orders%}{{new_orders | length}} шт.{%endif%}</span></h4>
           {% for n in new_orders %}
 
               <div class="card mt-3 mb-1 custom-rounded border-secondary{% if n.to_delete %} div-disabled {%endif%}">
@@ -42,18 +43,17 @@
                         {% include 'crm/crma/order_description.html' %}
                     </div>
 
+                    {% include 'crm/helpers/crma_download_preload.html' %}
+
                     <div class="row">
 
-                        <div class="col-md-4 col-xs-12 text-center">
-                            {% include 'crm/helpers/crma_download_preload.html' %}
-                        </div>
-                        <div class="col-md-4 col-xs-12 text-center" title="Отменить заказ">
+                        <div class="col-md-6 col-xs-12 text-center" title="Отменить заказ">
                              <button type="button" onclick="cancel_order('{{ n.order_idn }}', '{{ url_for('crm_d.cancel_crm_order', o_id=n.id) }}',
                                      '{{ csrf_token() }}')" class="btn btn-sm btn-outline-danger btn-block">&times;</button>
                         </div>
 
 
-                        <div class="col-md-4 col-xs-12 text-center" title="Перевести заказ в ОТПРАВЛЕНЫ ФИРМЕ">
+                        <div class="col-md-6 col-xs-12 text-center" title="Перевести заказ в ОТПРАВЛЕНЫ ФИРМЕ">
                              <form method="post" action="{{ url_for('crm_d.change_agent_stage', o_id = n.id, stage=order_stages.POOL) }}">
                                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                   <input class="btn btn-sm btn-outline-warning btn-block"

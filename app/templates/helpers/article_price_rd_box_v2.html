@@ -56,7 +56,7 @@
 <div class="form-group mb-4">
 <label class="control-label">
         <a class="option text-dark " role="button" data-bs-toggle="collapse"
-            href="#collapseDocResolve" aria-expanded="false"
+            href="#collapseDocResolve" aria-expanded="false" id="clickablerdblock"
             aria-controls="collapseDocResolve">
             Разрешительная документация
         </a>
@@ -77,7 +77,7 @@
                 </svg></span>
         </a>
     </label>
-    <div class="collapse {%if copied_order %}{% if copied_order.rd_date %} show {% endif %}{% endif %}" id="collapseDocResolve">
+    <div class="collapse {%if copied_order %}{% if copied_order.rd_date or  (rz_condition and copied_order and category in ['обувь', 'одежда'] and copied_order.gender not in ["Детские", "Мальчик", "Девочка", "Детск."]) %} show {% endif %}{% endif %}" id="collapseDocResolve">
 
         <div class="mt-1 form-group" title="Тип документа">
             <label for="rd_type" class="col-form-label text-right">Тип
@@ -101,6 +101,7 @@
                 документа</label>
             <input type="text" id="rd_name" name="rd_name"
                    class="form-control col-sm-6"
+                   {% if rz_condition and copied_order and category in ['обувь', 'одежда'] and copied_order.gender not in ["Детские", "Мальчик", "Девочка", "Детск."]%} required {% endif %}
                    placeholder="Введите код/название документа" oninput="oiremoveSymbol('rd_name', '№')"
                    value="{% if copied_order %}{% if copied_order.rd_name %}{{ copied_order.rd_name }}{% endif %}{% endif %}">
             <small class="form-text text-muted" style="font-size: 10px;">Значок <b><u>№</u></b> не указывается</small>
@@ -170,5 +171,5 @@
 
 
 <!--<script src="{{ url_for('static', filename='main_v2/js/assets/jquery-ui.min.js')}}"></script>-->
-<!--<script src="{{ url_for('static', filename='js/datepicker-ru.js') }}"></script>-->
+<!--<script src="{{ url_for('static', filename='main_v2/js/datepicker-ru.js') }}"></script>-->
 

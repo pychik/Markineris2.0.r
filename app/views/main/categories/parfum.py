@@ -62,17 +62,17 @@ def clean_orders(o_id: int):
     return redirect(url_for('parfum.index'))
 
 
-@parfum.route('/download_order/<int:o_id>', methods=['POST', ])
-@login_required
-@user_activated
-def download_order(o_id: int):
-    user = current_user
-    order = (user.orders.filter_by(category=settings.Parfum.CATEGORY, processed=False, id=o_id)
-             .filter(~Order.to_delete).first())
-    if not order:
-        flash(message=settings.Messages.EMPTY_ORDER, category='error')
-        return redirect(url_for('parfum.index'))
-    return orders_download_common(user=user, o_id=order.id)
+# @parfum.route('/download_order/<int:o_id>', methods=['POST', ])
+# @login_required
+# @user_activated
+# def download_order(o_id: int):
+#     user = current_user
+#     order = (user.orders.filter_by(category=settings.Parfum.CATEGORY, processed=False, id=o_id)
+#              .filter(~Order.to_delete).first())
+#     if not order:
+#         flash(message=settings.Messages.EMPTY_ORDER, category='error')
+#         return redirect(url_for('parfum.index'))
+#     return orders_download_common(user=user, o_id=order.id)
 
 
 @parfum.route('/process_order/<int:o_id>', methods=['POST', ])

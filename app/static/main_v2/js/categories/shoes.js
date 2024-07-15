@@ -514,6 +514,33 @@ function check_add_same_size(size, quantity){
     return false
 }
 
+function check_gender_ruznak(gender) {
+    if (RZ_CONDITION === 'True' && !CHILDREN_GENDER_LIST.includes(gender)){
+        // console.log('нашли условине' + gender);
+        document.getElementById('rd_name').required = true;
+        document.getElementById('rd_type').required = true;
+        document.getElementById('rd_date').required = true;
+        // document.getElementById('collapseDocResolve').classList.add('show');
+        if (!document.getElementById('collapseDocResolve').classList.contains('show')){
+            document.getElementById('clickablerdblock').click();
+        }
+    }
+    else if((RZ_CONDITION === 'True' && CHILDREN_GENDER_LIST.includes(gender))){
+        document.getElementById('rd_name').required = false;
+        document.getElementById('rd_type').required = false;
+        document.getElementById('rd_date').required = false;
+        $('#rd_type').val('').trigger("change");
+        $('#rd_name').val("");
+        $('#rd_date').val("");
+        // document.getElementById('collapseDocResolve').classList.remove('show');
+        if (document.getElementById('collapseDocResolve').classList.contains('show')){
+            document.getElementById('clickablerdblock').click();
+        }
+    }
+
+}
+
+
 function deleteCell(){
     var cur = $(this).closest('div');
     cur.parent().remove();

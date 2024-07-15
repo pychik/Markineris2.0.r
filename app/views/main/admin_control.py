@@ -7,8 +7,7 @@ from models import User
 from utilities.admin.h_admin_control import (h_index, h_admin, h_set_order_notification, h_create_admin,
                                              h_partner_code, h_delete_partner_code, h_telegram_set_group,
                                              h_telegram_message_set, h_telegram_group_bind, h_delete_telegram_group,
-                                             h_set_user_admin, h_set_user, h_deactivate_user,
-                                             h_activate_all_admin_users,
+                                             h_set_user_admin, h_set_user, h_deactivate_user, h_activate_all_admin_users,
                                              h_deactivate_user_admin, h_set_process_type,
                                              h_delete_user_admin, h_delete_user, h_create_link_new_password,
                                              h_send_order, h_download_agent_report, h_user_search, h_user_search_idn,
@@ -16,7 +15,7 @@ from utilities.admin.h_admin_control import (h_index, h_admin, h_set_order_notif
                                              h_change_trust_limit, h_users_orders_stats, h_users_activate_list,
                                              h_bck_user_delete, h_bck_user_activate, h_client_orders_stats,
                                              h_su_user_search, h_bck_change_user_password, h_bck_reanimate,
-                                             h_bck_ar_orders, h_bck_save_call_result, h_bck_su_control_reanimate_excel)
+                                             h_bck_ar_orders)
 from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_promo, h_su_add_promo, h_su_delete_promo,
                                                h_su_bck_prices, h_su_add_prices, h_su_delete_prices, h_su_bck_sa,
                                                h_su_add_sa, h_su_delete_sa, h_su_bck_change_sa_type, h_su_control_ut,
@@ -561,25 +560,6 @@ def bck_control_reanimate():
     """
     return h_bck_reanimate()
 
-
-@admin_control.route('/bck_reanimate_save_call', methods=['POST'])
-@login_required
-@bck_su_required
-def bck_reanimate_save_call_result():
-    """
-        save call result for user in reanimate interface
-    """
-    return h_bck_save_call_result()
-
-
-@admin_control.route('/bck_su_control_reanimate_excel', methods=['POST'])
-@login_required
-@bck_su_required
-def bck_su_control_reanimate_excel():
-    """
-    load excel with user reanimate report
-    """
-    return h_bck_su_control_reanimate_excel()
 
 @admin_control.route('/bck_control_reanimate/<int:u_id>', methods=['GET', ])
 @login_required

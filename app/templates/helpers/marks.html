@@ -1,16 +1,16 @@
 
 <div class="row row-cols-2  row-cols-lg-4 g-3">
-    {% if category != 'парфюм' %}
-        <div class="col text-center" onclick="javascript:process_mark('mark_50', 0)">
-            <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">
-                <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/макет 50.png')}}">
-                <input type="hidden" id="mark_50" value="макет 50">
-                <div class="label-text text-center">
-                    Тип 00 <br>58мм х 40мм
-                </div>
-            </a>
-        </div>
-    {% endif %}
+{#    {% if category != 'парфюм' %}#}
+{#        <div class="col text-center" onclick="javascript:process_mark('mark_50', 0)">#}
+{#            <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">#}
+{#                <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/макет 50.png')}}">#}
+{#                <input type="hidden" id="mark_50" value="макет 50">#}
+{#                <div class="label-text text-center">#}
+{#                    Тип 00 <br>58мм х 40мм#}
+{#                </div>#}
+{#            </a>#}
+{#        </div>#}
+{#    {% endif %}#}
     <div class="col text-center" onclick="javascript:process_mark('mark_1', 3)">
         <a class="label" type="button" data-bs-dismiss="modal" aria-label="Close">
             <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/58*40.png')}}">

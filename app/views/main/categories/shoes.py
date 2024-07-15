@@ -64,15 +64,15 @@ def clean_orders(o_id: int):
     return redirect(url_for('shoes.index'))
 
 
-@shoes.route('/download_order/<int:o_id>', methods=['POST', ])
-@login_required
-@user_activated
-def download_order(o_id: int):
-    user = current_user
-    if not o_id:
-        flash(message=settings.Messages.EMPTY_ORDER, category='error')
-        return redirect(url_for('shoes.index'))
-    return orders_download_common(user=user, o_id=o_id)
+# @shoes.route('/download_order/<int:o_id>', methods=['POST', ])
+# @login_required
+# @user_activated
+# def download_order(o_id: int):
+#     user = current_user
+#     if not o_id:
+#         flash(message=settings.Messages.EMPTY_ORDER, category='error')
+#         return redirect(url_for('shoes.index'))
+#     return orders_download_common(user=user, o_id=o_id)
 
 
 @shoes.route('/process_order/<int:o_id>', methods=['POST', ])

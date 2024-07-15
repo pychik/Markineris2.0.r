@@ -80,7 +80,7 @@
             {% if current_user.role == 'markineris_admin'%}
                     <input type="hidden" id="transaction_type" name="transaction_type" value="1">
             {%else%}
-                  <div class="col-md-6">
+                  <div class="col-md-4" style="width:max-content">
                       <label for="transaction_type" class="col-form-label text-right">Тип</label><br>
                       <select class="form-control search-select" id="transaction_type" name="transaction_type" required>
     <!--                    <option disabled selected value="">Выберите из списка..</option>-->
@@ -92,6 +92,7 @@
                       </select>
                   </div>
             {% endif %}
+
             <div class="col-md-6" style="width:max-content">
                   <label class="col-form-label" for="transaction_status">Статус</label><br>
                   <select class="form-control search-select" id="transaction_status" name="transaction_status" required>
@@ -101,8 +102,17 @@
                     {%endfor%}
 
                   </select>
-              </div>
+            </div>
+            <div class="col-md-4" style="width:max-content">
+                  <label class="col-form-label" for="user_filter">Агент</label><br>
+                  <select class="form-control search-select" id="user_filter" name="user_filter" required>
+                    <option selected value="">Выберите агента</option>
+                    {%for id,login_name in users_filter%}
+                      <option value="{{id}}">{{login_name}}</option>
+                    {%endfor%}
 
+                  </select>
+            </div>
 
         </div>
 

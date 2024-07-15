@@ -100,10 +100,10 @@
 
         <div class="row mt-3">
             <div class="col-md-6 mb-1" title="Подгрузить заказы">
-                <a href="javascript:bck_get_fin_order_report('{{ url_for('admin_control.su_bck_fin_order_report') }}?bck=1')" class="btn btn-accent">Обновить</a>
+                <a href="javascript:bck_get_fin_order_report(`{{ url_for('admin_control.su_bck_fin_order_report') }}?bck=1`)" class="btn btn-accent">Обновить</a>
             </div>
             <div class="col-md-6" title="Скачать отчет excel">
-                <a href="javascript:get_fin_order_report_excel('{{ url_for('admin_control.su_fin_order_report_excel') }}', '{{ csrf_token() }}')" class="btn btn-secondary">Скачать отчет</a>
+                <a href="javascript:get_fin_order_report_excel(`{{ url_for('admin_control.su_fin_order_report_excel') }}`, `{{ csrf_token() }}`)" class="btn btn-secondary">Скачать отчет</a>
             </div>
         </div>
     </form>

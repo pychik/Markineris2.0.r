@@ -596,7 +596,8 @@ function bck_get_transactions_wp(url){
         date_from: $('#date_from').val(),
         date_to: $('#date_to').val(),
         amount: $('#transaction_amount').val(),
-        sort_type: sort_mode
+        sort_type: sort_mode,
+        agent_id: $('#user_filter').val(),
       },
     success:function(data)
     {
@@ -626,6 +627,7 @@ function bck_get_transactions_excel_report(url, csrf) {
             date_to: date_to,
             amount: $('#transaction_amount').val(),
             sort_type: sort_mode},
+            agent_id: $('#user_filter').val(),
         xhrFields: {
             responseType: 'blob' // Set response type to blob
         },

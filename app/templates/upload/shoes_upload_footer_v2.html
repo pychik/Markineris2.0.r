@@ -1,18 +1,18 @@
 {% extends "upload/category_upload_excel_common.html" %}
 {% block content %}
     <div class="row">
-        <div class="col-md-6 text-center">
+        <div class="col-12 text-center">
             <button class="btn btn-primary btn-lg btn-accent border-0 text-dark order-0 order-sm-1 mb-3 mb-sm-0"
                 id="btn_upload_1" type="button" style="font-size:14px" onclick="upload_type_process('standart')">
                 +Загрузить Excel накладную. <b>(Обувь, Данные по каждому размеру)</b>
             </button>
         </div>
-        <div class="col-md-6 text-center">
-            <button class="btn btn-primary  btn-lg btn-accent border-0 text-dark order-0 order-sm-1 mb-3 mb-sm-0"
-                id="btn_upload_2" type="button" style="font-size:14px" onclick="upload_type_process('extended')">
-                +Загрузить Excel накладную. <b>(Обувь, Данные по коробам)</b>
-            </button>
-        </div>
+{#        <div class="col-md-6 text-center">#}
+{#            <button class="btn btn-primary  btn-lg btn-accent border-0 text-dark order-0 order-sm-1 mb-3 mb-sm-0"#}
+{#                id="btn_upload_2" type="button" style="font-size:14px" onclick="upload_type_process('extended')">#}
+{#                +Загрузить Excel накладную. <b>(Обувь, Данные по коробам)</b>#}
+{#            </button>#}
+{#        </div>#}
     </div>
 
 {% endblock %}

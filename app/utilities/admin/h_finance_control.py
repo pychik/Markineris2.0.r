@@ -18,13 +18,27 @@ from utilities.admin.excel_report import ExcelReportProcessor, ExcelReport
 from utilities.support import helper_paginate_data, check_file_extension, get_file_extension, \
     helper_get_server_balance, helper_get_filters_transactions, \
     helper_update_pending_rf_transaction_status, helper_get_image_html, \
-    helper_perform_ut_wo, helper_get_transaction_orders_detail, helper_get_stmt_for_fin_order_report, \
+    helper_perform_ut_wo_mod, helper_get_transaction_orders_detail, helper_get_stmt_for_fin_order_report, \
     helper_get_filter_fin_order_report, helper_get_stmt_for_fin_promo_history, helper_get_filter_fin_promo_history
 from utilities.telegram import NotificationTgUser
 from utilities.tg_verify.service import send_tg_message_with_transaction_updated_status
 
 
 def h_su_control_finance():
+    stat_date = datetime.today() - timedelta(days=1)
+    stat_stmt = text("""
+        SELECT 
+            round(coalesce(sum(amount), 0), 2) as amount, 
+            coalesce(sum(marks_count), 0) as marks_cnt, 
+            round(case when coalesce(sum(marks_count), 0) = 0 then 0 else coalesce(sum(amount), 0) / coalesce(sum(marks_count), 0) end, 2) as avg_price
+        FROM public.user_transactions ut
+        JOIN public.orders_stats os on ut.id = os.transaction_id
+        WHERE
+            ut.op_cost is not null
+            and ut.created_at >= DATE_TRUNC('DAY', NOW()::timestamp);
+        """)
+    stat = db.session.execute(stat_stmt).first()
+
     promos = Promo.query.with_entities(Promo.id, Promo.code, Promo.value, Promo.created_at).order_by(desc(Promo.created_at)).all()
     prices = Price.query.order_by(desc(Price.created_at)).all()
 
@@ -33,7 +47,7 @@ def h_su_control_finance():
     service_accounts = ServiceAccount.query.order_by(desc(ServiceAccount.created_at)).all()
 
     # rf- refill , wo write off
-    balance, pending_balance_rf = helper_get_server_balance()
+    balance, pending_balance_rf, summ_at1, summ_at2 = helper_get_server_balance()
 
     basic_prices = settings.Prices.BASIC_PRICES
     base_path = settings.DOWNLOAD_QA_BASIC
@@ -355,32 +369,37 @@ def h_su_bck_change_sa_type(sa_type: str = 'qr_code') -> Response:
 
 def h_su_control_ut(user_ids: list = None):
     # PENDING transactions refill, WITH default DATE filter
+    roles = (settings.SUPER_USER, settings.ADMIN_USER)
     transaction_types = settings.Transactions.TRANSACTION_TYPES
     transaction_dict = settings.Transactions.TRANSACTIONS
 
     tr_type = transaction_types.get(1)
+
     tr_status = transaction_dict[settings.Transactions.PENDING]
 
     # default date range conditions
     date_to = datetime.now()
     date_from = date_to - timedelta(days=settings.Transactions.DEFAULT_DAYS_RANGE)
+    users_filter = User.query.with_entities(User.id, User.login_name).filter(User.role.in_(roles)).all()
 
-    transactions = UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount,
+    transactions = [t for t in UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount,
                                                        UserTransaction.promo_info, UserTransaction.type,
                                                        UserTransaction.status,
                                                        UserTransaction.created_at, UserTransaction.user_id,
-                                                       User.login_name)\
-        .join(User, User.id == UserTransaction.user_id)\
+                                                       User.login_name, User.email)\
+        .join(User, User.id == UserTransaction.user_id) \
         .filter(UserTransaction.status == settings.Transactions.PENDING, UserTransaction.type.is_(True),
-                UserTransaction.created_at >= date_from)\
-        .order_by(desc(UserTransaction.created_at)).all()
+                UserTransaction.created_at >= date_from) \
+        .order_by(desc(UserTransaction.created_at)).all()]
 
     sa_types = settings.ServiceAccounts.TYPES_DICT
     transaction_types = settings.Transactions.TRANSACTION_TYPES
 
+    transaction_summ = sum(t.amount for t in transactions)
+
     link_filters = f'tr_type=1&tr_status={settings.Transactions.PENDING}&'
     link = f'javascript:bck_get_transactions(\'' + url_for(
-        'admin_control.su_bck_control_ut') + f'?bck=1{link_filters}' + 'page={0}\');'
+        'admin_control.su_bck_control_ut') + f'?bck=1&{link_filters}' + 'page={0}\');'
     page, per_page, \
         offset, pagination, \
         transactions_list = helper_paginate_data(data=transactions, per_page=settings.PAGINATION_PER_PAGE, href=link)
@@ -400,7 +419,7 @@ def h_bck_control_ut():
         .join(User, User.id == UserTransaction.user_id).filter(*model_conditions) \
         .order_by(model_order_type).all()
 
-    link = f'javascript:bck_get_transactions(\'' + url_for('admin_control.su_bck_control_ut') + f'?bck=1{link_filters}' + 'page={0}\');'
+    link = f'javascript:bck_get_transactions(\'' + url_for('admin_control.su_bck_control_ut') + f'?bck=1&{link_filters}' + 'page={0}\');'
 
     page, per_page, \
         offset, pagination, \
@@ -706,7 +725,7 @@ def h_su_wo_transactions() -> Response:
                       """
     user_ids = db.session.execute(text(user_ids_stmt)).fetchall()
     if user_ids:
-        status, server_balance = helper_perform_ut_wo(user_ids=user_ids)
+        status, server_balance = helper_perform_ut_wo_mod(user_ids=user_ids)
     else:
         status, server_balance = 0, 'No orders to write off'
 
