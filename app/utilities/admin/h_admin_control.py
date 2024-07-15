@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
 
-from flask import flash, render_template, redirect, send_file, url_for, request, Response, jsonify
+from flask import flash, render_template, redirect, send_file, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
 from sqlalchemy import asc, desc, func, text, select
 
 from sqlalchemy.exc import IntegrityError, NoResultFound
+from urllib import parse
 from werkzeug.security import generate_password_hash
 
 from config import settings
@@ -18,6 +19,7 @@ from utilities.admin.schemas import AROrdersSchema, ar_categories_types
 from utilities.admin.helpers import (process_admin_report, helper_get_clients_os, helper_get_orders_stats,
                                      helper_prev_day_orders_marks, helper_get_users_reanimate,
                                      helper_get_reanimate_call_result)
+from utilities.admin.excel_report import ExcelReport
 
 
 def h_index(expanded: str = None):
@@ -1137,6 +1139,39 @@ def h_bck_reanimate():
     reanimate_call_result = settings.REANIMATE_CALL_RESULT
     return jsonify({'htmlresponse': render_template(f'admin/ra/user_reanimate_response.html', **locals())}) \
         if bck else render_template('admin/ra/main_reanimate.html', **locals())
+
+
+def h_bck_su_control_reanimate_excel():
+    # set manually type and status for render page case
+    date_quantity, date_type, link_filters, sort_type = helper_get_filter_users(excel_report=True)
+
+    link = f'javascript:bck_get_users_reanimate(\'' + url_for(
+        'admin_control.bck_control_reanimate') + f'?bck=1&{link_filters}' + 'page={0}\');'
+
+    users = helper_get_users_reanimate(date_quantity=date_quantity, date_type=date_type, sort_type=sort_type)
+
+    users_processed = list(map(lambda x: (x.created_at, x.os_created_at, x.login_name, x.phone, x.email, x.partners_code), users))
+    excel_filters = {
+        'Временная единица': date_type,
+        'Количество временных единиц': date_quantity,
+    }
+
+    excel = ExcelReport(
+        data=users_processed,
+        filters=excel_filters,
+        columns_name=['дата регистрации', 'Дата крайнего заказа', 'Логин', 'Телефон', 'Email', 'Код партнера', ],
+        sheet_name='Отчет реанимации пользователей',
+        output_file_name=f'реанимация клиентов({datetime.today().strftime("%d.%m.%y %H-%M")})',
+    )
+
+    excel_io = excel.create_report()
+    content = excel_io.getvalue()
+    response = make_response(content)
+    response.headers['data_file_name'] = parse.quote(excel.output_file_name)
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    response.headers['data_status'] = 'success'
+
+    return response
 
 
 def h_bck_save_call_result():
