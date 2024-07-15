@@ -234,7 +234,7 @@ class Settings(BaseSettings):
         ORDER_PROCESS_CRM: str = 'process_crm'
         ORDER_PROCESS_AT2: str = 'process_at2'
         DAYS_CONTENT: int = 2
-        DAYS_SEARCH_CONTENT: int = 30
+        DAYS_SEARCH_CONTENT: int = 60
         DAYS_UPDATE_CONTENT: int = 30
         DAYS_SENT_CONTENT: int = 1
         AUTO_HOURS_CP: int = 24  # quantity of hours before changing order stage from MANAGER PROBLEM TO CANCEL
