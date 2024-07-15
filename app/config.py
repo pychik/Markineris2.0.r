@@ -252,7 +252,7 @@ class Settings(BaseSettings):
         DEFAULT_AP_MARKS: int = 1000  # default max quantity of marks for order to auto change stage to pool
         DEFAULT_AS_MINUTES: int = 20  # default max minutes for order to auto change stage to sent from manager ready
         DEFAULT_AS_CRON_STRING: str = minutes_to_cron(minutes=DEFAULT_AS_MINUTES)  # default max minutes for order to auto change stage to sent from manager ready
-        DEFAULT_ORDER_FILE_TO_REMOVE: int = 45  # days for cleaning files from server
+        DEFAULT_ORDER_FILE_TO_REMOVE: int = 90  # days for cleaning files from server
 
         # tg user messages
         M_ORDER_ADDED: str = "M2R: Заказ <b>{order_idn}</b>: <u>отправлен в работу!</u>"
