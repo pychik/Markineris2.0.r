@@ -1136,3 +1136,33 @@ function toggleOrderStatusBlock(disable) {
 
 
 }
+
+
+function saveCallResultAndComment(url, u_id, csrf) {
+    // Get the comment value
+    const comment = document.getElementById(`comment_${ u_id }`).value;
+    const selectedCallStatus = document.getElementById(`selected_call_status_${u_id}`).value;
+
+    $.ajax({
+    url: url,
+    headers:{
+        "X-CSRFToken": csrf,
+        "Content-Type": "application/json"
+    },
+    method:"POST",
+    data:JSON.stringify({
+            user_id: u_id,
+            comment: comment,
+            call_result: selectedCallStatus
+        }),
+
+    success:function(data)
+    {
+        $(`#call_comment_and_result_${u_id}`).html(data);
+        $(`#call_comment_and_result_${u_id}`).append(data.htmlresponse);
+    },
+    error: function() {
+         make_message('Не удалось сохранить комментарий', 'danger');
+     }
+   });
+}

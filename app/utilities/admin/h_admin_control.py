@@ -2,21 +2,22 @@ from datetime import datetime, timedelta
 
 from flask import flash, render_template, redirect, send_file, url_for, request, Response, jsonify
 from flask_login import current_user
-from sqlalchemy import asc, desc, func, text
+from sqlalchemy import asc, desc, func, text, select
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, NoResultFound
 from werkzeug.security import generate_password_hash
 
 from config import settings
 from logger import logger
 from models import db, Order, OrderStat, PartnerCode, RestoreLink, Telegram, TelegramMessage, User, users_partners, \
-    Price, TgUser
+    Price, TgUser, ReanimateStatus
 from utilities.download import orders_process_send_order
 from utilities.support import url_encrypt, helper_check_form, helper_update_order_note, \
       helper_paginate_data, helper_strange_response, sql_count, helper_get_filter_users
 from utilities.admin.schemas import AROrdersSchema, ar_categories_types
 from utilities.admin.helpers import (process_admin_report, helper_get_clients_os, helper_get_orders_stats,
-                                     helper_prev_day_orders_marks, helper_get_users_reanimate)
+                                     helper_prev_day_orders_marks, helper_get_users_reanimate,
+                                     helper_get_reanimate_call_result)
 
 
 def h_index(expanded: str = None):
@@ -1105,7 +1106,7 @@ def h_bck_change_user_password(u_id: int) -> Response:
 
 def h_bck_reanimate():
     """
-       background update of agent users transactions  write_off for agent commission counter
+       background update of users to reanimate(users that don't make orders for a while)
     :return:
     """
 
@@ -1133,8 +1134,36 @@ def h_bck_reanimate():
     date_range_types = settings.Users.FILTER_DATE_TYPES
     date_quant_max = settings.Users.FILTER_MAX_QUANTITY
     converted_date_type = settings.Users.FILTER_DATE_DICT.get(date_type)
+    reanimate_call_result = settings.REANIMATE_CALL_RESULT
     return jsonify({'htmlresponse': render_template(f'admin/ra/user_reanimate_response.html', **locals())}) \
         if bck else render_template('admin/ra/main_reanimate.html', **locals())
+
+
+def h_bck_save_call_result():
+    u_id, comment, call_result = helper_get_reanimate_call_result()
+    stmt = select(
+        ReanimateStatus
+    ).where(ReanimateStatus.user_id == u_id)
+    try:
+        rec = db.session.execute(stmt).scalar_one()
+        rec.comment = comment
+        rec.call_result = call_result
+        rec.updated_at = datetime.now()
+        db.session.commit()
+    except NoResultFound:
+        rec = ReanimateStatus(user_id=u_id, comment=comment, call_result=call_result)
+        db.session.add(rec)
+        db.session.commit()
+    except Exception as err:
+        logger.error(f'an error during save call result in reanimate interface\nError: {err}')
+        return Response(status=400)
+    # swap ReanimateStatus.id and ReanimateStatus.user_id for correct handling in template
+    user = rec
+    user.id = rec.user_id
+    user.last_call_update = rec.updated_at.strftime('%d-%m-%Y %H:%M')
+    reanimate_call_result = settings.REANIMATE_CALL_RESULT
+    return jsonify({'htmlresponse': render_template(f'admin/ra/reanimate_comment.html', **locals())})
+
 
 
 def h_bck_agent_reanimate(u_id: int):

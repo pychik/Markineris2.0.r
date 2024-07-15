@@ -2,6 +2,7 @@ from datetime import datetime
 
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import func
 
 from config import settings
 
@@ -433,6 +434,15 @@ class TgUser(db.Model):
 
     def __repr__(self) -> str:
         return f"User(user_id={self.tg_user_id}, username={self.tg_username}, is_verified={True if self.flask_user_id else False}"
+
+
+class ReanimateStatus(db.Model):
+    __tablename__ = "reanimate_status"
+    id = db.Column(db.Integer, primary_key=True)
+    comment = db.Column(db.String(255))
+    call_result = db.Column(db.String(36))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), index=True)
+    updated_at = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
 
 
 ModelType = User | PartnerCode

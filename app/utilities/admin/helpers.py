@@ -170,7 +170,6 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
     if u_id:
         user_filter = f'and u.admin_parent_id = :u_id'
 
-
     date_condition = f"HAVING max(os.saved_at) <= CURRENT_DATE - INTERVAL '{settings.Users.FILTER_MAX_QUANTITY} days' OR COUNT(os.id) = 0"
     match date_type:
         case settings.Users.FILTER_DATE_HOURS:
@@ -179,39 +178,51 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
             date_condition = f"HAVING max(os.saved_at) <= CURRENT_DATE - INTERVAL '{date_quantity} days' OR COUNT(os.id) = 0"
         case settings.Users.FILTER_DATE_MONTH:
             date_condition = f"HAVING max(os.saved_at) <= CURRENT_DATE - INTERVAL '{date_quantity} month' OR COUNT(os.id) = 0"
-    query = text(f"""SELECT u.id as id,
-                                           u.login_name as login_name,
-                                           u.phone as phone,
-                                           u.balance as balance,
-                                           u.email as email,
-                                           u.role as role,
-                                           u.status as status,
-                                           CASE WHEN MAX(a.id) IS NOT NULL THEN MAX(a.id) ELSE u.id END as admin_id,
-                                           CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name END as admin_name,
-                                           max(pr.price_code) as price_code,
-                                           max(pr.price_1) as price_1,
-                                           max(pr.price_2) as price_2,
-                                           max(pr.price_3) as price_3,
-                                           max(pr.price_4) as price_4,
-                                           max(pr.price_5) as price_5,
-                                           bool_and(pr.price_at2) as price_at2,
-                                           u.client_code as client_code,
-                                           u.created_at as created_at,
-                                           MAX(pc.code) as partners_code,
-                                           COUNT(os.id) as orders_count,
-                                           sum(os.marks_count) as total_marks_count,
-                                           MAX(os.created_at) as os_created_at
-                                    FROM public.users u
-                                    LEFT JOIN public.users a ON u.admin_parent_id = a.id
-                                    LEFT JOIN public.orders_stats as os on os.user_id=u.id
-                                    LEFT JOIN public.prices pr on pr.id=u.price_id
-                                    LEFT JOIN public.users_partners as up on up.user_id=u.id
-                                    LEFT JOIN public.partner_codes as pc on pc.id=up.partner_code_id
-                                    WHERE u.role='{settings.ORD_USER}'
-                                    {user_filter}
-                                    GROUP BY u.id, u.login_name
-                                    {date_condition}
-                                    ORDER BY """ + str(order_clause) + ";")
+    query = text(f"""SELECT
+                           u.id as id,
+                           u.login_name as login_name,
+                           u.phone as phone,
+                           u.balance as balance,
+                           u.email as email,
+                           u.role as role,
+                           u.status as status,
+                           CASE WHEN MAX(a.id) IS NOT NULL THEN MAX(a.id) ELSE u.id END as admin_id,
+                           CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name END as admin_name,
+                           MAX(pr.price_code) as price_code,
+                           MAX(pr.price_1) as price_1,
+                           MAX(pr.price_2) as price_2,
+                           MAX(pr.price_3) as price_3,
+                           MAX(pr.price_4) as price_4,
+                           MAX(pr.price_5) as price_5,
+                           bool_and(pr.price_at2) as price_at2,
+                           u.client_code as client_code,
+                           u.created_at as created_at,
+                           MAX(pc.code) as partners_code,
+                           COUNT(os.id) as orders_count,
+                           sum(os.marks_count) as total_marks_count,
+                           MAX(os.created_at) as os_created_at,
+                           COALESCE(max(rs.comment), '') as comment,
+                           MAX(rs.call_result) as call_result,
+                           COALESCE(to_char(MAX(rs.updated_at),'dd-mm-yyyy hh24:mi'), '-') as last_call_update
+                    FROM public.users u
+                    LEFT JOIN public.users a ON u.admin_parent_id = a.id
+                    LEFT JOIN public.orders_stats as os on os.user_id=u.id
+                    LEFT JOIN public.prices pr on pr.id=u.price_id
+                    LEFT JOIN public.users_partners as up on up.user_id=u.id
+                    LEFT JOIN public.partner_codes as pc on pc.id=up.partner_code_id
+                    LEFT JOIN public.reanimate_status as rs on rs.user_id = u.id
+                    WHERE u.role='{settings.ORD_USER}'
+                    {user_filter}
+                    GROUP BY u.id, u.login_name
+                    {date_condition}
+                    ORDER BY """ + str(order_clause) + ";")
 
     stmt = query.bindparams(u_id=u_id) if u_id else query
     return db.session.execute(stmt).fetchall()
+
+
+def helper_get_reanimate_call_result() -> tuple[int, str, str]:
+    user_id = request.json.get('user_id', None)
+    comment = request.json.get('comment', None)
+    call_result = request.json.get('call_result', None)
+    return user_id, comment, call_result

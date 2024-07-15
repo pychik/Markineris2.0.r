@@ -186,6 +186,10 @@ class Settings(BaseSettings):
     ALL_CATEGORY_TYPES: str = 'ALL_CATEGORY_TYPES'
     ORDERS_REPORT_TIMEDELTA: int = 7
     PROMO_HISTORY_TIMEDELTA: int = 7
+    REANIMATE_CALL_RESULT: dict[str, str] = {'недозвон': '#FF9999',
+                                             'перезвон': '#FFFF99',
+                                             'успех': '#99FF99',
+                                             }
 
     class OrderStage:
         @staticmethod
