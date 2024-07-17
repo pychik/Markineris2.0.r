@@ -869,6 +869,7 @@ class Settings(BaseSettings):
         SHEET_NAME_EXT: str = "Данные"
         UPLOAD_STANDART_ROW: int = 7
         MAX_QUANTITY: int = 100000000
+        MIN_QUANTITY: int = 1
         UPLOAD_TYPE_ERROR: str = "Проверьте правильность выбора типа обуви (посмотрите вкладку справочник)"
         UPLOAD_COLOR_ERROR: str = "Проверьте правильность указанного цвета обуви (посмотрите вкладку справочник)"
         UPLOAD_SIZE_ERROR: str = "Проверьте правильность указанного размера обуви (диапазон от 16 до 60, шаг 0.5)" \
@@ -904,6 +905,7 @@ class Settings(BaseSettings):
 
         UPLOAD_STANDART_ROW: int = 7
         MAX_QUANTITY: int = 100000000
+        MIN_QUANTITY: int = 1
         UPLOAD_TYPE_ERROR: str = "Проверьте правильность выбора вида товара (посмотрите вкладку справочник)"
         UPLOAD_COLOR_ERROR: str = "Проверьте правильность указанного цвета белья (посмотрите вкладку справочник)"
         UPLOAD_SIZE_ERROR: str = "Проверьте правильность указанного размера белья (это должно быть целое число )"
@@ -929,6 +931,7 @@ class Settings(BaseSettings):
 
         MAX_VOLUME: int = 1000000
         MAX_QUANTITY: int = 100000000
+        MIN_QUANTITY: int = 1
         NUMBER_STANDART: str = "ТР ТС 009/2011 \"О безопасности парфюмерно-косметической продукции\""
         STATUS: str = "Черновик"
         UPLOAD_STANDART_ROW: int = 7
@@ -977,6 +980,7 @@ class Settings(BaseSettings):
         START_CRM_PRELOAD: list = CLOTHES_PRELOAD_START[1:11] + CLOTHES_PRELOAD_START[12:]
         UPLOAD_STANDART_ROW: int = 7
         MAX_QUANTITY: int = 100000000
+        MIN_QUANTITY: int = 1
         NUMBER_STANDART: str = "ТР ТС 017/2011 \"О безопасности продукции легкой промышленности\""
 
         UPLOAD_TYPE_ERROR: str = "Проверьте правильность выбора типа одежды (посмотрите вкладку справочник)"

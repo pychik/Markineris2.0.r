@@ -143,7 +143,7 @@ class ValidateShoesMixin:
     @empty_value
     def _quantity(value: str, row_num: int, col: str) -> Optional[str]:
         # value is quantity
-        if not value.isdigit() or int(value) > settings.Shoes.MAX_QUANTITY:
+        if not value.isdigit() or int(value) > settings.Shoes.MAX_QUANTITY or int(value) < settings.Shoes.MIN_QUANTITY:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Shoes.UPLOAD_QUANTITY_ERROR}"
 
     @staticmethod

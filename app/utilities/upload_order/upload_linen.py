@@ -105,7 +105,7 @@ class ValidateLinenMixin:
     def _quantity(value: str, row_num: int, col: str, packages: bool = False) -> Optional[str]:
         # value is quantity
 
-        if not value.isdigit() or int(value) > settings.Linen.MAX_QUANTITY:
+        if not value.isdigit() or int(value) > settings.Linen.MAX_QUANTITY or int(value) < settings.Linen.MIN_QUANTITY:
             message = settings.Linen.UPLOAD_BOX_QUANTITY_ERROR if packages else settings.Linen.UPLOAD_QUANTITY_ERROR
             return f"{val_error_start(row_num=row_num, col=col)} {message}"
 
