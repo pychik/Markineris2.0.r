@@ -24,56 +24,60 @@ from utilities.admin.excel_report import ExcelReport
 
 
 def h_index(expanded: str = None):
-    # def sum_lists(*args):
-    #     return list(map(sum, zip(*args)))
-
     if current_user.role != settings.SUPER_USER:
         return redirect(url_for('admin_control.admin', u_id=current_user.id))
 
-    if expanded in [None, settings.EXP_USERS, settings.EXP_PARTNERS, settings.EXP_TELEGRAM]:
-        users_stmt = text(f"""SELECT au.id as id,
-                                 au.role as role,
-                                 au.balance as balance,
-                                 au.login_name as login_name,
-                                 au.email as email,
-                                 au.client_code as client_code,
-                                 au.agent_fee as agent_fee,
-                                 au.trust_limit as trust_limit,
-                                 au.is_crm as is_crm,
-                                 au.is_at2 as is_at2, au.status as status, au.phone as phone,
-                                 au.created_at as created_at, pq.price_code as price_code, pq.price_1 as price_1, pq.price_2 as price_2,
-                                 pq.price_3 as price_3, pq.price_4 as price_4, pq.price_5 as price_5,
-                                 pq.price_at2 as price_at2, tq.channel_id as tg_channel_id, tq.name as tg_name,
-                                 tq.comment as tg_comment,
-                                 count(u.id) as reg_clients,
-                                 (select array[count(os.id), sum(os.rows_count), sum(os.marks_count)] from public.orders_stats os where os.user_id in (select uu.id from public.users uu where uu.admin_parent_id=au.id or uu.id=au.id) limit 1) as data_orders_array
-                             FROM public.users au
-                             LEFT JOIN public.users_telegrams ut on ut.user_id = au.id
-                             LEFT JOIN public.telegram tq on ut.telegram_id = tq.id
-                             LEFT JOIN public.prices pq on au.price_id = pq.id
-                             LEFT JOIN public.users u on u.admin_parent_id = au.id
-                             WHERE au.role in('{settings.ADMIN_USER}', '{settings.SUPER_USER}')
-                             group by au.id, pq.price_code, pq.price_1, pq.price_2,pq.price_3, pq.price_4, pq.price_5, pq.price_at2, tg_channel_id, tg_name, tg_comment
-                             order by au.id""")
-        su_list = db.session.execute(users_stmt).fetchall()
+        # if expanded in [None, settings.EXP_USERS, settings.EXP_PARTNERS, settings.EXP_TELEGRAM]:
+    users_stmt = text(f"""SELECT au.id as id,
+                                au.role as role,
+                                au.balance as balance,
+                                au.login_name as login_name,
+                                au.email as email,
+                                au.client_code as client_code,
+                                au.agent_fee as agent_fee,
+                                au.trust_limit as trust_limit,
+                                au.is_crm as is_crm,
+                                au.is_at2 as is_at2, au.status as status, au.phone as phone,
+                                au.created_at as created_at, pq.price_code as price_code, pq.price_1 as price_1, pq.price_2 as price_2,
+                                pq.price_3 as price_3, pq.price_4 as price_4, pq.price_5 as price_5,
+                                pq.price_at2 as price_at2, tq.channel_id as tg_channel_id, tq.name as tg_name,
+                                tq.comment as tg_comment,
+                                count(u.id) as reg_clients,
+                                (select array[count(os.id), sum(os.rows_count), sum(os.marks_count)] from public.orders_stats os where os.user_id in (select uu.id from public.users uu where uu.admin_parent_id=au.id or uu.id=au.id) limit 1) as data_orders_array
+                            FROM public.users au
+                            LEFT JOIN public.users_telegrams ut on ut.user_id = au.id
+                            LEFT JOIN public.telegram tq on ut.telegram_id = tq.id
+                            LEFT JOIN public.prices pq on au.price_id = pq.id
+                            LEFT JOIN public.users u on u.admin_parent_id = au.id
+                            WHERE au.role in('{settings.ADMIN_USER}', '{settings.SUPER_USER}')
+                            group by au.id, pq.price_code, pq.price_1, pq.price_2,pq.price_3, pq.price_4, pq.price_5, pq.price_at2, tg_channel_id, tg_name, tg_comment
+                            order by au.id""")
+    su_list = db.session.execute(users_stmt).fetchall()
+    new_user_stmt = text("""
+           SELECT
+               count(1) as new_user_cnt  
+           FROM public.users
+           WHERE
+               created_at >= DATE_TRUNC('DAY', NOW()) - interval '1 DAY'
+               and created_at < DATE_TRUNC('DAY', NOW());
+               """)
+    new_user_cnt = db.session.execute(new_user_stmt).one()
+    registration_date = datetime.today() - timedelta(days=1)
 
-        ou_quantity = User.query.filter(User.role == settings.ORD_USER) \
-            .order_by(User.id).count()
+    ou_quantity = User.query.filter(User.role == settings.ORD_USER) \
+        .order_by(User.id).count()
 
-        telegram_list = Telegram.query.all()
-        if current_user.role == settings.SUPER_USER:
-            tg_group_list = Telegram.query.filter_by(status=False).all()
-            prev_day_orders_marks = helper_prev_day_orders_marks()
+    telegram_list = Telegram.query.all()
+    if current_user.role == settings.SUPER_USER:
+        tg_group_list = Telegram.query.filter_by(status=False).all()
+        prev_day_orders_marks = helper_prev_day_orders_marks()
+    markineris_url_coi = settings.MARKINERIS_CHECK_CROSS_OI_LINK
+    markineris_secret = settings.MARKINERIS_SECRET
 
-        markineris_url_coi = settings.MARKINERIS_CHECK_CROSS_OI_LINK
-        markineris_secret = settings.MARKINERIS_SECRET
-
-        basic_prices = settings.Prices.BASIC_PRICES
-        all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2).order_by(desc(Price.created_at)).all()
-        return render_template('admin/admin_control.html', **locals())
-    else:
-        flash(message="Что-то странное ощущаю я. Это что, хитрый парсер ссылок?", category='error')
-        return redirect(url_for('admin_control.index'))
+    basic_prices = settings.Prices.BASIC_PRICES
+    all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2).order_by(
+        desc(Price.created_at)).all()
+    return render_template('admin/admin_control.html', **locals())
 
 
 def h_admin(u_id: int):
