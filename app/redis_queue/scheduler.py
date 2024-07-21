@@ -32,6 +32,7 @@ scheduler = Scheduler(queue=queue, connection=queue.connection)
 queue_dynamic = Queue(settings.RQ_DYNSCHEDULER_QUEUE_NAME, connection=conn)
 scheduler_dynamic = Scheduler(queue=queue_dynamic, connection=queue_dynamic.connection)
 
+# cleaning
 for job in scheduler.get_jobs():
     # scheduler_dynamic.cancel(job)
     job.delete()
@@ -89,6 +90,5 @@ scheduler_dynamic.cron(
 
 
 if __name__ == '__main__':
-
     scheduler.run()
     scheduler_dynamic.run()
