@@ -82,5 +82,11 @@ scheduler_dynamic.cron(
 
 
 if __name__ == '__main__':
+    for job in scheduler.get_jobs():
+        # scheduler_dynamic.cancel(job)
+        job.delete()
+    for job in scheduler_dynamic.get_jobs():
+        # scheduler_dynamic.cancel(job)
+        job.delete()
     scheduler.run()
     scheduler_dynamic.run()
