@@ -4,7 +4,8 @@ from config import settings
 from models import db, Price, User
 
 
-def get_cocmd(user_id: int, price_id: int, order_id: str | None = None) -> dict:
+def get_cocmd(user_id: int, price_id: int, order_id: str | None = None,
+              start_stage: int = settings.OrderStage.NEW) -> dict:
     """
     get_current_orders_cost_marks_data
     1. get all not paid orders for User in sorted by crm_created order asc
@@ -19,7 +20,8 @@ def get_cocmd(user_id: int, price_id: int, order_id: str | None = None) -> dict:
     report_data sum marks count(smc), sum count orders(sco), ao_price(all_orders price sum = marks_count*price)
     current_order consists of cost_type, new_idn_flag(if order with company_idn is already in pc or lpc), order_idn, order_op_cost, order_cost, order_marks_count for cases if order_idn is not None
     """
-    unpaid_orders = db.session.execute(get_unpaid_orders_stmt(u_id=user_id, o_id=order_id)).fetchall()
+    unpaid_orders = db.session.execute(get_unpaid_orders_stmt(u_id=user_id, o_id=order_id,
+                                                              start_stage=start_stage)).fetchall()
 
     # get idns distinct from unpaid_orders ORDERED by crm_created_at
     company_idns = [row.company_idn for row in db.session.execute(get_unpaid_company_idns_stmt(u_id=user_id)).fetchall()]
@@ -120,7 +122,7 @@ def get_unpaid_company_idns_stmt(u_id: int) -> TextClause:
                  """).bindparams(u_id=u_id)
 
 
-def get_unpaid_orders_stmt(u_id: int, o_id: int = None) -> TextClause:
+def get_unpaid_orders_stmt(u_id: int, o_id: int = None, start_stage: int = settings.OrderStage.NEW) -> TextClause:
     order_id_stmt = f"OR o.id={o_id}" if o_id else ""
     return text(f"""SELECT o.id as id,
                                     o.payment as payment,
@@ -141,7 +143,7 @@ def get_unpaid_orders_stmt(u_id: int, o_id: int = None) -> TextClause:
                                   LEFT JOIN public.parfum p ON o.id = p.order_id 
                                   LEFT JOIN public.users managers ON o.manager_id = managers.id
                               WHERE u.id=:u_id AND o.payment != True AND o.to_delete != True 
-                                AND (o.stage>={settings.OrderStage.NEW} 
+                                AND (o.stage>={start_stage} 
                                 AND o.stage!={settings.OrderStage.CANCELLED} {order_id_stmt})
                               GROUP BY  o.id, o.crm_created_at
                               ORDER BY o.crm_created_at ASC
