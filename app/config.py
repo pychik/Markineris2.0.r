@@ -104,6 +104,7 @@ class Settings(BaseSettings):
     SQ_CATEGORIES: list = ['обувь', 'одежда', 'белье']
     CATEGORIES_PROCESS_NAMES: list = ['shoes', 'clothes', 'linen', 'parfum', 'send_table']
     CATEGORIES_UPLOAD: tuple = ('обувь', 'одежда', 'парфюм', 'белье')
+    RZ_GENDERS_RD_LIST: tuple = ("Детские", "Мальчик", "Девочка", "Детск.",)
     COMPANY_TYPES: list = ["ИП", "ООО", "АО"]
     CATEGORIES_DICT: dict = CATEGORIES_DICT
     COUNTRIES_LIST: list = COUNTRIES_LIST
@@ -682,6 +683,7 @@ class Settings(BaseSettings):
                                   "Прочитайте скачавшийся текстовый файл с ошибками \"Ошибки_загрузки_заказа.txt\"." \
                                   " Исправьте ошибки и попробуйте снова!"
         UPLOAD_RD_GENERAL_ERROR: str = "Разрешительная Документация - заполнены не все поля"
+        UPLOAD_RD_GENERAL_REQUIRED_ERROR: str = "Для выбранного пола {gender} должна быть заполнена разрешительная документация (декларации)"
         UPLOAD_RD_TYPE_ERROR: str = "Разрешительная Документация. Проверьте правильность типа РД (справочник)"
         UPLOAD_RD_DATE_ERROR: str = "Разрешительная Документация - проверьте формат даты dd.mm.yyyy"
         UPLOAD_EMPTY_FILE_ERROR: str = "Нет ни одной информационной строки"
