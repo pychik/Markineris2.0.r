@@ -421,6 +421,8 @@ def h_bck_control_ut():
 
     link = f'javascript:bck_get_transactions(\'' + url_for('admin_control.su_bck_control_ut') + f'?bck=1&{link_filters}' + 'page={0}\');'
 
+    transaction_summ = sum(t.amount for t in transactions)
+
     page, per_page, \
         offset, pagination, \
         transactions_list = helper_paginate_data(data=transactions, per_page=settings.PAGINATION_PER_PAGE, href=link)
