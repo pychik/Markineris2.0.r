@@ -34,7 +34,7 @@ def h_su_control_finance():
     FROM public.user_transactions ut
     JOIN mark_count mc on ut.id = mc.transaction_id
     WHERE
-        ut.op_cost is not null
+        ut.op_cost is not null and ut.type=False
         and ut.created_at >= DATE_TRUNC('DAY', NOW()::timestamp);
         """)
     stat = db.session.execute(stat_stmt).first()
