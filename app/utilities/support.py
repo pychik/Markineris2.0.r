@@ -1224,7 +1224,7 @@ def helper_get_filters_transactions(tr_type: int = None, tr_status: int = None, 
         # increment + 1 day because <= not working normally
         date_range_conditions = UserTransaction.created_at >= date_from, UserTransaction.created_at <= date_to + timedelta(
             days=1)
-    elif (date_from and date_to) and (date_to >= date_from):
+    elif (date_from and date_to) and (date_to < date_from):
         date_from, date_to = date_to, date_from
         date_range_conditions = UserTransaction.created_at >= date_from, UserTransaction.created_at <= date_to + timedelta(
             days=1)
