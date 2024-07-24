@@ -19,7 +19,7 @@ from utilities.support import url_encrypt, helper_check_form, helper_update_orde
 from utilities.admin.schemas import AROrdersSchema, ar_categories_types
 from utilities.admin.helpers import (process_admin_report, helper_get_clients_os, helper_get_orders_stats,
                                      helper_prev_day_orders_marks, helper_get_users_reanimate,
-                                     helper_get_reanimate_call_result)
+                                     helper_get_reanimate_call_result, helper_get_new_orders_at2)
 from utilities.admin.excel_report import ExcelReport
 
 
@@ -967,6 +967,33 @@ def h_client_orders_stats(admin_id: int, client_id: int) -> Response:
         return helper_get_clients_os(admin_id=admin_id, client=client)
 
     return helper_strange_response()
+
+
+def h_at2_new_orders() -> Response:
+    admin_id = current_user.id
+    pool = settings.OrderStage.POOL
+    cancelled = settings.OrderStage.CANCELLED
+
+    orders_list_raw = helper_get_new_orders_at2(admin_id=admin_id)
+
+    bck = request.args.get('bck', 0, type=int)
+
+    if not orders_list_raw:
+        return render_template('admin/crm_specific/at2_orders.html', **locals()) if not bck \
+            else jsonify(
+            {'status': 'success', 'htmlresponse': render_template(f'admin/crm_specific/at2_orders_table.html',
+                                                                  **locals())})
+    link_filters = 'bck=1&'
+    link = f'javascript:bck_get_orders(\'' + url_for(
+        'admin_control.at2_new_orders') + f'?{link_filters}' + 'page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        orders_list = helper_paginate_data(data=orders_list_raw, per_page=settings.PAGINATION_PER_PAGE, href=link,
+                                          anchor="OrdersTable")
+    return render_template('admin/crm_specific/at2_orders.html', **locals()) if not bck \
+        else jsonify(
+        {'status': 'success', 'htmlresponse': render_template(f'admin/crm_specific/at2_orders_table.html',
+                                                              **locals())})
 
 
 def h_users_activate_list():

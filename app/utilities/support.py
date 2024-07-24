@@ -2477,6 +2477,7 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
             # sending data to google
             helper_google_collect_and_send_stat(transaction_google_packets=transaction_google_packets,
                                                 transaction_rz_packets=transaction_rz_packets)
+            logger.warning(f"total_amount for session: {total_amount}")
             return 1, server_balance
         else:
             return 0, 0

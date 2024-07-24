@@ -150,7 +150,6 @@ def helper_get_clients_os(admin_id: int, client: User) -> Response:
                                                       **locals())})
 
 
-
 def helper_get_new_orders_at2(admin_id: int) -> list:
     stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
     stmt_orders = text(f"""
