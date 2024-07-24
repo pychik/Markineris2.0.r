@@ -19,7 +19,8 @@ from utilities.support import url_encrypt, helper_check_form, helper_update_orde
 from utilities.admin.schemas import AROrdersSchema, ar_categories_types
 from utilities.admin.helpers import (process_admin_report, helper_get_clients_os, helper_get_orders_stats,
                                      helper_prev_day_orders_marks, helper_get_users_reanimate,
-                                     helper_get_reanimate_call_result, helper_get_new_orders_at2)
+                                     helper_get_reanimate_call_result, helper_get_new_orders_at2,
+                                     helper_check_new_order_at2)
 from utilities.admin.excel_report import ExcelReport
 
 
@@ -994,6 +995,40 @@ def h_at2_new_orders() -> Response:
         else jsonify(
         {'status': 'success', 'htmlresponse': render_template(f'admin/crm_specific/at2_orders_table.html',
                                                               **locals())})
+
+
+def h_at2_orders_process(o_id: int, change_stage: int) -> Response:
+    admin_id = current_user.id
+    status = 'danger'
+
+    if change_stage not in [settings.OrderStage.POOL, settings.OrderStage.CANCELLED]:
+        message = f"{settings.Messages.AT2_ORDER_CHANGE_ERROR} - Указаны некорректные данные для изменения!"
+        return jsonify(dict(status=status, message=message))
+
+    # check for trickers
+    order_check = helper_check_new_order_at2(admin_id=admin_id, o_id=o_id)
+
+    if not order_check:
+        message = f"{settings.Messages.AT2_ORDER_CHANGE_ERROR} - Нет такого заказа!"
+        return jsonify(dict(status=status, message=message))
+    try:
+        cancel_stmt = (", cc_created='{date}', comment_cancel='{auto_comment}'"
+                       .format(date=str(datetime.now()), auto_comment=settings.Messages.AT2_ORDER_CANCEL_TEXT)) if change_stage == settings.OrderStage.CANCELLED else ""
+        update_order_stmt = (text(f"""UPDATE public.orders SET stage=:change_stage{cancel_stmt} WHERE id=:o_id""")
+                             .bindparams(o_id=o_id, change_stage=change_stage))
+
+        db.session.execute(update_order_stmt)
+        db.session.commit()
+
+        order_idn = order_check.order_idn
+        message = f"{settings.Messages.AT2_ORDER_CHANGE} {order_idn} {settings.OrderStage.STAGES[change_stage][1]}"
+        status = 'success'
+    except Exception as e:
+        db.session.rollback()
+        message = f"{settings.Messages.AT2_ORDER_CHANGE_ERROR} {e}"
+        logger.error(message)
+
+    return jsonify(dict(status=status, message=message))
 
 
 def h_users_activate_list():

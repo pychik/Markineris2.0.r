@@ -16,7 +16,7 @@ from utilities.admin.h_admin_control import (h_index, h_admin, h_set_order_notif
                                              h_bck_user_delete, h_bck_user_activate, h_client_orders_stats,
                                              h_su_user_search, h_bck_change_user_password, h_bck_reanimate,
                                              h_bck_ar_orders, h_bck_save_call_result, h_bck_su_control_reanimate_excel,
-                                             h_at2_new_orders)
+                                             h_at2_new_orders, h_at2_orders_process)
 from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_promo, h_su_add_promo, h_su_delete_promo,
                                                h_su_bck_prices, h_su_add_prices, h_su_delete_prices, h_su_bck_sa,
                                                h_su_add_sa, h_su_delete_sa, h_su_bck_change_sa_type, h_su_control_ut,
@@ -544,7 +544,6 @@ def client_orders_stats(admin_id: int, client_id: int):
     return h_client_orders_stats(admin_id=admin_id, client_id=client_id)
 
 
-
 @admin_control.route('/at2_new_orders', methods=['GET', ])
 @login_required
 @bck_at2_required
@@ -554,6 +553,18 @@ def at2_new_orders():
     :return:
     """
     return h_at2_new_orders()
+
+
+@admin_control.route('/at2_orders_process/<int:o_id>/<int:change_stage>', methods=['POST', ])
+@login_required
+@bck_at2_required
+def at2_orders_process(o_id: int, change_stage: int):
+    """
+        change order of specific agents client to stage POOL
+    :return:
+    """
+    return h_at2_orders_process(o_id=o_id, change_stage=change_stage)
+
 
 @admin_control.route('/users_activate_list', methods=["GET", ])
 @login_required
