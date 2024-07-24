@@ -1162,7 +1162,7 @@ def helper_get_user_balance(u_id: int) -> tuple[int, int]:
         return 0, 0
 
 
-def helper_get_server_balance() -> tuple[int, int, int, int]:
+def helper_get_server_balance() -> tuple[int, int, int, int, int]:
     serv_res = db.session.execute(text(f"""SELECT sp.balance as balance,
                                              sp.pending_balance_rf as pending_balance_rf
                                       FROM public.server_params sp;
@@ -1177,9 +1177,11 @@ def helper_get_server_balance() -> tuple[int, int, int, int]:
 
     summ_at_1 = db.session.execute(text(f"""SELECT SUM(u.balance) AS at_1_summ FROM public.users u WHERE u.role != 'ordinary_user' and is_at2!=True""")).fetchone()
     summ_at_2 = db.session.execute(text(f"""SELECT SUM(u.balance) AS at_2_summ FROM public.users u WHERE u.role != 'ordinary_user' and is_at2=True""")).fetchone()
-
+    summ_client = db.session.execute(text(
+        f"""SELECT SUM(u.balance) AS client_summ FROM public.users u WHERE u.role = 'ordinary_user';""")).fetchone()
     return (serv_res.balance, serv_res.pending_balance_rf,
-            summ_at_1.at_1_summ if summ_at_1 else 0, summ_at_2.at_2_summ if summ_at_2 else 0)
+            summ_at_1.at_1_summ if summ_at_1 else 0, summ_at_2.at_2_summ if summ_at_2 else 0,
+            summ_client.client_summ if summ_client else 0)
 
 
 def helper_get_filters_transactions(tr_type: int = None, tr_status: int = None, report: bool = False, current_user_id: Optional[int] = None) -> tuple:
