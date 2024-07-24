@@ -2504,8 +2504,8 @@ def helper_get_user_at2(user: User) -> bool:
     return is_at2
 
 
-def helper_get_user_at2_opt2(u_id: int) -> tuple[bool, int, str, str]:
-    user = User.query.with_entities(User.id, User.email, User.role, User.admin_parent_id).filter(User.id == u_id).first()
+def helper_get_user_at2_opt2(u_id: int) -> tuple[bool, int, str, str, int]:
+    user = User.query.with_entities(User.id, User.balance, User.email, User.role, User.admin_parent_id).filter(User.id == u_id).first()
     agent_info = User.query.with_entities(User.is_at2, User.id, User.email).filter(
         User.id == user.admin_parent_id).first()
     if not agent_info:
@@ -2518,7 +2518,7 @@ def helper_get_user_at2_opt2(u_id: int) -> tuple[bool, int, str, str]:
         is_at2 = agent_info.is_at2 if agent_info else False  # not sure
     else:
         is_at2 = False
-    return is_at2, agent_id, agent_email, user.email
+    return is_at2, agent_id, agent_email, user.email, user.balance
 
 
 def su_required(func):

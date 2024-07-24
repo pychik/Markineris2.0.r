@@ -584,7 +584,7 @@ def h_su_control_specific_ut(u_id: int):
     date_to = date_to_raw.strftime('%d.%m.%Y')
     date_from = (date_to_raw - timedelta(days=settings.Transactions.DEFAULT_DAYS_RANGE)).strftime('%d.%m.%Y')
 
-    is_at2, agent_id, agent_email, client_email = helper_get_user_at2_opt2(u_id=u_id)
+    is_at2, agent_id, agent_email, client_email, client_balance = helper_get_user_at2_opt2(u_id=u_id)
 
     pa_detalize_list, sum_fill, sum_spend = helper_get_transactions(u_id=u_id, date_from=date_from, date_to=date_to, sort_type='desc')
     link = f'javascript:get_transaction_history(\'' + url_for(f'user_cp.bck_update_transactions',
@@ -611,7 +611,7 @@ def h_bck_control_specific_ut(u_id: int):
         '%Y-%m-%d') if url_date_to else '2024-04-01'
     sort_type = request.args.get('sort_type', 'desc', str)
 
-    is_at2, agent_id, agent_email, client_email = helper_get_user_at2_opt2(u_id=u_id)
+    is_at2, agent_id, agent_email, client_email, client_balance = helper_get_user_at2_opt2(u_id=u_id)
 
     pa_detalize_list, sum_fill, sum_spend = helper_get_transactions(u_id=u_id, date_from=date_from,
                                                                     date_to=date_to, sort_type=sort_type)
