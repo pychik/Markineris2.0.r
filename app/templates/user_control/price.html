@@ -185,11 +185,11 @@
 
             <div class="price-item">
                 <div class="price-num">Количество заказов в обработке</div>
-                <div class="price-val">{{ orders_quantity }}&nbsp;шт.</div>
+                <div class="price-val">{{ po_rep.report_data.sco }}&nbsp;шт.</div>
             </div>
             <div class="price-item">
                 <div class="price-num">Количество марок в заказах</div>
-                <div class="price-val">{{ actual_marks_quantity }}&nbsp;шт.</div>
+                <div class="price-val">{{ po_rep.report_data.smc }}&nbsp;шт.</div>
             </div>
         </div>
     {% endif %}
