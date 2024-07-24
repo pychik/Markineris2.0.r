@@ -2465,7 +2465,7 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
                 total_amount += total_order_price
 
                 db.session.commit()
-
+                logger.warning(f"total_amount for user {u_id}: {total_amount}")
                 # collecting info for google statistiks with hardcode checkin for ruznak
                 transaction_google_packets.append(TransactionRow(u_id=u_id,
                                                                  tr_id=tr_id,
