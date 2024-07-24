@@ -19,7 +19,8 @@ from utilities.support import helper_paginate_data, check_file_extension, get_fi
     helper_get_server_balance, helper_get_filters_transactions, \
     helper_update_pending_rf_transaction_status, helper_get_image_html, \
     helper_perform_ut_wo_mod, helper_get_transaction_orders_detail, helper_get_stmt_for_fin_order_report, \
-    helper_get_filter_fin_order_report, helper_get_stmt_for_fin_promo_history, helper_get_filter_fin_promo_history
+    helper_get_filter_fin_order_report, helper_get_stmt_for_fin_promo_history, helper_get_filter_fin_promo_history,\
+    helper_get_transactions, helper_get_user_at2_opt2
 from utilities.telegram import NotificationTgUser
 from utilities.tg_verify.service import send_tg_message_with_transaction_updated_status
 
@@ -574,6 +575,56 @@ def h_bck_fin_promo_history_excel():
     response.headers['data_status'] = 'success'
 
     return response
+
+
+def h_su_control_specific_ut(u_id: int):
+
+    # default date range conditions
+    date_to_raw = datetime.now()
+    date_to = date_to_raw.strftime('%d.%m.%Y')
+    date_from = (date_to_raw - timedelta(days=settings.Transactions.DEFAULT_DAYS_RANGE)).strftime('%d.%m.%Y')
+
+    is_at2, agent_id, agent_email, client_email = helper_get_user_at2_opt2(u_id=u_id)
+
+    pa_detalize_list, sum_fill, sum_spend = helper_get_transactions(u_id=u_id, date_from=date_from, date_to=date_to, sort_type='desc')
+    link = f'javascript:get_transaction_history(\'' + url_for(f'user_cp.bck_update_transactions',
+                                                              u_id=u_id) + '?page={0}\');'
+
+    transaction_dict = settings.Transactions.TRANSACTIONS
+
+    link_filters = ''
+    link = f'javascript:bck_get_transactions_specific_user(\'' + url_for(
+        'admin_control.su_bck_control_specific_ut', u_id=u_id) + f'?bck=1&{link_filters}' + 'page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        transactions_list = helper_paginate_data(data=pa_detalize_list, per_page=settings.PAGINATION_PER_PAGE, href=link)
+    return render_template('admin/ur_transactions/ur_transactions_history.html', **locals())
+
+
+def h_bck_control_specific_ut(u_id: int):
+    # default date range conditions
+
+    url_date_from = request.args.get('date_from', '', type=str)
+    url_date_to = request.args.get('date_to', '', type=str)
+    date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from else '2024-04-01'
+    date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
+        '%Y-%m-%d') if url_date_to else '2024-04-01'
+    sort_type = request.args.get('sort_type', 'desc', str)
+
+    is_at2, agent_id, agent_email, client_email = helper_get_user_at2_opt2(u_id=u_id)
+
+    pa_detalize_list, sum_fill, sum_spend = helper_get_transactions(u_id=u_id, date_from=date_from,
+                                                                    date_to=date_to, sort_type=sort_type)
+
+    transaction_dict = settings.Transactions.TRANSACTIONS
+
+    link = f'javascript:bck_get_transactions_specific_user(\'' + url_for(
+        'admin_control.su_bck_control_specific_ut', u_id=u_id) + f'?bck=1&' + 'page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        transactions_list = helper_paginate_data(data=pa_detalize_list, per_page=settings.PAGINATION_PER_PAGE,
+                                                 href=link)
+    return jsonify({'htmlresponse': render_template('admin/ur_transactions/ur_transactions_table.html', **locals())})
 
 
 def h_su_fin_order_report():

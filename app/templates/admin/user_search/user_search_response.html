@@ -30,9 +30,17 @@
 
                       <td>
 
-                          <a href="{{url_for('admin_control.client_orders_stats', admin_id=admin_id, client_id=u.id)}}" title="Посмотреть историю заказов клиента">
-                                      {{u.login_name}}
-                                  </a>
+{#                  <a href="{{ url_for('admin_control.client_orders_stats', admin_id=admin_info.id, client_id=u.id) }}"#}
+{#                     title="Посмотреть историю заказов клиента">#}
+{#                    {{ u.login_name }}#}
+{#                  </a>#}
+                          {%if current_user.role in ['superuser', 'markineris_admin']%}<a href="{{ url_for('admin_control.su_control_specific_ut', u_id=u.id) }}"
+                               title="Посмотреть историю транзакций клиента">
+                              {{ u.login_name }}
+                            </a>
+                          {% else %}
+                            {{u.login_name}}
+                          {% endif %}
                           {% if u.created_at %}
                             <div class="font-10 text-secondary" title="Дата и время регистрации" style="font-size:12px">{{ u.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
                           {% endif %}

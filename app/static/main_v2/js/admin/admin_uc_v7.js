@@ -782,6 +782,26 @@ function bck_su_transaction_detalization(url){
    });
 }
 
+function bck_get_transactions_specific_user(url) {
+    let sort_mode = $('input[name="sort_type"]:checked').val();
+    let date_from = $('#date_from').val();
+    let date_to = $('#date_to').val();
+
+    $.ajax({
+        url: url,
+        method: "GET",
+        data: {
+            date_from: date_from,
+            date_to: date_to,
+            sort_type: sort_mode,
+        },
+        success: function (data) {
+            $('#transactions_table').html(data);
+            $("#transactions_table").append(data.htmlresponse);
+        }
+    });
+}
+
 function clear_su_td_modal(){
     document.getElementById('su_transactionDetaildiv').innerHTML = '';
 }

@@ -1541,10 +1541,18 @@ def helper_check_form(on: str) -> bool:
     return True
 
 
-def helper_get_transactions(u_id: int):
-    pa_detalize_list = UserTransaction.query.filter_by(user_id=u_id).order_by(desc(UserTransaction.created_at)).all()
-    sum_fill = sum(list(map(lambda x: x.amount if x.type and x.status != settings.Transactions.CANCELLED else 0, pa_detalize_list)))
-    sum_spend = sum(list(map(lambda x: x.amount if not x.type and x.status != settings.Transactions.CANCELLED else 0, pa_detalize_list)))
+def helper_get_transactions(u_id: int, date_from: str = settings.Transactions.DEFAULT_DATE_TO,
+                            date_to: str = datetime.today().strftime("%Y-%m-%d"), sort_type: str = 'desc'):
+    model_order_type = desc(UserTransaction.created_at) if sort_type == 'desc'  \
+        else asc(UserTransaction.created_at)
+
+    pa_detalize_list = (UserTransaction.query.filter_by(user_id=u_id)
+                        .filter(UserTransaction.created_at >= date_from, UserTransaction.created_at <= date_to)
+                        .order_by(model_order_type).all())
+    sum_fill = sum(list(
+        map(lambda x: x.amount if x.type and x.status != settings.Transactions.CANCELLED else 0, pa_detalize_list)))
+    sum_spend = sum(list(
+        map(lambda x: x.amount if not x.type and x.status != settings.Transactions.CANCELLED else 0, pa_detalize_list)))
     return pa_detalize_list, sum_fill, sum_spend
 
 
@@ -2494,6 +2502,23 @@ def helper_get_user_at2(user: User) -> bool:
     else:
         is_at2 = False
     return is_at2
+
+
+def helper_get_user_at2_opt2(u_id: int) -> tuple[bool, int, str, str]:
+    user = User.query.with_entities(User.id, User.email, User.role, User.admin_parent_id).filter(User.id == u_id).first()
+    agent_info = User.query.with_entities(User.is_at2, User.id, User.email).filter(
+        User.id == user.admin_parent_id).first()
+    if not agent_info:
+        agent_id = user.id
+        agent_email = user.email
+    else:
+        agent_id = agent_info.id
+        agent_email = agent_info.email
+    if user.role == settings.ORD_USER:
+        is_at2 = agent_info.is_at2 if agent_info else False  # not sure
+    else:
+        is_at2 = False
+    return is_at2, agent_id, agent_email, user.email
 
 
 def su_required(func):

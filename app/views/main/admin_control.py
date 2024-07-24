@@ -25,9 +25,10 @@ from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_pr
                                                h_aus_transaction_detail, h_su_bck_change_sa_activity,
                                                h_bck_ut_excel_report, h_su_fin_order_report, h_bck_fin_order_report,
                                                h_bck_fin_order_report_excel, h_fin_promo_history,
-                                               h_bck_fin_promo_history, h_bck_fin_promo_history_excel)
+                                               h_bck_fin_promo_history, h_bck_fin_promo_history_excel,
+                                               h_su_control_specific_ut, h_bck_control_specific_ut,)
 from utilities.support import au_required, aus_required, bck_aus_required, bck_su_required, su_required, \
-    user_exist_check, su_mod_required, bck_at2_required
+    user_exist_check, su_mod_required, bck_at2_required, bck_su_mod_required
 
 from utilities.admin.h_admin_control import h_bck_agent_reanimate
 
@@ -375,6 +376,28 @@ def su_bck_control_ut():
     :return:
     """
     return h_bck_control_ut()
+
+
+@admin_control.route('/su_control_specific_ut/<u_id>', methods=['GET', ])
+@login_required
+@su_mod_required
+def su_control_specific_ut(u_id: int):
+    """
+        page of all specific user transactions to control
+    :return:
+    """
+    return h_su_control_specific_ut(u_id=u_id)
+
+
+@admin_control.route('/su_bck_control_specific_ut/<u_id>', methods=['GET', ])
+@login_required
+@bck_su_mod_required
+def su_bck_control_specific_ut(u_id: int):
+    """
+        background update filtered specific user transactions to control
+    :return:
+    """
+    return h_bck_control_specific_ut(u_id=u_id)
 
 
 @admin_control.route('/su_fin_order_report', methods=['GET',])
