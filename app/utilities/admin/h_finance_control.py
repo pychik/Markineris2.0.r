@@ -609,7 +609,7 @@ def h_bck_control_specific_ut(u_id: int):
     url_date_to = request.args.get('date_to', '', type=str)
     date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from\
         else settings.Transactions.DEFAULT_DATE_FROM
-    date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
+    date_to = (datetime.strptime(url_date_to, '%d.%m.%Y')).strftime(
         '%Y-%m-%d') if url_date_to else datetime.now().strftime('%Y-%m-%d')
 
     sort_type = request.args.get('sort_type', 'desc', str)
