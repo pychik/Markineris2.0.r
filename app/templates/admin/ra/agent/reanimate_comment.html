@@ -21,16 +21,16 @@
         {% endfor %}
     </select>
 </div>
-<div class="input-group flex-nowrap">
-    <input title="дата последнего обновления"
-               class="form-control"
-               disabled
-               id="last_call_update{{ user.id }}" value="{{ user.last_call_update }}"
-               style="margin: 0px;padding: 0px; width: 10px;min-width: 140px;!important;font-size: 15px;text-align: center">
-        <a href="javascript:saveCallResultAndComment('{{ url_for('admin_control.bck_reanimate_save_call_result') }}?bck=1', '{{ user.id }}', '{{ csrf_token() }}')"
-           class="btn btn-sm btn-outline-secondary"
-            title="Сохранить комментарий и результат звонка"  style="width: 100px;min-width: 100px;padding-left: 10px;!important;"
-           type="submit">
-            Сохранить
-        </a>
-</div>
+{#<div class="input-group flex-nowrap">#}
+{#    <input title="дата последнего обновления"#}
+{#               class="form-control"#}
+{#               disabled#}
+{#               id="last_call_update{{ user.id }}" value="{{ user.last_call_update }}"#}
+{#               style="margin: 0px;padding: 0px; width: 10px;min-width: 140px;!important;font-size: 15px;text-align: center">#}
+{#        <a href="javascript:saveCallResultAndComment('{{ url_for('admin_control.bck_reanimate_save_call_result') }}?bck=1', '{{ user.id }}', '{{ csrf_token() }}')"#}
+{#           class="btn btn-sm btn-outline-secondary"#}
+{#            title="Сохранить комментарий и результат звонка"  style="width: 100px;min-width: 100px;padding-left: 10px;!important;"#}
+{#           type="submit">#}
+{#            Сохранить#}
+{#        </a>#}
+{#</div>#}

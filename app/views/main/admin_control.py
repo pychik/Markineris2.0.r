@@ -627,7 +627,7 @@ def bck_su_control_reanimate_excel():
     return h_bck_su_control_reanimate_excel()
 
 
-@admin_control.route('/bck_control_reanimate/<int:u_id>', methods=['GET', ])
+@admin_control.route('/bck_agent_control_reanimate/<int:u_id>', methods=['GET', ])
 @login_required
 @bck_aus_required
 def bck_agent_control_reanimate(u_id: int):

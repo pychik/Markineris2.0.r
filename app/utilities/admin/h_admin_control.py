@@ -1305,12 +1305,12 @@ def h_bck_agent_reanimate(u_id: int):
         users_list = helper_paginate_data(data=users, per_page=settings.PAGINATION_PER_PAGE, href=link)
 
 
-    basic_prices = settings.Prices.BASIC_PRICES
     date_range_types = settings.Users.FILTER_DATE_TYPES
     date_quant_max = settings.Users.FILTER_MAX_QUANTITY
     converted_date_type = settings.Users.FILTER_DATE_DICT.get(date_type)
-    return jsonify({'htmlresponse': render_template(f'admin/ra/user_reanimate_response.html', **locals())}) \
-        if bck else render_template('admin/ra/main_reanimate.html', **locals())
+    reanimate_call_result = settings.REANIMATE_CALL_RESULT
+    return jsonify({'htmlresponse': render_template(f'admin/ra/agent/user_reanimate_response.html', **locals())}) \
+        if bck else render_template('admin/ra/agent/main_reanimate.html', **locals())
 
 
 def helper_get_ar_orders_stat(ar_schema: AROrdersSchema, u_id: int) -> tuple:

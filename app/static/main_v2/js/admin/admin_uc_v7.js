@@ -789,6 +789,7 @@ function bck_get_transactions_specific_user(url) {
 
     $.ajax({
         url: url,
+        url: url,
         method: "GET",
         data: {
             date_from: date_from,
@@ -1180,6 +1181,10 @@ function saveCallResultAndComment(url, u_id, csrf) {
 
     success:function(data)
     {
+        if (data.status === 'danger') {
+            make_message(data.message, 'danger');
+            return
+        }
         $(`#call_comment_and_result_${u_id}`).html(data);
         $(`#call_comment_and_result_${u_id}`).append(data.htmlresponse);
     },
