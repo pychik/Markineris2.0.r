@@ -352,7 +352,7 @@ class Settings(BaseSettings):
         SUCCESS: int = 2
         SUCCESS_RETURN: int = 3
         DEFAULT_DAYS_RANGE: int = 90
-        DEFAULT_DATE_TO: str = '2024-04-01'
+        DEFAULT_DATE_FROM: str = '2024-04-01'
         TRANSACTIONS: dict = {PENDING: 'Ожидается подтверждение', CANCELLED: 'Отменена', SUCCESS: 'Успешно проведена',
                               SUCCESS_RETURN: 'Возврат средств отмененного заказа'}
         TRANSACTION_WRITEOFF: int = 0

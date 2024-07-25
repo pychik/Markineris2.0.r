@@ -580,9 +580,11 @@ def h_bck_fin_promo_history_excel():
 def h_su_control_specific_ut(u_id: int):
 
     # default date range conditions
-    date_to_raw = datetime.now()
-    date_to = date_to_raw.strftime('%d.%m.%Y')
-    date_from = (date_to_raw - timedelta(days=settings.Transactions.DEFAULT_DAYS_RANGE)).strftime('%d.%m.%Y')
+    url_date_to_raw = datetime.now()
+    url_date_to = url_date_to_raw.strftime('%d.%m.%Y')
+    url_date_from = (url_date_to_raw - timedelta(days=settings.Transactions.DEFAULT_DAYS_RANGE)).strftime('%d.%m.%Y')
+    date_to = url_date_to_raw.strftime('%Y-%m-%d')
+    date_from = (url_date_to_raw - timedelta(days=settings.Transactions.DEFAULT_DAYS_RANGE)).strftime('%Y-%m-%d')
 
     is_at2, agent_id, agent_email, client_email, client_balance = helper_get_user_at2_opt2(u_id=u_id)
 
@@ -603,12 +605,13 @@ def h_su_control_specific_ut(u_id: int):
 
 def h_bck_control_specific_ut(u_id: int):
     # default date range conditions
-
     url_date_from = request.args.get('date_from', '', type=str)
     url_date_to = request.args.get('date_to', '', type=str)
-    date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from else '2024-04-01'
+    date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from\
+        else settings.Transactions.DEFAULT_DATE_FROM
     date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
-        '%Y-%m-%d') if url_date_to else '2024-04-01'
+        '%Y-%m-%d') if url_date_to else datetime.now().strftime('%Y-%m-%d')
+
     sort_type = request.args.get('sort_type', 'desc', str)
 
     is_at2, agent_id, agent_email, client_email, client_balance = helper_get_user_at2_opt2(u_id=u_id)
