@@ -5,6 +5,7 @@ from base64 import b64encode
 from pdfrw import PageMerge, PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from PIL import Image
+from werkzeug.datastructures import FileStorage
 
 from config import settings
 
@@ -102,6 +103,34 @@ def get_first_page_as_image(pdf_path: str):
 
     transaction_image = f"""<img id="bill-modal-image" class="border border-1 rounded img-zoom-orig" onclick="zoom_image();" src="data:image/png;base64,{img_str}">"""
     return transaction_image
+
+
+def helper_check_attached_file(order_file: FileStorage) -> tuple[bool, str]:
+    # Read the file into a BytesIO object
+    file_bytes = BytesIO(order_file.read())
+
+    # Open and extract the RAR file from the BytesIO object
+    try:
+        with rarfile.RarFile(file_bytes) as rf:
+            # Check if 'ЭтикеткиPDF' folder exists
+            if not any(member.filename.startswith('ЭтикеткиPDF/') for member in rf.infolist()):
+                message = settings.Messages.ORDER_ATTACH_FILE_ERROR + ' нет папки ЭтикеткиPDF в прилагаемом архиве!'
+                return False, message
+            # Process files in the 'ЭтикеткиPDF' folder only first for files
+            pdf_member = next(
+                (member for member in rf.infolist()
+                 if member.filename.startswith('ЭтикеткиPDF/') and member.filename.endswith('.pdf')),
+                None
+            )
+
+            if not pdf_member:
+                message = settings.Messages.ORDER_ATTACH_FILE_ERROR + ' В папке ЭтикеткиPDF нет pdf или присутствуют файлы с другим расширением!'
+                return False, message
+    except Exception as e:
+        message = settings.Messages.ORDER_ATTACH_FILE_ERROR + str(e)
+        return False, message
+    else:
+        return True, ''
 
 
 # if __name__ == '__main__':

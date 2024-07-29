@@ -21,6 +21,7 @@ from models import User, Order, OrderStat, db, ServerParam
 from redis_queue.callbacks import on_success_periodic_task, on_failure_periodic_task
 from utilities.download import crm_orders_common_preload
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify, helper_suotls
+from utilities.pdf_processor import helper_check_attached_file
 from utilities.saving_uts import get_rows_marks
 from utilities.support import (helper_get_at2_pending_balance, helper_get_limits, orders_list_common)
 from utilities.telegram import MarkinerisInform
@@ -580,6 +581,12 @@ def helper_attach_file(manager: str, manager_id: int, o_id: int) -> Response:
 
     if file.filename == '' or not helper_check_extension(filename=file.filename):
         flash(message=f'{settings.Messages.ORDER_MANAGER_FEXT} {file.filename}', category='error')
+        return redirect(url_for('crm_d.managers'))
+
+    # check file structure for folder and pdf
+    check, check_file_message = helper_check_attached_file(order_file=file)
+    if not check:
+        flash(message=check_file_message, category='error')
         return redirect(url_for('crm_d.managers'))
     # not correct- make file read if you want to save file to disk
     # file_size = len(file.read())
