@@ -108,6 +108,7 @@ def get_first_page_as_image(pdf_path: str):
 def helper_check_attached_file(order_file: FileStorage) -> tuple[bool, str]:
     # Read the file into a BytesIO object
     file_bytes = BytesIO(order_file.read())
+    file_bytes.seek(0)
 
     # Open and extract the RAR file from the BytesIO object
     try:
@@ -126,6 +127,9 @@ def helper_check_attached_file(order_file: FileStorage) -> tuple[bool, str]:
             if not pdf_member:
                 message = settings.Messages.ORDER_ATTACH_FILE_ERROR + ' В папке ЭтикеткиPDF нет pdf или присутствуют файлы с другим расширением!'
                 return False, message
+
+            file_bytes.seek(0)
+            order_file.stream = file_bytes
     except Exception as e:
         message = settings.Messages.ORDER_ATTACH_FILE_ERROR + str(e)
         return False, message
