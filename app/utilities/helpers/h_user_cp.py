@@ -254,9 +254,9 @@ def h_pa_refill(u_id: int, sa_id: int):
         message = settings.Messages.STRANGE_REQUESTS
         return jsonify(dict(status=status, message=message))
 
-    promo_code = request.form.get('promo_code', '').replace('--', '')
+    promo_code = request.form.get('promo_code', '').replace('--', '').strip()
 
-    amount_orig = int(request.form.get('bill_summ', '0').replace('--', ''))
+    amount_orig = int(request.form.get('bill_summ', '0').replace('--', '').strip())
 
     if amount_orig < settings.PA_REFILL_MIN:
         message = settings.Messages.STRANGE_REQUESTS

@@ -77,7 +77,7 @@ def h_su_bck_promo():
 
 
 def h_su_add_promo():
-    code = request.form.get('promo_code', '').replace('--', '')
+    code = request.form.get('promo_code', '').replace('--', '').strip()
     status = 'danger'
 
     try:
