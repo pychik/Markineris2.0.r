@@ -19,7 +19,7 @@
 <!--                            <span class="text-warning">{{ transaction.wo_account_info }}</span>-->
 <!--                          {%endif%}-->
 <!--        </div>-->
-        {% if transaction.status ==2 %}
+        {% if transaction.status in (0, 1, 2) %}
             <div>
                 <b>Счет:</b> {% if service_account %}{{ service_account.sa_name }}{% endif %}
             </div>
