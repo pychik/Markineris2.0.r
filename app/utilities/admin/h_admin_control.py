@@ -726,8 +726,8 @@ def h_change_agent_fee(u_id: int) -> Response:
 
 def h_change_trust_limit(u_id: int) -> Response:
 
-    trust_limit_form = request.form.get("agent_tl_value", '10000')
-    trust_limit = int(trust_limit_form) if trust_limit_form.isdigit() else None
+    trust_limit_form = request.form.get("agent_tl_value", '0')
+    trust_limit = int(trust_limit_form) if (trust_limit_form.isdigit() and 0 <= int(trust_limit_form) <= 1000000) else 0
     # only for at2
     agent = User.query.filter_by(id=u_id, is_at2=True).first()
     if agent and isinstance(trust_limit, int) and settings.TRUST_LIMIT_MINIMUM <= trust_limit <= settings.TRUST_LIMIT_MAXIMUM:
