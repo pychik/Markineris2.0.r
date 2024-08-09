@@ -2,7 +2,7 @@ from datetime import datetime
 
 from flask import request, jsonify, Response
 from flask_login import current_user
-from sqlalchemy import text
+from sqlalchemy import text, or_
 from sqlalchemy.exc import IntegrityError
 
 from config import settings
@@ -74,7 +74,8 @@ def h_tg_markineris_stop_verify():
 
 
 def check_promo_exists(promo_code: str) -> Promo | None:
-    promo_code_obj: Promo = Promo.query.filter(Promo.code == promo_code, Promo.is_archived == False).first()
+    promo_code_obj: Promo = Promo.query.filter(Promo.code == promo_code,
+                                               or_(Promo.is_archived == False, Promo.is_archived == None)).first()
 
     return promo_code_obj
 
