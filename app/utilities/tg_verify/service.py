@@ -74,7 +74,7 @@ def h_tg_markineris_stop_verify():
 
 
 def check_promo_exists(promo_code: str) -> Promo | None:
-    promo_code_obj: Promo = Promo.query.filter(Promo.code == promo_code).first()
+    promo_code_obj: Promo = Promo.query.filter(Promo.code == promo_code, Promo.is_archived == False).first()
 
     return promo_code_obj
 

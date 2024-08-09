@@ -54,20 +54,38 @@ function update_finance_control(category_p){
 }
 
 
-function get_promos_history(url){
-   $.ajax({
-    url: url,
-    method:"GET",
+function get_promos_history(url) {
+    let show_archived = document.getElementById('show_archived_promo').checked
 
-    success:function(data)
-    {
+    $.ajax({
+        url: url,
+        method: "GET",
+        data: {
+            'show_archived': show_archived
+        },
 
-      $('#promos_table').html(data);
-      $("#promos_table").append(data.htmlresponse);
-      // update_category(category);
-      }
-   });
+        success: function (data) {
 
+            $('#promos_table').html(data);
+            $("#promos_table").append(data.htmlresponse);
+            toggleArchivedColumn(show_archived);
+        }
+    });
+
+}
+
+function toggleArchivedColumn(show) {
+    const table = document.getElementById('promos_table');
+    const archivedColumns = table.querySelectorAll('.archived-column');
+    archivedColumns.forEach(column => {
+        column.style.display = show ? '' : 'none';
+    });
+    let show_archived = document.getElementById('show_archived_promo')
+    if (show_archived.checked === true)
+    {show_archived.classList.add('bg-warning')}
+    else
+    {show_archived.classList.remove('bg-warning')}
+    show_archived.blur()
 }
 
 function check_promo_form(){

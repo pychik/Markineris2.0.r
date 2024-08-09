@@ -126,6 +126,8 @@ class Promo(db.Model, UserMixin):
     code = db.Column(db.String(50), unique=True)
     value = db.Column(db.Integer, default=10)
     created_at = db.Column(db.DateTime(), default=datetime.now)
+    is_archived = db.Column(db.Boolean, default=False)
+    updated_at = db.Column(db.DateTime(), onupdate=datetime.now)
     users = db.relationship("User", secondary="users_promos", back_populates="promos")
 
 

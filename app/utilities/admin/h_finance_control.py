@@ -6,7 +6,7 @@ from os import remove as o_remove
 
 from flask import render_template, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
-from sqlalchemy import desc, text, create_engine, null, select
+from sqlalchemy import desc, text, create_engine, null, select, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -40,7 +40,9 @@ def h_su_control_finance():
         """)
     stat = db.session.execute(stat_stmt).first()
 
-    promos = Promo.query.with_entities(Promo.id, Promo.code, Promo.value, Promo.created_at).order_by(desc(Promo.created_at)).all()
+    promos = Promo.query.with_entities(Promo.id, Promo.code, Promo.value, Promo.created_at, Promo.updated_at).filter(
+        or_(Promo.is_archived == False, Promo.is_archived == None)
+    ).order_by(desc(Promo.created_at)).all()
     prices = Price.query.order_by(desc(Price.created_at)).all()
 
     account_type_db = ServerParam.query.with_entities(ServerParam.account_type).first()
@@ -64,10 +66,17 @@ def h_su_control_finance():
     return render_template('admin/su_finance_control.html', **locals())
 
 
-def h_su_bck_promo():
+def h_su_bck_promo(show_archived: bool = False):
+    show_archived = request.args.get('show_archived', default=False, type=lambda v: v.lower() == 'true')
+    if show_archived:
+        filter_by = 1 == 1
+    else:
+        filter_by = or_(Promo.is_archived == False, Promo.is_archived == None)
 
-    promos = Promo.query.with_entities(Promo.id, Promo.code, Promo.value, Promo.created_at).order_by(
+    promos = Promo.query.with_entities(Promo.id, Promo.code, Promo.value, Promo.created_at, Promo.is_archived,
+                                       Promo.updated_at).filter(filter_by).order_by(
         desc(Promo.created_at)).all()
+
     link = 'javascript:get_promos_history(\'' + url_for('admin_control.su_bck_promo') + '?page={0}\');'
     page, per_page, \
         offset, pagination, \
@@ -102,16 +111,15 @@ def h_su_add_promo():
 
 
 def h_su_delete_promo(p_id: int) -> Response:
-    promo = Promo.query.with_entities(Promo.id, Promo.code).filter(Promo.id == p_id).first()
+    promo_stmt = select(Promo).filter(Promo.id == p_id)
+    promo = db.session.execute(promo_stmt).scalar_one_or_none()
     status = 'danger'
     # check for trickers
     if not promo:
         message = settings.Messages.DELETE_NE_PROMO
         return jsonify(dict(status=status, message=message))
     try:
-        db.session.execute(text(f'DELETE FROM public.users_promos WHERE promo_id={p_id}'))
-        db.session.execute(db.delete(Promo).filter_by(id=p_id))
-
+        promo.is_archived = True
         db.session.commit()
 
         message = f"{settings.Messages.DELETE_PROMO} {promo.code}"
@@ -562,7 +570,7 @@ def h_bck_fin_promo_history_excel():
     excel = ExcelReport(
         data=promo_codes_history,
         filters=excel_filters,
-        columns_name=['дата активации', 'e-mail пользователя', 'логин агента', 'промокод',],
+        columns_name=['дата активации', 'e-mail пользователя', 'логин агента', 'промокод', 'добавочное значение, руб'],
         sheet_name='История промокодов',
         output_file_name=report_name,
     )

@@ -1429,7 +1429,8 @@ def helper_get_stmt_for_fin_promo_history(
                         usr_promo.activated_at as activate_date,
                         cli.email as user_email,
                         COALESCE(agent.login_name, cli.login_name) as agent_login,
-                        promo.code as code
+                        promo.code as code,
+                        promo.value as promo_value
                         from
                             public.users cli
                             left join public.users agent on agent.id = cli.admin_parent_id
@@ -1444,7 +1445,8 @@ def helper_get_stmt_for_fin_promo_history(
                         usr_promo.activated_at as activate_date,
                         cli.email as user_email,
                         COALESCE(agent.login_name, cli.login_name) as agent_login,
-                        promo.code
+                        promo.code as code,
+                        promo.value as promo_value
                         from
                             public.users cli
                             left join public.users agent on agent.id = cli.admin_parent_id
@@ -1513,7 +1515,7 @@ def helper_process_sa(sa_id: int) -> bool:
 
 
 def helper_check_promo(user: User, promo_code: str) -> tuple[bool, int, str]:
-    all_promos_raw = Promo.query.with_entities(Promo.id, Promo.code, Promo.value)
+    all_promos_raw = Promo.query.with_entities(Promo.id, Promo.code, Promo.value).filter(Promo.is_archived == False)
 
     all_promos = all_promos_raw.all()
     all_promos_codes = list(map(lambda x: x.code, all_promos))

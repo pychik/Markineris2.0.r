@@ -38,7 +38,12 @@
             </form>
         </div>
     </div>
-
+    <div class="form-check form-switch my-2">
+            <label>Показать/скрыть архивные промокоды</label>
+            <input class="form-check-input border border-warning" type="checkbox" role="switch" id="show_archived_promo"
+                   name="show_archived_promo"
+                onclick="get_promos_history('{{url_for('admin_control.su_bck_promo')}}')">
+    </div>
     <div id="promos_table" class="mb-3">
         {% include 'admin/promos_table.html' %}
     </div>

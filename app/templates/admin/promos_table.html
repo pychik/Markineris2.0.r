@@ -12,6 +12,9 @@
                   <th scope="col">
                       <font size="2">Дата создания</font>
                   </th>
+                  <th scope="col" class="archived-column" style="display: none;">
+                    <font size="2">Дата архивации</font>
+                  </th>
                   <th scope="col">
                       <font size="2">Удалить код</font>
                   </th>
@@ -32,6 +35,13 @@
                   <td>
                      {{t.created_at.strftime("%d.%m.%Y %H:%M:%S")}}
 
+                  </td>
+                  <td class="archived-column" style="display: none;">
+                    {% if t.is_archived %}
+                        {{ t.updated_at.strftime("%d.%m.%Y %H:%M:%S") }}
+                    {% else %}
+                        {{ '' }}
+                    {% endif %}
                   </td>
                   <td>
                      <label class="btn-table me-2">
