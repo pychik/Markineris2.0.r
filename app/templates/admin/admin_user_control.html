@@ -21,6 +21,13 @@
             Статистика по заказам клиентов
           </a>
     </div>
+    <div class="d-flex justify-content-center mb-2">
+          <a href="{{ url_for('admin_control.users_orders_stats', admin_id=admin_info.id) }}"
+             title="Посмотреть статистику заказов пользователей агента {{ admin_info.login_name }}"
+             class="col-md-5 text-center btn btn-sm btn-outline-secondary btn-outline">
+            Список заказов клиентов
+          </a>
+    </div>
     {% if current_user.role in ['superuser', 'markineris_admin'] or (current_user.role == 'admin' and current_user.is_at2 )%}
           <div class="d-flex justify-content-center">
             <a href="{{ url_for('admin_control.bck_agent_control_reanimate', u_id=admin_info.id) }}"
@@ -362,9 +369,7 @@
     <div class="col-12">
       <h3>
         Зарегистрированные пользователи
-        <a href="{{ url_for('admin_control.users_orders_stats', admin_id=admin_info.id) }}"
-           title="Посмотреть статистику заказов пользователей агента {{ admin_info.login_name }}"><span
-          class="badge bg-info"> Всего {{ users_pagination.total }}</span></a>
+        <span class="badge bg-warning text-dark"> Всего {{ users_pagination.total }}</span>
       </h3>
 
       {% if users_pagination %}
