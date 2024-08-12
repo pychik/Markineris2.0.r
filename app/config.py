@@ -582,7 +582,7 @@ class Settings(BaseSettings):
         PROMO_ERROR: str = "Ошибка сохранения промокода! "
         PROMO_DUPLICATE_ERROR: str = "Ошибка сохранения промокода! В базе уже есть такой код! "
         PROMO_TYPE_ERROR: str = "Ошибка сохранения промокода! Проверьте вводимое значение "
-        PROMO_NE_ERROR: str = 'Такого промо кода не существует'
+        PROMO_NE_ERROR: str = 'Такого промокода не существует'
         PROMO_USED_ERROR: str = 'Вы уже использовали этот промокод'
         PROMO_ADD_USER_ERROR: str = 'Ошибка добавления промокода к списку использованных пользователем '
         PRICE_CREATE: str = "Успешно создан ценовой пакет "
