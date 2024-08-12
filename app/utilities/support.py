@@ -1515,7 +1515,8 @@ def helper_process_sa(sa_id: int) -> bool:
 
 
 def helper_check_promo(user: User, promo_code: str) -> tuple[bool, int, str]:
-    all_promos_raw = Promo.query.with_entities(Promo.id, Promo.code, Promo.value).filter(Promo.is_archived == False)
+    all_promos_raw = (Promo.query.with_entities(Promo.id, Promo.code, Promo.value)
+                      .filter(or_(Promo.is_archived == False, Promo.is_archived == None)))
 
     all_promos = all_promos_raw.all()
     all_promos_codes = list(map(lambda x: x.code, all_promos))
