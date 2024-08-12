@@ -358,7 +358,8 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
     else:
         manager_condition = f" AND o.manager_id=:filtered_manager_id" if filtered_manager_id else ""
         conditional_stmt = f"({conditional_stmt_common}{manager_condition} OR o.stage={settings.OrderStage.POOL})"
-
+        # visibility spec orders condition
+        vsoc = f" AND ( (o.manager_id is not NULL AND managers.role not in ('{settings.SUPER_USER}', '{settings.MARKINERIS_ADMIN_USER}')) or o.manager_id is NULL)" if current_user.role == settings.SUPER_MANAGER else ""
         # stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
         stmt_orders_qry = text(f"""
                               SELECT 
@@ -402,7 +403,7 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                   LEFT JOIN public.parfum p ON o.id = p.order_id
                                   LEFT JOIN public.users managers ON o.manager_id = managers.id 
-                              WHERE  {conditional_stmt} AND o.to_delete != True
+                              WHERE  {conditional_stmt}{vsoc} AND o.to_delete != True
                               GROUP BY u.id, o.id, o.crm_created_at
                               ORDER BY o.crm_created_at ASC
                                """)
