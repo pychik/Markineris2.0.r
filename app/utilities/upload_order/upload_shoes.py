@@ -180,36 +180,18 @@ class ValidateShoesMixin:
         if not res:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Messages.UPLOAD_RD_DATE_ERROR}"
 
-    # @staticmethod
-    # def _rd_general(list_values: list, rz_gender_condition: bool, gender: str, row_num: int,
-    #                 order_list: list, cols: tuple) -> Optional[tuple]:
-    #     res = len(list(filter(lambda x: x is None or x == 'nan' or len(x) == 0, list_values)))
-    #     for i in range(12, 15):
-    #         order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][i] = \
-    #             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][i].replace('nan', '')
-    #     if res != 0 and rz_gender_condition:
-    #         return (val_error_start(row_num=row_num) + ' ' +
-    #                 settings.Messages.UPLOAD_RD_GENERAL_REQUIRED_ERROR.format(gender=gender),
-    #                 None, None, None)
-    #     elif res == 0:
-    #         rd_type_error = ValidateShoesMixin._rd_type(value=list_values[0].strip(), row_num=row_num, col=cols[0],
-    #                                                     pos=12, order_list=order_list)
-    #         rd_name_error = ValidateShoesMixin._rd_name(value=list_values[1].strip(), row_num=row_num, col=cols[1])
-    #         rd_date_error = ValidateShoesMixin._rd_date(value=list_values[2].strip(), row_num=row_num, col=cols[2])
-    #         return None, rd_type_error, rd_name_error, rd_date_error
-    #     elif 0 < res < 3:
-    #         return f"{val_error_start(row_num=row_num)} {settings.Messages.UPLOAD_RD_GENERAL_ERROR}", None, None, None
-    #     else:
-    #         return (None,) * 4
-
     @staticmethod
-    def _rd_general(list_values: list, row_num: int, order_list: list, cols: tuple) -> Optional[tuple]:
+    def _rd_general(list_values: list, rz_gender_condition: bool, gender: str, row_num: int,
+                    order_list: list, cols: tuple) -> Optional[tuple]:
         res = len(list(filter(lambda x: x is None or x == 'nan' or len(x) == 0, list_values)))
         for i in range(12, 15):
-            order_list[row_num - settings.Shoes.UPLOAD_STANDART_ROW][i] = \
-                order_list[row_num - settings.Shoes.UPLOAD_STANDART_ROW][i].replace('nan', '')
-
-        if res == 0:
+            order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][i] = \
+                order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][i].replace('nan', '')
+        if res != 0 and rz_gender_condition:
+            return (val_error_start(row_num=row_num) + ' ' +
+                    settings.Messages.UPLOAD_RD_GENERAL_REQUIRED_ERROR.format(gender=gender),
+                    None, None, None)
+        elif res == 0:
             rd_type_error = ValidateShoesMixin._rd_type(value=list_values[0].strip(), row_num=row_num, col=cols[0],
                                                         pos=12, order_list=order_list)
             rd_name_error = ValidateShoesMixin._rd_name(value=list_values[1].strip(), row_num=row_num, col=cols[1])
@@ -219,6 +201,24 @@ class ValidateShoesMixin:
             return f"{val_error_start(row_num=row_num)} {settings.Messages.UPLOAD_RD_GENERAL_ERROR}", None, None, None
         else:
             return (None,) * 4
+
+    # @staticmethod
+    # def _rd_general(list_values: list, row_num: int, order_list: list, cols: tuple) -> Optional[tuple]:
+    #     res = len(list(filter(lambda x: x is None or x == 'nan' or len(x) == 0, list_values)))
+    #     for i in range(12, 15):
+    #         order_list[row_num - settings.Shoes.UPLOAD_STANDART_ROW][i] = \
+    #             order_list[row_num - settings.Shoes.UPLOAD_STANDART_ROW][i].replace('nan', '')
+    #
+    #     if res == 0:
+    #         rd_type_error = ValidateShoesMixin._rd_type(value=list_values[0].strip(), row_num=row_num, col=cols[0],
+    #                                                     pos=12, order_list=order_list)
+    #         rd_name_error = ValidateShoesMixin._rd_name(value=list_values[1].strip(), row_num=row_num, col=cols[1])
+    #         rd_date_error = ValidateShoesMixin._rd_date(value=list_values[2].strip(), row_num=row_num, col=cols[2])
+    #         return None, rd_type_error, rd_name_error, rd_date_error
+    #     elif 0 < res < 3:
+    #         return f"{val_error_start(row_num=row_num)} {settings.Messages.UPLOAD_RD_GENERAL_ERROR}", None, None, None
+    #     else:
+    #         return (None,) * 4
 
 
 class UploadShoes(UploadCategory):
@@ -275,14 +275,14 @@ class UploadShoes(UploadCategory):
             error_rows = self._check_rows_cols(order_list=order_list)
             errors_list.append(error_rows) if error_rows is not None else None
             row_num = copy(settings.Shoes.UPLOAD_STANDART_ROW)
-
+            rz_condition = ((current_user.role == 'ordinary_user' and current_user.admin_parent_id == 2)
+                            or current_user.id == 2)
             for data_group in order_list:
                 # set condition for declar documents required
                 gender = data_group[9].strip()
-                # rz_condition = ((current_user.role == 'ordinary_user' and current_user.admin_parent_id == 2) or current_user.id == 2)
-                # gender_condition = gender not in settings.RZ_GENDERS_RD_LIST
-                # rz_gender_condition = rz_condition and gender_condition
 
+                gender_condition = gender not in settings.RZ_GENDERS_RD_LIST
+                rz_gender_condition = rz_condition and gender_condition
 
                 trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C')
                 article_error = self._article(value=data_group[1].strip(), row_num=row_num, col='E')
@@ -310,6 +310,8 @@ class UploadShoes(UploadCategory):
 
                 rd_general_error, rd_type_error, \
                     rd_name_error, rd_date_error = self._rd_general(list_values=data_group[12:15],
+                                                                    rz_gender_condition=rz_gender_condition,
+                                                                    gender=gender,
                                                                     row_num=row_num, order_list=order_list,
                                                                     cols=('U', 'V', 'W',))
                 error_tuple = (trademark_error, article_error, type_error, color_error, size_error, mt_error, ml_error,
@@ -328,14 +330,15 @@ class UploadShoes(UploadCategory):
             error_rows = self._check_rows_cols(order_list=order_list)
             errors_list.append(error_rows) if error_rows is not None else None
             row_num = copy(settings.Shoes.UPLOAD_STANDART_ROW)
-
+            rz_condition = ((current_user.role == 'ordinary_user' and current_user.admin_parent_id == 2)
+                            or current_user.id == 2)
             pos_count = 0
             for data_group in order_list:
                 # set condition for declar documents required
                 gender = data_group[11].strip()
-                # rz_condition = ((current_user.role == 'ordinary_user' and current_user.admin_parent_id == 2) or current_user.id == 2)
-                # gender_condition = gender not in settings.RZ_GENDERS_RD_LIST
-                # rz_gender_condition = rz_condition and gender_condition
+
+                gender_condition = gender not in settings.RZ_GENDERS_RD_LIST
+                rz_gender_condition = rz_condition and gender_condition
 
                 article_error = self._article(value=data_group[0].strip(), row_num=row_num, col='A')
 
@@ -369,6 +372,8 @@ class UploadShoes(UploadCategory):
 
                 rd_general_error, rd_type_error, \
                     rd_name_error, rd_date_error = self._rd_general(list_values=data_group[12:15],
+                                                                    rz_gender_condition=rz_gender_condition,
+                                                                    gender=gender,
                                                                     row_num=row_num, order_list=order_list,
                                                                     cols=('R', 'S', 'T',))
 

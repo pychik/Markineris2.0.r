@@ -158,19 +158,36 @@ class ValidateClothesMixin:
         if not res:
             return error_message
 
+    @staticmethod
+    def _rd_general(list_values: list, rz_gender_condition: bool, gender: str, row_num: int, order_list: list, cols: tuple) -> Optional[tuple]:
+        res = len(list(filter(lambda x: x is None or x == 'nan' or len(x) == 0, list_values)))
+        for i in range(11, 14):
+            order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][i] = \
+                order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][i].replace('nan', '')
+        if res != 0 and rz_gender_condition:
+            return (val_error_start(row_num=row_num) + ' ' +
+                    settings.Messages.UPLOAD_RD_GENERAL_REQUIRED_ERROR.format(gender=gender),
+                    None, None, None)
+        elif res == 0:
+            rd_type_error = ValidateClothesMixin._rd_type(value=list_values[0].strip(), row_num=row_num, col=cols[0],
+                                                          pos=11, order_list=order_list)
+            rd_name_error = ValidateClothesMixin._rd_name(value=list_values[1].strip(), row_num=row_num, col=cols[1])
+            rd_date_error = ValidateClothesMixin._rd_date(value=list_values[2].strip(), row_num=row_num, col=cols[2])
+            return None, rd_type_error, rd_name_error, rd_date_error
+        elif 0 < res < 3:
+            return f"{val_error_start(row_num=row_num)} {settings.Messages.UPLOAD_RD_GENERAL_ERROR}", None, None, None
+        else:
+            return (None,) * 4
+
     # @staticmethod
-    # def _rd_general(list_values: list, rz_gender_condition: bool, gender: str, row_num: int, order_list: list, cols: tuple) -> Optional[tuple]:
+    # def _rd_general(list_values: list, row_num: int, order_list: list, cols: tuple) -> Optional[tuple]:
     #     res = len(list(filter(lambda x: x is None or x == 'nan' or len(x) == 0, list_values)))
     #     for i in range(11, 14):
     #         order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][i] = \
     #             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][i].replace('nan', '')
-    #     if res != 0 and rz_gender_condition:
-    #         return (val_error_start(row_num=row_num) + ' ' +
-    #                 settings.Messages.UPLOAD_RD_GENERAL_REQUIRED_ERROR.format(gender=gender),
-    #                 None, None, None)
-    #     elif res == 0:
+    #     if res == 0:
     #         rd_type_error = ValidateClothesMixin._rd_type(value=list_values[0].strip(), row_num=row_num, col=cols[0],
-    #                                                       pos=11, order_list=order_list)
+    #                                                      pos=11, order_list=order_list)
     #         rd_name_error = ValidateClothesMixin._rd_name(value=list_values[1].strip(), row_num=row_num, col=cols[1])
     #         rd_date_error = ValidateClothesMixin._rd_date(value=list_values[2].strip(), row_num=row_num, col=cols[2])
     #         return None, rd_type_error, rd_name_error, rd_date_error
@@ -179,22 +196,6 @@ class ValidateClothesMixin:
     #     else:
     #         return (None,) * 4
 
-    @staticmethod
-    def _rd_general(list_values: list, row_num: int, order_list: list, cols: tuple) -> Optional[tuple]:
-        res = len(list(filter(lambda x: x is None or x == 'nan' or len(x) == 0, list_values)))
-        for i in range(11, 14):
-            order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][i] = \
-                order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][i].replace('nan', '')
-        if res == 0:
-            rd_type_error = ValidateClothesMixin._rd_type(value=list_values[0].strip(), row_num=row_num, col=cols[0],
-                                                         pos=11, order_list=order_list)
-            rd_name_error = ValidateClothesMixin._rd_name(value=list_values[1].strip(), row_num=row_num, col=cols[1])
-            rd_date_error = ValidateClothesMixin._rd_date(value=list_values[2].strip(), row_num=row_num, col=cols[2])
-            return None, rd_type_error, rd_name_error, rd_date_error
-        elif 0 < res < 3:
-            return f"{val_error_start(row_num=row_num)} {settings.Messages.UPLOAD_RD_GENERAL_ERROR}", None, None, None
-        else:
-            return (None,) * 4
 
 class UploadClothes(UploadCategory):
 
@@ -230,13 +231,14 @@ class UploadClothes(UploadCategory):
             error_rows = self.check_rows_cols(order_list=order_list)
             errors_list.append(error_rows) if error_rows is not None else None
             row_num = copy(settings.Clothes.UPLOAD_STANDART_ROW)
-
+            rz_condition = ((current_user.role == 'ordinary_user' and current_user.admin_parent_id == 2)
+                            or current_user.id == 2)
             for data_group in order_list:
                 # set condition for declar documents required
-                # gender = data_group[4].strip()
-                # rz_condition = ((current_user.role =='ordinary_user' and current_user.admin_parent_id == 2) or current_user.id == 2)
-                # gender_condition = gender not in settings.RZ_GENDERS_RD_LIST
-                # rz_gender_condition = rz_condition and gender_condition
+                gender = data_group[4].strip()
+
+                gender_condition = gender not in settings.RZ_GENDERS_RD_LIST
+                rz_gender_condition = rz_condition and gender_condition
 
                 # print(data_group)
                 trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C')
@@ -248,7 +250,7 @@ class UploadClothes(UploadCategory):
                 color_error = self._color(value=data_group[3].strip(), row_num=row_num, col='G', pos=3,
                                           order_list=order_list)
                 # print(color_error)
-                gender_error = self._gender(value=data_group[4].strip(), row_num=row_num, col='H')
+                gender_error = self._gender(value=gender, row_num=row_num, col='H')
                 # print(gender_error)
                 size_type_error = self._size_type(size_value=data_group[6].strip(),
                                                   row_num=row_num, size_col='J', pos=5, order_list=order_list)
@@ -269,6 +271,8 @@ class UploadClothes(UploadCategory):
                 # print(country_error)
                 rd_general_error, rd_type_error, \
                     rd_name_error, rd_date_error = self._rd_general(list_values=data_group[11:14],
+                                                                    rz_gender_condition=rz_gender_condition,
+                                                                    gender=gender,
                                                                     row_num=row_num, order_list=order_list,
                                                                     cols=('O', 'P', 'Q',))
                 # print(rd_general_error)
