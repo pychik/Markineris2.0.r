@@ -148,7 +148,8 @@
                     <div class="form-group">
                         <label class="control-label">Пол</label>
                         <select class="form-control search-select" id="gender" name="gender"
-                            onchange="javascript:set_tnved();check_gender_ruznak(this.value)" required>
+                            onchange="javascript:set_tnved();" required>
+{#                            onchange="javascript:set_tnved();check_gender_ruznak(this.value)" required>#}
                         <option disabled selected value="">Выберите пол...</option>
                               {% for el in genders%}
                                 <option value="{{el}}" {% if copied_order %}

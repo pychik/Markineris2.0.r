@@ -291,14 +291,14 @@ function clear_errorform(){
 function check_valid(field) {
 
     if (field.checkValidity() && field.id !== 'size_order' && field.id !== 'sizeX_order' && field.id !== 'sizeY_order'
-        && field.id !== 'quantity_order') {
+        && field.id !== 'quantity_order' && field.id !== 'rd_date') {
         field.classList.remove('is-invalid');
         field.classList.add('is-valid');
         // console.log('check: valid');
     }
     else {
         if(field.id !== 'size_order' && field.id !== 'sizeX_order' && field.id !== 'sizeY_order'
-            && field.id !== 'quantity_order'){
+            && field.id !== 'quantity_order' && field.id !== 'rd_date'){
         field.classList.remove('is-valid');
         field.classList.add('is-invalid');
         // console.log('check: invalid');
@@ -1131,4 +1131,40 @@ function oiremoveSymbol(inputId, symbol) {
         var inputField = document.getElementById(inputId);
         var symbolRegex = new RegExp(symbol, 'g');
         inputField.value = inputField.value.replace(symbolRegex, '');
+}
+
+function rd_required_process(switchbox){
+    if (document.getElementById('rd_name').required === false){
+        document.getElementById('rd_name').required = true;
+        document.getElementById('rd_type').required = true;
+        document.getElementById('rd_date').required = true;
+        document.getElementById("RD_BLOCK_LABEL").classList.remove("bg-light");
+        document.getElementById("RD_BLOCK_LABEL").classList.add("bg-white");
+        if (!document.getElementById('collapseDocResolve').classList.contains('show')){
+            document.getElementById('collapseDocResolve').classList.add('show');
+        }
+        switchbox.classList.remove('bg-warning');
+    }
+    else{
+        document.getElementById('rd_name').required = false;
+        document.getElementById('rd_type').required = false;
+        document.getElementById('rd_date').required = false;
+        $('#rd_type').val('').trigger("change");
+        $('#rd_name').val("");
+        $('#rd_date').val("");
+        document.getElementById("rd_date").value='';
+        document.getElementById("RD_BLOCK_LABEL").classList.remove("bg-white");
+        document.getElementById("RD_BLOCK_LABEL").classList.add("bg-light");
+        if (document.getElementById('collapseDocResolve').classList.contains('show')){
+            document.getElementById('collapseDocResolve').classList.remove('show');
+        }
+        switchbox.classList.add('bg-warning');
+    }
+}
+
+function rd_date_erase(){
+    $("#rd_date").val('');
+
+    document.getElementById('rd_date').classList.remove('is-valid');
+    document.getElementById('rd_date').classList.add('is-invalid');
 }
