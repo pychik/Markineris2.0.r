@@ -755,14 +755,19 @@ function get_transaction_history(url){
     url: url,
     method:"GET",
 
-    success:function(data)
-    {
-      $('#transactions_history_block').html(data);
-      $("#transactions_history_block").append(data.htmlresponse);
+    success:function(data){
+        if (data.status === 'success') {
+                $('#transactions_history_block').html(data);
+                $("#transactions_history_block").append(data.htmlresponse);
 
-      update_personal_account('transactions_history');
+                update_personal_account('transactions_history');
+            }
+            else if (data.status === 'error'){
+                make_message(data.message, 'danger')
+            }
+            else{make_message('Ошибка сессии. Перезагрузите страницу!', 'danger')}
 
-      },
+        },
     error: function() {
         // make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
         setTimeout(function() {make_message('Ошибка. Обратитесь к администратору', 'danger');}, 3500);

@@ -155,10 +155,11 @@ def h_user_personal_account(u_id: int, stage: int = None) -> Union[Response, str
 
 
 def h_update_transactions_history(u_id: int):
-    # background update of transactions
+    status = 'error'
+    message = settings.Messages.STRANGE_REQUESTS
     if current_user.id != u_id:
         return jsonify(
-            {'htmlresponse': settings.Messages.STRANGE_REQUESTS})
+            {'status': status, 'message': message, 'htmlresponse': ''})
 
     is_at2 = helper_get_user_at2(user=current_user)
 
@@ -169,7 +170,8 @@ def h_update_transactions_history(u_id: int):
                              anchor='transactions_table_info')
     transaction_dict = settings.Transactions.TRANSACTIONS
 
-    return jsonify({'htmlresponse': render_template(f'user_control/transactions/transactions_history.html', **locals())})
+    return jsonify({'status': 'success', 'message': '',
+                    'htmlresponse': render_template(f'user_control/transactions/transactions_history.html', **locals())})
 
 
 def h_transaction_detail(u_id: int, t_id: int):
