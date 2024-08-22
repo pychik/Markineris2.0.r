@@ -292,8 +292,8 @@ class Settings(BaseSettings):
         TIMEOUT: float = 3.500
 
     class ServiceAccounts:
-        QUANTITY_LIMIT: int = 8
-        SUMM_LIMIT: int = 500000
+        QUANTITY_LIMIT: int = 80
+        SUMM_LIMIT: int = 250000
         TYPES: tuple = (('qr_code', 'qr код'), ('requisites', 'Реквизиты вручную'),)
         TYPES_KEYS: tuple = ('qr_code', 'requisites',)
         TYPES_DICT: dict = {'qr_code': 'qr код', 'requisites': 'Реквизиты вручную'}
