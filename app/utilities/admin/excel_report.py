@@ -1,4 +1,3 @@
-import dataclasses
 from datetime import datetime, date
 from io import BytesIO
 from copy import copy
@@ -120,6 +119,9 @@ class ExcelReportWithSheetMixin:
     """
     extend excel report
     """
+    filters: Optional[Dict[str, Any]] = None,
+    columns_name: Optional[List[str]] = None,
+    data: Optional[List] = None
 
     def set_column_width(self, sheet):
         col_widths = {}
