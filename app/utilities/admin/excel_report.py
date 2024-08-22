@@ -96,26 +96,6 @@ class ExcelReportProcessor:
             worksheet.set_column(idx, idx, max_len)
 
 
-@dataclasses.dataclass
-class ExcelFormatting:
-    bold = {'bold': True}
-    datetime_format = {'num_format': 'dd.mm.yyyy hh:mm'}
-    date_format = {'num_format': 'dd.mm.yyyy'}
-    align_horizontal_center = {"align": "center"}
-    align_horizontal_left = {"align": "left"}
-
-
-class ColumnFormatter:
-
-    def __init__(self, col_formatters: Dict[str, List[ExcelFormatting]]):
-        pass
-
-FILTER_AND_COL_NAME_FORMATTER = {**ExcelFormatting.bold, **ExcelFormatting.align_horizontal_center, }
-MAIN_DATA_FORMATTER = {**ExcelFormatting.align_horizontal_left, }
-DATE_FORMATTER = {**ExcelFormatting.date_format, **ExcelFormatting.align_horizontal_left, }
-DATETIME_FORMATTER = {**ExcelFormatting.datetime_format, **ExcelFormatting.align_horizontal_left, }
-
-
 class ExcelReportMixin:
     """
     extend excel report
@@ -123,8 +103,32 @@ class ExcelReportMixin:
 
     def set_column_width(self, sheet):
         col_widths = {}
-        all_data = list(zip(self.filters.keys(), self.filters.values())) + (
+        filter_data = []
+        if self.filters:
+            filter_data = list(zip(self.filters.keys(), self.filters.values()))
+        all_data = filter_data + (
             [self.columns_name] if self.columns_name else []) + self.data
+        for row in all_data:
+            for col_idx, cell_value in enumerate(row):
+                if cell_value:
+                    col_widths[col_idx] = max(col_widths.get(col_idx, 0), len(str(cell_value)))
+        for col_idx, width in col_widths.items():
+            sheet.set_column(col_idx, col_idx, width + 2)
+
+
+class ExcelReportWithSheetMixin:
+    """
+    extend excel report
+    """
+
+    def set_column_width(self, sheet):
+        col_widths = {}
+        filter_data = []
+        if self.filters:
+            filter_data = list(zip(self.filters.keys(), self.filters.values()))
+        all_data = filter_data + (
+            [self.columns_name] if self.columns_name else []) + list(self.data[sheet.name])
+
         for row in all_data:
             for col_idx, cell_value in enumerate(row):
                 if cell_value:
@@ -181,10 +185,10 @@ class ExcelReport(BaseExcelReport):
                          sheet_name=sheet_name,
                          output_file_name=output_file_name
                          )
-        self.col_name_and_filter_formatter = self.workbook.add_format(FILTER_AND_COL_NAME_FORMATTER)
-        self.main_data_formatter = self.workbook.add_format(MAIN_DATA_FORMATTER)
-        self.date_formatter = self.workbook.add_format(DATE_FORMATTER)
-        self.datetime_formatter = self.workbook.add_format(DATETIME_FORMATTER)
+        self.col_name_and_filter_formatter = self.workbook.add_format(settings.ExcelFormatting.FILTER_AND_COL_NAME_FORMATTER)
+        self.main_data_formatter = self.workbook.add_format(settings.ExcelFormatting.MAIN_DATA_FORMATTER)
+        self.date_formatter = self.workbook.add_format(settings.ExcelFormatting.DATE_FORMATTER)
+        self.datetime_formatter = self.workbook.add_format(settings.ExcelFormatting.DATETIME_FORMATTER)
 
     def create_report(self) -> BytesIO:
 
@@ -218,18 +222,86 @@ class ExcelReport(BaseExcelReport):
         return: index of next row to write in
         """
         row, col = 0, 0
-        for filter_name, filter_value in self.filters.items():
-            sheet.write(row, col, filter_name, formatters)
-            sheet.write(row, col + 1, filter_value)
+        if self.filters:
+            for filter_name, filter_value in self.filters.items():
+                sheet.write(row, col, filter_name, formatters)
+                sheet.write(row, col + 1, filter_value)
+                row += 1
             row += 1
-
-        row += 1
-
         if self.columns_name:
             col = 0
             for column_name in self.columns_name:
                 sheet.write(row, col, column_name, formatters)
                 col += 1
             row += 1
-
         return row
+
+
+class ExcelReportWithSheets(ExcelReportWithSheetMixin):
+    def __init__(
+            self,
+            report_data: dict[str, list],
+            filters: Optional[Dict[str, Any]] = None,
+            columns_name: Optional[List[str]] = None,
+            output_file_name: str = 'report.xlsx'
+    ):
+        self.filters = filters
+        self.data = report_data
+        self.columns_name = columns_name
+        self.output_file_name = f'{output_file_name}.xlsx'
+        self.output = BytesIO()
+        self.workbook = Workbook(self.output)
+        self.date_formatter = self.workbook.add_format(settings.ExcelFormatting.DATE_FORMATTER)
+        self.datetime_formatter = self.workbook.add_format(settings.ExcelFormatting.DATETIME_FORMATTER)
+        self.main_data_formatter = self.workbook.add_format(settings.ExcelFormatting.MAIN_DATA_FORMATTER)
+        self.col_name_and_filter_formatter = self.workbook.add_format(settings.ExcelFormatting.FILTER_AND_COL_NAME_FORMATTER)
+
+    def create_sheets(self) -> None:
+        for sheet_name in self.data.keys():
+            self.workbook.add_worksheet(sheet_name)
+
+    def write_main_data(self, row, sheet: Worksheet) -> None:
+        col = 0
+        for data_row in self.data[sheet.name]:
+            for value in data_row:
+                if isinstance(value, datetime):
+                    sheet.write_datetime(row, col, value, self.date_formatter)
+                if isinstance(value, date):
+                    sheet.write_datetime(row, col, value, self.datetime_formatter)
+                else:
+                    sheet.write(row, col, value, self.main_data_formatter)
+                col += 1
+
+            col = 0
+            row += 1
+
+    def add_filters_and_column_name(self, sheet: Worksheet) -> int:
+        """
+        add filters and column name to sheet
+        return: index of next row to write in
+        """
+        row, col = 0, 0
+        if self.filters:
+            for filter_name, filter_value in self.filters.items():
+                sheet.write(row, col, filter_name, self.col_name_and_filter_formatter)
+                sheet.write(row, col + 1, filter_value)
+                row += 1
+            row += 1
+        if self.columns_name:
+            col = 0
+            for column_name in self.columns_name:
+                sheet.write(row, col, column_name, self.col_name_and_filter_formatter)
+                col += 1
+            row += 1
+        return row
+
+    def create_report(self):
+        self.create_sheets()
+        for sheet in self.workbook.worksheets():
+            row = self.add_filters_and_column_name(sheet)
+            self.write_main_data(row, sheet)
+            self.set_column_width(sheet)
+        self.workbook.close()
+        self.output.seek(0)
+        self.output.flush()
+        return self.output

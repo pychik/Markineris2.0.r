@@ -34,7 +34,12 @@ function copy_buffer(element_id, message_id){
   }
 
 //     #### finance_control ####
-function update_finance_control(category_p){
+function update_finance_control(category_p, btn){
+    var tooltipInstance = bootstrap.Tooltip.getInstance(btn);
+    if (tooltipInstance) {
+    tooltipInstance.hide();
+    }
+
     if(document.getElementById(`pills-service_accounts`)){
         document.getElementById(`pills-service_accounts`).classList.remove('active');
     }
@@ -331,6 +336,85 @@ function clear_modal_service_prices() {
     document.getElementById("service_prices_modal").innerHTML = '';
 }
 
+
+function get_not_basic_prices_report(url, csrf_token, btn) {
+    var tooltipInstance = bootstrap.Tooltip.getInstance(btn);
+    if (tooltipInstance) {
+    tooltipInstance.hide();
+    }
+
+    $.ajax({
+        url: url,
+        headers: { "X-CSRFToken": csrf_token },
+        method: "POST",
+        xhrFields: {
+            responseType: 'blob' // Set response type to blob
+        },
+
+        success: function(response, status, xhr) {
+            $('#overlay_loading').hide();
+            if (xhr.status === 200) {
+                var blob = new Blob([response], { type: 'application/xlsx' });
+                var link = document.createElement('a');
+
+                var dataName = xhr.getResponseHeader('data_file_name');
+
+                link.href = window.URL.createObjectURL(blob);
+                // console.log()
+                link.download = decodeURIComponent(dataName) || 'Отчет по ценам.xlsx'; //
+                link.click();
+            } else {
+                // Handle other status codes
+                console.error('Error:', xhr.status);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#overlay_loading').hide();
+            // Error handling
+            console.error('Error:', error);
+        }
+    });
+}
+
+function get_marks_count_report(url, csrf_token, btn) {
+    var tooltipInstance = bootstrap.Tooltip.getInstance(btn);
+
+    if (tooltipInstance) {
+    tooltipInstance.hide();
+    }
+
+    $.ajax({
+        url: url,
+        headers: { "X-CSRFToken": csrf_token },
+        method: "POST",
+        xhrFields: {
+            responseType: 'blob' // Set response type to blob
+        },
+
+        success: function(response, status, xhr) {
+            $('#overlay_loading').hide();
+            if (xhr.status === 200) {
+                var blob = new Blob([response], { type: 'application/xlsx' });
+                var link = document.createElement('a');
+
+                var dataName = xhr.getResponseHeader('data_file_name');
+
+                link.href = window.URL.createObjectURL(blob);
+                // console.log()
+                link.download = decodeURIComponent(dataName) || 'Отчет по ценам.xlsx'; //
+                link.click();
+            } else {
+                // Handle other status codes
+                console.error('Error:', xhr.status);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#overlay_loading').hide();
+            // Error handling
+            console.error('Error:', error);
+        }
+    });
+}
 function check_sa_form(){
 
     let form = document.getElementById('service_account_form')

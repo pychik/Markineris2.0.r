@@ -1,5 +1,7 @@
+import urllib
 from datetime import datetime, timedelta
 
+from dateutil.relativedelta import relativedelta
 from flask import flash, render_template, redirect, send_file, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
 from sqlalchemy import asc, desc, func, text, select
@@ -21,7 +23,7 @@ from utilities.admin.helpers import (process_admin_report, helper_get_clients_os
                                      helper_prev_day_orders_marks, helper_get_users_reanimate,
                                      helper_get_reanimate_call_result, helper_get_new_orders_at2,
                                      helper_check_new_order_at2)
-from utilities.admin.excel_report import ExcelReport
+from utilities.admin.excel_report import ExcelReport, ExcelReportWithSheets
 
 
 def h_index(expanded: str = None):
@@ -225,6 +227,57 @@ def h_partner_code(u_id: int, auto: int = None):
         flash(message=message, category='error')
 
     return redirect(url_for('admin_control.admin', u_id=u_id))
+
+
+def h_su_not_basic_price_report() -> Response:
+    column_names = [
+        'e-mail',
+        'login',
+        'agent_login',
+        'Наименование',
+        'Цена [1, 99], руб',
+        'Цена [100, 499], руб.',
+        'Цена [500, 999], руб.',
+        'Цена [1000, 2999], руб.',
+        'Цена [3000+], руб',
+    ]
+    price_stmt = text("""
+        SELECT
+        U.EMAIL as EMAIL,
+        U.LOGIN_NAME as LOGIN_NAME,
+        U_AGENT.LOGIN_NAME as AGENT_NAME,
+        P.PRICE_CODE AS PRICE_CODE,
+        P.PRICE_1 as PRICE_FROM_1_TO_99,
+        P.PRICE_2 as PRICE_FROM_100_TO_499,
+        P.PRICE_3 as PRICE_FROM_500_TO_999,
+        P.PRICE_4 as PRICE_FROM_1000_TO_2999,
+        P.PRICE_5 as PRICE_FROM_3000
+    FROM
+        USERS U
+        LEFT JOIN USERS AS U_AGENT ON U.ADMIN_PARENT_ID = U_AGENT.ID
+        JOIN PRICES P ON U.PRICE_ID = P.ID
+    WHERE
+        P.PRICE_CODE != 'BASIC'
+    ORDER BY
+        P.PRICE_CODE,
+        U.EMAIL
+    """)
+    prises = db.session.execute(price_stmt).all()
+    excel = ExcelReport(
+        data=prises,
+        columns_name=column_names,
+        sheet_name=settings.Prices.NOT_BASIC_PRICE_REPORT_SHEET_NAME,
+        output_file_name=settings.Prices.NOT_BASIC_PRICE_REPORT_FILE_NAME.format(datetime.today().strftime('%d.%m.%Y'))
+    )
+
+    excel_io = excel.create_report()
+    content = excel_io.getvalue()
+    response = make_response(content)
+    response.headers['data_file_name'] = urllib.parse.quote(excel.output_file_name)
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    response.headers['data_status'] = 'success'
+
+    return response
 
 
 def h_delete_partner_code(u_id: int, p_id: int) -> Response:
@@ -520,6 +573,72 @@ def h_bck_set_user_price(u_id: int) -> Response:
         message = f"{settings.Messages.USER_PRICE_TYPE_ERROR}"
         logger.error(f"{message} {e}")
     return jsonify(dict(status=status, message=message, user_block=user_block))
+
+
+def h_su_fin_marks_count_report() -> Response:
+    date_till = datetime.now().replace(day=1)
+    date_from = date_till - relativedelta(months=3)
+
+    stmt = text("""SELECT
+	ROW_NUMBER() OVER (
+		PARTITION BY
+			ORDER_MOUNTH
+		ORDER BY
+			MARKS_COUNT DESC
+	) as "ROW NUMBER",
+	T.*
+FROM
+	(
+		SELECT
+			DATE_TRUNC('month', OS.CREATED_AT) AS ORDER_MOUNTH,
+			U.LOGIN_NAME AS USER_LOGIN,
+			U_AGENT.LOGIN_NAME AS USER_AGENT,
+			-- OS.COMPANY_TYPE AS COMPANY_TYPE,
+			SUM(OS.MARKS_COUNT) AS MARKS_COUNT
+		FROM
+			ORDERS_STATS OS
+			JOIN USER_TRANSACTIONS UT ON UT.ID = OS.TRANSACTION_ID
+			JOIN USERS U ON U.ID = OS.USER_ID
+			LEFT JOIN USERS U_AGENT ON U_AGENT.ID = U.ADMIN_PARENT_ID
+		WHERE
+			OS.OP_COST IS NOT NULL
+			AND OS.CREATED_AT >= :date_from
+            AND OS.CREATED_AT < :date_till
+		GROUP BY
+			DATE_TRUNC('month', OS.CREATED_AT),
+			U.LOGIN_NAME,
+			U_AGENT.LOGIN_NAME
+			-- COMPANY_TYPE
+		ORDER BY
+			USER_LOGIN,
+			ORDER_MOUNTH
+	) T
+    """).bindparams(date_from=date_from.strftime('%Y.%m.%d'), date_till=date_till.strftime('%Y.%m.%d'))
+    report_data = db.session.execute(stmt).mappings().all()
+    data_by_sheet: dict[str, list] = {}
+    for rec in report_data:
+        order_month = rec['order_mounth'].strftime('%m-%Y')
+
+        if order_month in data_by_sheet:
+            data_by_sheet[order_month].append((rec['ROW NUMBER'], rec['user_login'], rec['user_agent'], rec['marks_count']))
+        else:
+            data_by_sheet[order_month] = [(rec['ROW NUMBER'], rec['user_login'], rec['user_agent'], rec['marks_count'])]
+
+    output_file_name = f'Отчет по количеству марок от {datetime.now().strftime("%d.%m.%Y")}.xlsx'
+
+    excel = ExcelReportWithSheets(
+        report_data=data_by_sheet,
+        columns_name=['row number', 'user login', 'agent', 'marks quantity', ],
+        output_file_name=output_file_name,
+    )
+
+    excel_io = excel.create_report()
+    content = excel_io.getvalue()
+    response = make_response(content)
+    response.headers['data_file_name'] = urllib.parse.quote(excel.output_file_name)
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    response.headers['data_status'] = 'success'
+    return response
 
 
 def h_set_process_type(u_id: int, p_type: str) -> Response:
