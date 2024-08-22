@@ -7,7 +7,8 @@ from models import User
 from utilities.admin.h_admin_control import (h_index, h_admin, h_set_order_notification, h_create_admin,
                                              h_partner_code, h_delete_partner_code, h_telegram_set_group,
                                              h_telegram_message_set, h_telegram_group_bind, h_delete_telegram_group,
-                                             h_set_user_admin, h_set_user, h_deactivate_user, h_activate_all_admin_users,
+                                             h_set_user_admin, h_set_user, h_deactivate_user,
+                                             h_activate_all_admin_users,
                                              h_deactivate_user_admin, h_set_process_type,
                                              h_delete_user_admin, h_delete_user, h_create_link_new_password,
                                              h_send_order, h_download_agent_report, h_user_search, h_user_search_idn,
@@ -16,7 +17,8 @@ from utilities.admin.h_admin_control import (h_index, h_admin, h_set_order_notif
                                              h_bck_user_delete, h_bck_user_activate, h_client_orders_stats,
                                              h_su_user_search, h_bck_change_user_password, h_bck_reanimate,
                                              h_bck_ar_orders, h_bck_save_call_result, h_bck_su_control_reanimate_excel,
-                                             h_at2_new_orders, h_at2_orders_process)
+                                             h_at2_new_orders, h_at2_orders_process, h_su_fin_marks_count_report,
+                                             h_su_not_basic_price_report)
 from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_promo, h_su_add_promo, h_su_delete_promo,
                                                h_su_bck_prices, h_su_add_prices, h_su_delete_prices, h_su_bck_sa,
                                                h_su_add_sa, h_su_delete_sa, h_su_bck_change_sa_type, h_su_control_ut,
@@ -310,6 +312,13 @@ def su_change_activity(sa_id: int):
     return h_su_bck_change_sa_activity(sa_id=sa_id)
 
 
+@admin_control.route('/su_not_basic_price_report', methods=['POST', ])
+@login_required
+@su_required
+def su_not_basic_price_report():
+    return h_su_not_basic_price_report()
+
+
 @admin_control.route('/su_bck_sa', methods=['GET', ])
 @login_required
 @su_required
@@ -415,6 +424,13 @@ def su_fin_order_report():
 @su_mod_required
 def su_bck_fin_order_report():
     return h_bck_fin_order_report()
+
+
+@admin_control.route('/su_fin_marks_count_report', methods=['POST',])
+@login_required
+@su_mod_required
+def su_fin_marks_count_report():
+    return h_su_fin_marks_count_report()
 
 
 @admin_control.route('/su_fin_order_report_excel', methods=['POST'])

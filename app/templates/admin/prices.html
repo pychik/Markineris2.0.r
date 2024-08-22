@@ -79,14 +79,21 @@
                     </div>
 
                     <button type="button" class="btn btn-accent mt-md-1"
-                            onclick="if(check_prices_form()){bck_add_price('{{url_for('admin_control.su_add_prices')}}', '{{url_for('admin_control.su_bck_prices')}}')}">
+                            onclick="if(check_prices_form()){bck_add_price(`{{url_for('admin_control.su_add_prices')}}`, `{{url_for('admin_control.su_bck_prices')}}`)}">
                         Добавить
                     </button>
 
                 </div>
             </form>
         </div>
-    </div>
+        <div class="col-md-3">
+            <div data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Отчет по пользователям с ценами не по умолчанию"
+              class="btn btn-outline-secondary"  style="padding: 5px"
+              onclick="get_not_basic_prices_report(`{{ url_for('admin_control.su_not_basic_price_report') }}`, '{{ csrf_token() }}', this)" >
+                Отчет по ценам
+            </div>
+        </div>
+</div>
 
     <div id="prices_table" class="mb-3">
         {% include 'admin/prices_table.html' %}

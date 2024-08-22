@@ -335,6 +335,8 @@ class Settings(BaseSettings):
         # C_10K_20K: int = 20000
         # C_20K_50K: int = 50000
         RANGES: tuple = (C_LT100, C_100_500, C_500_1K, C_1K_3K, C_3K_10K)
+        NOT_BASIC_PRICE_REPORT_FILE_NAME = 'Отчет по ценам от {0}.xlsx'
+        NOT_BASIC_PRICE_REPORT_SHEET_NAME = 'not Basic prices'
 
     class Users:
         DEFAULT_DAYS_RANGE: int = 30
@@ -827,6 +829,12 @@ class Settings(BaseSettings):
 
     class Reports:
         UT_START: list = UT_REPORT_START
+
+    class ExcelFormatting:
+        FILTER_AND_COL_NAME_FORMATTER: dict = {'bold': True, "align": "center" }
+        MAIN_DATA_FORMATTER: dict = {"align": "left"}
+        DATE_FORMATTER: dict = {'num_format': 'dd.mm.yyyy', "align": "left"}
+        DATETIME_FORMATTER: dict = {'num_format': 'dd.mm.yyyy hh:mm', "align": "left"}
 
     class Upload:
         STANDART: str = 'standart'
