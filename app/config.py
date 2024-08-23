@@ -293,7 +293,7 @@ class Settings(BaseSettings):
 
     class ServiceAccounts:
         QUANTITY_LIMIT: int = 80
-        SUMM_LIMIT: int = 250000
+        SUMM_LIMIT: int = 100000
         TYPES: tuple = (('qr_code', 'qr код'), ('requisites', 'Реквизиты вручную'),)
         TYPES_KEYS: tuple = ('qr_code', 'requisites',)
         TYPES_DICT: dict = {'qr_code': 'qr код', 'requisites': 'Реквизиты вручную'}
