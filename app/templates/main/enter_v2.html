@@ -2,7 +2,9 @@
 
 {% block main %}
 
-{{ ym_sign_up_goal | safe }}
+{% if not config['DEBUG'] %}
+    {{ ym_sign_up_goal | safe }}
+{% endif %}
 
 <div class="container pb-4">
 
