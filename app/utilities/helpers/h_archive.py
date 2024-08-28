@@ -33,8 +33,13 @@ def h_category(category: str = settings.Shoes.CATEGORY, upload_flag: int = None)
     category_orders = user.orders.filter(~Order.to_delete, Order.category == category,
                                          Order.stage > 0).with_entities(Order.id, Order.stage, Order.order_idn,
                                                                         Order.category, Order.company_type,
-                             Order.company_name, Order.company_idn, Order.to_delete, Order.processed, Order.payment,
-                             Order.created_at, Order.crm_created_at, Order.stage, Order.closed_at).order_by(desc(Order.crm_created_at)).all()
+                                                                        Order.company_name, Order.company_idn,
+                                                                        Order.to_delete, Order.processed, Order.payment,
+                                                                        Order.created_at, Order.crm_created_at,
+                                                                        Order.stage, Order.closed_at,
+                                                                        OrderFile.file_link).outerjoin(OrderFile,
+                                                                                                       Order.order_zip_file).order_by(
+        desc(Order.crm_created_at)).all()
     link = 'javascript:get_category_history(\''+url_for('orders_archive.index', category=category,
                                                         upload_flag=settings.UPLOAD_BACKGROUND) +\
            '?page={0}\', \'' + settings.CATEGORIES_DICT[category]+'\');'
