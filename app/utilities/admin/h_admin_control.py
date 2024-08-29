@@ -580,55 +580,58 @@ def h_su_fin_marks_count_report() -> Response:
     date_from = date_till - relativedelta(months=3)
 
     stmt = text("""SELECT
-	ROW_NUMBER() OVER (
-		PARTITION BY
-			ORDER_MOUNTH
-		ORDER BY
-			MARKS_COUNT DESC
-	) as "ROW NUMBER",
-	T.*
-FROM
-	(
-		SELECT
-			DATE_TRUNC('month', OS.CREATED_AT) AS ORDER_MOUNTH,
-			U.LOGIN_NAME AS USER_LOGIN,
-			U_AGENT.LOGIN_NAME AS USER_AGENT,
-			-- OS.COMPANY_TYPE AS COMPANY_TYPE,
-			SUM(OS.MARKS_COUNT) AS MARKS_COUNT
-		FROM
-			ORDERS_STATS OS
-			JOIN USER_TRANSACTIONS UT ON UT.ID = OS.TRANSACTION_ID
-			JOIN USERS U ON U.ID = OS.USER_ID
-			LEFT JOIN USERS U_AGENT ON U_AGENT.ID = U.ADMIN_PARENT_ID
-		WHERE
-			OS.OP_COST IS NOT NULL
-			AND OS.CREATED_AT >= :date_from
-            AND OS.CREATED_AT < :date_till
-		GROUP BY
-			DATE_TRUNC('month', OS.CREATED_AT),
-			U.LOGIN_NAME,
-			U_AGENT.LOGIN_NAME
-			-- COMPANY_TYPE
-		ORDER BY
-			USER_LOGIN,
-			ORDER_MOUNTH
-	) T
-    """).bindparams(date_from=date_from.strftime('%Y.%m.%d'), date_till=date_till.strftime('%Y.%m.%d'))
+                        ROW_NUMBER() OVER (
+                            PARTITION BY
+                                ORDER_MOUNTH
+                            ORDER BY
+                                MARKS_COUNT DESC
+                        ) as "ROW NUMBER",
+                        T.*
+                    FROM
+                        (
+                            SELECT
+                                DATE_TRUNC('month', OS.CREATED_AT) AS ORDER_MOUNTH,
+                                U.LOGIN_NAME AS USER_LOGIN,
+                                U.EMAIL AS USER_EMAIL,
+                                U_AGENT.LOGIN_NAME AS USER_AGENT,
+                                -- OS.COMPANY_TYPE AS COMPANY_TYPE,
+                                SUM(OS.MARKS_COUNT) AS MARKS_COUNT
+                            FROM
+                                ORDERS_STATS OS
+                                JOIN USER_TRANSACTIONS UT ON UT.ID = OS.TRANSACTION_ID
+                                JOIN USERS U ON U.ID = OS.USER_ID
+                                LEFT JOIN USERS U_AGENT ON U_AGENT.ID = U.ADMIN_PARENT_ID
+                            WHERE
+                                OS.OP_COST IS NOT NULL
+                                AND OS.CREATED_AT >= :date_from
+                                AND OS.CREATED_AT < :date_till
+                            GROUP BY
+                                DATE_TRUNC('month', OS.CREATED_AT),
+                                U.LOGIN_NAME, U.EMAIL,
+                                U_AGENT.LOGIN_NAME
+                                -- COMPANY_TYPE
+                            ORDER BY
+                                USER_LOGIN, USER_EMAIL,
+                                ORDER_MOUNTH
+                        ) T
+                        """).bindparams(date_from=date_from.strftime('%Y.%m.%d'), date_till=date_till.strftime('%Y.%m.%d'))
     report_data = db.session.execute(stmt).mappings().all()
     data_by_sheet: dict[str, list] = {}
     for rec in report_data:
         order_month = rec['order_mounth'].strftime('%m-%Y')
 
         if order_month in data_by_sheet:
-            data_by_sheet[order_month].append((rec['ROW NUMBER'], rec['user_login'], rec['user_agent'], rec['marks_count']))
+            data_by_sheet[order_month].append((rec['ROW NUMBER'], rec['user_login'], rec['user_email'],
+                                               rec['user_agent'], rec['marks_count']))
         else:
-            data_by_sheet[order_month] = [(rec['ROW NUMBER'], rec['user_login'], rec['user_agent'], rec['marks_count'])]
+            data_by_sheet[order_month] = [(rec['ROW NUMBER'], rec['user_login'], rec['user_email'],
+                                           rec['user_agent'], rec['marks_count'])]
 
     output_file_name = f'Отчет по количеству марок от {datetime.now().strftime("%d.%m.%Y")}.xlsx'
 
     excel = ExcelReportWithSheets(
         report_data=data_by_sheet,
-        columns_name=['row number', 'user login', 'agent', 'marks quantity', ],
+        columns_name=['row number', 'user login', 'user_email', 'agent', 'marks quantity', ],
         output_file_name=output_file_name,
     )
 
