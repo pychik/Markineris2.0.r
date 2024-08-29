@@ -36,6 +36,11 @@
                     <th scope="col">
                         Статус
                     </th>
+                    {% if tr_type == 'Пополнение' %}
+                        <th scope="col">
+                            Счет пополнения
+                        </th>
+                    {% endif %}
                     <th scope="col">
                         Детализация
                     </th>
@@ -63,6 +68,11 @@
                     <td>
                         {{transaction_dict[t.status]}}
                     </td>
+                    {% if t.type %}
+                        <td>
+                            {{t.sa_name}} ({{t.sa_type}})
+                        </td>
+                    {%endif%}
                     <td>
 
                             <button type="button" onclick="bck_su_transaction_detalization('{{url_for('admin_control.bck_su_transaction_detail', u_id=t.user_id, t_id=t.id)}}')"

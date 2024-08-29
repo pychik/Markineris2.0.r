@@ -28,9 +28,16 @@ class ExcelReportProcessor:
 
     def transactions_processed(self) -> list:
         res = []
-        for el in self.transactions:
-            res.append([el.created_at.strftime("%d-%m-%Y %H:%M"), el.email, el.login_name,
-                        f"{self._tr_type}_{self._tr_status}", el.amount, el.wo_account_info, ])
+        if self._tr_type == settings.Transactions.TRANSACTION_TYPES[settings.Transactions.TRANSACTION_REFILL]:
+            for el in self.transactions:
+                res.append([el.created_at.strftime("%d-%m-%Y %H:%M"), el.email, el.login_name,
+                            f"{self._tr_type}_{self._tr_status}", el.amount, f"{el.sa_name} ({el.sa_type})",
+                            el.wo_account_info, ])
+        else:
+            for el in self.transactions:
+                res.append([el.created_at.strftime("%d-%m-%Y %H:%M"), el.email, el.login_name,
+                            f"{self._tr_type}_{self._tr_status}", el.amount,
+                            el.wo_account_info, ])
         return res
 
     def report_file_name(self) -> str:
@@ -46,7 +53,7 @@ class ExcelReportProcessor:
         worksheet_1 = workbook.add_worksheet(name=self._report_file_name)
 
         # Some data we want to write to the worksheet.
-        main_data = self.excel_start_data()
+        main_data = self.excel_start_data(tr_type=self._tr_type)
         main_data.extend(self.transactions_processed())
 
         df_dict = {}
@@ -80,8 +87,10 @@ class ExcelReportProcessor:
             row += 1
 
     @staticmethod
-    def excel_start_data():
-        res = copy(settings.Reports.UT_START)
+    def excel_start_data(tr_type: str):
+        res = copy(settings.Reports.UT_START_FILL) \
+            if tr_type == settings.Transactions.TRANSACTION_TYPES[settings.Transactions.TRANSACTION_REFILL] \
+            else copy(settings.Reports.UT_START_ELSE)
         return res
 
     @staticmethod

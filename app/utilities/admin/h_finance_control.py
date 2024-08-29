@@ -392,14 +392,16 @@ def h_su_control_ut(user_ids: list = None):
     users_filter = User.query.with_entities(User.id, User.login_name).filter(User.role.in_(roles)).all()
 
     transactions = [t for t in UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount,
-                                                       UserTransaction.promo_info, UserTransaction.type,
-                                                       UserTransaction.status,
-                                                       UserTransaction.created_at, UserTransaction.user_id,
-                                                       User.login_name, User.email)\
-        .join(User, User.id == UserTransaction.user_id) \
-        .filter(UserTransaction.status == settings.Transactions.PENDING, UserTransaction.type.is_(True),
-                UserTransaction.created_at >= date_from) \
-        .order_by(desc(UserTransaction.created_at)).all()]
+                                                                   UserTransaction.promo_info, UserTransaction.type,
+                                                                   UserTransaction.status,
+                                                                   UserTransaction.created_at, UserTransaction.user_id,
+                                                                   User.login_name, User.email, ServiceAccount.sa_type,
+                                                                   ServiceAccount.sa_name)
+                                              .join(User, User.id == UserTransaction.user_id)
+                                              .join(ServiceAccount, ServiceAccount.id == UserTransaction.sa_id)
+                                              .filter(UserTransaction.status == settings.Transactions.PENDING, UserTransaction.type.is_(True),
+                                                      UserTransaction.created_at >= date_from)
+                                              .order_by(desc(UserTransaction.created_at)).all()]
 
     sa_types = settings.ServiceAccounts.TYPES_DICT
     transaction_types = settings.Transactions.TRANSACTION_TYPES
@@ -421,12 +423,15 @@ def h_bck_control_ut():
     tr_type, tr_status, date_from, date_to,\
         link_filters, model_conditions, model_order_type = helper_get_filters_transactions()
 
-    transactions = UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount,
-                                                       UserTransaction.promo_info, UserTransaction.type,
-                                                       UserTransaction.status,
-                                                       UserTransaction.created_at, UserTransaction.user_id, User.login_name) \
-        .join(User, User.id == UserTransaction.user_id).filter(*model_conditions) \
-        .order_by(model_order_type).all()
+    transactions = [t for t in UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount,
+                                                                   UserTransaction.promo_info, UserTransaction.type,
+                                                                   UserTransaction.status,
+                                                                   UserTransaction.created_at, UserTransaction.user_id,
+                                                                   User.login_name, User.email,
+                                                                   ServiceAccount.sa_type, ServiceAccount.sa_name)
+                                              .join(User, User.id == UserTransaction.user_id)
+                                              .join(ServiceAccount, ServiceAccount.id == UserTransaction.sa_id)
+                                              .filter(*model_conditions).order_by(model_order_type).all()]
 
     link = f'javascript:bck_get_transactions(\'' + url_for('admin_control.su_bck_control_ut') + f'?bck=1&{link_filters}' + 'page={0}\');'
 
@@ -493,9 +498,12 @@ def h_bck_ut_excel_report() -> Response:
                                                                    UserTransaction.status,
                                                                    UserTransaction.wo_account_info,
                                                                    UserTransaction.created_at, UserTransaction.user_id,
-                                                                   User.login_name, User.email)
-            .join(User, User.id == UserTransaction.user_id).filter(*model_conditions)
-            .order_by(model_order_type).all()]
+                                                                   User.login_name, User.email,
+                                                                   ServiceAccount.sa_type, ServiceAccount.sa_name)
+                                              .join(User, User.id == UserTransaction.user_id)
+                                              .join(ServiceAccount, ServiceAccount.id == UserTransaction.sa_id)
+                                              .filter(*model_conditions)
+                                              .order_by(model_order_type).all()]
 
     transaction_summ = sum(t.amount for t in transactions)
 
