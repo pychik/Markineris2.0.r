@@ -1,7 +1,6 @@
 from flask import Blueprint, jsonify, request
 from flask_login import login_required
 
-from config import settings
 from data_migrations.instance import etl_service
 from models import User
 from utilities.admin.h_admin_control import (h_index, h_admin, h_set_order_notification, h_create_admin,
@@ -17,8 +16,7 @@ from utilities.admin.h_admin_control import (h_index, h_admin, h_set_order_notif
                                              h_bck_user_delete, h_bck_user_activate, h_client_orders_stats,
                                              h_su_user_search, h_bck_change_user_password, h_bck_reanimate,
                                              h_bck_ar_orders, h_bck_save_call_result, h_bck_su_control_reanimate_excel,
-                                             h_at2_new_orders, h_at2_orders_process, h_su_fin_marks_count_report,
-                                             h_su_not_basic_price_report)
+                                             h_at2_new_orders, h_at2_orders_process, h_su_not_basic_price_report)
 from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_promo, h_su_add_promo, h_su_delete_promo,
                                                h_su_bck_prices, h_su_add_prices, h_su_delete_prices, h_su_bck_sa,
                                                h_su_add_sa, h_su_delete_sa, h_su_bck_change_sa_type, h_su_control_ut,
@@ -28,7 +26,8 @@ from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_pr
                                                h_bck_ut_excel_report, h_su_fin_order_report, h_bck_fin_order_report,
                                                h_bck_fin_order_report_excel, h_fin_promo_history,
                                                h_bck_fin_promo_history, h_bck_fin_promo_history_excel,
-                                               h_su_control_specific_ut, h_bck_control_specific_ut,)
+                                               h_su_control_specific_ut, h_bck_control_specific_ut,
+                                               h_su_fin_marks_count_report)
 from utilities.support import au_required, aus_required, bck_aus_required, bck_su_required, su_required, \
     user_exist_check, su_mod_required, bck_at2_required, bck_su_mod_required
 
