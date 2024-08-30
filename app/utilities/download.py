@@ -209,6 +209,7 @@ class LinenProcessor(OrdersProcessor):
         for el in orders_list:
             tnved = settings.Linen.TNVED_CODE if not el.tnved_code else el.tnved_code
             declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
+            table_type = el.type if el.type != 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ' else 'КОМПЛЕКТ'
             for sq in el.sizes_quantities:
                 if el.with_packages == 'да':
                     full_name = f'Комплект {el.type} {el.trademark} {sq.quantity} шт. ' \
@@ -220,7 +221,7 @@ class LinenProcessor(OrdersProcessor):
                     fin_quantity = sq.quantity * el.box_quantity
                 temp_list = [tnved[:4], full_name,
                              el.trademark, "Артикул", el.article,
-                             el.type, el.color, el.customer_age, el.textile_type, el.content, sq.size,
+                             table_type, el.color, el.customer_age, el.textile_type, el.content, sq.size,
                              tnved, settings.Linen.NUMBER_STANDART, '', '', el.article_price, el.tax,
                              fin_quantity, '', '', el.country, declar_doc, ]
                 res_list.append(temp_list)
