@@ -399,7 +399,7 @@ def h_su_control_ut(user_ids: list = None):
                                                                    User.login_name, User.email, ServiceAccount.sa_type,
                                                                    ServiceAccount.sa_name)
                                               .join(User, User.id == UserTransaction.user_id)
-                                              .join(ServiceAccount, ServiceAccount.id == UserTransaction.sa_id)
+                                              .outerjoin(ServiceAccount, ServiceAccount.id == UserTransaction.sa_id)
                                               .filter(UserTransaction.status == settings.Transactions.PENDING, UserTransaction.type.is_(True),
                                                       UserTransaction.created_at >= date_from)
                                               .order_by(desc(UserTransaction.created_at)).all()]
@@ -431,7 +431,7 @@ def h_bck_control_ut():
                                                                    User.login_name, User.email,
                                                                    ServiceAccount.sa_type, ServiceAccount.sa_name)
                                               .join(User, User.id == UserTransaction.user_id)
-                                              .join(ServiceAccount, ServiceAccount.id == UserTransaction.sa_id)
+                                              .outerjoin(ServiceAccount, ServiceAccount.id == UserTransaction.sa_id)
                                               .filter(*model_conditions).order_by(model_order_type).all()]
 
     link = f'javascript:bck_get_transactions(\'' + url_for('admin_control.su_bck_control_ut') + f'?bck=1&{link_filters}' + 'page={0}\');'
@@ -502,7 +502,7 @@ def h_bck_ut_excel_report() -> Response:
                                                                    User.login_name, User.email,
                                                                    ServiceAccount.sa_type, ServiceAccount.sa_name)
                                               .join(User, User.id == UserTransaction.user_id)
-                                              .join(ServiceAccount, ServiceAccount.id == UserTransaction.sa_id)
+                                              .outerjoin(ServiceAccount, ServiceAccount.id == UserTransaction.sa_id)
                                               .filter(*model_conditions)
                                               .order_by(model_order_type).all()]
 
