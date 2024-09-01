@@ -13,11 +13,13 @@ from src.handlers.verification import create_user_handler
 from src.infrastructure.logger import logger
 from src.keyboards.buttons import (
     GET_VERIFY_CODE_INLINE_BUTTON,
-    REFILL_BALANCE,
     CANCEL_BUTTON,
     NO_PROMO_INLINE_BUTTON,
     CANCEL_INLINE_BUTTON,
-    START_BUTTON, HELP_BUTTON,
+    START_BUTTON,
+    HELP_BUTTON,
+    MAIN_FUNCTIONS,
+    NO_BONUS_INLINE_BUTTON,
 )
 from src.keyboards.inline import get_inline_keyboard
 from src.keyboards.keyboard_events_data import CANCEL_COMMAND_TEXT, HELP_COMMAND_TEXT, START_COMMAND_TEXT
@@ -77,7 +79,7 @@ async def check_user_by_email_handler(
                 if flask_app_user.id == user.flask_user_id:
                     await message.answer(
                         text=UserMessages.INFO_VERIFICATION_CODE_GENERATED,
-                        reply_markup=await get_reply_keyboard([REFILL_BALANCE, HELP_BUTTON]),
+                        reply_markup=await get_reply_keyboard([*MAIN_FUNCTIONS, HELP_BUTTON]),
                     )
                     await state.update_data({settings.FLASK_USER_ID_STORAGE_KEY: user.flask_user_id})
                     await state.update_data({settings.TG_CHAT_ID_STORAGE_KEY: user.tg_chat_id})
@@ -152,13 +154,13 @@ async def verification_code_generated_state_help_command_handler(
     try:
         if not await check_user_existent_and_update_state_data(message, state, user_service, tg_user_schema):
             return
-    except Exception as e:
+    except Exception:
         logger.exception("Ошибка проверки пользователя из состояния verification_code_generated на команде help.")
         return
 
     await message.answer(
         text=UserMessages.INFO_VERIFICATION_CODE_GENERATED,
-        bottons=await get_reply_keyboard([REFILL_BALANCE, CANCEL_BUTTON]),
+        bottons=await get_reply_keyboard([*MAIN_FUNCTIONS, CANCEL_BUTTON]),
     )
 
 
@@ -169,7 +171,7 @@ async def start_transaction_state_help_command_handler(
     """ Обрабатывает команду help для состоянии start_transaction. """
     await message.answer(
         text=UserMessages.AVAILABLE_FUNCTIONS,
-        reply_markup=await get_reply_keyboard([REFILL_BALANCE]),
+        reply_markup=await get_reply_keyboard(MAIN_FUNCTIONS),
     )
 
 
@@ -192,6 +194,17 @@ async def promo_waiting_state_help_command_handler(
     await message.answer(
         text=UserMessages.ENTER_PROMO_CODE,
         reply_markup=await get_inline_keyboard([NO_PROMO_INLINE_BUTTON, CANCEL_INLINE_BUTTON]),
+    )
+
+
+@router.message(F.text.in_({HELP_COMMAND_TEXT, '/help'}), UserState.bonus_waiting)
+async def bonus_waiting_state_help_command_handler(
+        message: Message,
+) -> None:
+    """ Обрабатывает команду help для состоянии bonus_waiting. """
+    await message.answer(
+        text=UserMessages.ENTER_BONUS_CODE,
+        reply_markup=await get_inline_keyboard([NO_BONUS_INLINE_BUTTON, CANCEL_INLINE_BUTTON]),
     )
 
 
@@ -223,7 +236,7 @@ async def start_transaction_state_cancel_handler(
     """ Обрабатывает команду cancel и отмена из состояния start_transaction. """
     await message.answer(
         text=UserMessages.ALREADY_IN_MAIN_MENU,
-        reply_markup=await get_reply_keyboard([REFILL_BALANCE]),
+        reply_markup=await get_reply_keyboard(MAIN_FUNCTIONS),
     )
     await clear_state_data(state)
 
@@ -265,7 +278,7 @@ async def any_state_cancel_handler(
     """ Обрабатывает команду cancel и отмена из любого состояния. """
     await message.answer(
         text=UserMessages.CANCEL,
-        reply_markup=await get_reply_keyboard([REFILL_BALANCE]),
+        reply_markup=await get_reply_keyboard(MAIN_FUNCTIONS),
     )
     await clear_state_data(state)
 
@@ -304,7 +317,7 @@ async def callback_cancel_handler(
     """ Обрабатывает событие по нажатию на инлайн кнопку 'Отмена' из любого состояния. """
     await callback.message.answer(
         text=UserMessages.CANCEL,
-        reply_markup=await get_reply_keyboard([REFILL_BALANCE]),
+        reply_markup=await get_reply_keyboard(MAIN_FUNCTIONS),
     )
     await clear_state_data(state)
     await callback.answer()
