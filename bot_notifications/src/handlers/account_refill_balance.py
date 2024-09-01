@@ -1,5 +1,3 @@
-import logging
-
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, FSInputFile
@@ -11,7 +9,7 @@ from src.handlers.utils import check_user_existent_and_update_state_data, clear_
 from src.infrastructure.client import BaseClient
 from src.infrastructure.utils import download_bill_img, get_qr_code
 from src.keyboards.buttons import (
-    REFILL_BALANCE,
+    MAIN_FUNCTIONS,
     CANCEL_BUTTON,
     NO_PROMO_INLINE_BUTTON,
     CANCEL_INLINE_BUTTON,
@@ -24,7 +22,7 @@ from src.keyboards.reply import get_reply_keyboard
 from src.schemas.account_refill_balance import (
     PromoCodeIn,
     TransactionCreateOut,
-    RequisiteIn, RequisiteType,
+    RequisiteIn, RequisiteType, PromoCodeOut,
 )
 from src.schemas.user import TgUserSchema
 from src.service.user import UserService
@@ -167,7 +165,8 @@ async def promo_code_handler(
 
     promo = message.text
     try:
-        validated_promo: PromoCodeIn = await client.check_promo_code_for_existence(promo, user_id=flask_user_id)
+        payload = PromoCodeOut(code=promo, user_id=flask_user_id)
+        validated_promo: PromoCodeIn = await client.check_promo_code_for_existence(payload.model_dump())
         if validated_promo.status_code == 200:
             await state.update_data({settings.PROMO_AMOUNT_STORAGE_KEY: validated_promo.amount})
             await state.update_data({settings.PROMO_CODE_ID_STORAGE_KEY: validated_promo.promo_id})
@@ -181,12 +180,12 @@ async def promo_code_handler(
             await state.set_state(UserState.photo_waiting)
         elif validated_promo.status_code == 404:
             await message.answer(
-                text=UserMessages.PROMO_CODE_NOT_FOUND.format(promo=promo),
+                text=UserMessages.PROMO_CODE_NOT_FOUND.format(promo=promo.replace('_', '\\_')),
                 reply_markup=await get_inline_keyboard([NO_PROMO_INLINE_BUTTON, CANCEL_INLINE_BUTTON]),
             )
         elif validated_promo.status_code == 409:
             await message.answer(
-                text=UserMessages.PROMO_ALREADY_USED.format(promo=promo),
+                text=UserMessages.PROMO_ALREADY_USED.format(promo=promo.replace('_', '\\_')),
                 reply_markup=await get_inline_keyboard([NO_PROMO_INLINE_BUTTON, CANCEL_INLINE_BUTTON]),
             )
         elif validated_promo.status_code == 500:
@@ -194,8 +193,12 @@ async def promo_code_handler(
                 text=UserMessages.INTERNAL_SERVER_ERROR,
                 reply_markup=await get_inline_keyboard([CANCEL_INLINE_BUTTON]),
             )
-    except Exception as e:
+    except Exception:
         logger.exception("Ошибка применения промокода")
+        await message.answer(
+            text=UserMessages.INTERNAL_SERVER_ERROR,
+            reply_markup=await get_reply_keyboard(MAIN_FUNCTIONS),
+        )
 
 
 @router.message(UserState.photo_waiting)
@@ -234,12 +237,12 @@ async def photo_receipt_handler(
             if is_created:
                 await message.answer(
                     text=UserMessages.TRANSACTION_CREATE_SUCCESSFULLY,
-                    reply_markup=await get_reply_keyboard([REFILL_BALANCE]),
+                    reply_markup=await get_reply_keyboard(MAIN_FUNCTIONS),
                 )
             else:
                 await message.answer(
                     text=UserMessages.TRANSACTION_CREATE_FAILED,
-                    reply_markup=await get_reply_keyboard([REFILL_BALANCE]),
+                    reply_markup=await get_reply_keyboard(MAIN_FUNCTIONS),
                 )
             await clear_state_data(state)
 
@@ -292,12 +295,12 @@ async def refill_balance_start_transaction(
     elif requisite.status_code == 400:
         await message.answer(
             text=UserMessages.BAD_REQUEST_ERROR,
-            reply_markup=await get_reply_keyboard([REFILL_BALANCE]),
+            reply_markup=await get_reply_keyboard(MAIN_FUNCTIONS),
         )
     elif requisite.status_code == 500:
         await message.answer(
             text=UserMessages.INTERNAL_SERVER_ERROR,
-            reply_markup=await get_reply_keyboard([REFILL_BALANCE])
+            reply_markup=await get_reply_keyboard(MAIN_FUNCTIONS)
         )
 
 
@@ -312,6 +315,7 @@ async def create_transaction(client: BaseClient, state: FSMContext) -> bool:
 
     """
     state_data = await state.get_data()
+    is_bonus = state_data.get("is_bonus", False)
     transaction_create_data = TransactionCreateOut(
         **{
             "amount": (state_data.get(settings.AMOUNT_OF_MONEY_STORAGE_KEY)
@@ -322,6 +326,7 @@ async def create_transaction(client: BaseClient, state: FSMContext) -> bool:
             "sa_id": state_data.get(settings.REQUISITE_ID_STORAGE_KEY),
             "bill_path": state_data.get(settings.FILENAME_STORAGE_KEY),
             "promo_id": state_data.get(settings.PROMO_CODE_ID_STORAGE_KEY, None),
+            "is_bonus": is_bonus,
         }
     )
 
