@@ -47,25 +47,25 @@
         <div class="mb-3">
             {% if po_rep.pc.company_idns %}
                 <div class="bg-warning text-center" style="font-weight: bold">Заказы по объединенной схеме для двух ИНН</div>
-
-                <div class="price mx-auto">
-                    <div class="price-item">
-                        <div class="price-num">ИНН компаний </div>
-                        <div class="order_price-val">{% for c in  po_rep.pc.company_idns%}{{c }}<br>{% endfor %}</div>
+                <div class="border-1 border border-warning">
+                    <div class="price mx-auto pb-3">
+                        <div class="price-item">
+                            <div class="price-num">ИНН компаний </div>
+                            <div class="order_price-val">{% for c in  po_rep.pc.company_idns%}{{c }}<br>{% endfor %}</div>
+                        </div>
+                        <div class="price-item">
+                            <div class="price-num">Номера заказов</div>
+                            <div class="order_price-val">{% for o in  po_rep.pc.order_idns%}{{o }}<br>{% endfor %}</div>
+                        </div>
+                        <div class="price-item">
+                            <div class="price-num">Общее количество марок</div>
+                            <div class="order_price-val">{{ po_rep.pc.marks_count }}&nbsp;шт.</div>
+                        </div>
+                        <div class="price-item">
+                            <div class="price-num">Цена за марку</div>
+                            <div class="order_price-val">{{ po_rep.pc.op_cost }}&nbsp;руб.</div>
+                        </div>
                     </div>
-                    <div class="price-item">
-                        <div class="price-num">Номера заказов</div>
-                        <div class="order_price-val">{% for o in  po_rep.pc.order_idns%}{{o }}<br>{% endfor %}</div>
-                    </div>
-                    <div class="price-item">
-                        <div class="price-num">Общее количество марок</div>
-                        <div class="order_price-val">{{ po_rep.pc.marks_count }}&nbsp;шт.</div>
-                    </div>
-                    <div class="price-item">
-                        <div class="price-num">Цена за марку</div>
-                        <div class="order_price-val">{{ po_rep.pc.op_cost }}&nbsp;руб.</div>
-                    </div>
-
                 </div>
             {% endif %}
         </div>
