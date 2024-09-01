@@ -24,7 +24,8 @@ def get_cocmd(user_id: int, price_id: int, order_id: str | None = None,
                                                               start_stage=start_stage)).fetchall()
 
     # get idns distinct from unpaid_orders ORDERED by crm_created_at
-    company_idns = [row.company_idn for row in db.session.execute(get_unpaid_company_idns_stmt(u_id=user_id)).fetchall()]
+    company_idns = [row.company_idn for row in
+                    db.session.execute(get_unpaid_company_idns_stmt(u_id=user_id, o_id=order_id)).fetchall()]
 
     current_order_info = next((order for order in unpaid_orders if order.id == order_id), None) if order_id else {}
 
@@ -106,7 +107,8 @@ def get_cocmd(user_id: int, price_id: int, order_id: str | None = None,
     return result
 
 
-def get_unpaid_company_idns_stmt(u_id: int) -> TextClause:
+def get_unpaid_company_idns_stmt(u_id: int, o_id: int = None) -> TextClause:
+    order_id_stmt = f" OR o.id={o_id}" if o_id else " "
     return text(f"""SELECT sub.company_idn, sub.crm_created_at
                     FROM (
                         SELECT DISTINCT ON (o.company_idn)
@@ -115,7 +117,8 @@ def get_unpaid_company_idns_stmt(u_id: int) -> TextClause:
                         FROM public.users u
                         JOIN public.orders AS o ON o.user_id = u.id
                         WHERE u.id=:u_id AND o.payment != True AND o.to_delete != True 
-                          AND o.stage>={settings.OrderStage.NEW} AND o.stage != {settings.OrderStage.CANCELLED}
+                          AND (o.stage>={settings.OrderStage.NEW}
+                          AND o.stage != {settings.OrderStage.CANCELLED}{order_id_stmt})
                         ORDER BY o.company_idn, o.crm_created_at ASC
                     ) sub
                  ORDER BY sub.crm_created_at ASC;
@@ -123,7 +126,7 @@ def get_unpaid_company_idns_stmt(u_id: int) -> TextClause:
 
 
 def get_unpaid_orders_stmt(u_id: int, o_id: int = None, start_stage: int = settings.OrderStage.NEW) -> TextClause:
-    order_id_stmt = f"OR o.id={o_id}" if o_id else ""
+    order_id_stmt = f" OR o.id={o_id}" if o_id else " "
     return text(f"""SELECT o.id as id,
                                     o.payment as payment,
                                     o.order_idn as order_idn,
@@ -144,7 +147,7 @@ def get_unpaid_orders_stmt(u_id: int, o_id: int = None, start_stage: int = setti
                                   LEFT JOIN public.users managers ON o.manager_id = managers.id
                               WHERE u.id=:u_id AND o.payment != True AND o.to_delete != True 
                                 AND (o.stage>={start_stage} 
-                                AND o.stage!={settings.OrderStage.CANCELLED} {order_id_stmt})
+                                AND o.stage!={settings.OrderStage.CANCELLED}{order_id_stmt})
                               GROUP BY  o.id, o.crm_created_at
                               ORDER BY o.crm_created_at ASC
                              """).bindparams(u_id=u_id)
