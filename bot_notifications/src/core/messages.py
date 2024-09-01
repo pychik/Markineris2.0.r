@@ -36,7 +36,7 @@ class UserMessages:
     ENTER_PROMO_CODE: str = "Введите промокод(необязательно)"
     PROMO_CODE_VALIDATE_SUCCESS: str = "Промокод успешно применен"
     PROMO_CODE_NOT_FOUND: str = (
-        "Промокода {promo} не найден.\n\n"
+        "Промокод {promo} не найден.\n\n"
         "Попробуйте ввести еще раз. Если у вас нет промокода нажмите кнопку 'Нет промокода'"
     )
     PROMO_ALREADY_USED: str = (
