@@ -37,13 +37,12 @@ class BaseClient:
 
         return self._validate_response(response=response, schema=RequisiteIn)
 
-    async def check_promo_code_for_existence(self, promo_code: str, user_id: int):
-        params = {"promo_code": promo_code, "user_id": user_id}
+    async def check_promo_code_for_existence(self, data: dict[str, Any]):
         response = await self._make_request(
             url=self.CHECK_PROMO,
-            method="GET",
-            params=params,
+            method="POST",
             headers={"MARKINERS_V2_TOKEN": settings.MARKINERS_V2_TOKEN},
+            json=data,
         )
 
         return self._validate_response(response=response, schema=PromoCodeIn)
