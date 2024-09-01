@@ -11,7 +11,7 @@ from src.core.middlewares.user_schema import UserSchemaMiddleware
 from src.core.middlewares.user_service import UserServiceMiddleware
 from src.gateways.db.connection import get_async_session_maker, get_async_engine
 from src.gateways.redis.connection import get_async_redis_client
-from src.handlers import command, verification, unknown_command, account_refill_balance
+from src.handlers import command, verification, unknown_command, account_refill_balance, bonus_code
 from src.infrastructure.client import get_base_client
 from src.init_bot import bot
 from src.keyboards.menu import add_menu_commands
@@ -37,6 +37,7 @@ def create_dispatcher(storage: RedisStorage) -> Dispatcher:
     dp.include_router(router=command.router)
     dp.include_router(router=verification.router)
     dp.include_router(router=account_refill_balance.router)
+    dp.include_router(router=bonus_code.router)
     dp.include_router(router=unknown_command.router)
 
     return dp
