@@ -4,7 +4,7 @@ from aiogram.types import Message
 from src.core.config import settings
 from src.core.messages import UserMessages
 from src.core.states import UserState
-from src.keyboards.buttons import REFILL_BALANCE, CANCEL_BUTTON
+from src.keyboards.buttons import MAIN_FUNCTIONS, CANCEL_BUTTON
 from src.keyboards.reply import get_reply_keyboard
 from src.schemas.user import TgUserSchema
 from src.service.user import UserService
@@ -45,7 +45,7 @@ async def check_user_existent_and_update_state_data(
             verify_code = await user_service.get_verification_code(user)
             await message.answer(
                 text=UserMessages.NEED_VERIFY.format(verify_code=verify_code),
-                reply_markup=await get_reply_keyboard([REFILL_BALANCE, CANCEL_BUTTON]),
+                reply_markup=await get_reply_keyboard([*MAIN_FUNCTIONS, CANCEL_BUTTON]),
             )
             await state.set_state(UserState.verification_code_generated)
             return False
@@ -55,7 +55,7 @@ async def check_user_existent_and_update_state_data(
         await state.set_state(UserState.start_transaction)
 
         return True
-    except Exception as e:
+    except Exception:
         logger.exception("Ошибка проверки и обновления данных пользователя в хранилище")
 
 
