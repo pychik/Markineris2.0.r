@@ -48,10 +48,14 @@ def create_app() -> tuple[Flask, SQLAlchemy]:
         "VERIFY_SERVER_CERT": False,
         "CAPTURE_BODY": "all",
     }
+    csrf = CSRFProtect()
     sql_debug(app=app) if app.debug else None
     db.init_app(app)
     Migrate().init_app(app, db)
-    CSRFProtect().init_app(app)
+
+    csrf.init_app(app)
+    csrf.exempt('views.main.endpoints.create_transaction')
+    csrf.exempt('views.main.endpoints.check_promo_code')
     if not app.debug:
         ElasticAPM().init_app(app)
     return app, db
