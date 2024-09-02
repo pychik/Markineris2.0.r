@@ -98,9 +98,9 @@ def create_transaction():
         current_service_account = helper_get_current_sa()
 
         # make checks if account changed
-        if not data.sa_id == current_service_account:
+        if data.sa_id != current_service_account.id:
             logger.error('Пользователь попробовал оплатить на недействующий счет')
-            raise ValidationError
+            raise ValidationError()
     except ValidationError:
         logger.exception("Сервисный счет на сервисе не равен сервисному счету присланным в запросе")
         return jsonify(
