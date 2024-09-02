@@ -69,8 +69,8 @@ def get_current_service_account():
 
     try:
         current_service_account = helper_get_current_sa()
-    except Exception as e:
-        logger.exception(e)
+    except Exception:
+        logger.exception("Ошибка при получении информации о сервисном счете")
         return jsonify(
             {"detail": settings.Messages.STRANGE_REQUESTS}
         ), 500
@@ -95,11 +95,16 @@ def create_transaction():
 
     try:
         data = TransactionInData(**request.form)
-    except ValidationError as e:
-        logger.exception(e)
+        current_service_account = helper_get_current_sa()
+
+        # make checks if account changed
+        if not data.sa_id == current_service_account:
+            logger.error('Пользователь попробовал оплатить на недействующий счет')
+            raise ValidationError
+    except ValidationError:
+        logger.exception("Сервисный счет на сервисе не равен сервисному счету присланным в запросе")
         return jsonify(
-            # TODO: подумать над сообщением ответа в бот при ошибке получения create_transaction
-            {"detail": "Ошибка валидации данных."}
+            {"detail": "Ошибка проверки данных."}
         ), 422
 
     is_created = create_transaction_from_tg(data)

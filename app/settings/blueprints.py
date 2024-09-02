@@ -14,7 +14,7 @@ def register_blueprints(app: Flask) -> None:
     from views.main.requests_common import requests_common as requests_common_blueprint
     from views.crm.crm_dash import crm_d as crm_d_blueprint
     from views.crm.crm_uoc import crm_uoc as crm_uoc_blueprint
-    from views.main.endpoints import api as api_blueprint
+    from views.api.transactions import api as api_blueprint
 
     app.register_blueprint(auth_blueprint)
     app.register_blueprint(main_blueprint)
