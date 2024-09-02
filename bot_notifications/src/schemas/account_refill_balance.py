@@ -7,7 +7,7 @@ from src.schemas.base import BaseModelWithStatusCode
 
 class RequisiteType(StrEnum):
     qr_code = "qr_code"
-    requisite_number = "requisite_number"
+    requisite_number = "requisites"
 
 
 class RequisiteIn(BaseModelWithStatusCode):
