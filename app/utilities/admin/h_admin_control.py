@@ -1,75 +1,85 @@
+import urllib
 from datetime import datetime, timedelta
 
-from flask import flash, render_template, redirect, send_file, url_for, request, Response, jsonify
+from flask import flash, render_template, redirect, send_file, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
-from sqlalchemy import asc, desc, func, text
+from sqlalchemy import asc, desc, func, text, select
+from sqlalchemy.exc import NoResultFound
 
 from sqlalchemy.exc import IntegrityError
+from urllib import parse
 from werkzeug.security import generate_password_hash
 
 from config import settings
 from logger import logger
 from models import db, Order, OrderStat, PartnerCode, RestoreLink, Telegram, TelegramMessage, User, users_partners, \
-    Price, TgUser
+    Price, TgUser, ReanimateStatus
 from utilities.download import orders_process_send_order
 from utilities.support import url_encrypt, helper_check_form, helper_update_order_note, \
       helper_paginate_data, helper_strange_response, sql_count, helper_get_filter_users
 from utilities.admin.schemas import AROrdersSchema, ar_categories_types
 from utilities.admin.helpers import (process_admin_report, helper_get_clients_os, helper_get_orders_stats,
-                                     helper_prev_day_orders_marks, helper_get_users_reanimate)
+                                     helper_prev_day_orders_marks, helper_get_users_reanimate,
+                                     helper_get_reanimate_call_result, helper_get_new_orders_at2,
+                                     helper_check_new_order_at2)
+from utilities.admin.excel_report import ExcelReport
 
 
 def h_index(expanded: str = None):
-    # def sum_lists(*args):
-    #     return list(map(sum, zip(*args)))
-
     if current_user.role != settings.SUPER_USER:
         return redirect(url_for('admin_control.admin', u_id=current_user.id))
 
-    if expanded in [None, settings.EXP_USERS, settings.EXP_PARTNERS, settings.EXP_TELEGRAM]:
-        users_stmt = text(f"""SELECT au.id as id,
-                                 au.role as role,
-                                 au.balance as balance,
-                                 au.login_name as login_name,
-                                 au.email as email,
-                                 au.client_code as client_code,
-                                 au.agent_fee as agent_fee,
-                                 au.trust_limit as trust_limit,
-                                 au.is_crm as is_crm,
-                                 au.is_at2 as is_at2, au.status as status, au.phone as phone,
-                                 au.created_at as created_at, pq.price_code as price_code, pq.price_1 as price_1, pq.price_2 as price_2,
-                                 pq.price_3 as price_3, pq.price_4 as price_4, pq.price_5 as price_5,
-                                 pq.price_at2 as price_at2, tq.channel_id as tg_channel_id, tq.name as tg_name,
-                                 tq.comment as tg_comment,
-                                 count(u.id) as reg_clients,
-                                 (select array[count(os.id), sum(os.rows_count), sum(os.marks_count)] from public.orders_stats os where os.user_id in (select uu.id from public.users uu where uu.admin_parent_id=au.id or uu.id=au.id) limit 1) as data_orders_array
-                             FROM public.users au
-                             LEFT JOIN public.users_telegrams ut on ut.user_id = au.id
-                             LEFT JOIN public.telegram tq on ut.telegram_id = tq.id
-                             LEFT JOIN public.prices pq on au.price_id = pq.id
-                             LEFT JOIN public.users u on u.admin_parent_id = au.id
-                             WHERE au.role in('{settings.ADMIN_USER}', '{settings.SUPER_USER}')
-                             group by au.id, pq.price_code, pq.price_1, pq.price_2,pq.price_3, pq.price_4, pq.price_5, pq.price_at2, tg_channel_id, tg_name, tg_comment
-                             order by au.id""")
-        su_list = db.session.execute(users_stmt).fetchall()
+        # if expanded in [None, settings.EXP_USERS, settings.EXP_PARTNERS, settings.EXP_TELEGRAM]:
+    users_stmt = text(f"""SELECT au.id as id,
+                                au.role as role,
+                                au.balance as balance,
+                                au.login_name as login_name,
+                                au.email as email,
+                                au.client_code as client_code,
+                                au.agent_fee as agent_fee,
+                                au.trust_limit as trust_limit,
+                                au.is_crm as is_crm,
+                                au.is_at2 as is_at2, au.status as status, au.phone as phone,
+                                au.created_at as created_at, pq.price_code as price_code, pq.price_1 as price_1, pq.price_2 as price_2,
+                                pq.price_3 as price_3, pq.price_4 as price_4, pq.price_5 as price_5,
+                                pq.price_at2 as price_at2, tq.channel_id as tg_channel_id, tq.name as tg_name,
+                                tq.comment as tg_comment,
+                                count(u.id) as reg_clients,
+                                (select array[count(os.id), sum(os.rows_count), sum(os.marks_count)] from public.orders_stats os where os.user_id in (select uu.id from public.users uu where uu.admin_parent_id=au.id or uu.id=au.id) limit 1) as data_orders_array
+                            FROM public.users au
+                            LEFT JOIN public.users_telegrams ut on ut.user_id = au.id
+                            LEFT JOIN public.telegram tq on ut.telegram_id = tq.id
+                            LEFT JOIN public.prices pq on au.price_id = pq.id
+                            LEFT JOIN public.users u on u.admin_parent_id = au.id
+                            WHERE au.role in('{settings.ADMIN_USER}', '{settings.SUPER_USER}')
+                            group by au.id, pq.price_code, pq.price_1, pq.price_2,pq.price_3, pq.price_4, pq.price_5, pq.price_at2, tg_channel_id, tg_name, tg_comment
+                            order by au.id""")
+    su_list = db.session.execute(users_stmt).fetchall()
+    new_user_stmt = text("""
+           SELECT
+               count(1) as new_user_cnt  
+           FROM public.users
+           WHERE
+               created_at >= DATE_TRUNC('DAY', NOW()) - interval '1 DAY'
+               and created_at < DATE_TRUNC('DAY', NOW());
+               """)
+    new_user_cnt = db.session.execute(new_user_stmt).one()
+    registration_date = datetime.today() - timedelta(days=1)
 
-        ou_quantity = User.query.filter(User.role == settings.ORD_USER) \
-            .order_by(User.id).count()
+    ou_quantity = User.query.filter(User.role == settings.ORD_USER) \
+        .order_by(User.id).count()
 
-        telegram_list = Telegram.query.all()
-        if current_user.role == settings.SUPER_USER:
-            tg_group_list = Telegram.query.filter_by(status=False).all()
-            prev_day_orders_marks = helper_prev_day_orders_marks()
+    telegram_list = Telegram.query.all()
+    if current_user.role == settings.SUPER_USER:
+        tg_group_list = Telegram.query.filter_by(status=False).all()
+        prev_day_orders_marks = helper_prev_day_orders_marks()
+    markineris_url_coi = settings.MARKINERIS_CHECK_CROSS_OI_LINK
+    markineris_secret = settings.MARKINERIS_SECRET
 
-        markineris_url_coi = settings.MARKINERIS_CHECK_CROSS_OI_LINK
-        markineris_secret = settings.MARKINERIS_SECRET
-
-        basic_prices = settings.Prices.BASIC_PRICES
-        all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2).order_by(desc(Price.created_at)).all()
-        return render_template('admin/admin_control.html', **locals())
-    else:
-        flash(message="Что-то странное ощущаю я. Это что, хитрый парсер ссылок?", category='error')
-        return redirect(url_for('admin_control.index'))
+    basic_prices = settings.Prices.BASIC_PRICES
+    all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2).order_by(
+        desc(Price.created_at)).all()
+    return render_template('admin/admin_control.html', **locals())
 
 
 def h_admin(u_id: int):
@@ -216,6 +226,57 @@ def h_partner_code(u_id: int, auto: int = None):
         flash(message=message, category='error')
 
     return redirect(url_for('admin_control.admin', u_id=u_id))
+
+
+def h_su_not_basic_price_report() -> Response:
+    column_names = [
+        'e-mail',
+        'login',
+        'agent_login',
+        'Наименование',
+        'Цена [1, 99], руб',
+        'Цена [100, 499], руб.',
+        'Цена [500, 999], руб.',
+        'Цена [1000, 2999], руб.',
+        'Цена [3000+], руб',
+    ]
+    price_stmt = text("""
+        SELECT
+        U.EMAIL as EMAIL,
+        U.LOGIN_NAME as LOGIN_NAME,
+        U_AGENT.LOGIN_NAME as AGENT_NAME,
+        P.PRICE_CODE AS PRICE_CODE,
+        P.PRICE_1 as PRICE_FROM_1_TO_99,
+        P.PRICE_2 as PRICE_FROM_100_TO_499,
+        P.PRICE_3 as PRICE_FROM_500_TO_999,
+        P.PRICE_4 as PRICE_FROM_1000_TO_2999,
+        P.PRICE_5 as PRICE_FROM_3000
+    FROM
+        USERS U
+        LEFT JOIN USERS AS U_AGENT ON U.ADMIN_PARENT_ID = U_AGENT.ID
+        JOIN PRICES P ON U.PRICE_ID = P.ID
+    WHERE
+        P.PRICE_CODE != 'BASIC'
+    ORDER BY
+        P.PRICE_CODE,
+        U.EMAIL
+    """)
+    prises = db.session.execute(price_stmt).all()
+    excel = ExcelReport(
+        data=prises,
+        columns_name=column_names,
+        sheet_name=settings.Prices.NOT_BASIC_PRICE_REPORT_SHEET_NAME,
+        output_file_name=settings.Prices.NOT_BASIC_PRICE_REPORT_FILE_NAME.format(datetime.today().strftime('%d.%m.%Y'))
+    )
+
+    excel_io = excel.create_report()
+    content = excel_io.getvalue()
+    response = make_response(content)
+    response.headers['data_file_name'] = urllib.parse.quote(excel.output_file_name)
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    response.headers['data_status'] = 'success'
+
+    return response
 
 
 def h_delete_partner_code(u_id: int, p_id: int) -> Response:
@@ -961,6 +1022,67 @@ def h_client_orders_stats(admin_id: int, client_id: int) -> Response:
     return helper_strange_response()
 
 
+def h_at2_new_orders() -> Response:
+    admin_id = current_user.id
+    pool = settings.OrderStage.POOL
+    cancelled = settings.OrderStage.CANCELLED
+
+    orders_list_raw = helper_get_new_orders_at2(admin_id=admin_id)
+
+    bck = request.args.get('bck', 0, type=int)
+
+    if not orders_list_raw:
+        return render_template('admin/crm_specific/at2_orders.html', **locals()) if not bck \
+            else jsonify(
+            {'status': 'success', 'htmlresponse': render_template(f'admin/crm_specific/at2_orders_table.html',
+                                                                  **locals())})
+    link_filters = 'bck=1&'
+    link = f'javascript:bck_get_orders(\'' + url_for(
+        'admin_control.at2_new_orders') + f'?{link_filters}' + 'page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        orders_list = helper_paginate_data(data=orders_list_raw, per_page=settings.PAGINATION_PER_PAGE, href=link,
+                                          anchor="OrdersTable")
+    return render_template('admin/crm_specific/at2_orders.html', **locals()) if not bck \
+        else jsonify(
+        {'status': 'success', 'htmlresponse': render_template(f'admin/crm_specific/at2_orders_table.html',
+                                                              **locals())})
+
+
+def h_at2_orders_process(o_id: int, change_stage: int) -> Response:
+    admin_id = current_user.id
+    status = 'danger'
+
+    if change_stage not in [settings.OrderStage.POOL, settings.OrderStage.CANCELLED]:
+        message = f"{settings.Messages.AT2_ORDER_CHANGE_ERROR} - Указаны некорректные данные для изменения!"
+        return jsonify(dict(status=status, message=message))
+
+    # check for trickers
+    order_check = helper_check_new_order_at2(admin_id=admin_id, o_id=o_id)
+
+    if not order_check:
+        message = f"{settings.Messages.AT2_ORDER_CHANGE_ERROR} - Нет такого заказа!"
+        return jsonify(dict(status=status, message=message))
+    try:
+        cancel_stmt = (", cc_created='{date}', comment_cancel='{auto_comment}'"
+                       .format(date=str(datetime.now()), auto_comment=settings.Messages.AT2_ORDER_CANCEL_TEXT)) if change_stage == settings.OrderStage.CANCELLED else ""
+        update_order_stmt = (text(f"""UPDATE public.orders SET stage=:change_stage{cancel_stmt} WHERE id=:o_id""")
+                             .bindparams(o_id=o_id, change_stage=change_stage))
+
+        db.session.execute(update_order_stmt)
+        db.session.commit()
+
+        order_idn = order_check.order_idn
+        message = f"{settings.Messages.AT2_ORDER_CHANGE} {order_idn} {settings.OrderStage.STAGES[change_stage][1]}"
+        status = 'success'
+    except Exception as e:
+        db.session.rollback()
+        message = f"{settings.Messages.AT2_ORDER_CHANGE_ERROR} {e}"
+        logger.error(message)
+
+    return jsonify(dict(status=status, message=message))
+
+
 def h_users_activate_list():
     additional_stmt = ""
     user_stmt = f"""SELECT u.id as id,
@@ -1103,9 +1225,35 @@ def h_bck_change_user_password(u_id: int) -> Response:
     return jsonify(dict(status=status, message=message))
 
 
+def h_bck_save_call_result():
+    u_id, comment, call_result = helper_get_reanimate_call_result()
+    stmt = select(
+        ReanimateStatus
+    ).where(ReanimateStatus.user_id == u_id)
+    try:
+        rec = db.session.execute(stmt).scalar_one()
+        rec.comment = comment
+        rec.call_result = call_result
+        rec.updated_at = datetime.now()
+        db.session.commit()
+    except NoResultFound:
+        rec = ReanimateStatus(user_id=u_id, comment=comment, call_result=call_result)
+        db.session.add(rec)
+        db.session.commit()
+    except Exception as err:
+        logger.error(f'an error during save call result in reanimate interface\nError: {err}')
+        return Response(status=400)
+    # swap ReanimateStatus.id and ReanimateStatus.user_id for correct handling in template
+    user = rec
+    user.id = rec.user_id
+    user.last_call_update = rec.updated_at.strftime('%d-%m-%Y %H:%M')
+    reanimate_call_result = settings.REANIMATE_CALL_RESULT
+    return jsonify({'htmlresponse': render_template(f'admin/ra/reanimate_comment.html', **locals())})
+
+
 def h_bck_reanimate():
     """
-       background update of agent users transactions  write_off for agent commission counter
+       background update of users to reanimate(users that don't make orders for a while)
     :return:
     """
 
@@ -1133,8 +1281,42 @@ def h_bck_reanimate():
     date_range_types = settings.Users.FILTER_DATE_TYPES
     date_quant_max = settings.Users.FILTER_MAX_QUANTITY
     converted_date_type = settings.Users.FILTER_DATE_DICT.get(date_type)
+    reanimate_call_result = settings.REANIMATE_CALL_RESULT
     return jsonify({'htmlresponse': render_template(f'admin/ra/user_reanimate_response.html', **locals())}) \
         if bck else render_template('admin/ra/main_reanimate.html', **locals())
+
+
+def h_bck_su_control_reanimate_excel():
+    # set manually type and status for render page case
+    date_quantity, date_type, link_filters, sort_type = helper_get_filter_users(excel_report=True)
+
+    link = f'javascript:bck_get_users_reanimate(\'' + url_for(
+        'admin_control.bck_control_reanimate') + f'?bck=1&{link_filters}' + 'page={0}\');'
+
+    users = helper_get_users_reanimate(date_quantity=date_quantity, date_type=date_type, sort_type=sort_type)
+
+    users_processed = list(map(lambda x: (x.created_at, x.os_created_at, x.login_name, x.phone, x.email, x.partners_code), users))
+    excel_filters = {
+        'Временная единица': date_type,
+        'Количество временных единиц': date_quantity,
+    }
+
+    excel = ExcelReport(
+        data=users_processed,
+        filters=excel_filters,
+        columns_name=['дата регистрации', 'Дата крайнего заказа', 'Логин', 'Телефон', 'Email', 'Код партнера', ],
+        sheet_name='Отчет реанимации пользователей',
+        output_file_name=f'реанимация клиентов({datetime.today().strftime("%d.%m.%y %H-%M")})',
+    )
+
+    excel_io = excel.create_report()
+    content = excel_io.getvalue()
+    response = make_response(content)
+    response.headers['data_file_name'] = parse.quote(excel.output_file_name)
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    response.headers['data_status'] = 'success'
+
+    return response
 
 
 def h_bck_agent_reanimate(u_id: int):
@@ -1175,12 +1357,12 @@ def h_bck_agent_reanimate(u_id: int):
         users_list = helper_paginate_data(data=users, per_page=settings.PAGINATION_PER_PAGE, href=link)
 
 
-    basic_prices = settings.Prices.BASIC_PRICES
     date_range_types = settings.Users.FILTER_DATE_TYPES
     date_quant_max = settings.Users.FILTER_MAX_QUANTITY
     converted_date_type = settings.Users.FILTER_DATE_DICT.get(date_type)
-    return jsonify({'htmlresponse': render_template(f'admin/ra/user_reanimate_response.html', **locals())}) \
-        if bck else render_template('admin/ra/main_reanimate.html', **locals())
+    reanimate_call_result = settings.REANIMATE_CALL_RESULT
+    return jsonify({'htmlresponse': render_template(f'admin/ra/agent/user_reanimate_response.html', **locals())}) \
+        if bck else render_template('admin/ra/agent/main_reanimate.html', **locals())
 
 
 def helper_get_ar_orders_stat(ar_schema: AROrdersSchema, u_id: int) -> tuple:

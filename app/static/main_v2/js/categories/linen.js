@@ -149,7 +149,7 @@ function show_linen_pos(index, trademark, type, color, pos_quantity, box_quantit
 
                     <div class="important-card__item">
                         <div class="important-card__prop">
-                            Вид обуви
+                            Вид белья
                         </div>
                         <div class="important-card__val">${type}</div>
                     </div>

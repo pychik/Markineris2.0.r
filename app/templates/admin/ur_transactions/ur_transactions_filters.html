@@ -1,0 +1,109 @@
+<div class="border border-1 p-3" id="form_filters_collapse">
+    <form action="" class="me-3">
+
+        <script>
+
+            $( function() {
+                let max_date = new Date();
+                max_date.setDate(max_date.getDate() - 1);
+            var dateFormat = "dd.mm.yy",
+              from = $( "#date_from" )
+                .datepicker({
+                  defaultDate: "-1w",
+                  changeMonth: true,
+                  changeYear: true,
+                  maxDate: max_date,
+                  numberOfMonths: 3
+                })
+                .on( "change", function() {
+                  to.datepicker( "option", "minDate", getDate( this ) );
+                }),
+              to = $( "#date_to" ).datepicker({
+                defaultDate: new Date(),
+                changeMonth: true,
+                changeYear: true,
+                maxDate: '+1D',
+                numberOfMonths: 3
+              })
+              .on( "change", function() {
+                from.datepicker( "option", "maxDate", getDate( this ) );
+              });
+
+            function getDate( element ) {
+              var date;
+              try {
+                date = $.datepicker.parseDate( dateFormat, element.value );
+              } catch( error ) {
+                date = null;
+              }
+
+              return date;
+            }
+          } );
+
+        </script>
+        <div class="row">
+              <div class="col-md-6">
+                  <label for="date_from"
+                          class="col-form-label text-right">Дата "C"</label>
+                  <input type="text" placeholder="Выберите дату"
+                      class="form-control" id="date_from"
+                      onpaste="return false;" oncopy="return false"
+                      oncut="return false" ondrag="return false"
+                      ondrop="return false" autocomplete="off" name="rd_date"
+                         aria-describedby="date_from_input_btn"
+                      readonly
+                         value="{{ url_date_from }}">
+              </div>
+
+              <div class="col-md-6">
+
+                <label for="date_to"
+                          class=" col-form-label text-right">Дата "По"</label>
+                <input type="text" placeholder="Выберите дату"
+                      class="form-control" id="date_to"
+                      onpaste="return false;" oncopy="return false"
+                      oncut="return false" ondrag="return false"
+                      ondrop="return false" autocomplete="off" name="rd_date"
+                         aria-describedby="date_from_input_btn"
+                      readonly
+                         value="{{ url_date_to }}">
+
+
+              </div>
+        </div>
+        <div>
+            <span class="badge bg-light text-secondary" style="cursor:pointer" onclick="set_current_date_su_filters();"> За сегодня</span>
+        </div>
+
+
+        <div class="row mt-3">
+
+            <div class="col-md-6  mt-md-3">
+                  <div class="form-check">
+                      <input class="form-check-input" type="radio" name="sort_type" id="asc_type" value="asc">
+                      <label class="form-check-label" for="asc_type">
+                        &uarr; По возрастанию (дата)
+                      </label>
+                  </div>
+                  <div class="form-check">
+                      <input class="form-check-input" type="radio" name="sort_type" id="desc_type" value="desc" checked>
+                      <label class="form-check-label" for="desc_type">
+                        &darr; По убыванию (дата)
+                      </label>
+                  </div>
+            </div>
+
+        </div>
+        <div class="row mt-3">
+            <div class="col-md-6 mb-1" title="Подгрузить транзакции">
+                <a href="javascript:bck_get_transactions_specific_user(`{{url_for('admin_control.su_bck_control_specific_ut', u_id=u_id)}}?bck=1`)" class="btn btn-accent">Обновить</a>
+            </div>
+
+        </div>
+
+
+
+
+    </form>
+</div>

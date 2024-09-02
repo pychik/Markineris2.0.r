@@ -13,6 +13,10 @@
                 <span class="badge bg-warning text-black" id="users_total">всего  {{ ou_quantity }}</span>
             </h6>
             <h6>
+                Зарегистрированных клиентов за {{ registration_date.strftime('%d.%m.%Y') }}
+                <span class="badge bg-warning text-black" id="new_user_cnt">{{ new_user_cnt.new_user_cnt }}</span>
+            </h6>
+            <h6>
                 Заказов/Марок за предыдущий день
                 <span class="badge bg-secondary" id="prev_day_orders_mark"
                       title="{{ prev_day_orders_marks.orders_count }} заказов, {{ prev_day_orders_marks.marks_count }} марок">
@@ -621,8 +625,8 @@
 <div id="change_user_password_modal">
 </div>
 
-<script src="{{url_for('static',filename='main_v2/js/admin/admin_common_v2.js')}}"></script>
-<script src="{{url_for('static',filename='main_v2/js/admin/admin_main.js')}}"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_common.js')}}"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_main.js')}}?v=1"></script>
 <script src="{{url_for('static',filename='main_v2/js/admin/prices_block.js')}}"></script>
 <script>
 const prices_array = [{% for p in all_prices %}[{{ p.id }},'{{ p.price_code }}', '{{p.price_at2}}'],{% endfor %}];

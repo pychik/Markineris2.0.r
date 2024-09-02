@@ -1,0 +1,119 @@
+
+<div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="staticBackdropLabel">Modal title</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        ...
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary">Understood</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="all_orders_price_info" tabindex="-1" data-bs-backdrop="static" role="dialog" aria-labelledby="all_orders_price_infoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+          <h5 class="modal-title" id="all_orders_price_infoModalLabel">Основная информация
+          </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"  aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+        <div class="mb-4">
+            <div class="price mx-auto">
+                <div class="price-item blink-y-border">
+                    <div class="price-num">Общая стоимость</div>
+                    <div class="">{{ po_rep.report_data.ao_price }}&nbsp;руб.</div>
+                </div>
+                <div class="price-item">
+                    <div class="price-num">Количество заказов в обработке</div>
+                    <div class="price-val">{{ po_rep.report_data.sco }}&nbsp;шт.</div>
+                </div>
+                <div class="price-item">
+                    <div class="price-num">Количество марок в заказах</div>
+                    <div class="price-val">{{ po_rep.report_data.smc }}&nbsp;шт.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            {% if po_rep.pc.company_idns %}
+                <div class="bg-warning text-center" style="font-weight: bold">Заказы по объединенной схеме для двух ИНН</div>
+                <div class="border-1 border border-warning">
+                    <div class="price mx-auto pb-3">
+                        <div class="price-item">
+                            <div class="price-num">ИНН компаний </div>
+                            <div class="order_price-val">{% for c in  po_rep.pc.company_idns%}{{c }}<br>{% endfor %}</div>
+                        </div>
+                        <div class="price-item">
+                            <div class="price-num">Номера заказов</div>
+                            <div class="order_price-val">{% for o in  po_rep.pc.order_idns%}{{o }}<br>{% endfor %}</div>
+                        </div>
+                        <div class="price-item">
+                            <div class="price-num">Общее количество марок</div>
+                            <div class="order_price-val">{{ po_rep.pc.marks_count }}&nbsp;шт.</div>
+                        </div>
+                        <div class="price-item">
+                            <div class="price-num">Цена за марку</div>
+                            <div class="order_price-val">{{ po_rep.pc.op_cost }}&nbsp;руб.</div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!--        less primary orders-->
+        {% if po_rep.lpc %}
+            <div class="mt-3">
+                <div class="text-center bg-warning" style="font-weight: bold">Заказы по общей схеме</div>
+                <div class="container">
+                    <div class="row">
+                        {% for c in po_rep.lpc %}
+                            <div class="col-md-6 border-1 border border-warning">
+                                <div class="price mx-auto mb-3">
+                                    <div class="mb-3">
+                                        <div class="price-item">
+                                            <div class="price-num">ИНН </div>
+                                            <div class="order_price-val">{{c.company_idn}}</div>
+                                        </div>
+                                        <div class="price-item">
+                                            <div class="price-num">Номера заказов</div>
+                                            <div class="order_price-val">{% for o in  c.order_idns%}{{ o }}<br>{% endfor %}</div>
+                                        </div>
+                                        <div class="price-item">
+                                            <div class="price-num">Общее количество марок</div>
+                                            <div class="order_price-val">{{ c.lpc_marks_count }}&nbsp;шт.</div>
+                                        </div>
+                                        <div class="price-item">
+                                            <div class="price-num">Цена за марку</div>
+                                            <div class="order_price-val">{{ c.lpc_op_cost }}&nbsp;руб.</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-accent" data-bs-dismiss="modal">Ок</button>
+        </div>
+      </div>
+
+
+
+
+
+
+    </div>
+  </div>
+</div>

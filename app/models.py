@@ -2,6 +2,7 @@ from datetime import datetime
 
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import func
 
 from config import settings
 
@@ -40,6 +41,7 @@ class User(db.Model, UserMixin):
     telegram = db.relationship('Telegram', secondary='users_telegrams', back_populates="users", lazy='joined')
 
     promos = db.relationship('Promo', secondary='users_promos', back_populates="users", lazy='joined')
+    bonus_codes = db.relationship('Bonus', secondary='users_bonus_codes', back_populates="users", lazy='joined')
 
     orders = db.relationship('Order', backref='users', cascade="all,delete", lazy='dynamic',
                              foreign_keys='Order.user_id')
@@ -79,9 +81,15 @@ users_telegrams = db.Table('users_telegrams',
 
 users_promos = db.Table('users_promos',
                         db.Column('user_id', db.Integer, db.ForeignKey('users.id')),
-                        db.Column('promo_id', db.Integer, db.ForeignKey('promos.id'))
+                        db.Column('promo_id', db.Integer, db.ForeignKey('promos.id')),
+                        db.Column('activated_at', db.DateTime, default=datetime.now)
                         )
 
+users_bonus_codes = db.Table('users_bonus_codes',
+                             db.Column('user_id', db.Integer, db.ForeignKey('users.id')),
+                             db.Column('promo_id', db.Integer, db.ForeignKey('bonus_codes.id')),
+                             db.Column('activated_at', db.DateTime, default=datetime.now)
+                             )
 
 # class UserPromo(db.Model):
 #     __tablename__ = 'users_promos'
@@ -124,7 +132,28 @@ class Promo(db.Model, UserMixin):
     code = db.Column(db.String(50), unique=True)
     value = db.Column(db.Integer, default=10)
     created_at = db.Column(db.DateTime(), default=datetime.now)
+    is_archived = db.Column(db.Boolean, default=False)
+    updated_at = db.Column(db.DateTime(), onupdate=datetime.now)
     users = db.relationship("User", secondary="users_promos", back_populates="promos")
+
+
+class Bonus(db.Model, UserMixin):
+    __tablename__ = 'bonus_codes'
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(50), unique=True)
+    value = db.Column(db.Integer, default=10)
+    created_at = db.Column(db.DateTime(), default=datetime.now)
+    is_archived = db.Column(db.Boolean, default=False)
+    updated_at = db.Column(db.DateTime(), onupdate=datetime.now)
+    users = db.relationship("User", secondary="users_bonus_codes", back_populates="bonus_codes")
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'code': self.code,
+            'value': self.value,
+            'created_at': self.created_at,
+        }
 
 
 class Price(db.Model, UserMixin):
@@ -181,6 +210,7 @@ class UserTransaction(db.Model, UserMixin):
     # orders in stats that we can watch in transaction history
     orders = db.relationship('OrderStat', backref='user_transactions',  foreign_keys='OrderStat.transaction_id')
     # orders = db.relationship('Order', backref='user_transactions',  foreign_keys='Order.transaction_id')
+    is_bonus = db.Column(db.Boolean, default=False)
 
 
 class TelegramMessage(db.Model, UserMixin):
@@ -432,6 +462,15 @@ class TgUser(db.Model):
 
     def __repr__(self) -> str:
         return f"User(user_id={self.tg_user_id}, username={self.tg_username}, is_verified={True if self.flask_user_id else False}"
+
+
+class ReanimateStatus(db.Model):
+    __tablename__ = "reanimate_status"
+    id = db.Column(db.Integer, primary_key=True)
+    comment = db.Column(db.String(255))
+    call_result = db.Column(db.String(36))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), index=True)
+    updated_at = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
 
 
 ModelType = User | PartnerCode

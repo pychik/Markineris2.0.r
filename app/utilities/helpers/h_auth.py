@@ -163,6 +163,10 @@ def h_sign_up_post() -> Union[Response, str]:
         )
 
         flash(message=settings.Messages.USER_SIGHNUP_SUCCESS_PARTNER, category='success')
+
+        login_user(new_user)
+        return redirect(url_for('main.enter'))
+
     except IntegrityError as e:
         logger.error(e)
         db.session.rollback()

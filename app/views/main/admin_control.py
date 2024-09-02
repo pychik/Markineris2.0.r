@@ -1,13 +1,13 @@
 from flask import Blueprint, jsonify, request
 from flask_login import login_required
 
-from config import settings
 from data_migrations.instance import etl_service
 from models import User
 from utilities.admin.h_admin_control import (h_index, h_admin, h_set_order_notification, h_create_admin,
                                              h_partner_code, h_delete_partner_code, h_telegram_set_group,
                                              h_telegram_message_set, h_telegram_group_bind, h_delete_telegram_group,
-                                             h_set_user_admin, h_set_user, h_deactivate_user, h_activate_all_admin_users,
+                                             h_set_user_admin, h_set_user, h_deactivate_user,
+                                             h_activate_all_admin_users,
                                              h_deactivate_user_admin, h_set_process_type,
                                              h_delete_user_admin, h_delete_user, h_create_link_new_password,
                                              h_send_order, h_download_agent_report, h_user_search, h_user_search_idn,
@@ -15,18 +15,27 @@ from utilities.admin.h_admin_control import (h_index, h_admin, h_set_order_notif
                                              h_change_trust_limit, h_users_orders_stats, h_users_activate_list,
                                              h_bck_user_delete, h_bck_user_activate, h_client_orders_stats,
                                              h_su_user_search, h_bck_change_user_password, h_bck_reanimate,
-                                             h_bck_ar_orders)
+                                             h_bck_ar_orders, h_bck_save_call_result, h_bck_su_control_reanimate_excel,
+                                             h_at2_new_orders, h_at2_orders_process, h_su_not_basic_price_report)
 from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_promo, h_su_add_promo, h_su_delete_promo,
                                                h_su_bck_prices, h_su_add_prices, h_su_delete_prices, h_su_bck_sa,
                                                h_su_add_sa, h_su_delete_sa, h_su_bck_change_sa_type, h_su_control_ut,
                                                h_su_transaction_detail, h_bck_control_ut, h_au_bck_control_ut,
                                                h_su_pending_transaction_update, h_su_wo_transactions,
                                                h_aus_transaction_detail, h_su_bck_change_sa_activity,
-                                               h_bck_ut_excel_report)
+                                               h_bck_ut_excel_report, h_su_fin_order_report, h_bck_fin_order_report,
+                                               h_bck_fin_order_report_excel, h_fin_promo_history,
+                                               h_bck_fin_promo_history, h_bck_fin_promo_history_excel,
+                                               h_su_control_specific_ut, h_bck_control_specific_ut,
+                                               h_su_fin_marks_count_report,
+                                               h_create_bonus_code,
+                                               h_get_list_of_bonus_code, h_get_detail_of_bonus_code,
+                                               h_delete_bonus_code, )
 from utilities.support import au_required, aus_required, bck_aus_required, bck_su_required, su_required, \
-                               user_exist_check
+    user_exist_check, su_mod_required, bck_at2_required, bck_su_mod_required
 
 from utilities.admin.h_admin_control import h_bck_agent_reanimate
+from validators.admin_control import BonusCodeSchema
 
 admin_control = Blueprint('admin_control', __name__)
 
@@ -306,6 +315,13 @@ def su_change_activity(sa_id: int):
     return h_su_bck_change_sa_activity(sa_id=sa_id)
 
 
+@admin_control.route('/su_not_basic_price_report', methods=['POST', ])
+@login_required
+@su_required
+def su_not_basic_price_report():
+    return h_su_not_basic_price_report()
+
+
 @admin_control.route('/su_bck_sa', methods=['GET', ])
 @login_required
 @su_required
@@ -372,6 +388,83 @@ def su_bck_control_ut():
     :return:
     """
     return h_bck_control_ut()
+
+
+@admin_control.route('/su_control_specific_ut/<u_id>', methods=['GET', ])
+@login_required
+@su_mod_required
+def su_control_specific_ut(u_id: int):
+    """
+        page of all specific user transactions to control
+    :return:
+    """
+    return h_su_control_specific_ut(u_id=u_id)
+
+
+@admin_control.route('/su_bck_control_specific_ut/<u_id>', methods=['GET', ])
+@login_required
+@bck_su_mod_required
+def su_bck_control_specific_ut(u_id: int):
+    """
+        background update filtered specific user transactions to control
+    :return:
+    """
+    return h_bck_control_specific_ut(u_id=u_id)
+
+
+@admin_control.route('/su_fin_order_report', methods=['GET',])
+@login_required
+@su_mod_required
+def su_fin_order_report():
+    """
+        default page with orders report
+    """
+    return h_su_fin_order_report()
+
+
+@admin_control.route('/su_bck_fin_order_report', methods=['GET',])
+@login_required
+@su_mod_required
+def su_bck_fin_order_report():
+    return h_bck_fin_order_report()
+
+
+@admin_control.route('/su_fin_marks_count_report', methods=['POST',])
+@login_required
+@su_mod_required
+def su_fin_marks_count_report():
+    return h_su_fin_marks_count_report()
+
+
+@admin_control.route('/su_fin_order_report_excel', methods=['POST'])
+@login_required
+@su_mod_required
+def su_fin_order_report_excel():
+    """
+    load excel with orders
+    """
+    return h_bck_fin_order_report_excel()
+
+
+@admin_control.route('/su_fin_promo_history', methods=['GET'])
+@login_required
+@su_mod_required
+def su_fin_promo_history():
+    return h_fin_promo_history()
+
+
+@admin_control.route('/su_bck_fin_promo_history', methods=['GET'])
+@login_required
+@su_mod_required
+def su_bck_fin_promo_history():
+    return h_bck_fin_promo_history()
+
+
+@admin_control.route('/su_fin_promo_code_history_excel', methods=['POST'])
+@login_required
+@su_mod_required
+def su_bck_fin_promo_history_excel():
+    return h_bck_fin_promo_history_excel()
 
 
 @admin_control.route('/su_bck_ut_report', methods=['POST', ])
@@ -493,6 +586,28 @@ def client_orders_stats(admin_id: int, client_id: int):
     return h_client_orders_stats(admin_id=admin_id, client_id=client_id)
 
 
+@admin_control.route('/at2_new_orders', methods=['GET', ])
+@login_required
+@bck_at2_required
+def at2_new_orders():
+    """
+        gets all client and self orders of specific agent type2
+    :return:
+    """
+    return h_at2_new_orders()
+
+
+@admin_control.route('/at2_orders_process/<int:o_id>/<int:change_stage>', methods=['POST', ])
+@login_required
+@bck_at2_required
+def at2_orders_process(o_id: int, change_stage: int):
+    """
+        change order of specific agents client to stage POOL
+    :return:
+    """
+    return h_at2_orders_process(o_id=o_id, change_stage=change_stage)
+
+
 @admin_control.route('/users_activate_list', methods=["GET", ])
 @login_required
 @bck_su_required
@@ -511,7 +626,27 @@ def bck_control_reanimate():
     return h_bck_reanimate()
 
 
-@admin_control.route('/bck_control_reanimate/<int:u_id>', methods=['GET', ])
+@admin_control.route('/bck_reanimate_save_call', methods=['POST'])
+@login_required
+@bck_su_required
+def bck_reanimate_save_call_result():
+    """
+        save call result for user in reanimate interface
+    """
+    return h_bck_save_call_result()
+
+
+@admin_control.route('/bck_su_control_reanimate_excel', methods=['POST'])
+@login_required
+@bck_su_required
+def bck_su_control_reanimate_excel():
+    """
+    load excel with user reanimate report
+    """
+    return h_bck_su_control_reanimate_excel()
+
+
+@admin_control.route('/bck_agent_control_reanimate/<int:u_id>', methods=['GET', ])
 @login_required
 @bck_aus_required
 def bck_agent_control_reanimate(u_id: int):

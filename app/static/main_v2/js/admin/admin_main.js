@@ -84,8 +84,8 @@ function get_change_fee_or_tl_modal(csrf, u_fee_or_tl, u_name,  url, type){
        modal_input = '<input name="agent_fee_value" id="agent_fee_value_check" class="form-control"  type="number" min="0" max="40" step="1" value="${u_fee_or_tl}" placeholder="Введите ставку 0-40%" required>'
     }
     else{
-        modal_label= '<label for="agent_tl_value">Укажите лимит отрицательного баланса агента в руб от 10000 до 1000000, р.</label>';
-        modal_input = '<input name="agent_tl_value" id="agent_tl_value_check" class="form-control" type="number" min="10000" max="1000000" step="100" value="${u_fee_or_tl}" placeholder="Введите лимит агента" required>'
+        modal_label= '<label for="agent_tl_value">Укажите лимит отрицательного баланса агента в руб от 0 до 1000000, р.</label>';
+        modal_input = '<input name="agent_tl_value" id="agent_tl_value_check" class="form-control" type="number" min="0" max="1000000" step="100" value="${u_fee_or_tl}" placeholder="Введите лимит агента" required>'
     }
     let form_block= `<form method="post"
           action="${url}" onsubmit="this.validate(); return this.valid();">

@@ -1,12 +1,28 @@
 <div class="row setup-content faded" id="step-2" {% if not o_id or 'page' in request.url %}style="display:none"{% endif %}>
 
-    <div class="return mb-4">
-        <div class="prevBtn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                viewBox="0 0 24 24" fill="none">
-                <path
-                    d="M10.7071 4.99998L4.20708 11.5H21.5V12.5H4.20708L10.7071 19L9.99995 19.7071L2.29285 12L2.99995 11.2929L10 4.29287L10.7071 4.99998Z"
-                    fill="#575757" />
-            </svg> Вернуться назад</div>
+    <div class="col-md-6">
+        <div class="return mb-2">
+            <div class="prevBtn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                    viewBox="0 0 24 24" fill="none">
+                    <path
+                        d="M10.7071 4.99998L4.20708 11.5H21.5V12.5H4.20708L10.7071 19L9.99995 19.7071L2.29285 12L2.99995 11.2929L10 4.29287L10.7071 4.99998Z"
+                        fill="#575757" />
+                </svg> Вернуться назад</div>
+        </div>
+    </div>
+    <div class="col-md-2"></div>
+    <div class="col-md-4">
+        {% if category in categories_upload %}
+            <div class="text-right">
+                <span >Заполнение заказа через
+
+                    <a href="{{ url_for(category_process_name + '.upload') }}" class="libk-secondary">Excel таблицу<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" class="svg-table">
+                      <path d="M18.4401 3.06006H5.56006C4.89759 3.06191 4.26277 3.32589 3.79433 3.79433C3.32589 4.26277 3.06191 4.89759 3.06006 5.56006V18.4401C3.06191 19.1025 3.32589 19.7373 3.79433 20.2058C4.26277 20.6742 4.89759 20.9382 5.56006 20.9401H18.4401C19.102 20.9364 19.7357 20.6718 20.2038 20.2038C20.6718 19.7357 20.9364 19.102 20.9401 18.4401V5.56006C20.9364 4.89815 20.6718 4.2644 20.2038 3.79635C19.7357 3.32831 19.102 3.06373 18.4401 3.06006ZM8.71006 19.9401H5.56006C5.16223 19.9401 4.7807 19.782 4.4994 19.5007C4.21809 19.2194 4.06006 18.8379 4.06006 18.4401V15.3301H8.71006V19.9401ZM8.71006 14.3301H4.06006V9.67006H8.71006V14.3301ZM8.71006 8.67006H4.06006V5.56006C4.06006 5.16223 4.21809 4.7807 4.4994 4.4994C4.7807 4.21809 5.16223 4.06006 5.56006 4.06006H8.71006V8.67006ZM19.9401 18.4401C19.9372 18.837 19.7782 19.2169 19.4975 19.4975C19.2169 19.7782 18.837 19.9372 18.4401 19.9401H9.71006V15.3301H19.9401V18.4401ZM19.9401 14.3301H9.71006V9.67006H19.9401V14.3301ZM19.9401 8.67006H9.71006V4.06006H18.4401C18.837 4.06294 19.2169 4.2219 19.4975 4.50258C19.7782 4.78326 19.9372 5.16312 19.9401 5.56006V8.67006Z" />
+                    </svg></a>
+                </span>
+
+            </div>
+        {% endif %}
     </div>
     <div class="row justify-content-end g-3">
         <div class="col-xl-8">
@@ -133,7 +149,8 @@
                         <label class="control-label">Пол</label>
                         <select class="form-control search-select" id="gender" name="gender"
                             onchange="javascript:set_tnved();" required>
-                            <option disabled selected value="">Выберите пол...</option>
+{#                            onchange="javascript:set_tnved();check_gender_ruznak(this.value)" required>#}
+                        <option disabled selected value="">Выберите пол...</option>
                               {% for el in genders%}
                                 <option value="{{el}}" {% if copied_order %}
                                                                 {% if copied_order.gender == el %}

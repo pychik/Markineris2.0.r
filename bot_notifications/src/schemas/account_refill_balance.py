@@ -7,7 +7,7 @@ from src.schemas.base import BaseModelWithStatusCode
 
 class RequisiteType(StrEnum):
     qr_code = "qr_code"
-    requisite_number = "requisite_number"
+    requisite_number = "requisites"
 
 
 class RequisiteIn(BaseModelWithStatusCode):
@@ -21,6 +21,12 @@ class PromoCodeIn(BaseModelWithStatusCode):
     promo_id: int
 
 
+class PromoCodeOut(BaseModel):
+    user_id: int
+    code: str
+    is_bonus: bool = False
+
+
 class TransactionCreateOut(BaseModel):
     amount: int
     status: int
@@ -29,6 +35,7 @@ class TransactionCreateOut(BaseModel):
     sa_id: int
     bill_path: str
     promo_id: int | None = None
+    is_bonus: bool = False
 
 
 class TransactionCreateResultIn(BaseModelWithStatusCode):

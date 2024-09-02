@@ -9,7 +9,7 @@ from models import db, Telegram, Order
 from utilities.check_idn import IdnGetter
 from utilities.check_tnved import TnvedChecker
 from utilities.support import check_file_extension, send_file_tg, \
-    orders_list_common, helper_check_useroragent_balance, helper_check_user_order_in_archive
+    orders_list_common, helper_check_useroragent_balance, helper_check_uoabm, helper_check_user_order_in_archive
 
 
 def h_get_company_data(u_id: int, from_category: str, idn: str) -> str:
@@ -192,7 +192,7 @@ def h_cubaa():
     status_order, answer_order = helper_check_user_order_in_archive(category=category, o_id=o_id)
 
     status_balance, total_order_price, \
-        agent_at2, answer_balance = helper_check_useroragent_balance(user=current_user, o_id=o_id)
+        agent_at2, answer_balance = helper_check_uoabm(user=current_user, o_id=o_id)
 
     return jsonify(dict(status_order=status_order, answer_orders=f"{answer_order}",
                         status_balance=status_balance, answer_balance=answer_balance,  agent_at2=agent_at2))

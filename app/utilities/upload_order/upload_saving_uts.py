@@ -20,7 +20,7 @@ def upload_shoe_st(order_list: list, order: Order) -> Order:
                               material_bottom=el[7].strip(),
                               tnved_code=el[8].strip(),
                               gender=el[9].strip(), country=el[11].strip(),
-                              rd_type=el[12].strip(), rd_name=el[13].strip(), rd_date=rd_date,
+                              rd_type=el[12].strip(), rd_name=el[13].strip().replace('№', ''), rd_date=rd_date,
                               article_price=0, tax=0)
 
         new_size_quantity = ShoeQuantitySize(size=el[4].strip(), quantity=el[10].strip())
@@ -42,7 +42,7 @@ def upload_shoe_ext(order_list: list, order: Order) -> Order:
                               country=el[9].strip(),
                               tnved_code=el[10].strip(),
                               gender=el[11].strip(),
-                              rd_type=el[12].strip(), rd_name=el[13].strip(), rd_date=rd_date,
+                              rd_type=el[12].strip(), rd_name=el[13].strip().replace('№', ''), rd_date=rd_date,
                               article_price=0, tax=0)
         from utilities.support import upload_divide_sizes_quantities
         sizes, quantities = upload_divide_sizes_quantities(value=el[8].strip())
@@ -63,7 +63,7 @@ def upload_clothes_st(order_list: list, order: Order) -> Order:
                                     content=el[7].strip(),
                                     tnved_code=el[8].strip(),
                                     country=el[10].strip(),
-                                    rd_type=el[11].strip(), rd_name=el[12].strip(), rd_date=rd_date,
+                                    rd_type=el[11].strip(), rd_name=el[12].strip().replace('№', ''), rd_date=rd_date,
                                     article_price=0, tax=0)
 
         new_size_quantity = ClothesQuantitySize(size=el[6].strip(), quantity=el[9].strip(), size_type=el[5].strip(), )
@@ -78,7 +78,7 @@ def upload_parfum_st(order_list: list, order: Order) -> Order:
     new_parfum_order = [Parfum(trademark=el[0].strip(), volume_type=el[1].strip(), volume=el[2].strip(),
                                package_type=el[3].strip(), material_package=el[4].strip(), type=el[5].strip(),
                                with_packages="нет", box_quantity=1, quantity=el[7].strip(), country=el[8].strip(),
-                               rd_type=el[9].strip(), rd_name=el[10],
+                               rd_type=el[9].strip(), rd_name=el[10].replace('№', ''),
                                rd_date=datetime.strptime(el[11].strip(), '%d.%m.%Y').date() if el[11].strip() else None,
                                tnved_code=el[6].strip(), article_price=0, tax=0) for el in order_list]
     order.parfum.extend(new_parfum_order)
@@ -90,7 +90,7 @@ def upload_parfum_ext(order_list: list, order: Order) -> Order:
                                package_type=el[3].strip(), material_package=el[4].strip(), type=el[5].strip(),
                                with_packages="да", box_quantity=el[7].strip(), quantity=el[8].strip(),
                                country=el[9].strip(),
-                               rd_type=el[10].strip(), rd_name=el[11],
+                               rd_type=el[10].strip(), rd_name=el[11].replace('№', ''),
                                rd_date=datetime.strptime(el[12].strip(), '%d.%m.%Y').date() if el[12].strip() else None,
                                tnved_code=el[6].strip(), article_price=0, tax=0)
                         for el in order_list]
@@ -109,7 +109,7 @@ def upload_linen_st(order_list: list, order: Order) -> Order:
                                 content=el[6].strip(),
                                 tnved_code=el[9].strip(),
                                 country=el[11].strip(),
-                                rd_type=el[12].strip(), rd_name=el[13].strip(), rd_date=rd_date,
+                                rd_type=el[12].strip(), rd_name=el[13].strip().replace('№', ''), rd_date=rd_date,
                                 article_price=0, tax=0)
 
         new_size_quantity = LinenQuantitySize(size=f"{el[7].strip()}*{el[8].strip()}", quantity=el[10].strip())
@@ -130,7 +130,7 @@ def upload_linen_ext(order_list: list, order: Order) -> Order:
                                 content=el[6].strip(),
                                 tnved_code=el[9].strip(),
                                 country=el[12].strip(),
-                                rd_type=el[13].strip(), rd_name=el[14].strip(), rd_date=rd_date,
+                                rd_type=el[13].strip(), rd_name=el[14].strip().replace('№', ''), rd_date=rd_date,
                                 article_price=0, tax=0)
 
         new_size_quantity = LinenQuantitySize(size=f"{el[7].strip()}*{el[8].strip()}", quantity=el[11].strip())

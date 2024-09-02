@@ -17,7 +17,7 @@
                 <tr>
                   <th scope="col">#</th>
                   <th scope="col" style="width:200px"><font size="2">Логин</font></th>
-                  <th scope="col"style="width:150px"><font size="2">Телефон</font></th>
+                  <th scope="col" style="width:150px"><font size="2">Телефон</font></th>
                   <th scope="col"><font size="2">Email</font></th>
                   <th scope="col"><font size="2">Код партнера</font></th>
                   <th scope="col"><font size="2">Код клиента</font></th>
@@ -26,6 +26,8 @@
                   {% endif %}                  <th scope="col"><font size="2">Статусы</font></th>
                   <th scope="col"><font size="2">Запрос&nbsp;создания<br>&nbsp; нового&nbsp; пароля</font></th>
                   <th scope="col"><font size="2">Управление пользователем</font></th>
+                  <th scope="col" style="text-align: center"><font size="2">Результат звонка</font></th>
+                  <th scope="col"><font size="2"></font></th>
                   <th scope="col"><font size="2"></font></th>
                 </tr>
               </thead>
@@ -34,15 +36,15 @@
                 {%for u in users_list%}
                     <tr>
                       <th scope="row">
-                          <span title="Баланс пользователя {{u.balance}} р.">{{offset  + loop.index}}</span>
+                          {{offset  + loop.index}}
                       </th>
 
                       <td>
-
-                          <a href="{{url_for('admin_control.client_orders_stats', admin_id=u.admin_id, client_id=u.id)}}" title="Посмотреть историю заказов клиента">
+                          <span title="Баланс пользователя {{u.balance}} р.">
+                              <a href="{{url_for('admin_control.client_orders_stats', admin_id=u.admin_id, client_id=u.id)}}" title="Посмотреть историю заказов клиента">
                                           {{u.login_name}}
-                          </a>
-
+                                      </a>
+                          </span>
                           {% if u.created_at %}
                             <div class="font-10 text-secondary" title="Дата и время регистрации" style="font-size:12px">{{ u.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
                           {% endif %}
@@ -159,6 +161,18 @@
                           {% endif %}
 
                       </td>
+
+                      <td>
+                        <div id="call_comment_and_result_{{ u.id }}" style="width: 400px;!important;">
+                        {# for using user instead of u in reanimate_comment.html #}
+                        {% set user = u %}
+                        {% include'admin/ra/reanimate_comment.html' %}
+                        </div>
+
+                      </td>
+                    <td>
+
+                    </td>
                       <td>
                           <form method="post" action="{{ url_for('admin_control.delete_user', u_id=u.id)}}">
                               <button type="submit" class="btn btn-sm btn-outline-danger"

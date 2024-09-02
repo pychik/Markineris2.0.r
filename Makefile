@@ -47,6 +47,7 @@ service-logs:					## Отображение в режиме реального �
 
 service-up:					## Запуск контейнеров сервиса маркинерис(Flask app, db, nginx).
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} up --build -d
+	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} restart bot_notification
 	docker image prune -f
 
 service-down:					## Остановка контейнеров сервиса маркинерис(Flask app, db, nginx).
@@ -54,6 +55,7 @@ service-down:					## Остановка контейнеров сервиса м
 
 flask-up:						## Запуск контейнера Flask app.
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} up --build -d flask_app
+	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} restart bot_notification
 flask-down:						## Остановка контейнера Flask app.
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} stop flask_app
 

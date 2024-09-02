@@ -1,0 +1,95 @@
+
+{% if orders_list %}
+    <div class="faded">
+        <table class="table mt-3 table-result mt-1">
+          <thead class="text-dark">
+            <tr>
+              <th scope="col">
+              </th>
+              <th scope="col"><span class="font-12">Дата оформления</span></th>
+              <th scope="col"><span class="font-12">Номер заказа</span></th>
+              <th scope="col"><span class="font-12">Кол-во марок</span></th>
+                <th scope="col"><span class="font-12">Организация</span></th>
+              <th scope="col" style="width:200px"><span class="font-12">Имя&nbsp;пользователя (логин)</span></th>
+              <th scope="col" style="width:200px"><span class="font-12">Телефон, почта</span></th>
+<!--              <th scope="col"><span class="font-12">Email</span></th>-->
+
+              <th scope="col"><span class="font-12">Управление заказом</span></th>
+              <th scope="col"><span class="font-12"></span></th>
+            </tr>
+          </thead>
+          <tbody>
+
+            {%for ou in orders_list%}
+                <tr>
+                  <th scope="row">
+                      {{(page - 1) * per_page + loop.index}}
+                  </th>
+                  <td>
+                      {{ ou.crm_created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                  </td>
+                  <td>
+                      {{ou.order_idn}}
+                  </td>
+
+                  <td>
+                       {{ou.pos_count}}
+                  </td>
+                  <td>
+                       {{ou.company_type}} {{ou.company_name}}
+                  </td>
+                  <td>
+                      {{ou.login_name}}
+                  </td>
+                  <td>
+                      {{ou.phone}} {{ou.email}}
+                  </td>
+<!--                  <td>-->
+<!--                      {{ou.email}}-->
+<!--                  </td>-->
+
+                  <td>
+                      <div class="row justify-content-around">
+
+                              <span class="btn-table me-3" style="cursor:pointer" title="Отправить заказ в пулл заказов для фирмы"
+                                 onclick="bck_order_process('{{url_for('admin_control.at2_orders_process', o_id=ou.id, change_stage=pool)}}', '{{url_for('admin_control.at2_new_orders', bck=1, page=page)}}', '{{csrf_token()}}')">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="green" class="bi bi-bag-check" viewBox="0 0 16 16">
+                                      <path fill-rule="evenodd" d="M10.854 8.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708 0"/>
+                                      <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+                                  </svg>
+                              </span>
+
+                              <span class="btn-table me-3" style="cursor:pointer" title="Отменить заказ"
+                                  onclick="bck_order_process('{{url_for('admin_control.at2_orders_process', o_id=ou.id, change_stage=cancelled)}}', '{{url_for('admin_control.at2_new_orders', bck=1, page=page)}}', '{{csrf_token()}}')">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" class="bi bi-bag-x" viewBox="0 0 16 16">
+                                      <path fill-rule="evenodd" d="M6.146 8.146a.5.5 0 0 1 .708 0L8 9.293l1.146-1.147a.5.5 0 1 1 .708.708L8.707 10l1.147 1.146a.5.5 0 0 1-.708.708L8 10.707l-1.146 1.147a.5.5 0 0 1-.708-.708L7.293 10 6.146 8.854a.5.5 0 0 1 0-.708"/>
+                                      <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+                                  </svg>
+                              </span>
+
+                      </div>
+                  </td>
+
+                </tr>
+
+
+            {%endfor%}
+          </tbody>
+        </table>
+        <div class="pagination_section my-1" >
+            <div class="d-flex">
+                <div class="col-3"></div>
+                <div class="col-md-1"></div>
+                <div class="col-5" style="margin-left: 3%;">
+                    <div class="pagination-page-info my-2">
+                        На этой странице <b>{{ offset + 1 }} - {{ offset + orders_list|length }}</b> Всего: <b>{{ pagination.total }}</b>
+                    </div>
+                    {{ pagination.links }}
+                </div>
+
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="faded mt-3">Нет новых заказов для отправки фирме</div>
+{% endif %}

@@ -2,12 +2,12 @@ from datetime import datetime
 
 from flask import request, jsonify, Response
 from flask_login import current_user
-from sqlalchemy import text
+from sqlalchemy import text, Table, or_
 from sqlalchemy.exc import IntegrityError
 
 from config import settings
 from logger import logger
-from models import TgUser, db, Promo, User, UserTransaction, users_promos
+from models import TgUser, db, Promo, Bonus, User, UserTransaction
 from redis_queue.connection import tg_redis_database_connection
 from utilities.telegram import NotificationTgUser
 from validators.api import TransactionInData
@@ -73,23 +73,27 @@ def h_tg_markineris_stop_verify():
     return jsonify(dict(status=status, message=message))
 
 
-def check_promo_exists(promo_code: str) -> Promo | None:
-    promo_code_obj: Promo = Promo.query.filter(Promo.code == promo_code).first()
+def check_promo_exists(promo_code: str, model: Promo | Bonus) -> Promo | Bonus | None:
+    promo_code_obj: Bonus | Bonus = model.query.filter(
+        model.code == promo_code,
+        or_(model.is_archived.is_(False), model.is_archived.is_(None)),
+    ).first()
 
     return promo_code_obj
 
 
-def check_promo_used(user_id: int, promo_code: str) -> bool:
+def check_promo_used(user_id: int, code: str, model: Promo | Bonus, relation_model: Table) -> bool:
     query = db.session.query(
-        User.id, Promo.code,
+        User.id, model.code,
     ).join(
-        users_promos, users_promos.c.user_id == User.id,
+        relation_model, relation_model.c.user_id == User.id,
     ).join(
-        Promo,
-        users_promos.c.promo_id == Promo.id,
+        model,
+        relation_model.c.promo_id == model.id,
     ).filter(
         User.id == user_id,
-        Promo.code == promo_code,
+        model.code == code,
+        or_(model.is_archived.is_(False), model.is_archived.is_(None)),
     )
     return query.first()
 
@@ -98,21 +102,25 @@ def create_transaction_from_tg(data: TransactionInData) -> bool:
     try:
         created_at = datetime.now()
         query = (
-            f"""INSERT into public.user_transactions (type, status, amount, promo_info, user_id, sa_id, bill_path, created_at)
-                    VALUES(True, {data.status}, {data.amount}, '{data.promo_info}', {data.user_id}, {data.sa_id}, '{data.bill_path}', '{created_at}');
+            f"""INSERT into public.user_transactions (type, status, amount, promo_info, user_id, sa_id, bill_path, created_at, is_bonus)
+                    VALUES(True, {data.status}, {data.amount}, '{data.promo_info}', {data.user_id}, {data.sa_id}, '{data.bill_path}', '{created_at}', '{data.is_bonus}');
                 UPDATE public.users SET pending_balance_rf=pending_balance_rf + {data.amount} WHERE public.users.id = {data.user_id};
                 UPDATE public.server_params SET pending_balance_rf=pending_balance_rf + {data.amount};
             """
         )
 
         if data.promo_id is not None:
-            query += f"INSERT into public.users_promos VALUES({data.user_id}, {data.promo_id});"
+            if data.is_bonus:
+                query += f"INSERT into public.users_bonus_codes VALUES({data.user_id}, {data.promo_id}, '{created_at}');"
+            else:
+                query += f"INSERT into public.users_promos VALUES({data.user_id}, {data.promo_id}, '{created_at}');"
+
         db.session.execute(text(query))
         db.session.commit()
 
     except Exception:
         db.session.rollback()
-        logger.exception("Ошибка в процессе создания транзакции.")
+        logger.exception("Ошибка при попытке создать транзакцию.")
         return False
 
     return True

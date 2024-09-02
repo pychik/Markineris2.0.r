@@ -1,0 +1,36 @@
+<div class="input-group">
+    <input title="комментарий"
+           class="form-control"
+           type="text"
+           id="comment_{{ user.id }}"
+           value="{{ user.comment }}"
+           placeholder="Комментарий"
+           style="margin: 0px;padding: 0px; width: 250px;min-width: 250px;!important;">
+    <select class="form-control" id="selected_call_status_{{ user.id }}"
+            style="min-width:50px;width:50px;background-color: {{ reanimate_call_result[user.call_result] | safe }} !important"
+            title="выберите статус звонка">
+        {% if not user.call_result %}
+            <option selected value="">Результат звонка</option>
+        {% else %}
+            <option selected value="{{ user.call_result }}"> {{ user.call_result }}</option>
+        {% endif %}
+        {% for description in reanimate_call_result.keys() %}
+            {% if description != user.call_result %}
+                <option value="{{ description }}">{{ description }}</option>
+            {% endif %}
+        {% endfor %}
+    </select>
+</div>
+{#<div class="input-group flex-nowrap">#}
+{#    <input title="дата последнего обновления"#}
+{#               class="form-control"#}
+{#               disabled#}
+{#               id="last_call_update{{ user.id }}" value="{{ user.last_call_update }}"#}
+{#               style="margin: 0px;padding: 0px; width: 10px;min-width: 140px;!important;font-size: 15px;text-align: center">#}
+{#        <a href="javascript:saveCallResultAndComment('{{ url_for('admin_control.bck_reanimate_save_call_result') }}?bck=1', '{{ user.id }}', '{{ csrf_token() }}')"#}
+{#           class="btn btn-sm btn-outline-secondary"#}
+{#            title="Сохранить комментарий и результат звонка"  style="width: 100px;min-width: 100px;padding-left: 10px;!important;"#}
+{#           type="submit">#}
+{#            Сохранить#}
+{#        </a>#}
+{#</div>#}

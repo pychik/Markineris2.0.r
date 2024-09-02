@@ -11,6 +11,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from config import settings
 from logger import logger
 from models import db, Order, User, RestoreLink, Price, ServiceAccount, UserTransaction, TgUser
+from utilities.daily_price import get_cocmd
 from utilities.mailer import MailSender
 from utilities.support import url_encrypt, url_decrypt, check_email, check_user_messages, \
     helper_get_order_notification, helper_get_current_sa, \
@@ -148,14 +149,17 @@ def h_user_personal_account(u_id: int, stage: int = None) -> Union[Response, str
     # current service account
     cur_sa = helper_get_current_sa()
 
+    po_rep = get_cocmd(user_id=current_user.id, price_id=current_user.price_id)  # price order report
+
     return render_template('user_control/personal_account.html', **locals())
 
 
 def h_update_transactions_history(u_id: int):
-    # background update of transactions
+    status = 'error'
+    message = settings.Messages.STRANGE_REQUESTS
     if current_user.id != u_id:
         return jsonify(
-            {'htmlresponse': settings.Messages.STRANGE_REQUESTS})
+            {'status': status, 'message': message, 'htmlresponse': ''})
 
     is_at2 = helper_get_user_at2(user=current_user)
 
@@ -166,7 +170,8 @@ def h_update_transactions_history(u_id: int):
                              anchor='transactions_table_info')
     transaction_dict = settings.Transactions.TRANSACTIONS
 
-    return jsonify({'htmlresponse': render_template(f'user_control/transactions/transactions_history.html', **locals())})
+    return jsonify({'status': 'success', 'message': '',
+                    'htmlresponse': render_template(f'user_control/transactions/transactions_history.html', **locals())})
 
 
 def h_transaction_detail(u_id: int, t_id: int):
@@ -251,9 +256,9 @@ def h_pa_refill(u_id: int, sa_id: int):
         message = settings.Messages.STRANGE_REQUESTS
         return jsonify(dict(status=status, message=message))
 
-    promo_code = request.form.get('promo_code', '').replace('--', '')
+    promo_code = request.form.get('promo_code', '').replace('--', '').strip()
 
-    amount_orig = int(request.form.get('bill_summ', '0').replace('--', ''))
+    amount_orig = int(request.form.get('bill_summ', '0').replace('--', '').strip())
 
     if amount_orig < settings.PA_REFILL_MIN:
         message = settings.Messages.STRANGE_REQUESTS

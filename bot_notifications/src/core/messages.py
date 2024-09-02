@@ -1,4 +1,5 @@
 from src.core.config import settings
+from src.keyboards.buttons import CANCEL_BUTTON
 from src.keyboards.keyboard_events_data import START_COMMAND_TEXT
 
 
@@ -35,17 +36,29 @@ class UserMessages:
     ENTER_PROMO_CODE: str = "Введите промокод(необязательно)"
     PROMO_CODE_VALIDATE_SUCCESS: str = "Промокод успешно применен"
     PROMO_CODE_NOT_FOUND: str = (
-        "Промокода {promo} не найден.\n\n"
+        "Промокод {promo} не найден.\n\n"
         "Попробуйте ввести еще раз. Если у вас нет промокода нажмите кнопку 'Нет промокода'"
     )
     PROMO_ALREADY_USED: str = (
         "Промокод {promo} уже использован.\n\n"
         "Введите другой промокод. Если у вас нет промокода нажмите кнопку 'Нет промокода'"
     )
-    SEND_RECEIPT_PHOTO: str = "Отправьте фото чека"
-    INVALID_FORMAT_PHOTO: str = f"Фото должно быть формата {', '.join(settings.ALLOWED_BILL_EXTENSIONS)}"
-    SEND_RECEIPT_PHOTO_HELP_TEXT: str = f"Отправьте фото чека в формата {', '.join(settings.ALLOWED_BILL_EXTENSIONS)}"
-    PHOTO_PROCESSING_ERROR: str = "Ошибка загрузки фото, попробуйте отправить чек снова."
+    BONUS_CODE_VALIDATE_SUCCESS: str = "Бонус код успешно применен"
+    ENTER_BONUS_CODE: str = "Введите бонус код"
+    BONUS_CODE_NOT_FOUND: str = (
+        "Бонус код {bonus_code} не найден.\n\n"
+        f"Попробуйте ввести еще раз. Если у вас нет - "
+        f"нажмите кнопку `{CANCEL_BUTTON['text']}`"
+    )
+    BONUS_CODE_ALREADY_USED: str = (
+        "Бонус код {bonus_code} уже использован.\n\n"
+        f"Введите другой бонус код. Если у вас нет - "
+        f"нажмите кнопку `{CANCEL_BUTTON['text']}`"
+    )
+    SEND_RECEIPT_PHOTO: str = "Отправьте чек"
+    INVALID_FORMAT_PHOTO: str = f"Чек должен быть формате {', '.join(settings.ALLOWED_BILL_EXTENSIONS)}"
+    SEND_RECEIPT_PHOTO_HELP_TEXT: str = f"Отправьте чек в формате {', '.join(settings.ALLOWED_BILL_EXTENSIONS)}"
+    PHOTO_PROCESSING_ERROR: str = "Ошибка загрузки, попробуйте отправить чек снова."
     TRANSACTION_CREATE_SUCCESSFULLY: str = "Транзакция успешно создана"
     TRANSACTION_CREATE_FAILED: str = "Транзакция не создана. Попробуйте еще раз"
     BAD_REQUEST_ERROR: str = "Некорректный запрос, попробуйте снова."

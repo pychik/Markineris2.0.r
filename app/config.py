@@ -1,4 +1,5 @@
 import os
+from decimal import Decimal
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -13,13 +14,14 @@ from utilities.param_lists import SHOE_GENDERS, SHOE_MATERIALS_UP_LINEN, SHOE_MA
     PARFUM_START, PARFUM_PRELOAD_START, PARFUM_TNVED, PARFUM_TYPES, PARFUM_VOLUMES, \
     CLOTHES_DICT, CLOTHES_GENDERS, \
     CLOTHES_GENDERS_ORDER, CLOTHES_START, CLOTHES_PRELOAD_START, CLOTHES_TNVED, CLOTHES_TYPES, \
-    COUNTRIES_LIST, COUNTRIES_LIST_C, TEMPLATE_TABLES_DICT, ORDER_EDIT_DESCRIPTION, \
-    SHOE_TNVED_CHECK_LIST, CLOTHES_TYPES_SIZES_DICT, CATEGORIES_DICT, \
-    BIG_TNVED_LIST, BIG_TNVED_DICT, ADMIN_REPORT_HEAD, AGENT_DEFAULT_NOTE, ORDER_STAGES, \
-    CHECK_ORDER_STAGES, COMMON_COLORS, SHOE_START_EXT, LINEN_START_EXT, PARFUM_START_EXT, \
-    CLOTHES_START_EXT, CRM_PS_DICT, CLOTHES_CONTENT, CLOTHES_NAT_CONTENT, CLOTHES_UPPER, \
+    COUNTRIES_LIST, TEMPLATE_TABLES_DICT, ORDER_EDIT_DESCRIPTION, \
+    SHOE_TNVED_CHECK_LIST, CLOTHES_TYPES_SIZES_DICT, CATEGORIES_DICT, CLOTHES_ST_DICT, \
+    BIG_TNVED_LIST, BIG_TNVED_DICT, ADMIN_REPORT_HEAD, AGENT_DEFAULT_NOTE, ORDER_STAGES, COUNTRIES_CODES, \
+    CHECK_ORDER_STAGES, COMMON_COLORS, SHOE_START_EXT_029, SHOE_START_EXT_046, LINEN_START_EXT, PARFUM_START_EXT, \
+    CRM_PS_DICT, CLOTHES_CONTENT, CLOTHES_NAT_CONTENT, CLOTHES_UPPER, SHOE_TYPES_CODES, SHOE_SIZES_ND, SHOE_SIZES_CODES, \
     USER_TRANSLATE_DICT, CLOTHES_SIZES_FULL, CLOTHES_SIZES_DESCRIPTION, CLOTHES_OLD_TNVED, ALL_CLOTHES_TNVED, \
-    COMPLICATED_COLORS, ALL_COLORS, UT_REPORT_START
+    COMPLICATED_COLORS, ALL_COLORS, UT_REPORT_START_FILL, UT_REPORT_START_ELSE, CLOTHES_TYPES_CODES, CLOTHES_START_EXT_029, CLOTHES_START_EXT_046, \
+    CLOTHES_GENDERS_ORDER_046
 
 CUR_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -102,14 +104,17 @@ class Settings(BaseSettings):
     SQ_CATEGORIES: list = ['обувь', 'одежда', 'белье']
     CATEGORIES_PROCESS_NAMES: list = ['shoes', 'clothes', 'linen', 'parfum', 'send_table']
     CATEGORIES_UPLOAD: tuple = ('обувь', 'одежда', 'парфюм', 'белье')
+    RZ_GENDERS_RD_LIST: tuple = ("Детские", "Мальчик", "Девочка", "Детск.",)
     COMPANY_TYPES: list = ["ИП", "ООО", "АО"]
     CATEGORIES_DICT: dict = CATEGORIES_DICT
     COUNTRIES_LIST: list = COUNTRIES_LIST
-    COUNTRIES_LIST_C: list = COUNTRIES_LIST_C
+    COUNTRIES_CODES: dict = COUNTRIES_CODES
     EDO_TYPES: list = ["СБИС", "КОНТУР", "ТАКСКОМ", "КАЛУГА АСТРАЛ"]
     DOWNLOAD_DIR: str = f"{CUR_PATH}/download_dir"
     DOWNLOAD_DIR_CRM: str = f"{CUR_PATH}/download_dir/crm/"
     DOWNLOAD_DIR_STATIC: str = f"{CUR_PATH}/static/"
+    DB_BACKUP: str = "db_backups/"
+    DB_BACKUP_DIR: str = f"{CUR_PATH}/{DB_BACKUP}"
     DOWNLOAD_QA_BASIC: str = f"qr_imgs/"
     DOWNLOAD_BILL_BASIC: str = f"bill_imgs/"
     DOWNLOAD_DIR_SA_QR: str = f"{DOWNLOAD_DIR_STATIC}{DOWNLOAD_QA_BASIC}"
@@ -171,7 +176,7 @@ class Settings(BaseSettings):
     BANK_ACCOUNTS_LIMIT: int = 10
     UPLOAD_BACKGROUND: int = 111
     TRUST_LIMIT_DEFAULT: int = 100000
-    TRUST_LIMIT_MINIMUM: int = 10000
+    TRUST_LIMIT_MINIMUM: int = 0
     TRUST_LIMIT_MAXIMUM: int = 1000000
     TG_VERIFICATION_LENGTH: int = 32
     PA_REFILL_MIN: int = 1
@@ -184,6 +189,12 @@ class Settings(BaseSettings):
                             }
     AR_ORDERS_DAYS_DEFAULT: int = 7
     ALL_CATEGORY_TYPES: str = 'ALL_CATEGORY_TYPES'
+    ORDERS_REPORT_TIMEDELTA: int = 7
+    PROMO_HISTORY_TIMEDELTA: int = 7
+    REANIMATE_CALL_RESULT: dict[str, str] = {'недозвон': '#FF9999',
+                                             'перезвон': '#FFFF99',
+                                             'успех': '#99FF99',
+                                             }
 
     class OrderStage:
         @staticmethod
@@ -228,7 +239,7 @@ class Settings(BaseSettings):
         ORDER_PROCESS_CRM: str = 'process_crm'
         ORDER_PROCESS_AT2: str = 'process_at2'
         DAYS_CONTENT: int = 2
-        DAYS_SEARCH_CONTENT: int = 30
+        DAYS_SEARCH_CONTENT: int = 60
         DAYS_UPDATE_CONTENT: int = 30
         DAYS_SENT_CONTENT: int = 1
         AUTO_HOURS_CP: int = 24  # quantity of hours before changing order stage from MANAGER PROBLEM TO CANCEL
@@ -246,7 +257,7 @@ class Settings(BaseSettings):
         DEFAULT_AP_MARKS: int = 1000  # default max quantity of marks for order to auto change stage to pool
         DEFAULT_AS_MINUTES: int = 20  # default max minutes for order to auto change stage to sent from manager ready
         DEFAULT_AS_CRON_STRING: str = minutes_to_cron(minutes=DEFAULT_AS_MINUTES)  # default max minutes for order to auto change stage to sent from manager ready
-        DEFAULT_ORDER_FILE_TO_REMOVE: int = 45  # days for cleaning files from server
+        DEFAULT_ORDER_FILE_TO_REMOVE: int = 90  # days for cleaning files from server
 
         # tg user messages
         M_ORDER_ADDED: str = "M2R: Заказ <b>{order_idn}</b>: <u>отправлен в работу!</u>"
@@ -281,8 +292,8 @@ class Settings(BaseSettings):
         TIMEOUT: float = 3.500
 
     class ServiceAccounts:
-        QUANTITY_LIMIT: int = 8
-        SUMM_LIMIT: int = 500000
+        QUANTITY_LIMIT: int = 80
+        SUMM_LIMIT: int = 100000
         TYPES: tuple = (('qr_code', 'qr код'), ('requisites', 'Реквизиты вручную'),)
         TYPES_KEYS: tuple = ('qr_code', 'requisites',)
         TYPES_DICT: dict = {'qr_code': 'qr код', 'requisites': 'Реквизиты вручную'}
@@ -324,6 +335,8 @@ class Settings(BaseSettings):
         # C_10K_20K: int = 20000
         # C_20K_50K: int = 50000
         RANGES: tuple = (C_LT100, C_100_500, C_500_1K, C_1K_3K, C_3K_10K)
+        NOT_BASIC_PRICE_REPORT_FILE_NAME = 'Отчет по ценам от {0}.xlsx'
+        NOT_BASIC_PRICE_REPORT_SHEET_NAME = 'not Basic prices'
 
     class Users:
         DEFAULT_DAYS_RANGE: int = 30
@@ -341,6 +354,7 @@ class Settings(BaseSettings):
         SUCCESS: int = 2
         SUCCESS_RETURN: int = 3
         DEFAULT_DAYS_RANGE: int = 90
+        DEFAULT_DATE_FROM: str = '2024-04-01'
         TRANSACTIONS: dict = {PENDING: 'Ожидается подтверждение', CANCELLED: 'Отменена', SUCCESS: 'Успешно проведена',
                               SUCCESS_RETURN: 'Возврат средств отмененного заказа'}
         TRANSACTION_WRITEOFF: int = 0
@@ -409,17 +423,22 @@ class Settings(BaseSettings):
 
     class Messages:
         @staticmethod
-        def answer_refill_balance(balance: int, current_price: int, sum_count: int, is_at2: bool = False) -> str:
+        def answer_refill_balance(balance: int, current_price: int, sum_count: int, is_at2: bool = False,
+                                  all_marks: int = 0, sum_cost: Decimal = 0) -> str:
             """
                 helps to make user message with balance and orders info
             :return:
             """
             # mes_part = f"Недостаточно средств на счете агента  для оформления заказа. Баланс агента: {balance} р. <br>" if agent_at2 else f"Недостаточно средств на личном счете для оформления заказа. Баланс пользователя: {balance} р. <br>"
-            mes_part = f"Недостаточно средств на личном счете для оформления заказа. Баланс пользователя: {balance} р. <br>"
+            mes_part = (f"Недостаточно средств на личном счете для оформления заказа."
+                        f" Баланс пользователя: {balance} р. <br>") if not is_at2 \
+                else f"Недостаточно средств на личном счете агента."
             return f"{mes_part}" \
-                   f"Общее количество марок под заказ со всеми непроведенными заказами - {sum_count} шт. <br>" \
+                   f"Количество марок по текущему заказу - {sum_count} шт. <br>" \
+                   f"Стоимость текущего заказа - {sum_count * current_price} р. <br>" \
+                   f"Общее количество марок в непроведенных заказах - {all_marks} шт. <br>" \
                    f"Цена за марку - {current_price} р./шт.<br>" \
-                   f"Всего нужно - {current_price * sum_count} р.<br>"
+                   f"Всего по всем заказам нужно - {sum_cost} р.<br>"
 
         AUTH_OR_SIGNUP: str = "Пожалуйста авторизуйтесь для работы с сервисом!"
         INCORRECT_AUTH: str = "Введены некорректные данные учетной записи! Проверьте email или пароль!"
@@ -553,6 +572,10 @@ class Settings(BaseSettings):
         SUPERADMIN_MADMIN_USER_REQUIRED: str = "Для того, чтобы контроллировать CRM нужно быть админом или суперпользователем. " \
                                                "Вы уверены, что вы админ или суперпользователь?"
         SUPER_MOD_REQUIRED: str = "Для того, чтобы продолжить нужна роль супера или модератора"
+        AT2_USER_REQUIRED: str = "Для того, чтобы пользоваться этим функционалом необходимо быть пользователем типа Единый счет и у пользователей должны быть заказы"
+        AT2_ORDER_CHANGE: str = "Статус заказа успешно изменен"
+        AT2_ORDER_CHANGE_ERROR: str = "При изменении статуса заказа произошла ошибка"
+        AT2_ORDER_CANCEL_TEXT: str = "Заказ отменен агентом типа 2 на стадии передачи в ПУЛ"
         PARTNER_CODE_ERROR: str = "Ошибка сохранения кода партнера! "
         PARTNER_CODE_DELETE_SUCCESS: str = "Успешно удален партнер код {partner_code}"
         PARTNER_CODE_DELETE_ERROR: str = "Ошибка удаления кода партнера! Есть привязанные пользователи."
@@ -561,7 +584,7 @@ class Settings(BaseSettings):
         PROMO_ERROR: str = "Ошибка сохранения промокода! "
         PROMO_DUPLICATE_ERROR: str = "Ошибка сохранения промокода! В базе уже есть такой код! "
         PROMO_TYPE_ERROR: str = "Ошибка сохранения промокода! Проверьте вводимое значение "
-        PROMO_NE_ERROR: str = 'Такого промо кода не существует'
+        PROMO_NE_ERROR: str = 'Такого промокода не существует'
         PROMO_USED_ERROR: str = 'Вы уже использовали этот промокод'
         PROMO_ADD_USER_ERROR: str = 'Ошибка добавления промокода к списку использованных пользователем '
         PRICE_CREATE: str = "Успешно создан ценовой пакет "
@@ -663,6 +686,7 @@ class Settings(BaseSettings):
                                   "Прочитайте скачавшийся текстовый файл с ошибками \"Ошибки_загрузки_заказа.txt\"." \
                                   " Исправьте ошибки и попробуйте снова!"
         UPLOAD_RD_GENERAL_ERROR: str = "Разрешительная Документация - заполнены не все поля"
+        UPLOAD_RD_GENERAL_REQUIRED_ERROR: str = "Для выбранного пола {gender} должна быть заполнена разрешительная документация (декларации)"
         UPLOAD_RD_TYPE_ERROR: str = "Разрешительная Документация. Проверьте правильность типа РД (справочник)"
         UPLOAD_RD_DATE_ERROR: str = "Разрешительная Документация - проверьте формат даты dd.mm.yyyy"
         UPLOAD_EMPTY_FILE_ERROR: str = "Нет ни одной информационной строки"
@@ -804,7 +828,14 @@ class Settings(BaseSettings):
         TEXT_TY = 5 / 100  # Y position as a percentage absolete 10
 
     class Reports:
-        UT_START: list = UT_REPORT_START
+        UT_START_FILL: list = UT_REPORT_START_FILL
+        UT_START_ELSE: list = UT_REPORT_START_ELSE
+
+    class ExcelFormatting:
+        FILTER_AND_COL_NAME_FORMATTER: dict = {'bold': True, "align": "center" }
+        MAIN_DATA_FORMATTER: dict = {"align": "left"}
+        DATE_FORMATTER: dict = {'num_format': 'dd.mm.yyyy', "align": "left"}
+        DATETIME_FORMATTER: dict = {'num_format': 'dd.mm.yyyy hh:mm', "align": "left"}
 
     class Upload:
         STANDART: str = 'standart'
@@ -816,6 +847,7 @@ class Settings(BaseSettings):
         CATEGORY: str = 'обувь'
         CATEGORY_PROCESS: str = 'shoes'
         TYPES: list = SHOE_TYPES
+        TYPES_CODES: dict = SHOE_TYPES_CODES
         COLORS: tuple = COMMON_COLORS
         GENDERS: list = SHOE_GENDERS
         MATERIALS_UP_LINEN: list = SHOE_MATERIALS_UP_LINEN
@@ -830,6 +862,8 @@ class Settings(BaseSettings):
         TNVED_CHECK_LIST: list = SHOE_TNVED_CHECK_LIST
         SIZES: tuple = SHOE_SIZES
         SIZES_ALL: list = SHOE_SIZES_FULL
+        SIZES_ND: tuple = SHOE_SIZES_ND  # sizes not in dict
+        SIZES_CODES: dict = SHOE_SIZES_CODES
         SHOE_SIZE_DESC: tuple = SHOES_SIZES_DESCRIPTION
         BOX_DESCRIPTION: list = ["Если вы собираете заказ <b>коробами</b>, ",
                                  "то в поле <i><u>Количество коробов</u></i>",
@@ -839,20 +873,22 @@ class Settings(BaseSettings):
                                  " а в графе <i><u>Количество в коробе</u></i> ",
                                  "оставьте цифру 1."]
         START: list = SHOE_START
-        START_EXT: list = SHOE_START_EXT
+        START_EXT: list = SHOE_START_EXT_029
+        START_EXT_046: list = SHOE_START_EXT_046
         START_PRELOAD: list = SHOE_PRELOAD_START
         START_CRM_PRELOAD: list = SHOE_PRELOAD_START[1:11] + SHOE_PRELOAD_START[12:]
         SHEET_NAME_STANDART: str = "IMPORT_TNVED_6405"
         SHEET_NAME_EXT: str = "Данные"
         UPLOAD_STANDART_ROW: int = 7
         MAX_QUANTITY: int = 100000000
+        MIN_QUANTITY: int = 1
         UPLOAD_TYPE_ERROR: str = "Проверьте правильность выбора типа обуви (посмотрите вкладку справочник)"
         UPLOAD_COLOR_ERROR: str = "Проверьте правильность указанного цвета обуви (посмотрите вкладку справочник)"
-        UPLOAD_SIZE_ERROR: str = "Проверьте правильность указанного размера обуви (диапазон от 16 до 56, шаг 0.5)" \
-                                 "т.е. 16, 16.5, 17, 17.5 ... 55.5, 56, 56.5, либо размеры особого вида:" \
-                                 "16-17, 17-18 ... 54-55, 55-56"
+        UPLOAD_SIZE_ERROR: str = "Проверьте правильность указанного размера обуви (диапазон от 16 до 60, шаг 0.5)" \
+                                 "т.е. 16, 16.5, 17, 17.5 ... 59, 59.5, 60, либо размеры особого вида:" \
+                                 "16-17, 17-18 ... 59-60"
         UPLOAD_SIZES_QUANTITIES_ERROR: str = "Проверьте корректность указанных размеров и количеств обуви " \
-                                             "(диапазон размеров  от 16 до 56.5, шаг 0.5)"
+                                             "(диапазон размеров  от 16 до 60, шаг 0.5)"
         UPLOAD_SIZES_QUANTITIES_DATA_INPUT_ERROR: str = "Проверьте корреткность указанной размерной сетки"
         UPLOAD_SIZES_QUANTITIES_LEN_ERROR: str = "Проверьте корректность указанных размеров и количеств обуви, " \
                                                  "список размеров не совпадает со списком количеств"
@@ -881,6 +917,7 @@ class Settings(BaseSettings):
 
         UPLOAD_STANDART_ROW: int = 7
         MAX_QUANTITY: int = 100000000
+        MIN_QUANTITY: int = 1
         UPLOAD_TYPE_ERROR: str = "Проверьте правильность выбора вида товара (посмотрите вкладку справочник)"
         UPLOAD_COLOR_ERROR: str = "Проверьте правильность указанного цвета белья (посмотрите вкладку справочник)"
         UPLOAD_SIZE_ERROR: str = "Проверьте правильность указанного размера белья (это должно быть целое число )"
@@ -906,6 +943,7 @@ class Settings(BaseSettings):
 
         MAX_VOLUME: int = 1000000
         MAX_QUANTITY: int = 100000000
+        MIN_QUANTITY: int = 1
         NUMBER_STANDART: str = "ТР ТС 009/2011 \"О безопасности парфюмерно-косметической продукции\""
         STATUS: str = "Черновик"
         UPLOAD_STANDART_ROW: int = 7
@@ -927,6 +965,7 @@ class Settings(BaseSettings):
         CATEGORY: str = 'одежда'
         CATEGORY_PROCESS: str = 'clothes'
         TYPES: list = CLOTHES_TYPES
+        TYPES_CODES: dict = CLOTHES_TYPES_CODES
         UPPER_TYPES: list = CLOTHES_UPPER
         COLORS: tuple = COMMON_COLORS
         SIZES_ALL: list = CLOTHES_SIZES_FULL
@@ -935,21 +974,25 @@ class Settings(BaseSettings):
         CLOTHES_NAT_CONTENT: list = CLOTHES_NAT_CONTENT
         GENDERS: list = CLOTHES_GENDERS
         GENDERS_ORDER: list = CLOTHES_GENDERS_ORDER
+        GENDERS_ORDER_046: dict = CLOTHES_GENDERS_ORDER_046
         DEC: dict = CLOTHES_DICT
 
         SIZE_ALL_DICT: dict = CLOTHES_TYPES_SIZES_DICT
         DEFAULT_SIZE_TYPE: str = "РОССИЯ"
         UNITE_SIZE_VALUE: str = "ЕДИНЫЙ РАЗМЕР"
+        SYZE_TYPES_CODES: dict = CLOTHES_ST_DICT
         SIZE_TYPES_ALL: list = CLOTHES_TYPES_SIZES_DICT.keys()  # temporary before all types are ok to use
         TNVED_CODE: tuple = CLOTHES_TNVED  # "6202900001"
         # TNVED_CHECK_LIST: tuple = BIG_CLOTHES_TNVED_4DIGIT
         TNVED_ALL: tuple = ALL_CLOTHES_TNVED
         START: list = CLOTHES_START
-        START_EXT: list = CLOTHES_START_EXT
+        START_EXT: list = CLOTHES_START_EXT_029
+        START_EXT_046: list = CLOTHES_START_EXT_046
         START_PRELOAD: list = CLOTHES_PRELOAD_START
         START_CRM_PRELOAD: list = CLOTHES_PRELOAD_START[1:11] + CLOTHES_PRELOAD_START[12:]
         UPLOAD_STANDART_ROW: int = 7
         MAX_QUANTITY: int = 100000000
+        MIN_QUANTITY: int = 1
         NUMBER_STANDART: str = "ТР ТС 017/2011 \"О безопасности продукции легкой промышленности\""
 
         UPLOAD_TYPE_ERROR: str = "Проверьте правильность выбора типа одежды (посмотрите вкладку справочник)"

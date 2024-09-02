@@ -6,7 +6,8 @@ from rq_scheduler.scheduler import Scheduler
 from config import settings
 from redis_queue.callbacks import on_success_periodic_task, on_failure_periodic_task
 from redis_queue.connection import conn
-from redis_queue.tasks import daily_tasks, delete_order_files_from_server, delete_restore_link_periodic_task
+from redis_queue.tasks import (daily_tasks, delete_order_files_from_server, delete_restore_link_periodic_task,
+                               backup_database)
 from views.crm.helpers import helpers_crm_mpo_so_task, helper_auto_problem_cancel_order
 
 warnings.filterwarnings("ignore")
@@ -30,6 +31,14 @@ scheduler = Scheduler(queue=queue, connection=queue.connection)
 
 queue_dynamic = Queue(settings.RQ_DYNSCHEDULER_QUEUE_NAME, connection=conn)
 scheduler_dynamic = Scheduler(queue=queue_dynamic, connection=queue_dynamic.connection)
+
+# cleaning
+for job in scheduler.get_jobs():
+    # scheduler_dynamic.cancel(job)
+    job.delete()
+for job in scheduler_dynamic.get_jobs():
+    # scheduler_dynamic.cancel(job)
+    job.delete()
 
 scheduler.cron(
     "0 0 * * *",
@@ -58,6 +67,14 @@ scheduler.cron(
 scheduler.cron(
     "0 0 */3 * *",
     func=delete_order_files_from_server,
+    on_success=on_success_periodic_task,
+    on_failure=on_failure_periodic_task,
+    queue_name=settings.RQ_SCHEDULER_QUEUE_NAME
+)
+
+scheduler.cron(
+    "0 0 * * 0",
+    func=backup_database,
     on_success=on_success_periodic_task,
     on_failure=on_failure_periodic_task,
     queue_name=settings.RQ_SCHEDULER_QUEUE_NAME

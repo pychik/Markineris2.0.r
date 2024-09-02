@@ -21,6 +21,7 @@ from models import User, Order, OrderStat, db, ServerParam
 from redis_queue.callbacks import on_success_periodic_task, on_failure_periodic_task
 from utilities.download import crm_orders_common_preload
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify, helper_suotls
+from utilities.pdf_processor import helper_check_attached_file
 from utilities.saving_uts import get_rows_marks
 from utilities.support import (helper_get_at2_pending_balance, helper_get_limits, orders_list_common)
 from utilities.telegram import MarkinerisInform
@@ -357,7 +358,8 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
     else:
         manager_condition = f" AND o.manager_id=:filtered_manager_id" if filtered_manager_id else ""
         conditional_stmt = f"({conditional_stmt_common}{manager_condition} OR o.stage={settings.OrderStage.POOL})"
-
+        # visibility spec orders condition
+        vsoc = f" AND ( (o.manager_id is not NULL AND managers.role not in ('{settings.SUPER_USER}', '{settings.MARKINERIS_ADMIN_USER}')) or o.manager_id is NULL)" if current_user.role == settings.SUPER_MANAGER else ""
         # stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
         stmt_orders_qry = text(f"""
                               SELECT 
@@ -401,7 +403,7 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                   LEFT JOIN public.parfum p ON o.id = p.order_id
                                   LEFT JOIN public.users managers ON o.manager_id = managers.id 
-                              WHERE  {conditional_stmt} AND o.to_delete != True
+                              WHERE  {conditional_stmt}{vsoc} AND o.to_delete != True
                               GROUP BY u.id, o.id, o.crm_created_at
                               ORDER BY o.crm_created_at ASC
                                """)
@@ -580,6 +582,12 @@ def helper_attach_file(manager: str, manager_id: int, o_id: int) -> Response:
 
     if file.filename == '' or not helper_check_extension(filename=file.filename):
         flash(message=f'{settings.Messages.ORDER_MANAGER_FEXT} {file.filename}', category='error')
+        return redirect(url_for('crm_d.managers'))
+
+    # check file structure for folder and pdf
+    check, check_file_message = helper_check_attached_file(order_file=file)
+    if not check:
+        flash(message=check_file_message, category='error')
         return redirect(url_for('crm_d.managers'))
     # not correct- make file read if you want to save file to disk
     # file_size = len(file.read())
@@ -1018,7 +1026,7 @@ def helpers_ceps_order(o_id: int, ep: int):
     message = settings.Messages.NO_SUCH_ORDER_CRM
     try:
 
-        order_info = db.session.execute(text("SELECT id from public.orders WHERE id=:o_id AND o.to_delete != True;").bindparams(o_id=o_id)).fetchone()
+        order_info = db.session.execute(text("SELECT o.id from public.orders o WHERE o.id=:o_id AND o.to_delete != True;").bindparams(o_id=o_id)).fetchone()
         if not order_info:
             return jsonify({'status': status, 'message': message})
         ep = True if ep == 1 else False
@@ -1181,7 +1189,7 @@ def helpers_move_orders_to_processed() -> Response:
                SET stage={settings.OrderStage.CRM_PROCESSED},
                    closed_at='{closed_at}', processed={True}
                WHERE stage={settings.OrderStage.SENT}
-                AND sent_at < '{date_compare}' AND payment=True AND o.to_delete != True; 
+                AND sent_at < '{date_compare}' AND payment=True AND to_delete != True; 
             """)
     try:
         db.session.execute(stmt)

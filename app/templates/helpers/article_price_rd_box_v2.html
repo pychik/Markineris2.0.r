@@ -1,3 +1,129 @@
+<div class="form-group mb-4">
+    <div class="form-control bg-white" id="RD_BLOCK_LABEL">
+        <div class="row">
+            <div class="col-xl-8">
+                <div class="control-label">
+                    <span class= "text-secondary" style=" font-weight: bold"> Документация</span>
+
+            {#        <a data-bs-toggle="tooltip" data-html="true" title="Если у вас есть разрешительный документ для позиции заказа, нажмите на СВОЯ ДОКУМЕНТАЦИЯ, в раскрывшемся блоке укажите тип документа, его название и дату получения документа">#}
+
+                    <a data-bs-toggle="tooltip" data-html="true" title="Если у вас есть разрешительный документ для позиции заказа, укажите тип документа, его название и дату получения документа. В противном случае нажмите на ползунок НЕТ РД">
+                        <span class="badge badge-secondary"><svg
+                                xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                                viewBox="0 0 18 18" fill="none">
+                                <path
+                                    d="M8.625 11.25C8.625 11.3495 8.66451 11.4448 8.73483 11.5152C8.80516 11.5855 8.90054 11.625 9 11.625C9.09946 11.625 9.19484 11.5855 9.26517 11.5152C9.33549 11.4448 9.375 11.3495 9.375 11.25V8.23575C9.375 8.13629 9.33549 8.04091 9.26517 7.97058C9.19484 7.90026 9.09946 7.86075 9 7.86075C8.90054 7.86075 8.80516 7.90026 8.73483 7.97058C8.66451 8.04091 8.625 8.13629 8.625 8.23575V11.25Z"
+                                    fill="#D12600" />
+                                <path
+                                    d="M9 7.12427C9.20711 7.12427 9.375 6.95637 9.375 6.74927C9.375 6.54216 9.20711 6.37427 9 6.37427C8.79289 6.37427 8.625 6.54216 8.625 6.74927C8.625 6.95637 8.79289 7.12427 9 7.12427Z"
+                                    fill="#D12600" />
+                                <path
+                                    d="M8.99982 1.54877C10.4734 1.54877 11.9138 1.98571 13.139 2.80435C14.3642 3.62299 15.3192 4.78655 15.8831 6.14791C16.447 7.50927 16.5946 9.00728 16.3072 10.4525C16.0198 11.8977 15.3103 13.2253 14.2684 14.2673C13.2265 15.3093 11.899 16.019 10.4538 16.3065C9.00859 16.5941 7.51057 16.4466 6.14915 15.8828C4.78774 15.3191 3.62408 14.3642 2.80532 13.1391C1.98655 11.914 1.54946 10.4736 1.54932 9.00002C1.5513 7.02456 2.33688 5.13057 3.73366 3.73365C5.13045 2.33672 7.02436 1.55095 8.99982 1.54877ZM8.99982 15.699C10.3251 15.699 11.6206 15.306 12.7226 14.5697C13.8245 13.8333 14.6833 12.7868 15.1904 11.5623C15.6975 10.3379 15.8301 8.99057 15.5715 7.69076C15.3128 6.39095 14.6745 5.19704 13.7373 4.26002C12.8 3.323 11.606 2.68495 10.3061 2.42658C9.00623 2.16821 7.65894 2.30112 6.43461 2.80849C5.21028 3.31587 4.16391 4.17492 3.42783 5.27701C2.69175 6.3791 2.29902 7.67472 2.29932 9.00002C2.3017 10.7762 3.00845 12.479 4.26457 13.7348C5.52068 14.9907 7.2236 15.697 8.99982 15.699Z"
+                                    fill="#D12600" />
+                            </svg>
+                        </span>
+                    </a>
+                </div>
+            </div>
+            <div class="col-xl-4">
+                <span class="text-secondary">Нет РД</span>
+                <div class="form-check form-switch">
+
+                    <input class="form-check-input border border-warning
+                    {%if copied_order %}{% if not copied_order.rd_name%}bg-warning{% endif %}{% endif %}" type="checkbox"
+                           id="flexSwitchRD" onclick="rd_required_process(this);"
+                    {%if copied_order %}{% if not copied_order.rd_name%}checked{%endif %}{% endif %}>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="collapse {%if copied_order %}{% if not copied_order.rd_date%}{% else %}show{%endif %}{% else %}show{% endif %} faded" id="collapseDocResolve">
+
+        <div class="mt-1 form-group" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right"
+                    data-bs-title="Тип документа">
+            <label for="rd_type" class="col-form-label text-right d-none" >Разрешительная документация Тип
+                документа</label>
+            <select class="form-control search-select" id="rd_type" name="rd_type"
+                    {%if copied_order %}{% if not copied_order.rd_type%}{% else %} required{% endif %}{% else %} required{% endif %}>
+                <option selected value="">Выберите тип документа </option>
+                {% for rd in rd_types_list%}
+                    <option value="{{rd}}" {% if copied_order %}
+                                                    {% if copied_order.rd_type == rd %}
+                                                        selected
+                                                    {% endif %}
+                                                {% endif %}>{{rd}}
+                    </option>
+                {%endfor%}
+            </select>
+
+
+        </div>
+        <div class="mt-2 form-group" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right"
+                    data-bs-title="Код/название документа<br>Значок <b><u>№</u></b> не указывается">
+            <label for="rd_name" class=" col-form-label text-right d-none">Разрешительная документация Код/Название
+                документа</label>
+            <input type="text" id="rd_name" name="rd_name"
+                   class="form-control col-sm-6"
+                   {%if copied_order %}{% if not copied_order.rd_name%}{% else %} required{% endif %}{% else %} required{% endif %}
+                   placeholder="Введите код/название документа" oninput="oiremoveSymbol('rd_name', '№')"
+                   value="{% if copied_order %}{% if copied_order.rd_name %}{{ copied_order.rd_name }}{% endif %}{% endif %}">
+{#            <small class="form-text text-muted" style="font-size: 10px;">Значок <b><u>№</u></b> не указывается</small>#}
+        </div>
+        <div class="mt-2">
+
+
+            <script>
+                $(function () {
+                    $("#rd_date").datepicker({
+                        dateFormat: "dd.mm.yy",
+                        changeMonth: true,
+                        changeYear: true,
+                        yearRange: '2008:'+(new Date).getFullYear(),
+                        maxDate: new Date(),
+                    });
+                })
+
+            </script>
+            <div class="form-group" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right"
+                    data-bs-title="Дата оформления документа">
+                <label for="rd_date"
+                    class=" col-form-label text-right d-none">Разрешительная документация Дата выдачи документа</label>
+
+                <div class="input-group">
+
+                        <input type="text" placeholder="Выберите дату"
+                            class="form-control" id="rd_date"
+                            onpaste="return false;" oncopy="return false"
+                            oncut="return false" ondrag="return false"
+                            ondrop="return false" autocomplete="off" name="rd_date"
+                               aria-describedby="rd_input_btn"
+                            minlength="3"
+                               value="{% if copied_order %}{% if copied_order.rd_date %}{{ copied_order.rd_date.strftime('%d.%m.%Y') }}{% endif %}{% endif %}"
+                        {%if copied_order %}{% if not copied_order.rd_date%}{% else %} required{% endif %}{% else %} required{% endif %}
+                        readonly>
+
+                     <div class="input-group-append">
+                        <span class="input-group-text text-danger" id="rd_input_btn"
+                                title="Очистить дату"
+                                onclick="rd_date_erase();">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22"
+                                height="24" fill="currentColor" class="bi bi-eraser"
+                                viewBox="0 0 16 16">
+                                <path
+                                    d="M8.086 2.207a2 2 0 0 1 2.828 0l3.879 3.879a2 2 0 0 1 0 2.828l-5.5 5.5A2 2 0 0 1 7.879 15H5.12a2 2 0 0 1-1.414-.586l-2.5-2.5a2 2 0 0 1 0-2.828l6.879-6.879zm2.121.707a1 1 0 0 0-1.414 0L4.16 7.547l5.293 5.293 4.633-4.633a1 1 0 0 0 0-1.414l-3.879-3.879zM8.746 13.547 3.453 8.254 1.914 9.793a1 1 0 0 0 0 1.414l2.5 2.5a1 1 0 0 0 .707.293H7.88a1 1 0 0 0 .707-.293l.16-.16z">
+                                </path>
+                            </svg>
+                        </span>
+                    </div>
+                </div>
+
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
 <div class="form-group mb-3">
     <label class="control-label">
         <a class="option text-dark " role="button" {% if company_idn and price_exist %} data-bs-toggle="collapse" href="#collapsePrice"
@@ -32,7 +158,7 @@
             </label>
             <input type="number" step="0.01" id="article_price" name="article_price"
                 class="form-control" value="{% if copied_order %}{{ copied_order.article_price }}{% else %}0{% endif %}"
-            {% if price_exist %}min="1" required{% endif %}>
+            {% if price_exist %}min="1" required{% else %}min="0"{% endif %} oninput="if (!this.value  && this.value !== 0){this.value=0}">
         </div>
         <div class="col-md-6 col-xs-12 form-group">
             <label>
@@ -53,114 +179,7 @@
     </div>
 </div>
 
-<div class="form-group mb-4">
-<label class="control-label">
-        <a class="option text-dark " role="button" data-bs-toggle="collapse"
-            href="#collapseDocResolve" aria-expanded="false"
-            aria-controls="collapseDocResolve">
-            Разрешительная документация
-        </a>
-        <a data-bs-toggle="tooltip" data-html="true" title="Если у вас есть разрешительный документ для позиции заказа, укажите тип документа, его название и дату получения документа
-    ">
-            <span class="badge badge-secondary"><svg
-                    xmlns="http://www.w3.org/2000/svg" width="18" height="18"
-                    viewBox="0 0 18 18" fill="none">
-                    <path
-                        d="M8.625 11.25C8.625 11.3495 8.66451 11.4448 8.73483 11.5152C8.80516 11.5855 8.90054 11.625 9 11.625C9.09946 11.625 9.19484 11.5855 9.26517 11.5152C9.33549 11.4448 9.375 11.3495 9.375 11.25V8.23575C9.375 8.13629 9.33549 8.04091 9.26517 7.97058C9.19484 7.90026 9.09946 7.86075 9 7.86075C8.90054 7.86075 8.80516 7.90026 8.73483 7.97058C8.66451 8.04091 8.625 8.13629 8.625 8.23575V11.25Z"
-                        fill="#D12600" />
-                    <path
-                        d="M9 7.12427C9.20711 7.12427 9.375 6.95637 9.375 6.74927C9.375 6.54216 9.20711 6.37427 9 6.37427C8.79289 6.37427 8.625 6.54216 8.625 6.74927C8.625 6.95637 8.79289 7.12427 9 7.12427Z"
-                        fill="#D12600" />
-                    <path
-                        d="M8.99982 1.54877C10.4734 1.54877 11.9138 1.98571 13.139 2.80435C14.3642 3.62299 15.3192 4.78655 15.8831 6.14791C16.447 7.50927 16.5946 9.00728 16.3072 10.4525C16.0198 11.8977 15.3103 13.2253 14.2684 14.2673C13.2265 15.3093 11.899 16.019 10.4538 16.3065C9.00859 16.5941 7.51057 16.4466 6.14915 15.8828C4.78774 15.3191 3.62408 14.3642 2.80532 13.1391C1.98655 11.914 1.54946 10.4736 1.54932 9.00002C1.5513 7.02456 2.33688 5.13057 3.73366 3.73365C5.13045 2.33672 7.02436 1.55095 8.99982 1.54877ZM8.99982 15.699C10.3251 15.699 11.6206 15.306 12.7226 14.5697C13.8245 13.8333 14.6833 12.7868 15.1904 11.5623C15.6975 10.3379 15.8301 8.99057 15.5715 7.69076C15.3128 6.39095 14.6745 5.19704 13.7373 4.26002C12.8 3.323 11.606 2.68495 10.3061 2.42658C9.00623 2.16821 7.65894 2.30112 6.43461 2.80849C5.21028 3.31587 4.16391 4.17492 3.42783 5.27701C2.69175 6.3791 2.29902 7.67472 2.29932 9.00002C2.3017 10.7762 3.00845 12.479 4.26457 13.7348C5.52068 14.9907 7.2236 15.697 8.99982 15.699Z"
-                        fill="#D12600" />
-                </svg></span>
-        </a>
-    </label>
-    <div class="collapse {%if copied_order %}{% if copied_order.rd_date %} show {% endif %}{% endif %}" id="collapseDocResolve">
 
-        <div class="mt-1 form-group" title="Тип документа">
-            <label for="rd_type" class="col-form-label text-right">Тип
-                документа</label>
-            <select class="form-control search-select" id="rd_type" name="rd_type">
-                <option selected value="">Выберите тип документа </option>
-                {% for rd in rd_types_list%}
-                    <option value="{{rd}}" {% if copied_order %}
-                                                    {% if copied_order.rd_type == rd %}
-                                                        selected
-                                                    {% endif %}
-                                                {% endif %}>{{rd}}
-                    </option>
-                {%endfor%}
-            </select>
-
-
-        </div>
-        <div class="mt-2 form-group" title="Код/название документа">
-            <label for="rd_name" class=" col-form-label text-right">Код/Название
-                документа</label>
-            <input type="text" id="rd_name" name="rd_name"
-                class="form-control col-sm-6"
-                placeholder="Введите код/название документа"
-                   value="{% if copied_order %}{% if copied_order.rd_name %}{{ copied_order.rd_name }}{% endif %}{% endif %}">
-        </div>
-        <div class="mt-2">
-
-    <!--                                                    <script src="https://code.jquery.com/jquery-3.6.0.js"></script>-->
-    <!--                                                    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>-->
-    <!--                                                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/jquery-ui.min.css" integrity="sha512-ELV+xyi8IhEApPS/pSj66+Jiw+sOT1Mqkzlh8ExXihe4zfqbWkxPRi8wptXIO9g73FSlhmquFlUOuMSoXz5IRw==" crossorigin="anonymous" referrerpolicy="no-referrer" />-->
-            <script>
-                $(function () {
-                    $("#rd_date").datepicker({
-                        dateFormat: "dd.mm.yy",
-                        changeMonth: true,
-                        changeYear: true,
-                        yearRange: '2008:'+(new Date).getFullYear(),
-                        maxDate: new Date(),
-                    });
-                })
-
-            </script>
-            <div class="form-group" title="Дата оформления документа">
-                <label for="rd_date"
-                    class=" col-form-label text-right">Дата выдачи документа</label>
-
-                <div class="input-group">
-
-                        <input type="text" placeholder="Выберите дату"
-                            class="form-control" id="rd_date"
-                            onpaste="return false;" oncopy="return false"
-                            oncut="return false" ondrag="return false"
-                            ondrop="return false" autocomplete="off" name="rd_date"
-                               aria-describedby="rd_input_btn"
-                            readonly
-                               value="{% if copied_order %}{% if copied_order.rd_date %}{{ copied_order.rd_date.strftime('%d.%m.%Y') }}{% endif %}{% endif %}">
-
-                     <div class="input-group-append">
-                        <span class="input-group-text text-danger" id="rd_input_btn"
-                                title="Очистить дату"
-                                onclick="document.getElementById('rd_date').value = '';">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="22"
-                                height="24" fill="currentColor" class="bi bi-eraser"
-                                viewBox="0 0 16 16">
-                                <path
-                                    d="M8.086 2.207a2 2 0 0 1 2.828 0l3.879 3.879a2 2 0 0 1 0 2.828l-5.5 5.5A2 2 0 0 1 7.879 15H5.12a2 2 0 0 1-1.414-.586l-2.5-2.5a2 2 0 0 1 0-2.828l6.879-6.879zm2.121.707a1 1 0 0 0-1.414 0L4.16 7.547l5.293 5.293 4.633-4.633a1 1 0 0 0 0-1.414l-3.879-3.879zM8.746 13.547 3.453 8.254 1.914 9.793a1 1 0 0 0 0 1.414l2.5 2.5a1 1 0 0 0 .707.293H7.88a1 1 0 0 0 .707-.293l.16-.16z">
-                                </path>
-                            </svg>
-                        </span>
-                    </div>
-                </div>
-
-
-            </div>
-
-
-
-
-        </div>
-
-    </div>
-</div>
 
 
 
@@ -169,5 +188,5 @@
 
 
 <!--<script src="{{ url_for('static', filename='main_v2/js/assets/jquery-ui.min.js')}}"></script>-->
-<!--<script src="{{ url_for('static', filename='js/datepicker-ru.js') }}"></script>-->
+<!--<script src="{{ url_for('static', filename='main_v2/js/datepicker-ru.js') }}"></script>-->
 

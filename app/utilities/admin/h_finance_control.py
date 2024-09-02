@@ -1,29 +1,55 @@
+import urllib
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 from os import listdir as o_list_dir
 from os import remove as o_remove
+from typing import Any
 
+import pydantic
 from flask import render_template, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
-from sqlalchemy import desc, text, create_engine, null
+from sqlalchemy import desc, text, create_engine, null, select, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from config import settings
 from logger import logger
-from models import Promo, Price, ServiceAccount, ServerParam, User, UserTransaction, TgUser
+from models import Promo, Price, ServiceAccount, ServerParam, User, UserTransaction, Bonus, users_bonus_codes
 from models import db
-from utilities.admin.excel_report import ExcelReportProcessor
+from utilities.admin.excel_report import ExcelReportProcessor, ExcelReport, ExcelReportWithSheets
 from utilities.support import helper_paginate_data, check_file_extension, get_file_extension, \
     helper_get_server_balance, helper_get_filters_transactions, \
     helper_update_pending_rf_transaction_status, helper_get_image_html, \
-    helper_perform_ut_wo, helper_get_transaction_orders_detail
-from utilities.telegram import NotificationTgUser
+    helper_perform_ut_wo_mod, helper_get_transaction_orders_detail, helper_get_stmt_for_fin_order_report, \
+    helper_get_filter_fin_order_report, helper_get_stmt_for_fin_promo_history, helper_get_filter_fin_promo_history,\
+    helper_get_transactions, helper_get_user_at2_opt2
 from utilities.tg_verify.service import send_tg_message_with_transaction_updated_status
+from validators.admin_control import BonusCodeSchema
+
+
+class NotFoundBonusCode(Exception):
+    """ Бонус код не найден. """
 
 
 def h_su_control_finance():
-    promos = Promo.query.with_entities(Promo.id, Promo.code, Promo.value, Promo.created_at).order_by(desc(Promo.created_at)).all()
+    stat_date = datetime.today() - timedelta(days=1)
+    stat_stmt = text("""WITH mark_count as (SELECT os.transaction_id, sum(os.marks_count) as total_marks from public.orders_stats os GROUP BY os.transaction_id)
+    SELECT 
+        round(coalesce(sum(ut.amount), 0), 2) as amount, 
+        coalesce(sum(mc.total_marks), 0) as marks_cnt, 
+        round(case when coalesce(sum(mc.total_marks), 0) = 0 then 0 else coalesce(sum(amount), 0) / coalesce(sum(mc.total_marks), 0) end, 2) as avg_price
+    FROM public.user_transactions ut
+    JOIN mark_count mc on ut.id = mc.transaction_id
+    WHERE
+        ut.op_cost is not null and ut.type=False
+        and ut.created_at >= DATE_TRUNC('DAY', NOW()::timestamp);
+        """)
+    stat = db.session.execute(stat_stmt).first()
+
+    promos = Promo.query.with_entities(Promo.id, Promo.code, Promo.value, Promo.created_at, Promo.updated_at).filter(
+        or_(Promo.is_archived == False, Promo.is_archived == None)
+    ).order_by(desc(Promo.created_at)).all()
     prices = Price.query.order_by(desc(Price.created_at)).all()
 
     account_type_db = ServerParam.query.with_entities(ServerParam.account_type).first()
@@ -31,7 +57,7 @@ def h_su_control_finance():
     service_accounts = ServiceAccount.query.order_by(desc(ServiceAccount.created_at)).all()
 
     # rf- refill , wo write off
-    balance, pending_balance_rf = helper_get_server_balance()
+    balance, pending_balance_rf, summ_at1, summ_at2, summ_client = helper_get_server_balance()
 
     basic_prices = settings.Prices.BASIC_PRICES
     base_path = settings.DOWNLOAD_QA_BASIC
@@ -47,10 +73,17 @@ def h_su_control_finance():
     return render_template('admin/su_finance_control.html', **locals())
 
 
-def h_su_bck_promo():
+def h_su_bck_promo(show_archived: bool = False):
+    show_archived = request.args.get('show_archived', default=False, type=lambda v: v.lower() == 'true')
+    if show_archived:
+        filter_by = 1 == 1
+    else:
+        filter_by = or_(Promo.is_archived == False, Promo.is_archived == None)
 
-    promos = Promo.query.with_entities(Promo.id, Promo.code, Promo.value, Promo.created_at).order_by(
+    promos = Promo.query.with_entities(Promo.id, Promo.code, Promo.value, Promo.created_at, Promo.is_archived,
+                                       Promo.updated_at).filter(filter_by).order_by(
         desc(Promo.created_at)).all()
+
     link = 'javascript:get_promos_history(\'' + url_for('admin_control.su_bck_promo') + '?page={0}\');'
     page, per_page, \
         offset, pagination, \
@@ -60,7 +93,7 @@ def h_su_bck_promo():
 
 
 def h_su_add_promo():
-    code = request.form.get('promo_code', '').replace('--', '')
+    code = request.form.get('promo_code', '').replace('--', '').strip()
     status = 'danger'
 
     try:
@@ -85,16 +118,15 @@ def h_su_add_promo():
 
 
 def h_su_delete_promo(p_id: int) -> Response:
-    promo = Promo.query.with_entities(Promo.id, Promo.code).filter(Promo.id == p_id).first()
+    promo_stmt = select(Promo).filter(Promo.id == p_id)
+    promo = db.session.execute(promo_stmt).scalar_one_or_none()
     status = 'danger'
     # check for trickers
     if not promo:
         message = settings.Messages.DELETE_NE_PROMO
         return jsonify(dict(status=status, message=message))
     try:
-        db.session.execute(text(f'DELETE FROM public.users_promos WHERE promo_id={p_id}'))
-        db.session.execute(db.delete(Promo).filter_by(id=p_id))
-
+        promo.is_archived = True
         db.session.commit()
 
         message = f"{settings.Messages.DELETE_PROMO} {promo.code}"
@@ -353,32 +385,39 @@ def h_su_bck_change_sa_type(sa_type: str = 'qr_code') -> Response:
 
 def h_su_control_ut(user_ids: list = None):
     # PENDING transactions refill, WITH default DATE filter
+    roles = (settings.SUPER_USER, settings.ADMIN_USER)
     transaction_types = settings.Transactions.TRANSACTION_TYPES
     transaction_dict = settings.Transactions.TRANSACTIONS
 
     tr_type = transaction_types.get(1)
+
     tr_status = transaction_dict[settings.Transactions.PENDING]
 
     # default date range conditions
     date_to = datetime.now()
     date_from = date_to - timedelta(days=settings.Transactions.DEFAULT_DAYS_RANGE)
+    users_filter = User.query.with_entities(User.id, User.login_name).filter(User.role.in_(roles)).all()
 
-    transactions = UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount,
-                                                       UserTransaction.promo_info, UserTransaction.type,
-                                                       UserTransaction.status,
-                                                       UserTransaction.created_at, UserTransaction.user_id,
-                                                       User.login_name)\
-        .join(User, User.id == UserTransaction.user_id)\
-        .filter(UserTransaction.status == settings.Transactions.PENDING, UserTransaction.type.is_(True),
-                UserTransaction.created_at >= date_from)\
-        .order_by(desc(UserTransaction.created_at)).all()
+    transactions = [t for t in UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount,
+                                                                   UserTransaction.promo_info, UserTransaction.type,
+                                                                   UserTransaction.status,
+                                                                   UserTransaction.created_at, UserTransaction.user_id,
+                                                                   User.login_name, User.email, ServiceAccount.sa_type,
+                                                                   ServiceAccount.sa_name)
+                                              .join(User, User.id == UserTransaction.user_id)
+                                              .outerjoin(ServiceAccount, ServiceAccount.id == UserTransaction.sa_id)
+                                              .filter(UserTransaction.status == settings.Transactions.PENDING, UserTransaction.type.is_(True),
+                                                      UserTransaction.created_at >= date_from)
+                                              .order_by(desc(UserTransaction.created_at)).all()]
 
     sa_types = settings.ServiceAccounts.TYPES_DICT
     transaction_types = settings.Transactions.TRANSACTION_TYPES
 
+    transaction_summ = sum(t.amount for t in transactions)
+
     link_filters = f'tr_type=1&tr_status={settings.Transactions.PENDING}&'
     link = f'javascript:bck_get_transactions(\'' + url_for(
-        'admin_control.su_bck_control_ut') + f'?bck=1{link_filters}' + 'page={0}\');'
+        'admin_control.su_bck_control_ut') + f'?bck=1&{link_filters}' + 'page={0}\');'
     page, per_page, \
         offset, pagination, \
         transactions_list = helper_paginate_data(data=transactions, per_page=settings.PAGINATION_PER_PAGE, href=link)
@@ -391,14 +430,19 @@ def h_bck_control_ut():
     tr_type, tr_status, date_from, date_to,\
         link_filters, model_conditions, model_order_type = helper_get_filters_transactions()
 
-    transactions = UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount,
-                                                       UserTransaction.promo_info, UserTransaction.type,
-                                                       UserTransaction.status,
-                                                       UserTransaction.created_at, UserTransaction.user_id, User.login_name) \
-        .join(User, User.id == UserTransaction.user_id).filter(*model_conditions) \
-        .order_by(model_order_type).all()
+    transactions = [t for t in UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount,
+                                                                   UserTransaction.promo_info, UserTransaction.type,
+                                                                   UserTransaction.status,
+                                                                   UserTransaction.created_at, UserTransaction.user_id,
+                                                                   User.login_name, User.email,
+                                                                   ServiceAccount.sa_type, ServiceAccount.sa_name)
+                                              .join(User, User.id == UserTransaction.user_id)
+                                              .outerjoin(ServiceAccount, ServiceAccount.id == UserTransaction.sa_id)
+                                              .filter(*model_conditions).order_by(model_order_type).all()]
 
-    link = f'javascript:bck_get_transactions(\'' + url_for('admin_control.su_bck_control_ut') + f'?bck=1{link_filters}' + 'page={0}\');'
+    link = f'javascript:bck_get_transactions(\'' + url_for('admin_control.su_bck_control_ut') + f'?bck=1&{link_filters}' + 'page={0}\');'
+
+    transaction_summ = sum(t.amount for t in transactions)
 
     page, per_page, \
         offset, pagination, \
@@ -461,9 +505,12 @@ def h_bck_ut_excel_report() -> Response:
                                                                    UserTransaction.status,
                                                                    UserTransaction.wo_account_info,
                                                                    UserTransaction.created_at, UserTransaction.user_id,
-                                                                   User.login_name, User.email)
-            .join(User, User.id == UserTransaction.user_id).filter(*model_conditions)
-            .order_by(model_order_type).all()]
+                                                                   User.login_name, User.email,
+                                                                   ServiceAccount.sa_type, ServiceAccount.sa_name)
+                                              .join(User, User.id == UserTransaction.user_id)
+                                              .outerjoin(ServiceAccount, ServiceAccount.id == UserTransaction.sa_id)
+                                              .filter(*model_conditions)
+                                              .order_by(model_order_type).all()]
 
     transaction_summ = sum(t.amount for t in transactions)
 
@@ -485,13 +532,286 @@ def h_bck_ut_excel_report() -> Response:
     return response
 
 
+def h_fin_promo_history():
+    date_from = datetime.today() - timedelta(days=7)
+    date_to = datetime.today()
+    promo_stmt = select(Promo.code)
+    promo_codes = db.session.execute(promo_stmt).all()
+    promo_hist_stmt = helper_get_stmt_for_fin_promo_history()
+    promo_codes_history = db.session.execute(promo_hist_stmt).all()
+
+    link = ''
+    page, per_page, \
+        offset, pagination, \
+        promo_codes_history = helper_paginate_data(data=promo_codes_history, per_page=settings.PAGINATION_PER_PAGE, href=link)
+    return render_template('admin/fin_promo_history/main.html', **locals())
+
+
+def h_bck_fin_promo_history():
+    date_from, date_to, promo_code, sort_type = helper_get_filter_fin_promo_history()
+    stmt = helper_get_stmt_for_fin_promo_history(
+        date_from=date_from,
+        date_to=date_to,
+        sort_type=sort_type,
+        promo_code=promo_code,
+    )
+    promo_codes_history = db.session.execute(stmt, ).fetchall()
+    link = f'javascript:bck_get_fin_promo_history(\'' + url_for(
+        'admin_control.su_bck_fin_promo_history') + f'?bck=1' + '&page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        promo_codes_history = helper_paginate_data(data=promo_codes_history, per_page=settings.PAGINATION_PER_PAGE, href=link)
+    return jsonify({'htmlresponse': render_template(f'admin/fin_promo_history/table.html', **locals())})
+
+
+def h_bck_fin_promo_history_excel():
+    date_from, date_to, promo_code, sort_type = helper_get_filter_fin_promo_history(report=True)
+    stmt = helper_get_stmt_for_fin_promo_history(
+        date_from=date_from,
+        date_to=date_to,
+        sort_type=sort_type,
+        promo_code=promo_code,
+    )
+    promo_codes_history = db.session.execute(stmt, ).fetchall()
+
+    excel_filters = {
+        'дата начала': date_from,
+        'дата окончания': (datetime.strptime(date_to, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d'),
+    }
+    if promo_code:
+        excel_filters['промокод'] = promo_code
+    report_name = f'история промокодов({datetime.today().strftime("%d.%m.%y %H-%M")})'
+
+    excel = ExcelReport(
+        data=promo_codes_history,
+        filters=excel_filters,
+        columns_name=['дата активации', 'e-mail пользователя', 'логин агента', 'промокод', 'добавочное значение, руб'],
+        sheet_name='История промокодов',
+        output_file_name=report_name,
+    )
+
+    excel_io = excel.create_report()
+    content = excel_io.getvalue()
+    response = make_response(content)
+    response.headers['data_file_name'] = urllib.parse.quote(excel.output_file_name)
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    response.headers['data_status'] = 'success'
+
+    return response
+
+
+def h_su_control_specific_ut(u_id: int):
+
+    # default date range conditions
+    url_date_to_raw = datetime.now()
+    url_date_to = url_date_to_raw.strftime('%d.%m.%Y')
+    url_date_from = (url_date_to_raw - timedelta(days=settings.Transactions.DEFAULT_DAYS_RANGE)).strftime('%d.%m.%Y')
+    date_to = url_date_to_raw.strftime('%Y-%m-%d')
+    date_from = (url_date_to_raw - timedelta(days=settings.Transactions.DEFAULT_DAYS_RANGE)).strftime('%Y-%m-%d')
+
+    is_at2, agent_id, agent_email, client_email, client_balance = helper_get_user_at2_opt2(u_id=u_id)
+
+    pa_detalize_list, sum_fill, sum_spend = helper_get_transactions(u_id=u_id, date_from=date_from, date_to=date_to, sort_type='desc')
+    link = f'javascript:get_transaction_history(\'' + url_for(f'user_cp.bck_update_transactions',
+                                                              u_id=u_id) + '?page={0}\');'
+
+    transaction_dict = settings.Transactions.TRANSACTIONS
+
+    link_filters = ''
+    link = f'javascript:bck_get_transactions_specific_user(\'' + url_for(
+        'admin_control.su_bck_control_specific_ut', u_id=u_id) + f'?bck=1&{link_filters}' + 'page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        transactions_list = helper_paginate_data(data=pa_detalize_list, per_page=settings.PAGINATION_PER_PAGE, href=link)
+    return render_template('admin/ur_transactions/ur_transactions_history.html', **locals())
+
+
+def h_bck_control_specific_ut(u_id: int):
+    # default date range conditions
+    url_date_from = request.args.get('date_from', '', type=str)
+    url_date_to = request.args.get('date_to', '', type=str)
+    date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from\
+        else settings.Transactions.DEFAULT_DATE_FROM
+    date_to = (datetime.strptime(url_date_to, '%d.%m.%Y')).strftime(
+        '%Y-%m-%d') if url_date_to else datetime.now().strftime('%Y-%m-%d')
+
+    sort_type = request.args.get('sort_type', 'desc', str)
+
+    is_at2, agent_id, agent_email, client_email, client_balance = helper_get_user_at2_opt2(u_id=u_id)
+
+    pa_detalize_list, sum_fill, sum_spend = helper_get_transactions(u_id=u_id, date_from=date_from,
+                                                                    date_to=date_to, sort_type=sort_type)
+
+    transaction_dict = settings.Transactions.TRANSACTIONS
+
+    link = f'javascript:bck_get_transactions_specific_user(\'' + url_for(
+        'admin_control.su_bck_control_specific_ut', u_id=u_id) + f'?bck=1&' + 'page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        transactions_list = helper_paginate_data(data=pa_detalize_list, per_page=settings.PAGINATION_PER_PAGE,
+                                                 href=link)
+    return jsonify({'htmlresponse': render_template('admin/ur_transactions/ur_transactions_table.html', **locals())})
+
+
+def h_su_fin_order_report():
+    date_from = datetime.now() - timedelta(settings.ORDERS_REPORT_TIMEDELTA)
+    date_to = datetime.now()
+    stmt = helper_get_stmt_for_fin_order_report()
+    orders = db.session.execute(stmt, ).fetchall()
+    link = f'javascript:bck_get_fin_order_report(\'' + url_for(
+        'admin_control.su_bck_fin_order_report') + f'?bck=1' + '&page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        orders_list = helper_paginate_data(data=orders, per_page=settings.PAGINATION_PER_PAGE, href=link)
+    return render_template('admin/fin_order_report/su_order_report.html', **locals())
+
+
+def h_bck_fin_order_report():
+    date_from, date_to, sort_type, order_type, payment_status = helper_get_filter_fin_order_report()
+    stmt = helper_get_stmt_for_fin_order_report(
+        date_from=date_from,
+        date_to=date_to,
+        sort_type=sort_type,
+        order_type=order_type,
+        payment_status=payment_status,
+    )
+    orders = db.session.execute(stmt,).fetchall()
+    link = f'javascript:bck_get_fin_order_report(\'' + url_for(
+        'admin_control.su_bck_fin_order_report') + f'?bck=1' + '&page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        orders_list = helper_paginate_data(data=orders, per_page=settings.PAGINATION_PER_PAGE, href=link)
+    return jsonify({'htmlresponse': render_template(f'admin/fin_order_report/su_order_table.html', **locals())})
+
+
+def h_su_fin_marks_count_report() -> Response:
+    date_till = datetime.now().replace(day=1)
+    date_from = date_till - relativedelta(months=3)
+
+    stmt = text("""SELECT
+                        ROW_NUMBER() OVER (
+                            PARTITION BY
+                                ORDER_MOUNTH
+                            ORDER BY
+                                MARKS_COUNT DESC
+                        ) as "ROW NUMBER",
+                        T.*
+                    FROM
+                        (
+                            SELECT
+                                DATE_TRUNC('month', OS.CREATED_AT) AS ORDER_MOUNTH,
+                                U.LOGIN_NAME AS USER_LOGIN,
+                                U.EMAIL AS USER_EMAIL,
+                                U_AGENT.LOGIN_NAME AS USER_AGENT,
+                                -- OS.COMPANY_TYPE AS COMPANY_TYPE,
+                                SUM(OS.MARKS_COUNT) AS MARKS_COUNT
+                            FROM
+                                ORDERS_STATS OS
+                                JOIN USER_TRANSACTIONS UT ON UT.ID = OS.TRANSACTION_ID
+                                JOIN USERS U ON U.ID = OS.USER_ID
+                                LEFT JOIN USERS U_AGENT ON U_AGENT.ID = U.ADMIN_PARENT_ID
+                            WHERE
+                                OS.OP_COST IS NOT NULL
+                                AND OS.CREATED_AT >= :date_from
+                                AND OS.CREATED_AT < :date_till
+                            GROUP BY
+                                DATE_TRUNC('month', OS.CREATED_AT),
+                                U.LOGIN_NAME, U.EMAIL,
+                                U_AGENT.LOGIN_NAME
+                                -- COMPANY_TYPE
+                            ORDER BY
+                                USER_LOGIN, USER_EMAIL,
+                                ORDER_MOUNTH
+                        ) T
+                        """).bindparams(date_from=date_from.strftime('%Y.%m.%d'), date_till=date_till.strftime('%Y.%m.%d'))
+    report_data = db.session.execute(stmt).mappings().all()
+    data_by_sheet: dict[str, list] = {}
+    for rec in report_data:
+        order_month = rec['order_mounth'].strftime('%m-%Y')
+
+        if order_month in data_by_sheet:
+            data_by_sheet[order_month].append((rec['ROW NUMBER'], rec['user_login'], rec['user_email'],
+                                               rec['user_agent'], rec['marks_count']))
+        else:
+            data_by_sheet[order_month] = [(rec['ROW NUMBER'], rec['user_login'], rec['user_email'],
+                                           rec['user_agent'], rec['marks_count'])]
+
+    output_file_name = f'Отчет по количеству марок от {datetime.now().strftime("%d.%m.%Y")}.xlsx'
+
+    excel = ExcelReportWithSheets(
+        report_data=data_by_sheet,
+        columns_name=['row number', 'user login', 'user_email', 'agent', 'marks quantity', ],
+        output_file_name=output_file_name,
+    )
+
+    excel_io = excel.create_report()
+    content = excel_io.getvalue()
+    response = make_response(content)
+    response.headers['data_file_name'] = urllib.parse.quote(excel.output_file_name)
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    response.headers['data_status'] = 'success'
+    return response
+
+
+def h_bck_fin_order_report_excel():
+    date_from, date_to, sort_type, order_type, payment_status = helper_get_filter_fin_order_report(report=True)
+    stmt = helper_get_stmt_for_fin_order_report(
+        order_type=order_type,
+        sort_type=sort_type,
+        date_from=date_from,
+        date_to=date_to,
+        payment_status=payment_status
+    )
+    orders = db.session.execute(stmt).fetchall()
+    # convert payment_status and order_type to readable filter
+    order_type = 'отменен' if order_type == (settings.OrderStage.CANCELLED,) else 'отправлен'
+
+    if payment_status == (True,):
+        payment_status = 'оплачен'
+    elif payment_status == (False,):
+        payment_status = 'ожидает оплаты'
+    else:
+        payment_status = 'оплачен или ожидает оплаты'
+
+    excel_filters = {
+        'дата начала': date_from,
+        'дата окончания': (datetime.strptime(date_to, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d'),
+        'статус заказа': order_type,
+    }
+
+    if order_type == 'отправлен':
+        excel_filters['статус платежа'] = payment_status
+
+    if order_type == 'отменен':
+        report_name = f'отмененные заказы({datetime.today().strftime("%d.%m.%y %H-%M")})'
+    else:
+        report_name = f'отправленные заказы({datetime.today().strftime("%d.%m.%y %H-%M")})'
+    excel = ExcelReport(
+        data=orders,
+        filters=excel_filters,
+        columns_name=['дата', 'номер заказа', 'компания', 'тел. номер клиента', 'агент', 'КМ', 'КС', 'Чего', 'Цена за марку',],
+        sheet_name='Отчет по заказам',
+        output_file_name=report_name,
+    )
+
+    excel_io = excel.create_report()
+    content = excel_io.getvalue()
+    response = make_response(content)
+    response.headers['data_file_name'] = urllib.parse.quote(excel.output_file_name)
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    response.headers['data_status'] = 'success'
+
+    return response
+
+
 def h_su_transaction_detail(u_id: int, t_id: int):
     # background retrieving info
     transaction = UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.type, UserTransaction.status,
                                                       UserTransaction.amount, UserTransaction.op_cost, UserTransaction.bill_path,
                                                       UserTransaction.user_id, UserTransaction.promo_info,
                                                       UserTransaction.wo_account_info,
-                                                      UserTransaction.sa_id, UserTransaction.created_at, User.login_name, User.email, User.phone) \
+                                                      UserTransaction.sa_id, UserTransaction.created_at, User.login_name, User.email, User.phone,
+                                                      UserTransaction.is_bonus) \
         .join(User, User.id == UserTransaction.user_id)\
         .filter(UserTransaction.user_id == u_id, UserTransaction.id == t_id).first()
 
@@ -499,8 +819,10 @@ def h_su_transaction_detail(u_id: int, t_id: int):
     sa_types = settings.ServiceAccounts.TYPES_DICT
     if transaction.type and transaction.status in [settings.Transactions.SUCCESS, settings.Transactions.PENDING,
                                                    settings.Transactions.CANCELLED]:
-        transaction_image = helper_get_image_html(img_path=f"{settings.DOWNLOAD_DIR_BILLS}{transaction.bill_path}")
+        if not transaction.is_bonus:
+            transaction_image = helper_get_image_html(img_path=f"{settings.DOWNLOAD_DIR_BILLS}{transaction.bill_path}")
         service_account = ServiceAccount.query.filter(ServiceAccount.id == transaction.sa_id).first()
+
     # elif (not transaction.type or (transaction.type and transaction.op_cost)) and transaction.status == settings.Transactions.SUCCESS:
     else:
         order_prices_marks = helper_get_transaction_orders_detail(t_id=t_id)
@@ -552,11 +874,11 @@ def h_su_wo_transactions() -> Response:
     # 2 getting users with pending orders
     user_ids_stmt = f"""
                      SELECT DISTINCT o.user_id AS user_id FROM public.orders o 
-                     WHERE o.payment !=True AND o.processed != True AND o.stage > {settings.OrderStage.NEW} AND o.stage != {settings.OrderStage.CANCELLED}  AND o.to_delete != True;
+                     WHERE o.payment !=True AND o.processed != True AND o.stage >= {settings.OrderStage.NEW} AND o.stage != {settings.OrderStage.CANCELLED}  AND o.to_delete != True;
                       """
     user_ids = db.session.execute(text(user_ids_stmt)).fetchall()
     if user_ids:
-        status, server_balance = helper_perform_ut_wo(user_ids=user_ids)
+        status, server_balance = helper_perform_ut_wo_mod(user_ids=user_ids)
     else:
         status, server_balance = 0, 'No orders to write off'
 
@@ -606,3 +928,67 @@ def _h_isolated_session():
         session.connection(execution_options={"isolation_level": "SERIALIZABLE"})
         # making queries session
         ...
+
+
+def h_create_bonus_code(data: dict[str, Any]) -> Response:
+    try:
+        validated_data = BonusCodeSchema(**data).model_dump()
+    except pydantic.ValidationError as e:
+        return jsonify({"result": False, "message": str(e)})
+    created_at = datetime.now()
+    validated_data['created_at'] = created_at
+    try:
+        bonus_code = Bonus(**validated_data)
+        db.session.add(bonus_code)
+        db.session.commit()
+        return jsonify({"result": True, "message": "Success created"})
+    except Exception:
+        db.session.rollback()
+        logger.exception('Ошибка при добавлении нового бонус кода')
+        return jsonify({"result": False, "message": "Creating failed"})
+
+
+def h_get_list_of_bonus_code() -> Response:
+    try:
+        return jsonify(
+            [bonus.to_dict() for bonus in Bonus.query.filter(
+                or_(Bonus.is_archived.is_(False), Bonus.is_archived.is_(None)),
+            )]
+        )
+    except Exception:
+        logger.exception('Ошибка при получении списка бонус кодов')
+        return jsonify([])
+
+
+def h_get_detail_of_bonus_code(bonus_code_id: int) -> Bonus | None:
+    try:
+        bonus_code = Bonus.query.filter(
+            Bonus.id == bonus_code_id,
+            or_(Bonus.is_archived.is_(False), Bonus.is_archived.is_(None)),
+        ).first()
+        if not bonus_code:
+            raise NotFoundBonusCode
+        return jsonify(bonus_code.to_dict())
+    except NotFoundBonusCode:
+        return jsonify({"result": False, "message": "Not found"})
+    except Exception:
+        logger.exception('Ошибка при получении деталей бонус кода по ID')
+        return jsonify({"result": False, "message": "Failed"})
+
+
+def h_delete_bonus_code(bonus_code_id: int) -> bool:
+    try:
+        bonus_code = Bonus.query.filter_by(id=bonus_code_id).first()
+        if not bonus_code:
+            raise NotFoundBonusCode
+
+        bonus_code.is_archived = True
+        db.session.commit()
+    except NotFoundBonusCode:
+        return jsonify({"result": False, "message": "Not found"})
+    except Exception:
+        db.session.rollback()
+        logger.exception('Ошибка при попытке удалить бонус код по ID')
+        return jsonify({"result": False, "message": "Deletion failed"})
+
+    return jsonify({"result": True, "message": "Success deleted"})

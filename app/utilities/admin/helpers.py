@@ -150,6 +150,51 @@ def helper_get_clients_os(admin_id: int, client: User) -> Response:
                                                       **locals())})
 
 
+def helper_get_new_orders_at2(admin_id: int) -> list:
+    stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
+    stmt_orders = text(f"""
+                              SELECT 
+                                  {stmt_get_agent} as agent_name ,
+                                  u.login_name as login_name, 
+                                  u.phone as phone, 
+                                  u.email as email, 
+                                  o.id as id,
+                                  o.order_idn as order_idn,
+                                  o.company_type as company_type,
+                                  o.company_name as company_name,
+                                  o.crm_created_at as crm_created_at,
+                                  COUNT(o.id) as row_count,
+                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                              FROM public.users u
+                                  JOIN public.orders o ON o.user_id = u.id  
+                                  LEFT JOIN public.users a ON u.admin_parent_id = a.id  
+                                  LEFT JOIN public.shoes sh ON o.id = sh.order_id
+                                  LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
+                                  LEFT JOIN public.clothes  cl ON o.id = cl.order_id
+                                  LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                  LEFT JOIN public.linen l ON o.id = l.order_id
+                                  LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
+                                  LEFT JOIN public.parfum p ON o.id = p.order_id 
+                              WHERE ((a.id=:admin_id  and a.is_at2=True) OR (u.id=:admin_id AND u.is_at2 = True)) AND o.stage=:order_stage AND o.to_delete != True
+                              GROUP BY u.id, o.id, o.crm_created_at
+                              ORDER BY o.crm_created_at DESC 
+                               """).bindparams(admin_id=admin_id, order_stage=settings.OrderStage.NEW)
+
+    return db.session.execute(stmt_orders).fetchall()
+
+
+def helper_check_new_order_at2(admin_id: int, o_id: int) -> Row | None:
+    stmt_order = text(f"""
+                              SELECT 
+                                  o.order_idn as order_idn
+                              FROM public.users u
+                                  JOIN public.orders o ON o.user_id = u.id  
+                              WHERE  (u.admin_parent_id=:admin_id OR u.id=:admin_id) AND o.id=:order_id AND o.stage={settings.OrderStage.NEW} AND o.to_delete != True
+                               """).bindparams(admin_id=admin_id, order_id=o_id)
+
+    return db.session.execute(stmt_order).fetchone()
+
+
 def helper_prev_day_orders_marks() -> Row:
     yesterday = datetime.now() - timedelta(days=1)
     stmt = text(""" SELECT count(id) as orders_count, sum(marks_count) as marks_count 
@@ -170,7 +215,6 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
     if u_id:
         user_filter = f'and u.admin_parent_id = :u_id'
 
-
     date_condition = f"HAVING max(os.saved_at) <= CURRENT_DATE - INTERVAL '{settings.Users.FILTER_MAX_QUANTITY} days' OR COUNT(os.id) = 0"
     match date_type:
         case settings.Users.FILTER_DATE_HOURS:
@@ -179,39 +223,51 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
             date_condition = f"HAVING max(os.saved_at) <= CURRENT_DATE - INTERVAL '{date_quantity} days' OR COUNT(os.id) = 0"
         case settings.Users.FILTER_DATE_MONTH:
             date_condition = f"HAVING max(os.saved_at) <= CURRENT_DATE - INTERVAL '{date_quantity} month' OR COUNT(os.id) = 0"
-    query = text(f"""SELECT u.id as id,
-                                           u.login_name as login_name,
-                                           u.phone as phone,
-                                           u.balance as balance,
-                                           u.email as email,
-                                           u.role as role,
-                                           u.status as status,
-                                           CASE WHEN MAX(a.id) IS NOT NULL THEN MAX(a.id) ELSE u.id END as admin_id,
-                                           CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name END as admin_name,
-                                           max(pr.price_code) as price_code,
-                                           max(pr.price_1) as price_1,
-                                           max(pr.price_2) as price_2,
-                                           max(pr.price_3) as price_3,
-                                           max(pr.price_4) as price_4,
-                                           max(pr.price_5) as price_5,
-                                           bool_and(pr.price_at2) as price_at2,
-                                           u.client_code as client_code,
-                                           u.created_at as created_at,
-                                           MAX(pc.code) as partners_code,
-                                           COUNT(os.id) as orders_count,
-                                           sum(os.marks_count) as total_marks_count,
-                                           MAX(os.created_at) as os_created_at
-                                    FROM public.users u
-                                    LEFT JOIN public.users a ON u.admin_parent_id = a.id
-                                    LEFT JOIN public.orders_stats as os on os.user_id=u.id
-                                    LEFT JOIN public.prices pr on pr.id=u.price_id
-                                    LEFT JOIN public.users_partners as up on up.user_id=u.id
-                                    LEFT JOIN public.partner_codes as pc on pc.id=up.partner_code_id
-                                    WHERE u.role='{settings.ORD_USER}'
-                                    {user_filter}
-                                    GROUP BY u.id, u.login_name
-                                    {date_condition}
-                                    ORDER BY """ + str(order_clause) + ";")
+    query = text(f"""SELECT
+                           u.id as id,
+                           u.login_name as login_name,
+                           u.phone as phone,
+                           u.balance as balance,
+                           u.email as email,
+                           u.role as role,
+                           u.status as status,
+                           CASE WHEN MAX(a.id) IS NOT NULL THEN MAX(a.id) ELSE u.id END as admin_id,
+                           CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name END as admin_name,
+                           MAX(pr.price_code) as price_code,
+                           MAX(pr.price_1) as price_1,
+                           MAX(pr.price_2) as price_2,
+                           MAX(pr.price_3) as price_3,
+                           MAX(pr.price_4) as price_4,
+                           MAX(pr.price_5) as price_5,
+                           bool_and(pr.price_at2) as price_at2,
+                           u.client_code as client_code,
+                           u.created_at as created_at,
+                           MAX(pc.code) as partners_code,
+                           COUNT(os.id) as orders_count,
+                           sum(os.marks_count) as total_marks_count,
+                           MAX(os.created_at) as os_created_at,
+                           COALESCE(max(rs.comment), '') as comment,
+                           MAX(rs.call_result) as call_result,
+                           COALESCE(to_char(MAX(rs.updated_at),'dd-mm-yyyy hh24:mi'), '-') as last_call_update
+                    FROM public.users u
+                    LEFT JOIN public.users a ON u.admin_parent_id = a.id
+                    LEFT JOIN public.orders_stats as os on os.user_id=u.id
+                    LEFT JOIN public.prices pr on pr.id=u.price_id
+                    LEFT JOIN public.users_partners as up on up.user_id=u.id
+                    LEFT JOIN public.partner_codes as pc on pc.id=up.partner_code_id
+                    LEFT JOIN public.reanimate_status as rs on rs.user_id = u.id
+                    WHERE u.role='{settings.ORD_USER}'
+                    {user_filter}
+                    GROUP BY u.id, u.login_name
+                    {date_condition}
+                    ORDER BY """ + str(order_clause) + ";")
 
     stmt = query.bindparams(u_id=u_id) if u_id else query
     return db.session.execute(stmt).fetchall()
+
+
+def helper_get_reanimate_call_result() -> tuple[int, str, str]:
+    user_id = request.json.get('user_id', None)
+    comment = request.json.get('comment', None)
+    call_result = request.json.get('call_result', None)
+    return user_id, comment, call_result

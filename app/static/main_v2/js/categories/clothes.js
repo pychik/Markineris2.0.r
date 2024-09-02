@@ -22,7 +22,7 @@ function clothes_perform_pos_add(async_flag, url) {
         // console.log(pos_form.checkValidity());
         // console.log("good valid form")
         if (async_flag === 0) {
-            console.log(pos_form.checkValidity, pos_form.checkValidity());
+            // console.log(pos_form.checkValidity, pos_form.checkValidity());
             pos_form.submit();
         } else {
             clothes_load_upload_table(url)
@@ -790,6 +790,32 @@ function create_size_blocks(sizes, clothingType){
         }
     }
     return sizesBlock
+}
+
+function check_gender_ruznak(gender) {
+    if (RZ_CONDITION === 'True' && !CHILDREN_GENDER_LIST.includes(gender)){
+        // console.log('нашли условине' + gender);
+        document.getElementById('rd_name').required = true;
+        document.getElementById('rd_type').required = true;
+        document.getElementById('rd_date').required = true;
+        // document.getElementById('collapseDocResolve').classList.add('show');
+        if (!document.getElementById('collapseDocResolve').classList.contains('show')){
+            document.getElementById('clickablerdblock').click();
+        }
+    }
+    else if((RZ_CONDITION === 'True' && CHILDREN_GENDER_LIST.includes(gender))){
+        document.getElementById('rd_name').required = false;
+        document.getElementById('rd_type').required = false;
+        document.getElementById('rd_date').required = false;
+        $('#rd_type').val('').trigger("change");
+        $('#rd_name').val("");
+        $('#rd_date').val("");
+        // document.getElementById('collapseDocResolve').classList.remove('show');
+        if (document.getElementById('collapseDocResolve').classList.contains('show')){
+            document.getElementById('clickablerdblock').click();
+        }
+    }
+
 }
 
 function deleteCell() {

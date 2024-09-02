@@ -34,7 +34,12 @@ function copy_buffer(element_id, message_id){
   }
 
 //     #### finance_control ####
-function update_finance_control(category_p){
+function update_finance_control(category_p, btn){
+    var tooltipInstance = bootstrap.Tooltip.getInstance(btn);
+    if (tooltipInstance) {
+    tooltipInstance.hide();
+    }
+
     if(document.getElementById(`pills-service_accounts`)){
         document.getElementById(`pills-service_accounts`).classList.remove('active');
     }
@@ -54,20 +59,38 @@ function update_finance_control(category_p){
 }
 
 
-function get_promos_history(url){
-   $.ajax({
-    url: url,
-    method:"GET",
+function get_promos_history(url) {
+    let show_archived = document.getElementById('show_archived_promo').checked
 
-    success:function(data)
-    {
+    $.ajax({
+        url: url,
+        method: "GET",
+        data: {
+            'show_archived': show_archived
+        },
 
-      $('#promos_table').html(data);
-      $("#promos_table").append(data.htmlresponse);
-      // update_category(category);
-      }
-   });
+        success: function (data) {
 
+            $('#promos_table').html(data);
+            $("#promos_table").append(data.htmlresponse);
+            toggleArchivedColumn(show_archived);
+        }
+    });
+
+}
+
+function toggleArchivedColumn(show) {
+    const table = document.getElementById('promos_table');
+    const archivedColumns = table.querySelectorAll('.archived-column');
+    archivedColumns.forEach(column => {
+        column.style.display = show ? '' : 'none';
+    });
+    let show_archived = document.getElementById('show_archived_promo')
+    if (show_archived.checked === true)
+    {show_archived.classList.add('bg-warning')}
+    else
+    {show_archived.classList.remove('bg-warning')}
+    show_archived.blur()
 }
 
 function check_promo_form(){
@@ -313,6 +336,85 @@ function clear_modal_service_prices() {
     document.getElementById("service_prices_modal").innerHTML = '';
 }
 
+
+function get_not_basic_prices_report(url, csrf_token, btn) {
+    var tooltipInstance = bootstrap.Tooltip.getInstance(btn);
+    if (tooltipInstance) {
+    tooltipInstance.hide();
+    }
+
+    $.ajax({
+        url: url,
+        headers: { "X-CSRFToken": csrf_token },
+        method: "POST",
+        xhrFields: {
+            responseType: 'blob' // Set response type to blob
+        },
+
+        success: function(response, status, xhr) {
+            $('#overlay_loading').hide();
+            if (xhr.status === 200) {
+                var blob = new Blob([response], { type: 'application/xlsx' });
+                var link = document.createElement('a');
+
+                var dataName = xhr.getResponseHeader('data_file_name');
+
+                link.href = window.URL.createObjectURL(blob);
+                // console.log()
+                link.download = decodeURIComponent(dataName) || 'Отчет по ценам.xlsx'; //
+                link.click();
+            } else {
+                // Handle other status codes
+                console.error('Error:', xhr.status);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#overlay_loading').hide();
+            // Error handling
+            console.error('Error:', error);
+        }
+    });
+}
+
+function get_marks_count_report(url, csrf_token, btn) {
+    var tooltipInstance = bootstrap.Tooltip.getInstance(btn);
+
+    if (tooltipInstance) {
+    tooltipInstance.hide();
+    }
+
+    $.ajax({
+        url: url,
+        headers: { "X-CSRFToken": csrf_token },
+        method: "POST",
+        xhrFields: {
+            responseType: 'blob' // Set response type to blob
+        },
+
+        success: function(response, status, xhr) {
+            $('#overlay_loading').hide();
+            if (xhr.status === 200) {
+                var blob = new Blob([response], { type: 'application/xlsx' });
+                var link = document.createElement('a');
+
+                var dataName = xhr.getResponseHeader('data_file_name');
+
+                link.href = window.URL.createObjectURL(blob);
+                // console.log()
+                link.download = decodeURIComponent(dataName) || 'Отчет по ценам.xlsx'; //
+                link.click();
+            } else {
+                // Handle other status codes
+                console.error('Error:', xhr.status);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#overlay_loading').hide();
+            // Error handling
+            console.error('Error:', error);
+        }
+    });
+}
 function check_sa_form(){
 
     let form = document.getElementById('service_account_form')
@@ -596,7 +698,8 @@ function bck_get_transactions_wp(url){
         date_from: $('#date_from').val(),
         date_to: $('#date_to').val(),
         amount: $('#transaction_amount').val(),
-        sort_type: sort_mode
+        sort_type: sort_mode,
+        agent_id: $('#user_filter').val(),
       },
     success:function(data)
     {
@@ -626,6 +729,7 @@ function bck_get_transactions_excel_report(url, csrf) {
             date_to: date_to,
             amount: $('#transaction_amount').val(),
             sort_type: sort_mode},
+            agent_id: $('#user_filter').val(),
         xhrFields: {
             responseType: 'blob' // Set response type to blob
         },
@@ -655,6 +759,76 @@ function bck_get_transactions_excel_report(url, csrf) {
 
 }
 
+
+function bck_get_fin_promo_history(url) {
+    let sort_mode = $('input[name="sort_type"]:checked').val();
+    let date_from = $('#date_from').val();
+    let date_to = $('#date_to').val();
+    let selectElement = document.getElementById('promo_codes_select');
+    let promo_code = selectElement.value;
+
+    $.ajax({
+        url: url,
+        method: "GET",
+        data: {
+            date_from: date_from,
+            date_to: date_to,
+            sort_type: sort_mode,
+            promo_code: promo_code,
+        },
+        success: function (data) {
+            $('#fin_promo_history_table').html(data);
+            $("#fin_promo_history_table").append(data.htmlresponse);
+        }
+    });
+}
+
+
+function get_fin_promo_history_report_excel(url, csrf) {
+    let sort_mode = $('input[name="sort_type"]:checked').val();
+    let date_from = $('#date_from').val();
+    let date_to = $('#date_to').val();
+    let selectElement = document.getElementById('promo_codes_select');
+    let promo_code = selectElement.value;
+
+    $('#overlay_loading').show();
+    $.ajax({
+        url: url,
+        headers: { "X-CSRFToken": csrf },
+        method: "POST",
+        data: {date_from: date_from,
+            date_to: date_to,
+            sort_type: sort_mode,
+            promo_code: promo_code,
+            },
+        xhrFields: {
+            responseType: 'blob' // Set response type to blob
+        },
+
+        success: function(response, status, xhr) {
+            $('#overlay_loading').hide();
+            if (xhr.status === 200) {
+                var blob = new Blob([response], { type: 'application/xlsx' });
+                var link = document.createElement('a');
+
+                var dataName = xhr.getResponseHeader('data_file_name');
+
+                link.href = window.URL.createObjectURL(blob);
+                // console.log()
+                link.download = decodeURIComponent(dataName) || 'история промокодов.xlsx'; //
+                link.click();
+            } else {
+                // Handle other status codes
+                console.error('Error:', xhr.status);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#overlay_loading').hide();
+            // Error handling
+            console.error('Error:', error);
+        }
+    });
+}
 
 
 function bck_get_ar_orders_report(url) {
@@ -708,6 +882,27 @@ function bck_su_transaction_detalization(url){
         setTimeout(function() {make_message('Ошибка. В базе нет такой транзакции', 'danger');}, 3500);
      }
    });
+}
+
+function bck_get_transactions_specific_user(url) {
+    let sort_mode = $('input[name="sort_type"]:checked').val();
+    let date_from = $('#date_from').val();
+    let date_to = $('#date_to').val();
+
+    $.ajax({
+        url: url,
+        url: url,
+        method: "GET",
+        data: {
+            date_from: date_from,
+            date_to: date_to,
+            sort_type: sort_mode,
+        },
+        success: function (data) {
+            $('#transactions_table').html(data);
+            $("#transactions_table").append(data.htmlresponse);
+        }
+    });
 }
 
 function clear_su_td_modal(){
@@ -976,4 +1171,127 @@ function updateCategoryPosType() {
         opt.text = option.toUpperCase();
         categoryPosType.appendChild(opt);
     });
+}
+
+function bck_get_fin_order_report(url) {
+    let sort_mode = $('input[name="sort_type"]:checked').val();
+    let date_from = $('#date_from').val();
+    let date_to = $('#date_to').val();
+    let order_type = $('input[name="order_type"]:checked').val()
+    let payment_status = $('input[name="payment_status"]:checked').val()
+
+    $.ajax({
+        url: url,
+        method: "GET",
+        data: {
+            date_from: date_from,
+            date_to: date_to,
+            sort_type: sort_mode,
+            order_type: order_type,
+            payment_status: payment_status,
+        },
+        success: function (data) {
+            $('#orders_table').html(data);
+            $("#orders_table").append(data.htmlresponse);
+        }
+    });
+}
+
+
+function get_fin_order_report_excel(url, csrf) {
+    let sort_mode = $('input[name="sort_type"]:checked').val();
+    let date_from = $('#date_from').val();
+    let date_to = $('#date_to').val();
+    let order_type = $('input[name="order_type"]:checked').val()
+    let payment_status = $('input[name="payment_status"]:checked').val()
+
+    $('#overlay_loading').show();
+    $.ajax({
+        url: url,
+        headers: { "X-CSRFToken": csrf },
+        method: "POST",
+        data: {date_from: date_from,
+            date_to: date_to,
+            sort_type: sort_mode,
+            order_type: order_type,
+            payment_status: payment_status,},
+        xhrFields: {
+            responseType: 'blob' // Set response type to blob
+        },
+
+        success: function(response, status, xhr) {
+            $('#overlay_loading').hide();
+            if (xhr.status === 200) {
+                var blob = new Blob([response], { type: 'application/xlsx' });
+                var link = document.createElement('a');
+
+                var dataName = xhr.getResponseHeader('data_file_name');
+
+                link.href = window.URL.createObjectURL(blob);
+                // console.log()
+                link.download = decodeURIComponent(dataName) || 'отчет_по_заказам.xlsx'; //
+                link.click();
+            } else {
+                // Handle other status codes
+                console.error('Error:', xhr.status);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#overlay_loading').hide();
+            // Error handling
+            console.error('Error:', error);
+        }
+    });
+
+}
+
+
+function toggleOrderStatusBlock(disable) {
+     const paymentStatusRadios = document.getElementsByName('payment_status');
+            for (let i = 0; i < paymentStatusRadios.length; i++) {
+                paymentStatusRadios[i].disabled = disable;
+                if (disable) {
+                    paymentStatusRadios[i].checked = false;
+                }
+                else {
+                    let default_payment_status = document.getElementById('pay_in_full');
+                    default_payment_status.checked = true;
+                }
+            }
+
+
+}
+
+
+function saveCallResultAndComment(url, u_id, csrf) {
+    // Get the comment value
+    const comment = document.getElementById(`comment_${ u_id }`).value;
+    const selectedCallStatus = document.getElementById(`selected_call_status_${u_id}`).value;
+
+    $.ajax({
+    url: url,
+    headers:{
+        "X-CSRFToken": csrf,
+        "Content-Type": "application/json"
+    },
+    method:"POST",
+    data:JSON.stringify({
+            user_id: u_id,
+            comment: comment,
+            call_result: selectedCallStatus
+        }),
+
+    success:function(data)
+    {
+        if (data.status === 'danger') {
+            make_message(data.message, 'danger');
+            return
+        }
+        $(`#call_comment_and_result_${u_id}`).html(data);
+        $(`#call_comment_and_result_${u_id}`).append(data.htmlresponse);
+    },
+    error: function() {
+         make_message('Не удалось сохранить комментарий', 'danger');
+     }
+   });
 }

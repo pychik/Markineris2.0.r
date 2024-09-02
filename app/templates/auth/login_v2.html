@@ -4,7 +4,9 @@
 
 {% block auth %}
 
-{{ ym_sign_up_goal | safe }}
+{% if not config['DEBUG'] %}
+    {{ ym_sign_up_goal | safe }}
+{% endif %}
 
 <div class="container mt-5">
     <div class="front text-center d-flex flex-column justify-content-center align-items-center">

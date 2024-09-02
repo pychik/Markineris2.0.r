@@ -15,7 +15,10 @@
         <div class="col-md-5">
 
             <div class="personal_acc_info" id="ServerBalance">Баланс сервиса: <span class="link-warning"><b>{{ balance }} р.</b></span></div>
+            <div class="personal_acc_info" >Баланс клиентов сервиса: <span class="link-warning"><b>{{ summ_client }} р.</b></span></div>
             <div class="personal_acc_info">Зарезервировано на пополенние: <span class="link-warning"><b>{{ pending_balance_rf }} р.</b></span></div>
+            <div class="personal_acc_info">Баланс агентов тип 1: <span class="link-warning"><b>{{ summ_at1 }} р.</b></span></div>
+            <div class="personal_acc_info">Долг агентов тип2: <span class="link-warning"><b>{{ summ_at2 }} р.</b></span></div>
             <div class="d-flex mt-3">
                 <div class="me-4">
                     <a href="javascript:perform_wo_transactions(`{{url_for('admin_control.bck_su_bck_wo_transactions')}}`, `{{csrf_token()}}`)"
@@ -35,14 +38,32 @@
                 </div>
 
             </div>
-        </div>
 
+        </div>
+        <div class="col-md-7">
+    <h5>Статистика за {{ stat_date.strftime('%d.%m.%Y') }}</h5>
+    <div class="row">
+      <div class="col">
+        <label style="font-size: 28px">Марок</label><br>
+        <label class= "text-warning">{{ stat.marks_cnt }}</label>
+      </div>
+      <div class="col">
+        <label style="font-size: 28px">Списано</label><br>
+        <label class= "text-warning">{{ stat.amount }} р.</label>
+      </div>
+      <div class="col">
+        <label style="font-size: 28px">Ср/цена</label><br>
+        <label class= "text-warning">{{ stat.avg_price }} р.</label>
+      </div>
+    </div>
+  </div>
     </div>
     <div class="row">
 
         <div class="col-md-3">
-            <div class="mb-3 mt-3 text-center" title="Настройка банковских счетов. qr коды и реквизиты">
-                <a href="javascript:update_finance_control('service_accounts')" class="btn btn-outline-secondary btn-block active" id="pills-service_accounts">
+            <div class="mb-3 mt-3 text-center">
+                <a href='#' onclick="javascript:update_finance_control('service_accounts', this)" class="btn btn-outline-secondary btn-block active" id="pills-service_accounts"
+                data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Настройка банковских счетов. qr коды и реквизиты">
                     <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="currentColor" class="bi bi-qr-code-scan" viewBox="0 0 16 16">
                       <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0v-3Zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5ZM.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5Zm15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5ZM4 4h1v1H4V4Z"/>
                       <path d="M7 2H2v5h5V2ZM3 3h3v3H3V3Zm2 8H4v1h1v-1Z"/>
@@ -55,8 +76,10 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="mb-3 mt-3 text-center" title="Настройка промокодов">
-                <a href="javascript:update_finance_control('promos')" class="btn btn-outline-secondary btn-block" id="pills-promos">
+            <div class="mb-3 mt-3 text-center" >
+                <a href='#' onclick="javascript:update_finance_control('promos', this)" class="btn btn-outline-secondary btn-block" id="pills-promos"
+                   data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Настройка промокодов"
+                >
                       <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="currentColor" class="bi bi-gift-fill" viewBox="0 0 16 16">
                           <path d="M3 2.5a2.5 2.5 0 0 1 5 0 2.5 2.5 0 0 1 5 0v.006c0 .07 0 .27-.038.494H15a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h2.038A2.968 2.968 0 0 1 3 2.506V2.5zm1.068.5H7v-.5a1.5 1.5 0 1 0-3 0c0 .085.002.274.045.43a.522.522 0 0 0 .023.07zM9 3h2.932a.56.56 0 0 0 .023-.07c.043-.156.045-.345.045-.43a1.5 1.5 0 0 0-3 0V3zm6 4v7.5a1.5 1.5 0 0 1-1.5 1.5H9V7h6zM2.5 16A1.5 1.5 0 0 1 1 14.5V7h6v9H2.5z"/>
                       </svg>
@@ -65,8 +88,8 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="mb-3 mt-3 text-center" title="Настройка ценовых распределений">
-                <a href="javascript:update_finance_control('prices')" class="btn btn-outline-secondary btn-block" id="pills-prices">
+            <div class="mb-3 mt-3 text-center" >
+                <a href='#' onclick="javascript:update_finance_control('prices', this)" class="btn btn-outline-secondary btn-block" id="pills-prices" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Настройка ценовых распределений">
                     <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="currentColor" class="bi bi-cash-coin" viewBox="0 0 16 16">
                       <path fill-rule="evenodd" d="M11 15a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm5-4a5 5 0 1 1-10 0 5 5 0 0 1 10 0z"/>
                       <path d="M9.438 11.944c.047.596.518 1.06 1.363 1.116v.44h.375v-.443c.875-.061 1.386-.529 1.386-1.207 0-.618-.39-.936-1.09-1.1l-.296-.07v-1.2c.376.043.614.248.671.532h.658c-.047-.575-.54-1.024-1.329-1.073V8.5h-.375v.45c-.747.073-1.255.522-1.255 1.158 0 .562.378.92 1.007 1.066l.248.061v1.272c-.384-.058-.639-.27-.696-.563h-.668zm1.36-1.354c-.369-.085-.569-.26-.569-.522 0-.294.216-.514.572-.578v1.1h-.003zm.432.746c.449.104.655.272.655.569 0 .339-.257.571-.709.614v-1.195l.054.012z"/>
@@ -78,8 +101,8 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="mb-3 mt-3 text-center" title="Контроль транзакций пользователя!">
-                <a href="{{ url_for('admin_control.su_control_ut') }}" class="btn btn-outline-secondary btn-block">
+            <div class="mb-3 mt-3 text-center" >
+                <a href="{{ url_for('admin_control.su_control_ut') }}" class="btn btn-outline-secondary btn-block" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Контроль транзакций пользователей">
                     <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="currentColor" class="bi bi-qr-code-scan" viewBox="0 0 16 16">
                       <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0v-3Zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5ZM.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5Zm15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5ZM4 4h1v1H4V4Z"/>
                       <path d="M7 2H2v5h5V2ZM3 3h3v3H3V3Zm2 8H4v1h1v-1Z"/>
@@ -91,6 +114,40 @@
                 </a>
             </div>
         </div>
+
+       <div class="col-md-3">
+            <div class="mb-3 mt-3 text-center" data-bs-toggle="tooltip" data-bs-placement="top" title="Отчеты по заказам" >
+                <a href="{{ url_for('admin_control.su_fin_order_report') }}" class="btn btn-outline-secondary btn-block"
+                    style="padding: 5px;!important;max-width: 240px;">
+
+                    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Uploaded to svgrepo.com" width="30" height="30" viewBox="0 0 32 32" xml:space="preserve">
+                        <style type="text/css">
+                            .blueprint_een{fill: #555958;}
+                        </style>
+                        <path class="blueprint_een" d="M5,9h18v1H5V9z M5,13h8v9H5V13z M6,21h6v-7H6V21z M16,14h7v-1h-7V14z M16,16h7v-1h-7V16z M16,20h7v-1  h-7V20z M16,18h7v-1h-7V18z M16,22h7v-1h-7V22z M32,7v17c0,2.206-1.794,4-4,4H4c-2.206,0-4-1.794-4-4V5c0-0.552,0.448-1,1-1h26  c0.552,0,1,0.448,1,1v1h3C31.552,6,32,6.448,32,7z M30,8h-3v14h-1V7V6H2v18c0,1.103,0.897,2,2,2h24c1.103,0,2-0.897,2-2V8z"/>
+                    </svg>
+                  Заказы
+                </a>
+            </div>
+        </div>
+
+       <div class="col-md-3">
+         <div class="mb-3 mt-3 text-center">
+            <div onclick="get_marks_count_report(`{{ url_for('admin_control.su_fin_marks_count_report') }}`, '{{ csrf_token() }}', this)"
+                  class="btn btn-outline-secondary btn-block"
+               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Статистика пользователей по количеству заказанных марок"
+               style="padding: 0px; !important; max-width: 240px; font-size: 14px">
+
+                <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Uploaded to svgrepo.com" width="22" height="22" viewBox="0 0 32 32" xml:space="preserve">
+                    <style type="text/css">
+                        .blueprint_een { fill: #555958; }
+                    </style>
+                    <path class="blueprint_een" d="M5,9h18v1H5V9z M5,13h8v9H5V13z M6,21h6v-7H6V21z M16,14h7v-1h-7V14z M16,16h7v-1h-7V16z M16,20h7v-1  h-7V20z M16,18h7v-1h-7V18z M16,22h7v-1h-7V22z M32,7v17c0,2.206-1.794,4-4,4H4c-2.206,0-4-1.794-4-4V5c0-0.552,0.448-1,1-1h26  c0.552,0,1,0.448,1,1v1h3C31.552,6,32,6.448,32,7z M30,8h-3v14h-1V7V6H2v18c0,1.103,0.897,2,2,2h24c1.103,0,2-0.897,2-2V8z"/>
+                </svg>
+                Статистика по количеству заказанных марок
+            </div>
+         </div>
+       </div>
 
     </div>
 
@@ -109,5 +166,6 @@
 <div id="service_prices_modal"></div>
 
 {% include 'helpers/error_modal.html' %}
-<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc_v5.js')}}"></script>
+
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc_v7.js')}}?v=1"></script>
 {% endblock %}

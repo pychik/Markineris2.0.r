@@ -9,19 +9,25 @@ from utilities.tg_verify.service import (
     check_promo_used,
     create_transaction_from_tg,
 )
-from validators.api import TransactionInData, PromoCheckInData
+from models import Bonus, Promo, users_promos, users_bonus_codes
+from validators.api import TransactionInData, PromoBonusCheckInData
 
 api = Blueprint('api', __name__)
 
+model_objs = {
+    False: {"model": Promo, "relation_model": users_promos},
+    True: {"model": Bonus, "relation_model": users_bonus_codes}
+}
+
 
 # done
-@api.get("/check_promo_code")
+@api.post("/check_promo_code")
 def check_promo_code():
     if request.headers.get("MARKINERS_V2_TOKEN") != settings.MARKINERS_V2_TOKEN:
         return jsonify({"detail": "Нет доступа."}), 403
 
     try:
-        data = PromoCheckInData(**request.args)
+        data = PromoBonusCheckInData(**request.json)
     except ValidationError:
         logger.exception("Ошибка валидации при проверке промо кода.")
         return jsonify(
@@ -29,19 +35,20 @@ def check_promo_code():
         ), 500
 
     try:
-        promo_code_obj = check_promo_exists(promo_code=data.promo_code)
+        model, relation_model = model_objs[data.is_bonus].values()
+        code_obj = check_promo_exists(promo_code=data.code, model=model)
     except Exception:
         logger.exception("Ошибка проверки промо кода")
         return jsonify(
             {"detail": settings.Messages.STRANGE_REQUESTS}
         ), 500
 
-    if promo_code_obj is None:
+    if code_obj is None:
         return jsonify(
             {"detail": settings.Messages.PROMO_NE_ERROR}
         ), 404
 
-    is_used = check_promo_used(user_id=data.user_id, promo_code=promo_code_obj.code)
+    is_used = check_promo_used(user_id=data.user_id, code=code_obj.code, model=model, relation_model=relation_model)
 
     if is_used:
         return jsonify(
@@ -49,8 +56,8 @@ def check_promo_code():
         ), 409
 
     return jsonify({
-        "promo_id": promo_code_obj.id,
-        "amount": promo_code_obj.value,
+        "promo_id": code_obj.id,
+        "amount": code_obj.value,
     })
 
 
@@ -62,8 +69,8 @@ def get_current_service_account():
 
     try:
         current_service_account = helper_get_current_sa()
-    except Exception as e:
-        logger.exception(e)
+    except Exception:
+        logger.exception("Ошибка при получении информации о сервисном счете")
         return jsonify(
             {"detail": settings.Messages.STRANGE_REQUESTS}
         ), 500
@@ -88,11 +95,16 @@ def create_transaction():
 
     try:
         data = TransactionInData(**request.form)
-    except ValidationError as e:
-        logger.exception(e)
+        current_service_account = helper_get_current_sa()
+
+        # make checks if account changed
+        if data.sa_id != current_service_account.id:
+            logger.error('Пользователь попробовал оплатить на недействующий счет')
+            raise ValidationError()
+    except ValidationError:
+        logger.exception("Сервисный счет на сервисе не равен сервисному счету присланным в запросе")
         return jsonify(
-            # TODO: подумать над сообщением ответа в бот при ошибке получения create_transaction
-            {"detail": "Ошибка валидации данных."}
+            {"detail": "Ошибка проверки данных."}
         ), 422
 
     is_created = create_transaction_from_tg(data)

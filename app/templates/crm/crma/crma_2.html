@@ -1,6 +1,7 @@
 <div style="min-width: 260px;max-width: 260px;" class="mr-2">
         <div class="pr-3">
-          <h3><span class="badge badge-secondary">Отправлены фирме</span></h3>
+          <h4><span class="badge badge-secondary">Отправлены фирме</span></h4>
+          <h4><span class="badge badge-secondary">{%if pool_orders%}{{pool_orders | length}} шт.{%endif%}</span></h4>
           {% for n in pool_orders %}
 
               <div class="card mt-3 mb-3 custom-rounded border-secondary{% if n.to_delete %} div-disabled {%endif%}">

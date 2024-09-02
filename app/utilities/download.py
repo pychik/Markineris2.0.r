@@ -1,4 +1,5 @@
 from copy import copy
+from datetime import datetime
 from io import BytesIO
 from typing import Optional, Union
 
@@ -16,15 +17,16 @@ from .telegram import TelegramProcessor
 
 
 class OrdersProcessor(ProcessorInterface):
-    def __init__(self, category: str, company_idn: str, orders_list: list) -> None:
+    def __init__(self, category: str, company_idn: str, orders_list: list, flag_046: bool = False) -> None:
 
-        self.orders_list = self.prepare_ext_data(orders_list=orders_list)
+        self.orders_list = self.prepare_ext_data(orders_list=orders_list, flag_046=flag_046)
         self.company_idn = company_idn
         self.path = ''
         self.category = category
         self.start_data = []
         self.additional_info = []
         self.batches = batch_order(order_list=self.orders_list, batch_length=settings.ORDER_BATCH_QUANTITY)
+        self.flag_046 = flag_046
 
     @property
     def order_list(self) -> list:
@@ -52,7 +54,7 @@ class OrdersProcessor(ProcessorInterface):
         worksheet_2 = workbook.add_worksheet(name=settings.SHEET_NAME_2)
 
         # Some data we want to write to the worksheet.
-        main_data = self.excel_start_data_ext(category=self.category)
+        main_data = self.excel_start_data_ext(category=self.category, flag_046=self.flag_046)
         main_data.extend(orders_list)
 
         df_dict = {}
@@ -61,7 +63,7 @@ class OrdersProcessor(ProcessorInterface):
         OrdersProcessor.add_to_excel(worksheet=worksheet_2, data=self.additional_info, row=0, col=0)
         df_dict["df2"] = DataFrame(self.additional_info)
 
-        OrdersProcessor.adjusting_df(df=df_dict["df1"], worksheet=worksheet_1)
+        OrdersProcessor.adjusting_df(df=df_dict["df1"], worksheet=worksheet_1) if not self.flag_046 else None
         OrdersProcessor.adjusting_df(df=df_dict["df2"], worksheet=worksheet_2)
 
         workbook.close()
@@ -74,8 +76,9 @@ class OrdersProcessor(ProcessorInterface):
 
     @staticmethod
     def get_filename(order_num: int, category: str, pos_count: int, count: int,
-                     partner_code: str, company_type: str, company_name: str) -> str:
-        name = f"{order_num} {partner_code} {category} {company_type} " \
+                     partner_code: str, company_type: str, company_name: str, flag_046: bool = False) -> str:
+        table_format = '029_' if not flag_046 else '046_'
+        name = f"{table_format}{order_num} {partner_code} {category} {company_type} " \
                f"{company_name.split(' ')[0] if len(company_name.split(' ')) > 1 else company_name} {pos_count}-{count}"
         return f"{name}.xlsx"
 
@@ -109,16 +112,16 @@ class OrdersProcessor(ProcessorInterface):
         return res
 
     @staticmethod
-    def excel_start_data_ext(category: str):
+    def excel_start_data_ext(category: str,  flag_046: bool = False):
         res = []
         if category == settings.Shoes.CATEGORY:
-            res = copy(settings.Shoes.START_EXT)
+            res = copy(settings.Shoes.START_EXT_046) if flag_046 else copy(settings.Shoes.START_EXT)
         if category == settings.Linen.CATEGORY:
             res = copy(settings.Linen.START_EXT)
         if category == settings.Parfum.CATEGORY:
             res = copy(settings.Parfum.START_EXT)
         if category == settings.Clothes.CATEGORY:
-            res = copy(settings.Clothes.START_EXT)
+            res = copy(settings.Clothes.START_EXT_046) if flag_046 else copy(settings.Clothes.START_EXT)
         return res
 
     @staticmethod
@@ -139,7 +142,7 @@ class OrdersProcessor(ProcessorInterface):
         self.path = self.get_filename(order_num=order_num, category=category,
                                       pos_count=pos_count, count=orders_pos_count,
                                       partner_code=c_partner_code, company_type=company_type,
-                                      company_name=company_name)
+                                      company_name=company_name, flag_046=self.flag_046)
         self.excel_add_worksheet_data(company_idn=company_idn, company_name=company_name,
                                       company_type=company_type,
                                       edo_type=edo_type, edo_id=edo_id, mark_type=mark_type,
@@ -155,14 +158,14 @@ class OrdersProcessor(ProcessorInterface):
 class ShoesProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list) -> list:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> list:
         res_list = []
-
+        actual_date = datetime.now().strftime('%d.%m.%Y')
         for el in orders_list:
 
             tnved = ShoesProcessor.get_tnved(material=el.material_top, gender=el.gender) \
                 if not el.tnved_code else el.tnved_code
-            declar_doc = f"{el.rd_type[0]}№{el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
+            declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
             for sq in el.sizes_quantities:
                 full_name = f'{el.type} {el.gender} {el.trademark} ' \
                             f'арт. {el.article} цвет. {el.color} р.{sq.size}'
@@ -173,7 +176,11 @@ class ShoesProcessor(OrdersProcessor):
                              el.material_lining, el.material_bottom, tnved, '', '',
                              el.article_price, el.tax, el.box_quantity * sq.quantity, el.box_quantity,
                              sq.quantity, el.country, declar_doc,
-                             ]
+                             ] if not flag_046 else \
+                    ['', '', '', el.article, actual_date, full_name, el.trademark, '',
+                     settings.COUNTRIES_CODES.get(el.country), settings.Shoes.TYPES_CODES.get(el.type), el.material_top,
+                     el.material_lining, el.material_bottom, el.color, settings.Shoes.SIZES_CODES.get(sq.size),
+                     '' if sq.size in settings.Shoes.SIZES_ND else sq.size, tnved, '', sq.quantity, declar_doc, ]
                 res_list.append(temp_list)
         return res_list
 
@@ -196,12 +203,13 @@ class ShoesProcessor(OrdersProcessor):
 class LinenProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list) -> list:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> list:
         res_list = []
 
         for el in orders_list:
             tnved = settings.Linen.TNVED_CODE if not el.tnved_code else el.tnved_code
-            declar_doc = f"{el.rd_type[0]}№{el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
+            declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
+            table_type = el.type if el.type != 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ' else 'КОМПЛЕКТ'
             for sq in el.sizes_quantities:
                 if el.with_packages == 'да':
                     full_name = f'Комплект {el.type} {el.trademark} {sq.quantity} шт. ' \
@@ -213,7 +221,7 @@ class LinenProcessor(OrdersProcessor):
                     fin_quantity = sq.quantity * el.box_quantity
                 temp_list = [tnved[:4], full_name,
                              el.trademark, "Артикул", el.article,
-                             el.type, el.color, el.customer_age, el.textile_type, el.content, sq.size,
+                             table_type, el.color, el.customer_age, el.textile_type, el.content, sq.size,
                              tnved, settings.Linen.NUMBER_STANDART, '', '', el.article_price, el.tax,
                              fin_quantity, '', '', el.country, declar_doc, ]
                 res_list.append(temp_list)
@@ -223,7 +231,7 @@ class LinenProcessor(OrdersProcessor):
 class ParfumProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list) -> list:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> list:
         res_list = []
 
         for el in orders_list:
@@ -237,7 +245,7 @@ class ParfumProcessor(OrdersProcessor):
                 fin_quantity = el.quantity
 
             tnved = ParfumProcessor.get_tnved(parfum_type=el.type) if not el.tnved_code else el.tnved_code
-            declar_doc = f"{el.rd_type[0]}№{el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
+            declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
             temp_list = [tnved[:4], full_name,
                          el.trademark, el.volume_type, el.volume,
                          el.package_type, el.material_package, el.type,
@@ -261,13 +269,14 @@ class ParfumProcessor(OrdersProcessor):
 class ClothesProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list) -> list:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> list:
         res_list = []
+        actual_date = datetime.now().strftime('%d.%m.%Y')
         for el in orders_list:
             #     if not el.tnved_code else el.tnved_code
             tnved = el.tnved_code
 
-            declar_doc = f"{el.rd_type[0]}№{el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" \
+            declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" \
                 if all([el.rd_date, el.rd_type, el.rd_name]) else ''
             for sq in el.sizes_quantities:
 
@@ -280,7 +289,13 @@ class ClothesProcessor(OrdersProcessor):
                              el.trademark, 'Артикул', el.article, el.type, el.color, gender, sq.size_type, sq.size,
                              el.content, tnved, settings.Clothes.NUMBER_STANDART,
                              '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,
-                             declar_doc, ]
+                             declar_doc, ] if not flag_046 else \
+                    ['', '', el.article, actual_date, full_name, el.trademark, settings.COUNTRIES_CODES.get(el.country),
+                     '',
+                     '', settings.Clothes.TYPES_CODES.get(el.type), '', tnved,
+                     settings.Clothes.SYZE_TYPES_CODES.get(sq.size_type), sq.size, '', el.color, '', gender,
+                     el.content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
+                     sq.quantity * el.box_quantity, declar_doc, ]
                 res_list.append(temp_list)
         return res_list
 
@@ -330,7 +345,7 @@ def orders_list_get(model: db.Model) -> Optional[Union[tuple, list]]:
 
 
 def get_download_info(o_id, user: User, order_num: int, batching: bool = True,
-                      clothes_divider_flag: bool = False) -> Union[Response, tuple]:
+                      clothes_divider_flag: bool = False, flag_046: bool = False) -> Union[Response, tuple]:
     order = Order.query.filter(Order.id == o_id, ~Order.to_delete).first() if not clothes_divider_flag \
         else Order.query.with_entities(Order.id, Order.category, Order.company_idn, Order.company_type,
                                        Order.company_name, Order.edo_type, Order.edo_type, Order.edo_id,
@@ -362,7 +377,8 @@ def get_download_info(o_id, user: User, order_num: int, batching: bool = True,
         category = settings.Shoes.CATEGORY
         rd_exist, quantity_list_raw, pos_count, orders_pos_count = order_count(category=category, order_list=order_list)
 
-        op = ShoesProcessor(category=settings.Shoes.CATEGORY, company_idn=company_idn, orders_list=order_list)
+        op = ShoesProcessor(category=settings.Shoes.CATEGORY, company_idn=company_idn, orders_list=order_list,
+                            flag_046=flag_046)
     elif order.category == settings.Clothes.CATEGORY:
         order_list, old_tnved, new_tnved = helper_get_clothes_divided_list(order_id=o_id)
         if not order_list:
@@ -374,7 +390,7 @@ def get_download_info(o_id, user: User, order_num: int, batching: bool = True,
         rd_exist, quantity_list_raw, pos_count, orders_pos_count = order_count(category=category, order_list=order_list)
 
         if not batching:
-            op = ClothesProcessor(category=category, company_idn=company_idn, orders_list=order_list)
+            op = ClothesProcessor(category=category, company_idn=company_idn, orders_list=order_list, flag_046=flag_046)
             files_list = [op.make_file(order_num=order_num, category=category, pos_count=pos_count,
                                        orders_pos_count=orders_pos_count,
                                        c_partner_code=c_partner_code, company_type=company_type,
@@ -386,8 +402,8 @@ def get_download_info(o_id, user: User, order_num: int, batching: bool = True,
                 mark_type, pos_count, orders_pos_count, category, \
                 c_partner_code, files_list
 
-        op_old = ClothesProcessor(category=category, company_idn=company_idn, orders_list=old_tnved)
-        op_new = ClothesProcessor(category=category, company_idn=company_idn, orders_list=new_tnved)
+        op_old = ClothesProcessor(category=category, company_idn=company_idn, orders_list=old_tnved, flag_046=flag_046)
+        op_new = ClothesProcessor(category=category, company_idn=company_idn, orders_list=new_tnved, flag_046=flag_046)
 
         files_list = []
         index = 1
@@ -468,17 +484,18 @@ def get_download_info(o_id, user: User, order_num: int, batching: bool = True,
 
 # todo decompose common methods
 
-def orders_download_common(user: User, o_id: int):
+def orders_download_common(user: User, o_id: int, flag_046: bool = False):
 
     rd_exist, company_idn, company_type, company_name, edo_type, edo_id, \
         mark_type, pos_count, orders_pos_count, category, \
-        c_partner_code, files_list = get_download_info(o_id=o_id, user=user, order_num=o_id, batching=False)
+        c_partner_code, files_list = get_download_info(o_id=o_id, user=user, order_num=o_id, batching=False,
+                                                       flag_046=flag_046)
 
     return send_file(files_list[0][0], download_name=files_list[0][1], as_attachment=True)
 
 
 def orders_process_send_order(o_id: int, user: User,  order_comment: str, order_num: int, order_idn: str, su_exec_order_name: str = None,
-                              clothes_divider_flag: bool = False) -> bool:
+                              clothes_divider_flag: bool = False, flag_046: bool = False) -> bool:
 
     if user.is_at2:
         telegram_raw = user.telegram
@@ -490,7 +507,7 @@ def orders_process_send_order(o_id: int, user: User,  order_comment: str, order_
         edo_type, edo_id, mark_type, \
         pos_count,  orders_pos_count, \
         category,  p_code, files_list = get_download_info(o_id=o_id, user=user, order_num=order_num,
-                                                          clothes_divider_flag=clothes_divider_flag)
+                                                          clothes_divider_flag=clothes_divider_flag, flag_046=flag_046)
     if not files_list:
         flash(message=settings.Messages.CATEGORY_UNKNOWN_ERROR, category='error')
         return False

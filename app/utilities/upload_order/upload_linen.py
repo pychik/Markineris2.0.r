@@ -105,7 +105,7 @@ class ValidateLinenMixin:
     def _quantity(value: str, row_num: int, col: str, packages: bool = False) -> Optional[str]:
         # value is quantity
 
-        if not value.isdigit() or int(value) > settings.Linen.MAX_QUANTITY:
+        if not value.isdigit() or int(value) > settings.Linen.MAX_QUANTITY or int(value) < settings.Linen.MIN_QUANTITY:
             message = settings.Linen.UPLOAD_BOX_QUANTITY_ERROR if packages else settings.Linen.UPLOAD_QUANTITY_ERROR
             return f"{val_error_start(row_num=row_num, col=col)} {message}"
 
@@ -115,7 +115,7 @@ class ValidateLinenMixin:
         # value is shoe_country
         country_value = value.upper()
         order_list[row_num - settings.Linen.UPLOAD_STANDART_ROW][pos] = country_value
-        if country_value not in settings.COUNTRIES_LIST and value not in settings.COUNTRIES_LIST_C:
+        if country_value not in settings.COUNTRIES_LIST:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Linen.UPLOAD_COUNTRY_ERROR}"
 
     @staticmethod
