@@ -54,8 +54,8 @@ def create_app() -> tuple[Flask, SQLAlchemy]:
     Migrate().init_app(app, db)
 
     csrf.init_app(app)
-    csrf.exempt('views.main.endpoints.create_transaction')
-    csrf.exempt('views.main.endpoints.check_promo_code')
+    csrf.exempt('views.api.transactions.create_transaction')
+    csrf.exempt('views.api.transactions.check_promo_code')
     if not app.debug:
         ElasticAPM().init_app(app)
     return app, db
