@@ -804,7 +804,8 @@ def h_su_transaction_detail(u_id: int, t_id: int):
                                                       UserTransaction.amount, UserTransaction.op_cost, UserTransaction.bill_path,
                                                       UserTransaction.user_id, UserTransaction.promo_info,
                                                       UserTransaction.wo_account_info,
-                                                      UserTransaction.sa_id, UserTransaction.created_at, User.login_name, User.email, User.phone) \
+                                                      UserTransaction.sa_id, UserTransaction.created_at, User.login_name, User.email, User.phone,
+                                                      UserTransaction.is_bonus) \
         .join(User, User.id == UserTransaction.user_id)\
         .filter(UserTransaction.user_id == u_id, UserTransaction.id == t_id).first()
 
@@ -812,8 +813,10 @@ def h_su_transaction_detail(u_id: int, t_id: int):
     sa_types = settings.ServiceAccounts.TYPES_DICT
     if transaction.type and transaction.status in [settings.Transactions.SUCCESS, settings.Transactions.PENDING,
                                                    settings.Transactions.CANCELLED]:
-        transaction_image = helper_get_image_html(img_path=f"{settings.DOWNLOAD_DIR_BILLS}{transaction.bill_path}")
+        if not transaction.is_bonus:
+            transaction_image = helper_get_image_html(img_path=f"{settings.DOWNLOAD_DIR_BILLS}{transaction.bill_path}")
         service_account = ServiceAccount.query.filter(ServiceAccount.id == transaction.sa_id).first()
+
     # elif (not transaction.type or (transaction.type and transaction.op_cost)) and transaction.status == settings.Transactions.SUCCESS:
     else:
         order_prices_marks = helper_get_transaction_orders_detail(t_id=t_id)
