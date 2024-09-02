@@ -12,13 +12,11 @@ from src.infrastructure.client import BaseClient
 from src.infrastructure.utils import generate_verification_code
 from src.keyboards.buttons import (
     CANCEL_INLINE_BUTTON,
-    NO_BONUS_INLINE_BUTTON,
     MAIN_FUNCTIONS,
     HELP_BUTTON,
     CANCEL_BUTTON,
 )
 from src.keyboards.inline import get_inline_keyboard
-from src.keyboards.inline_events_data import NO_BONUS_CODE
 from src.keyboards.keyboard_events_data import BONUS_CODE_COMMAND_TEXT
 from src.keyboards.reply import get_reply_keyboard
 from src.schemas.account_refill_balance import (
@@ -74,20 +72,6 @@ async def start_use_bonus_code_handler(
     )
 
 
-@router.callback_query(F.data == NO_BONUS_CODE, UserState.bonus_waiting)
-async def no_bonus_code_callback_handler(
-        callback: CallbackQuery,
-        state: FSMContext,
-) -> None:
-    """ Обрабатывает событие когда пользователь нажал на инлайн кнопку NO_BONUS_CODE. """
-    await callback.message.answer(
-        text=UserMessages.AVAILABLE_FUNCTIONS,
-        reply_markup=await get_reply_keyboard(MAIN_FUNCTIONS),
-    )
-    await state.set_state(UserState.start_transaction)
-    await callback.answer()
-
-
 @router.message(UserState.bonus_waiting)
 async def bonus_code_handler(
         message: Message,
@@ -105,7 +89,9 @@ async def bonus_code_handler(
     if requisite.status_code == 200:
         req_id = requisite.requisite_id
     else:
-        req_id = 1
+        logger.exception(f"Ошибка при получении сервисного счета, статус код - {requisite.status_code}")
+        await internal_error_handler(message, state)
+        return
 
     await state.update_data({
         settings.REQUISITE_ID_STORAGE_KEY: req_id,
@@ -143,21 +129,23 @@ async def bonus_code_handler(
         elif validated_bonus_code.status_code == 404:
             await message.answer(
                 text=UserMessages.BONUS_CODE_NOT_FOUND.format(bonus_code=bonus_code.replace('_', '\\_')),
-                reply_markup=await get_inline_keyboard([NO_BONUS_INLINE_BUTTON, CANCEL_INLINE_BUTTON]),
+                reply_markup=await get_inline_keyboard([CANCEL_INLINE_BUTTON]),
             )
         elif validated_bonus_code.status_code == 409:
             await message.answer(
                 text=UserMessages.BONUS_CODE_ALREADY_USED.format(bonus_code=bonus_code.replace('_', '\\_')),
-                reply_markup=await get_inline_keyboard([NO_BONUS_INLINE_BUTTON, CANCEL_INLINE_BUTTON]),
-            )
-        elif validated_bonus_code.status_code == 500:
-            await message.answer(
-                text=UserMessages.INTERNAL_SERVER_ERROR,
                 reply_markup=await get_inline_keyboard([CANCEL_INLINE_BUTTON]),
             )
+        elif validated_bonus_code.status_code == 500:
+            await internal_error_handler(message, state)
     except Exception:
         logger.exception("Ошибка применения бонус кода")
-        await message.answer(
-            text=UserMessages.INTERNAL_SERVER_ERROR,
-            reply_markup=await get_reply_keyboard(MAIN_FUNCTIONS),
-        )
+        await internal_error_handler(message, state)
+
+
+async def internal_error_handler(message: Message, state: FSMContext):
+    await clear_state_data(state)
+    await message.answer(
+        text=UserMessages.INTERNAL_SERVER_ERROR,
+        reply_markup=await get_reply_keyboard(MAIN_FUNCTIONS),
+    )
