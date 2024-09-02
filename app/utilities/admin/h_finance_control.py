@@ -4,8 +4,9 @@ from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 from os import listdir as o_list_dir
 from os import remove as o_remove
+from typing import Any
 
-
+import pydantic
 from flask import render_template, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
 from sqlalchemy import desc, text, create_engine, null, select, or_
@@ -14,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from config import settings
 from logger import logger
-from models import Promo, Price, ServiceAccount, ServerParam, User, UserTransaction, TgUser
+from models import Promo, Price, ServiceAccount, ServerParam, User, UserTransaction, Bonus, users_bonus_codes
 from models import db
 from utilities.admin.excel_report import ExcelReportProcessor, ExcelReport, ExcelReportWithSheets
 from utilities.support import helper_paginate_data, check_file_extension, get_file_extension, \
@@ -24,6 +25,11 @@ from utilities.support import helper_paginate_data, check_file_extension, get_fi
     helper_get_filter_fin_order_report, helper_get_stmt_for_fin_promo_history, helper_get_filter_fin_promo_history,\
     helper_get_transactions, helper_get_user_at2_opt2
 from utilities.tg_verify.service import send_tg_message_with_transaction_updated_status
+from validators.admin_control import BonusCodeSchema
+
+
+class NotFoundBonusCode(Exception):
+    """ Бонус код не найден. """
 
 
 def h_su_control_finance():
@@ -804,7 +810,8 @@ def h_su_transaction_detail(u_id: int, t_id: int):
                                                       UserTransaction.amount, UserTransaction.op_cost, UserTransaction.bill_path,
                                                       UserTransaction.user_id, UserTransaction.promo_info,
                                                       UserTransaction.wo_account_info,
-                                                      UserTransaction.sa_id, UserTransaction.created_at, User.login_name, User.email, User.phone) \
+                                                      UserTransaction.sa_id, UserTransaction.created_at, User.login_name, User.email, User.phone,
+                                                      UserTransaction.is_bonus) \
         .join(User, User.id == UserTransaction.user_id)\
         .filter(UserTransaction.user_id == u_id, UserTransaction.id == t_id).first()
 
@@ -812,8 +819,10 @@ def h_su_transaction_detail(u_id: int, t_id: int):
     sa_types = settings.ServiceAccounts.TYPES_DICT
     if transaction.type and transaction.status in [settings.Transactions.SUCCESS, settings.Transactions.PENDING,
                                                    settings.Transactions.CANCELLED]:
-        transaction_image = helper_get_image_html(img_path=f"{settings.DOWNLOAD_DIR_BILLS}{transaction.bill_path}")
+        if not transaction.is_bonus:
+            transaction_image = helper_get_image_html(img_path=f"{settings.DOWNLOAD_DIR_BILLS}{transaction.bill_path}")
         service_account = ServiceAccount.query.filter(ServiceAccount.id == transaction.sa_id).first()
+
     # elif (not transaction.type or (transaction.type and transaction.op_cost)) and transaction.status == settings.Transactions.SUCCESS:
     else:
         order_prices_marks = helper_get_transaction_orders_detail(t_id=t_id)
@@ -919,3 +928,67 @@ def _h_isolated_session():
         session.connection(execution_options={"isolation_level": "SERIALIZABLE"})
         # making queries session
         ...
+
+
+def h_create_bonus_code(data: dict[str, Any]) -> Response:
+    try:
+        validated_data = BonusCodeSchema(**data).model_dump()
+    except pydantic.ValidationError as e:
+        return jsonify({"result": False, "message": str(e)})
+    created_at = datetime.now()
+    validated_data['created_at'] = created_at
+    try:
+        bonus_code = Bonus(**validated_data)
+        db.session.add(bonus_code)
+        db.session.commit()
+        return jsonify({"result": True, "message": "Success created"})
+    except Exception:
+        db.session.rollback()
+        logger.exception('Ошибка при добавлении нового бонус кода')
+        return jsonify({"result": False, "message": "Creating failed"})
+
+
+def h_get_list_of_bonus_code() -> Response:
+    try:
+        return jsonify(
+            [bonus.to_dict() for bonus in Bonus.query.filter(
+                or_(Bonus.is_archived.is_(False), Bonus.is_archived.is_(None)),
+            )]
+        )
+    except Exception:
+        logger.exception('Ошибка при получении списка бонус кодов')
+        return jsonify([])
+
+
+def h_get_detail_of_bonus_code(bonus_code_id: int) -> Bonus | None:
+    try:
+        bonus_code = Bonus.query.filter(
+            Bonus.id == bonus_code_id,
+            or_(Bonus.is_archived.is_(False), Bonus.is_archived.is_(None)),
+        ).first()
+        if not bonus_code:
+            raise NotFoundBonusCode
+        return jsonify(bonus_code.to_dict())
+    except NotFoundBonusCode:
+        return jsonify({"result": False, "message": "Not found"})
+    except Exception:
+        logger.exception('Ошибка при получении деталей бонус кода по ID')
+        return jsonify({"result": False, "message": "Failed"})
+
+
+def h_delete_bonus_code(bonus_code_id: int) -> bool:
+    try:
+        bonus_code = Bonus.query.filter_by(id=bonus_code_id).first()
+        if not bonus_code:
+            raise NotFoundBonusCode
+
+        bonus_code.is_archived = True
+        db.session.commit()
+    except NotFoundBonusCode:
+        return jsonify({"result": False, "message": "Not found"})
+    except Exception:
+        db.session.rollback()
+        logger.exception('Ошибка при попытке удалить бонус код по ID')
+        return jsonify({"result": False, "message": "Deletion failed"})
+
+    return jsonify({"result": True, "message": "Success deleted"})

@@ -13,10 +13,12 @@ class UserState(StatesGroup):
     verification_code_generated = State()
     # [verification_code_generated]
     # verification_code_generated -> start_transaction
+    # verification_code_generated -> bonus_waiting
 
     start_transaction = State()
     # [start_transaction]
     # start_transaction -> amount_waiting
+    # start_transaction -> bonus_waiting
 
     amount_waiting = State()
     # [amount_waiting]
@@ -29,3 +31,7 @@ class UserState(StatesGroup):
     photo_waiting = State()
     # [photo_waiting]
     # photo_waiting -> start_transaction
+
+    bonus_waiting = State()
+    # [bonus_waiting]
+    # bonus_waiting -> start_transaction

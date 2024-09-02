@@ -4,7 +4,7 @@ from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from src.schemas.keyboard import ButtonListSchema
 
 
-async def get_reply_keyboard(button_list: list[dict[str, str]]) -> ReplyKeyboardMarkup:
+async def get_reply_keyboard(button_list: list[dict[str, str]], rows: int = 2) -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
     builder.add(
         *[
@@ -13,4 +13,4 @@ async def get_reply_keyboard(button_list: list[dict[str, str]]) -> ReplyKeyboard
         ]
     )
 
-    return builder.adjust().as_markup(resize_keyboard=True, is_persistent=True)
+    return builder.adjust(rows).as_markup(resize_keyboard=True, is_persistent=True)

@@ -2,7 +2,7 @@ from aiogram import Router
 from aiogram.types import Message
 
 from src.core.messages import UserMessages
-from src.keyboards.buttons import HELP_BUTTON, REFILL_BALANCE
+from src.keyboards.buttons import HELP_BUTTON, MAIN_FUNCTIONS
 from src.keyboards.reply import get_reply_keyboard
 
 router = Router()
@@ -14,5 +14,5 @@ async def unknown_command_handler(
 ) -> None:
     await message.answer(
         text=UserMessages.UNKNOWN,
-        reply_markup=await get_reply_keyboard([HELP_BUTTON, REFILL_BALANCE])
+        reply_markup=await get_reply_keyboard([*MAIN_FUNCTIONS, HELP_BUTTON])
     )

@@ -9,6 +9,7 @@ class TransactionInData(BaseModel):
     sa_id: int
     bill_path: str
     promo_id: int | None = None
+    is_bonus: bool = False
 
     @field_validator('promo_id',  mode='before')
     @classmethod
@@ -25,9 +26,10 @@ class TransactionCheckStatusInData(BaseModel):
     bill_path: str
 
 
-class PromoCheckInData(BaseModel):
+class PromoBonusCheckInData(BaseModel):
     user_id: int
-    promo_code: str
+    code: str
+    is_bonus: bool = False
 
     @field_validator('user_id',  mode='before')
     @classmethod

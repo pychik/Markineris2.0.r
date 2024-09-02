@@ -12,7 +12,12 @@
     {%endif%}
 
     {% if transaction.type %}
-        <div><b>Тип транзакции:</b> Пополнение лицевого счета</div>
+        {% if transaction.is_bonus %}
+            {% set type = "БОНУС КОД" %}
+        {% else %}
+            {% set type = "Пополнение лицевого счета" %}
+        {% endif %}
+        <div><b>Тип транзакции:</b> {{ type }}</div>
 <!--        <div><b>Счет:</b> {% if not transaction.op_cost%}-->
 <!--                                {% if service_account %}{{ service_account.sa_name }}{% endif %}-->
 <!--                          {%else%}Возврат средств отмененного заказа-->
