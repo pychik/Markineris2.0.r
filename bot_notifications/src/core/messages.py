@@ -1,6 +1,6 @@
 from src.core.config import settings
-from src.keyboards.buttons import NO_BONUS_INLINE_BUTTON
-from src.keyboards.keyboard_events_data import START_COMMAND_TEXT, CANCEL_COMMAND_TEXT
+from src.keyboards.buttons import CANCEL_BUTTON
+from src.keyboards.keyboard_events_data import START_COMMAND_TEXT
 
 
 class UserMessages:
@@ -48,12 +48,12 @@ class UserMessages:
     BONUS_CODE_NOT_FOUND: str = (
         "Бонус код {bonus_code} не найден.\n\n"
         f"Попробуйте ввести еще раз. Если у вас нет - "
-        f"нажмите кнопку `{NO_BONUS_INLINE_BUTTON['text']}`"
+        f"нажмите кнопку `{CANCEL_BUTTON['text']}`"
     )
     BONUS_CODE_ALREADY_USED: str = (
         "Бонус код {bonus_code} уже использован.\n\n"
         f"Введите другой бонус код. Если у вас нет - "
-        f"нажмите кнопку `{NO_BONUS_INLINE_BUTTON['text']}`"
+        f"нажмите кнопку `{CANCEL_BUTTON['text']}`"
     )
     SEND_RECEIPT_PHOTO: str = "Отправьте чек"
     INVALID_FORMAT_PHOTO: str = f"Чек должен быть формате {', '.join(settings.ALLOWED_BILL_EXTENSIONS)}"

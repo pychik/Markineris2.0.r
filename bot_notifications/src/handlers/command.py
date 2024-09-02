@@ -19,7 +19,6 @@ from src.keyboards.buttons import (
     START_BUTTON,
     HELP_BUTTON,
     MAIN_FUNCTIONS,
-    NO_BONUS_INLINE_BUTTON,
 )
 from src.keyboards.inline import get_inline_keyboard
 from src.keyboards.keyboard_events_data import CANCEL_COMMAND_TEXT, HELP_COMMAND_TEXT, START_COMMAND_TEXT
@@ -204,7 +203,7 @@ async def bonus_waiting_state_help_command_handler(
     """ Обрабатывает команду help для состоянии bonus_waiting. """
     await message.answer(
         text=UserMessages.ENTER_BONUS_CODE,
-        reply_markup=await get_inline_keyboard([NO_BONUS_INLINE_BUTTON, CANCEL_INLINE_BUTTON]),
+        reply_markup=await get_inline_keyboard([CANCEL_INLINE_BUTTON]),
     )
 
 
