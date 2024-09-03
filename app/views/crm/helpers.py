@@ -418,12 +418,12 @@ def helper_check_extension(filename: str) -> bool:
             filename.rsplit('.', 1)[1].lower() in settings.CRM_ALLOWED_EXTENSIONS
 
 
-def helper_create_filename(o_id: int, manager_name: str, filename: str) -> tuple[Optional[str], Optional[str]]:
+def helper_create_filename(order_idn: int, manager_name: str, filename: str) -> tuple[Optional[str], Optional[str]]:
     try:
         extension = filename.rsplit('.')[1]
     except Exception:
         return None, None
-    origin = f"{manager_name}_order_{o_id}.{extension}"
+    origin = f"{manager_name}_order_{order_idn}.{extension}"
 
     prefix = uuid4().hex[:8] + str(int(datetime.now().timestamp()))
     fs_name = prefix + origin
@@ -565,6 +565,7 @@ def helper_m_order_bp(user: User, o_id: int, manager_id: int, f_manager_id: int 
 def helper_attach_file(manager: str, manager_id: int, o_id: int) -> Response:
     order_stmt = text(f"""
                         SELECT o.id as id,
+                            o.order_idn as order_idn,
                             o.stage as stage,
                             orf.id as of_id,
                             orf.file_system_name as file_system_name
@@ -602,7 +603,7 @@ def helper_attach_file(manager: str, manager_id: int, o_id: int) -> Response:
         o_remove(settings.DOWNLOAD_DIR_CRM + order_info.file_system_name)
 
     filename = secure_filename(filename=file.filename)
-    origin, fs_name = helper_create_filename(o_id=o_id, manager_name=manager, filename=filename)
+    origin, fs_name = helper_create_filename(order_idn=order_info.order_idn, manager_name=manager, filename=filename)
 
     if not fs_name:
         flash(message=settings.Messages.CRM_FILENAME_ERROR, category='error')

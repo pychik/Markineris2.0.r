@@ -344,7 +344,7 @@ def orders_list_get(model: db.Model) -> Optional[Union[tuple, list]]:
         return None, None
 
 
-def get_download_info(o_id, user: User, order_num: int, batching: bool = True,
+def get_download_info(o_id, user: User, batching: bool = True,
                       clothes_divider_flag: bool = False, flag_046: bool = False) -> Union[Response, tuple]:
     order = Order.query.filter(Order.id == o_id, ~Order.to_delete).first() if not clothes_divider_flag \
         else Order.query.with_entities(Order.id, Order.category, Order.company_idn, Order.company_type,
@@ -353,6 +353,7 @@ def get_download_info(o_id, user: User, order_num: int, batching: bool = True,
     if not order:
         flash(message=settings.Messages.EMPTY_ORDER, category='error')
         return redirect(url_for('main.enter'))
+    order_num = order.order_idn
     company_idn = order.company_idn
     company_type = order.company_type
     company_name = order.company_name
@@ -488,7 +489,7 @@ def orders_download_common(user: User, o_id: int, flag_046: bool = False):
 
     rd_exist, company_idn, company_type, company_name, edo_type, edo_id, \
         mark_type, pos_count, orders_pos_count, category, \
-        c_partner_code, files_list = get_download_info(o_id=o_id, user=user, order_num=o_id, batching=False,
+        c_partner_code, files_list = get_download_info(o_id=o_id, user=user, batching=False,
                                                        flag_046=flag_046)
 
     return send_file(files_list[0][0], download_name=files_list[0][1], as_attachment=True)
@@ -506,7 +507,7 @@ def orders_process_send_order(o_id: int, user: User,  order_comment: str, order_
     rd_exist, company_idn, company_type, company_name, \
         edo_type, edo_id, mark_type, \
         pos_count,  orders_pos_count, \
-        category,  p_code, files_list = get_download_info(o_id=o_id, user=user, order_num=order_num,
+        category,  p_code, files_list = get_download_info(o_id=o_id, user=user,
                                                           clothes_divider_flag=clothes_divider_flag, flag_046=flag_046)
     if not files_list:
         flash(message=settings.Messages.CATEGORY_UNKNOWN_ERROR, category='error')
