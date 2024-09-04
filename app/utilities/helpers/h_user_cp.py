@@ -258,7 +258,7 @@ def h_pa_refill(u_id: int, sa_id: int):
 
     promo_code = request.form.get('promo_code', '').replace('--', '').strip()
 
-    amount_orig = int(request.form.get('bill_summ', '0').replace('--', '').strip())
+    amount_orig = int(float(request.form.get('bill_summ', '0').replace('--', '').strip()))
 
     if amount_orig < settings.PA_REFILL_MIN:
         message = settings.Messages.STRANGE_REQUESTS
