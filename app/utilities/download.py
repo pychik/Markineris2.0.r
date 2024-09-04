@@ -347,7 +347,7 @@ def orders_list_get(model: db.Model) -> Optional[Union[tuple, list]]:
 def get_download_info(o_id, user: User, batching: bool = True,
                       clothes_divider_flag: bool = False, flag_046: bool = False) -> Union[Response, tuple]:
     order = Order.query.filter(Order.id == o_id, ~Order.to_delete).first() if not clothes_divider_flag \
-        else Order.query.with_entities(Order.id, Order.category, Order.company_idn, Order.company_type,
+        else Order.query.with_entities(Order.id, Order.order_idn, Order.category, Order.company_idn, Order.company_type,
                                        Order.company_name, Order.edo_type, Order.edo_type, Order.edo_id,
                                        Order.mark_type).filter(Order.id == o_id, ~Order.to_delete).first()
     if not order:
