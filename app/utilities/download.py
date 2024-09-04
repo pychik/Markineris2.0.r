@@ -353,6 +353,7 @@ def get_download_info(o_id, user: User, batching: bool = True,
     if not order:
         flash(message=settings.Messages.EMPTY_ORDER, category='error')
         return redirect(url_for('main.enter'))
+
     order_num = order.order_idn
     company_idn = order.company_idn
     company_type = order.company_type
