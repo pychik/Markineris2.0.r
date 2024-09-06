@@ -18,12 +18,13 @@ from logger import logger
 from models import Promo, Price, ServiceAccount, ServerParam, User, UserTransaction, Bonus, users_bonus_codes
 from models import db
 from utilities.admin.excel_report import ExcelReportProcessor, ExcelReport, ExcelReportWithSheets
-from utilities.support import helper_paginate_data, check_file_extension, get_file_extension, \
+from utilities.support import (helper_paginate_data, check_file_extension, get_file_extension, \
     helper_get_server_balance, helper_get_filters_transactions, \
     helper_update_pending_rf_transaction_status, helper_get_image_html, \
     helper_perform_ut_wo_mod, helper_get_transaction_orders_detail, helper_get_stmt_for_fin_order_report, \
-    helper_get_filter_fin_order_report, helper_get_stmt_for_fin_promo_history, helper_get_filter_fin_promo_history,\
-    helper_get_transactions, helper_get_user_at2_opt2
+    helper_get_filter_fin_order_report, helper_get_stmt_for_fin_promo_history, helper_get_filter_fin_promo_history,
+    helper_get_filter_fin_bonus_history, helper_get_stmt_for_fin_bonus_history,   \
+    helper_get_transactions, helper_get_user_at2_opt2)
 from utilities.tg_verify.service import send_tg_message_with_transaction_updated_status
 from validators.admin_control import BonusCodeSchema
 
@@ -48,8 +49,9 @@ def h_su_control_finance():
     stat = db.session.execute(stat_stmt).first()
 
     promos = Promo.query.with_entities(Promo.id, Promo.code, Promo.value, Promo.created_at, Promo.updated_at).filter(
-        or_(Promo.is_archived == False, Promo.is_archived == None)
-    ).order_by(desc(Promo.created_at)).all()
+        or_(Promo.is_archived == False, Promo.is_archived == None)).order_by(desc(Promo.created_at)).all()
+    bonuses = Bonus.query.with_entities(Bonus.id, Bonus.code, Bonus.value, Bonus.created_at, Bonus.updated_at).filter(
+        or_(Bonus.is_archived == False, Bonus.is_archived == None)).order_by(desc(Bonus.created_at)).all()
     prices = Price.query.order_by(desc(Price.created_at)).all()
 
     account_type_db = ServerParam.query.with_entities(ServerParam.account_type).first()
@@ -66,11 +68,17 @@ def h_su_control_finance():
         desc(Price.created_at)).all()
 
     # paginated promo's
-    link = 'javascript:get_promos_history(\'' + url_for('admin_control.su_bck_promo') + '?page={0}\');'
+    link_promos = 'javascript:get_promos_history(\'' + url_for('admin_control.su_bck_promo') + '?page={0}\');'
     page, per_page, \
         offset, pagination, \
-        promo_list = helper_paginate_data(data=promos, href=link, per_page=settings.PAGINATION_PER_PROMOS)
-    return render_template('admin/su_finance_control.html', **locals())
+        promo_list = helper_paginate_data(data=promos, href=link_promos, per_page=settings.PAGINATION_PER_PROMOS)
+
+    link_bonuses = 'javascript:get_bonuses_history(\'' + url_for('admin_control.su_bck_bonus') + '?page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        bonuses_list = helper_paginate_data(data=bonuses, href=link_bonuses, per_page=settings.PAGINATION_PER_PROMOS)
+
+    return render_template('admin/finance/su_finance_control.html', **locals())
 
 
 def h_su_bck_promo(show_archived: bool = False):
@@ -80,8 +88,7 @@ def h_su_bck_promo(show_archived: bool = False):
     else:
         filter_by = or_(Promo.is_archived == False, Promo.is_archived == None)
 
-    promos = Promo.query.with_entities(Promo.id, Promo.code, Promo.value, Promo.created_at, Promo.is_archived,
-                                       Promo.updated_at).filter(filter_by).order_by(
+    promos = Promo.query.with_entities(Promo.id, Promo.code, Promo.value, Promo.created_at, Promo.is_archived, Promo.updated_at).filter(filter_by).order_by(
         desc(Promo.created_at)).all()
 
     link = 'javascript:get_promos_history(\'' + url_for('admin_control.su_bck_promo') + '?page={0}\');'
@@ -89,7 +96,7 @@ def h_su_bck_promo(show_archived: bool = False):
         offset, pagination, \
         promo_list = helper_paginate_data(data=promos, href=link, per_page=settings.PAGINATION_PER_PROMOS)
 
-    return jsonify({'htmlresponse': render_template(f'admin/promos_table.html', **locals())})
+    return jsonify({'htmlresponse': render_template(f'admin/finance/promos_table.html', **locals())})
 
 
 def h_su_add_promo():
@@ -134,6 +141,73 @@ def h_su_delete_promo(p_id: int) -> Response:
     except Exception as e:
         db.session.rollback()
         message = f"{settings.Messages.DELETE_PROMO_ERROR} {e}"
+        logger.error(message)
+
+    return jsonify(dict(status=status, message=message))
+
+
+def h_su_bck_bonus(show_archived: bool = False):
+    show_archived = request.args.get('show_archived', default=False, type=lambda v: v.lower() == 'true')
+    if show_archived:
+        filter_by = 1 == 1
+    else:
+        filter_by = or_(Bonus.is_archived == False, Bonus.is_archived == None)
+
+    bonuses = Bonus.query.with_entities(Bonus.id, Bonus.code, Bonus.value, Bonus.created_at, Bonus.is_archived,
+                                       Bonus.updated_at).filter(filter_by).order_by(
+        desc(Bonus.created_at)).all()
+
+    link_bonuses = 'javascript:get_bonuses_history(\'' + url_for('admin_control.su_bck_bonus') + '?page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        bonuses_list = helper_paginate_data(data=bonuses, href=link_bonuses, per_page=settings.PAGINATION_PER_PROMOS)
+
+    return jsonify({'htmlresponse': render_template(f'admin/finance/bonuses_table.html', **locals())})
+
+
+def h_su_add_bonus():
+    code = request.form.get('bonus_code', '').replace('--', '')
+    status = settings.ERROR
+    try:
+        value = int(request.form.get('bonus_value', '').replace('--', ''))
+        bonus = Bonus(code=code, value=value)
+        db.session.add(bonus)
+        db.session.commit()
+        message = f"{settings.Messages.BONUS_CREATE} {code} "
+        status = settings.SUCCESS
+    except ValueError as ve:
+        db.session.rollback()
+        message = f"{settings.Messages.BONUS_TYPE_ERROR}"
+        logger.error(message + ' ' + str(ve))
+
+    except IntegrityError as e:
+        db.session.rollback()
+        message = f"{settings.Messages.BONUS_DUPLICATE_ERROR} {code}" if "psycopg2.errors.UniqueViolation)" \
+            in str(e) else f"{settings.Messages.BONUS_ERROR}{str(e)}"
+        logger.error(message)
+
+    return jsonify(dict(status=status, message=message))
+
+
+def h_su_delete_bonus(b_id: int) -> Response:
+
+    bonus_stmt = select(Bonus).filter(Bonus.id == b_id)
+    bonus = db.session.execute(bonus_stmt).scalar_one_or_none()
+    status = 'danger'
+    # check for trickers
+    if not bonus:
+        message = settings.Messages.DELETE_NE_BONUS
+        return jsonify(dict(status=status, message=message))
+    try:
+        bonus.is_archived = True
+        # promo.updated_at = datetime.now()
+        db.session.commit()
+
+        message = f"{settings.Messages.DELETE_BONUS} {bonus.code}"
+        status = settings.SUCCESS
+    except Exception as e:
+        db.session.rollback()
+        message = f"{settings.Messages.DELETE_BONUS_ERROR} {e}"
         logger.error(message)
 
     return jsonify(dict(status=status, message=message))
@@ -532,36 +606,68 @@ def h_bck_ut_excel_report() -> Response:
     return response
 
 
-def h_fin_promo_history():
-    date_from = datetime.today() - timedelta(days=7)
+def h_fin_codes_history(bonus_flag: bool = False):
+    date_from = datetime.today() - timedelta(settings.PROMO_HISTORY_TIMEDELTA)
     date_to = datetime.today()
-    promo_stmt = select(Promo.code)
-    promo_codes = db.session.execute(promo_stmt).all()
-    promo_hist_stmt = helper_get_stmt_for_fin_promo_history()
-    promo_codes_history = db.session.execute(promo_hist_stmt).all()
+    if bonus_flag:
+        bonus_stmt = select(Bonus.code)
+        bonus_codes = db.session.execute(bonus_stmt).all()
+        bonus_hist_stmt = helper_get_stmt_for_fin_bonus_history()
+        bonus_codes_history = db.session.execute(bonus_hist_stmt).all()
 
-    link = ''
-    page, per_page, \
-        offset, pagination, \
-        promo_codes_history = helper_paginate_data(data=promo_codes_history, per_page=settings.PAGINATION_PER_PAGE, href=link)
-    return render_template('admin/fin_promo_history/main.html', **locals())
+        link = f'javascript:bck_get_fin_codes_history(\'' + url_for(
+            'admin_control.su_bck_fin_bonus_history') + f'?bck=1' + '&page={0}\', \'bonus_codes_select\');'
+        page, per_page, \
+            offset, pagination, \
+            bonus_codes_history = helper_paginate_data(data=bonus_codes_history, per_page=settings.PAGINATION_PER_PAGE,
+                                                       href=link)
+        return render_template('admin/finance/fin_bonus_history/main.html', **locals())
+    else:
+        promo_stmt = select(Promo.code)
+        promo_codes = db.session.execute(promo_stmt).all()
+        promo_hist_stmt = helper_get_stmt_for_fin_promo_history()
+        promo_codes_history = db.session.execute(promo_hist_stmt).all()
+
+        link = f'javascript:bck_get_fin_codes_history(\'' + url_for(
+            'admin_control.su_bck_fin_promo_history') + f'?bck=1' + '&page={0}\', \'promo_codes_select\');'
+        page, per_page, \
+            offset, pagination, \
+            promo_codes_history = helper_paginate_data(data=promo_codes_history, per_page=settings.PAGINATION_PER_PAGE, href=link)
+        return render_template('admin/finance/fin_promo_history/main.html', **locals())
 
 
-def h_bck_fin_promo_history():
-    date_from, date_to, promo_code, sort_type = helper_get_filter_fin_promo_history()
-    stmt = helper_get_stmt_for_fin_promo_history(
-        date_from=date_from,
-        date_to=date_to,
-        sort_type=sort_type,
-        promo_code=promo_code,
-    )
-    promo_codes_history = db.session.execute(stmt, ).fetchall()
-    link = f'javascript:bck_get_fin_promo_history(\'' + url_for(
-        'admin_control.su_bck_fin_promo_history') + f'?bck=1' + '&page={0}\');'
-    page, per_page, \
-        offset, pagination, \
-        promo_codes_history = helper_paginate_data(data=promo_codes_history, per_page=settings.PAGINATION_PER_PAGE, href=link)
-    return jsonify({'htmlresponse': render_template(f'admin/fin_promo_history/table.html', **locals())})
+def h_bck_fin_codes_history(bonus_flag: bool = False):
+    if bonus_flag:
+        date_from, date_to, bonus_code, sort_type = helper_get_filter_fin_bonus_history()
+        stmt = helper_get_stmt_for_fin_bonus_history(
+            date_from=date_from,
+            date_to=date_to,
+            sort_type=sort_type,
+            bonus_code=bonus_code,
+        )
+        bonus_codes_history = db.session.execute(stmt, ).fetchall()
+        link = f'javascript:bck_get_fin_codes_history(\'' + url_for(
+            'admin_control.su_bck_fin_bonus_history') + f'?bck=1' + '&page={0}\', \'bonus_codes_select\');'
+        page, per_page, \
+            offset, pagination, \
+            bonus_codes_history = helper_paginate_data(data=bonus_codes_history, per_page=settings.PAGINATION_PER_PAGE,
+                                                       href=link)
+        return jsonify({'htmlresponse': render_template(f'admin/finance/fin_bonus_history/table.html', **locals())})
+    else:
+        date_from, date_to, promo_code, sort_type = helper_get_filter_fin_promo_history()
+        stmt = helper_get_stmt_for_fin_promo_history(
+            date_from=date_from,
+            date_to=date_to,
+            sort_type=sort_type,
+            promo_code=promo_code,
+        )
+        promo_codes_history = db.session.execute(stmt, ).fetchall()
+        link = f'javascript:bck_get_fin_codes_history(\'' + url_for(
+            'admin_control.su_bck_fin_promo_history') + f'?bck=1' + '&page={0}\', \'promo_codes_select\');'
+        page, per_page, \
+            offset, pagination, \
+            promo_codes_history = helper_paginate_data(data=promo_codes_history, per_page=settings.PAGINATION_PER_PAGE, href=link)
+        return jsonify({'htmlresponse': render_template(f'admin/finance/fin_promo_history/table.html', **locals())})
 
 
 def h_bck_fin_promo_history_excel():
@@ -598,6 +704,43 @@ def h_bck_fin_promo_history_excel():
     response.headers['data_status'] = 'success'
 
     return response
+
+
+def h_bck_fin_bonus_history_excel():
+    date_from, date_to, bonus_code, sort_type = helper_get_filter_fin_bonus_history(report=True)
+    stmt = helper_get_stmt_for_fin_bonus_history(
+        date_from=date_from,
+        date_to=date_to,
+        sort_type=sort_type,
+        bonus_code=bonus_code,
+    )
+    bonus_codes_history = db.session.execute(stmt, ).fetchall()
+
+    excel_filters = {
+        'дата начала': date_from,
+        'дата окончания': (datetime.strptime(date_to, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d'),
+    }
+    if bonus_code:
+        excel_filters['бонускод'] = bonus_code
+    report_name = f'история бонускодов({datetime.today().strftime("%d.%m.%y %H-%M")})'
+
+    excel = ExcelReport(
+        data=bonus_codes_history,
+        filters=excel_filters,
+        columns_name=['дата активации', 'e-mail пользователя', 'логин агента', 'бонускод', 'добавочное значение, руб'],
+        sheet_name='История бонускодов',
+        output_file_name=report_name,
+    )
+
+    excel_io = excel.create_report()
+    content = excel_io.getvalue()
+    response = make_response(content)
+    response.headers['data_file_name'] = urllib.parse.quote(excel.output_file_name)
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    response.headers['data_status'] = 'success'
+
+    return response
+
 
 
 def h_su_control_specific_ut(u_id: int):

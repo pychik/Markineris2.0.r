@@ -1,0 +1,64 @@
+    <div class="faded mt-3">
+        <table class="table mt-3 table-result"  id="promo_historu_table_info" >
+            <thead class="text-dark">
+                <tr>
+                    <th scope="col">
+                      Дата активации
+                    </th>
+                    <th scope="col">
+                        E-mail пользователя
+                    </th>
+                    <th scope="col">
+                        Логин агента
+                    </th>
+                    <th scope="col">
+                        Промокод
+                    </th>
+                    <th scope="col">
+                        Добавочное значение, руб.
+                    </th>
+
+                </tr>
+            </thead>
+
+            <tbody id="promo_historu_table_body_info">
+
+            {% for promo_code in promo_codes_history %}
+                <tr>
+<!--                    <td class="tablesaw-cell-content">{{ loop.index }}</td>-->
+                    <td class="tablesaw-cell-content">
+
+                        {{promo_code.activate_date.strftime('%d.%m.%Y %H:%M')}}
+                    </td>
+                    <td>
+                        {{ promo_code.user_email }}
+                    </td>
+                    <td>
+                      {{ promo_code.agent_login }}
+                    </td>
+                    <td>
+                      {{ promo_code.code }}
+                    </td>
+                    <td>
+                      {{ promo_code.promo_value }}
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            <tr>
+            </tr>
+            </tbody>
+        </table>
+        <div class="pagination-page-info text-center">На этой странице <b>{{ offset + 1 }} - {{ offset + promo_codes_history|length }}</b> Всего: <b>{{ pagination.total }}</b></div>
+        <div class="pagination_section my-1" >
+        <div class="d-flex">
+            <div class="col-3"></div>
+            <div class="col-md-1"></div>
+            <div class="col-5" style="margin-left: 3%;">{{ pagination.links }}</div>
+
+        </div>
+        </div>
+
+    </div>

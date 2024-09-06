@@ -12,32 +12,26 @@
     {% if current_user.role != 'markineris_admin' %}
         <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
             <div class="breadcrumbs">
-                <a href="{{url_for('admin_control.su_control_finance')}}">Контроль финансов </a>
+                <a href="{{url_for('admin_control.su_control_finance')}}">Контроль финансов</a>
                 /
-                <span>Отчеты по заказам</span>
+                <span>История промокодов</span>
 
             </div>
         </div>
 
     {% endif %}
 
-{#    <a class="btn btn-outline-secondary" data-bs-toggle="collapse" href="#form_filters_collapse" role="button" aria-expanded="false" aria-controls="collapseExample">#}
-{#        Фильтры транзакций#}
-{#    </a>#}
-    <div class="order-filters">
-      {% include 'admin/fin_order_report/order_filters.html' %}
+
+    <div>
+      {% include 'admin/finance/fin_promo_history/filters.html' %}
     </div>
 
 
     <div class="row">
-
         <div class="col-md-12">
-
-
-            <div id="orders_table">
-                {% include 'admin/fin_order_report/su_order_table.html' %}
+            <div id="fin_codes_history_table">
+                {% include 'admin/finance/fin_promo_history/table.html' %}
             </div>
-        </label>
         </div>
     </div>
 
