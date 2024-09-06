@@ -1484,6 +1484,71 @@ def helper_get_filter_fin_promo_history(report: bool = False) -> tuple[str, str,
     return date_from, date_to, promo_code, sort_type
 
 
+def helper_get_stmt_for_fin_bonus_history(
+        date_from: str = (datetime.today() - timedelta(settings.PROMO_HISTORY_TIMEDELTA)).strftime('%Y-%m-%d'),
+        date_to: str = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d'),
+        bonus_code: Optional[str] = None,
+        sort_type: str = 'DESC'
+) -> TextClause:
+    stmt = text(f"""select
+                        usr_bonus.activated_at as activate_date,
+                        cli.email as user_email,
+                        COALESCE(agent.login_name, cli.login_name) as agent_login,
+                        bonus.code as code,
+                        bonus.value as bonus_value
+                        from
+                            public.users cli
+                            left join public.users agent on agent.id = cli.admin_parent_id
+                            join public.users_bonus_codes usr_bonus on usr_bonus.user_id = cli.id
+                            join public.bonus_codes bonus on bonus.id = usr_bonus.promo_id
+                        where
+                            activated_at >= :date_from
+                            and activated_at < :date_to
+                        order by activated_at {sort_type}
+                        """
+                ).bindparams(date_from=date_from, date_to=date_to) if not bonus_code else text(f"""select
+                        usr_bonus.activated_at as activate_date,
+                        cli.email as user_email,
+                        COALESCE(agent.login_name, cli.login_name) as agent_login,
+                        bonus.code as code,
+                        bonus.value as promo_value
+                        from
+                            public.users cli
+                            left join public.users agent on agent.id = cli.admin_parent_id
+                            join public.users_bonus_codes usr_bonus on usr_bonus.user_id = cli.id
+                            join public.bonus_codes bonus on bonus.id = usr_bonus.promo_id
+                        where
+                            activated_at >= :date_from
+                            and activated_at < :date_to
+                            and bonus.code = :bonus_code
+                        order by activated_at {sort_type}
+                        """).bindparams(
+        date_from=date_from, date_to=date_to, bonus_code=bonus_code)
+    return stmt
+
+
+def helper_get_filter_fin_bonus_history(report: bool = False) -> tuple[str, str, str, str]:
+    default_day_to = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d')
+    default_day_from = (datetime.today() - timedelta(days=settings.PROMO_HISTORY_TIMEDELTA)).strftime('%Y-%m-%d')
+    if report:
+        url_date_from = request.form.get('date_from', '', type=str)
+        url_date_to = request.form.get('date_to', '', type=str)
+        sort_type = request.form.get('sort_type', 'desc', str)
+        bonus_code = request.form.get('bonus_code', '', str)
+
+    else:
+        url_date_from = request.args.get('date_from', '', type=str)
+        url_date_to = request.args.get('date_to', '', type=str)
+        sort_type = request.args.get('sort_type', 'desc', str)
+        bonus_code = request.args.get('bonus_code', '', str)
+
+    date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from else default_day_to
+    date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
+        '%Y-%m-%d') if url_date_to else default_day_from
+
+    return date_from, date_to, bonus_code, sort_type
+
+
 def helper_process_sa(sa_id: int) -> bool:
     try:
         cur_accounts = [a for a in db.session.execute(text(f""" SELECT * from public.service_accounts sa

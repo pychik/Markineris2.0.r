@@ -2,7 +2,7 @@
 <div class="container mt-3 faded" id="promos_block" style="display:none">
     <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-3">
         <div class="breadcrumbs">
-            <span style="cursor:pointer"><u>Настройка промо кодов</u></span>
+            <span style="cursor:pointer"><u>Настройка промокодов</u></span>
         </div>
     </div>
 
@@ -21,7 +21,7 @@
                                            minlength="3" maxlength="10" required>
 
                     </div>
-                    <div class="input-group my-3" title="Введите сумму прибавки для промокода">
+                    <div class="input-group my-3" title="Введите сумму прибавки для промокода (шаг 10)">
                        <input type="number" id="promo_value" name="promo_value" class="form-control" placeholder="Введите сумму прибавки"
                                            step="10" min="10" max="1000000" required>
                        <div class="input-group-append">
@@ -30,7 +30,9 @@
                     </div>
 
                     <button type="button" class="btn btn-accent mt-md-1"
-                            onclick="if(check_promo_form()){bck_add_promo('{{url_for('admin_control.su_add_promo')}}', '{{url_for('admin_control.su_bck_promo')}}')}">
+                            onclick="if(check_promo_form()){
+                                bck_add_promo('{{url_for('admin_control.su_add_promo')}}', '{{url_for('admin_control.su_bck_promo')}}')}
+                                    else{make_message('Проверьте вводимые значения','warning')}">
                         Добавить
                     </button>
 
@@ -61,14 +63,18 @@
             </div>
         </div>
     </div>
+
+
     <div class="form-check form-switch my-2">
             <label>Показать/скрыть архивные промокоды</label>
             <input class="form-check-input border border-warning" type="checkbox" role="switch" id="show_archived_promo"
                    name="show_archived_promo"
-                onclick="get_promos_history('{{url_for('admin_control.su_bck_promo')}}')">
+                onclick="get_promos_history('{{url_for('admin_control.su_bck_promo')}}')"
+            >
+
     </div>
     <div id="promos_table" class="mb-3">
-        {% include 'admin/promos_table.html' %}
+        {% include 'admin/finance/promos_table.html' %}
     </div>
 
 <script>

@@ -18,19 +18,17 @@ from utilities.admin.h_admin_control import (h_index, h_admin, h_set_order_notif
                                              h_bck_ar_orders, h_bck_save_call_result, h_bck_su_control_reanimate_excel,
                                              h_at2_new_orders, h_at2_orders_process, h_su_not_basic_price_report)
 from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_promo, h_su_add_promo, h_su_delete_promo,
+                                               h_su_bck_bonus, h_su_add_bonus, h_su_delete_bonus,
                                                h_su_bck_prices, h_su_add_prices, h_su_delete_prices, h_su_bck_sa,
                                                h_su_add_sa, h_su_delete_sa, h_su_bck_change_sa_type, h_su_control_ut,
                                                h_su_transaction_detail, h_bck_control_ut, h_au_bck_control_ut,
                                                h_su_pending_transaction_update, h_su_wo_transactions,
                                                h_aus_transaction_detail, h_su_bck_change_sa_activity,
                                                h_bck_ut_excel_report, h_su_fin_order_report, h_bck_fin_order_report,
-                                               h_bck_fin_order_report_excel, h_fin_promo_history,
-                                               h_bck_fin_promo_history, h_bck_fin_promo_history_excel,
+                                               h_bck_fin_order_report_excel, h_fin_codes_history, h_bck_fin_codes_history,
+                                               h_bck_fin_promo_history_excel, h_bck_fin_bonus_history_excel,
                                                h_su_control_specific_ut, h_bck_control_specific_ut,
-                                               h_su_fin_marks_count_report,
-                                               h_create_bonus_code,
-                                               h_get_list_of_bonus_code, h_get_detail_of_bonus_code,
-                                               h_delete_bonus_code, )
+                                               h_su_fin_marks_count_report, )
 from utilities.support import au_required, aus_required, bck_aus_required, bck_su_required, su_required, \
     user_exist_check, su_mod_required, bck_at2_required, bck_su_mod_required
 
@@ -287,6 +285,27 @@ def su_delete_promo(p_id: int):
     return h_su_delete_promo(p_id=p_id)
 
 
+@admin_control.route('/su_bck_bonus', methods=['GET', ])
+@login_required
+@su_required
+def su_bck_bonus():
+    return h_su_bck_bonus()
+
+
+@admin_control.route('/su_add_bonus', methods=['POST', ])
+@login_required
+@su_required
+def su_add_bonus():
+    return h_su_add_bonus()
+
+
+@admin_control.route('/su_delete_bonus/<int:b_id>', methods=['POST', ])
+@login_required
+@su_required
+def su_delete_bonus(b_id: int):
+    return h_su_delete_bonus(b_id=b_id)
+
+
 @admin_control.route('/su_bck_prices', methods=['GET', ])
 @login_required
 @su_required
@@ -450,14 +469,14 @@ def su_fin_order_report_excel():
 @login_required
 @su_mod_required
 def su_fin_promo_history():
-    return h_fin_promo_history()
+    return h_fin_codes_history()
 
 
 @admin_control.route('/su_bck_fin_promo_history', methods=['GET'])
 @login_required
 @su_mod_required
 def su_bck_fin_promo_history():
-    return h_bck_fin_promo_history()
+    return h_bck_fin_codes_history()
 
 
 @admin_control.route('/su_fin_promo_code_history_excel', methods=['POST'])
@@ -465,6 +484,27 @@ def su_bck_fin_promo_history():
 @su_mod_required
 def su_bck_fin_promo_history_excel():
     return h_bck_fin_promo_history_excel()
+
+
+@admin_control.route('/su_fin_bonus_history', methods=['GET'])
+@login_required
+@su_mod_required
+def su_fin_bonus_history():
+    return h_fin_codes_history(bonus_flag=True)
+
+
+@admin_control.route('/su_bck_fin_bonus_history', methods=['GET'])
+@login_required
+@su_mod_required
+def su_bck_fin_bonus_history():
+    return h_bck_fin_codes_history(bonus_flag=True)
+
+
+@admin_control.route('/su_fin_bonus_code_history_excel', methods=['POST'])
+@login_required
+@su_mod_required
+def su_bck_fin_bonus_history_excel():
+    return h_bck_fin_bonus_history_excel()
 
 
 @admin_control.route('/su_bck_ut_report', methods=['POST', ])

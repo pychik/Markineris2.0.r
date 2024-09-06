@@ -165,6 +165,8 @@ class Settings(BaseSettings):
     CRM_ALLOWED_EXTENSIONS: tuple = ('rar', )
     UPLOAD_TABLE_ERRORS_FILE: str = "Ошибки_загрузки_заказа.txt"
     SEND_TABLE_NAME: str = "таблица_заказ.xlsx"
+    ERROR: str = 'error'
+    SUCCESS: str = 'success'
     ADMIN_REPORT_HEAD: dict = ADMIN_REPORT_HEAD
     AGENT_DEFAULT_NOTE: str = AGENT_DEFAULT_NOTE
     POS_INDEX_EXCEPTION: str = 'positional indexers are out-of-bounds'
@@ -587,6 +589,13 @@ class Settings(BaseSettings):
         PROMO_NE_ERROR: str = 'Такого промокода не существует'
         PROMO_USED_ERROR: str = 'Вы уже использовали этот промокод'
         PROMO_ADD_USER_ERROR: str = 'Ошибка добавления промокода к списку использованных пользователем '
+        BONUS_CREATE: str = "Успешно создан бонускод "
+        BONUS_ERROR: str = "Ошибка сохранения бонускода! "
+        BONUS_DUPLICATE_ERROR: str = "Ошибка сохранения бонускода! В базе уже есть такой код! "
+        BONUS_TYPE_ERROR: str = "Ошибка сохранения бонускода! Проверьте вводимое значение "
+        BONUS_NE_ERROR: str = 'Такого бонускода не существует'
+        BONUS_USED_ERROR: str = 'Вы уже использовали этот бонускод'
+        BONUS_ADD_USER_ERROR: str = 'Ошибка добавления бонускода к списку использованных пользователем '
         PRICE_CREATE: str = "Успешно создан ценовой пакет "
         PRICE_ERROR: str = "Ошибка сохранения промокода! "
         PRICE_DUPLICATE_ERROR: str = "Ошибка сохранения промокода! В базе уже есть такой код! "
@@ -785,6 +794,9 @@ class Settings(BaseSettings):
         DELETE_PROMO: str = "Успешно удален промокод "
         DELETE_NE_PROMO: str = "Попытка удаления несуществующего промо "
         DELETE_PROMO_ERROR: str = "Во время удаления промокода произошла ошибка!"
+        DELETE_BONUS: str = "Успешно удален бонускод"
+        DELETE_NE_BONUS: str = "Попытка удаления несуществующего бонускода"
+        DELETE_BONUS_ERROR: str = "Во время удаления бонускода произошла ошибка!"
         DELETE_PRICE: str = "Успешно удален ценовой пакет "
         DELETE_NE_PRICE: str = "Попытка удаления несуществующего ценового пакета "
         DELETE_PRICE_ERROR: str = "Во время удаления ценового пакета произошла ошибка!"
