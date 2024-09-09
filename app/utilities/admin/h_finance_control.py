@@ -806,7 +806,7 @@ def h_su_fin_order_report():
     page, per_page, \
         offset, pagination, \
         orders_list = helper_paginate_data(data=orders, per_page=settings.PAGINATION_PER_PAGE, href=link)
-    return render_template('admin/fin_order_report/su_order_report.html', **locals())
+    return render_template('admin/finance/fin_order_report/su_order_report.html', **locals())
 
 
 def h_bck_fin_order_report():
@@ -824,7 +824,7 @@ def h_bck_fin_order_report():
     page, per_page, \
         offset, pagination, \
         orders_list = helper_paginate_data(data=orders, per_page=settings.PAGINATION_PER_PAGE, href=link)
-    return jsonify({'htmlresponse': render_template(f'admin/fin_order_report/su_order_table.html', **locals())})
+    return jsonify({'htmlresponse': render_template(f'admin/finance/fin_order_report/su_order_table.html', **locals())})
 
 
 def h_su_fin_marks_count_report() -> Response:
