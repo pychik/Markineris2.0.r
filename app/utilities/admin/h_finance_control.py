@@ -9,7 +9,7 @@ from typing import Any
 import pydantic
 from flask import render_template, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
-from sqlalchemy import desc, text, create_engine, null, select, or_
+from sqlalchemy import desc, text, create_engine, null, select, or_, not_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -84,9 +84,9 @@ def h_su_control_finance():
 def h_su_bck_promo(show_archived: bool = False):
     show_archived = request.args.get('show_archived', default=False, type=lambda v: v.lower() == 'true')
     if show_archived:
-        filter_by = 1 == 1
+        filter_by = True
     else:
-        filter_by = or_(Promo.is_archived == False, Promo.is_archived == None)
+        filter_by = not_(Promo.is_archived.is_(True))
 
     promos = Promo.query.with_entities(Promo.id, Promo.code, Promo.value, Promo.created_at, Promo.is_archived, Promo.updated_at).filter(filter_by).order_by(
         desc(Promo.created_at)).all()
@@ -149,9 +149,9 @@ def h_su_delete_promo(p_id: int) -> Response:
 def h_su_bck_bonus(show_archived: bool = False):
     show_archived = request.args.get('show_archived', default=False, type=lambda v: v.lower() == 'true')
     if show_archived:
-        filter_by = 1 == 1
+        filter_by = True
     else:
-        filter_by = or_(Bonus.is_archived == False, Bonus.is_archived == None)
+        filter_by = not_(Bonus.is_archived.is_(True))
 
     bonuses = Bonus.query.with_entities(Bonus.id, Bonus.code, Bonus.value, Bonus.created_at, Bonus.is_archived,
                                        Bonus.updated_at).filter(filter_by).order_by(

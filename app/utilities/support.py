@@ -11,7 +11,7 @@ from flask_login import current_user
 from flask_paginate import Pagination
 from flask_sqlalchemy.pagination import QueryPagination
 
-from sqlalchemy import asc, create_engine, desc, text, or_
+from sqlalchemy import asc, create_engine, desc, text, or_, not_
 from sqlalchemy.engine.row import Row
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -1581,7 +1581,7 @@ def helper_process_sa(sa_id: int) -> bool:
 
 def helper_check_promo(user: User, promo_code: str) -> tuple[bool, int, str]:
     all_promos_raw = (Promo.query.with_entities(Promo.id, Promo.code, Promo.value)
-                      .filter(or_(Promo.is_archived == False, Promo.is_archived == None)))
+                      .filter(not_(Promo.is_archived.is_(True))))
 
     all_promos = all_promos_raw.all()
     all_promos_codes = list(map(lambda x: x.code, all_promos))
