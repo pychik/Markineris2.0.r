@@ -73,7 +73,7 @@
               {% endfor %}
           </tbody>
       </table>
-      <div class="pagination-page-info text-center">На этой странице <b>{{ offset + 1 }} - {{ offset + promo_list|length }}</b> Всего: <b>{{ pagination.total }}</b></div>
+      <div class="pagination-page-info text-center">На этой странице <b>{{ offset + 1 }} - {{ offset + promo_list|length }}</b> Всего: <b>{%if pagination.total%}{{ pagination.total }}{%else%}{{promo_list | length}}{%endif%}</b></div>
 
 
     <div class="pagination_section my-1" >
