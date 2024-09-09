@@ -1017,7 +1017,7 @@ def h_su_wo_transactions() -> Response:
     # 2 getting users with pending orders
     user_ids_stmt = f"""
                      SELECT DISTINCT o.user_id AS user_id FROM public.orders o 
-                     WHERE o.payment !=True AND o.processed != True AND o.stage >= {settings.OrderStage.NEW} AND o.stage != {settings.OrderStage.CANCELLED}  AND o.to_delete != True;
+                     WHERE o.payment !=True AND o.processed != True AND o.stage >= {settings.OrderStage.POOL} AND o.stage != {settings.OrderStage.CANCELLED}  AND o.to_delete != True;
                       """
     user_ids = db.session.execute(text(user_ids_stmt)).fetchall()
     if user_ids:
