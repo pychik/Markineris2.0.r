@@ -79,7 +79,7 @@
             </tr>
             </tbody>
         </table>
-        <div class="pagination-page-info text-center">На этой странице <b>{{ offset + 1 }} - {{ offset + orders_list|length }}</b> Всего: <b>{{ pagination.total }}</b></div>
+        <div class="pagination-page-info text-center">На этой странице <b>{{ offset + 1 }} - {{ offset + orders_list|length }}</b> Всего: <b>{%if pagination.total%}{{ pagination.total }}{%else%}{{orders_list | length}}{%endif%}</b></div>
         <div class="pagination_section my-1" >
         <div class="d-flex">
             <div class="col-3"></div>
