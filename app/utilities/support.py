@@ -2078,7 +2078,7 @@ def helper_utb_mod(user_id: int, admin_id: int, is_at2: bool) -> tuple[int, str,
 
     login_name, price_id, balance, trust_limit = helper_get_user_pb(user_id=user_id, admin_id=admin_id, is_at2=is_at2)
 
-    data_res = get_cocmd(user_id=user_id, price_id=price_id, start_stage=settings.OrderStage.POOL)
+    data_res = get_cocmd(user_id=user_id, price_id=price_id, )
     # print(data_res)
     # hard code defense against huge orders for agent type2
 
