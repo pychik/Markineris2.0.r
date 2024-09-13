@@ -893,8 +893,10 @@ def helper_change_agent_stage(o_id: int, stage: int, user: User):
         case settings.OrderStage.POOL:
             if user.is_at2:
                 # count all not paid orders and compare with balance
-                status_balance, message_balance = helper_get_at2_pending_balance(admin_id=user.id, price_id=user.price_id, balance=user.balance,
-                                                      trust_limit=user.trust_limit)
+                status_balance, message_balance = helper_get_at2_pending_balance(admin_id=user.id,
+                                                                                 price_id=user.price_id,
+                                                                                 balance=user.balance,
+                                                                                 trust_limit=user.trust_limit)
                 if not status_balance:
                     flash(message=message_balance, category='error')
                     return redirect(url_for('crm_d.agents'))
