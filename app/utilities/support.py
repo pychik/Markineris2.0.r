@@ -1838,15 +1838,16 @@ def helper_get_orders_marks(u_id: int, o_id: int = None, wo_flag: bool = False) 
     return db.session.execute(text(stmt_orders)).fetchone() if o_id else db.session.execute(text(stmt_orders)).fetchall()
 
 
-def helper_get_at2_pending_balance(admin_id: int, price_id: int, balance: int, trust_limit: int) -> bool:
+def helper_get_at2_pending_balance(admin_id: int, price_id: int, balance: int, trust_limit: int) -> tuple[bool, str]:
     """Check agent type 2 balance with user orders that haven't been yet paid but already are in crm processing"""
-
     # stmt = f"""SELECT u.id as user_id,
     #                   SUM(os.marks_count) as pos_count
     #            FROM public.users u
     #                RIGHT JOIN public.orders_stats os ON os.user_id = u.id AND os.op_cost is NULL
     #            WHERE u.id in (SELECT au.id FROM public.users au where au.admin_parent_id={admin_id} or au.id={admin_id})
     #            GROUP BY u.id"""
+    message = ''
+    status = False
     stmt = f"""SELECT DISTINCT u.id as user_id,
                       SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                FROM public.users u
@@ -1869,14 +1870,18 @@ def helper_get_at2_pending_balance(admin_id: int, price_id: int, balance: int, t
         current_price = helper_get_user_price2(price_id=price_id, pos_count=row.pos_count)
         total_cost += current_price*row.pos_count
     if total_cost > (balance + trust_limit):
-        flash(message=f"{settings.Messages.CRM_CHANGE_STAGE_AT2_BALANCE_ERROR} {total_cost} превышает ваш баланс {balance}р. "
-                      f"и доверенный лимит {trust_limit}", category='error')
-        return False
+        # flash(message=f"{settings.Messages.CRM_CHANGE_STAGE_AT2_BALANCE_ERROR} {total_cost} превышает ваш баланс {balance}р. "
+        #               f"и доверенный лимит {trust_limit}", category='error')
+        message = (f"{settings.Messages.CRM_CHANGE_STAGE_AT2_BALANCE_ERROR} {total_cost} превышает ваш баланс {balance}р."
+                   f" и доверенный лимит {trust_limit}")
+
     elif balance < total_cost < (balance + trust_limit):
-        flash(message=f"{settings.Messages.CRM_CHANGE_STAGE_AT2_BALANCE_ERROR} {total_cost}р. {balance}р."
-                      f" Вы в зоне доверенного лимита {trust_limit}",
-              category='warning')
-    return True
+        message = (f"{settings.Messages.CRM_CHANGE_STAGE_AT2_BALANCE_ERROR} {total_cost}р. {balance}р."
+                   f" Вы в зоне доверенного лимита {trust_limit}")
+        status = True
+    else:
+        status = True
+    return status, message
 
 
 def helper_update_tid_orders_stats(order_idn: str, transaction_id: int):

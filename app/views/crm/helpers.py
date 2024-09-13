@@ -838,6 +838,7 @@ def helper_cancel_order(user: User, o_id: int, cancel_comment: str):
     return redirect(url_for('crm_d.agents'))
 
 
+
 def helper_change_agent_stage(o_id: int, stage: int, user: User):
 
     stmt_get_agent = "SELECT a.admin_parent_id FROM public.users a  WHERE a.id  = (SELECT o.user_id FROM public.orders o WHERE o.id=:o_id LIMIT 1)"
@@ -892,8 +893,10 @@ def helper_change_agent_stage(o_id: int, stage: int, user: User):
         case settings.OrderStage.POOL:
             if user.is_at2:
                 # count all not paid orders and compare with balance
-                if not helper_get_at2_pending_balance(admin_id=user.id, price_id=user.price_id, balance=user.balance,
-                                                      trust_limit=user.trust_limit):
+                status_balance, message_balance = helper_get_at2_pending_balance(admin_id=user.id, price_id=user.price_id, balance=user.balance,
+                                                      trust_limit=user.trust_limit)
+                if not status_balance:
+                    flash(message=message_balance, category='error')
                     return redirect(url_for('crm_d.agents'))
 
             return helper_crm_process_order_stats(o_id=o_id, order_info=order_info,

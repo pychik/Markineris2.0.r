@@ -1066,12 +1066,12 @@ def h_at2_orders_process(o_id: int, change_stage: int) -> Response:
         return jsonify(dict(status=status, message=message))
 
     if change_stage == settings.OrderStage.POOL:
-        status_balance = helper_get_at2_pending_balance(admin_id=current_user.id,
-                                                        price_id=current_user.price_id,
-                                                        balance=current_user.balance,
-                                                        trust_limit=current_user.trust_limit)
+        status_balance, message_balance = helper_get_at2_pending_balance(admin_id=current_user.id,
+                                                                         price_id=current_user.price_id,
+                                                                         balance=current_user.balance,
+                                                                         trust_limit=current_user.trust_limit)
         if not status_balance:
-            return jsonify(dict(status=status, message='Проверьте баланс'))
+            return jsonify(dict(status=status, message=message_balance))
 
     try:
         cancel_stmt = (", cc_created='{date}', comment_cancel='{auto_comment}'"
