@@ -1841,12 +1841,27 @@ def helper_get_orders_marks(u_id: int, o_id: int = None, wo_flag: bool = False) 
 def helper_get_at2_pending_balance(admin_id: int, price_id: int, balance: int, trust_limit: int) -> bool:
     """Check agent type 2 balance with user orders that haven't been yet paid but already are in crm processing"""
 
-    stmt = f"""SELECT u.id as user_id,
-                      SUM(os.marks_count) as pos_count
+    # stmt = f"""SELECT u.id as user_id,
+    #                   SUM(os.marks_count) as pos_count
+    #            FROM public.users u
+    #                RIGHT JOIN public.orders_stats os ON os.user_id = u.id AND os.op_cost is NULL
+    #            WHERE u.id in (SELECT au.id FROM public.users au where au.admin_parent_id={admin_id} or au.id={admin_id})
+    #            GROUP BY u.id"""
+    stmt = f"""SELECT DISTINCT u.id as user_id,
+                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                FROM public.users u
-                   RIGHT JOIN public.orders_stats os ON os.user_id = u.id AND os.op_cost is NULL
-               WHERE u.id in (SELECT au.id FROM public.users au where au.admin_parent_id={admin_id} or au.id={admin_id})
-               GROUP BY u.id"""
+                   JOIN public.orders o on o.user_id = u.id
+                      LEFT JOIN public.shoes sh ON o.id = sh.order_id
+                      LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
+                      LEFT JOIN public.clothes  cl ON o.id = cl.order_id
+                      LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                      LEFT JOIN public.linen l ON o.id = l.order_id
+                      LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
+                      LEFT JOIN public.parfum p ON o.id = p.order_id 
+               WHERE u.id in (SELECT au.id FROM public.users au where au.admin_parent_id={admin_id} or au.id={admin_id}) 
+               and o.payment=False and (o.to_delete = FALSE OR o.to_delete IS NULL) and o.stage>=1 and o.stage !=9 
+               GROUP BY u.id;
+    """
     res = db.session.execute(text(stmt)).fetchall()
 
     total_cost = 0
