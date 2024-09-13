@@ -15,8 +15,9 @@ from logger import logger
 from models import db, Order, OrderStat, PartnerCode, RestoreLink, Telegram, TelegramMessage, User, users_partners, \
     Price, TgUser, ReanimateStatus
 from utilities.download import orders_process_send_order
-from utilities.support import url_encrypt, helper_check_form, helper_update_order_note, \
-      helper_paginate_data, helper_strange_response, sql_count, helper_get_filter_users
+from utilities.support import (url_encrypt, helper_check_form, helper_update_order_note, helper_paginate_data,
+                               helper_strange_response, sql_count, helper_get_filter_users,
+                               helper_get_at2_pending_balance)
 from utilities.admin.schemas import AROrdersSchema, ar_categories_types
 from utilities.admin.helpers import (process_admin_report, helper_get_clients_os, helper_get_orders_stats,
                                      helper_prev_day_orders_marks, helper_get_users_reanimate,
@@ -1063,6 +1064,15 @@ def h_at2_orders_process(o_id: int, change_stage: int) -> Response:
     if not order_check:
         message = f"{settings.Messages.AT2_ORDER_CHANGE_ERROR} - Нет такого заказа!"
         return jsonify(dict(status=status, message=message))
+
+    if change_stage == settings.OrderStage.POOL:
+        status_balance = helper_get_at2_pending_balance(admin_id=current_user.id,
+                                                        price_id=current_user.price_id,
+                                                        balance=current_user.balance,
+                                                        trust_limit=current_user.trust_limit)
+        if not status_balance:
+            return jsonify(dict(status=status, message='Проверьте баланс'))
+
     try:
         cancel_stmt = (", cc_created='{date}', comment_cancel='{auto_comment}'"
                        .format(date=str(datetime.now()), auto_comment=settings.Messages.AT2_ORDER_CANCEL_TEXT)) if change_stage == settings.OrderStage.CANCELLED else ""
