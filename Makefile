@@ -53,6 +53,15 @@ service-up:					## Запуск контейнеров сервиса марки
 service-down:					## Остановка контейнеров сервиса маркинерис(Flask app, db, nginx).
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} down
 
+service_bccr:     ## builder cache clean restart
+	docker builder prune
+	@make elk-down
+	@make elk-setup
+	@make elk-up
+	@make service-down
+	@make service-up
+	@make collect-logs
+
 flask-up:						## Запуск контейнера Flask app.
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} up --build -d flask_app
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} restart bot_notification
