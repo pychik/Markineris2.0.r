@@ -53,7 +53,7 @@ service-up:					## Запуск контейнеров сервиса марки
 service-down:					## Остановка контейнеров сервиса маркинерис(Flask app, db, nginx).
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} down
 
-service_bccr:     ## builder cache clean restart
+service-bccr:     ## builder cache clean restart
 	docker builder prune
 	@make elk-down
 	@make elk-setup
