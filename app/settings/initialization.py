@@ -1,12 +1,15 @@
+import urllib3
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from flask_migrate import Migrate
 from elasticapm.contrib.flask import ElasticAPM
 from flask_debugtoolbar import DebugToolbarExtension
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 from config import settings
 from models import db
-import urllib3
+
 
 urllib3.disable_warnings()
 
@@ -56,6 +59,8 @@ def create_app() -> tuple[Flask, SQLAlchemy]:
     csrf.init_app(app)
     csrf.exempt('views.api.transactions.create_transaction')
     csrf.exempt('views.api.transactions.check_promo_code')
+
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
     if not app.debug:
         ElasticAPM().init_app(app)
     return app, db
