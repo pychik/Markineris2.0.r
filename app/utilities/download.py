@@ -275,6 +275,8 @@ class ClothesProcessor(OrdersProcessor):
         for el in orders_list:
             #     if not el.tnved_code else el.tnved_code
             tnved = el.tnved_code
+            fc_tnved = tnved if tnved == '4304000000' or tnved[:4] in settings.Clothes.FULL_TNVED_4DIGIT_LIST \
+                else tnved[:4]
 
             declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" \
                 if all([el.rd_date, el.rd_type, el.rd_name]) else ''
@@ -285,7 +287,7 @@ class ClothesProcessor(OrdersProcessor):
                 full_name = f'{el.type} {gender_dec} ' \
                             f'{el.trademark} арт. {el.article} цвет {el.color} р. {sq.size}'
 
-                temp_list = [tnved[:4] if tnved != '4304000000' else tnved, full_name,
+                temp_list = [fc_tnved, full_name,
                              el.trademark, 'Артикул', el.article, el.type, el.color, gender, sq.size_type, sq.size,
                              el.content, tnved, settings.Clothes.NUMBER_STANDART,
                              '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,

@@ -1019,6 +1019,7 @@ class Settings(BaseSettings):
         UPLOAD_COUNTRY_ERROR: str = "Проверьте правильность указанной страны (посмотрите вкладку справочник)"
         CLOTHES_TNVED_DICT: dict = CLOTHES_TNVED_DICT
         OLD_TNVEDS: set = CLOTHES_OLD_TNVED
+        FULL_TNVED_4DIGIT_LIST: tuple = ('4203', '6112', '6211',)
         # OLD_TNVEDS_SQL: str = ', '.join(list(map(lambda x: '\'' + x + '\'', CLOTHES_OLD_TNVED)))
 
     # class Config:
