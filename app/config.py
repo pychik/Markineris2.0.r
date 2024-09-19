@@ -109,6 +109,7 @@ class Settings(BaseSettings):
     CATEGORIES_DICT: dict = CATEGORIES_DICT
     COUNTRIES_LIST: list = COUNTRIES_LIST
     COUNTRIES_CODES: dict = COUNTRIES_CODES
+    COUNTRY_RUSSIA: str = "РОССИЯ"
     EDO_TYPES: list = ["СБИС", "КОНТУР", "ТАКСКОМ", "КАЛУГА АСТРАЛ"]
     DOWNLOAD_DIR: str = f"{CUR_PATH}/download_dir"
     DOWNLOAD_DIR_CRM: str = f"{CUR_PATH}/download_dir/crm/"

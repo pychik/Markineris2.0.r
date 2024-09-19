@@ -16,11 +16,19 @@ class ProcessorInterface(ABC):
         ...
 
     @abstractmethod
-    def process_to_excel(self, orders_list: iter, filename: str) -> tuple:
+    def process_to_excel(self, orders_list: iter, orders_list_rf: iter, orders_list_norf: iter, filename: str,) -> tuple:
         ...
 
     @abstractmethod
-    def order_list(self) -> list:
+    def orders_list(self) -> list:
+        ...
+
+    @abstractmethod
+    def orders_list_rf(self) -> list:
+        ...
+
+    @abstractmethod
+    def orders_list_norf(self) -> list:
         ...
 
     @staticmethod
@@ -59,6 +67,6 @@ class ProcessorInterface(ABC):
     def make_file(self, order_num: int, category: str, pos_count: int, orders_pos_count: int,
                   c_partner_code: str, company_type: str, company_name: str, company_idn: str, edo_type: str,
                   edo_id: str, mark_type: str, c_name: str, c_phone: str, c_email: str,
-                  orders_batch: list = None,
+                  orders_batch: list = None, orders_batch_rf: list = None, orders_batch_norf: list = None,
                   index: int = None, new_tnved_sub: str = '') -> tuple[BytesIO, str]:
         ...

@@ -593,6 +593,23 @@ def batch_order(order_list: iter, batch_length=1):
     for ndx in range(0, length, batch_length):
         yield order_list[ndx:min(ndx + batch_length, length)]
 
+def batch_order_with_rf(order_list: iter, order_list_rf: iter, order_list_norf: iter, batch_length=1):
+    for ndx in range(0, len(order_list), batch_length):
+        # Батч из общего списка (order_list)
+        batch1 = list(filter(lambda x: x is not None, order_list[ndx:min(ndx + batch_length, len(order_list))]))
+
+        # Батчи из подсписков order_list_rf и order_list_norf
+        batch2, batch3 = [], []
+
+        for elem in batch1:
+            # Проверка принадлежности к подсписку rf
+            if elem in order_list_rf:
+                batch2.append(elem)
+            # Проверка принадлежности к подсписку norf
+            elif elem in order_list_norf:
+                batch3.append(elem)
+
+        yield batch1, batch2, batch3
 
 def helper_get_clothes_divided_list(order_id: int) -> tuple[list, list, list]:
     old_t_list = Clothes.query.join(ClothesQuantitySize, ClothesQuantitySize.cl_id == Clothes.id).filter(Clothes.order_id == order_id, Clothes.tnved_code.in_(settings.Clothes.OLD_TNVEDS)).order_by(desc(Clothes.id)).all()

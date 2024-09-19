@@ -12,25 +12,37 @@ from xlsxwriter.worksheet import Worksheet
 from config import settings
 from models import Order, db, User
 from .abstract import ProcessorInterface
-from .support import batch_order, order_count, helper_paginate_data, check_leather, helper_get_clothes_divided_list
+from .support import batch_order_with_rf, order_count, helper_paginate_data, check_leather, helper_get_clothes_divided_list
 from .telegram import TelegramProcessor
 
 
 class OrdersProcessor(ProcessorInterface):
     def __init__(self, category: str, company_idn: str, orders_list: list, flag_046: bool = False) -> None:
 
-        self.orders_list = self.prepare_ext_data(orders_list=orders_list, flag_046=flag_046)
+        self._orders_list, self._orders_list_rf, self._orders_list_norf = self.prepare_ext_data(orders_list=orders_list,
+                                                                                                flag_046=flag_046)
         self.company_idn = company_idn
         self.path = ''
         self.category = category
         self.start_data = []
         self.additional_info = []
-        self.batches = batch_order(order_list=self.orders_list, batch_length=settings.ORDER_BATCH_QUANTITY)
+        self.batches = batch_order_with_rf(order_list=self._orders_list,
+                                           order_list_rf=self._orders_list_rf,
+                                           order_list_norf=self._orders_list_norf,
+                                           batch_length=settings.ORDER_BATCH_QUANTITY)
         self.flag_046 = flag_046
 
     @property
-    def order_list(self) -> list:
-        return self.orders_list
+    def orders_list(self) -> list:
+        return self._orders_list
+
+    @property
+    def orders_list_rf(self) -> list:
+        return self._orders_list_rf
+
+    @property
+    def orders_list_norf(self) -> list:
+        return self._orders_list_norf
 
     def excel_add_worksheet_data(self, company_idn: str, company_name: str, company_type: str, edo_type: str,
                                  edo_id: str, mark_type: str,
@@ -43,28 +55,47 @@ class OrdersProcessor(ProcessorInterface):
                                 ['Тип этикетки', mark_type],
                                 ]
 
-    def process_to_excel(self, orders_list, filename: str) -> tuple[BytesIO, str]:
+    def process_to_excel(self, orders_list, orders_list_rf, orders_list_norf, filename: str,) -> tuple[BytesIO, str]:
 
         """
             return file and it's name
         """
         output = BytesIO()
         workbook = Workbook(output)
-        worksheet_1 = workbook.add_worksheet(name=self.company_idn)
-        worksheet_2 = workbook.add_worksheet(name=settings.SHEET_NAME_2)
+        worksheet_1 = workbook.add_worksheet(name=f'{self.company_idn} - ОБЩИЙ')
+        worksheet_2 = workbook.add_worksheet(name=f'{self.company_idn} - РФ')
+        worksheet_3 = workbook.add_worksheet(name=f'{self.company_idn} - ВВЕЗЕН')
+        worksheet_4 = workbook.add_worksheet(name=settings.SHEET_NAME_2)
 
         # Some data we want to write to the worksheet.
         main_data = self.excel_start_data_ext(category=self.category, flag_046=self.flag_046)
-        main_data.extend(orders_list)
+        if orders_list:
+            main_data.extend(orders_list)
+            OrdersProcessor.add_to_excel(worksheet=worksheet_1, data=main_data, row=0, col=0)
+
+        main_data_rf = self.excel_start_data_ext(category=self.category, flag_046=self.flag_046)
+        # print(orders_list_rf)
+        if orders_list_rf:
+            main_data_rf.extend(orders_list_rf)
+            OrdersProcessor.add_to_excel(worksheet=worksheet_2, data=main_data_rf, row=0, col=0)
+
+        main_data_norf = self.excel_start_data_ext(category=self.category, flag_046=self.flag_046)
+        if orders_list_norf:
+            main_data_norf.extend(orders_list_norf)
+            OrdersProcessor.add_to_excel(worksheet=worksheet_3, data=main_data_norf, row=0, col=0)
 
         df_dict = {}
-        OrdersProcessor.add_to_excel(worksheet=worksheet_1, data=main_data, row=0, col=0)
+
         df_dict["df1"] = DataFrame(main_data)
-        OrdersProcessor.add_to_excel(worksheet=worksheet_2, data=self.additional_info, row=0, col=0)
-        df_dict["df2"] = DataFrame(self.additional_info)
+        df_dict["df2"] = DataFrame(main_data_rf)
+        df_dict["df3"] = DataFrame(main_data_norf)
+        OrdersProcessor.add_to_excel(worksheet=worksheet_4, data=self.additional_info, row=0, col=0)
+        df_dict["df4"] = DataFrame(self.additional_info)
 
         OrdersProcessor.adjusting_df(df=df_dict["df1"], worksheet=worksheet_1) if not self.flag_046 else None
-        OrdersProcessor.adjusting_df(df=df_dict["df2"], worksheet=worksheet_2)
+        OrdersProcessor.adjusting_df(df=df_dict["df2"], worksheet=worksheet_2) if not self.flag_046 else None
+        OrdersProcessor.adjusting_df(df=df_dict["df3"], worksheet=worksheet_3) if not self.flag_046 else None
+        OrdersProcessor.adjusting_df(df=df_dict["df4"], worksheet=worksheet_4)
 
         workbook.close()
         df_dict.clear()
@@ -137,8 +168,8 @@ class OrdersProcessor(ProcessorInterface):
     def make_file(self, order_num: int, category: str, pos_count: int, orders_pos_count: int,
                   c_partner_code: str, company_type: str, company_name: str, company_idn: str, edo_type: str,
                   edo_id: str, mark_type: str, c_name: str, c_phone: str, c_email: str,
-                  orders_batch: list = None,
-                  index: int = None, new_tnved_sub: str = '') -> tuple[BytesIO, str]:
+                  orders_batch: list = None, orders_batch_rf: list = None, orders_batch_norf: list = None,
+                  index: int = None, new_tnved_sub: str = '', ) -> tuple[BytesIO, str]:
         self.path = self.get_filename(order_num=order_num, category=category,
                                       pos_count=pos_count, count=orders_pos_count,
                                       partner_code=c_partner_code, company_type=company_type,
@@ -149,17 +180,21 @@ class OrdersProcessor(ProcessorInterface):
                                       user_name=c_name, user_phone=c_phone,
                                       user_email=c_email, partner=c_partner_code)
 
-        return self.process_to_excel(orders_list=self.orders_list,
-                                     filename=f"{self.path}") if not (orders_batch and index) else \
-            self.process_to_excel(orders_list=orders_batch,
-                                  filename=f"{new_tnved_sub}{index}_{self.path}")
+        return self.process_to_excel(orders_list=self.orders_list, orders_list_rf=self.orders_list_rf,
+                                     orders_list_norf=self.orders_list_norf,
+                                     filename=f"{self.path}", ) if not (orders_batch and index) else \
+            self.process_to_excel(orders_list=orders_batch, orders_list_rf=orders_batch_rf,
+                                  orders_list_norf=orders_batch_norf,
+                                  filename=f"{new_tnved_sub}{index}_{self.path}", )
 
 
 class ShoesProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> list:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list]:
         res_list = []
+        res_list_rf = []
+        res_list_norf = []
         actual_date = datetime.now().strftime('%d.%m.%Y')
         for el in orders_list:
 
@@ -181,8 +216,11 @@ class ShoesProcessor(OrdersProcessor):
                      settings.COUNTRIES_CODES.get(el.country), settings.Shoes.TYPES_CODES.get(el.type), el.material_top,
                      el.material_lining, el.material_bottom, el.color, settings.Shoes.SIZES_CODES.get(sq.size),
                      '' if sq.size in settings.Shoes.SIZES_ND else sq.size, tnved, '', sq.quantity, declar_doc, ]
+
                 res_list.append(temp_list)
-        return res_list
+                res_list_norf.append(
+                    temp_list) if el.country.upper() != settings.COUNTRY_RUSSIA else res_list_rf.append(temp_list)
+        return res_list, res_list_rf, res_list_norf
 
     @staticmethod
     def get_tnved(material: str, gender: str) -> str:
@@ -203,9 +241,10 @@ class ShoesProcessor(OrdersProcessor):
 class LinenProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> list:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list]:
         res_list = []
-
+        res_list_rf = []
+        res_list_norf = []
         for el in orders_list:
             tnved = settings.Linen.TNVED_CODE if not el.tnved_code else el.tnved_code
             declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
@@ -225,15 +264,18 @@ class LinenProcessor(OrdersProcessor):
                              tnved, settings.Linen.NUMBER_STANDART, '', '', el.article_price, el.tax,
                              fin_quantity, '', '', el.country, declar_doc, ]
                 res_list.append(temp_list)
-        return res_list
+                res_list_norf.append(
+                    temp_list) if el.country.upper() != settings.COUNTRY_RUSSIA else res_list_rf.append(temp_list)
+        return res_list, res_list_rf, res_list_norf
 
 
 class ParfumProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> list:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list]:
         res_list = []
-
+        res_list_rf = []
+        res_list_norf = []
         for el in orders_list:
             if el.with_packages == 'да':
                 full_name = f'Набор {el.type} {el.trademark} {el.quantity} шт., ' \
@@ -254,7 +296,9 @@ class ParfumProcessor(OrdersProcessor):
                          el.article_price, el.tax, fin_quantity, '', '', el.country,
                          declar_doc, ]
             res_list.append(temp_list)
-        return res_list
+            res_list_norf.append(temp_list) if el.country.upper() != settings.COUNTRY_RUSSIA else res_list_rf.append(
+                temp_list)
+        return res_list, res_list_rf, res_list_norf
 
     @staticmethod
     def get_tnved(parfum_type: str) -> str:
@@ -269,8 +313,10 @@ class ParfumProcessor(OrdersProcessor):
 class ClothesProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> list:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list]:
         res_list = []
+        res_list_rf = []
+        res_list_norf = []
         actual_date = datetime.now().strftime('%d.%m.%Y')
         for el in orders_list:
             #     if not el.tnved_code else el.tnved_code
@@ -282,9 +328,9 @@ class ClothesProcessor(OrdersProcessor):
             declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" \
                 if all([el.rd_date, el.rd_type, el.rd_name]) else ''
             for sq in el.sizes_quantities:
-
                 gender_dec = ClothesProcessor.get_gender_dec(clothes_type=el.type, gender=el.gender)
-                gender = ClothesProcessor.get_gender(gender=el.gender)
+                gender = ClothesProcessor.get_gender(gender=el.gender) if not flag_046 \
+                    else ClothesProcessor.get_gender_046(gender=el.gender)
                 full_name = f'{el.type} {gender_dec} ' \
                             f'{el.trademark} арт. {el.article} цвет {el.color} р. {sq.size}'
 
@@ -300,7 +346,9 @@ class ClothesProcessor(OrdersProcessor):
                      el.content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
                      sq.quantity * el.box_quantity, declar_doc, ]
                 res_list.append(temp_list)
-        return res_list
+                res_list_norf.append(
+                    temp_list) if el.country.upper() != settings.COUNTRY_RUSSIA else res_list_rf.append(temp_list)
+        return res_list, res_list_rf, res_list_norf
 
     @staticmethod
     def get_tnved(clothes_type: str, gender: str, content: str) -> str:
@@ -330,12 +378,13 @@ class ClothesProcessor(OrdersProcessor):
 
     @staticmethod
     def get_gender(gender: str) -> Optional[str]:
-        gender_dict = settings.Clothes.GENDERS_ORDER
         gender_value = gender.capitalize()
-        if gender_dict.get(gender_value):
-            return gender_dict.get(gender_value)
-        else:
-            return None
+        return settings.Clothes.GENDERS_ORDER.get(gender_value)
+
+    @staticmethod
+    def get_gender_046(gender: str) -> Optional[str]:
+        gender_value = gender.capitalize()
+        return settings.Clothes.GENDERS_ORDER_046.get(gender_value)
 
 
 # not used currently
@@ -413,21 +462,23 @@ def get_download_info(o_id, user: User, batching: bool = True,
         files_list = []
         index = 1
 
-        for b in op_old.batches:
+        for b, b_rf, b_norf in op_old.batches:
             files_list.append(op_old.make_file(order_num=order_num, category=category, pos_count=pos_count,
                                                orders_pos_count=orders_pos_count, c_partner_code=c_partner_code,
                                                company_type=company_type, company_name=company_name,
                                                company_idn=company_idn, edo_type=edo_type, edo_id=edo_id,
                                                mark_type=mark_type, c_name=c_name, c_phone=c_phone, c_email=c_email,
-                                               orders_batch=b, index=index))
+                                               orders_batch=b, orders_batch_rf=b_rf, orders_batch_norf=b_norf,
+                                               index=index))
             index += 1
-        for b in op_new.batches:
+        for b, b_rf, b_norf in op_new.batches:
             files_list.append(op_new.make_file(order_num=order_num, category=category, pos_count=pos_count,
                                                orders_pos_count=orders_pos_count, c_partner_code=c_partner_code,
                                                company_type=company_type, company_name=company_name,
                                                company_idn=company_idn, edo_type=edo_type, edo_id=edo_id,
                                                mark_type=mark_type, c_name=c_name, c_phone=c_phone, c_email=c_email,
-                                               orders_batch=b, index=index, new_tnved_sub='Н_ТН_'))
+                                               orders_batch=b, orders_batch_rf=b_rf, orders_batch_norf=b_norf,
+                                               index=index, new_tnved_sub='Н_ТН_'))
             index += 1
         return rd_exist, company_idn, company_type, company_name, edo_type, edo_id, \
             mark_type, pos_count, orders_pos_count, category, \
@@ -474,13 +525,14 @@ def get_download_info(o_id, user: User, batching: bool = True,
     files_list = []
     index = 1
 
-    for b in op.batches:
+    for b, b_rf, b_norf in op.batches:
         files_list.append(op.make_file(order_num=order_num, category=category, pos_count=pos_count,
                                        orders_pos_count=orders_pos_count, c_partner_code=c_partner_code,
                                        company_type=company_type, company_name=company_name,
                                        company_idn=company_idn, edo_type=edo_type, edo_id=edo_id,
                                        mark_type=mark_type, c_name=c_name, c_phone=c_phone, c_email=c_email,
-                                       orders_batch=b, index=index))
+                                       orders_batch=b, orders_batch_rf=b_rf, orders_batch_norf=b_norf,
+                                       index=index))
         index += 1
     return rd_exist, company_idn, company_type, company_name, edo_type, edo_id, \
         mark_type, pos_count, orders_pos_count, category, \
