@@ -48,7 +48,8 @@ def h_all_new_multi_pool():
         message = settings.Messages.ORDER_STAGE_CHANGE_EMPTY
         return jsonify({'status': status, 'message': message})
 
-    bulk_array = [{"o_id": o.id, "stage": settings.OrderStage.POOL} for o in all_new_orders]
+    dt_pool = datetime.now()
+    bulk_array = [{"o_id": o.id, "stage": settings.OrderStage.POOL, 'p_started': f'{dt_pool}'} for o in all_new_orders]
     update_orders_stmt = update(Order).where(Order.id == bindparam('o_id')).values(stage=bindparam('stage'))
 
     # Executing the update operation in bulk

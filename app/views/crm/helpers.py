@@ -40,6 +40,7 @@ def helper_get_agent_orders(user: User) -> list:
                                  o.cp_created as cp_created,
                                  o.cc_created as cc_created,
                                  o.crm_created_at as crm_created_at,
+                                 o.p_started as p_started,
                                  o.m_started as m_started,
                                  o.m_finished as m_finished,
                                  o.sent_at as sent_at,
@@ -203,6 +204,7 @@ def helper_get_agent_stage_orders(stage: int, user: User) -> list:
                                           o.cp_created as cp_created,
                                           o.cc_created as cc_created,
                                           o.crm_created_at as crm_created_at,
+                                          o.p_started as p_started,
                                           o.m_started as m_started,
                                           o.m_finished as m_finished,
                                           o.sent_at as sent_at,
@@ -251,7 +253,6 @@ def helper_get_agent_stage_orders(stage: int, user: User) -> list:
                                   o.has_new_tnveds as has_new_tnveds,
                                   o.manager_id as manager_id,
                                   o.to_delete as to_delete,
-                                  o.crm_created_at as crm_created_at,
                                   MAX(orf.origin_name) as order_file,
                                   MAX(orf.file_link) as order_file_link,
                                   MAX(managers.login_name) as manager,
@@ -261,6 +262,7 @@ def helper_get_agent_stage_orders(stage: int, user: User) -> list:
                                   o.cp_created as cp_created,
                                   o.cc_created as cc_created,
                                   o.crm_created_at as crm_created_at,
+                                  o.p_started as p_started,
                                   o.m_started as m_started,
                                   o.m_finished as m_finished,
                                   o.sent_at as sent_at,
@@ -297,6 +299,7 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                             o.comment_cancel as comment_cancel,
                             o.cp_created as cp_created,
                             o.cc_created as cc_created,
+                            o.p_started as p_started,
                             o.m_started as m_started,
                             o.m_finished as m_finished,
                          """
@@ -838,7 +841,6 @@ def helper_cancel_order(user: User, o_id: int, cancel_comment: str):
     return redirect(url_for('crm_d.agents'))
 
 
-
 def helper_change_agent_stage(o_id: int, stage: int, user: User):
 
     stmt_get_agent = "SELECT a.admin_parent_id FROM public.users a  WHERE a.id  = (SELECT o.user_id FROM public.orders o WHERE o.id=:o_id LIMIT 1)"
@@ -900,7 +902,7 @@ def helper_change_agent_stage(o_id: int, stage: int, user: User):
                 if not status_balance:
                     flash(message=message_balance, category='error')
                     return redirect(url_for('crm_d.agents'))
-
+            additional_stmt += f", p_started='{dt_agent}'"
             return helper_crm_process_order_stats(o_id=o_id, order_info=order_info,
                                                   stage=stage, additional_stmt=additional_stmt)
         case settings.OrderStage.SENT:
@@ -1268,6 +1270,7 @@ def h_get_agent_order_info(search_order_idn):
                                          o.cp_created as cp_created,
                                          o.cc_created as cc_created,
                                          o.crm_created_at as crm_created_at,
+                                         o.p_started as p_started,
                                          o.m_started as m_started,
                                          o.m_finished as m_finished,
                                          o.sent_at as sent_at,
@@ -1305,7 +1308,6 @@ def h_get_agent_order_info(search_order_idn):
                                       o.user_comment as user_comment,
                                       o.has_new_tnveds as has_new_tnveds,
                                       o.manager_id as manager_id,
-                                      o.crm_created_at as crm_created_at,
                                       o.to_delete as to_delete,
                                       MAX(orf.origin_name) as order_file,
                                       MAX(orf.file_link) as order_file_link,
@@ -1342,6 +1344,8 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                 o.comment_cancel as comment_cancel,
                                 o.cp_created as cp_created,
                                 o.cc_created as cc_created,
+                                o.crm_created_at as crm_created_at,
+                                o.p_started as p_started,
                                 o.m_started as m_started,
                                 o.m_finished as m_finished,
                              """
@@ -1366,7 +1370,6 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                      o.payment as payment,
                                      o.order_idn as order_idn,
                                      o.category as category,
-                                     o.crm_created_at as crm_created_at,
                                      o.company_type as company_type,
                                      o.company_name as company_name,
                                      o.company_idn as company_idn,
@@ -1419,7 +1422,6 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                       o.payment as payment,
                                       o.order_idn as order_idn,
                                       o.category as category,
-                                      o.crm_created_at as crm_created_at,
                                       o.company_type as company_type,
                                       o.company_name as company_name,
                                       o.company_idn as company_idn,

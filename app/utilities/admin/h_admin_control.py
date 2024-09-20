@@ -1053,6 +1053,7 @@ def h_at2_new_orders() -> Response:
 def h_at2_orders_process(o_id: int, change_stage: int) -> Response:
     admin_id = current_user.id
     status = 'danger'
+    pool_stmt = ''
 
     if change_stage not in [settings.OrderStage.POOL, settings.OrderStage.CANCELLED]:
         message = f"{settings.Messages.AT2_ORDER_CHANGE_ERROR} - Указаны некорректные данные для изменения!"
@@ -1070,13 +1071,15 @@ def h_at2_orders_process(o_id: int, change_stage: int) -> Response:
                                                                          price_id=current_user.price_id,
                                                                          balance=current_user.balance,
                                                                          trust_limit=current_user.trust_limit)
+        dt_pool = datetime.now()
+        pool_stmt = f", p_started='{dt_pool}'"
         if not status_balance:
             return jsonify(dict(status=status, message=message_balance))
 
     try:
         cancel_stmt = (", cc_created='{date}', comment_cancel='{auto_comment}'"
                        .format(date=str(datetime.now()), auto_comment=settings.Messages.AT2_ORDER_CANCEL_TEXT)) if change_stage == settings.OrderStage.CANCELLED else ""
-        update_order_stmt = (text(f"""UPDATE public.orders SET stage=:change_stage{cancel_stmt} WHERE id=:o_id""")
+        update_order_stmt = (text(f"""UPDATE public.orders SET stage=:change_stage{cancel_stmt}{pool_stmt} WHERE id=:o_id""")
                              .bindparams(o_id=o_id, change_stage=change_stage))
 
         db.session.execute(update_order_stmt)

@@ -675,12 +675,14 @@ def process_order_start(user: User, category: str, o_id: int, order_idn: str, or
         try:
             if check_new_tnved_in_list():
                 order.has_new_tnveds = True
+            dt = datetime.now()
             order.stage = _stage  # settings.OrderStage.NEW
-            order.crm_created_at = datetime.now()
+            order.crm_created_at = dt
             order.order_idn = order_idn
             order.user_comment = order_comment
             if _stage == settings.OrderStage.POOL:
                 create_order_stats(order_info=order)
+                order.p_started = dt
             return _stage
         except IntegrityError:
             db.session.rollback()

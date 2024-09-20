@@ -267,6 +267,7 @@ class Order(db.Model, UserMixin):
     comment_problem = db.Column(db.String(230), default='')
     comment_cancel = db.Column(db.String(230), default='')
 
+    p_started = db.Column(db.DateTime())  # pool strated
     m_started = db.Column(db.DateTime())  # manager has taken order
     m_finished = db.Column(db.DateTime())  # manager has taken order
     cp_created = db.Column(db.DateTime())  # problem created
