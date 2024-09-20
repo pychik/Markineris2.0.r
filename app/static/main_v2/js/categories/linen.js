@@ -468,7 +468,12 @@ function addLinenCell(){
                             </div>
                             <div class="ms-2"><span id="sizeX_info">${sizeX}</span> * <span id="sizeY_info">${sizeY}</span>, мм</div>
                         </div>
-                        <div class="important-card__val"><span id="quantity_info">${quantity}</span> <span>шт. </span></div>
+                        <div class="important-card__val">
+                            <span id="quantity_info">${quantity}</span> <span>шт. </span>
+                            <input type="number" id="quantity_input" name="quantity_input"
+                                           value="${quantity}" style="display:none; width: 68px;"
+                                           min="1" placeholder="0">
+                        </div>
                         <input type="hidden" id="sizeX" name="sizeX" value="${sizeX}"><input type="hidden" id="sizeY" name="sizeY" value="${sizeY}">
                         <input type="hidden" id="quantity" name="quantity" value="${quantity}">
                     </div>`);
@@ -484,17 +489,62 @@ function addLinenCell(){
 
 }
 
-function linen_edit_size(parent_block){
-    let sizeX = parent_block.find('#sizeX_info').html();
-    let sizeY = parent_block.find('#sizeY_info').html();
-    let quantity = parent_block.parent().find('#quantity_info').html();
-    // console.log(size, quantity);
-    $('#sizeX_order').val(sizeX);
-    $('#sizeY_order').val(sizeY);
-    $('#quantity_order').val(quantity);
+// function linen_edit_size(parent_block){
+//     let sizeX = parent_block.find('#sizeX_info').html();
+//     let sizeY = parent_block.find('#sizeY_info').html();
+//     let quantity = parent_block.parent().find('#quantity_info').html();
+//     // console.log(size, quantity);
+//     $('#sizeX_order').val(sizeX);
+//     $('#sizeY_order').val(sizeY);
+//     $('#quantity_order').val(quantity);
+//
+//     parent_block.parent().remove();
+//     setLinen();
+// }
+function linen_edit_size(el) {
+    // Find quantity display and input fields
+    const quantitySpan = $(el).closest('.important-card__size').find('#quantity_info');
+    const quantityInput = $(el).closest('.important-card__size').find('#quantity_input');
 
-    parent_block.parent().remove();
-    setLinen();
+    // If the span is visible, switch to input field
+    if (quantitySpan.is(':visible')) {
+        quantitySpan.hide();  // Hide quantity span
+        $(el).closest('.important-card__size').find('span:contains("шт.")').hide();
+        quantityInput.show().focus();  // Show and focus on input field
+    }
+
+    // Input validation for quantity
+    quantityInput.on('input', function() {
+        let value = parseInt(quantityInput.val(), 10);
+        if (isNaN(value) || value < 1) {
+            quantityInput.attr('placeholder', '0');
+        } else if (value > 50000) {
+            quantityInput.val(50000);  // Limit the value to 50000
+        }
+    });
+
+    // When the input loses focus or Enter is pressed, save the value and switch back to span
+    quantityInput.on('blur keypress', function(e) {
+        if (e.type === 'blur' || (e.type === 'keypress' && e.key === 'Enter')) {
+            let newQuantity = quantityInput.val();
+
+            // If the input is empty, set it to 1 (auto-correct)
+            if (newQuantity === '' || parseInt(newQuantity) < 1) {
+                newQuantity = 1;
+                 quantityInput.val(1);
+            }
+
+            // Update the hidden input and quantity span
+            $('#quantity').val(newQuantity);
+            quantitySpan.text(newQuantity);
+
+            // Hide input and show quantity span
+            quantityInput.hide()
+            $(el).closest('.important-card__size').find('span:contains("шт.")').show();
+            quantitySpan.show();
+            setLinen();
+        }
+    });
 }
 
 function check_add_same_size(sizeX, sizeY, quantity){

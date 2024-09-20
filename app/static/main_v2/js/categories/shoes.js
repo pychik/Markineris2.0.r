@@ -466,7 +466,11 @@ function addShoeCell(){
                             </div>
                             <div class="ms-2"><span id="size_info">${size}</span> размер</div>
                         </div>
-                        <div class="important-card__val"><span id="quantity_info">${quantity}</span> <span>шт.</span></div>
+                        <div class="important-card__val">
+                            <span id="quantity_info">${quantity}</span> <span>шт.</span>
+                            <!-- Input field to edit the quantity, hidden by default -->
+                            <input type="number" id="quantity_input" name="quantity_input" value="${quantity}" style="display:none; width: 68px;" min="1">
+                        </div>
                         <input type="hidden" id="size" name="size" value="${size}"><input type="hidden" id="quantity" name="quantity" value="${quantity}">
                     </div>`);
         // `<div class="row mb-3" id="container_element"><div class="col-md-6 col-xs-12 mt-1"><input type="text" name="size" id="size" minlength="2" maxlength="5" class="form-control mb-1" placeholder="Размер 16 - 56.5" autocomplete="off" oninput="check_shoes_size(value)||(value='');" value="${size}" required></div><div class="col-md-6 col-xs-12 mt-1"><input type="number" name="quantity" id="quantity" class="form-control ms-1" value="1" min="1"  oninput="validity.valid||(value='');javascript:setShoes();" max="${max_param}" placeholder="${placeholder_param}" required></div></div>`);
@@ -479,15 +483,52 @@ function addShoeCell(){
 
 }
 
-function shoes_edit_size(parent_block){
-    let size = parent_block.find('#size_info').html();
-    let quantity = parent_block.parent().find('#quantity_info').html();
-    // console.log(size, quantity);
-    $('#size_order').val(size);
-    $('#quantity_order').val(quantity);
+function shoes_edit_size(el) {
+    // Find quantity display and input fields
+    const quantitySpan = $(el).closest('.important-card__size').find('#quantity_info');
+    const quantityInput = $(el).closest('.important-card__size').find('#quantity_input');
+    const quantityHidden = $(el).closest('.important-card__size').find('#quantity');
 
-    parent_block.parent().remove();
-    setShoes();
+    // If the span is visible, switch to input field
+    if (quantitySpan.is(':visible')) {
+        quantitySpan.hide();  // Hide quantity span
+        $(el).closest('.important-card__size').find('span:contains("шт.")').hide(); // Hide 'шт.'
+        quantityInput.show().focus();  // Show and focus on input field
+    }
+
+    // Input validation for quantity
+    quantityInput.on('input', function() {
+        let value = parseInt(quantityInput.val(), 10);
+        if (isNaN(value) || value < 1) {
+            quantityInput.attr('placeholder', '0');  // Placeholder for invalid input
+        } else if (value > 50000) {
+            quantityInput.val(50000);  // Limit the value to 50000
+        }
+    });
+
+    // When the input loses focus or Enter is pressed, save the value and switch back to span
+    quantityInput.on('blur keypress', function(e) {
+        if (e.type === 'blur' || (e.type === 'keypress' && e.key === 'Enter')) {
+            let newQuantity = quantityInput.val();
+
+            // If the input is empty or invalid, set it to 1 (auto-correct)
+            if (newQuantity === '' || parseInt(newQuantity) < 1) {
+                newQuantity = 1;
+                quantityInput.val(1);
+            }
+
+            // Update hidden input, visible span, and the quantity info
+            quantityHidden.val(newQuantity);
+            quantitySpan.text(newQuantity);
+
+            // Hide input and show quantity span and 'шт.'
+            quantityInput.hide();
+            quantitySpan.show();
+            $(el).closest('.important-card__size').find('span:contains("шт.")').show(); // Show 'шт.'
+
+            setShoes();  // Update the total shoes count
+        }
+    });
 }
 
 

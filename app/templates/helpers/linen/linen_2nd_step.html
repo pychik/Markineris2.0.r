@@ -207,23 +207,34 @@
                             {% set sq_list = sq.size.split('*') %}
                             <div class="important-card__item important-card__size ms-2">
                                 <div class="d-flex align-items-center g-3">
-
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" onclick="$(this).closest('div').parent().remove();setLinen();"
-                                        viewBox="0 0 20 20" fill="none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                         onclick="$(this).closest('div').parent().remove(); setLinen();"
+                                         viewBox="0 0 20 20" fill="none">
                                         <path fill-rule="evenodd" clip-rule="evenodd"
-                                            d="M4.34074 0.312213C8.07158 -0.104071 11.9285 -0.104071 15.6593 0.312213C17.7413 0.544517 19.4209 2.18214 19.6655 4.26889C20.1115 8.07671 20.1115 11.9234 19.6655 15.7312C19.4209 17.8179 17.7413 19.4555 15.6593 19.6878C11.9285 20.1041 8.07158 20.1041 4.34074 19.6878C2.25873 19.4555 0.579043 17.8179 0.33457 15.7312C-0.111523 11.9234 -0.111523 8.07671 0.33457 4.26889C0.579043 2.18214 2.25873 0.544517 4.34074 0.312213ZM10 9.08981H10.9117H15.1575C15.661 9.08981 16.0692 9.49734 16.0692 10C16.0692 10.5027 15.661 10.9102 15.1575 10.9102H10.9117C10.9117 10.9102 10.2506 10.9102 10 10.9102C9.74947 10.9102 9.46208 10.9102 9.46208 10.9102H9.08832H4.84265C4.33912 10.9102 3.93094 10.5027 3.93094 10C3.93094 9.49734 4.33912 9.08981 4.84265 9.08981H9.08832H10Z"
-                                            fill="white" />
+                                              d="M4.34074 0.312213C8.07158 -0.104071 11.9285 -0.104071 15.6593 0.312213C17.7413 0.544517 19.4209 2.18214 19.6655 4.26889C20.1115 8.07671 20.1115 11.9234 19.6655 15.7312C19.4209 17.8179 17.7413 19.4555 15.6593 19.6878C11.9285 20.1041 8.07158 20.1041 4.34074 19.6878C2.25873 19.4555 0.579043 17.8179 0.33457 15.7312C-0.111523 11.9234 -0.111523 8.07671 0.33457 4.26889C0.579043 2.18214 2.25873 0.544517 4.34074 0.312213ZM10 9.08981H10.9117H15.1575C15.661 9.08981 16.0692 9.49734 16.0692 10C16.0692 10.5027 15.661 10.9102 15.1575 10.9102H10.9117C10.9117 10.9102 10.2506 10.9102 10 10.9102C9.74947 10.9102 9.46208 10.9102 9.46208 10.9102H9.08832H4.84265C4.33912 10.9102 3.93094 10.5027 3.93094 10C3.93094 9.49734 4.33912 9.08981 4.84265 9.08981H9.08832H10Z"
+                                              fill="white" />
                                     </svg>
                                     <div class="ms-2" title="Нажать для изменения позиции. При нажатии, размер и количество перемещаются из накладной в форму!">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" onclick="linen_edit_size($(this).closest('div').parent());"
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             onclick="linen_edit_size($(this).closest('div').parent());"
                                              fill="none" class="bi bi-pencil" viewBox="0 0 20 20">
-                                          <path fill-rule="evenodd" clip-rule="evenodd" d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325" fill="white"/>
+                                            <path fill-rule="evenodd" clip-rule="evenodd"
+                                                  d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325" fill="white"/>
                                         </svg>
                                     </div>
-                                    <div class="ms-2"><span id="sizeX_info">{{sq_list[0]}}</span> * <span id="sizeY_info">{{sq_list[1]}}</span>, мм</div>
+                                    <div class="ms-2">
+                                        <span id="sizeX_info">{{sq_list[0]}}</span> *
+                                        <span id="sizeY_info">{{sq_list[1]}}</span>, мм
+                                    </div>
                                 </div>
 
-                                <div class="important-card__val"><span id="quantity_info">{{sq.quantity}}</span> <span>шт.</span></div>
+                                <div class="important-card__val">
+                                    <span id="quantity_info">{{sq.quantity}}</span>
+                                    <input type="number" id="quantity_input" name="quantity_input"
+                                           value="{{sq.quantity}}" style="display:none; width: 68px;"
+                                           min="1" placeholder="0">
+                                </div>
+
                                 <input type="hidden" id="sizeX" name="sizeX" value="{{sq_list[0]}}">
                                 <input type="hidden" id="sizeY" name="sizeY" value="{{sq_list[1]}}">
                                 <input type="hidden" id="quantity" name="quantity" value="{{sq.quantity}}">
