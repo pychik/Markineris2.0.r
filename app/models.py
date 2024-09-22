@@ -256,7 +256,7 @@ class Order(db.Model, UserMixin):
     edo_type = db.Column(db.String(100), default="ЭДО-ЛАЙТ")
     edo_id = db.Column(db.String(100), default="")
     mark_type = db.Column(db.String(100))
-    user_comment = db.Column(db.String(150), default="")
+    user_comment = db.Column(db.String(450), default="")
     has_new_tnveds = db.Column(db.Boolean, default=False)
 
     payment = db.Column(db.Boolean(), default=False)
