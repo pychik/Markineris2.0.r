@@ -302,6 +302,7 @@ def h_su_delete_prices(p_id: int) -> Response:
 
     return jsonify(dict(status=status, message=message))
 
+
 def h_su_edit_price(p_id: int) -> Response:
 
     def _check_price_values(price_1: Decimal, price_2: Decimal, price_3: Decimal, price_4: Decimal, price_5: Decimal) -> bool:
@@ -319,8 +320,6 @@ def h_su_edit_price(p_id: int) -> Response:
         message = settings.Messages.EDIT_PRICE_ERROR
         logger.error(message + str(ie))
         return jsonify(dict(status=status, message=message))
-
-    print(p1, p2, p3, p4, p5)
 
     price = Price.query.filter(Price.id == p_id).first()
 
