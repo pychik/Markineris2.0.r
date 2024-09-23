@@ -4,9 +4,6 @@ from dateutil.relativedelta import relativedelta
 from decimal import Decimal, InvalidOperation
 from os import listdir as o_list_dir
 from os import remove as o_remove
-from typing import Any
-
-import pydantic
 from flask import render_template, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
 from sqlalchemy import desc, text, create_engine, null, select, or_, not_
@@ -26,7 +23,6 @@ from utilities.support import (helper_paginate_data, check_file_extension, get_f
     helper_get_filter_fin_bonus_history, helper_get_stmt_for_fin_bonus_history,   \
     helper_get_transactions, helper_get_user_at2_opt2)
 from utilities.tg_verify.service import send_tg_message_with_transaction_updated_status
-from validators.admin_control import BonusCodeSchema
 
 
 class NotFoundBonusCode(Exception):
@@ -1128,24 +1124,6 @@ def _h_isolated_session():
         session.connection(execution_options={"isolation_level": "SERIALIZABLE"})
         # making queries session
         ...
-
-
-def h_create_bonus_code(data: dict[str, Any]) -> Response:
-    try:
-        validated_data = BonusCodeSchema(**data).model_dump()
-    except pydantic.ValidationError as e:
-        return jsonify({"result": False, "message": str(e)})
-    created_at = datetime.now()
-    validated_data['created_at'] = created_at
-    try:
-        bonus_code = Bonus(**validated_data)
-        db.session.add(bonus_code)
-        db.session.commit()
-        return jsonify({"result": True, "message": "Success created"})
-    except Exception:
-        db.session.rollback()
-        logger.exception('Ошибка при добавлении нового бонус кода')
-        return jsonify({"result": False, "message": "Creating failed"})
 
 
 def h_get_list_of_bonus_code() -> Response:
