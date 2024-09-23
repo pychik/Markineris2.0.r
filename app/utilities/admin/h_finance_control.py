@@ -218,7 +218,7 @@ def h_su_bck_prices():
         desc(Price.created_at)).all()
     base_path = settings.DOWNLOAD_DIR_SA_QR
 
-    return jsonify({'htmlresponse': render_template(f'admin/prices_table.html', **locals())})
+    return jsonify({'htmlresponse': render_template(f'admin/finance/prices_table.html', **locals())})
 
 
 def h_su_bck_specific_price(p_id):
@@ -353,7 +353,7 @@ def h_su_bck_sa():
     base_path = settings.DOWNLOAD_QA_BASIC
     sa_types = settings.ServiceAccounts.TYPES_DICT
     service_accounts = ServiceAccount.query.order_by(desc(ServiceAccount.created_at)).all()
-    return jsonify({'htmlresponse': render_template(f'admin/sa_table.html', **locals())})
+    return jsonify({'htmlresponse': render_template(f'admin/finance/sa_table.html', **locals())})
 
 
 def h_su_add_sa():
