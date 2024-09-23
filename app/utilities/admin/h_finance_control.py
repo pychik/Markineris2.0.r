@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from config import settings
 from logger import logger
-from models import Promo, Price, ServiceAccount, ServerParam, User, UserTransaction, Bonus, users_bonus_codes
+from models import Promo, Price, ServiceAccount, ServerParam, User, UserTransaction, Bonus
 from models import db
 from utilities.admin.excel_report import ExcelReportProcessor, ExcelReport, ExcelReportWithSheets
 from utilities.support import (helper_paginate_data, check_file_extension, get_file_extension,
