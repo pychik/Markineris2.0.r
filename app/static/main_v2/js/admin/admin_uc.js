@@ -291,20 +291,9 @@ function check_price_switch() {
     }
 }
 
-function check_prices_form() {
-
-    let form = document.getElementById('prices_form')
-    // console.log(form.reportValidity());
-    if (!form.checkValidity || form.checkValidity()) {
-        return true
-    } else {
-        var allInputs = $('#prices_form input');
-
-        allInputs.each(function (index) {
-            check_valid(allInputs[index]);
-        })
-        return false
-    }
+function check_prices_form(form_id) {
+    let form = document.getElementById(form_id);
+    return !!form.reportValidity();
 }
 
 function get_prices_history(url) {
@@ -421,6 +410,60 @@ function bck_delete_price_post_process(url, update_url) {
                 get_prices_history(update_url);
             }
 
+            make_message(data.message, data.status);
+        },
+        error: function () {
+            make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
+        }
+    });
+
+    setTimeout(function () {
+        clear_user_messages();
+    }, 15000);
+}
+
+function bck_edit_price_get_process(url) {
+    $.ajax({
+        url: url,
+        // headers:{"X-CSRFToken": form.csrf_token},
+        method: "GET",
+        success: function (data) {
+            // console.log(data);
+
+            if (data.status === 'success') {
+                document.getElementById('service_prices_modal').innerHTML = data.htmlresponse;
+                $('#service_priceModal').modal('show');
+            }
+            else {
+                make_message(data.message, data.status);
+            }
+        },
+        error: function () {
+            make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
+        }
+    });
+
+    setTimeout(function () {
+        clear_user_messages();
+    }, 15000);
+}
+
+
+function bck_edit_price_post_process(url, update_url) {
+    var form = $("#service_price_edit_form").serialize();
+    $.ajax({
+        url: url,
+        // headers:{"X-CSRFToken": form.csrf_token},
+        method: "POST",
+        data: form,
+        success: function (data) {
+            // console.log(data);
+
+            if (data.status === 'success') {
+                get_prices_history(update_url);
+            }
+            $('#service_priceModal').modal('hide');
+            clear_modal_service_prices();
             make_message(data.message, data.status);
         },
         error: function () {

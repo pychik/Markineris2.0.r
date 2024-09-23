@@ -1,7 +1,7 @@
 import urllib
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from os import listdir as o_list_dir
 from os import remove as o_remove
 from typing import Any
@@ -223,6 +223,17 @@ def h_su_bck_prices():
     return jsonify({'htmlresponse': render_template(f'admin/prices_table.html', **locals())})
 
 
+def h_su_bck_specific_price(p_id):
+    status = settings.ERROR
+    basic_prices = settings.Prices.BASIC_PRICES
+    price = Price.query.filter(Price.id == p_id).first()
+    if price:
+        status = settings.SUCCESS
+    base_path = settings.DOWNLOAD_DIR_SA_QR
+
+    return jsonify({'status': status, 'htmlresponse': render_template(f'admin/finance/edit_prices_modal.html', **locals())})
+
+
 def h_su_add_prices():
     price_code = request.form.get('price_code', '').replace('--', '')
     # https://stackoverflow.com/questions/31859903/get-the-value-of-a-checkbox-in-flask
@@ -286,6 +297,52 @@ def h_su_delete_prices(p_id: int) -> Response:
 
         message = f"{settings.Messages.DELETE_PRICE} {price.price_code}"
         status = 'success'
+    except Exception as e:
+        db.session.rollback()
+        message = f"{settings.Messages.DELETE_PRICE_ERROR} {e}"
+        logger.error(message)
+
+    return jsonify(dict(status=status, message=message))
+
+def h_su_edit_price(p_id: int) -> Response:
+
+    def _check_price_values(price_1: Decimal, price_2: Decimal, price_3: Decimal, price_4: Decimal, price_5: Decimal) -> bool:
+        return (1 <= price_1 <= 2 * settings.Prices.F_LTE_100 and 1 <= price_2 <= 2 * settings.Prices.F_100_500
+                and 1 <= price_3 <= 2 * settings.Prices.F_500_1K and 1 <= price_4 <= 2 * settings.Prices.F_1K_3K
+                and 1 <= price_5 <= 2 * settings.Prices.F_3K_10K)
+
+    status = settings.ERROR
+    try:
+        p1, p2, p3, p4, p5 = tuple(Decimal(request.form.get(f'price_{i}', '1')) for i in range(1, 6))
+
+        if not _check_price_values(price_1=p1, price_2=p2, price_3=p3, price_4=p4, price_5=p5):
+            raise InvalidOperation
+    except InvalidOperation as ie:
+        message = settings.Messages.EDIT_PRICE_ERROR
+        logger.error(message + str(ie))
+        return jsonify(dict(status=status, message=message))
+
+    print(p1, p2, p3, p4, p5)
+
+    price = Price.query.filter(Price.id == p_id).first()
+
+    status = settings.ERROR
+    # check for trickers
+    if not price:
+        message = settings.Messages.DELETE_NE_PRICE
+        return jsonify(dict(status=status, message=message))
+
+    try:
+        price.price_1 = p1
+        price.price_2 = p2
+        price.price_3 = p3
+        price.price_4 = p4
+        price.price_5 = p5
+
+        db.session.commit()
+
+        status = settings.SUCCESS
+        message = settings.Messages.EDIT_PRICE.format(price_code=price.price_code)
     except Exception as e:
         db.session.rollback()
         message = f"{settings.Messages.DELETE_PRICE_ERROR} {e}"

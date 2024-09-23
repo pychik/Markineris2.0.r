@@ -19,8 +19,9 @@ from utilities.admin.h_admin_control import (h_index, h_admin, h_set_order_notif
                                              h_at2_new_orders, h_at2_orders_process, h_su_not_basic_price_report)
 from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_promo, h_su_add_promo, h_su_delete_promo,
                                                h_su_bck_bonus, h_su_add_bonus, h_su_delete_bonus,
-                                               h_su_bck_prices, h_su_add_prices, h_su_delete_prices, h_su_bck_sa,
-                                               h_su_add_sa, h_su_delete_sa, h_su_bck_change_sa_type, h_su_control_ut,
+                                               h_su_bck_prices, h_su_bck_specific_price, h_su_add_prices, h_su_edit_price,
+                                               h_su_delete_prices, h_su_bck_sa, h_su_add_sa, h_su_delete_sa,
+                                               h_su_bck_change_sa_type, h_su_control_ut,
                                                h_su_transaction_detail, h_bck_control_ut, h_au_bck_control_ut,
                                                h_su_pending_transaction_update, h_su_wo_transactions,
                                                h_aus_transaction_detail, h_su_bck_change_sa_activity,
@@ -33,7 +34,6 @@ from utilities.support import au_required, aus_required, bck_aus_required, bck_s
     user_exist_check, su_mod_required, bck_at2_required, bck_su_mod_required
 
 from utilities.admin.h_admin_control import h_bck_agent_reanimate
-from validators.admin_control import BonusCodeSchema
 
 admin_control = Blueprint('admin_control', __name__)
 
@@ -313,6 +313,13 @@ def su_bck_prices():
     return h_su_bck_prices()
 
 
+@admin_control.route('/su_bck_specific_price/<int:p_id>', methods=['GET', ])
+@login_required
+@su_required
+def su_bck_specific_price(p_id: int):
+    return h_su_bck_specific_price(p_id=p_id)
+
+
 @admin_control.route('/su_add_prices', methods=['POST', ])
 @login_required
 @su_required
@@ -325,6 +332,13 @@ def su_add_prices():
 @su_required
 def su_delete_prices(p_id: int):
     return h_su_delete_prices(p_id=p_id)
+
+
+@admin_control.route('/su_edit_price/<int:p_id>', methods=['POST', ])
+@login_required
+@su_required
+def su_edit_price(p_id: int):
+    return h_su_edit_price(p_id=p_id)
 
 
 @admin_control.route('/su_change_activity/<int:sa_id>', methods=['POST', ])

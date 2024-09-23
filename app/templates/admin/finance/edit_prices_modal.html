@@ -1,38 +1,24 @@
-
-<div class="container mt-3 faded" id="prices_block" style="display:none">
-    <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-3">
-        <div class="breadcrumbs">
-            <span style="cursor:pointer"><u>Настройка ценовых диапазонов</u></span>
-        </div>
-    </div>
-
-<div class="row mt-3">
-        <div class="col-md-3"></div>
-        <div class="col-md-6 border border-5 p-3">
-            <h4>Добавить новый ценовой пакет</h4>
-            <form method="POST" action="{{url_for('admin_control.su_add_prices')}}" id="prices_form">
+<div class="modal fade" id="service_priceModal" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-labelledby="service_priceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" data-backdrop="static" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+          <h5 class="modal-title" id="service_priceModalLabel">Форма редактирования ценового пакета <b>{{ price.price_code}}</b>.</h5>
+        <button type="button" class="btn-close" onclick="clear_modal_service_prices();" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="container">
+            <h6>Введите требуемые значения и нажмите кнопку Изменить</h6>
+            <form method="POST" action="{{url_for('admin_control.su_edit_price', p_id=price.id)}}" id="service_price_edit_form">
                 <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                 <div class="mt-3" title="Введите настройки ценового пакета">
-                    <div class="input-group mb-3" title="Введите название ценового пакета">
-<!--                      <div class="input-group-prepend">-->
-<!--                        <span class="input-group-text btn-accent" id="promo-addon">Промокод</span>-->
-<!--                      </div>-->
-                      <input type="text" id="price_code" name="price_code"  class="form-control" placeholder="Введите Название"
-                                           minlength="3" maxlength="10" required>
-                        <div class="ms-3 text-center">
-                            <div class="form-check form-switch text-center" title="Выбор для кого ценовой пакет, для обычный агентов или для агентов типа единый счет. Включить для агента тип единый счет">
-                              <input class="form-check-input border-0" type="checkbox" name="price_at2" id="price_at2" onchange="check_price_switch();">
-                            </div>
-                            <label class="form-check-label" for="price_at2"><span class="font-12" id="label_price_at2">Обычный агент</span></label>
-                        </div>
 
-                    </div>
                     <div class="input-group my-3" title="Введите цену [0, 100] не более {{basic_prices[1]*2}}">
                         <div class="input-group-prepend">
                             <span class="input-group-text btn-accent" id="price-1-pre">[0, 99], шт.</span>
                         </div>
                        <input type="number" id="price_1" name="price_1" class="form-control" placeholder="Введите цену не более {{basic_prices[1]*2}}"
-                                           step="0.01" min="1" max="{{basic_prices[1]*2}}" required>
+                                           step="0.01" min="1" max="{{basic_prices[1]*2}}" value="{{price.price_1}}" required>
                        <div class="input-group-append">
                          <span class="input-group-text" id="price_1_addon">руб.</span>
                        </div>
@@ -42,7 +28,7 @@
                             <span class="input-group-text btn-accent" id="price-2-pre">[100, 499], шт.</span>
                         </div>
                        <input type="number" id="price_2" name="price_2" class="form-control" placeholder="Введите цену не более {{basic_prices[2]*2}}"
-                                           step="0.01" min="1" max="{{basic_prices[2]*2}}" required>
+                                           step="0.01" min="1" max="{{basic_prices[2]*2}}" value="{{price.price_2}}" required>
                        <div class="input-group-append">
                          <span class="input-group-text" id="price_2_addon">руб.</span>
                        </div>
@@ -52,7 +38,7 @@
                             <span class="input-group-text btn-accent" id="price-3-pre">[500, 999], шт.</span>
                         </div>
                        <input type="number" id="price_3" name="price_3" class="form-control" placeholder="Введите цену не более {{basic_prices[3]*2}}"
-                                           step="0.01" min="1" max="{{basic_prices[3]*2}}" required>
+                                           step="0.01" min="1" max="{{basic_prices[3]*2}}" value="{{price.price_3}}" required>
                        <div class="input-group-append">
                          <span class="input-group-text" id="price_3_addon">руб.</span>
                        </div>
@@ -62,7 +48,7 @@
                             <span class="input-group-text btn-accent" id="price-4-pre">[1000, 2999], шт.</span>
                         </div>
                        <input type="number" id="price_4" name="price_4" class="form-control" placeholder="Введите цену не более {{basic_prices[4]*2}}"
-                                           step="0.01" min="1" max="{{basic_prices[4]*2}}" required>
+                                           step="0.01" min="1" max="{{basic_prices[4]*2}}" value="{{price.price_4}}" required>
                        <div class="input-group-append">
                          <span class="input-group-text" id="price_4_addon">руб.</span>
                        </div>
@@ -72,31 +58,25 @@
                             <span class="input-group-text btn-accent" id="price-5-pre">[3000+], шт.</span>
                         </div>
                        <input type="number" id="price_5" name="price_5" class="form-control" placeholder="Введите цену не более {{basic_prices[5]*2}}"
-                                           step="0.01" min="1" max="{{basic_prices[5]*2}}" required>
+                                           step="0.01" min="1" max="{{basic_prices[5]*2}}" value="{{price.price_5}}" required>
                        <div class="input-group-append">
                          <span class="input-group-text" id="price_5_addon">руб.</span>
                        </div>
                     </div>
-
-                    <button type="button" class="btn btn-accent mt-md-1"
-                            onclick="if(check_prices_form('prices_form')){bck_add_price(`{{url_for('admin_control.su_add_prices')}}`, `{{url_for('admin_control.su_bck_prices')}}`)}">
-                        Добавить
-                    </button>
-
+                </div>
+                <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="clear_modal_service_prices();" data-bs-dismiss="modal">Закрыть</button>
+                        <button type="button" class="btn btn-accent"
+                            onclick="if(check_prices_form('service_price_edit_form')){bck_edit_price_post_process(`{{url_for('admin_control.su_edit_price', p_id=price.id)}}`, `{{url_for('admin_control.su_bck_prices')}}`)}">
+                            Изменить
+                        </button>
                 </div>
             </form>
         </div>
-        <div class="col-md-3">
-            <div data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Отчет по пользователям с ценами не по умолчанию"
-              class="btn btn-outline-secondary"  style="padding: 5px"
-              onclick="get_not_basic_prices_report(`{{ url_for('admin_control.su_not_basic_price_report') }}`, '{{ csrf_token() }}', this)" >
-                Отчет по ценам
-            </div>
-        </div>
-</div>
+      </div>
 
-    <div id="prices_table" class="mb-3">
-        {% include 'admin/finance/prices_table.html' %}
+
     </div>
-
+  </div>
 </div>
+
