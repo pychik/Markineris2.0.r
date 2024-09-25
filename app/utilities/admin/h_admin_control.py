@@ -1,5 +1,6 @@
 import urllib
 from datetime import datetime, timedelta
+from decimal import Decimal
 
 from flask import flash, render_template, redirect, send_file, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
@@ -42,7 +43,8 @@ def h_index(expanded: str = None):
                                 au.is_crm as is_crm,
                                 au.is_at2 as is_at2, au.status as status, au.phone as phone,
                                 au.created_at as created_at, pq.price_code as price_code, pq.price_1 as price_1, pq.price_2 as price_2,
-                                pq.price_3 as price_3, pq.price_4 as price_4, pq.price_5 as price_5,
+                                pq.price_3 as price_3, pq.price_4 as price_4, pq.price_5 as price_5, pq.price_6 as price_6, pq.price_7 as price_7,
+                                pq.price_8 as price_8, pq.price_9 as price_9, pq.price_10 as price_10, pq.price_11 as price_11,
                                 pq.price_at2 as price_at2, tq.channel_id as tg_channel_id, tq.name as tg_name,
                                 tq.comment as tg_comment,
                                 count(u.id) as reg_clients,
@@ -53,7 +55,7 @@ def h_index(expanded: str = None):
                             LEFT JOIN public.prices pq on au.price_id = pq.id
                             LEFT JOIN public.users u on u.admin_parent_id = au.id
                             WHERE au.role in('{settings.ADMIN_USER}', '{settings.SUPER_USER}')
-                            group by au.id, pq.price_code, pq.price_1, pq.price_2,pq.price_3, pq.price_4, pq.price_5, pq.price_at2, tg_channel_id, tg_name, tg_comment
+                            group by au.id, pq.price_code, pq.price_1, pq.price_2,pq.price_3, pq.price_4, pq.price_5, pq.price_6, pq.price_7, pq.price_8, pq.price_9, pq.price_10, pq.price_11, pq.price_at2, tg_channel_id, tg_name, tg_comment
                             order by au.id""")
     su_list = db.session.execute(users_stmt).fetchall()
     new_user_stmt = text("""
@@ -101,8 +103,9 @@ def h_admin(u_id: int):
         partner_query = db.session.query(users_partners.c.user_id, PartnerCode.code)\
             .join(PartnerCode, PartnerCode.id == users_partners.c.partner_code_id)\
             .subquery()
-        prices_query = db.session.query(Price.id.label("price_id"), Price.price_code, Price.price_1, Price.price_2, Price.price_3,
-                                        Price.price_4, Price.price_5) \
+        prices_query = db.session.query(Price.id.label("price_id"), Price.price_code, Price.price_1, Price.price_2,
+                                        Price.price_3, Price.price_4, Price.price_5, Price.price_6, Price.price_7,
+                                        Price.price_8, Price.price_9, Price.price_10, Price.price_11) \
             .filter(User.price_id == Price.id, Price.price_at2.isnot(True)) \
             .subquery()
 
@@ -118,13 +121,18 @@ def h_admin(u_id: int):
                            User.created_at, partner_query.c.code, os_query.c.orders_count, os_query.c.total_rows_count,
                            os_query.c.total_marks_count, os_query.c.os_created_at,
                            prices_query.c.price_code, prices_query.c.price_1, prices_query.c.price_2,
-                           prices_query.c.price_3, prices_query.c.price_4, prices_query.c.price_5)\
+                           prices_query.c.price_3, prices_query.c.price_4, prices_query.c.price_5,
+                           prices_query.c.price_6, prices_query.c.price_7, prices_query.c.price_8, prices_query.c.price_9,
+                           prices_query.c.price_10, prices_query.c.price_11)\
             .filter(User.admin_parent_id == u_id).group_by(User.id, os_query.c.orders_count, os_query.c.total_rows_count,
                                                            os_query.c.total_marks_count, os_query.c.os_created_at,
                                                            partner_query.c.user_id, partner_query.c.code,
                                                            prices_query.c.price_code, prices_query.c.price_1,
                                                            prices_query.c.price_2, prices_query.c.price_3,
-                                                           prices_query.c.price_4, prices_query.c.price_5)\
+                                                           prices_query.c.price_4, prices_query.c.price_5,
+                                                           prices_query.c.price_6, prices_query.c.price_7,
+                                                           prices_query.c.price_8, prices_query.c.price_9,
+                                                           prices_query.c.price_10, prices_query.c.price_11)\
             .order_by(order_type).paginate(page=page, per_page=settings.PAGINATION_PER_PAGE)
 
         basic_prices = settings.Prices.BASIC_PRICES
@@ -507,13 +515,18 @@ def h_bck_set_user_price(u_id: int) -> Response:
     :param u_id:
     :return:
     """
+
     def _make_user_block(user_id: int, login_name: str, price_code: str,
-                         price_1: int, price_2: int, price_3: int, price_4: int, price_5: int, csrf: str, price_at2: bool = False) -> str:
+                         price_1: Decimal, price_2: Decimal, price_3: Decimal, price_4: Decimal, price_5: Decimal,
+                         price_6: Decimal,
+                         price_7: Decimal, price_8: Decimal, price_9: Decimal, price_10: Decimal, price_11: Decimal,
+                         csrf: str,
+                         price_at2: bool = False) -> str:
         text_badge = "bg-secondary" if price_at2 else "bg-warning text-black"
         return f'<span class="badge {text_badge}" style="cursor:pointer" ' \
                f'onclick = "perform_modal_prices(\'{user_id}\', \'{login_name}\', \'{price_code}\',' \
                f' \'{price_1}\', \'{price_2}\', \'{price_3}\',' \
-               f' \'{price_4}\', \'{price_5}\', ' \
+               f' \'{price_4}\', \'{price_5}\', \'{price_6}\', \'{price_7}\', \'{price_8}\', \'{price_9}\', \'{price_10}\', \'{price_11}\', ' \
                f'\'{url_for("admin_control.bck_set_user_price", u_id=u_id)}?bck=1\', \'{csrf}\')">' \
                f'{price_code}</span>'
 
@@ -535,7 +548,9 @@ def h_bck_set_user_price(u_id: int) -> Response:
             basic_prices = settings.Prices.BASIC_PRICES
             user_block = _make_user_block(user_id=u_id, login_name=user.login_name, price_code=basic_prices[0],
                                           price_1=basic_prices[1], price_2=basic_prices[2], price_3=basic_prices[3],
-                                          price_4=basic_prices[4], price_5=basic_prices[5], csrf=csrf)
+                                          price_4=basic_prices[4], price_5=basic_prices[5], price_6=basic_prices[6],
+                                          price_7=basic_prices[7], price_8=basic_prices[8], price_9=basic_prices[9],
+                                          price_10=basic_prices[10], price_11=basic_prices[11], csrf=csrf)
 
             status = 'success'
             message = settings.Messages.USER_PRICE_PLUG
@@ -545,7 +560,9 @@ def h_bck_set_user_price(u_id: int) -> Response:
 
         # option receiving price from db
         price = Price.query.with_entities(Price.id, Price.price_code, Price.price_1, Price.price_2,
-                                          Price.price_3, Price.price_4, Price.price_5, Price.price_at2) \
+                                          Price.price_3, Price.price_4, Price.price_5, Price.price_6,
+                                          Price.price_7, Price.price_8, Price.price_9, Price.price_10, Price.price_11,
+                                          Price.price_at2) \
                            .filter(Price.id == p_id).first()
 
         if not price:
@@ -554,7 +571,10 @@ def h_bck_set_user_price(u_id: int) -> Response:
 
         user_block = _make_user_block(user_id=u_id, login_name=user.login_name, price_code=price.price_code,
                                       price_1=price.price_1, price_2=price.price_2, price_3=price.price_3,
-                                      price_4=price.price_4, price_5=price.price_5, csrf=csrf, price_at2=price.price_at2)
+                                      price_4=price.price_4, price_5=price.price_5, price_6=price.price_6,
+                                      price_7=price.price_7, price_8=price.price_8, price_9=price.price_9,
+                                      price_10=price.price_10, price_11=price.price_11, csrf=csrf,
+                                      price_at2=price.price_at2)
         db.session.execute(text(f"""UPDATE public.users SET price_id={p_id} WHERE id={u_id};"""))
         db.session.commit()
         status = 'success'
@@ -823,6 +843,12 @@ def h_su_user_search() -> Response:
             f"max(pr.price_3) as price_3, "
             f"max(pr.price_4) as price_4, "
             f"max(pr.price_5) as price_5, "
+            f"max(pr.price_6) as price_6, "
+            f"max(pr.price_7) as price_7, "
+            f"max(pr.price_8) as price_8, "
+            f"max(pr.price_9) as price_9, "
+            f"max(pr.price_10) as price_10, "
+            f"max(pr.price_11) as price_11, "
             f"bool_and(pr.price_at2) as price_at2, "
             f"u.role as role, "
             f"u.client_code as client_code, "
@@ -875,6 +901,12 @@ def h_user_search(user_admin_id: int) -> Response:
             f"max(pr.price_3) as price_3, "
             f"max(pr.price_4) as price_4, "
             f"max(pr.price_5) as price_5, "
+            f"max(pr.price_6) as price_6, "
+            f"max(pr.price_7) as price_7, "
+            f"max(pr.price_8) as price_8, "
+            f"max(pr.price_9) as price_9, "
+            f"max(pr.price_10) as price_10, "
+            f"max(pr.price_11) as price_11, "
             f"bool_and(pr.price_at2) as price_at2, "
             f"u.role as role, "
             f"u.client_code as client_code, "
@@ -928,6 +960,12 @@ def h_user_search_idn(user_admin_id: int) -> Response:
             f"max(pr.price_3) as price_3, "
             f"max(pr.price_4) as price_4, "
             f"max(pr.price_5) as price_5, "
+            f"max(pr.price_6) as price_6, "
+            f"max(pr.price_7) as price_7, "
+            f"max(pr.price_8) as price_8, "
+            f"max(pr.price_9) as price_9, "
+            f"max(pr.price_10) as price_10, "
+            f"max(pr.price_11) as price_11, "
             f"bool_and(pr.price_at2) as price_at2, "
             f"u.role as role, "
             f"u.created_at as created_at, "
@@ -977,6 +1015,12 @@ def h_cross_user_search() -> Response:
             f"max(pr.price_3) as price_3, "
             f"max(pr.price_4) as price_4, "
             f"max(pr.price_5) as price_5, "
+            f"max(pr.price_6) as price_6, "
+            f"max(pr.price_7) as price_7, "
+            f"max(pr.price_8) as price_8, "
+            f"max(pr.price_9) as price_9, "
+            f"max(pr.price_10) as price_10, "
+            f"max(pr.price_11) as price_11, "
             f"bool_and(pr.price_at2) as price_at2, "
             f"(SELECT a.login_name from public.users a WHERE ( a.id=u.admin_parent_id AND (a.role in('admin', 'superuser'))) OR (a.id=u.id AND (a.role in('admin', 'superuser')))) as admin, "
             f"COUNT(os.id) as orders_count, "

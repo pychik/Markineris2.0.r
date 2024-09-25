@@ -1960,8 +1960,32 @@ def helper_get_user_price2(price_id: Optional[int], pos_count: int) -> int:
         index += 1 if index != -1 else 0
     else:
         up = Price.query.filter_by(id=price_id).first()
-        up = (up.price_1, up.price_2, up.price_3, up.price_4, up.price_5, )
+        up = (up.price_1, up.price_2, up.price_3, up.price_4, up.price_5, up.price_6, up.price_7, up.price_8, up.price_9, up.price_10, up.price_11,)
     return up[index]
+
+
+def update_price_defaults():
+    """Support_function to update values of new price fields after migration"""
+    # Fetch all Price records
+    prices = Price.query.all()
+
+    for price in prices:
+        # Check each new field if it's None, then set the default value
+        if price.price_6 is None:
+            price.price_6 = settings.Prices.F_5K_10K
+        if price.price_7 is None:
+            price.price_7 = settings.Prices.F_10K_20K
+        if price.price_8 is None:
+            price.price_8 = settings.Prices.F_20K_35K
+        if price.price_9 is None:
+            price.price_9 = settings.Prices.F_35K_50K
+        if price.price_10 is None:
+            price.price_10 = settings.Prices.F_50K_100K
+        if price.price_11 is None:
+            price.price_11 = settings.Prices.F_100K
+
+    # Commit the changes to the database
+    db.session.commit()
 
 
 def helper_check_useroragent_balance(user: User, o_id: int = None) -> tuple[int, int, bool, str]:

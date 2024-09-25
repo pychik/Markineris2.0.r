@@ -27,7 +27,7 @@
                         </div>
 
                     </div>
-                    <div class="input-group my-3" title="Введите цену [0, 100] не более {{basic_prices[1]*2}}">
+                    <div class="input-group my-3" title="Введите цену [0, 99] не более {{basic_prices[1]*2}}">
                         <div class="input-group-prepend">
                             <span class="input-group-text btn-accent" id="price-1-pre">[0, 99], шт.</span>
                         </div>
@@ -37,7 +37,7 @@
                          <span class="input-group-text" id="price_1_addon">руб.</span>
                        </div>
                     </div>
-                    <div class="input-group my-3" title="Введите цену [101, 500] не более {{basic_prices[2]*2}}">
+                    <div class="input-group my-3" title="Введите цену [100, 499] не более {{basic_prices[2]*2}}">
                         <div class="input-group-prepend">
                             <span class="input-group-text btn-accent" id="price-2-pre">[100, 499], шт.</span>
                         </div>
@@ -47,7 +47,7 @@
                          <span class="input-group-text" id="price_2_addon">руб.</span>
                        </div>
                     </div>
-                    <div class="input-group my-3" title="Введите цену [501, 1000] не более {{basic_prices[3]*2}}">
+                    <div class="input-group my-3" title="Введите цену [500, 999] не более {{basic_prices[3]*2}}">
                         <div class="input-group-prepend">
                             <span class="input-group-text btn-accent" id="price-3-pre">[500, 999], шт.</span>
                         </div>
@@ -57,7 +57,7 @@
                          <span class="input-group-text" id="price_3_addon">руб.</span>
                        </div>
                     </div>
-                    <div class="input-group my-3" title="Введите цену [1001, 3000] не более {{basic_prices[4]*2}}">
+                    <div class="input-group my-3" title="Введите цену [1000, 2999] не более {{basic_prices[4]*2}}">
                         <div class="input-group-prepend">
                             <span class="input-group-text btn-accent" id="price-4-pre">[1000, 2999], шт.</span>
                         </div>
@@ -67,14 +67,74 @@
                          <span class="input-group-text" id="price_4_addon">руб.</span>
                        </div>
                     </div>
-                    <div class="input-group my-3" title="Введите цену [3000+] не более {{basic_prices[5]*2}}">
+                    <div class="input-group my-3" title="Введите цену [3000, 4999] не более {{basic_prices[5]*2}}">
                         <div class="input-group-prepend">
-                            <span class="input-group-text btn-accent" id="price-5-pre">[3000+], шт.</span>
+                            <span class="input-group-text btn-accent" id="price-5-pre">[3000, 4999], шт.</span>
                         </div>
                        <input type="number" id="price_5" name="price_5" class="form-control" placeholder="Введите цену не более {{basic_prices[5]*2}}"
                                            step="0.01" min="1" max="{{basic_prices[5]*2}}" required>
                        <div class="input-group-append">
                          <span class="input-group-text" id="price_5_addon">руб.</span>
+                       </div>
+                    </div>
+                    <div class="input-group my-3" title="Введите цену [5000, 9999] не более {{basic_prices[6]*2}}">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text btn-accent" id="price-6-pre">[5000, 9999], шт.</span>
+                        </div>
+                       <input type="number" id="price_6" name="price_6" class="form-control" placeholder="Введите цену не более {{basic_prices[6]*2}}"
+                                           step="0.01" min="1" max="{{basic_prices[6]*2}}" required>
+                       <div class="input-group-append">
+                         <span class="input-group-text" id="price_6_addon">руб.</span>
+                       </div>
+                    </div>
+                    <div class="input-group my-3" title="Введите цену [10000, 19999] не более {{basic_prices[7]*2}}">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text btn-accent" id="price-7-pre">[10000, 19999], шт.</span>
+                        </div>
+                       <input type="number" id="price_7" name="price_7" class="form-control" placeholder="Введите цену не более {{basic_prices[7]*2}}"
+                                           step="0.01" min="1" max="{{basic_prices[7]*2}}" required>
+                       <div class="input-group-append">
+                         <span class="input-group-text" id="price_7_addon">руб.</span>
+                       </div>
+                    </div>
+                    <div class="input-group my-3" title="Введите цену [20000, 34999] не более {{basic_prices[8]*2}}">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text btn-accent" id="price-8-pre">[20000, 34999], шт.</span>
+                        </div>
+                       <input type="number" id="price_8" name="price_8" class="form-control" placeholder="Введите цену не более {{basic_prices[8]*2}}"
+                                           step="0.01" min="1" max="{{basic_prices[8]*2}}" required>
+                       <div class="input-group-append">
+                         <span class="input-group-text" id="price_8_addon">руб.</span>
+                       </div>
+                    </div>
+                    <div class="input-group my-3" title="Введите цену [35000, 49999] не более {{basic_prices[9]*2}}">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text btn-accent" id="price-9-pre">[35000, 49999], шт.</span>
+                        </div>
+                       <input type="number" id="price_9" name="price_9" class="form-control" placeholder="Введите цену не более {{basic_prices[9]*2}}"
+                                           step="0.01" min="1" max="{{basic_prices[9]*2}}" required>
+                       <div class="input-group-append">
+                         <span class="input-group-text" id="price_9_addon">руб.</span>
+                       </div>
+                    </div>
+                    <div class="input-group my-3" title="Введите цену [50000, 99999] не более {{basic_prices[10]*2}}">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text btn-accent" id="price-10-pre">[50000, 99999], шт.</span>
+                        </div>
+                       <input type="number" id="price_10" name="price_10" class="form-control" placeholder="Введите цену не более {{basic_prices[10]*2}}"
+                                           step="0.01" min="1" max="{{basic_prices[10]*2}}" required>
+                       <div class="input-group-append">
+                         <span class="input-group-text" id="price_10_addon">руб.</span>
+                       </div>
+                    </div>
+                    <div class="input-group my-3" title="Введите цену [100000+] не более {{basic_prices[11]*2}}">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text btn-accent" id="price-11-pre">[100000+], шт.</span>
+                        </div>
+                       <input type="number" id="price_11" name="price_11" class="form-control" placeholder="Введите цену не более {{basic_prices[11]*2}}"
+                                           step="0.01" min="1" max="{{basic_prices[11]*2}}" required>
+                       <div class="input-group-append">
+                         <span class="input-group-text" id="price_11_addon">руб.</span>
                        </div>
                     </div>
 

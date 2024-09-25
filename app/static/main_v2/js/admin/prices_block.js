@@ -1,4 +1,4 @@
-function perform_modal_prices(u_id, u_name, p_code, p1, p2, p3, p4, p5, url, csrf){
+function perform_modal_prices(u_id, u_name, p_code, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, url, csrf){
     let modal_block = document.getElementById('user_prices_modal');
     let prices_desc_block = `<table class="table mt-1 table-result" >
                               <thead class="text-dark">
@@ -9,24 +9,48 @@ function perform_modal_prices(u_id, u_name, p_code, p1, p2, p3, p4, p5, url, csr
                               </thead>
                                <tbody>
                                 <tr>
-                                  <td>[0, 100]</td>
+                                  <td>[0, 99]</td>
                                   <td>${p1}</td>
                                 </tr>
                                 <tr>
-                                  <td>[101, 500]</td>
+                                  <td>[100, 499]</td>
                                   <td>${p2}</td>
                                 </tr>
                                 <tr>
-                                  <td>[501, 1000]</td>
+                                  <td>[500, 999]</td>
                                   <td>${p3}</td>
                                 </tr>
                                 <tr>
-                                  <td>[1001, 3000]</td>
+                                  <td>[1000, 2999]</td>
                                   <td>${p4}</td>
                                 </tr>
                                 <tr>
-                                  <td>[3000+]</td>
+                                  <td>[3000, 4999]</td>
                                   <td>${p5}</td>
+                                </tr>
+                                <tr>
+                                  <td>[5000, 9999]</td>
+                                  <td>${p6}</td>
+                                </tr>
+                                <tr>
+                                  <td>[10000, 19999]</td>
+                                  <td>${p7}</td>
+                                </tr>
+                                <tr>
+                                  <td>[20000, 34999]</td>
+                                  <td>${p8}</td>
+                                </tr>
+                                <tr>
+                                  <td>[35000, 49999]</td>
+                                  <td>${p9}</td>
+                                </tr>
+                                <tr>
+                                  <td>[50000, 99999]</td>
+                                  <td>${p10}</td>
+                                </tr>
+                                <tr>
+                                  <td>[100000+]</td>
+                                  <td>${p11}</td>
                                 </tr>
                               </tbody>
                         </table>`
