@@ -70,12 +70,11 @@ def h_copy_order(o_id: int, category: str) -> Response:
 
     order = Order.query.filter_by(id=o_id, category=category).filter(~Order.to_delete).first()
 
-    if order.id not in orders_id:
-        flash(message=f"{settings.Messages.NO_SUCH_ORDER_REMOVE}", category='error')
+    if not order or order.id not in orders_id:
+        flash(message=f"{settings.Messages.NO_SUCH_ORDER_COPY}", category='error')
         return redirect(url_for('orders_archive.index'))
 
     active_orders = get_category_p_orders(user=user, category=category, processed=False)
-
 
     if len(active_orders) >= 5:
 
