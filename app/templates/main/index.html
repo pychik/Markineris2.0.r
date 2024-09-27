@@ -806,9 +806,9 @@
     <script src="{{url_for('static', filename='index_v2/js/app.js')}}"></script>
 
     <script>
-        const message_icon_error = '{{url_for('static',filename='main_v2/img/icons/error.svg')}}';
-        const message_icon_warning = '{{url_for('static',filename='main_v2/img/icons/warning.svg')}}';
-        const message_icon_success = '{{url_for('static',filename='main_v2/img/icons/success.svg')}}';
+         const message_icon_error = `{{url_for('static',filename='main_v2/img/icons/error.svg')}}`;
+         const message_icon_warning = `{{url_for('static',filename='main_v2/img/icons/warning.svg')}}`;
+         const message_icon_success = `{{url_for('static',filename='main_v2/img/icons/success.svg')}}`;
          $(document).ready(function() {
          // сообщение будет закрыто через 10 секунд после загрузки страницы
              show_user_messages();
