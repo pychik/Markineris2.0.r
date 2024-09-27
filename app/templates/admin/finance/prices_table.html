@@ -5,11 +5,17 @@
                   <th scope="col">#</th>
                   <th scope="col" class="font-12">Наименование</th>
                   <th scope="col" class="font-12">Тип</th>
-                  <th scope="col" class="font-12">Цена [1, 99], руб.</th>
-                  <th scope="col" class="font-12">Цена [100, 499], руб.</th>
-                  <th scope="col" class="font-12">Цена [500, 999], руб.</th>
-                  <th scope="col" class="font-12">Цена [1000, 2999], руб.</th>
-                  <th scope="col" class="font-12">Цена [3000+], руб.</th>
+                  <th scope="col" class="font-12">[1, 99], руб.</th>
+                  <th scope="col" class="font-12">[100, 499], руб.</th>
+                  <th scope="col" class="font-12">[500, 999], руб.</th>
+                  <th scope="col" class="font-12">[1000, 2999], руб.</th>
+                  <th scope="col" class="font-12">[3000, 4999], руб.</th>
+                  <th scope="col" class="font-12">[5000, 9999], руб.</th>
+                  <th scope="col" class="font-12">[10000, 19999], руб.</th>
+                  <th scope="col" class="font-12">[20000, 34999], руб.</th>
+                  <th scope="col" class="font-12">[35000, 49999], руб.</th>
+                  <th scope="col" class="font-12">[50000, 99999], руб.</th>
+                  <th scope="col" class="font-12">[100000+], руб.</th>
                   <th scope="col" class="font-12">Дата создания</th>
                   <th scope="col" class="font-12">Настройки</th>
               </tr>
@@ -41,6 +47,24 @@
                   <td>
                       {{basic_prices[5]}}
                   </td>
+                  <td>
+                      {{basic_prices[6]}}
+                  </td>
+                  <td>
+                      {{basic_prices[7]}}
+                  </td>
+                  <td>
+                      {{basic_prices[8]}}
+                  </td>
+                  <td>
+                      {{basic_prices[9]}}
+                  </td>
+                  <td>
+                      {{basic_prices[10]}}
+                  </td>
+                  <td>
+                      {{basic_prices[11]}}
+                  </td>
                   <td></td>
                   <td></td>
 
@@ -60,19 +84,37 @@
                   {% endif %}
 
                   <td>
-                      {{t.price_1}} руб.
+                      {{t.price_1}}
                   </td>
                   <td>
-                      {{t.price_2}} руб.
+                      {{t.price_2}}
                   </td>
                   <td>
-                      {{t.price_3}} руб.
+                      {{t.price_3}}
                   </td >
                   <td>
-                      {{t.price_4}} руб.
+                      {{t.price_4}}
                   </td>
                   <td>
-                      {{t.price_5}} руб.
+                      {{t.price_5}}
+                  </td>
+                  <td>
+                      {{t.price_6}}
+                  </td>
+                  <td>
+                      {{t.price_7}}
+                  </td>
+                  <td>
+                      {{t.price_8}}
+                  </td>
+                  <td>
+                      {{t.price_9}}
+                  </td>
+                  <td>
+                      {{t.price_10}}
+                  </td>
+                  <td>
+                      {{t.price_11}}
                   </td>
                   <td>
                      {{t.created_at.strftime("%d.%m.%Y %H:%M:%S")}}

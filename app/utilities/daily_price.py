@@ -161,7 +161,7 @@ def helper_get_user_price(price_id: int | None, pos_count: int) -> int:
         index += 1 if index != -1 else 0
     else:
         up = Price.query.filter_by(id=price_id).first()
-        up = (up.price_1, up.price_2, up.price_3, up.price_4, up.price_5, )
+        up = (up.price_1, up.price_2, up.price_3, up.price_4, up.price_5, up.price_6, up.price_7, up.price_8, up.price_9, up.price_10, up.price_11,)
     return up[index]
 
 

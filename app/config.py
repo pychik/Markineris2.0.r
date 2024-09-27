@@ -310,8 +310,16 @@ class Settings(BaseSettings):
         F_100_500: int = 16
         F_500_1K: int = 9
         F_1K_3K: int = 7
-        F_3K_10K: int = 6
-        BASIC_PRICES: tuple = ('BASIC', F_LTE_100, F_100_500, F_500_1K, F_1K_3K, F_3K_10K, F_3K_10K)
+        F_3K_5K: int = 6
+        F_5K_10K: Decimal = 5.5
+        F_10K_20K: Decimal = 4.9
+        F_20K_35K: Decimal = 4
+        F_35K_50K: Decimal = 3.4
+        F_50K_100K: int = 3
+        F_100K: Decimal = 2.2
+        BASIC_PRICES: tuple = (
+        'BASIC', F_LTE_100, F_100_500, F_500_1K, F_1K_3K, F_3K_5K, F_5K_10K, F_10K_20K, F_20K_35K,
+        F_35K_50K, F_50K_100K, F_100K)
 
         # F_10K_20K: float = 6
         # F_20K_50K: float = 3.3
@@ -334,10 +342,16 @@ class Settings(BaseSettings):
         C_100_500: int = 499
         C_500_1K: int = 999
         C_1K_3K: int = 2999
-        C_3K_10K: int = 9999
+        C_3K_5K: int = 4999
+        C_5K_10K: int = 9999
+        C_10K_20K: int = 19999
+        C_20K_35K: int = 34999
+        C_35K_50K: int = 49999
+        C_50K_100K: int = 99999
         # C_10K_20K: int = 20000
         # C_20K_50K: int = 50000
-        RANGES: tuple = (C_LT100, C_100_500, C_500_1K, C_1K_3K, C_3K_10K)
+        RANGES: tuple = (C_LT100, C_100_500, C_500_1K, C_1K_3K, C_3K_5K, C_5K_10K, C_10K_20K, C_20K_35K, C_35K_50K,
+                         C_50K_100K)
         NOT_BASIC_PRICE_REPORT_FILE_NAME = 'Отчет по ценам от {0}.xlsx'
         NOT_BASIC_PRICE_REPORT_SHEET_NAME = 'not Basic prices'
 
@@ -656,6 +670,7 @@ class Settings(BaseSettings):
         NO_SUCH_BG_TASK: str = "Такой фоновой задачи нет в хранилище!"
         NO_SUCH_SIGNUP_LINK: str = "Используется некорректная ссылка для регистрации!"
         NO_SUCH_ORDER_REMOVE: str = "Вы пытаетесь удалить не ваш заказ. Запрещено"
+        NO_SUCH_ORDER_COPY: str = "Вы пытаетесь скопировать не ваш заказ. Запрещено"
         PROCESS_SUCCESS: str = "Заказ оформлен. Проверйте статус в истории заказов. " \
                                   "Номер заказа "
         PROCESS_SUCCESS_TG: str = "Задание отправлено на обработку. Агент уведомлен через телеграмм. " \

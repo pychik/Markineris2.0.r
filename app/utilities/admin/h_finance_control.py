@@ -244,8 +244,16 @@ def h_su_add_prices():
         price_3 = Decimal(request.form.get('price_3').replace('--', ''))
         price_4 = Decimal(request.form.get('price_4').replace('--', ''))
         price_5 = Decimal(request.form.get('price_5').replace('--', ''))
+        price_6 = Decimal(request.form.get('price_6').replace('--', ''))
+        price_7 = Decimal(request.form.get('price_7').replace('--', ''))
+        price_8 = Decimal(request.form.get('price_8').replace('--', ''))
+        price_9 = Decimal(request.form.get('price_9').replace('--', ''))
+        price_10 = Decimal(request.form.get('price_10').replace('--', ''))
+        price_11 = Decimal(request.form.get('price_11').replace('--', ''))
         price = Price(price_code=price_code, price_at2=price_at2,
-                      price_1=price_1, price_2=price_2, price_3=price_3, price_4=price_4, price_5=price_5)
+                      price_1=price_1, price_2=price_2, price_3=price_3, price_4=price_4, price_5=price_5,
+                      price_6=price_6, price_7=price_7, price_8=price_8, price_9=price_9, price_10=price_10,
+                      price_11=price_11)
 
         db.session.add(price)
         db.session.commit()
@@ -305,16 +313,22 @@ def h_su_delete_prices(p_id: int) -> Response:
 
 def h_su_edit_price(p_id: int) -> Response:
 
-    def _check_price_values(price_1: Decimal, price_2: Decimal, price_3: Decimal, price_4: Decimal, price_5: Decimal) -> bool:
+    def _check_price_values(price_1: Decimal, price_2: Decimal, price_3: Decimal, price_4: Decimal, price_5: Decimal,
+                            price_6: Decimal, price_7: Decimal, price_8: Decimal, price_9: Decimal, price_10: Decimal,
+                            price_11: Decimal) -> bool:
         return (1 <= price_1 <= 2 * settings.Prices.F_LTE_100 and 1 <= price_2 <= 2 * settings.Prices.F_100_500
                 and 1 <= price_3 <= 2 * settings.Prices.F_500_1K and 1 <= price_4 <= 2 * settings.Prices.F_1K_3K
-                and 1 <= price_5 <= 2 * settings.Prices.F_3K_10K)
+                and 1 <= price_5 <= 2 * settings.Prices.F_3K_5K and 1 <= price_6 <= 2 * settings.Prices.F_5K_10K
+                and 1 <= price_7 <= 2 * settings.Prices.F_10K_20K and 1 <= price_8 <= 2 * settings.Prices.F_20K_35K
+                and 1 <= price_9 <= 2 * settings.Prices.F_35K_50K and 1 <= price_10 <= 2 * settings.Prices.F_50K_100K
+                and 1 <= price_11 <= 2 * settings.Prices.F_100K)
 
     status = settings.ERROR
     try:
-        p1, p2, p3, p4, p5 = tuple(Decimal(request.form.get(f'price_{i}', '1')) for i in range(1, 6))
+        p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11 = tuple(Decimal(request.form.get(f'price_{i}', '1')) for i in range(1, 12))
 
-        if not _check_price_values(price_1=p1, price_2=p2, price_3=p3, price_4=p4, price_5=p5):
+        if not _check_price_values(price_1=p1, price_2=p2, price_3=p3, price_4=p4, price_5=p5, price_6=p6, price_7=p7,
+                                   price_8=p8, price_9=p9, price_10=p10, price_11=p11):
             raise InvalidOperation
     except InvalidOperation as ie:
         message = settings.Messages.EDIT_PRICE_ERROR
@@ -335,6 +349,12 @@ def h_su_edit_price(p_id: int) -> Response:
         price.price_3 = p3
         price.price_4 = p4
         price.price_5 = p5
+        price.price_6 = p6
+        price.price_7 = p7
+        price.price_8 = p8
+        price.price_9 = p9
+        price.price_10 = p10
+        price.price_11 = p11
 
         db.session.commit()
 
