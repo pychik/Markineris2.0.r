@@ -86,3 +86,14 @@
     gap: 20px;
   }
 }
+
+.input-group-text.range-text {
+  width: 170px; /* Adjust as needed for the longest range */
+  text-align: center;
+}
+
+.input-group-text.price-text {
+  width: 170px; /* Adjust as needed for the price fields */
+  text-align: center;
+  background-color: white;
+}

@@ -6,105 +6,245 @@
 
 
         <div class="row mt-3">
-            <div class="col-md-4"></div>
-            <div class="col-md-4 mb-3">
+            <div class="col-md-3"></div>
+            <div class="col-md-6 mb-3">
                 <div class="row">
                     <div class="col-10">
                         <h5 class="text-center" style="font-weight: bold">Ценовой тариф</h5>
                         {% if user_prices %}
-                            <div class="price mx-auto">
-                                <div class="price-item">
-                                    <div class="price-num">от 0 - 99 марок</div>
-                                    <div class="price-val">{{ user_prices.price_1 }}&nbsp;руб.</div>
+                            <div class="container">
+                              <div class="mt-3" title="Введите настройки ценового пакета">
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[0, 99], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{user_prices.price_1}}</span> <!-- Removed btn-accent -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 100 - 499 марок</div>
-                                    <div class="price-val">{{ user_prices.price_2 }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[100, 499], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{user_prices.price_2}}</span> <!-- Removed btn-accent -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 500 - 999 марок</div>
-                                    <div class="price-val">{{ user_prices.price_3 }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[500, 999], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{user_prices.price_3}}</span> <!-- Removed btn-accent -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 1000 - 2999 марок</div>
-                                    <div class="price-val">{{ user_prices.price_4 }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[1000, 2999], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{user_prices.price_4}}</span> <!-- Removed btn-accent -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 3000 - 4999 марок</div>
-                                    <div class="price-val">{{ user_prices.price_5 }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[3000, 4999], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{user_prices.price_5}}</span> <!-- Removed btn-accent -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 5000 - 9999 марок</div>
-                                    <div class="price-val">{{ user_prices.price_6 }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[5000, 9999], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{user_prices.price_6}}</span> <!-- Removed btn-accent -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 10000 - 19999 марок</div>
-                                    <div class="price-val">{{ user_prices.price_7 }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[10000, 19999], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{user_prices.price_7}}</span> <!-- Removed btn-accent -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 20000 - 34999 марок</div>
-                                    <div class="price-val">{{ user_prices.price_8 }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[20000, 34999], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{user_prices.price_8}}</span> <!-- Removed btn-accent -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 35000 - 49999 марок</div>
-                                    <div class="price-val">{{ user_prices.price_9 }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[35000, 49999], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{user_prices.price_9}}</span> <!-- Removed btn-accent -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 50000 - 99999 марок</div>
-                                    <div class="price-val">{{ user_prices.price_10 }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[50000, 99999], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{user_prices.price_10}}</span> <!-- Removed btn-accent -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">100000+ марок</div>
-                                    <div class="price-val">{{ user_prices.price_11 }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[100000+], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{user_prices.price_11}}</span> <!-- Removed btn-accent -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
+
+                              </div>
                             </div>
+
                         {% else %}
-                            <div class="price mx-auto">
-                                <div class="price-item">
-                                    <div class="price-num">от 0 - 99 марок</div>
-                                    <div class="price-val">{{ basic_prices[1] }}&nbsp;руб.</div>
+                            <div class="container">
+                              <div class="mt-3" title="Введите настройки ценового пакета">
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[0, 99], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{ basic_prices[1] }}</span> <!-- Replaced -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 100 - 499 марок</div>
-                                    <div class="price-val">{{ basic_prices[2] }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[100, 499], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{ basic_prices[2] }}</span> <!-- Replaced -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 500 - 999 марок</div>
-                                    <div class="price-val">{{ basic_prices[3] }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[500, 999], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{ basic_prices[3] }}</span> <!-- Replaced -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 1000 - 2999 марок</div>
-                                    <div class="price-val">{{ basic_prices[4] }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[1000, 2999], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{ basic_prices[4] }}</span> <!-- Replaced -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 3000 - 4999 марок</div>
-                                    <div class="price-val">{{ basic_prices[5] }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[3000, 4999], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{ basic_prices[5] }}</span> <!-- Replaced -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 5000 - 9999 марок</div>
-                                    <div class="price-val">{{ basic_prices[6] }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[5000, 9999], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{ basic_prices[6] }}</span> <!-- Replaced -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 10000 - 19999 марок</div>
-                                    <div class="price-val">{{ basic_prices[7] }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[10000, 19999], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{ basic_prices[7] }}</span> <!-- Replaced -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 10000 - 34999 марок</div>
-                                    <div class="price-val">{{ basic_prices[8] }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[20000, 34999], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{ basic_prices[8] }}</span> <!-- Replaced -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 35000 - 49999 марок</div>
-                                    <div class="price-val">{{ basic_prices[9] }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[35000, 49999], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{ basic_prices[9] }}</span> <!-- Replaced -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">от 50000 - 99999 марок</div>
-                                    <div class="price-val">{{ basic_prices[10] }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[50000, 99999], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{ basic_prices[10] }}</span> <!-- Replaced -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
-                                <div class="price-item">
-                                    <div class="price-num">100000+ марок</div>
-                                    <div class="price-val">{{ basic_prices[11] }}&nbsp;руб.</div>
+
+                                <div class="input-group my-3">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text btn-accent range-text">[100000+], шт.</span>
+                                  </div>
+                                  <span class="input-group-text price-text">{{ basic_prices[11] }}</span> <!-- Replaced -->
+                                  <div class="input-group-append">
+                                    <span class="input-group-text">руб.</span>
+                                  </div>
                                 </div>
+
+                              </div>
                             </div>
+
                         {% endif %}
                         <button type="button" class="btn btn-accent" data-bs-toggle="modal"
                                 data-bs-target="#all_orders_price_info">
@@ -123,7 +263,7 @@
                 </div>
             </div>
 
-            <div class="col-md-4 text-left">
+            <div class="col-md-3 text-left">
                 <div id="price_description" class="collapse" tabindex="-1">
                     <div class="price mx-auto">
                         <div class="price-item border border-warning border-2 text-justify">
