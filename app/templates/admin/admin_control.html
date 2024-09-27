@@ -628,8 +628,8 @@
 </div>
 
 <script src="{{url_for('static',filename='main_v2/js/admin/admin_common.js')}}"></script>
-<script src="{{url_for('static',filename='main_v2/js/admin/admin_main.js')}}?v=1"></script>
-<script src="{{url_for('static',filename='main_v2/js/admin/prices_block.js')}}"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_main.js')}}?v=2"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/prices_block.js')}}?v=1"></script>
 <script>
 const prices_array = [{% for p in all_prices %}[{{ p.id }},'{{ p.price_code }}', '{{p.price_at2}}'],{% endfor %}];
 const tg_array = [{% for t in tg_group_list %}[{{ t.id }},'{{ t.name }}'],{% endfor %}];
