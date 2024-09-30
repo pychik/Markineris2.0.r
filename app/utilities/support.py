@@ -2635,10 +2635,13 @@ def helper_get_user_at2(user: User) -> bool:
     return is_at2
 
 
-def helper_get_user_at2_opt2(u_id: int) -> tuple[bool, int, str, str, int]:
+def helper_get_user_at2_opt2(u_id: int) -> tuple[bool, int, str, str, int] | None:
     user = User.query.with_entities(User.id, User.balance, User.email, User.role, User.admin_parent_id).filter(User.id == u_id).first()
+    if not user:
+        return
     agent_info = User.query.with_entities(User.is_at2, User.id, User.email).filter(
         User.id == user.admin_parent_id).first()
+
     if not agent_info:
         agent_id = user.id
         agent_email = user.email

@@ -1270,7 +1270,9 @@ function bck_pending_transaction_change_status(url, update_url, tr_type, tr_stat
                 make_message(data.message, data.status);
             }
             else{
-                make_message('Ошибка сервера', 'warning');
+                make_message(data.message, 'warning');
+                setTimeout(() => { location.reload()
+                }, 3000);
             }
         },
         error: function () {

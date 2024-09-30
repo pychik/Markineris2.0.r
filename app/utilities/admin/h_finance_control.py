@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from decimal import Decimal, InvalidOperation
 from os import listdir as o_list_dir
 from os import remove as o_remove
-from flask import render_template, url_for, request, Response, jsonify, make_response
+from flask import flash, redirect, render_template, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
 from sqlalchemy import desc, text, create_engine, null, select, or_, not_
 from sqlalchemy.exc import IntegrityError
@@ -816,7 +816,6 @@ def h_bck_fin_bonus_history_excel():
     return response
 
 
-
 def h_su_control_specific_ut(u_id: int):
 
     # default date range conditions
@@ -826,7 +825,12 @@ def h_su_control_specific_ut(u_id: int):
     date_to = url_date_to_raw.strftime('%Y-%m-%d')
     date_from = (url_date_to_raw - timedelta(days=settings.Transactions.DEFAULT_DAYS_RANGE)).strftime('%Y-%m-%d')
 
-    is_at2, agent_id, agent_email, client_email, client_balance = helper_get_user_at2_opt2(u_id=u_id)
+    user_info = helper_get_user_at2_opt2(u_id=u_id)
+    if not user_info:
+        flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
+        return redirect(url_for('main.index'))
+
+    is_at2, agent_id, agent_email, client_email, client_balance = user_info
 
     pa_detalize_list, sum_fill, sum_spend = helper_get_transactions(u_id=u_id, date_from=date_from, date_to=date_to, sort_type='desc')
     link = f'javascript:get_transaction_history(\'' + url_for(f'user_cp.bck_update_transactions',
@@ -854,7 +858,11 @@ def h_bck_control_specific_ut(u_id: int):
 
     sort_type = request.args.get('sort_type', 'desc', str)
 
-    is_at2, agent_id, agent_email, client_email, client_balance = helper_get_user_at2_opt2(u_id=u_id)
+    user_info = helper_get_user_at2_opt2(u_id=u_id)
+    if not user_info:
+        return jsonify({'htmlresponse': render_template('admin/ur_transactions/ur_transactions_table.html', **locals()),
+                        'status': 'error', 'message': settings.Messages.STRANGE_REQUESTS})
+    is_at2, agent_id, agent_email, client_email, client_balance = user_info
 
     pa_detalize_list, sum_fill, sum_spend = helper_get_transactions(u_id=u_id, date_from=date_from,
                                                                     date_to=date_to, sort_type=sort_type)
@@ -1112,16 +1120,17 @@ def h_su_pending_transaction_update(u_id: int, t_id: int,):
     tr_status = request.form.get('tr_status', 0, int)
 
     if tr_type not in [0, 1, ] and tr_status not in settings.Transactions.TRANSACTIONS.keys():
-        jsonify(dict(status=status, message=f"{message} ошибка ввода"))
+        return jsonify(dict(status=status, message=f"{message} ошибка ввода"))
 
     # check for tricksters
     transaction_updated = UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount)\
                                                .filter(UserTransaction.user_id == u_id,
-                                                       UserTransaction.id == t_id).first()
+                                                       UserTransaction.id == t_id,
+                                                       UserTransaction.status == settings.Transactions.PENDING).first()
 
     user = User.query.with_entities(User.id).filter(User.id == u_id).first()
     if not user or not transaction_updated:
-        jsonify(dict(status=status, message=f"{message} нет такого пользователя или транзакции"))
+        return jsonify(dict(status=status, message=f"{message} нет такого пользователя или транзакции"))
 
     process_transaction = helper_update_pending_rf_transaction_status(u_id=u_id, t_id=t_id,
                                                                       amount=transaction_updated.amount,
