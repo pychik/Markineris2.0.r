@@ -1066,7 +1066,10 @@ def helpers_m_take_order(user: User, o_id: int) -> Response:
                """
         order_count = db.session.execute(text(stmt)).fetchone().orders_count
 
-        if order_count >= settings.OrderStage.MANAGER_ORDERS_LIMIT:
+        limit = db.session.execute(text('Select crm_manager_mo_limit from public.server_params')).fetchone()
+        limit_quantity = limit.crm_manager_mo_limit if limit else settings.OrderStage.MANAGER_ORDERS_LIMIT
+        # print(order_count
+        if order_count >= limit_quantity:
             flash(message=f'{settings.Messages.ORDERS_MANAGER_LIMIT} Всего: {order_count}', category='error')
             return redirect(url_for('crm_d.managers'))
 
