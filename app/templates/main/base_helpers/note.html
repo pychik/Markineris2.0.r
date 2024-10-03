@@ -1,5 +1,18 @@
-{% if current_user.is_authenticated %}
-<div style="background-color: #ffd500; color: #333; padding: 15px; text-align: center; font-size: 16px; width: 100%; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);">
-    <p style="margin: 0;">Уважаемые покупатели! В связи с увеличением количества заказов возможны задержки в их обработке. Мы прилагаем все усилия, чтобы в ближайшее время вернуться к стандартным срокам выполнения. Благодарим вас за терпение и понимание!</p>
+<div id="notificationTop" style="background-color: #ffd500; color: #333; padding: 15px; text-align: center; font-size: 16px; position: relative; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);">
+    <p style="margin: 0; font-weight: bold;">Уважаемые покупатели! В связи с увеличением количества заказов возможны задержки в их обработке. Мы прилагаем все усилия, чтобы в ближайшее время вернуться к стандартным срокам выполнения. Благодарим вас за терпение и понимание!</p>
+    <button type="button" class="btn-close" aria-label="Close" onclick="closeNotification()" style="position: absolute; right: 10px; top: 10px;"></button>
 </div>
+
+<script>
+// Check sessionStorage to see if the notification has been closed
+if (sessionStorage.getItem('notificationClosed')) {
+    document.getElementById('notificationTop').style.display = 'none'; // Hide notification if closed
+}
+
+// Function to close the notification and set sessionStorage
+function closeNotification() {
+    sessionStorage.setItem('notificationClosed', 'true'); // Store closed state
+    document.getElementById('notificationTop').style.display = 'none'; // Hide notification
+}
+</script>
 {% endif %}
