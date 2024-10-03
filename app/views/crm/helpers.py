@@ -1061,16 +1061,22 @@ def helpers_m_take_order(user: User, o_id: int) -> Response:
         return redirect(url_for('crm_d.managers'))
 
     if user.role == settings.MANAGER_USER:
-        stmt = f"""
+        o_stmt = f"""
                     SELECT COUNT(co.id) as orders_count FROM public.orders co WHERE co.manager_id={user.id} AND co.stage < {settings.OrderStage.SENT}; 
                """
-        order_count = db.session.execute(text(stmt)).fetchone().orders_count
+        o_count = db.session.execute(text(o_stmt)).fetchone().orders_count
 
-        limit = db.session.execute(text('Select crm_manager_mo_limit from public.server_params')).fetchone()
-        limit_quantity = limit.crm_manager_mo_limit if limit else settings.OrderStage.MANAGER_ORDERS_LIMIT
-        # print(order_count
-        if order_count >= limit_quantity:
-            flash(message=f'{settings.Messages.ORDERS_MANAGER_LIMIT} Всего: {order_count}', category='error')
+        po_stmt = f"""
+                            SELECT COUNT(co.id) as orders_count FROM public.orders co WHERE co.manager_id={user.id} AND co.stage = {settings.OrderStage.MANAGER_PROBLEM}; 
+                       """
+        po_count = db.session.execute(text(po_stmt)).fetchone().orders_count
+
+        limits = helper_get_limits()
+        mo_limit, po_limit = limits.mo_limit, limits.po_limit
+
+        if o_count >= mo_limit or po_count >= po_limit:
+            flash(message=f'{settings.Messages.ORDERS_MANAGER_LIMIT}<br>Всего взято заказов: {o_count}, допуск({mo_limit})'
+                          f'<br>Всего проблемных заказов {po_count}, допуск({po_limit})', category='error')
             return redirect(url_for('crm_d.managers'))
 
     dt_manager = datetime.now()
