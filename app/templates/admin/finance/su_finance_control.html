@@ -43,6 +43,10 @@
             <h5>Статистика за {{ stat_date.strftime('%d.%m.%Y') }}</h5>
             <div class="row">
               <div class="col">
+                <label style="font-size: 28px">Заказов</label><br>
+                <label class= "text-warning">{{ stat.total_orders }}</label>
+              </div>
+              <div class="col">
                 <label style="font-size: 28px">Марок</label><br>
                 <label class= "text-warning">{{ stat.marks_cnt }}</label>
               </div>

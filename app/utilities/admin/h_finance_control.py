@@ -33,8 +33,9 @@ class NotFoundBonusCode(Exception):
 
 def h_su_control_finance():
     stat_date = datetime.today() - timedelta(days=1)
-    stat_stmt = text("""WITH mark_count as (SELECT os.transaction_id, sum(os.marks_count) as total_marks from public.orders_stats os GROUP BY os.transaction_id)
+    stat_stmt = text("""WITH mark_count as (SELECT os.transaction_id, count(od.id) as total_orders, sum(os.marks_count) as total_marks from public.orders_stats os GROUP BY os.transaction_id)
     SELECT 
+        coalesce(sum(mc.total_orders), 0) as total_orders,
         round(coalesce(sum(ut.amount), 0), 2) as amount, 
         coalesce(sum(mc.total_marks), 0) as marks_cnt, 
         round(case when coalesce(sum(mc.total_marks), 0) = 0 then 0 else coalesce(sum(amount), 0) / coalesce(sum(mc.total_marks), 0) end, 2) as avg_price
