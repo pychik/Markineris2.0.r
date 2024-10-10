@@ -33,14 +33,17 @@ class NotFoundBonusCode(Exception):
 
 def h_su_control_finance():
     stat_date = datetime.today() - timedelta(days=1)
-    stat_stmt = text("""WITH mark_count as (SELECT os.transaction_id, count(os.id) as total_orders, sum(os.marks_count) as total_marks from public.orders_stats os GROUP BY os.transaction_id)
+    stat_stmt = text("""WITH mark_count as (SELECT os.transaction_id, count(os.id) as total_orders, sum(os.marks_count) as total_marks from public.orders_stats os GROUP BY os.transaction_id),
+    filtered_orders AS (SELECT  o.transaction_id as transaction_id, count(o.id) AS orders_proc FROM public.orders o WHERE o.stage >= 8 AND o.stage != 9 GROUP BY o.transaction_id)
     SELECT 
         coalesce(sum(mc.total_orders), 0) as total_orders,
+        coalesce(sum(fo.orders_proc), 0) as total_orders_proc,
         round(coalesce(sum(ut.amount), 0), 2) as amount, 
         coalesce(sum(mc.total_marks), 0) as marks_cnt, 
         round(case when coalesce(sum(mc.total_marks), 0) = 0 then 0 else coalesce(sum(amount), 0) / coalesce(sum(mc.total_marks), 0) end, 2) as avg_price
     FROM public.user_transactions ut
     JOIN mark_count mc on ut.id = mc.transaction_id
+    JOIN filtered_orders fo ON ut.id = fo.transaction_id
     WHERE
         ut.op_cost is not null and ut.type=False
         and ut.created_at >= DATE_TRUNC('DAY', NOW()::timestamp);
