@@ -42,6 +42,8 @@ def h_login_post() -> Response:
     remember = True if request.form.get('remember') else False
     user = User.query.filter_by(email=email).first()
 
+    next_page = request.form.get('next')
+
     if not user or not check_password_hash(user.password, password):
         message = Markup(f"<span class=\"text-secondary\"><b>{email}</span> {settings.Messages.INCORRECT_AUTH}")
         flash(message=message, category='error')
@@ -56,7 +58,8 @@ def h_login_post() -> Response:
     login_user(user=user, remember=remember)
     if current_user.role in [settings.MANAGER_USER, settings.SUPER_MANAGER]:
         return redirect(url_for('crm_d.managers'))
-    return redirect(url_for('main.enter'))
+
+    return redirect(next_page or url_for('main.enter'))
 
 
 def h_sign_up(p_link: str) -> Union[Response, str]:

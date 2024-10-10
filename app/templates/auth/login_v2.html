@@ -16,6 +16,7 @@
 
             <form method="POST" action="{{url_for('auth.login_post')}}" >
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="next" value="{{ request.args.get('next') }}">
                 <input type="email" name="email" class="form-control " placeholder="Введите Email" required autofocus>
 
                 <input type="password" id="password-mobile" name="password" class="form-control mt-3" placeholder="Введите пароль"
