@@ -59,7 +59,7 @@ def h_login_post() -> Response:
     if current_user.role in [settings.MANAGER_USER, settings.SUPER_MANAGER]:
         return redirect(url_for('crm_d.managers'))
 
-    return redirect(next_page or url_for('main.enter'))
+    return redirect(next_page if next_page not in [None, 'None'] else None or url_for('main.enter'))
 
 
 def h_sign_up(p_link: str) -> Union[Response, str]:
