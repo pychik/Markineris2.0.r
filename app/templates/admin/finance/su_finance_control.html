@@ -25,7 +25,7 @@
                        id="wo_transactions_link"
                        class="btn btn-outline-secondary disabled">Провести заказы пользователей</a>
                 </div>
-                <div >
+                <div>
                     <div class="form-check form-switch">
                         <input type="checkbox" role="switch" id="perform_wo_switchbox"
                                class="form-check-input border border-warning" onchange="toggle_perform_wo()"
@@ -36,7 +36,6 @@
                         </script>
                     </div>
                 </div>
-
             </div>
         </div>
         <div class="col-md-7">
@@ -44,20 +43,20 @@
             <div class="row">
               <div class="col">
                 <label style="font-size: 28px">Заказов</label><br>
-                Оплачено <label class= "text-warning">{{ stat.total_orders }}</label>
-                Выполнено <label class= "text-warning">{{ stat.total_orders_proc }}</label>
+                Оплачено <label class= "text-warning">{{ stat_paid.total_orders }}</label>
+                Выполнено <label class= "text-warning">{{ stat_proc.total_orders_proc }}</label>
               </div>
               <div class="col">
                 <label style="font-size: 28px">Марок</label><br>
-                <label class= "text-warning">{{ stat.marks_cnt }}</label>
+                <label class= "text-warning">{{ stat_paid.marks_cnt }}</label>
               </div>
               <div class="col">
                 <label style="font-size: 28px">Списано</label><br>
-                <label class= "text-warning">{{ stat.amount }} р.</label>
+                <label class= "text-warning">{{ stat_paid.amount }} р.</label>
               </div>
               <div class="col">
                 <label style="font-size: 28px">Ср/цена</label><br>
-                <label class= "text-warning">{{ stat.avg_price }} р.</label>
+                <label class= "text-warning">{{ stat_paid.avg_price }} р.</label>
               </div>
             </div>
         </div>
