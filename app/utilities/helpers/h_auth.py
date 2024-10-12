@@ -42,7 +42,7 @@ def h_login_post() -> Response:
     remember = True if request.form.get('remember') else False
     user = User.query.filter_by(email=email).first()
 
-    next_page = request.form.get('next', '')
+    next_page = request.form.get('next')
 
     if not user or not check_password_hash(user.password, password):
         message = Markup(f"<span class=\"text-secondary\"><b>{email}</span> {settings.Messages.INCORRECT_AUTH}")
