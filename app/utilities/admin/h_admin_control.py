@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from flask import flash, render_template, redirect, send_file, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
+from views.crm.crm_support import h_cancel_order_process_payment
 from sqlalchemy import asc, desc, func, text, select
 from sqlalchemy.exc import NoResultFound
 
@@ -1096,7 +1097,8 @@ def h_at2_new_orders() -> Response:
 
 def h_at2_orders_process(o_id: int, change_stage: int) -> Response:
     admin_id = current_user.id
-    status = 'danger'
+    status = settings.ERROR
+    reload = False
     pool_stmt = ''
 
     if change_stage not in [settings.OrderStage.POOL, settings.OrderStage.CANCELLED]:
@@ -1105,11 +1107,11 @@ def h_at2_orders_process(o_id: int, change_stage: int) -> Response:
 
     # check for trickers
     order_check = helper_check_new_order_at2(admin_id=admin_id, o_id=o_id)
-
     if not order_check:
         message = f"{settings.Messages.AT2_ORDER_CHANGE_ERROR} - Нет такого заказа!"
         return jsonify(dict(status=status, message=message))
 
+    # make check of agent balance
     if change_stage == settings.OrderStage.POOL:
         status_balance, message_balance = helper_get_at2_pending_balance(admin_id=current_user.id,
                                                                          price_id=current_user.price_id,
@@ -1119,25 +1121,30 @@ def h_at2_orders_process(o_id: int, change_stage: int) -> Response:
         pool_stmt = f", p_started='{dt_pool}'"
         if not status_balance:
             return jsonify(dict(status=status, message=message_balance))
-
     try:
         cancel_stmt = (", cc_created='{date}', comment_cancel='{auto_comment}'"
                        .format(date=str(datetime.now()), auto_comment=settings.Messages.AT2_ORDER_CANCEL_TEXT)) if change_stage == settings.OrderStage.CANCELLED else ""
+
         update_order_stmt = (text(f"""UPDATE public.orders SET stage=:change_stage{cancel_stmt}{pool_stmt} WHERE id=:o_id""")
                              .bindparams(o_id=o_id, change_stage=change_stage))
 
         db.session.execute(update_order_stmt)
-        db.session.commit()
 
         order_idn = order_check.order_idn
+
+        # make refill on cancell
+        if change_stage == settings.OrderStage.CANCELLED and order_check.payment:
+            h_cancel_order_process_payment(order_idn=order_idn, user_id=order_check.user_id)
+            reload = True
+        db.session.commit()
         message = f"{settings.Messages.AT2_ORDER_CHANGE} {order_idn} {settings.OrderStage.STAGES[change_stage][1]}"
-        status = 'success'
+        status = settings.SUCCESS
     except Exception as e:
         db.session.rollback()
         message = f"{settings.Messages.AT2_ORDER_CHANGE_ERROR} {e}"
         logger.error(message)
 
-    return jsonify(dict(status=status, message=message))
+    return jsonify(dict(status=status, message=message, reload=reload))
 
 
 def h_users_activate_list():

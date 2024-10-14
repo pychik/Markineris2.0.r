@@ -29,7 +29,13 @@ function bck_order_process(url, url_update, csrf, stage)
     {
         console.log(data);
         if(data.status==='success'){
+            if (data.reload){
+                window.location.reload();
+            }
+            else{
             bck_get_orders(url_update);
+            }
+
         }
 
         make_message(data.message, data.status);
@@ -41,6 +47,7 @@ function bck_order_process(url, url_update, csrf, stage)
 
    setTimeout(function() {clear_user_messages();}, 15000);
   }
+
 
 
   // unused

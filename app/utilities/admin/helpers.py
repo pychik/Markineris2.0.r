@@ -186,7 +186,9 @@ def helper_get_new_orders_at2(admin_id: int) -> list:
 def helper_check_new_order_at2(admin_id: int, o_id: int) -> Row | None:
     stmt_order = text(f"""
                               SELECT 
-                                  o.order_idn as order_idn
+                                  o.order_idn as order_idn,
+                                  o.user_id as user_id,
+                                  o.payment as payment
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id  
                               WHERE  (u.admin_parent_id=:admin_id OR u.id=:admin_id) AND o.id=:order_id AND o.stage={settings.OrderStage.NEW} AND o.to_delete != True
