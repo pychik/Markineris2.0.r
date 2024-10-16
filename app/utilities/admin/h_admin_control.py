@@ -514,10 +514,14 @@ def h_deactivate_user(type_set: str, u_id: int) -> Response:
 
 
 def h_activate_all_admin_users(au_id: int) -> Response:
+    status = 'error'
     if current_user.role != settings.SUPER_USER and current_user.id != au_id:
         flash(message=f"{settings.Messages.DELETE_USER_ERROR} {settings.Messages.DELETE_USER_ND_ERROR}",
               category='error')
         return redirect(url_for('admin_control.admin', u_id=current_user.id))
+        message = f"{settings.Messages.DELETE_USER_ERROR} {settings.Messages.DELETE_USER_ND_ERROR}",
+        return jsonify({'message': message, 'status': status})
+
     try:
         users = User.query.filter_by(admin_parent_id=au_id, status=False).all()
         if users:

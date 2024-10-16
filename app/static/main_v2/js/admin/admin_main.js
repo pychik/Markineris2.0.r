@@ -259,8 +259,10 @@ function su_load_data(query, url, csrf_token){
     data:{query:query},
     success:function(data)
     {
-      $('#su_user_search_result').html(data);
-      $("#su_user_search_result").append(data.htmlresponse);
+      $('#infoModalTable').html(data);
+      $('#infoModalLabel').html("Найденные пользователи по тегу " + query);
+      $('#infoModalTable').append(data.htmlresponse);
+      $('#infoModal').modal('show')
     },
     error: function() {
      make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
