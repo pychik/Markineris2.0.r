@@ -1,7 +1,9 @@
 from flask import Blueprint, jsonify, request
 from flask_login import login_required
 
+from config import settings
 from data_migrations.instance import etl_service
+from data_migrations.utils import make_password
 from models import User
 from utilities.admin.h_admin_control import (h_index, h_admin, h_set_order_notification, h_create_admin,
                                              h_partner_code, h_delete_partner_code, h_telegram_set_group,
@@ -16,7 +18,8 @@ from utilities.admin.h_admin_control import (h_index, h_admin, h_set_order_notif
                                              h_bck_user_delete, h_bck_user_activate, h_client_orders_stats,
                                              h_su_user_search, h_bck_change_user_password, h_bck_reanimate,
                                              h_bck_ar_orders, h_bck_save_call_result, h_bck_su_control_reanimate_excel,
-                                             h_at2_new_orders, h_at2_orders_process, h_su_not_basic_price_report)
+                                             h_at2_new_orders, h_at2_orders_process, h_su_not_basic_price_report,
+                                             h_su_get_telegram, h_get_partner_codes, h_get_registration_link)
 from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_promo, h_su_add_promo, h_su_delete_promo,
                                                h_su_bck_bonus, h_su_add_bonus, h_su_delete_bonus,
                                                h_su_bck_prices, h_su_bck_specific_price, h_su_add_prices, h_su_edit_price,
@@ -30,6 +33,7 @@ from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_pr
                                                h_bck_fin_promo_history_excel, h_bck_fin_bonus_history_excel,
                                                h_su_control_specific_ut, h_bck_control_specific_ut,
                                                h_su_fin_marks_count_report, )
+from utilities.admin.h_notifications_control import h_tg_notification_main
 from utilities.support import au_required, aus_required, bck_aus_required, bck_su_required, su_required, \
     user_exist_check, su_mod_required, bck_at2_required, bck_su_mod_required
 
@@ -43,8 +47,14 @@ admin_control = Blueprint('admin_control', __name__)
 @login_required
 @aus_required
 def index(expanded: str = None):
-    return h_index(expanded=expanded)
+    return h_index()
 
+
+@admin_control.route('/su_get_telegram')
+@login_required
+@aus_required
+def su_get_telegram():
+    return h_su_get_telegram()
 
 @admin_control.route('/admin/<int:u_id>/', methods=["GET", ])
 @login_required
@@ -58,6 +68,20 @@ def admin(u_id: int):
 @au_required
 def set_order_notification(u_id: int):
     return h_set_order_notification(u_id=u_id)
+
+
+@admin_control.route('/get_registration_link/<int:u_id>', methods=['GET',])
+@login_required
+@au_required
+def get_registration_link(u_id: int):
+    return h_get_registration_link(u_id)
+
+
+@admin_control.route('/get_partner_codes/<int:u_id>', methods=['GET',])
+@login_required
+@au_required
+def get_partner_codes(u_id: int):
+    return h_get_partner_codes(u_id)
 
 
 @admin_control.route('/create_admin/', methods=['POST'])
@@ -741,3 +765,27 @@ def bck_ar_orders(u_id: int):
     :return:
     """
     return h_bck_ar_orders(u_id=u_id)
+
+
+@admin_control.route('/tg_notifications_main/', methods=['GET'])
+@login_required
+@su_required
+def tg_notifications_main():
+    return h_tg_notification_main()
+
+
+@admin_control.route('su_agent_info', methods=['POST', ])
+@login_required
+@su_required
+def su_agent_info():
+    """
+        makes request for passwords for auto extracted agents from partner codes markineris 1
+    :return:
+    """
+    password = None
+    data = request.form
+    agent_email = data.get("agent_email")
+    if agent_email and agent_email.startswith('Agent_'):
+        password = make_password(agent_email, settings.SALT.get_secret_value())
+
+    return jsonify(dict(password=password)), 200

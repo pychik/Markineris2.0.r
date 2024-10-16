@@ -1,0 +1,428 @@
+{% extends "main/base_v2.html" %}
+{% block admin_user_control %}
+
+<div class="container-fluid pb-4 content-main">
+  <div class="front text-center">
+    <h1 class="mb-5 fs-2">Панель управления клиентами агента <span class="username">{{ admin_info.login_name }}</span>
+    </h1>
+  </div>
+  <div class="row g-3 ">
+    <div class="col-md-8 ">
+      <div class="setting d-flex flex-column">
+        <div class="setting__item d-flex justify-content-between align-items-center">
+          <div class="fw-bold setting__title">Активировать всех пользователей из группы {{ admin_info.login_name }}
+          </div>
+          <a class="btn btn-primary btn-accent border-0 text-dark" type="button"
+             onclick="activateAllUsers('{{ url_for('admin_control.activate_all_admin_users', au_id=admin_info.id) }}', '{{csrf_token()}}')">Активировать</a>
+        </div>
+        <hr>
+        <div class="setting__item d-flex justify-content-between align-items-center">
+          <div class="fw-bold setting__title">Ссылки для регистрации новых клиентов
+          </div>
+          <a class="btn btn-secondary " type="button" onclick="$('#newUserRegistrationLink').modal('show')">Показать
+            ссылки</a>
+        </div>
+        <hr>
+        <div class="setting__item d-flex justify-content-between align-items-center">
+          <div class="fw-bold setting__title">Добавление кодов партнеров</div>
+          <a class="btn btn-secondary " type="button" onclick="$('#partnerCodeAdd').modal('show')">Добавить
+            код</a>
+        </div>
+        <hr>
+        <div class="setting__item d-flex justify-content-between align-items-center">
+          <div class="fw-bold setting__title">Зарегистрированные коды партнеров</div>
+          <a class="btn btn-secondary " type="button" onclick="$('#registeredPartnerCode').modal('show')">Показать
+            коды</a>
+        </div>
+        <hr>
+        <div class="setting__item d-flex justify-content-between align-items-center">
+          <div class="fw-bold setting__title">Настройка телеграмм сообщений</div>
+          <a class="btn btn-secondary " type="button" onclick="$('#telegramMessageSetup').modal('show')">Настроить</a>
+        </div>
+        <hr>
+        <div class="setting__item d-flex justify-content-between align-items-center">
+          <div class="fw-bold setting__title">Статистика</div>
+          <div class="d-flex flex-column">
+            <a class="btn btn-secondary mb-3" type="button"
+               href="{{ url_for('admin_control.bck_ar_orders', u_id=admin_info.id) }}">Статистика по заказам</a>
+            <a class="btn btn-secondary " type="button"
+               href="{{ url_for('admin_control.bck_agent_control_reanimate', u_id=admin_info.id) }}">Реанимация
+              клиентов</a>
+          </div>
+        </div>
+        <hr>
+        <div class="setting__item d-flex justify-content-between align-items-center">
+          <div class="fw-bold setting__title">Настройка уведомления для клиента при оформлении
+            заказа (i)
+          </div>
+          <a class="btn btn-secondary " type="button" onclick="$('#orderNotificationPanel').modal('show')">Настроить</a>
+
+        </div>
+
+      </div>
+    </div>
+
+    <div class="col-lg-3">
+      <div class="search-form">
+        <div class="fw-bold mb-3">Поиск</div>
+        {% include "admin/user_search/search_user_bar_new.html" %}
+        {% include "admin/user_search/search_user_by_idn_new.html" %}
+
+      </div>
+
+    </div>
+
+  </div>
+  <div id="users_table" class="col overflow-x-scroll" align="left">
+    <table class="table mt-3 table-result tablesaw-stack mt-1 ">
+      <thead class="text-dark">
+      <tr>
+        <th scope="col">
+          <div class="d-flex">
+
+            <div class="me-1"
+                 title="Сортировка по времени добавления пользователей">
+              <a href="{{ url_for('admin_control.admin', u_id=u_id,)}}/?sort_type=created_at#users_table"
+                       class="{% if sort_type != 'orders' %}link-warning{% else %}link-secondary{% endif %}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                     fill="currentColor" class="bi bi-clock" viewBox="0 0 16 16">
+                  <path
+                    d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z">
+                  </path>
+                  <path
+                    d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0">
+                  </path>
+                </svg>
+              </a>
+            </div>
+
+            <div title="Сортировка по дате заказа">
+              <a href="{{ url_for('admin_control.admin', u_id=u_id,)}}/?sort_type=orders#users_table"
+                       class="{% if sort_type=='orders' %}link-warning{% else %}link-secondary{% endif %}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                     fill="currentColor" class="bi bi-card-checklist"
+                     viewBox="0 0 16 16">
+                  <path
+                    d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2z">
+                  </path>
+                  <path
+                    d="M7 5.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0M7 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0">
+                  </path>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </th>
+        <th scope="col" style="width:200px">
+          <font size="2">Логин</font>
+        </th>
+        <th scope="col" style="width:150px">
+          <font size="2">Телефон</font>
+        </th>
+        <th scope="col">
+          <font size="2">Email</font>
+        </th>
+
+        <th scope="col">
+          <font size="2">Код партнера</font>
+        </th>
+        <th scope="col">
+          <font size="2">Код клиента</font>
+        </th>
+        {% if not admin_info.is_at2 %}
+                <th scope="col"><font size="2">Ценовой пакет</font></th>
+              {% endif %}
+        <th scope="col">
+          <font size="2">Статусы</font>
+        </th>
+        <th scope="col">
+          <font size="2">Запрос на ссылку создания<br> нового пароля</font>
+        </th>
+        <th scope="col">
+          <font size="2">Управление пользователем</font>
+        </th>
+        <th scope="col">
+          <font size="2"></font>
+        </th>
+      </tr>
+      </thead>
+      <tbody>
+
+      {% for u in users_list %}
+      <tr>
+        <th scope="row">
+          <span
+                    title="Баланс пользователя {{ u.balance }} р.">{{ offset+loop.index }}</span>
+        </th>
+
+        <td>
+
+          {{u.login_name}}
+
+          {% if u.created_at %}
+          <div class="font-10 text-secondary" title="Дата и время регистрации"
+               style="font-size: 10px">{{ u.created_at.strftime('%Y-%m-%d %H:%M:%S') if u.created_at else '_' }}
+          </div>
+          {% endif %}
+
+
+          <div style="font-size: 8px"
+               title="Количество заказов, количество этикеток и дата крайнего заказа">
+           <span style="background-color: #dbf8b6;">{{ u.orders_count if u.orders_count else '_' }}</span> |
+                    <span
+                      title="крайний заказ зарегистрирован {{ u.os_created_at.strftime('%d.%m.%Y %H:%M:%S ') if u.os_created_at else '_' }}"
+                      style="background-color: #fcf0b5;">{{ u.total_marks_count if u.total_marks_count else '_' }}</span>
+                    |
+                    <span>{{ u.os_created_at.strftime('%d.%m.%Y %H:%M:%S ') if u.os_created_at else '_' }}</span>
+          </div>
+
+          <div class="d-flex">
+            <div class="mt-2">
+              <a class="badge bg-secondary"
+                 href="/admin_control/client_orders_stats/2/1491"
+                 title="Посмотреть историю заказов клиента">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                     fill="currentColor" class="bi bi-cart-check"
+                     viewBox="0 0 16 16">
+                  <path
+                    d="M11.354 6.354a.5.5 0 0 0-.708-.708L8 8.293 6.854 7.146a.5.5 0 1 0-.708.708l1.5 1.5a.5.5 0 0 0 .708 0z">
+                  </path>
+                  <path
+                    d="M.5 1a.5.5 0 0 0 0 1h1.11l.401 1.607 1.498 7.985A.5.5 0 0 0 4 12h1a2 2 0 1 0 0 4 2 2 0 0 0 0-4h7a2 2 0 1 0 0 4 2 2 0 0 0 0-4h1a.5.5 0 0 0 .491-.408l1.5-8A.5.5 0 0 0 14.5 3H2.89l-.405-1.621A.5.5 0 0 0 2 1zm3.915 10L3.102 4h10.796l-1.313 7zM6 14a1 1 0 1 1-2 0 1 1 0 0 1 2 0m7 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0">
+                  </path>
+                </svg>
+              </a>
+            </div>
+            <div class="mt-2 ms-3">
+
+              <a class="badge bg-secondary"
+                 href="/admin_control/su_control_specific_ut/1491"
+                 title="Посмотреть историю транзакций клиента">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                     fill="currentColor" class="bi bi-database"
+                     viewBox="0 0 16 16">
+                  <path
+                    d="M4.318 2.687C5.234 2.271 6.536 2 8 2s2.766.27 3.682.687C12.644 3.125 13 3.627 13 4c0 .374-.356.875-1.318 1.313C10.766 5.729 9.464 6 8 6s-2.766-.27-3.682-.687C3.356 4.875 3 4.373 3 4c0-.374.356-.875 1.318-1.313M13 5.698V7c0 .374-.356.875-1.318 1.313C10.766 8.729 9.464 9 8 9s-2.766-.27-3.682-.687C3.356 7.875 3 7.373 3 7V5.698c.271.202.58.378.904.525C4.978 6.711 6.427 7 8 7s3.022-.289 4.096-.777A5 5 0 0 0 13 5.698M14 4c0-1.007-.875-1.755-1.904-2.223C11.022 1.289 9.573 1 8 1s-3.022.289-4.096.777C2.875 2.245 2 2.993 2 4v9c0 1.007.875 1.755 1.904 2.223C4.978 15.71 6.427 16 8 16s3.022-.289 4.096-.777C13.125 14.755 14 14.007 14 13zm-1 4.698V10c0 .374-.356.875-1.318 1.313C10.766 11.729 9.464 12 8 12s-2.766-.27-3.682-.687C3.356 10.875 3 10.373 3 10V8.698c.271.202.58.378.904.525C4.978 9.71 6.427 10 8 10s3.022-.289 4.096-.777A5 5 0 0 0 13 8.698m0 3V13c0 .374-.356.875-1.318 1.313C10.766 14.729 9.464 15 8 15s-2.766-.27-3.682-.687C3.356 13.875 3 13.373 3 13v-1.302c.271.202.58.378.904.525C4.978 12.71 6.427 13 8 13s3.022-.289 4.096-.777c.324-.147.633-.323.904-.525">
+                  </path>
+                </svg>
+              </a>
+
+            </div>
+          </div>
+
+        </td>
+
+        <td>
+          {{ u.phone }}
+        </td>
+        <td>
+          {{ u.email }}{% if current_user.role == 'superuser' %}&nbsp;<span class="ml-1" title="Изменить пароль"
+                                                                                  onclick="change_user_password_main(`{{ url_for('admin_control.bck_change_user_password', u_id=u.id) }}`, `{{ csrf_token() }}`, `{{ u.login_name }}`)">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="grey"
+                                                 class="bi bi-pencil" viewBox="0 0 16 16">
+                                                <path
+                                                  d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+                                            </svg>
+                                  </span>{% endif %}
+        </td>
+
+        <td>
+           {% if u.code %} {{ u.code }}{% else %}NO PARTNER{% endif %}
+        </td>
+        <td>
+          {% if u.client_code %}{{ u.client_code }}{% endif %}
+        </td>
+        {% if not admin_info.is_at2 %}
+                  <td>
+                    <div id="user_price{{ u.id }}">
+                      {% if u.price_code %}
+                        <span class="badge bg-warning text-black" style="cursor:pointer"
+                              onclick="perform_modal_prices('{{ u.id }}', '{{ u.login_name }}', '{{ u.price_code }}', '{{ u.price_1 }}', '{{ u.price_2 }}', '{{ u.price_3 }}', '{{ u.price_4 }}', '{{ u.price_5 }}', '{{ url_for('admin_control.bck_set_user_price', u_id=u.id) }}?bck=1', '{{ csrf_token() }}')">{{ u.price_code }}</span>
+                      {% else %}
+                        <span class="badge bg-warning text-black" style="cursor:pointer"
+                              onclick="perform_modal_prices('{{ u.id }}', '{{ u.login_name }}', '{{ basic_prices[0] }}', '{{ basic_prices[1] }}', '{{ basic_prices[2] }}', '{{ basic_prices[3] }}', '{{ basic_prices[4] }}', '{{ basic_prices[5] }}', '{{ url_for('admin_control.bck_set_user_price', u_id=u.id) }}?bck=1', '{{ csrf_token() }}')">{{ basic_prices[0] }}</span>
+                      {% endif %}
+                    </div>
+                  </td>
+                {% endif %}
+        <td>
+
+          <td>
+                  {% if u.status %}
+                    <span class="badge bg-warning text-black">user активирован </span>
+                  {% else %}
+                    <span class="badge bg-secondary">user не активирован</span>
+                  {% endif %}
+                  <br>
+                  {% if u.is_send_excel %}
+                    <span class="badge bg-warning text-black">excel активирован</span>
+                  {% else %}
+                    <span class="badge bg-secondary">excel не активирован</span>
+                  {% endif %}
+                </td>
+
+        <td>
+
+          <h5><span class="btn btn-sm btn-outline-warning btn-outline"
+                            onclick='perform_modal_copy_link("{{ u.id }}", "{{ u.login_name }}"); get_information("{{ url_for('admin_control.create_link_new_password', u_id=u.id) }}", function(text) {
+                              var text_block = document.getElementById("user_link{{ u.id }}");
+                              text_block.value=text;
+                              // Do something with the div here, like inserting it into the page
+                              $("#user_linkModal{{ u.id }}").modal("show");
+                              })'>Запрос на ссылку</span>
+
+                  </h5>
+
+
+        </td>
+        <td>
+                  {% if not u.status %}
+
+                    <form method="post" action="{{ url_for('admin_control.set_user',
+                                        type_set='activate_user', u_id=u.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                      <input class="btn btn-sm btn-outline-success btn-block"
+                             type="submit" name="activate"
+                             onclick="if (document.getElementById('set_user_{{ u.id }}').validity.valid){loadingCircle();}"
+                             value="Активировать">
+                      <input type="text" class="form-control mt-1" id="set_user_{{ u.id }}"
+                             placeholder="Введите код клиента"
+                             name="client_code"
+                             {% if u.client_code %}value="{{ u.client_code }}"{% endif %} required>
+                    </form>
+
+                  {% else %}
+                    <form method="post" action="{{ url_for('admin_control.deactivate_user',
+                                            type_set='deactivate_user', u_id=u.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                      <input class="btn btn-sm btn-outline-danger btn-block"
+                             type="submit" name="activate" value="Деактивировать"
+                             onclick="loadingCircle()"
+                             {% if u.role=='superuser' %}disabled{% endif %}>
+                    </form>
+                  {% endif %}
+                  <br>
+                  {% if not u.is_send_excel %}
+                    <form method="post" action="{{ url_for('admin_control.set_user',
+                                       type_set='activate_is_send', u_id=u.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                      <input class="btn btn-sm btn-outline-info btn-block"
+                             title="Включить возможность отправки таблиц Excel"
+                             type="submit" name="activate"
+                             onclick="{loadingCircle();}"
+                             value="Вкл. EXCEL">
+
+                    </form>
+                  {% else %}
+                    <form method="post" action="{{ url_for('admin_control.deactivate_user',
+                                            type_set='deactivate_is_send', u_id=u.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                      <input class="btn btn-sm btn-outline-secondary btn-block"
+                             title="Оключить возможность отправки таблиц Excel"
+                             type="submit" name="activate" value="Откл. EXCEL"
+                             onclick="loadingCircle()"
+                             {% if u.role == 'superuser' %}disabled{% endif %}>
+                    </form>
+                  {% endif %}
+
+                </td>
+                <td>
+                  <form method="post" action="{{ url_for('admin_control.delete_user', u_id=u.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                            title="Удалить пользователя {{ u.login_name }}"
+                            onclick="loadingCircle()">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                           class="bi bi-trash3" viewBox="0 0 16 16">
+                        <path
+                          d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/>
+                      </svg>
+                      {#                                      <input type="hidden" name="delete">#}
+                    </button>
+
+                  </form>
+                </td>
+
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+
+
+
+
+
+  <div class="pagination-page-info text-center">На этой странице <b>{{ offset + 1 }} - {{ offset + users_list|length }}</b> Всего: <b>{{ pagination.total }}</b></div>
+
+
+    <div class="pagination_section my-1" >
+        <div class="d-flex">
+            <div class="col-3"></div>
+            <div class="col-md-2"></div>
+            <div class="col-5" style="margin-left: 3%;">{{ pagination.links }}</div>
+
+        </div>
+    </div>
+
+
+</div>
+
+
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_user_control.js')}}"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_main.js')}}?v=2"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc.js')}}?v=2"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_common.js')}}"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/prices_block.js')}}"></script>
+
+
+{% include 'admin/a_user_control/new_registration_link_modal.html' %}
+{% include 'admin/a_user_control/partner_code_add_modal.html' %}
+{% include 'admin/a_user_control/registered_partners_code_modal.html' %}
+{% include 'admin/a_user_control/telegram_message_setup_modal.html' %}
+{% include 'admin/a_user_control/order_notification_panel.html' %}
+
+
+<div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-xxl modal-dialog-scrollable"
+       style="width: 100% !important">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="infoModalLabel">
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="row text-center mt-5">
+          <div class="col-12">
+            <div id="infoModalTable" class="col" align="left">
+
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+                data-bs-dismiss="modal">
+          Закрыть
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+<div id="copy_link_modals">
+  </div>
+  <div id="user_prices_modal">
+  </div>
+  <div id="change_user_password_modal">
+  </div>
+
+<script>
+const prices_array = [{% for p in all_prices %}[{{ p.id }},'{{ p.price_code }}', '{{p.price_at2}}'],{% endfor %}];
+</script>
+{% endblock %}

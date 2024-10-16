@@ -1,0 +1,82 @@
+<div class="modal fade" id="registeredPartnerCode" tabindex="-1" aria-labelledby="registeredPartnerCode"
+     aria-hidden="true">
+  <div class="modal-dialog modal-xxl modal-dialog-scrollable"
+       style="width: 100% !important">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="registeredPartnerCodeLabel">
+          Зарегистрированные коды партнеров
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table mt-3 table-result tablesaw-stack mt-1">
+          <thead class="text-dark">
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col"><font size="2">Код</font></th>
+            <th scope="col"><font size="2">Имя&nbspпартнера</font></th>
+            <th scope="col"><font size="2">Телефон</font></th>
+            <th scope="col"><font size="2">Обязательный параметр <br> при регистрации телефон</font></th>
+            <th scope="col"><font size="2"></font></th>
+
+          </tr>
+          </thead>
+          {% if partner_codes %}
+            {% set data = partner_codes %}
+            {% set u_id = u_id %}
+          {% else %}
+            {% set data = admin_info.partners %}
+            {% set u_id = admin_info.id %}
+          {% endif %}
+          <tbody>
+
+          {% for pc in data %}
+            <tr>
+              <th scope="row">{{ loop.index }}</th>
+
+              <td>
+                {{ pc.code }}
+              </td>
+              <td>
+                {{ pc.name }}
+              </td>
+              <td>
+                {{ pc.phone }}
+              </td>
+              <td class="text-center">
+
+                                    <span
+                                      class="badge badge-{% if pc.required_phone %}success{% else %}danger{% endif %}
+                                       mr-5">
+                                        {{ pc.required_phone }}
+                                    </span>
+
+
+              </td>
+
+              <td>
+                {% if current_user.role in ['superuser', 'markineris_admin'] %}
+
+                  <a class="btn btn-sm btn-outline-danger btn-outline"
+                     onclick="deletePartnerCode(
+                       '{{ url_for('admin_control.delete_partner_code', u_id=u_id, p_id=pc.id) }}', '{{ csrf_token() }}',
+                       '{{ url_for('admin_control.get_registration_link', u_id=u_id) }}',
+                       '{{ url_for('admin_control.get_partner_codes', u_id=u_id) }}'
+                       )"
+                  >&times;</a>
+                  </form>
+                {% endif %}
+              </td>
+
+
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>

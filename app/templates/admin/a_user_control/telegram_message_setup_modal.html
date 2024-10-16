@@ -1,0 +1,101 @@
+<div class="modal fade" id="telegramMessageSetup" tabindex="-1" aria-labelledby="telegramMessageSetup"
+     aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable"
+       style="width: 100% !important">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="telegramMessageSetupLabel">
+          Настройка телеграмм сообщений
+
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {% if telegram_message %}
+          <div class="row">
+            <div class="col-md-3"></div>
+            <div class="col-md-6 col-xs-12 text-justify">
+              <div class="col">
+                <div class="form-check form-check-inline">
+                  <h4>
+                    <input class="form-check-input" type="checkbox" name="send_admin_info"
+                           id="send_admin_info"
+                           {% if telegram_message.send_admin_info %}checked="true"{% endif %}>
+                    <label class="form-check-label" style="font-size:18px"
+                           for="send_admin_info">Информация об администраторе</label>
+                  </h4>
+                </div>
+              </div>
+              <div class="col">
+                <div class="form-check form-check-inline">
+                  <h4>
+                    <input class="form-check-input" type="checkbox" name="send_organization_name"
+                           id="send_organization_name"
+                           {% if telegram_message.send_organization_name %}checked="true"{% endif %}>
+                    <label class="form-check-label" for="send_organization_name">Организация</label>
+                  </h4>
+                </div>
+                <div class="form-check form-check-inline">
+                  <h4>
+                    <input class="form-check-input" type="checkbox" name="send_organization_idn"
+                           id="send_organization_idn"
+                           {% if telegram_message.send_organization_idn %}checked="true"{% endif %}>
+                    <label class="form-check-label" for="send_organization_idn">ИНН</label>
+                  </h4>
+                </div>
+              </div>
+              <div class="col">
+                <div class="form-check form-check-inline">
+                  <h4>
+                    <input class="form-check-input" type="checkbox" name="send_login_name"
+                           id="send_login_name"
+                           {% if telegram_message.send_login_name %}checked="true"{% endif %}>
+                    <label class="form-check-label" for="send_login_name">Логин пользователя</label>
+                  </h4>
+                </div>
+                <div class="form-check form-check-inline">
+                  <h4>
+                    <input class="form-check-input" type="checkbox" name="send_email"
+                           id="send_email"
+                           {% if telegram_message.send_email %}checked="true"{% endif %}>
+                    <label class="form-check-label" for="send_email">Email пользователя</label>
+                  </h4>
+                </div>
+                <div class="form-check form-check-inline">
+                  <h4>
+                    <input class="form-check-input" type="checkbox" name="send_phone"
+                           id="send_phone"
+                           {% if telegram_message.send_phone %}checked="true"{% endif %}>
+                    <label class="form-check-label" for="send_phone">Телефон пользователя</label>
+                  </h4>
+                </div>
+                <div class="form-check form-check-inline">
+                  <h4>
+                    <input class="form-check-input" type="checkbox" name="send_client_code"
+                           id="send_client_code"
+                           {% if telegram_message.send_client_code %}checked="true"{% endif %}>
+                    <label class="form-check-label" for="send_client_code">Код пользователя</label>
+                  </h4>
+                </div>
+              </div>
+              <div class="col text-center mt-2 mb-3">
+                <button
+                  onclick="setUpTelegramMessage('{{ url_for('admin_control.telegram_message_set', u_id=u_id, t_id=telegram_message.id) }}', '{{ csrf_token() }}')"
+                  class="btn btn-outline-primary btn-block">Обновить
+                </button>
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <div>
+            <h4>
+              Телеграмм не зарегистрирован
+            </h4>
+          </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagination</title>
+
+    <!-- Custom CSS -->
+    <style>
+    /* Pagination container */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        padding: 1rem 0;
+        list-style: none;
+    }
+
+    /* Individual page items */
+    .pagination .page-item {
+        margin: 0 0.2rem;
+    }
+
+    /* Default style for page links */
+    .pagination .page-link {
+        display: inline-block;
+        padding: 0.75rem 1rem;
+        border-radius: 50%;
+        border: 1px solid #e0e0e0;
+        color: #007bff;
+        text-decoration: none;
+        font-size: 1rem;
+        width: 40px;
+        height: 40px;
+        line-height: 40px;
+        text-align: center;
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Active page */
+    .pagination .page-item.active .page-link {
+        background-color: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+
+    /* Hover effect for page links */
+    .pagination .page-link:hover {
+        background-color: #f1f1f1;
+        color: #007bff;
+    }
+
+    /* Disabled page items */
+    .pagination .page-item.disabled .page-link {
+        color: #ccc;
+        pointer-events: none;
+        background-color: #f8f9fa;
+    }
+
+    /* Ellipsis for skipped page numbers */
+    .pagination .ellipsis {
+        padding: 0.75rem;
+        color: #666;
+    }
+</style>
+
+</head>
+<body>
+
+<!-- Pagination -->
+<nav id="paginated_nav" aria-label="Page navigation">
+    <ul class="pagination">
+
+        <!-- Previous button -->
+        {% if users_pagination.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('admin_control.admin', u_id=admin_info.id, page=users_pagination.prev_num) }}&sort_type={{ sort_type }}#users_table" aria-label="Previous">
+                «
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">«</span>
+        </li>
+        {% endif %}
+
+        <!-- Page numbers -->
+        {% for number in users_pagination.iter_pages() %}
+        {% if number %}
+        <li class="page-item {% if users_pagination.page == number %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('admin_control.admin', u_id=admin_info.id, page=number) }}&sort_type={{ sort_type }}#users_table">
+                {{ number }}
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item ellipsis">
+            <span class="page-link">...</span>
+        </li>
+        {% endif %}
+        {% endfor %}
+
+        <!-- Next button -->
+        {% if users_pagination.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('admin_control.admin', u_id=admin_info.id, page=users_pagination.next_num) }}&sort_type={{ sort_type }}#users_table" aria-label="Next">
+                »
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">»</span>
+        </li>
+        {% endif %}
+
+    </ul>
+</nav>
+
+
+</body>
+</html>

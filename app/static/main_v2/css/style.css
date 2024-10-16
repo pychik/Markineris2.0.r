@@ -810,4 +810,50 @@ main {
   .nav-pills--cat .nav-link {
     height: 70px;
   }
-}/*# sourceMappingURL=style.css.map */
+}
+
+.cards__item {
+  text-align: center;
+  border-bottom: 1px solid #ffd600;
+  border-radius: 10px;
+  padding: 15px 5px;
+  background: #fff;
+}
+
+.search-form {
+  background: #ebebeb;
+  padding: clamp(1.25rem, 0.2016rem + 3.2258vw, 2.5rem);
+  border-radius: 15px;
+}
+.search-form__input::-moz-placeholder {
+  color: #9c9c9c;
+  font-size: 14px;
+}
+.search-form__input::placeholder {
+  color: #9c9c9c;
+  font-size: 14px;
+}
+.search-form__label {
+  font-size: 14px;
+}
+
+.setting__title {
+  max-width: 460px;
+}
+.setting .btn {
+  max-width: 240px;
+}
+
+.username {
+  text-decoration: underline;
+  text-decoration-color: #ffd600;
+  text-decoration-thickness: clamp(0.3125rem, 0.2717rem + 0.2041vw, 0.4375rem);
+  text-underline-offset: -5px;
+  -webkit-text-decoration-skip-ink: none;
+  text-decoration-skip-ink: none;
+}
+
+.modal-xxl {
+  --bs-modal-width: 100%;
+}
+/*# sourceMappingURL=style.css.map */

@@ -15,7 +15,7 @@
                    placeholder="Введите запрос и нажмите поиск!">
             <div class="input-group-append">
               <span class="input-group-text btn-accent" style="cursor:pointer"
-                    onclick="su_search_user(`{{ url_for('admin_control.su_user_search') }}`, `{{ csrf_token() }}`);">
+                    onclick="searchUser(`{{ url_for('admin_control.user_search', user_admin_id = admin_info.id) }}`, `{{ csrf_token() }}`)">
                   Поиск
               </span>
             </div>

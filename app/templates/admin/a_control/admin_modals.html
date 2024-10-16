@@ -1,0 +1,382 @@
+<!--Admin add-->
+<div class="modal fade" id="addAdminModal" tabindex="-1" aria-labelledby="addAdminModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable"
+        style="width: 100% !important">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addAdminModalLabel">
+                    Добавить нового админа
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="col-12">
+
+                    <div class="card text-center py-2">
+                        <form method="post" action="{{ url_for('admin_control.create_admin') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                            <!-- Admin Login Field -->
+                            <div class="form-group align-items-center">
+                                <label class="text-md-right"><font size="4">Логин Админа</font></label>
+                                <div class="col-md-10">
+                                    <input type="text" name="admin_login_name" class="form-control" placeholder="Введите логин админа" required>
+                                </div>
+                            </div>
+
+                            <!-- Admin Password Field with Password Generation Button -->
+                            <div class="form-group align-items-center mt-3">
+                                <label class="text-md-right"><font size="4">Пароль Админа</font></label>
+                                <div class="col-md-10">
+                                    <div class="input-group">
+                                        <!-- Admin Password Input -->
+                                        <input type="text" id="admin_password" name="admin_password" class="form-control" placeholder="Введите пароль админа" required>
+
+                                        <!-- Generate Password Badge -->
+                                        <span class="input-group-text" style="cursor: pointer;user-select: none;" onclick='document.getElementById("admin_password").value = Password.generate(8)'>
+                                            Сгенерировать
+                                        </span>
+                                     </div>
+                                </div>
+                            </div>
+
+
+                            <!-- Admin Permissions -->
+                            <div class="form-group align-items-center mt-3">
+                                <label class="text-md-right"><font size="4">Возможности админа</font></label>
+                                <div class="col-md-10">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="radio_is_telegram" id="radio_is_telegram" checked
+                                            onchange="document.getElementById('radio_is_crm').checked=false;document.getElementById('radio_is_caller').checked=false;telegram_add();">
+                                        <label class="form-check-label" for="radio_is_telegram">
+                                            Работа в Телеграм (Агент типа Единый счет)
+                                        </label>
+                                    </div>
+                                    <div class="mb-2">
+                                        <select class="form-control" id="tg_select_id" name="tg_select_id" required>
+                                            <option hidden disabled selected value>Выберите телеграмм</option>
+                                            {% for t in tg_group_list %}
+                                                <option value="{{ t.id }}">{{ t.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="radio_is_crm" id="radio_is_crm"
+                                            onchange="document.getElementById('radio_is_telegram').checked=false;document.getElementById('radio_is_caller').checked=false;telegram_add();">
+                                        <label class="form-check-label" for="radio_is_crm">Работа в CRM</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="radio_is_caller" id="radio_is_caller"
+                                            onchange="document.getElementById('radio_is_telegram').checked=false;document.getElementById('radio_is_crm').checked=false;telegram_add();">
+                                        <label class="form-check-label" for="radio_is_caller">Модератор клиентов реанимации</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary"
+                                    data-bs-dismiss="modal">Закрыть</button>
+                                <button type="submit" class="btn btn-accent">Добавить администратора</button>
+                            </div>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!--Telegram add-->
+<div class="modal fade" id="addTgModal" tabindex="-1" aria-labelledby="addTgModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable"
+        style="width: 100% !important">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addTgModalLabel">
+                    Добавить нового админа
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="col-12">
+
+                    <div class="card text-center py-2">
+
+                        <form method="post" action="{{ url_for('admin_control.telegram_set_group') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                            <!-- Form Title -->
+                            <h4 class="mb-4">Добавить Тг канал</h4>
+
+                            <div class="form-group align-items-center mt-3">
+                                <!-- Channel/Group ID -->
+                                <div class="col-md-10">
+                                    <label for="tg_channel_id" class="form-label"><font size="4">ID канала/группы</font></label>
+                                    <input type="text" id="tg_channel_id" name="tg_channel_id" class="form-control" placeholder="Введите id" required>
+                                </div>
+
+                                <!-- Group Name -->
+                                <div class="col-md-10">
+                                    <label for="tg_name" class="form-label"><font size="4">Название группы</font></label>
+                                    <input type="text" id="tg_name" name="tg_name" class="form-control" placeholder="Введите название группы" required>
+                                </div>
+
+                                <!-- Comment -->
+                                <div class="col-md-10">
+                                    <label for="comment" class="form-label"><font size="4">Комментарий</font></label>
+                                    <input type="text" id="comment" name="comment" class="form-control" placeholder="Введите комментарий" required>
+                                </div>
+
+                            </div>
+                            <!-- Submit Button -->
+                            <div class="modal-footer mt-4">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                                <button type="submit" class="btn btn-accent">Добавить Тг канал</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="getTgDataModal" tabindex="-1" role="dialog" aria-labelledby="getTgDataModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-white" style="background-color: #5dcbf3">
+          <h5 class="modal-title" id="getTgDataModalLabel">
+              Получены данные для телеграмм группы!
+          </h5>
+
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+          </button>
+      </div>
+      <div class="modal-body text-justify">
+
+          <div id="data_tg_insert"></div>
+
+
+      </div>
+
+      <div class="modal-footer">
+
+        <button type="button" class="btn text-white" style="background-color: #5dcbf3" data-bs-dismiss="modal">Закрыть</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+<div class="modal fade" id="admins_listModal" tabindex="-1" role="dialog" aria-labelledby="admins_listModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xxl modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+          <h5 class="modal-title" id="admins_listModalLabel">
+            Список агентов сервиса
+          </h5>
+
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+
+          <div id="admins_table">
+              {% include 'admin/a_control/admin_table.html' %}
+          </div>
+
+
+      </div>
+
+      <div class="modal-footer">
+
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="ac_listModal" tabindex="-1" role="dialog" aria-labelledby="ac_listModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xxl modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+          <h5 class="modal-title" id="ac_listModalLabel">
+            Список агентов сервиса
+          </h5>
+
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+
+          <div id="agent_caller_table">
+              {% include 'admin/a_control/agent_caller_table.html' %}
+          </div>
+
+
+      </div>
+
+      <div class="modal-footer">
+
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="tg_listModal" tabindex="-1" role="dialog" aria-labelledby="tg_listModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+          <h5 class="modal-title" id="tg_listModalLabel">
+            Список агентов сервиса
+          </h5>
+
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+
+          <div id="tg_channels_table">
+              {% include 'admin/a_control/tg_table.html' %}
+          </div>
+
+
+      </div>
+
+      <div class="modal-footer">
+
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-xxl modal-dialog-scrollable"
+        style="width: 100% !important">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="infoModalLabel">
+<!--                    Зарегистрированные-->
+<!--                    пользователи-->
+<!--                    <a href="/admin_control/users_orders_stats/2/"-->
+<!--                        title="Посмотреть статистику заказов пользователей агента ruznak"><span-->
+<!--                            class="badge bg-info"> Всего 1401</span></a>-->
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="row text-center mt-5">
+                    <div class="col-12">
+                        <div id="infoModalTable" class="col" align="left">
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary"
+                    data-bs-dismiss="modal">
+                    Закрыть
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<!-- Modals -->
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-xxl modal-dialog-scrollable"
+        style="width: 100% !important">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Зарегистрированные
+                    пользователи
+                    <a href="/admin_control/users_orders_stats/2/"
+                        title="Посмотреть статистику заказов пользователей агента ruznak"><span
+                            class="badge bg-info"> Всего 1401</span></a>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row text-center mt-5">
+
+                    <div class="col-12">
+
+                        <div id="users_table" class="col" align="left">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-accent"
+                    data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="change_process_at2Modal" tabindex="-1" role="dialog" aria-labelledby="change_process_at2ModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+          <h5 class="modal-title" id="change_process_at2ModalLabel">
+
+          </h5>
+
+        <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="clear_submit_change_pt_modal();" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body text-justify">
+
+            Для привязки телеграмм канала выберите его из списка и нажмите изменить
+          <div id="data_change_pt_insert"></div>
+
+
+      </div>
+
+      <div class="modal-footer">
+
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+            onclick="clear_submit_change_pt_modal();">Закрыть</button>
+
+      </div>
+    </div>
+  </div>
+</div>
+<div id="su_user_search_result"></div>
+
+<div id="agent_fee_or_tl_modal"></div>
+<div id="agent_info_modal"></div>
+<div id="copy_link_modals">
+</div>
+<div id="change_user_password_modal">
+</div>
+
+<div id="user_prices_modal">
+</div>

@@ -1,0 +1,39 @@
+<div class="col  text-center "><h3>Пользователи подключенные к ТГ уведомлениям</h3></div>
+
+<div class="col" align="left">
+    <table class="table mt-3 table-result tablesaw-stack mt-1">
+      <thead class="text-dark">
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Имя пользователя</th>
+          <th scope="col">Агент</th>
+          <th scope="col">Id чата</th>
+          <th scope="col">Функционал</th>
+
+        </tr>
+      </thead>
+      <tbody>
+
+        {%for tgu in tg_notificated_users%}
+            <tr>
+              <th scope="row">{{loop.index}}</th>
+
+              <td>
+                  {{tgu.email}}
+              </td>
+              <td>
+                  {{tgu.agent_name}}
+              </td>
+              <td>
+                  {{tgu.chat_id}}
+              </td>
+              <td class="text-center">
+
+
+              </td>
+
+            </tr>
+        {%endfor%}
+      </tbody>
+    </table>
+</div>
