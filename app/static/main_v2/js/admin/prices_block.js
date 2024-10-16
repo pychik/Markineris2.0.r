@@ -1,4 +1,6 @@
 function perform_modal_prices(u_id, u_name, p_code, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, url, csrf){
+    console.log(url)
+    console.log(u_id)
     let modal_block = document.getElementById('user_prices_modal');
     let prices_desc_block = `<table class="table mt-1 table-result" >
                               <thead class="text-dark">
@@ -116,7 +118,7 @@ function clear_modal_prices() {
 function bck_edit_user_price(url, user_price_block)
   {
    var form = $("#user_price_plug_form").serialize();
-    // console.log(form);
+    console.log(url);
    $.ajax({
     url:url,
     // headers:{"X-CSRFToken": csrf},

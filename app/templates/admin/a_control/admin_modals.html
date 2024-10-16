@@ -47,32 +47,27 @@
                             <div class="form-group align-items-center mt-3">
                                 <label class="text-md-right"><font size="4">Возможности админа</font></label>
                                 <div class="col-md-10">
-                                    <div class="form-check mb-2">
-                                        <input class="form-check-input" type="radio" name="radio_is_telegram" id="radio_is_telegram" checked
-                                            onchange="document.getElementById('radio_is_crm').checked=false;document.getElementById('radio_is_caller').checked=false;telegram_add();">
-                                        <label class="form-check-label" for="radio_is_telegram">
+                        <div class="form-check" >
+                          <input class="form-check-input" type="radio" name="radio_is_telegram"
+                                 id="radio_is_telegram" checked
+                                 onchange="document.getElementById('radio_is_crm').checked=false; telegram_add()">
+                          <label class="form-check-label" for="radio_is_telegram">
                                             Работа в Телеграм (Агент типа Единый счет)
                                         </label>
-                                    </div>
-                                    <div class="mb-2">
-                                        <select class="form-control" id="tg_select_id" name="tg_select_id" required>
-                                            <option hidden disabled selected value>Выберите телеграмм</option>
-                                            {% for t in tg_group_list %}
-                                                <option value="{{ t.id }}">{{ t.name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="form-check mb-2">
-                                        <input class="form-check-input" type="radio" name="radio_is_crm" id="radio_is_crm"
-                                            onchange="document.getElementById('radio_is_telegram').checked=false;document.getElementById('radio_is_caller').checked=false;telegram_add();">
-                                        <label class="form-check-label" for="radio_is_crm">Работа в CRM</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="radio_is_caller" id="radio_is_caller"
-                                            onchange="document.getElementById('radio_is_telegram').checked=false;document.getElementById('radio_is_crm').checked=false;telegram_add();">
-                                        <label class="form-check-label" for="radio_is_caller">Модератор клиентов реанимации</label>
-                                    </div>
-                                </div>
+                        </div>
+                        <div class="form-check">
+                                <input class="form-check-input" type="radio" name="radio_is_crm" id="radio_is_crm"
+                                       onchange="document.getElementById('radio_is_telegram').checked=false;telegram_add()">
+                                <label class="form-check-label" for="radio_is_crm">Работа В CRM</label>
+                              </div>
+
+                              <select class="form-control" id="tg_select_id" name="tg_select_id" required>
+                                  <option hidden disabled selected value >Выберите телеграмм</option>
+                                  {%for t in tg_group_list%}
+                                    <option value="{{t.id}}">{{t.name}}</option>
+                                  {%endfor%}
+                              </select>
+                            </div>
                             </div>
 
                             <!-- Submit Button -->
