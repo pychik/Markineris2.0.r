@@ -403,6 +403,7 @@ function clothes_content_add() {
     }
 
     content_box.value += add_content;
+    content_box.value = content_box.value.slice(0, 101);
 }
 
 function check_nat_content(content) {

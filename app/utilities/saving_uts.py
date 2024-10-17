@@ -55,7 +55,7 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list) -> Order
                                 article=process_input_str(form_dict.get("article")),
                                 type=form_dict.get("type"),
                                 color=form_dict.get("color"),
-                                content=form_dict.get("content"), box_quantity=form_dict.get("box_quantity"),
+                                content=form_dict.get("content")[:101], box_quantity=form_dict.get("box_quantity"),
                                 gender=form_dict.get("gender"), country=form_dict.get("country"),
                                 tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                                 tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
