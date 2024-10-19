@@ -56,7 +56,8 @@ def h_category(category: str = settings.Shoes.CATEGORY, upload_flag: int = None)
 
 
 def h_delete_order(o_id: int, stage: int, category: str = settings.Shoes.CATEGORY) -> Response:
-    common_process_delete_order(o_id=o_id, stage=stage)
+    if not current_user.is_at2:
+        common_process_delete_order(o_id=o_id, stage=stage)
     return redirect(url_for('orders_archive.index', category=category))
 
 
