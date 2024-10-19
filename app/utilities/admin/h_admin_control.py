@@ -174,6 +174,7 @@ def h_admin(u_id: int):
 def h_get_partner_codes(u_id: int):
     admin_info = None
     partner_codes = User.query.join(users_partners, User.id == users_partners.c.user_id).join(PartnerCode, users_partners.c.partner_code_id == PartnerCode.id).with_entities(PartnerCode.id.label('id'), PartnerCode.code.label('code'), PartnerCode.name.label('name'), PartnerCode.phone.label('phone'), PartnerCode.required_phone.label('required_phone')).filter(User.id == u_id).all()
+
     return jsonify({'htmlresponse': render_template('admin/a_user_control/registered_partners_code_modal.html', **locals())})
 
 
@@ -184,8 +185,10 @@ def h_get_registration_link(u_id: int):
         partner_sign_up_list = [(
             apc[0], url_for('auth.sign_up', p_link=url_encrypt(apc[1]))
         ) for apc in admin_partner_codes]
+
         return jsonify({'htmlresponse': render_template('admin/a_user_control/new_registration_link_modal.html', **locals())})
 
+    return Response(status=200)
 
 def h_set_order_notification(u_id: int):
     message_status = 'error'
@@ -327,19 +330,24 @@ def h_su_not_basic_price_report() -> Response:
 
 
 def h_delete_partner_code(u_id: int, p_id: int) -> Response:
+    message_status = 'error'
     partner_code = PartnerCode.query.filter_by(id=p_id).first()
     if not partner_code:
-        flash(message=f"{settings.Messages.STRANGE_REQUESTS}")
-        return redirect(url_for('admin_control.index'))
+        return jsonify({'message': settings.Messages.STRANGE_REQUESTS, 'status': message_status})
+
     try:
         db.session.delete(partner_code)
         db.session.commit()
-        flash(message=settings.Messages.PARTNER_CODE_DELETE_SUCCESS.format(partner_code=partner_code.code), category='success')
+        message = settings.Messages.PARTNER_CODE_DELETE_SUCCESS.format(partner_code=partner_code.code)
+        message_status = 'success'
+
     except Exception as e:
-        flash(message=settings.Messages.PARTNER_CODE_DELETE_ERROR, category='error')
+        message = settings.Messages.PARTNER_CODE_DELETE_ERROR
+        message_status = 'error'
         logger.error(f"{settings.Messages.PARTNER_CODE_DELETE_ERROR}: {e}")
         db.session.rollback()
-    return redirect(url_for('admin_control.admin', u_id=u_id))
+
+    return jsonify({'message': message, 'status': message_status})
 
 
 def h_telegram_set_group() -> Response:
