@@ -93,7 +93,7 @@ def process_order(o_id: int):
         return redirect(url_for('clothes.index', o_id=order.id))
 
     return helper_process_category_order(user=user, category=settings.Clothes.CATEGORY,
-                                         o_id=o_id, order_comment=order_comment, clothes_divider_flag=True)
+                                         o_id=o_id, order_comment=order_comment)
 
 
 @clothes.route('/search_by_article/<int:o_id>', methods=['POST', ])

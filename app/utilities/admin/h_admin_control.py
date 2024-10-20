@@ -756,7 +756,7 @@ def h_send_order() -> Response:
             o_id=order.id,
             user=user,
             order_comment='',
-            order_idn=order.order_idn, order_num=0,
+            order_idn=order.order_idn,
             su_exec_order_name=order_idn_form,
             clothes_divider_flag=True if order.category == settings.Clothes.CATEGORY else False,
         ):
