@@ -159,7 +159,7 @@ def h_admin(u_id: int):
         partner_sign_up_list = [(
             apc[0], url_for('auth.sign_up', p_link=url_encrypt(apc[1]))
         ) for apc in admin_partner_codes]
-
+        partners_count = len(partner_sign_up_list)
         if admin_info.telegram_message:
             telegram_message = admin_info.telegram_message[0]
         else:
@@ -226,13 +226,13 @@ def h_create_admin():
         return redirect(url_for('admin_control.index', expanded=settings.EXP_USERS))
 
 
-def h_partner_code(u_id: int, auto: int = None):
+def h_partner_code(u_id: int, auto: int = 0):
     message_status = 'error'
-    user = User.query.get(u_id)
+    admin_info = User.query.get(u_id)
     required_email = True  # if form_dict.get("required_email") else False
     required_phone = True  # if set_dict.get("required_phone") else False
     if auto == 1:
-        name = user.login_name + '_' + str(len(user.partners)+1)
+        name = admin_info.login_name + '_' + str(len(admin_info.partners)+1)
         code = name
         phone = settings.SU_PHONE
     elif auto == 0:
@@ -260,12 +260,17 @@ def h_partner_code(u_id: int, auto: int = None):
         required_email=required_email
     )
     try:
-        user.partners.append(partner_code)
-        db.session.add(user)
+        admin_info.partners.append(partner_code)
+        db.session.add(admin_info)
         db.session.commit()
         message = f"{settings.Messages.PARTNER_CODE_CREATE} {name} "
         message_status = 'success'
-        return jsonify({'message': message, 'status': message_status})
+        partners_count = len(admin_info.partners)
+        return jsonify(
+            {'message': message,
+             'status': message_status,
+             'htmlresponse': render_template('admin/a_user_control/partner_code_add_modal.html', **locals())
+             })
 
     except IntegrityError as e:
         message_status = 'error'

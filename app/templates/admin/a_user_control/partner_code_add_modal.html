@@ -45,12 +45,12 @@
           </div>
           </form>
           <div class="col text-center">
-            <button class="col-md-3 col-xs-12 btn btn-sm btn-warning mt-3 mb-2"
+            <button class="col-md-3 col-xs-12 btn btn-sm btn-warning mt-3 mb-2" id="add_new_partner_auto"
                     onclick="addNewClient(
                         '{{ url_for('admin_control.partner_code', u_id=u_id) }}', '{{ csrf_token() }}', 1, '{{ url_for('admin_control.get_registration_link', u_id=admin_info.id)}}',
                         '{{ url_for('admin_control.get_partner_codes', u_id=admin_info.id)}}')">
               <font size="2">+Добавить
-                автоматически {{ admin_info.login_name }}_{{ partner_sign_up_list | length + 1 }}</font>
+                автоматически {{ admin_info.login_name }}_{{ partners_count + 1 }}</font>
             </button>
           </div>
         </div>
@@ -59,5 +59,3 @@
     </div>
   </div>
 </div>
-
-

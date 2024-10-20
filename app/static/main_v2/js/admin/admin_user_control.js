@@ -41,7 +41,10 @@ function addNewClient(url, csrf, auto = 0, linkUpdateUrl, clientCodeUpdateUrl) {
             make_message(data.message, data.status);
             updateRegistrationLinks(linkUpdateUrl);
             updateClientCodesList(clientCodeUpdateUrl);
+            $('#partnerCodeAdd').remove();
+            $('body').append(data.htmlresponse);
             $('#partnerCodeAdd').modal('hide');
+            $('.modal-backdrop').remove();
         },
         error: function(xhr) {
             if (xhr.status === 400) {
