@@ -269,7 +269,7 @@ def h_partner_code(u_id: int, auto: int = 0):
         return jsonify(
             {'message': message,
              'status': message_status,
-             'htmlresponse': render_template('admin/a_user_control/partner_code_add_modal.html', **locals())
+             'htmlresponse': render_template('admin/a_user_control/partner_code_add_modal_body.html', **locals())
              })
 
     except IntegrityError as e:

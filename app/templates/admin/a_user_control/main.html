@@ -25,7 +25,7 @@
         <hr>
         <div class="setting__item d-flex justify-content-between align-items-center">
           <div class="fw-bold setting__title">Добавление кодов партнеров</div>
-          <a class="btn btn-secondary " type="button" onclick="$('#partnerCodeAdd').modal('show')">Добавить
+          <a class="btn btn-secondary " type="button" onclick="$('#partnerCodeAddModal').modal('show')">Добавить
             код</a>
         </div>
         <hr>
@@ -196,7 +196,7 @@
             <div class="mt-2 ms-3">
 
               <a class="badge bg-secondary"
-                 href="{{ url_for('admin_control.su_control_specific_ut', u_id=u.id) }}"
+                href="{{ url_for('admin_control.su_control_specific_ut', u_id=u.id) }}"
                  title="Посмотреть историю транзакций клиента">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
                      fill="currentColor" class="bi bi-database"
@@ -237,11 +237,8 @@
                     <div id="user_price{{ u.id }}">
                       {% if u.price_code %}
                         <span class="badge bg-warning text-black" style="cursor:pointer"
-                              onclick="perform_modal_prices(
-                                  '{{ u.id }}',
-                                  '{{ u.login_name }}',
-                                  '{{ u.price_code }}',
-                                  '{{ u.price_1 }}',
+                              onclick="perform_modal_prices('{{ u.id }}', '{{ u.login_name }}', '{{ u.price_code }}',
+                               '{{ u.price_1 }}',
                                   '{{ u.price_2 }}',
                                   '{{ u.price_3 }}',
                                   '{{ u.price_4 }}',
@@ -252,14 +249,11 @@
                                   '{{ u.price_9 }}',
                                   '{{ u.price_10 }}',
                                   '{{ u.price_11 }}',
-                                  '{{ url_for('admin_control.bck_set_user_price', u_id=u.id) }}?bck=1',
-                                  '{{ csrf_token() }}')">{{ u.price_code }}</span>
+                                   '{{ url_for('admin_control.bck_set_user_price', u_id=u.id) }}?bck=1', '{{ csrf_token() }}')">{{ u.price_code }}</span>
                       {% else %}
                         <span class="badge bg-warning text-black" style="cursor:pointer"
-                              onclick="perform_modal_prices(
-                                    '{{ u.id }}',
-                                    '{{ u.login_name }}',
-                                    '{{ basic_prices[0] }}',
+                              onclick="perform_modal_prices('{{ u.id }}', '{{ u.login_name }}',
+                              '{{ basic_prices[0] }}',
                                     '{{ basic_prices[1] }}',
                                     '{{ basic_prices[2] }}',
                                     '{{ basic_prices[3] }}',
@@ -270,9 +264,7 @@
                                     '{{ basic_prices[8] }}',
                                     '{{ basic_prices[9] }}',
                                     '{{ basic_prices[10] }}',
-                                    '{{ basic_prices[11] }}',
-                                    '{{ url_for('admin_control.bck_set_user_price',u_id=u.id) }}?bck=1',
-                                      '{{ csrf_token() }}')">{{ basic_prices[0] }}</span>
+                                    '{{ basic_prices[11] }}', '{{ url_for('admin_control.bck_set_user_price', u_id=u.id) }}?bck=1', '{{ csrf_token() }}')">{{ basic_prices[0] }}</span>
                       {% endif %}
                     </div>
                   </td>
