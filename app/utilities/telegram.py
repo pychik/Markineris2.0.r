@@ -148,14 +148,21 @@ class TelegramProcessor:
 
     @staticmethod
     @job(**TELEGRAM_JOB_PARAMS)
-    def send_message_tg(message: str, group_id: str, files_list: list[str, BytesIO]) -> None:
+    def send_message_tg(message: str, group_id: str, files_list: list[BytesIO, str]) -> None:
 
         try:
             tg_bot = telebot.TeleBot(settings.TELEGRAM_BOT_TOKEN)
 
-            media_group = list(map(lambda x: types.InputMediaDocument(x[0]), files_list))
-            media_group[-1] = types.InputMediaDocument(files_list[-1][0], caption=message, parse_mode='HTML')
-            tg_bot.send_media_group(chat_id=group_id, media=media_group, )
+            # media_group = list(map(lambda x: types.InputMediaDocument(x[0]), files_list))
+            # media_group[-1] = types.InputMediaDocument(files_list[-1][0], caption=message, parse_mode='HTML')
+            # tg_bot.send_media_group(chat_id=group_id, media=media_group, )
+            tg_bot.send_document(
+                chat_id=group_id,
+                visible_file_name=files_list[1],
+                document=files_list[0],
+                caption=message,
+                parse_mode="HTML",
+            )
 
         except Exception as e:
             logger.error(f"{settings.Messages.TELEGRAM_SEND_ERROR}: {e}")

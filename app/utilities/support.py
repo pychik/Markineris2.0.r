@@ -1086,8 +1086,7 @@ def helper_get_cat_models_sort_dict(category: str) -> Optional[dict]:
     return cat_models_dict
 
 
-def helper_process_category_order(user: User, category: str, o_id: int, order_comment: str,
-                                  clothes_divider_flag: bool = False) -> Response:
+def helper_process_category_order(user: User, category: str, o_id: int, order_comment: str) -> Response:
     from .download import orders_process_send_order
     _category_name = settings.CATEGORIES_DICT.get(category)
 
@@ -1115,9 +1114,7 @@ def helper_process_category_order(user: User, category: str, o_id: int, order_co
             sent_flag = orders_process_send_order(
                 o_id=o_id, user=user,
                 order_comment=order_comment,
-                order_num=order_num,
                 order_idn=order_idn,
-                clothes_divider_flag=clothes_divider_flag,
                 flag_046=False,
             )
 
