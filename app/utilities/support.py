@@ -1,3 +1,4 @@
+import re
 from base64 import encodebytes
 from datetime import datetime, timedelta
 from functools import wraps
@@ -2926,3 +2927,15 @@ def user_is_send_check(func):
             flash(message=f"{settings.Messages.NO_SUCH_USER_SERVICE}", category='error')
             return redirect(url_for('main.enter'))
     return wrapper
+
+
+def extract_id_from_partner_name(name) -> Optional[int]:
+    match = re.search(r'_(\d+)$', name)
+    return int(match.group(1)) if match else None
+
+
+def get_partner_code_max_id(partners) -> str:
+    partners_id = [extract_id_from_partner_name(partner.name) for partner in partners if
+                   extract_id_from_partner_name(partner.name) is not None]
+    auto_increment_id = max(partners_id) + 1 if partners_id else 1
+    return str(auto_increment_id)

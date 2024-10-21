@@ -1,0 +1,45 @@
+<div class="modal-body">
+        <div class="col-12">
+          <div class="row text-center mt-3">
+            <div class="col-md-4 col-xs-12 text-left">
+              <label><h5>Код партнера</h5></label>
+              <input type="text" name="code" class="form-control" id="partnerCode"
+                     placeholder="Введите код партнера" required>
+            </div>
+            <div class="col-md-4 col-xs-12 text-left">
+              <label><h5>Имя партнера</h5></label>
+              <input type="text" name="name" class="form-control" id="partnerName"
+                     placeholder="Введите имя партнера" required>
+            </div>
+            <div class="col-md-4 col-xs-12 text-left">
+              <label><h5>Телефон партнера</h5></label>
+              <input type="tel" name="phone" class="form-control" id="partnerPhone"
+                     placeholder="Введите телефон партнера" required>
+            </div>
+
+          </div>
+
+          <div class="col text-center">
+            <button class="col-md-3 col-xs-12 btn btn-sm btn-warning mt-3 mb-2"
+                    onclick="addNewClient('{{
+                      url_for('admin_control.partner_code', u_id=u_id) }}',
+                      '{{ csrf_token() }}',
+                      0,
+                      '{{ url_for('admin_control.get_registration_link', u_id=admin_info.id)}}',
+                      '{{ url_for('admin_control.get_partner_codes', u_id=admin_info.id)}}',
+                      );">
+              <font size="2">+Добавить</font>
+            </button>
+          </div>
+          </form>
+          <div class="col text-center">
+            <button class="col-md-3 col-xs-12 btn btn-sm btn-warning mt-3 mb-2" id="add_new_partner_auto"
+                    onclick="addNewClient(
+                        '{{ url_for('admin_control.partner_code', u_id=u_id) }}', '{{ csrf_token() }}', 1, '{{ url_for('admin_control.get_registration_link', u_id=admin_info.id)}}',
+                        '{{ url_for('admin_control.get_partner_codes', u_id=admin_info.id)}}')">
+              <font size="2">+Добавить
+                автоматически {{ admin_info.login_name }}_{{ auto_increment_id  }}</font>
+            </button>
+          </div>
+        </div>
+      </div>

@@ -1,0 +1,58 @@
+<div class="row text-center" id="tg_groups_table">
+    {% if telegram_list %}
+        <div class="col" align="left">
+            <table class="table table-result tablesaw-stack mt-1" >
+              <thead class="text-dark">
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col"><font size="2">Название</font></th>
+                  <th scope="col"><font size="2">Id канала / группы</font></th>
+                  <th scope="col"><font size="2">Комментарий</font></th>
+                  <th scope="col"><font size="2">Активирован</font></th>
+                  <th scope="col"><font size="2">Пользователи канала</font></th>
+                  <th scope="col"><font size="2"></font></th>
+                </tr>
+              </thead>
+              <tbody>
+
+                {%for t in telegram_list%}
+                    <tr>
+                      <th scope="row">{{loop.index}}</th>
+
+                      <td>
+                          {{ t.name }}
+                      </td>
+                      <td>
+                          {{ t.channel_id }}
+                      </td>
+                      <td>
+                          {{ t.comment }}
+                      </td>
+                      <td>
+                        {% if t.status %}
+                              <span class="badge bg-success">Активирован</span>
+                          {% else %}
+                              <span class="badge bg-danger">Не активирован</span>
+                        {% endif %}
+                      </td>
+                      <td >
+                          <span class="badge bg-info" style="cursor:pointer;"
+                            onclick="javascript:get_tg_data('{{ url_for('requests_common.get_tg_user_data', tg_id=t.id) }}')">Получить данные
+                          </span>
+                      </td>
+                      <td>
+                          <div>
+                                      <a class="btn btn-sm btn-outline-danger btn-outline"
+                                         onclick="deleteTelegramGroup('{{url_for('admin_control.delete_telegram_group', t_id=t.id)}}', '{{ csrf_token() }}', '{{ url_for('admin_control.su_get_telegram') }}')" >&times;</a>
+                          </div>
+                      </td>
+
+                    </tr>
+                {%endfor%}
+
+              </tbody>
+            </table>
+        </div>
+
+{% endif %}
+</div>

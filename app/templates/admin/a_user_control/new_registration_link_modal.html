@@ -1,0 +1,74 @@
+<div class="modal fade" id="newUserRegistrationLink" tabindex="-1" aria-labelledby="newUserRegistrationLink"
+     aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable"
+       style="width: 100% !important">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="newUserRegistrationLinkLabel">
+          Ссылки для регистрации новых клиентов
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="col-12">
+
+          <table class="table mt-3 table-result tablesaw-stack mt-1">
+            <thead class="text-dark">
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col"><font size="2">Код партнера</font></th>
+              <th scope="col"><font size="2">Cсылка для пользователя&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</font></th>
+
+            </tr>
+            </thead>
+            <tbody>
+
+
+            {% if partner_sign_up_list %}
+              {% for data_link in partner_sign_up_list %}
+                <tr>
+                  <th scope="row">{{ loop.index }}</th>
+
+                  <td>
+                    {{ data_link[0] }}
+                  </td>
+                  <td>
+                    <div class="row">
+                      <div class="col-10">
+                        <input type="text"
+                               value="{{ request.url_root[:-1] }}{{ data_link[1] }}" class="form-control"
+                               id="copy_{{ data_link[0] }}" readonly>
+                      </div>
+
+                      <div class="col-2 mt-2">
+
+                        <a id="copyText" type="button"
+                           title="Скопировать ссылку"
+                           onclick="copy_buffer('copy_{{ data_link[0] }}',
+                             'copy_message_{{ data_link[0] }}');">&#128190;</a>
+
+                      </div>
+                    </div>
+                    <span id="copy_message_{{ data_link[0] }}" style="color:#23c1fc"></span>
+                  </td>
+
+
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td></td>
+                <td>Нет партнер кодов</td>
+                <td></td>
+              </tr>
+            {% endif %}
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

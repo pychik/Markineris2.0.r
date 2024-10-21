@@ -641,6 +641,7 @@ class Settings(BaseSettings):
         TELEGRAM_MPSET_SUCCESS: str = "Успешно сохранены настройки сообщения телеграмм канала агента! "
         TELEGRAM_MPSET_ERROR: str = "Ошибка сохранения настроек сообщения телеграмм канала агента! "
         TELEGRAM_DELETE_ERROR: str = "Ошибка удаления телеграмм группы/канала! "
+        TELEGRAM_DELETE_SUCCESS: str = "Телеграмм группа/канал успешно удалены! "
         TELEGRAM_BIND_ERROR: str = "Ошибка привязки телеграмм группы/канала! "
         TELEGRAM_SEND_ERROR: str = "Ошибка отправки сообщения менеджеру"
         TELEGRAM_REQUEST_ERROR: str = "Ошибка, некорректный запрос информации телеграмм группы!"

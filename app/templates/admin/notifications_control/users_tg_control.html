@@ -1,0 +1,18 @@
+{% extends "main/base_v2.html" %}
+
+{% block fc_panel %}
+
+
+<div class="container">
+    <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
+        <div class="breadcrumbs">
+            <a href="{{url_for('admin_control.index')}}">Панель управления </a>
+            /
+            <span>Контроль уведомлений пользователей</span>
+        </div>
+    </div>
+    <div class="col  text-center "><h3>В разработке</h3></div>
+    {% include 'admin/notifications_control/tg_users_table.html' %}
+</div>
+
+{% endblock %}

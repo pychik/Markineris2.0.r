@@ -68,7 +68,7 @@ function perform_modal_prices(u_id, u_name, p_code, p1, p2, p3, p4, p5, p6, p7, 
                         </form>`
 
     modal_block.innerHTML = `<div class="modal fade" id="user_priceModal" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-labelledby="user_priceModalLabel" aria-hidden="true">
-          <div class="modal-dialog" data-backdrop="static" role="document">
+          <div class="modal-dialog modal-xl" data-backdrop="static" role="document">
             <div class="modal-content">
               <div class="modal-header">
                 <h5 class="modal-title" id="user_priceModalLabel">Форма привязки ценового пакета для пользователя ${u_name}.</h5>
@@ -116,7 +116,7 @@ function clear_modal_prices() {
 function bck_edit_user_price(url, user_price_block)
   {
    var form = $("#user_price_plug_form").serialize();
-    // console.log(form);
+    console.log(url);
    $.ajax({
     url:url,
     // headers:{"X-CSRFToken": csrf},

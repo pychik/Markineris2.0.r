@@ -1,0 +1,168 @@
+{% extends "main/base_v2.html" %}
+
+{% block admin_panel %}
+
+<div class="container-fluid pb-4 content-main">
+    <div class="alert bg-light" role="alert">
+        <div class="front text-center">
+                <h1 class="mb-5 fs-2">Панель администратора</h1>
+        </div>
+        <div class="row g-3 cards">
+            <div class="col-md-4 ">
+                <div class="cards__item">
+                    <div class="cards__title ">Зарегистрированных клиентов</div>
+                    <div class="cards__num fs-4 fw-bold">
+                        {{ ou_quantity }}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="cards__item">
+                    <div class="cards__title">Зарегистрированных клиентов за {{ registration_date.strftime('%d.%m.%Y') }}</div>
+                    <div class="cards__num fs-4 fw-bold">
+                        {{ new_user_cnt.new_user_cnt }}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="cards__item">
+                    <div class="cards__title">Заказов/Марок за предыдущий день</div>
+                    <div class="cards__num fs-4 fw-bold">
+                        {{ prev_day_orders_marks.orders_count }} / {{ prev_day_orders_marks.marks_count }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="d-flex justify-content-center mt-4 mb-5">
+        <a href="{{url_for('admin_control.users_orders_stats')}}">Перейти в общую статистику заказов</a>
+    </div>
+
+    <div class="row g-3">
+            <div class="col-lg-3">
+                <div class="fw-bold mb-3">Управление админами</div>
+                <div class="d-flex flex-column ">
+                    <a class="btn btn-primary btn-accent border-0 text-dark mb-2" type="button" onclick="$('#addAdminModal').modal('show')">Добавить
+                        админов</a>
+                    <a class="btn btn-secondary mb-2" onclick="$('#admins_listModal').modal('show')">Показать админов</a>
+                    <a class="btn btn-secondary" onclick="$('#ac_listModal').modal('show')">Показать модераторов</a>
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <div class="fw-bold mb-3">Управление клиентами</div>
+                <div class="d-flex flex-column ">
+                    <a href="{{url_for('admin_control.bck_control_reanimate')}}"
+                       class="btn btn-primary btn-accent border-0 text-dark mb-2" type="button">Реанимация
+                        клиентов</a>
+
+                    <a href="{{url_for('admin_control.users_activate_list')}}" class="btn btn-secondary">Неактивированные клиенты</a>
+
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <div class="fw-bold mb-3">Разное</div>
+                <div class="d-flex flex-column ">
+                    <a class="btn btn-primary btn-accent border-0 text-dark mb-2" type="button" onclick="$('#addTgModal').modal('show')">Добавить телеграмм каналы</a>
+
+                    <a class="btn btn-secondary mb-2" onclick="$('#tg_listModal').modal('show')">Показать телеграм каналы</a>
+                    <a href="{{url_for('admin_control.tg_notifications_main')}}" class="btn btn-secondary" disabled>Контроль уведомлений</a>
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <div class="search-form">
+                    <div class="fw-bold mb-3">Поиск</div>
+                    {% include "admin/user_search/su_search_user_bar.html" %}
+                    {% include "admin/user_search/search_cross_user_bar.html" %}
+
+                </div>
+
+            </div>
+    </div>
+</div>
+
+
+<div class=" row  mt-5">
+    <div class="col-md-3"></div>
+        <div class="col-md-6 col-xs-12">
+            <div class="card bg-light text-center">
+                <h3>Форма повторной отправки заказов по их номеру!</h3>
+                <small class="text-muted">(функционал не отлажен. проверка работоспособности)</small>
+                <form  class="form" method="post"
+                                                action="{{url_for('admin_control.send_order')}}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <div class="form-group">
+
+                    <div class="col mt-3">
+                      <input type="text" class="form-control" id="inputOrderid" name="inputOrderid"
+                             placeholder="Введите номер заказа который пропущен (Например 3_124)">
+                    </div>
+                  </div>
+                    <button type="submit" class="btn btn-accent btn-sm mt-1 mb-3">
+                        Отправить повторно заказ агенту
+                    </button>
+                </form>
+            </div>
+        </div>
+</div>
+
+{%include 'admin/a_control/admin_modals.html'%}
+
+
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_common.js')}}"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_main.js')}}?v=2"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/prices_block.js')}}"></script>
+
+<script>
+const prices_array = [{% for p in all_prices %}[{{ p.id }},'{{ p.price_code }}', '{{p.price_at2}}'],{% endfor %}];
+const tg_array = [{% for t in tg_group_list %}[{{ t.id }},'{{ t.name }}'],{% endfor %}];
+
+var Password = {
+
+  _pattern : /[a-kA-Hm-zJ-Z0-9_\-\+\.]/,
+
+
+  _getRandomByte : function()
+  {
+    // http://caniuse.com/#feat=getrandomvalues
+    if(window.crypto && window.crypto.getRandomValues)
+    {
+      var result = new Uint8Array(1);
+      window.crypto.getRandomValues(result);
+      return result[0];
+    }
+    else if(window.msCrypto && window.msCrypto.getRandomValues)
+    {
+      var result = new Uint8Array(1);
+      window.msCrypto.getRandomValues(result);
+      return result[0];
+    }
+    else
+    {
+      return Math.floor(Math.random() * 256);
+    }
+  },
+
+  generate : function(length)
+  {
+    return Array.apply(null, {'length': length})
+      .map(function()
+      {
+        var result;
+        while(true)
+        {
+          result = String.fromCharCode(this._getRandomByte());
+          if(this._pattern.test(result))
+          {
+            return result;
+          }
+        }
+      }, this)
+      .join('');
+  }
+
+};
+</script>
+
+{% endblock %}

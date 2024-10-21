@@ -13,12 +13,12 @@
         </label>
 
         <div class="input-group mb-3">
-            <input type="number" name="cross_order_idn" id="cross_order_idn"
+            <input type="number" name="search_by_idn" id="search_by_idn"
                    class="form-control search-form__input"
                    placeholder="Введите ИНН и нажмите Поиск!">
             <div class="input-group-append">
               <span class="input-group-text btn-accent" style="cursor:pointer"
-                    onclick="search_cross_user(`{{ url_for('admin_control.cross_user_search') }}`, '{{ csrf_token() }}');">
+                    onclick="searchUserByIdn(`{{ url_for('admin_control.user_search_idn', user_admin_id = admin_info.id) }}`, `{{ csrf_token() }}`);">
                   Поиск
               </span>
             </div>
@@ -28,6 +28,4 @@
     </div>
 
 </div>
-<!--    <div id="cross_user_search_result"></div>-->
-<!--    <div id="cross_user_markineris_search_result"></div>-->
 

@@ -29,6 +29,36 @@ async function get_tg_data(url_link){
         }
 }
 
+function deleteTelegramGroup(deleteUrl, csrf, updateUrl){
+    $.ajax({
+        url: deleteUrl,
+        type: 'POST',
+        data: { csrf_token: csrf },
+        success: function(data) {
+            make_message(data.message, data.status);
+            let tgModal = $('#tg_listModal')
+            tgModal.modal('hide')
+            updateTelegramGroupList(updateUrl)
+        },
+        error: function(xhr, status, error) {
+            console.error('Ошибка:', error);
+        }
+    });
+}
+
+function updateTelegramGroupList(url) {
+    $.ajax({
+        url: url,
+        type: 'GET',
+        success: function(response) {
+            $('#tg_groups_table table').html(response.htmlresponse);
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            console.error('Ошибка при обновлении модального окна:', textStatus, errorThrown);
+        }
+    });
+}
+
 async function fetchAsync (url) {
   let response = await fetch(url);
 
@@ -229,8 +259,10 @@ function su_load_data(query, url, csrf_token){
     data:{query:query},
     success:function(data)
     {
-      $('#su_user_search_result').html(data);
-      $("#su_user_search_result").append(data.htmlresponse);
+      $('#infoModalTable').html(data);
+      $('#infoModalLabel').html("Найденные пользователи по тегу " + query);
+      $('#infoModalTable').append(data.htmlresponse);
+      $('#infoModal').modal('show')
     },
     error: function() {
      make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
@@ -244,7 +276,7 @@ function su_search_user(url, csrf_token){
         su_load_data(search, url, csrf_token);
     }
     else{
-        $('#su_user_search_result').html('');
+        make_message('Пустой запрос', 'warning')
     }
 }
 
@@ -256,8 +288,10 @@ function cus_load_data(search, url, csrf_token){
         data:{query:search},
         success:function(data)
         {
-          $('#cross_user_search_result').html(data);
-          $("#cross_user_search_result").append(data.htmlresponse);
+            $('#infoModalTable').html(data);
+            $('#infoModalLabel').html("Найденные пользователи по тегу " + search);
+            $('#infoModalTable').append(data.htmlresponse);
+            $('#infoModal').modal('show');
         },
         error: function() {
              make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');

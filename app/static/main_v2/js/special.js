@@ -212,18 +212,27 @@ function clear_uc_message(){
 
 
   // ##### messages #####
-function make_message(message, type){
+function make_message(message, type) {
     document.getElementById('all_messages').innerHTML = '';
-    let title= '';
+    let title = '';
     let message_image = '';
 
-    if(type==='danger'){type='error'; }
+    if (type === 'danger') {
+        type = 'error';
+    }
 
-    if (type === 'error'){title='Ошибка'; message_image=message_icon_error;}
-    else if (type === 'warning'){title='Предупреждение'; message_image=message_icon_warning;}
-    else {title='Успех'; message_image=message_icon_success;}
+    if (type === 'error') {
+        title = 'Ошибка';
+        message_image = message_icon_error;
+    } else if (type === 'warning') {
+        title = 'Предупреждение';
+        message_image = message_icon_warning;
+    } else {
+        title = 'Успех';
+        message_image = message_icon_success;
+    }
     var block_messages = document.getElementById('all_messages');
-    block_messages.insertAdjacentHTML('beforeend',`<div id="alert-message-${type}" class="toast toast-${type}" role="alert" data-bs-delay="30000" aria-live="assertive" aria-atomic="true">
+    block_messages.insertAdjacentHTML('beforeend', `<div id="alert-message-${type}" class="toast toast-${type}" role="alert" data-bs-delay="30000" aria-live="assertive" aria-atomic="true">
                             <div class="toast-header">
                                 <strong class="me-auto fw-bold ">${title}</strong>
                                 <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>

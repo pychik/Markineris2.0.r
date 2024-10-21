@@ -1,0 +1,75 @@
+<div class="row text-center">
+    {% if caller_list %}
+        <div class="col">
+            <table class="table table-result tablesaw-stack mt-1">
+              <thead class="text-dark">
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Логин</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Роль</th>
+                  <th scope="col">Активирован</th>
+                  <th scope="col"></th>
+                  <th scope="col"></th>
+                </tr>
+              </thead>
+              <tbody>
+
+                {%for u in caller_list%}
+
+                    <tr>
+                      <th scope="row">{{loop.index}}</th>
+                      <td>
+                          {{u.login_name}}
+                      </td>
+                      <td>
+                        {{ u.email }}
+                      </td>
+                      <td>
+                        {{ u.role }}
+                      </td>
+
+                      <td>
+                          {% if u.status %}
+                              <span class="badge bg-success">Активирован</span>
+                          {% else %}
+                              <span class="badge bg-danger">Не активирован</span>
+                          {% endif %}
+                      </td>
+                      <td>
+                          {% if not u.status %}
+                              <form method="post" action="{{url_for('admin_control.set_user_admin', u_id=u.id)}}">
+                                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                          <input class="btn btn-sm btn-outline-success"
+                                                 type="submit" name="activate"
+                                                 onclick="loadingCircle()" value="Активировать">
+                              </form>
+                          {% else %}
+                              <form method="post" action="{{url_for('admin_control.deactivate_user_admin', u_id=u.id)}}">
+                                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                          <input class="btn btn-outline-danger btn-sm btn-block"
+                                                 type="submit" name="activate" value="Деактивировать"
+                                                 onclick="loadingCircle()"
+                                                  {% if u.role=='superuser' %}disabled{% endif %}>
+                              </form>
+                          {% endif %}
+
+                      </td>
+                      <td>
+                          <form method="post" class="form-group" action="{{ url_for('admin_control.delete_user_admin', u_id=u.id)}}">
+                                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                      <input class="btn btn-sm btn-outline-danger btn-block"
+                                             onclick="loadingCircle()" {% if u.role == 'superuser' %}disabled{% endif %}
+                                             type="submit" name="delete" value="&times;">
+                          </form>
+                      </td>
+
+                    </tr>
+                {%endfor%}
+
+              </tbody>
+            </table>
+        </div>
+
+  {% endif %}
+</div>

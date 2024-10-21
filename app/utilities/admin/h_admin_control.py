@@ -1,3 +1,4 @@
+import re
 import urllib
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -19,7 +20,7 @@ from models import db, Order, OrderStat, PartnerCode, RestoreLink, Telegram, Tel
 from utilities.download import orders_process_send_order
 from utilities.support import (url_encrypt, helper_check_form, helper_update_order_note, helper_paginate_data,
                                helper_strange_response, sql_count, helper_get_filter_users,
-                               helper_get_at2_pending_balance)
+                               helper_get_at2_pending_balance, get_partner_code_max_id)
 from utilities.admin.schemas import AROrdersSchema, ar_categories_types
 from utilities.admin.helpers import (process_admin_report, helper_get_clients_os, helper_get_orders_stats,
                                      helper_prev_day_orders_marks, helper_get_users_reanimate,
@@ -28,11 +29,10 @@ from utilities.admin.helpers import (process_admin_report, helper_get_clients_os
 from utilities.admin.excel_report import ExcelReport
 
 
-def h_index(expanded: str = None):
+def h_index():
     if current_user.role != settings.SUPER_USER:
         return redirect(url_for('admin_control.admin', u_id=current_user.id))
 
-        # if expanded in [None, settings.EXP_USERS, settings.EXP_PARTNERS, settings.EXP_TELEGRAM]:
     users_stmt = text(f"""SELECT au.id as id,
                                 au.role as role,
                                 au.balance as balance,
@@ -83,7 +83,12 @@ def h_index(expanded: str = None):
     basic_prices = settings.Prices.BASIC_PRICES
     all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2).order_by(
         desc(Price.created_at)).all()
-    return render_template('admin/admin_control.html', **locals())
+    return render_template('admin/a_control/main_admin.html', **locals())
+
+
+def h_su_get_telegram() -> Response:
+    telegram_list = Telegram.query.all()
+    return jsonify({'htmlresponse': render_template('admin/a_control/tg_table.html', **locals())})
 
 
 def h_admin(u_id: int):
@@ -104,16 +109,16 @@ def h_admin(u_id: int):
         partner_query = db.session.query(users_partners.c.user_id, PartnerCode.code)\
             .join(PartnerCode, PartnerCode.id == users_partners.c.partner_code_id)\
             .subquery()
-        prices_query = db.session.query(Price.id.label("price_id"), Price.price_code, Price.price_1, Price.price_2,
-                                        Price.price_3, Price.price_4, Price.price_5, Price.price_6, Price.price_7,
-                                        Price.price_8, Price.price_9, Price.price_10, Price.price_11) \
+        prices_query = db.session.query(Price.id.label("price_id"), Price.price_code, Price.price_1, Price.price_2, Price.price_3,
+                                        Price.price_4, Price.price_5, Price.price_6, Price.price_7, Price.price_8, Price.price_9,
+                                        Price.price_10, Price.price_11) \
             .filter(User.price_id == Price.id, Price.price_at2.isnot(True)) \
             .subquery()
 
-        sort_arg = request.args.get("sort_type")
-        order_type = desc(User.created_at) if sort_arg != 'orders' else asc(os_query.c.os_created_at)
+        sort_type = request.args.get("sort_type")
+        order_type = desc(User.created_at) if sort_type != 'orders' else asc(os_query.c.os_created_at)
 
-        users_pagination = User.query\
+        users_info = User.query\
             .outerjoin(os_query, User.id == os_query.c.user_id)\
             .outerjoin(partner_query, User.id == partner_query.c.user_id) \
             .outerjoin(prices_query, User.price_id == prices_query.c.price_id) \
@@ -134,8 +139,11 @@ def h_admin(u_id: int):
                                                            prices_query.c.price_6, prices_query.c.price_7,
                                                            prices_query.c.price_8, prices_query.c.price_9,
                                                            prices_query.c.price_10, prices_query.c.price_11)\
-            .order_by(order_type).paginate(page=page, per_page=settings.PAGINATION_PER_PAGE)
+            .order_by(order_type).all()
 
+        page, per_page, \
+            offset, pagination, \
+            users_list = helper_paginate_data(data=users_info, per_page=settings.PAGINATION_PER_PAGE)
         basic_prices = settings.Prices.BASIC_PRICES
         all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2).filter(Price.price_at2.isnot(True)) \
                           .order_by(desc(Price.created_at)).all()
@@ -153,24 +161,50 @@ def h_admin(u_id: int):
         partner_sign_up_list = [(
             apc[0], url_for('auth.sign_up', p_link=url_encrypt(apc[1]))
         ) for apc in admin_partner_codes]
+        auto_increment_id = get_partner_code_max_id(admin_info.partners)
 
         if admin_info.telegram_message:
             telegram_message = admin_info.telegram_message[0]
+        else:
+            telegram_message = None
 
-        return render_template('admin/admin_user_control.html', **locals())
+        return render_template('admin/a_user_control/main.html', **locals())
+
     else:
         flash(message=settings.Messages.USER_NOT_EXIST, category='error')
         return redirect(url_for('main.enter'))
 
+def h_get_partner_codes(u_id: int):
+    admin_info = None
+    partner_codes = User.query.join(users_partners, User.id == users_partners.c.user_id).join(PartnerCode, users_partners.c.partner_code_id == PartnerCode.id).with_entities(PartnerCode.id.label('id'), PartnerCode.code.label('code'), PartnerCode.name.label('name'), PartnerCode.phone.label('phone'), PartnerCode.required_phone.label('required_phone')).filter(User.id == u_id).all()
+
+    return jsonify({'htmlresponse': render_template('admin/a_user_control/registered_partners_code_modal.html', **locals())})
+
+
+def h_get_registration_link(u_id: int):
+    admin_info = User.query.join(users_partners, User.id == users_partners.c.user_id).join(PartnerCode, users_partners.c.partner_code_id == PartnerCode.id).with_entities(User.id.label('u_id'), PartnerCode.code.label('code'), PartnerCode.id.label('id')).filter(User.id == u_id).all()
+    if admin_info:
+        admin_partner_codes = [(p.code, f"{u_id}__{p.id}") for p in admin_info]
+        partner_sign_up_list = [(
+            apc[0], url_for('auth.sign_up', p_link=url_encrypt(apc[1]))
+        ) for apc in admin_partner_codes]
+
+        return jsonify({'htmlresponse': render_template('admin/a_user_control/new_registration_link_modal.html', **locals())})
+
+    return Response(status=200)
 
 def h_set_order_notification(u_id: int):
+    message_status = 'error'
     form_dict = request.form.to_dict()
     order_note = form_dict.get("order_note")
     if not helper_check_form(on=order_note) or not helper_update_order_note(on=order_note, u_id=u_id):
-        flash(message=settings.Messages.FORM_CONTENT_ERROR, category='error')
+        message = settings.Messages.FORM_CONTENT_ERROR
+
     else:
-        flash(message=settings.Messages.ORDER_NOTE_UPDATE_SUCCESS)
-    return redirect(url_for('admin_control.admin', u_id=u_id))
+        message = settings.Messages.ORDER_NOTE_UPDATE_SUCCESS
+        message_status = 'success'
+
+    return jsonify({'message': message, 'type': message_status})
 
 
 def h_create_admin():
@@ -195,47 +229,64 @@ def h_create_admin():
         return redirect(url_for('admin_control.index', expanded=settings.EXP_USERS))
 
 
-def h_partner_code(u_id: int, auto: int = None):
-    user = User.query.get(u_id)
+def h_partner_code(u_id: int, auto: int = 0):
+    message_status = 'error'
+    admin_info = User.query.get(u_id)
     required_email = True  # if form_dict.get("required_email") else False
     required_phone = True  # if set_dict.get("required_phone") else False
 
     if auto == 1:
-        name = user.login_name + '_' + str(len(user.partners)+1)
+        auto_increment_id = get_partner_code_max_id(admin_info.partners)
+        name = admin_info.login_name + '_' + auto_increment_id
         code = name
         phone = settings.SU_PHONE
-    elif auto is None:
+    elif auto == 0:
         set_dict = request.form.to_dict()
         name = set_dict.get("name")
         code = set_dict.get("code")
         phone = set_dict.get("phone")
-
         if '__' in code:
-            flash(message=f"{settings.Messages.PARTNER_CODE_ERROR} В партнер код нельзя ставить подряд __. "
-                          f"Попробуйте придумать другой код", category='error')
-            return redirect(url_for('admin_control.admin', u_id=u_id))
-    else:
-        flash(message=f"{settings.Messages.PARTNER_CODE_ERROR} В партнер код нельзя ставить подряд __. "
-                      f"Попробуйте придумать другой код", category='error')
-        return redirect(url_for('admin_control.admin', u_id=u_id))
+            message = (f"{settings.Messages.PARTNER_CODE_ERROR} В партнер код нельзя ставить подряд __. "
+                       f"Попробуйте придумать другой код")
+            return jsonify({'message': message, 'status': message_status}), 400
 
-    partner_code = PartnerCode(name=name, code=code, phone=phone,
-                               required_phone=required_phone, required_email=required_email
-                               )
+    else:
+        message = (f"{settings.Messages.PARTNER_CODE_ERROR} В партнер код нельзя ставить подряд __. "
+                   f"Попробуйте придумать другой код")
+        message_status = 'error'
+        return jsonify({'message': message, 'message_status': message_status}), 400
+
+    partner_code = PartnerCode(
+        name=name,
+        code=code,
+        phone=phone,
+        required_phone=required_phone,
+        required_email=required_email
+    )
     try:
-        user.partners.append(partner_code)
-        db.session.add(user)
+        admin_info.partners.append(partner_code)
+        db.session.add(admin_info)
         db.session.commit()
-        flash(message=f"{settings.Messages.PARTNER_CODE_CREATE} {name} ")
+        message = f"{settings.Messages.PARTNER_CODE_CREATE} {name} "
+        message_status = 'success'
+        partners_name = [partner.name for partner in admin_info.partners]
+
+        auto_increment_id = get_partner_code_max_id(admin_info.partners)
+        return jsonify(
+            {'message': message,
+             'status': message_status,
+             'htmlresponse': render_template('admin/a_user_control/partner_code_add_modal_body.html', **locals())
+             })
+
     except IntegrityError as e:
+        message_status = 'error'
         db.session.rollback()
         message = f"{settings.Messages.PARTNER_CODE_DUPLICATE_ERROR} {code}" if "psycopg2.errors.UniqueViolation)" \
                                                                                 in str(e) \
             else f"{settings.Messages.PARTNER_CODE_ERROR} {e}"
-        logger.error(message)
-        flash(message=message, category='error')
 
-    return redirect(url_for('admin_control.admin', u_id=u_id))
+        logger.error(message)
+        return jsonify({'message': message, 'status': message_status}), 400
 
 
 def h_su_not_basic_price_report() -> Response:
@@ -290,19 +341,32 @@ def h_su_not_basic_price_report() -> Response:
 
 
 def h_delete_partner_code(u_id: int, p_id: int) -> Response:
+
+    message_status = 'error'
     partner_code = PartnerCode.query.filter_by(id=p_id).first()
     if not partner_code:
-        flash(message=f"{settings.Messages.STRANGE_REQUESTS}")
-        return redirect(url_for('admin_control.index'))
+        return jsonify({'message': settings.Messages.STRANGE_REQUESTS, 'status': message_status})
+
     try:
         db.session.delete(partner_code)
         db.session.commit()
-        flash(message=settings.Messages.PARTNER_CODE_DELETE_SUCCESS.format(partner_code=partner_code.code), category='success')
+        message = settings.Messages.PARTNER_CODE_DELETE_SUCCESS.format(partner_code=partner_code.code)
+        message_status = 'success'
+        admin_info = User.query.get(u_id)
+        auto_increment_id = get_partner_code_max_id(admin_info.partners)
     except Exception as e:
-        flash(message=settings.Messages.PARTNER_CODE_DELETE_ERROR, category='error')
+        message = settings.Messages.PARTNER_CODE_DELETE_ERROR
+        message_status = 'error'
         logger.error(f"{settings.Messages.PARTNER_CODE_DELETE_ERROR}: {e}")
         db.session.rollback()
-    return redirect(url_for('admin_control.admin', u_id=u_id))
+
+    return jsonify(
+        {
+            'message': message,
+            'status': message_status,
+            'htmlresponse': render_template('admin/a_user_control/partner_code_add_modal_body.html', **locals())
+        }
+    )
 
 
 def h_telegram_set_group() -> Response:
@@ -328,6 +392,7 @@ def h_telegram_set_group() -> Response:
 
 
 def h_telegram_message_set(u_id: int, t_id: int) -> Response:
+    message_status = 'error'
     form_dict = request.form.to_dict()
     send_admin_info = form_dict.get("send_admin_info")
     send_organization_name = form_dict.get("send_organization_name")
@@ -339,24 +404,23 @@ def h_telegram_message_set(u_id: int, t_id: int) -> Response:
 
     try:
         telegram_message = TelegramMessage.query.filter_by(id=t_id).first()
-        telegram_message.send_admin_info = True if send_admin_info else False
-        telegram_message.send_organization_name = True if send_organization_name else False
-        telegram_message.send_organization_idn = True if send_organization_idn else False
-        telegram_message.send_login_name = True if send_login_name else False
-        telegram_message.send_email = True if send_email else False
-        telegram_message.send_phone = True if send_phone else False
-        telegram_message.send_client_code = True if send_client_code else False
+        telegram_message.send_admin_info = True if send_admin_info == 'true' else False
+        telegram_message.send_organization_name = True if send_organization_name == 'true' else False
+        telegram_message.send_organization_idn = True if send_organization_idn == 'true' else False
+        telegram_message.send_login_name = True if send_login_name == 'true' else False
+        telegram_message.send_email = True if send_email == 'true' else False
+        telegram_message.send_phone = True if send_phone == 'true' else False
+        telegram_message.send_client_code = True if send_client_code  == 'true' else False
         db.session.commit()
-        flash(message=settings.Messages.TELEGRAM_MPSET_SUCCESS)
+        message_status = 'success'
+        message = settings.Messages.TELEGRAM_MPSET_SUCCESS
+
     except IntegrityError as e:
         db.session.rollback()
         message = f"{settings.Messages.TELEGRAM_MPSET_ERROR} {e}"
-        flash(message=message, category='error')
         logger.error(message)
 
-        return redirect(url_for('admin_control.index'))
-
-    return redirect(url_for('admin_control.admin', u_id=u_id))
+    return jsonify({'message': message, 'type': message_status})
 
 
 def h_telegram_group_bind() -> Response:
@@ -386,16 +450,18 @@ def h_delete_telegram_group(t_id: int) -> Response:
     telegram = Telegram.query.filter_by(id=t_id).first()
 
     if not telegram:
-        flash(message=f"{settings.Messages.TELEGRAM_DELETE_ERROR}", category='error')
-        return redirect(url_for('admin_control.index'))
+        message = f"{settings.Messages.TELEGRAM_DELETE_ERROR}"
+        message_status = 'error'
+        return jsonify({'message': message, 'status': message_status})
     if telegram.users:
         user = telegram.users[0]
         user.is_at2 = False
     telegram.users = []
-
+    message = f"{settings.Messages.TELEGRAM_DELETE_SUCCESS}"
+    message_status = 'success'
     db.session.delete(telegram)
     db.session.commit()
-    return redirect(url_for('admin_control.index', expanded=settings.EXP_TELEGRAM))
+    return jsonify({'message': message, 'status': message_status})
 
 
 def h_set_user_admin(u_id: int) -> Response:
@@ -475,25 +541,30 @@ def h_deactivate_user(type_set: str, u_id: int) -> Response:
 
 
 def h_activate_all_admin_users(au_id: int) -> Response:
+    status = 'error'
     if current_user.role != settings.SUPER_USER and current_user.id != au_id:
         flash(message=f"{settings.Messages.DELETE_USER_ERROR} {settings.Messages.DELETE_USER_ND_ERROR}",
               category='error')
         return redirect(url_for('admin_control.admin', u_id=current_user.id))
+        message = f"{settings.Messages.DELETE_USER_ERROR} {settings.Messages.DELETE_USER_ND_ERROR}",
+        return jsonify({'message': message, 'status': status})
+
     try:
         users = User.query.filter_by(admin_parent_id=au_id, status=False).all()
         if users:
             for u in users:
                 u.status = True
             db.session.commit()
-        flash(message=settings.Messages.ACTIVATE_ALL_USERS_SUCCESS)
+
+        message = settings.Messages.ACTIVATE_ALL_USERS_SUCCESS
+        status = 'success'
     except Exception as e:
         db.session.rollback()
         message = f"{settings.Messages.ACTIVATE_ALL_USERS_ERROR} {e}"
-        flash(message=message, category='error')
+        status = 'error'
         logger.error(message)
 
-    return redirect(url_for('admin_control.admin', u_id=au_id))
-
+    return jsonify({'message': message, 'status': status})
 
 def h_deactivate_user_admin(u_id: int) -> Response:
     user = User.query.filter_by(id=u_id).first()
