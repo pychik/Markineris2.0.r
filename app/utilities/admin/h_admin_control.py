@@ -758,7 +758,6 @@ def h_send_order() -> Response:
             order_comment='',
             order_idn=order.order_idn,
             su_exec_order_name=order_idn_form,
-            clothes_divider_flag=True if order.category == settings.Clothes.CATEGORY else False,
         ):
 
             flash(message=settings.Messages.ORDER_RESTORED_SENT)

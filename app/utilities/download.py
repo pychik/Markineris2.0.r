@@ -238,11 +238,11 @@ class ShoesProcessor(OrdersProcessor):
                      '' if sq.size in settings.Shoes.SIZES_ND else sq.size, tnved, '', sq.quantity, declar_doc, ]
 
                 res_list_common.append(temp_list)
-                if declar_doc and el.country.upper() in settings.COUNTRY_RUSSIA:
+                if declar_doc and el.country.upper() in settings.COUNTRIES_INNER:
                     res_list_inner_rd.append(temp_list)
-                if declar_doc and el.country.upper() not in settings.COUNTRY_RUSSIA:
+                elif declar_doc and el.country.upper() not in settings.COUNTRIES_INNER:
                     res_list_outer_rd.append(temp_list)
-                if not declar_doc and el.country.upper() in settings.COUNTRY_RUSSIA:
+                elif not declar_doc and el.country.upper() in settings.COUNTRIES_INNER:
                     res_list_inner_no_rd.append(temp_list)
                 else:
                     res_list_outer_no_rd.append(temp_list)
@@ -294,11 +294,11 @@ class LinenProcessor(OrdersProcessor):
                              tnved, settings.Linen.NUMBER_STANDART, '', '', el.article_price, el.tax,
                              fin_quantity, '', '', el.country, declar_doc, ]
                 res_list_common.append(temp_list)
-                if declar_doc and el.country.upper() in settings.COUNTRY_RUSSIA:
+                if declar_doc and el.country.upper() in settings.COUNTRIES_INNER:
                     res_list_inner_rd.append(temp_list)
-                if declar_doc and el.country.upper() not in settings.COUNTRY_RUSSIA:
+                elif declar_doc and el.country.upper() not in settings.COUNTRIES_INNER:
                     res_list_outer_rd.append(temp_list)
-                if not declar_doc and el.country.upper() in settings.COUNTRY_RUSSIA:
+                elif not declar_doc and el.country.upper() in settings.COUNTRIES_INNER:
                     res_list_inner_no_rd.append(temp_list)
                 else:
                     res_list_outer_no_rd.append(temp_list)
@@ -334,11 +334,11 @@ class ParfumProcessor(OrdersProcessor):
                          el.article_price, el.tax, fin_quantity, '', '', el.country,
                          declar_doc, ]
             res_list_common.append(temp_list)
-            if declar_doc and el.country.upper() in settings.COUNTRY_RUSSIA:
+            if declar_doc and el.country.upper() in settings.COUNTRIES_INNER:
                 res_list_inner_rd.append(temp_list)
-            if declar_doc and el.country.upper() not in settings.COUNTRY_RUSSIA:
+            elif declar_doc and el.country.upper() not in settings.COUNTRIES_INNER:
                 res_list_outer_rd.append(temp_list)
-            if not declar_doc and el.country.upper() in settings.COUNTRY_RUSSIA:
+            elif not declar_doc and el.country.upper() in settings.COUNTRIES_INNER:
                 res_list_inner_no_rd.append(temp_list)
             else:
                 res_list_outer_no_rd.append(temp_list)
@@ -392,11 +392,11 @@ class ClothesProcessor(OrdersProcessor):
                              el.content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
                              sq.quantity * el.box_quantity, declar_doc, ]
                 res_list_common.append(temp_list)
-                if declar_doc and el.country.upper() in settings.COUNTRY_RUSSIA:
+                if declar_doc and el.country.upper() in settings.COUNTRIES_INNER:
                     res_list_inner_rd.append(temp_list)
-                if declar_doc and el.country.upper() not in settings.COUNTRY_RUSSIA:
+                elif declar_doc and el.country.upper() not in settings.COUNTRIES_INNER:
                     res_list_outer_rd.append(temp_list)
-                if not declar_doc and el.country.upper() in settings.COUNTRY_RUSSIA:
+                elif not declar_doc and el.country.upper() in settings.COUNTRIES_INNER:
                     res_list_inner_no_rd.append(temp_list)
                 else:
                     res_list_outer_no_rd.append(temp_list)
