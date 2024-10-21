@@ -19,7 +19,7 @@ from models import db, Order, OrderStat, PartnerCode, RestoreLink, Telegram, Tel
 from utilities.download import orders_process_send_order
 from utilities.support import (url_encrypt, helper_check_form, helper_update_order_note, helper_paginate_data,
                                helper_strange_response, sql_count, helper_get_filter_users,
-                               helper_get_at2_pending_balance, extract_id_from_partner_name, get_partner_code_max_id)
+                               helper_get_at2_pending_balance, get_partner_code_max_id)
 from utilities.admin.schemas import AROrdersSchema, ar_categories_types
 from utilities.admin.helpers import (process_admin_report, helper_get_clients_os, helper_get_orders_stats,
                                      helper_prev_day_orders_marks, helper_get_users_reanimate,
@@ -269,8 +269,7 @@ def h_partner_code(u_id: int, auto: int = 0):
         message = f"{settings.Messages.PARTNER_CODE_CREATE} {name} "
         message_status = 'success'
         partners_name = [partner.name for partner in admin_info.partners]
-        partners_id = [extract_id_from_partner_name(partner.name) for partner in admin_info.partners if
-                       extract_id_from_partner_name(partner.name) is not None]
+
         auto_increment_id = get_partner_code_max_id(admin_info.partners)
         return jsonify(
             {'message': message,
