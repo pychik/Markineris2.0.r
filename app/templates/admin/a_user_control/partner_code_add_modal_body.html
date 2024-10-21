@@ -38,7 +38,7 @@
                         '{{ url_for('admin_control.partner_code', u_id=u_id) }}', '{{ csrf_token() }}', 1, '{{ url_for('admin_control.get_registration_link', u_id=admin_info.id)}}',
                         '{{ url_for('admin_control.get_partner_codes', u_id=admin_info.id)}}')">
               <font size="2">+Добавить
-                автоматически {{ admin_info.login_name }}_{{ partners_count + 1 }}</font>
+                автоматически {{ admin_info.login_name }}_{{ auto_increment_id  }}</font>
             </button>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import re
 import urllib
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -18,7 +19,7 @@ from models import db, Order, OrderStat, PartnerCode, RestoreLink, Telegram, Tel
 from utilities.download import orders_process_send_order
 from utilities.support import (url_encrypt, helper_check_form, helper_update_order_note, helper_paginate_data,
                                helper_strange_response, sql_count, helper_get_filter_users,
-                               helper_get_at2_pending_balance)
+                               helper_get_at2_pending_balance, extract_id_from_partner_name, get_partner_code_max_id)
 from utilities.admin.schemas import AROrdersSchema, ar_categories_types
 from utilities.admin.helpers import (process_admin_report, helper_get_clients_os, helper_get_orders_stats,
                                      helper_prev_day_orders_marks, helper_get_users_reanimate,
@@ -159,7 +160,8 @@ def h_admin(u_id: int):
         partner_sign_up_list = [(
             apc[0], url_for('auth.sign_up', p_link=url_encrypt(apc[1]))
         ) for apc in admin_partner_codes]
-        partners_count = len(partner_sign_up_list)
+        auto_increment_id = get_partner_code_max_id(admin_info.partners)
+
         if admin_info.telegram_message:
             telegram_message = admin_info.telegram_message[0]
         else:
@@ -231,8 +233,10 @@ def h_partner_code(u_id: int, auto: int = 0):
     admin_info = User.query.get(u_id)
     required_email = True  # if form_dict.get("required_email") else False
     required_phone = True  # if set_dict.get("required_phone") else False
+
     if auto == 1:
-        name = admin_info.login_name + '_' + str(len(admin_info.partners)+1)
+        auto_increment_id = get_partner_code_max_id(admin_info.partners)
+        name = admin_info.login_name + '_' + auto_increment_id
         code = name
         phone = settings.SU_PHONE
     elif auto == 0:
@@ -240,7 +244,6 @@ def h_partner_code(u_id: int, auto: int = 0):
         name = set_dict.get("name")
         code = set_dict.get("code")
         phone = set_dict.get("phone")
-
         if '__' in code:
             message = (f"{settings.Messages.PARTNER_CODE_ERROR} В партнер код нельзя ставить подряд __. "
                        f"Попробуйте придумать другой код")
@@ -265,7 +268,10 @@ def h_partner_code(u_id: int, auto: int = 0):
         db.session.commit()
         message = f"{settings.Messages.PARTNER_CODE_CREATE} {name} "
         message_status = 'success'
-        partners_count = len(admin_info.partners)
+        partners_name = [partner.name for partner in admin_info.partners]
+        partners_id = [extract_id_from_partner_name(partner.name) for partner in admin_info.partners if
+                       extract_id_from_partner_name(partner.name) is not None]
+        auto_increment_id = get_partner_code_max_id(admin_info.partners)
         return jsonify(
             {'message': message,
              'status': message_status,
@@ -335,6 +341,7 @@ def h_su_not_basic_price_report() -> Response:
 
 
 def h_delete_partner_code(u_id: int, p_id: int) -> Response:
+
     message_status = 'error'
     partner_code = PartnerCode.query.filter_by(id=p_id).first()
     if not partner_code:
@@ -345,14 +352,21 @@ def h_delete_partner_code(u_id: int, p_id: int) -> Response:
         db.session.commit()
         message = settings.Messages.PARTNER_CODE_DELETE_SUCCESS.format(partner_code=partner_code.code)
         message_status = 'success'
-
+        admin_info = User.query.get(u_id)
+        auto_increment_id = get_partner_code_max_id(admin_info.partners)
     except Exception as e:
         message = settings.Messages.PARTNER_CODE_DELETE_ERROR
         message_status = 'error'
         logger.error(f"{settings.Messages.PARTNER_CODE_DELETE_ERROR}: {e}")
         db.session.rollback()
 
-    return jsonify({'message': message, 'status': message_status})
+    return jsonify(
+        {
+            'message': message,
+            'status': message_status,
+            'htmlresponse': render_template('admin/a_user_control/partner_code_add_modal_body.html', **locals())
+        }
+    )
 
 
 def h_telegram_set_group() -> Response:

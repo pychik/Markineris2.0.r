@@ -69,6 +69,7 @@ function deletePartnerCode(url, csrf, linkUpdateUrl, clientCodeUpdateUrl) {
             modalForm.modal('hide');
             updateRegistrationLinks(linkUpdateUrl);
             updateClientCodesList(clientCodeUpdateUrl);
+            $('#partnerCodeAddModal .modal-body').html(data.htmlresponse);
         },
         error: function (jqXHR, textStatus, errorThrown) {
             console.error('Ошибка:', textStatus, errorThrown);
