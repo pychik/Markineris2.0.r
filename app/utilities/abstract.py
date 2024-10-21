@@ -23,13 +23,21 @@ class ProcessorInterface(ABC):
     def orders_list(self) -> list:
         ...
 
-    @abstractmethod
-    def orders_list_rf(self) -> list:
-        ...
+    @property
+    def orders_list_outer_rd(self) -> list:
+        return ...
 
-    @abstractmethod
-    def orders_list_norf(self) -> list:
-        ...
+    @property
+    def orders_list_outer_no_rd(self) -> list:
+        return ...
+
+    @property
+    def orders_list_inner_rd(self) -> list:
+        return ...
+
+    @property
+    def orders_list_inner_no_rd(self) -> list:
+        return ...
 
     @staticmethod
     def prepare_data(orders_list: list):
