@@ -488,7 +488,7 @@ def get_download_info(o_id, user: User, flag_046: bool = False) -> Union[Respons
         if not order_list:
             flash(message=settings.Messages.EMPTY_ORDER, category='error')
 
-            return (None,) * 13
+            return (None,) * 12
 
         category = settings.Clothes.CATEGORY
         rd_exist, quantity_list_raw, pos_count, orders_pos_count = order_count(category=category, order_list=order_list)
