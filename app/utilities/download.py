@@ -400,7 +400,7 @@ class ClothesProcessor(OrdersProcessor):
                     res_list_inner_no_rd.append(temp_list)
                 else:
                     res_list_outer_no_rd.append(temp_list)
-            return res_list_common, res_list_outer_rd, res_list_outer_no_rd, res_list_inner_rd, res_list_inner_no_rd
+        return res_list_common, res_list_outer_rd, res_list_outer_no_rd, res_list_inner_rd, res_list_inner_no_rd
 
     @staticmethod
     def get_tnved(clothes_type: str, gender: str, content: str) -> str:
