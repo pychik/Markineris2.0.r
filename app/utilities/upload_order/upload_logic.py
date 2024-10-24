@@ -54,7 +54,10 @@ def helper_upload_common_post(category: str, category_process_name: str,
     mark_type = form_dict.get("mark_type")
 
     table_file = request.files.get('table_upload')
-
+    if not mark_type:
+        flash(message=settings.Messages.UPLOAD_MARK_TYPE_ERROR, category='error')
+        return redirect(url_for(f'{category_process_name}.upload', company_type=company_type, company_name=company_name,
+                                company_idn=company_idn, edo_type=edo_type, edo_id=edo_id, mark_type=mark_type))
     if table_file is None or table_file is False or check_file_extension(filename=table_file.filename) is False:
         flash(message=settings.Messages.UPLOAD_FILE_EXTEXSION_ERROR, category='error')
         return redirect(url_for(f'{category_process_name}.upload', company_type=company_type, company_name=company_name,
