@@ -24,20 +24,16 @@ class ProcessorInterface(ABC):
         ...
 
     @property
-    def orders_list_outer_rd(self) -> list:
+    def orders_list_outer(self) -> list:
         return ...
 
     @property
-    def orders_list_outer_no_rd(self) -> list:
+    def orders_list_inner(self) -> list:
         return ...
 
-    @property
-    def orders_list_inner_rd(self) -> list:
-        return ...
-
-    @property
-    def orders_list_inner_no_rd(self) -> list:
-        return ...
+    @staticmethod
+    def prepare_batches(orders_divided: list, batch_size=400):
+        ...
 
     @staticmethod
     def prepare_data(orders_list: list):

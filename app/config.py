@@ -110,7 +110,7 @@ class Settings(BaseSettings):
     COUNTRIES_LIST: list = COUNTRIES_LIST
     COUNTRIES_CODES: dict = COUNTRIES_CODES
     COUNTRY_RUSSIA: str = "РОССИЯ"
-    COUNTRIES_INNER: tuple = ('РОССИЯ', 'КИТАЙ', 'КИРГИЗИЯ', 'ТУРЦИЯ', )
+    COUNTRIES_INNER: tuple = ('РОССИЯ', )
     EDO_TYPES: list = ["СБИС", "КОНТУР", "ТАКСКОМ", "КАЛУГА АСТРАЛ"]
     DOWNLOAD_DIR: str = f"{CUR_PATH}/download_dir"
     DOWNLOAD_DIR_CRM: str = f"{CUR_PATH}/download_dir/crm/"
