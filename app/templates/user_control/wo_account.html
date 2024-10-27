@@ -32,16 +32,30 @@
                             <input type="text" id="wo_fio" name="wo_fio" class="form-control" placeholder="Введите ФИО"
                                            minlength="10" maxlength="100" required>
                         </div>
-                        <div class="form-group">
-                            <label for="wo_bill_acc" style="display:none" >Расчетный счет (20 знаков)</label>
-                            <input type="text" id="wo_bill_acc" name="wo_bill_acc" class="form-control" placeholder="Введите расчетный счет (20 знаков)"
-                                           minlength="20" maxlength="20" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="wo_bik" style="display:none" >БИК (9 знаков)</label>
-                            <input type="text" id="wo_bik"  name="wo_bik" class="form-control" placeholder="Введите БИК (9 знаков)"
-                                           minlength="9" maxlength="9" required>
-                        </div>
+                        {%if cur_sa.sa_type != 'external_payment'%}
+                            <div class="form-group">
+                                <label for="wo_bill_acc" style="display:none" >Расчетный счет (20 знаков)</label>
+                                <input type="text" id="wo_bill_acc" name="wo_bill_acc" class="form-control" placeholder="Введите расчетный счет (20 знаков)"
+                                               minlength="20" maxlength="20" autocomplete="on" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="wo_bik" style="display:none" >БИК (9 знаков)</label>
+                                <input type="text" id="wo_bik"  name="wo_bik" class="form-control" placeholder="Введите БИК (9 знаков)"
+                                               minlength="9" maxlength="9" autocomplete="on" required>
+                            </div>
+                        {% else %}
+                            <div class="form-group">
+                                <label for="wo_bill_acc" style="display:none" >Номер телефона СБП</label>
+                                <input type="text" id="wo_bill_acc" name="wo_bill_acc" class="form-control" placeholder="Телефонный номер СБП"
+                                               minlength="10" maxlength="15" autocomplete="on" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="wo_bik" style="display:none" >Банк получателя</label>
+                                <input type="text" id="wo_bik"  name="wo_bik" class="form-control" placeholder="Введите наименование банка"
+                                               minlength="3" maxlength="35" autocomplete="on" required>
+                            </div>
+                        {% endif %}
 
                         <input type="text" id="wo_account_info" name="wo_account_info" class="form-control" placeholder="Комментарий (необязательно)"
                                            minlength="2" maxlength="100">

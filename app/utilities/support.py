@@ -1746,21 +1746,18 @@ def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: in
                 u_query = f"""UPDATE public.users SET balance=balance - {amount} WHERE id={u_id};"""
     t_query = f"""UPDATE public.user_transactions SET status={tr_status} WHERE id={t_id};"""
 
-    if sp_query or u_query:
-        try:
-            db.session.execute(text(f"{sp_query}{u_query}{sa_query}{t_query}"))
-            db.session.commit()
+    try:
+        db.session.execute(text(f"{sp_query}{u_query}{sa_query}{t_query}"))
+        db.session.commit()
 
-            # make check of current sa
-            if sa_id:
-                helper_process_sa(sa_id=sa_id)
-            return True, ''
-        except Exception as e:
-            logger.error(f"pending_transaction queries processing caused exception: {e}")
-            db.session.rollback()
-            return False, 'Возникло исключение- обратитесь к администратору'
-    else:
-        return False, 'Возникло исключение- нет запросов к БД. обратитесь к администратору'
+        # make check of current sa
+        if sa_id:
+            helper_process_sa(sa_id=sa_id)
+        return True, ''
+    except Exception as e:
+        logger.error(f"pending_transaction queries processing caused exception: {e}")
+        db.session.rollback()
+        return False, 'Возникло исключение- обратитесь к администратору'
 
 
 def helper_get_image_html(img_path: str):
