@@ -21,10 +21,10 @@ def index():
 @manager_forbidden
 def enter():
     user = current_user
-
+    ym_sign_up_goal = ''
     # yandex metrics for reaching goals of getting info about new sign ups
-    ym_sign_up_goal = settings.YandexMetrics.sign_up_goal \
-        if ('success', settings.Messages.USER_SIGHNUP_SUCCESS_PARTNER) in session.get('_flashes', []) else ''
+    # ym_sign_up_goal = settings.YandexMetrics.sign_up_goal \
+    #     if ('success', settings.Messages.USER_SIGHNUP_SUCCESS_PARTNER) in session.get('_flashes', []) else ''
     return render_template('main/enter_v2.html', **locals())
 
 
