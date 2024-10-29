@@ -2,7 +2,7 @@ import json
 import os
 
 from config import settings
-from app.logger import logger
+from logger import logger
 from utilities.minio_service.services import get_s3_service
 
 
