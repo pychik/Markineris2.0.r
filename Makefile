@@ -4,6 +4,7 @@ FLASK_APP := -f docker-compose.yml
 
 COMPOSE_ALL_FILES := -f docker-compose.elk.yml -f docker-compose.logs.yml
 COMPOSE_LOGGING := -f docker-compose.elk.yml -f docker-compose.logs.yml
+COMPOSE_S3_STORAGE := -f docker-compose-minio.yml
 ELK_SERVICES := elasticsearch logstash kibana apm-server
 ELK_LOG_COLLECTION := filebeat
 ELK_MAIN_SERVICES := ${ELK_SERVICES}
@@ -17,7 +18,7 @@ else
 endif
 
 # --------------------------
-.PHONY: flask-local-run maintenance-on maintenance-off service-logs service-start service-stop flask-up flask-down set-vm elk-setup elk-up collect-logs elk-down elk-stop elk-restart elk-rm elk-logs elk-images elk-prune ps help
+.PHONY: flask-local-run maintenance-on maintenance-off service-logs service-start service-stop flask-up flask-down set-vm elk-setup elk-up collect-logs elk-down elk-stop elk-restart elk-rm elk-logs elk-images elk-prune ps minio-up minio-down help
 
 
 up-all:				## Запуск всего сервиса и elk-stack.
@@ -46,7 +47,7 @@ service-logs:					## Отображение в режиме реального �
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} logs -f
 
 service-up:					## Запуск контейнеров сервиса маркинерис(Flask app, db, nginx).
-	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} up --build -d
+	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} up --build
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} restart bot_notification
 	docker image prune -f
 
@@ -114,6 +115,12 @@ elk-images:						## Показать все изображения ELK и все
 elk-prune:						## Удалить ELK контейнеры и удалить волюмы с данными, связанные с ELK (том данных elastic_elasticsearch)
 	@make stop && make rm
 	@docker volume prune -f --filter label=com.docker.compose.project=elastic
+
+minio-up:						## Запустить контейнеры сервиса Minio(minio, create_buckets)
+	$(DOCKER_COMPOSE_COMMAND) $(COMPOSE_S3_STORAGE) up --build
+
+minio-down:						## Остановить контейнеры сервиса Minio(minio, create_buckets)
+	$(DOCKER_COMPOSE_COMMAND) $(COMPOSE_S3_STORAGE) down
 
 help:       					## Показать все команды.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m (default: help)\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)

@@ -33,6 +33,7 @@ from views.crm.schema import CrmDefaults
 from .cipher.instance import encryptor
 from .helpers.h_categories import order_table_update
 from .http_client import Requester
+from .minio_service.services import get_s3_service
 from .saving_uts import common_save_db, get_delete_pos_stmts, get_rows_marks
 from .telegram import TelegramProcessor, MarkinerisInform
 from .useful_objects import Olc, OLC_NONE, OLC_PARFUM_NONE, OLC_PARFUM_9NONE
@@ -1761,11 +1762,17 @@ def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: in
 
 
 def helper_get_image_html(img_path: str):
-    if img_path.endswith('.pdf'):
-        return get_first_page_as_image(pdf_path=img_path)
-    with open(img_path, 'rb') as fd:
+    try:
+        s3_service = get_s3_service()
+        image_obj = s3_service.get_object(object_name=img_path, bucket_name=settings.MINIO_BILL_BUCKET_NAME)
+    except Exception as e:
+        logger.exception(f"Ошибка при получении файла {img_path} из хранилища")
+        transaction_image = f"""<p>Не удалось загрузить изображение.</p>"""
+    else:
+        if img_path.endswith('.pdf'):
+            return get_first_page_as_image(pdf_file_stream=image_obj.data)
         transaction_image = f"""<img id="bill-modal-image" class="border border-1 rounded img-zoom-orig" onclick="zoom_image();" src="data:image/png;base64,
-                                {encodebytes(fd.read()).decode()}">"""
+                                        {encodebytes(image_obj.data).decode()}">"""
     return transaction_image
 
 

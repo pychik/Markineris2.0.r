@@ -1,18 +1,15 @@
 from datetime import date, datetime, timedelta
-from os import listdir as o_listdir
-from os import path as o_path
-from os import remove as o_remove
+from typing import Optional
+from uuid import uuid4
+
+from flask import jsonify, redirect, render_template, request, Response, flash, url_for
+from flask_login import current_user
 from redis import Redis
 from rq import Queue
 from rq_scheduler.scheduler import Scheduler
-from uuid import uuid4
-
-from flask import jsonify, redirect, render_template, request, Response, flash, url_for, send_from_directory
-from flask_login import current_user
 from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
-from typing import Optional
 from werkzeug.utils import secure_filename
 
 from config import settings
@@ -21,6 +18,7 @@ from models import User, Order, OrderStat, db, ServerParam
 from redis_queue.callbacks import on_success_periodic_task, on_failure_periodic_task
 from utilities.download import crm_orders_common_preload
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify, helper_suotls
+from utilities.minio_service.services import get_s3_service, download_file_from_minio
 from utilities.pdf_processor import helper_check_attached_file
 from utilities.saving_uts import get_rows_marks
 from utilities.support import (helper_get_at2_pending_balance, helper_get_limits, orders_list_common)
@@ -593,17 +591,19 @@ def helper_attach_file(manager: str, manager_id: int, o_id: int) -> Response:
     if not check:
         flash(message=check_file_message, category='error')
         return redirect(url_for('crm_d.managers'))
-    # not correct- make file read if you want to save file to disk
-    # file_size = len(file.read())
-    #
-    # if file_size > settings.OrderStage.MAX_ORDER_FILE_SIZE:
-    #     flash(message=f'{settings.Messages.ORDER_ATTACH_FILE_EXCEED_ERROR} {file_size} bytes', category='error')
-    #     return redirect(url_for('crm_d.managers'))
+
+    s3_service = get_s3_service()
 
     of_id = order_info.of_id
     ofs_name = order_info.file_system_name
-    if ofs_name and ofs_name in o_listdir(path=settings.DOWNLOAD_DIR_CRM):
-        o_remove(settings.DOWNLOAD_DIR_CRM + order_info.file_system_name)
+
+    try:
+        if ofs_name and ofs_name in s3_service.list_objects(settings.MINIO_CRM_BUCKET_NAME):
+            s3_service.remove_object(object_name=ofs_name, bucket_name=settings.MINIO_CRM_BUCKET_NAME)
+    except Exception:
+        logger.exception("Ошибка при удалении файла из хранилища")
+        flash(message=settings.Messages.ORDER_DELETE_FILE_ERROR, category='error')
+        return redirect(url_for('crm_d.managers'))
 
     filename = secure_filename(filename=file.filename)
     origin, fs_name = helper_create_filename(order_idn=order_info.order_idn, manager_name=manager, filename=filename)
@@ -625,6 +625,13 @@ def helper_attach_file(manager: str, manager_id: int, o_id: int) -> Response:
         db.session.execute(stmt)
         db.session.commit()
         flash(message=settings.Messages.ORDER_ATTACH_FILE)
+
+        if file:
+            s3_service.upload_file(
+                file_data=file.stream,
+                object_name=fs_name,
+                bucket_name=settings.MINIO_CRM_BUCKET_NAME,
+            )
     except IntegrityError as ie:
         db.session.rollback()
         flash(message=settings.Messages.ORDER_ATTACH_FILE_ERROR, category='error')
@@ -633,8 +640,6 @@ def helper_attach_file(manager: str, manager_id: int, o_id: int) -> Response:
         flash(message=settings.Messages.ORDER_ATTACH_FILE_ERROR, category='error')
         logger.error(settings.Messages.ORDER_ATTACH_FILE_ERROR + str(e))
         return redirect(url_for('crm_d.managers'))
-    if file:
-        file.save(dst=o_path.join(settings.DOWNLOAD_DIR_CRM, fs_name))
 
     return redirect(url_for('crm_d.managers'))
 
@@ -659,8 +664,14 @@ def helper_attach_of_link(manager: str, manager_id: int, o_id: int) -> Response:
 
     of_id = order_info.of_id
     ofs_name = order_info.file_system_name
-    if ofs_name and ofs_name in o_listdir(path=settings.DOWNLOAD_DIR_CRM):
-        o_remove(settings.DOWNLOAD_DIR_CRM + order_info.file_system_name)
+    try:
+        s3_service = get_s3_service()
+        if ofs_name and ofs_name in s3_service.list_objects(settings.MINIO_CRM_BUCKET_NAME):
+            s3_service.remove_object(object_name=ofs_name, bucket_name=settings.MINIO_CRM_BUCKET_NAME)
+    except Exception:
+        logger.exception("Ошибка при удалении файла из хранилища")
+        flash(message=settings.Messages.ORDER_DELETE_FILE_ERROR, category='error')
+        return redirect(url_for('crm_d.managers'))
 
     # insert data
     stmt = f"""UPDATE public.order_files 
@@ -704,7 +715,7 @@ def helper_download_file(manager_id: int, o_id: int, user_type: str) -> Response
 
     if not check_order_file(order_file_name=order_info.file_system_name, o_id=o_id):
         return redirect(url_for(f'crm_d.{user_type}'))
-    return send_from_directory(directory=settings.DOWNLOAD_DIR_CRM, path=fs_name, download_name=o_name)
+    return download_file_from_minio(object_name=fs_name, bucket_name=settings.MINIO_CRM_BUCKET_NAME, download_name=o_name)
 
 
 def helper_delete_order_file(manager_id: int, o_id: int) -> Response:
@@ -726,8 +737,15 @@ def helper_delete_order_file(manager_id: int, o_id: int) -> Response:
 
     of_id = order_info.of_id
     ofs_name = order_info.file_system_name
-    if ofs_name and ofs_name in o_listdir(path=settings.DOWNLOAD_DIR_CRM):
-        o_remove(settings.DOWNLOAD_DIR_CRM + order_info.file_system_name)
+
+    try:
+        s3_service = get_s3_service()
+        if ofs_name and ofs_name in s3_service.list_objects(settings.MINIO_CRM_BUCKET_NAME):
+            s3_service.remove_object(object_name=ofs_name, bucket_name=settings.MINIO_CRM_BUCKET_NAME)
+    except Exception:
+        logger.exception("Ошибка при удалении файла из хранилища")
+        flash(message=settings.Messages.ORDER_DELETE_FILE_ERROR, category='error')
+        return redirect(url_for('crm_d.managers'))
 
     stmt = f"DELETE FROM public.order_files pof WHERE pof.id={of_id}"
 
@@ -992,8 +1010,13 @@ def helper_crm_process_order_stats(o_id: int, order_info, stage: int, additional
 
 def of_delete_remove(order_info: Order, o_id: int) -> None:
     # check if we got a file in pur folder
-    if order_info.file_system_name and order_info.file_system_name in o_listdir(path=settings.DOWNLOAD_DIR_CRM):
-        o_remove(settings.DOWNLOAD_DIR_CRM + order_info.file_system_name)
+    try:
+        s3_service = get_s3_service()
+        if order_info.file_system_name and order_info.file_system_name in s3_service.list_objects(settings.MINIO_CRM_BUCKET_NAME):
+            s3_service.remove_object(object_name=order_info.file_system_name, bucket_name=settings.MINIO_CRM_BUCKET_NAME)
+    except Exception:
+        logger.exception(f"Ошибка при удалении файла из хранилища. Заказ {order_info.id}")
+
     # delete order file info in db
     if order_info.of_id:
         stmt = f"DELETE FROM public.order_files pof WHERE pof.order_id={o_id}"
@@ -1098,7 +1121,15 @@ def helpers_m_take_order(user: User, o_id: int) -> Response:
 
 
 def check_order_file(order_file_name: str, o_id: int) -> bool:
-    if order_file_name not in o_listdir(path=settings.DOWNLOAD_DIR_CRM):
+
+    try:
+        s3_service = get_s3_service()
+        list_objects = s3_service.list_objects(bucket_name=settings.MINIO_CRM_BUCKET_NAME)
+    except Exception as e:
+        logger.exception("Ошибка при получении списка объектов из хранилища")
+        list_objects = []
+
+    if order_file_name not in list_objects:
         problem_order = Order.query.get(o_id)
         flash(message=settings.Messages.ORDER_FILE_ABS_ERROR, category='error')
         helpers_problem_order(problem_order=problem_order, problem_comment=settings.Messages.ORDER_FILE_ABS_ERROR, with_check=True)

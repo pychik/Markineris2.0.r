@@ -13,6 +13,7 @@ from logger import logger
 from models import db, Order, User, RestoreLink, Price, ServiceAccount, UserTransaction, TgUser
 from utilities.daily_price import get_cocmd
 from utilities.mailer import MailSender
+from utilities.minio_service.services import get_s3_service
 from utilities.support import url_encrypt, url_decrypt, check_email, check_user_messages, \
     helper_get_order_notification, helper_get_current_sa, \
     helper_check_promo, check_file_extension, get_file_extension, \
@@ -197,7 +198,7 @@ def h_transaction_detail(u_id: int, t_id: int):
         return '', 404
     if transaction.type and transaction.status in [settings.Transactions.SUCCESS, settings.Transactions.PENDING,
                                                    settings.Transactions.CANCELLED]:
-        transaction_image = helper_get_image_html(img_path=f"{settings.DOWNLOAD_DIR_BILLS}{transaction.bill_path}")
+        transaction_image = helper_get_image_html(img_path=transaction.bill_path)
         service_account = ServiceAccount.query.filter(ServiceAccount.id == transaction.sa_id).first()
     else:
         order_prices_marks = helper_get_transaction_orders_detail(t_id=t_id)
@@ -284,7 +285,17 @@ def h_pa_refill(u_id: int, sa_id: int):
         uuid_prefix = str(uuid4())[:8]
         bill_path = f'{uuid_prefix}_{current_user.login_name}.{bill_extension}'
         # save file
-        bill_file.save(f"{settings.DOWNLOAD_DIR_BILLS}{bill_path}")
+        try:
+            s3_service = get_s3_service()
+            s3_service.upload_file(
+                file_data=bill_file.stream,
+                object_name=bill_path,
+                bucket_name=settings.MINIO_BILL_BUCKET_NAME,
+            )
+        except Exception:
+            logger.exception("Ошибка при скачивании и сохранении фото чека")
+            message = settings.Messages.UPLOAD_FILE_UNKNOWN_ERROR
+            return jsonify(dict(status=status, message=message))
 
         # make this variables to avoid current_user reload after update sessions
 

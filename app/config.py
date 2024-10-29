@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     ELASTIC_APM_SECRET_TOKEN: str
     APM_SERVER_URL: str
 
+    MINIO_API_URL: str
+    MINIO_ACCESS_KEY: str
+    MINIO_SECRET_KEY: str
+    MINIO_CRM_BUCKET_NAME: str
+    MINIO_BILL_BUCKET_NAME: str
+
     DATA_DOWNLOAD_URL_FROM_MARKINERS_1: str
     SALT: SecretStr
 

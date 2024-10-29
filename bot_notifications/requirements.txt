@@ -5,3 +5,4 @@ asyncpg==0.28.0
 redis>=5.0.0
 requests>=2.31.0
 loguru==0.7.2
+minio==7.2.9

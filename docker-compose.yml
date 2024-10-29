@@ -33,7 +33,9 @@ services:
     volumes:
       - ./app/migrations:/app/migrations
       - ./app/static:/app/static/
-      - ./app/download_dir:/app/download_dir/
+      - ./app/download_dir/backup:/app/download_dir/backup/
+      - ./app/download_dir/verification_files:/app/download_dir/verification_files/
+      - ./app/download_dir/files:/app/download_dir/files/
       - ./app/db_backups:/app/db_backups/
       - /etc/localtime:/etc/localtime:ro
       - /var/log/flask-app/:/var/log/flask-app/
@@ -58,7 +60,6 @@ services:
       dockerfile: infra/Dockerfile
     volumes:
       - /var/log/bot-notifications/:/var/log/bot-notifications/
-      - ./app/download_dir/bill_imgs/:/app/files/bill_imgs/
       - ./app/static/qr_imgs/:/app/files/qr_imgs/
     command: python3 -m main
     env_file:

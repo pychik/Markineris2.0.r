@@ -7,7 +7,8 @@ from src.core.messages import UserMessages
 from src.core.states import UserState
 from src.handlers.utils import check_user_existent_and_update_state_data, clear_state_data
 from src.infrastructure.client import BaseClient
-from src.infrastructure.utils import download_bill_img, get_qr_code
+from src.infrastructure.logger import logger
+from src.infrastructure.utils import download_bill_img, get_qr_code, FileSizeError, FileExtensionError
 from src.keyboards.buttons import (
     MAIN_FUNCTIONS,
     CANCEL_BUTTON,
@@ -26,7 +27,6 @@ from src.schemas.account_refill_balance import (
 )
 from src.schemas.user import TgUserSchema
 from src.service.user import UserService
-from src.infrastructure.logger import logger
 
 router = Router()
 
@@ -224,11 +224,15 @@ async def photo_receipt_handler(
     """
     try:
         filename = await download_bill_img(message, user_service=user_service, tg_user_schema=tg_user_schema)
-    except ValueError as e:
-        logger.error(e)
+    except (FileSizeError, FileExtensionError) as e:
+        await message.answer(
+            text=f"{UserMessages.PHOTO_PROCESSING_ERROR} Ошибка: {str(e)}",
+            reply_markup=await get_reply_keyboard([HELP_BUTTON, CANCEL_BUTTON]),
+        )
+    except Exception:
         await message.answer(
             text=UserMessages.PHOTO_PROCESSING_ERROR,
-            reply_markup=await get_reply_keyboard([CANCEL_BUTTON]),
+            reply_markup=await get_reply_keyboard([HELP_BUTTON, CANCEL_BUTTON]),
         )
     else:
         if filename is not None:
