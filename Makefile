@@ -47,7 +47,7 @@ service-logs:					## Отображение в режиме реального �
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} logs -f
 
 service-up:					## Запуск контейнеров сервиса маркинерис(Flask app, db, nginx).
-	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} up --build
+	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} up --build -d
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} restart bot_notification
 	docker image prune -f
 
@@ -117,10 +117,13 @@ elk-prune:						## Удалить ELK контейнеры и удалить в�
 	@docker volume prune -f --filter label=com.docker.compose.project=elastic
 
 minio-up:						## Запустить контейнеры сервиса Minio(minio, create_buckets)
-	$(DOCKER_COMPOSE_COMMAND) $(COMPOSE_S3_STORAGE) up --build
+	$(DOCKER_COMPOSE_COMMAND) $(COMPOSE_S3_STORAGE) up --build -d
 
 minio-down:						## Остановить контейнеры сервиса Minio(minio, create_buckets)
 	$(DOCKER_COMPOSE_COMMAND) $(COMPOSE_S3_STORAGE) down
+
+minio-logs:						## Остановить контейнеры сервиса Minio(minio, create_buckets)
+	$(DOCKER_COMPOSE_COMMAND) $(COMPOSE_S3_STORAGE) logs -f
 
 help:       					## Показать все команды.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m (default: help)\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
