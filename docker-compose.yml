@@ -31,12 +31,6 @@ services:
     env_file:
       - .env
     volumes:
-      - ./app/migrations:/app/migrations
-      - ./app/static:/app/static/
-      - ./app/download_dir/backup:/app/download_dir/backup/
-      - ./app/download_dir/verification_files:/app/download_dir/verification_files/
-      - ./app/download_dir/files:/app/download_dir/files/
-      - ./app/db_backups:/app/db_backups/
       - /etc/localtime:/etc/localtime:ro
       - /var/log/flask-app/:/var/log/flask-app/
     expose:

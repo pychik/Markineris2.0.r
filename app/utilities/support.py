@@ -1628,7 +1628,7 @@ def helper_check_form(on: str) -> bool:
 
 
 def helper_get_transactions(u_id: int, date_from: str = settings.Transactions.DEFAULT_DATE_FROM,
-                            date_to: str = datetime.today().strftime("%Y-%m-%d"), sort_type: str = 'desc'):
+                            date_to: str = (datetime.today() + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S"), sort_type: str = 'desc'):
     model_order_type = desc(UserTransaction.created_at) if sort_type == 'desc'  \
         else asc(UserTransaction.created_at)
 
