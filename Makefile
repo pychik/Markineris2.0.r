@@ -122,7 +122,7 @@ minio-up:						## Запустить контейнеры сервиса Minio(m
 minio-down:						## Остановить контейнеры сервиса Minio(minio, create_buckets)
 	$(DOCKER_COMPOSE_COMMAND) $(COMPOSE_S3_STORAGE) down
 
-minio-logs:						## Остановить контейнеры сервиса Minio(minio, create_buckets)
+minio-logs:						## Логи сервиса Minio(minio, create_buckets)
 	$(DOCKER_COMPOSE_COMMAND) $(COMPOSE_S3_STORAGE) logs -f
 
 help:       					## Показать все команды.
