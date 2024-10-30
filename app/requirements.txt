@@ -37,3 +37,4 @@ loguru==0.7.2
 elastic-apm[flask]==6.20.0
 xtea==0.7.1
 SQLAlchemy==2.0.30
+minio==7.2.9

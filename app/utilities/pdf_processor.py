@@ -11,8 +11,8 @@ from config import settings
 
 
 class RarPdfProcessor:
-    def __init__(self, rar_file):
-        self.rar_archive_data = self.get_rar_archive_data(rar_file=rar_file)
+    def __init__(self, rar_file: bytes):
+        self.rar_archive_data = rar_file
         self.pdf_files = []
 
     @staticmethod
@@ -87,8 +87,8 @@ class RarPdfProcessor:
         PageMerge(page).add(overlay_pdf.pages[0]).render()
 
 
-def get_first_page_as_image(pdf_path: str):
-    pdf_document = fitz.open(pdf_path)
+def get_first_page_as_image(pdf_file_stream: bytes):
+    pdf_document = fitz.open(stream=pdf_file_stream, filetype='pdf')
     first_page = pdf_document.load_page(0)  # Load the first page
 
     zoom = 2  # Adjust this value for higher/lower DPI

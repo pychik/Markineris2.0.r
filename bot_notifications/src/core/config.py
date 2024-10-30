@@ -41,6 +41,14 @@ class Setting(BaseSettings):
     REQUISITE_ID_STORAGE_KEY: str = "requisite_id"
     PROMO_CODE_ID_STORAGE_KEY: str = "promo_id"
 
+    MAINTENANCE_MODE: bool = Field(default=False, alias="BOT_MAINTENANCE_MODE")
+    MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10 мб
+
+    MINIO_API_URL: str
+    MINIO_ACCESS_KEY: str
+    MINIO_SECRET_KEY: str
+    MINIO_BILL_BUCKET_NAME: str
+
     @property
     def database_url(self) -> str:
         return (

@@ -49,5 +49,5 @@ def check_csrf():
 @login_required
 @user_activated
 def download_template_table(filename: str):
-    path = f"{settings.DOWNLOAD_DIR}/{filename}"
+    path = f"{settings.DOWNLOAD_DIR}/system_files/{filename}"
     return send_file(path_or_file=path, as_attachment=True)

@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  minio:
+    container_name: minio
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    expose:
+      - "9000"
+    ports:
+      - "9001:9001"
+    volumes:
+      - "./minio_dir/data:/data"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    networks:
+      - markineris_r_network
+      - minio_network
+    healthcheck:
+      test: ["CMD", "curl", "-I", "http://minio:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  create_buckets:
+    container_name: create_buckets
+    image: minio/mc
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add --api s3v4 s3 ${MINIO_API_URL} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+      /usr/bin/mc mb s3/${MINIO_CRM_BUCKET_NAME}/;
+      /usr/bin/mc mb s3/${MINIO_BILL_BUCKET_NAME}/;
+      "
+    networks:
+      - markineris_r_network
+    depends_on:
+      minio:
+        condition: service_healthy
+    env_file:
+    - .env
+
+volumes:
+  minio_dir:
+
+networks:
+  markineris_r_network:
+    external: true
+  minio_network:
+    name: minio_network

@@ -172,3 +172,5 @@ elk/secrets/keystore/*
 /app/download_dir/bill_imgs
 /app/download_dir/crm
 
+minio_dir/
+redis_storage_backups/

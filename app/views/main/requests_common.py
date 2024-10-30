@@ -29,7 +29,7 @@ def process_idn_error(from_category: str, message: str):
 @login_required
 @user_activated
 def download_file(filename: str):
-    path = f"{settings.DOWNLOAD_DIR}/{filename}"
+    path = f"{settings.DOWNLOAD_DIR}/system_files/{filename}"
     return send_file(path_or_file=path, as_attachment=True)
 
 

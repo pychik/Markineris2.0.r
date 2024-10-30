@@ -2,7 +2,7 @@ from flask import Blueprint
 from flask_login import login_required
 
 from config import settings
-from utilities.helpers.h_archive import h_delete_order, h_copy_order, h_category, h_download_oa, h_download_opdf, h_download_opdf_common
+from utilities.helpers.h_archive import h_delete_order, h_copy_order, h_category, h_download_oa, h_download_opdf
 from utilities.support import user_activated
 
 orders_archive = Blueprint('orders_archive', __name__)
