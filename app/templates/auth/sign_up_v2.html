@@ -9,7 +9,7 @@
 
 <div class="front text-center d-flex flex-column justify-content-center align-items-center">
     <h1 class="mb-5 fs-2">Пожалуйста, зарегистрируйтесь</h1>
-    <form method="POST" id="sign_up" onsubmit ="return verify_sign_up_form();" action="{{url_for('auth.sign_up_post')}}">
+    <form method="POST" id="sign_up" onsubmit ="return verify_sign_up_form(`{{url_for('auth.verify_sign_up_phone_code')}}`, '{{ csrf_token() }}');" action="{{url_for('auth.sign_up_post')}}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <input type="hidden" name="p_link" value="{{ request.path }}">
         <div class="mb-3">
@@ -30,6 +30,14 @@
                    placeholder="Введите номер WhatsApp" onchange="check_intel_num()"
                 required autofocus>
             <input type="hidden" name="full_phone" id="full_phone"  value="">
+        </div>
+        <div class="mb-3">
+            <button type="button" class="btn btn-secondary btn-block" onclick="verifyPhoneNumber(`{{ url_for('auth.send_verification_code') }}`, '{{ csrf_token() }}')">Верификация номера</button>
+        </div>
+
+        <div id="verification-code-input" class="mb-3" style="display: none;">
+            <input type="text" id="verification-code" class="form-control" placeholder="Введите код из SMS">
+            <small class="text-muted">Введите код, отправленный на ваш номер.</small>
         </div>
 
         <div class="input-group mt-3">

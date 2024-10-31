@@ -1,7 +1,8 @@
 from typing import Union
 
-from flask import Blueprint, render_template, redirect, url_for, request, Response, flash, Markup, session
+from flask import Blueprint, jsonify, render_template, redirect, url_for, request, Response, flash, Markup, session
 from flask_login import login_user, logout_user, current_user
+
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -9,6 +10,7 @@ from config import settings
 from logger import logger
 from models import User, PartnerCode, db
 from settings.start import SIMPLE_CAPTCHA
+from utilities.sms.sms_service import SmsOTP
 from utilities.saving_uts import helper_check_partner_codes_admin
 from utilities.support import url_decrypt, check_email
 from utilities.telegram import NewUser
@@ -180,3 +182,36 @@ def h_sign_up_post() -> Union[Response, str]:
             flash(message=f"{settings.Messages.USER_SIGNUP_ERROR_UNKNOWN} {e}")
 
     return redirect(url_for('auth.login'))
+
+
+def h_send_verification_code():
+    data = request.get_json()
+    phone_number = data.get('phone')
+    status = settings.ERROR
+    if not phone_number:
+        message = settings.Sms.NO_PHONE
+        return jsonify({'status': status, 'message': message})
+
+    sms_proc = SmsOTP(api_key=settings.SMS_API_TOKEN)
+    if sms_proc.send_sms(phone=phone_number):
+        status = settings.SUCCESS
+        message = settings.Sms.SMS_CODE_SUCCESS.format(phone=phone_number)
+        session['verification_code'] = sms_proc.otp_code
+
+        return jsonify({'status': status, 'message': message})
+    else:
+        return jsonify({"status": status, 'message': settings.Sms.SMS_CODE_SEND_ERROR})
+
+
+def h_verify_sign_up_phone_code():
+    data = request.get_json()
+    input_code = data.get('code')
+
+    saved_code = session.get('verification_code')
+
+    if saved_code and input_code == saved_code:
+        # Очистка кода из сессии после успешной проверки
+        session.pop('verification_code', None)
+        return jsonify({"status": settings.SUCCESS})
+    else:
+        return jsonify({"status": settings.ERROR}), 400
