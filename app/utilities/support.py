@@ -2943,3 +2943,83 @@ def get_partner_code_max_id(partners) -> str:
                    extract_id_from_partner_name(partner.name) is not None]
     auto_increment_id = max(partners_id) + 1 if partners_id else 1
     return str(auto_increment_id)
+
+
+def helper_get_filter_avg_order_time_processing_report(report: bool = False):
+    default_day_to = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d')
+    default_day_from = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d')
+    if report:
+        url_date_from = request.form.get('date_from', '', type=str)
+        url_date_to = request.form.get('date_to', 0, type=str)
+        manager_id = request.form.get('manager', 0, int)
+
+    else:
+        url_date_from = request.args.get('date_from', '', type=str)
+        url_date_to = request.args.get('date_to', '', type=str)
+        manager_id = request.args.get('manager', 0, int)
+
+    date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from else default_day_to
+    date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
+        '%Y-%m-%d') if url_date_to else default_day_from
+
+    return date_from, date_to, manager_id
+
+
+def helper_get_stmt_avg_order_time_processing_report(
+        date_from: str = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d'),
+        date_to: str = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d'),
+        manager_id: int = 0,
+) -> TextClause:
+
+    stmt = text(f"""
+            SELECT
+                U.LOGIN_NAME,
+                count(distinct o.id) as order_count,
+                SUM(
+                    COALESCE(
+                        SH.BOX_QUANTITY * SH_QS.QUANTITY,
+                        CL.BOX_QUANTITY * CL_QS.QUANTITY,
+                        L.BOX_QUANTITY * L_QS.QUANTITY,
+                        P.QUANTITY
+                    )
+                ) AS pos_count,
+                COUNT(COALESCE(SH.ID, CL.ID, L.ID, P.ID)) AS rows_count,
+                TRUNC(AVG(
+                    EXTRACT(
+                        epoch
+                        FROM
+                            O.M_FINISHED - O.M_STARTED
+                    ) 
+                ) / 60, 1) AS PROCESSING_TIME
+            FROM
+                ORDERS O
+                JOIN USERS U ON O.MANAGER_ID = U.ID
+                LEFT JOIN PUBLIC.SHOES SH ON O.ID = SH.ORDER_ID
+                LEFT JOIN PUBLIC.SHOES_QUANTITY_SIZES SH_QS ON SH.ID = SH_QS.SHOE_ID
+                LEFT JOIN PUBLIC.CLOTHES CL ON O.ID = CL.ORDER_ID
+                LEFT JOIN PUBLIC.CL_QUANTITY_SIZES CL_QS ON CL.ID = CL_QS.CL_ID
+                LEFT JOIN PUBLIC.LINEN L ON O.ID = L.ORDER_ID
+                LEFT JOIN PUBLIC.LINEN_QUANTITY_SIZES L_QS ON L.ID = L_QS.LIN_ID
+                LEFT JOIN PUBLIC.PARFUM P ON O.ID = P.ORDER_ID
+            WHERE
+                O.M_STARTED >= :date_from
+                and O.M_FINISHED < :date_to
+                and (o.stage = 5 or o.stage > 7)
+                and (o.manager_id = :manager_id or 0 = :manager_id)
+            GROUP BY
+                U.LOGIN_NAME
+            ORDER BY 1;
+        """).bindparams(date_from=date_from, date_to=date_to, manager_id=manager_id)
+    return stmt
+
+
+def sumsuu_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.status is True and current_user.role in [settings.SUPER_MANAGER, settings.SUPER_USER,]:
+            return func(*args, **kwargs)
+        else:
+            bck = request.args.get('bck', 0, type=int)
+            if bck:
+                return jsonify(dict(status='danger', message=settings.Messages.CRM_REPORT_USER_REQUIRED))
+    return wrapper

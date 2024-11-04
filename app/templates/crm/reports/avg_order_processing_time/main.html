@@ -1,0 +1,37 @@
+{% extends "crm/base_crm.html" %}
+
+
+{% block crm_uoc %}
+
+
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/service/jquery-ui.min.css')}}" integrity="sha512-ELV+xyi8IhEApPS/pSj66+Jiw+sOT1Mqkzlh8ExXihe4zfqbWkxPRi8wptXIO9g73FSlhmquFlUOuMSoXz5IRw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script src="{{ url_for('static', filename='main_v2/js/assets/jquery-ui.min.js')}}" integrity="sha512-57oZ/vW8ANMjR/KQ6Be9v/+/h6bq9/l3f0Oc7vn6qMqyhvPd1cvKBRWWpzu0QoneImqr2SkmO4MSqU+RpHom3Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="{{ url_for('static', filename='main_v2/js/datepicker-ru.js') }}"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc.js')}}"></script>
+<script src="{{url_for('static',filename='main_v2/js/assets/popper.min.js')}}"></script>
+
+
+<div class="container">
+
+    <div class="order-filters">
+      {% include 'crm/reports/avg_order_processing_time/filters.html' %}
+    </div>
+
+
+    <div class="row">
+
+        <div class="col-md-12">
+
+
+            <div id="avg_order_processing_time_table">
+                {% include 'crm/reports/avg_order_processing_time/table.html' %}
+            </div>
+        </div>
+    </div>
+
+
+</div>
+
+
+
+{% endblock %}
