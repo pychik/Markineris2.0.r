@@ -3022,7 +3022,4 @@ def sumsuu_required(func):
             bck = request.args.get('bck', 0, type=int)
             if bck:
                 return jsonify(dict(status='danger', message=settings.Messages.CRM_REPORT_USER_REQUIRED))
-            else:
-                flash(message=settings.Messages.CRM_REPORT_USER_REQUIRED, category='error')
-                return redirect(url_for('main.index'))
     return wrapper
