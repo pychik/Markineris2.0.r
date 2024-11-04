@@ -1,0 +1,75 @@
+<div class="faded mt-3">
+  <table class="table mt-3 table-result" id="avg_order_processing_time_table">
+    <thead class="text-dark">
+    <tr>
+      <th scope="col">
+        Оператор
+      </th>
+      <th scope="col">
+        Кол-во КС
+      </th>
+      <th scope="col">
+        Кол-во КМ
+      </th>
+      <th scope="col">
+        Кол-во заказов
+      </th>
+      <th scope="col">
+        Среднее время выполнения заказа(мин)
+      </th>
+    </tr>
+    </thead>
+
+    <tbody id="avg_order_processing_time_table_body">
+
+    {% for rec in records_list %}
+      <tr>
+      <td>
+        {{ rec.login_name }}
+      </td>
+      <td>
+        {{ rec.order_count }}
+      </td>
+      <td>
+        {{ rec.pos_count }}
+      </td>
+      <td>
+        {{ rec.rows_count }}
+      </td>
+      <td>
+        {{ rec.processing_time }}
+      </td>
+
+    {% endfor %}
+
+    <tr>
+    </tr>
+    </tbody>
+  </table>
+
+{#  <div class="pagination-page-info text-center">#}
+{#    На этой странице <b>{{ offset + 1 }} - {{ offset + records_list|length }}</b> Всего: <b>#}
+{#    {% if pagination.total %}{{ pagination.total }}{% else %}{{ records_list | length }}{% endif %}</b></div>#}
+{##}
+{#  <div class="d-flex">#}
+{#            <div class="col-3"></div>#}
+{#            <div class="col-md-1"></div>#}
+{#            <div class="col-5" style="margin-left: 3%;">{{ pagination.links }}</div>#}
+{##}
+{#        </div>#}
+
+<div class="pagination-page-info text-center">На этой странице <b>{{ offset + 1 }} - {{ offset + records_list|length }}</b> Всего: <b>{{ pagination.total }}</b></div>
+
+  <div class="pagination_section my-1" >
+        <div class="d-flex">
+            <div class="col-3"></div>
+            <div class="col-md-2"></div>
+            <div class="col-5" style="margin-left: 3%;">{{ pagination.links }}</div>
+
+        </div>
+    </div>
+
+
+
+
+</div>

@@ -309,3 +309,72 @@ function update_spec_block_info(url, block, stage, csrf){
    setTimeout(function() {clear_user_messages();}, 15000);
 
 }
+
+
+function bck_avg_order_processing_time_rpt(url) {
+    let sort_mode = $('input[name="sort_type"]:checked').val();
+    let date_from = $('#date_from').val();
+    let date_to = $('#date_to').val();
+    let manager = $('#manager_filter').val();
+
+    $.ajax({
+        url: url,
+        method: "GET",
+        data: {
+            date_from: date_from,
+            date_to: date_to,
+            sort_type: sort_mode,
+            manager: manager,
+        },
+        success: function (data) {
+            $('#avg_order_processing_time_table').html(data);
+            $("#avg_order_processing_time_table").append(data.htmlresponse);
+        }
+    });
+}
+
+
+function get_avg_order_processing_time_rpt_excel(url, csrf) {
+    let sort_mode = $('input[name="sort_type"]:checked').val();
+    let date_from = $('#date_from').val();
+    let date_to = $('#date_to').val();
+    let manager = $('#manager_filter').val();
+    $('#overlay_loading').show();
+    $.ajax({
+        url: url,
+        headers: { "X-CSRFToken": csrf },
+        method: "POST",
+        data: {date_from: date_from,
+            date_to: date_to,
+            sort_type: sort_mode,
+            manager: manager,
+    },
+        xhrFields: {
+            responseType: 'blob' // Set response type to blob
+        },
+
+        success: function(response, status, xhr) {
+            $('#overlay_loading').hide();
+            if (xhr.status === 200) {
+                var blob = new Blob([response], { type: 'application/xlsx' });
+                var link = document.createElement('a');
+
+                var dataName = xhr.getResponseHeader('data_file_name');
+
+                link.href = window.URL.createObjectURL(blob);
+                // console.log()
+                link.download = decodeURIComponent(dataName) || 'статистика_по_времени_обработки_заказа.xlsx'; //
+                link.click();
+            } else {
+                // Handle other status codes
+                console.error('Error:', xhr.status);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#overlay_loading').hide();
+            // Error handling
+            console.error('Error:', error);
+        }
+    });
+
+}

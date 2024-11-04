@@ -1,14 +1,19 @@
-from datetime import date, timedelta
+import urllib
+from datetime import date, timedelta, datetime
 
-from flask import Blueprint, flash, render_template, redirect, url_for, request
+from flask import Blueprint, flash, render_template, redirect, url_for, request, make_response, jsonify
 from flask_login import current_user, login_required
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash
 
 from config import settings
 from logger import logger
 from models import User, Order, db
-from utilities.support import user_activated, su_required, susmu_required, susmumu_required, manager_exist_check
+from utilities.admin.excel_report import ExcelReport
+from utilities.support import user_activated, su_required, susmu_required, susmumu_required, manager_exist_check, \
+    helper_get_filter_avg_order_time_processing_report, helper_get_stmt_avg_order_time_processing_report, \
+    sumsuu_required, helper_paginate_data
 from views.crm.helpers import helper_clean_oco, check_manager_orders, helper_change_manager_limit, helper_get_limits, \
                               helper_change_auto_order_pool, helper_change_auto_order_sent
 
@@ -211,3 +216,79 @@ def change_auto_order_pool():
 @su_required
 def change_auto_order_sent():
     return helper_change_auto_order_sent()
+
+
+@crm_uoc.route('/avg_order_processing_time_report', methods=['GET'])
+@login_required
+@sumsuu_required
+def avg_order_processing_time_rpt():
+    date_from = datetime.now() - timedelta(settings.ORDERS_REPORT_TIMEDELTA)
+    date_to = datetime.now()
+    managers = db.session.execute(
+        text('select distinct id, login_name from users where id in (select manager_id from orders where manager_id is not null)')).fetchall()
+    stmt = helper_get_stmt_avg_order_time_processing_report()
+    records = db.session.execute(stmt, ).fetchall()
+    link = f'javascript:bck_avg_order_processing_time_rpt(\'' + url_for(
+        'crm_uoc.bck_avg_order_processing_time_rpt') + f'?bck=1' + '&page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        records_list = helper_paginate_data(data=records, per_page=settings.PAGINATION_PER_PAGE, href=link)
+    return render_template('crm/reports/avg_order_processing_time/main.html', **locals())
+
+
+@crm_uoc.route('/bck_avg_order_processing_time_report', methods=['GET'])
+@login_required
+@sumsuu_required
+def bck_avg_order_processing_time_rpt():
+    date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report()
+    stmt = helper_get_stmt_avg_order_time_processing_report(
+        date_from=date_from,
+        date_to=date_to,
+        manager_id=manager_id,
+    )
+    records = db.session.execute(stmt).fetchall()
+    link = f'javascript:bck_avg_order_processing_time_rpt(\'' + url_for(
+        'crm_uoc.bck_avg_order_processing_time_rpt') + f'?bck=1' + '&page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        records_list = helper_paginate_data(data=records, per_page=settings.PAGINATION_PER_PAGE, href=link, css_framework='foundation')
+    return jsonify(
+        {
+            'htmlresponse': render_template(f'crm/reports/avg_order_processing_time/table.html', **locals())
+        }
+    )
+
+
+@crm_uoc.route('/avg_order_processing_time_report_excel', methods=['POST'])
+@login_required
+@sumsuu_required
+def avg_order_processing_time_rpt_excel():
+    date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(report=True)
+    stmt = helper_get_stmt_avg_order_time_processing_report(
+        date_from=date_from,
+        date_to=date_to,
+        manager_id=manager_id,
+    )
+    records = db.session.execute(stmt).fetchall()
+    manager_name = None
+    if manager_id:
+        manager_name = User.query.with_entities(User.login_name).filter_by(id=manager_id).scalar()
+    filters = {'start_date': date_from, 'end_date': date_to}
+    if manager_name:
+        filters['manager'] = manager_name
+    output_file_name = f'Отчет среднему времени обработки заказов от {datetime.now().strftime("%d.%m.%Y")}'
+
+    excel = ExcelReport(
+        data=records,
+        filters={'start_date': date_from, 'end_date': date_to, 'manager': manager_name},
+        columns_name=['login', 'Кол-во КС',	'Кол-во КМ', 'Кол-во заказов', 'Среднее время выполнения заказа(мин)', ],
+        output_file_name=output_file_name,
+    )
+
+    excel_io = excel.create_report()
+    content = excel_io.getvalue()
+    response = make_response(content)
+    response.headers['data_file_name'] = urllib.parse.quote(excel.output_file_name)
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    response.headers['data_status'] = 'success'
+    return response
