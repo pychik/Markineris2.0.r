@@ -6,13 +6,13 @@
         Оператор
       </th>
       <th scope="col">
-        Кол-во КС
-      </th>
-      <th scope="col">
-        Кол-во КМ
-      </th>
-      <th scope="col">
         Кол-во заказов
+      </th>
+      <th scope="col">
+        Кол-во строк
+      </th>
+      <th scope="col">
+        Кол-во марок
       </th>
       <th scope="col">
         Среднее время выполнения заказа(мин)
@@ -31,10 +31,10 @@
         {{ rec.order_count }}
       </td>
       <td>
-        {{ rec.pos_count }}
+        {{ rec.rows_count }}
       </td>
       <td>
-        {{ rec.rows_count }}
+        {{ rec.pos_count }}
       </td>
       <td>
         {{ rec.processing_time }}
