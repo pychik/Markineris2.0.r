@@ -3008,7 +3008,7 @@ def helper_get_stmt_avg_order_time_processing_report(
                 and (o.manager_id = :manager_id or 0 = :manager_id)
             GROUP BY
                 U.LOGIN_NAME
-            ORDER BY 1;
+            ORDER BY 3 DESC;
         """).bindparams(date_from=date_from, date_to=date_to, manager_id=manager_id)
     return stmt
 
