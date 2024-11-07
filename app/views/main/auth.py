@@ -1,6 +1,5 @@
 from flask import Blueprint, redirect, url_for
 from flask_login import login_required, logout_user
-
 from utilities.helpers.h_auth import (h_login, h_sign_up, h_login_post, h_sign_up_post, h_send_verification_code,
                                       h_verify_sign_up_phone_code)
 

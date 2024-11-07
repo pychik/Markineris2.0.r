@@ -112,10 +112,15 @@ function verifySignPassword() {
 
 }
 
-function verify_sign_up_form(url, csrf){
+function verify_sign_up_form(url){
+    loadingCircle();
     if (check_intel_num() && verifySignPassword() && check_login_name()){
-        return verifySignUpForm(url, csrf)
+        let check = verifySignUpForm(url);
+        console.log(check)
+        if (check === true){return true}
+        // elsereturn verifySignUpForm(url)
     }
+    close_Loading_circle();
     return false
 }
 
@@ -142,12 +147,12 @@ function change_input_view(block_id, eye_toggle_id){
 
 }
 
-   function verifyPhoneNumber(url, csrf) {
+   function verifyPhoneNumber(url) {
         const phoneNumber = iti.getNumber();
         // Отправка номера телефона на сервер для отправки кода
         $.ajax({
             url: url,  // Создайте этот маршрут на сервере
-            headers:{"X-CSRFToken": csrf},
+            // headers:{"X-CSRFToken": csrf},
             type: "POST",
             contentType: "application/json",
             data: JSON.stringify({ phone: phoneNumber }),
@@ -165,36 +170,40 @@ function change_input_view(block_id, eye_toggle_id){
         });
     }
 
-    function verifySignUpForm(url, csrf) {
+    function verifySignUpForm(url) {
         let verificationCode = document.getElementById("verification-code").value;
+        var return_flag = false;
         if (verificationCode && verificationCode !== '') {
             // Верификация кода на сервере
             $.ajax({
                 url: url,  // Создайте этот маршрут на сервере
-                headers: {"X-CSRFToken": csrf},
+                // headers: {"X-CSRFToken": csrf},
                 type: "POST",
                 contentType: "application/json",
                 data: JSON.stringify({vcode: verificationCode}),
                 success: function (response) {
+
                     if (response.status === "success") {
-                        loadingCircle();
-                        return true
+                        return_flag = true;
+                        console.log('return_flag: ' + return_flag);
                     } else {
                         make_message("Неверный код. Проверьте код и попробуйте снова.", 'warning');
                     }
                 },
                 error: function () {
                     make_message("Произошла ошибка. Пожалуйста, попробуйте позже.", 'danger');
+                    close_Loading_circle();
 
                 }
 
             });
-            return false
         }
         else{
              make_message("Произошла ошибка, код верификации не введен", 'warning');
-             return false
+             close_Loading_circle();
         }
+        console.log('return_flag: ' + return_flag);
+        return return_flag
     }
 
 

@@ -32,6 +32,8 @@ class SmsOTP:
         }
         response = requests.get(url, params=params)
         result = response.json()
+        print(result)
+        print(self.otp_code)
         # print(result['sms'].get(phone), result['sms'][phone].get('status'))
         if result['sms'].get(phone) and result['sms'][phone].get('status') == 'OK':
             return True
@@ -46,11 +48,11 @@ class SmsOTP:
 
 
 
-if __name__ == '__main__':
-    sms_service = SmsOTP(SMSRU_API_KEY)
-    # sms_service = SmsOTP(SMSC_LOGIN, SMSC_PASSWORD)
-    otp_code = sms_service.generate_otp()
-    phone = '79213779917'
-    res = sms_service.send_sms(phone, otp_code)
-    print(f'{otp_code=}')
-    print(res)
+# if __name__ == '__main__':
+#     sms_service = SmsOTP(SMSRU_API_KEY)
+#     # sms_service = SmsOTP(SMSC_LOGIN, SMSC_PASSWORD)
+#     otp_code = sms_service.generate_otp()
+#     phone = '79520017062'
+#     res = sms_service.send_sms(phone)
+#     print(f'{otp_code=}')
+#     print(res)
