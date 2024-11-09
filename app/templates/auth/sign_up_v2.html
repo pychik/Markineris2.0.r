@@ -25,21 +25,39 @@
 <!--                       onchange="check_num()"-->
 <!--               placeholder="Введите телефон" required autofocus>-->
 
-        <div class="my-3">
-            <input type="tel" name="phone" id="phone" class="form-control mb-3" autocomplete="off"
-                   placeholder="Введите номер WhatsApp" onchange="check_intel_num()"
-                required autofocus>
-            <input type="hidden" name="full_phone" id="full_phone"  value="">
+{#        <div class="my-3">#}
+{#            <input type="tel" name="phone" id="phone" class="form-control mb-3" autocomplete="off"#}
+{#                   placeholder="Введите номер WhatsApp" onchange="check_intel_num()"#}
+{#                required autofocus>#}
+{#            <input type="hidden" name="full_phone" id="full_phone"  value="">#}
+{#        </div>#}
+{#        <div class="mb-3">#}
+{#            <button type="button" class="btn btn-secondary btn-block" onclick="verifyPhoneNumber(`{{ url_for('auth.send_verification_code') }}`)">Верификация номера</button>#}
+{#        </div>#}
+        <div class="d-flex align-items-center my-3">
+            <input type="tel" name="phone" id="phone" class="form-control me-2" autocomplete="off"
+                   placeholder="Введите номер WhatsApp" onchange="check_intel_num()" required autofocus>
+            <input type="hidden" name="full_phone" id="full_phone" value="">
+            <button type="button" class="btn btn-secondary" onclick="verifyPhoneNumber(`{{ url_for('auth.send_verification_code') }}`)">
+                Верификация номера
+            </button>
         </div>
-        <div class="mb-3">
-            <button type="button" class="btn btn-secondary btn-block" onclick="verifyPhoneNumber(`{{ url_for('auth.send_verification_code') }}`)">Верификация номера</button>
+{#        <div id="verification-code-input" class="mb-3" style="display: none;">#}
+{#            <input type="text" id="verification-code" class="form-control" placeholder="Введите код из SMS">#}
+{#            <small class="text-muted">Введите код, отправленный на ваш номер.</small>#}
+{#            <button type="button" class="btn btn-secondary btn-block" onclick="let check_vSF = verifySignUpCode(`{{ url_for('auth.verify_sign_up_phone_code') }}`);">Верификация формы</button>#}
+{#        </div>#}
+        <div id="verification-code-input" class="mb-3" style="display: none;">
+            <div class="input-group" >
+                <input type="text" id="verification-code" class="form-control" placeholder="Введите код из SMS">
+                <button type="button" class="btn btn-secondary" onclick="verifySignUpCode(`{{ url_for('auth.verify_sign_up_phone_code') }}`)">
+                    Верификация формы
+                </button>
+            </div>
+            <small class="text-muted">Введите код, отправленный на ваш номер.</small>
         </div>
 
-        <div id="verification-code-input" class="mb-3" style="display: none;">
-            <input type="text" id="verification-code" class="form-control" placeholder="Введите код из SMS">
-            <small class="text-muted">Введите код, отправленный на ваш номер.</small>
-{#            <button type="button" class="btn btn-secondary btn-block" onclick="verifySignUpForm(`{{ url_for('auth.verify_sign_up_phone_code') }}`)">Верификация формы</button>#}
-        </div>
+
 
         <div class="input-group mt-3">
 
@@ -83,7 +101,10 @@
             <input type="hidden" class="form-control" id="captcha_hash" name="captcha-hash" value="{{ captcha_hash | safe }}">
         </div>
 
-       <button type="submit" class="btn btn-lg btn-accent btn-block mt-3">Зарегистрироваться</button>
+{#       <button type="submit" class="btn btn-lg btn-accent btn-block mt-3">Зарегистрироваться</button>#}
+        <button type="submit" id="submit-button" class="btn btn-lg btn-accent btn-block mt-3" style="display: none;">
+            Зарегистрироваться
+        </button>
 
    </form>
 </div>

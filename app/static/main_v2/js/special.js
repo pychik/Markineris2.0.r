@@ -116,8 +116,10 @@ function verify_sign_up_form(url){
     loadingCircle();
     if (check_intel_num() && verifySignPassword() && check_login_name()){
         let check = verifySignUpForm(url);
-        console.log(check)
-        if (check === true){return true}
+        console.log('vsuf_check:' + check)
+        if (check === true){
+            close_Loading_circle();
+            return true}
         // elsereturn verifySignUpForm(url)
     }
     close_Loading_circle();
@@ -159,7 +161,8 @@ function change_input_view(block_id, eye_toggle_id){
             success: function (response) {
                 if (response.status === "success") {
                     make_message(response.message, response.status);
-                    document.getElementById("verification-code-input").style.display = "block";
+                    // document.getElementById("verification-code-input").style.display = "block";
+                    showVerificationCodeInput();
                 } else {
                     make_message(response.message, response.status);
                 }
@@ -170,40 +173,55 @@ function change_input_view(block_id, eye_toggle_id){
         });
     }
 
+   function showVerificationCodeInput() {
+
+       document.getElementById("verification-code-input").style.display = "block";
+
+
+        }
+   async function verifySignUpCode(url) {
+        try {
+            let result = await verifySignUpForm(url);
+            // console.log('Verification result:', result);
+            if (result) {
+                return result
+            }
+        } catch (error) {
+            console.error('Verification failed:', error);
+            return false
+
+        }
+   }
+
     function verifySignUpForm(url) {
-        let verificationCode = document.getElementById("verification-code").value;
-        var return_flag = false;
-        if (verificationCode && verificationCode !== '') {
-            // Верификация кода на сервере
-            $.ajax({
-                url: url,  // Создайте этот маршрут на сервере
-                // headers: {"X-CSRFToken": csrf},
-                type: "POST",
-                contentType: "application/json",
-                data: JSON.stringify({vcode: verificationCode}),
-                success: function (response) {
-
-                    if (response.status === "success") {
-                        return_flag = true;
-                        console.log('return_flag: ' + return_flag);
-                    } else {
-                        make_message("Неверный код. Проверьте код и попробуйте снова.", 'warning');
+        return new Promise((resolve, reject) => {
+            let verificationCode = document.getElementById("verification-code").value;
+            if (verificationCode && verificationCode !== '') {
+                // Verifying code on the server
+                $.ajax({
+                    url: url,
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({ vcode: verificationCode }),
+                    success: function (response) {
+                        if (response.status === "success") {
+                            make_message("Код успешно подтвержден!", 'success');
+                            resolve(true);
+                        } else {
+                            make_message("Неверный код. Проверьте код и попробуйте снова.", 'warning');
+                            resolve(false);
+                        }
+                    },
+                    error: function () {
+                        make_message("Произошла ошибка. Пожалуйста, попробуйте позже.", 'danger');
+                        reject(false);
                     }
-                },
-                error: function () {
-                    make_message("Произошла ошибка. Пожалуйста, попробуйте позже.", 'danger');
-                    close_Loading_circle();
-
-                }
-
-            });
-        }
-        else{
-             make_message("Произошла ошибка, код верификации не введен", 'warning');
-             close_Loading_circle();
-        }
-        console.log('return_flag: ' + return_flag);
-        return return_flag
+                });
+            } else {
+                make_message("Произошла ошибка, код верификации не введен", 'warning');
+                reject(false);
+            }
+        });
     }
 
 
