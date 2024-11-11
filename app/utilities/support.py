@@ -1802,8 +1802,9 @@ def helper_get_check_archive(category_process: str, order_ids: str) -> list:
 
 
 def helper_check_user_order_in_archive(category: str, o_id: int) -> tuple[int, str]:
-    check_order_list = ''.join(helper_get_check_archive(category_process=settings.CATEGORIES_DICT.get(category),
-                                                        order_ids=str(o_id))[0])
+    check_res = helper_get_check_archive(category_process=settings.CATEGORIES_DICT.get(category),
+                                         order_ids=str(o_id))
+    check_order_list = ''.join(check_res[0]) if check_res else None
     result_status = 0
 
     if not check_order_list:
