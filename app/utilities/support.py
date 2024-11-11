@@ -1643,13 +1643,18 @@ def helper_get_transactions(u_id: int, date_from: str = settings.Transactions.DE
 
 
 def helper_refill_transaction(amount: int, status: int, promo_info: str,
-                              user_id: int, sa_id: int, bill_path: str) -> bool:
+                              user_id: int, sa_id: int, bill_path: str, only_promo: bool = False) -> bool:
 
     created_at = datetime.now()
     query = f"""INSERT into public.user_transactions (type, status, amount, promo_info, user_id, sa_id, bill_path, created_at)
                 VALUES(True, {status}, {amount}, '{promo_info}', {user_id}, {sa_id}, '{bill_path}', '{created_at}');
                 UPDATE public.users SET pending_balance_rf=pending_balance_rf + {amount} WHERE public.users.id = {user_id};
                 UPDATE public.server_params SET pending_balance_rf=pending_balance_rf + {amount};
+            """ if not only_promo else \
+        f"""INSERT into public.user_transactions (type, status, amount, promo_info, user_id, sa_id, bill_path, created_at)
+                VALUES(True, {status}, {amount}, '{promo_info}', {user_id}, {sa_id}, '{bill_path}', '{created_at}');
+                UPDATE public.users SET balance=balance + {amount} WHERE public.users.id = {user_id};
+                UPDATE public.server_params SET balance=balance + {amount};
             """
     try:
         db.session.execute(text(query))

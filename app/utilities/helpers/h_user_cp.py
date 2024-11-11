@@ -240,6 +240,7 @@ def h_tg_verify_detail(u_id: int):
 # like big methods
 def h_pa_refill(u_id: int, sa_id: int):
     status = 'danger'
+    only_promo = False
 
     # all neccessary checks
     if u_id != current_user.id:
@@ -261,41 +262,50 @@ def h_pa_refill(u_id: int, sa_id: int):
 
     amount_orig = int(float(request.form.get('bill_summ', '0').replace('--', '').strip()))
 
-    if amount_orig < settings.PA_REFILL_MIN:
-        message = settings.Messages.STRANGE_REQUESTS
-        return jsonify(dict(status=status, message=message))
-
     amount_add = 0
     if promo_code:
         promo_success, amount_add, message = helper_check_promo(user=current_user, promo_code=promo_code)
         if not promo_success:
             return jsonify(dict(status=status, message=message))
 
+    if amount_orig != 0 and amount_orig < settings.PA_REFILL_MIN:
+        message = settings.Messages.STRANGE_REQUESTS
+        return jsonify(dict(status=status, message=message))
+    else:
+        only_promo = True
+
     try:
 
-        bill_file = request.files.get('bill_file')
-        # check file
-        if bill_file is None or bill_file is False or check_file_extension(filename=bill_file.filename,
-                                                                           extensions=settings.ALLOWED_BILL_EXTENSIONS) is False:
-            message = settings.Messages.UT_TYPE_FILE_ERROR
-            return jsonify(dict(status=status, message=message))
+        if not only_promo:
+            bill_file = request.files.get('bill_file')
+            # check file
+            if bill_file is None or bill_file is False or check_file_extension(filename=bill_file.filename,
+                                                                               extensions=settings.ALLOWED_BILL_EXTENSIONS) is False:
+                message = settings.Messages.UT_TYPE_FILE_ERROR
+                return jsonify(dict(status=status, message=message))
 
-        bill_extension = get_file_extension(filename=bill_file.filename)
+            bill_extension = get_file_extension(filename=bill_file.filename)
 
-        uuid_prefix = str(uuid4())[:8]
-        bill_path = f'{uuid_prefix}_{current_user.login_name}.{bill_extension}'
-        # save file
-        try:
-            s3_service = get_s3_service()
-            s3_service.upload_file(
-                file_data=bill_file.stream,
-                object_name=bill_path,
-                bucket_name=settings.MINIO_BILL_BUCKET_NAME,
-            )
-        except Exception:
-            logger.exception("Ошибка при скачивании и сохранении фото чека")
-            message = settings.Messages.UPLOAD_FILE_UNKNOWN_ERROR
-            return jsonify(dict(status=status, message=message))
+            uuid_prefix = str(uuid4())[:8]
+            bill_path = f'{uuid_prefix}_{current_user.login_name}.{bill_extension}'
+            status = settings.Transactions.PENDING
+            # save file
+            try:
+                s3_service = get_s3_service()
+                s3_service.upload_file(
+                    file_data=bill_file.stream,
+                    object_name=bill_path,
+                    bucket_name=settings.MINIO_BILL_BUCKET_NAME,
+                )
+            except Exception:
+                logger.exception("Ошибка при скачивании и сохранении фото чека")
+                message = settings.Messages.UPLOAD_FILE_UNKNOWN_ERROR
+                return jsonify(dict(status=status, message=message))
+        else:
+            bill_extension = 'only_promo'
+            uuid_prefix = str(uuid4())[:8]
+            bill_path = f'{uuid_prefix}_{current_user.login_name}.{bill_extension}'
+            status = settings.Transactions.SUCCESS
 
         # make this variables to avoid current_user reload after update sessions
 
@@ -305,8 +315,8 @@ def h_pa_refill(u_id: int, sa_id: int):
 
         amount = amount_orig + amount_add
         promo_info = f'{promo_code}: {amount_orig} + {amount_add}' if promo_code else ''
-        if helper_refill_transaction(amount=amount, status=settings.Transactions.PENDING, promo_info=promo_info,
-                                     user_id=current_user.id, sa_id=cur_sa.id, bill_path=bill_path):
+        if helper_refill_transaction(amount=amount, status=status, promo_info=promo_info,
+                                     user_id=u_id, sa_id=cur_sa.id, bill_path=bill_path, only_promo=only_promo):
 
             # send message to admin TG
             RefillBalance.send_messages_refill_balance.delay(
@@ -325,7 +335,7 @@ def h_pa_refill(u_id: int, sa_id: int):
                                                                    service_account=cur_sa.sa_name, promo_code=promo_code,
                                                                    promo_summ=amount_add))
 
-            message = f"{settings.Messages.USER_TRANSACTION_CREATE}"
+            message = f"{settings.Messages.USER_TRANSACTION_CREATE}" if not only_promo else settings.Messages.USER_TRANSACTION_PROMO_CREATE
             status = 'success'
 
             return jsonify(dict(status=status, message=message, pending_amount=amount))

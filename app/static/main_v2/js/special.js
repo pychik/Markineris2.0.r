@@ -684,9 +684,14 @@ function check_pa_refill_form(){
 
     let form = document.getElementById('pa_refill_form')
     // console.log(form.reportValidity());
+    let bill_summ = document.getElementById('bill_summ').value;
+    let promo = document.getElementById('promo_code').value;
     if (!form.checkValidity || form.checkValidity()){
         return true
     }
+    else if((bill_summ==='' || !bill_summ || bill_summ==='0') && promo){
+        document.getElementById('bill_summ').value=0;
+        return true}
     else{
         let allInputs = $('#pa_refill_form input');
         let errors_list = []
@@ -850,6 +855,9 @@ function bck_pa_refill(url, update_url)
         }
         close_Loading_circle();make_message(data.message, data.status);
         // setTimeout(function() {close_Loading_circle();make_message(data.message, data.status);}, 1500)
+        make_message(data.message, data.status);
+        if (data.message === 'Ваш промокод применен.'){
+                setTimeout(function() {window.location.reload();}, 1500)}
     },
      error: function() {
         close_Loading_circle();make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');

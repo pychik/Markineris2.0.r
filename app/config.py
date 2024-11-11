@@ -638,6 +638,7 @@ class Settings(BaseSettings):
         SA_UPDATE_CHANGE: str = "Во время первичного обновления приоритетного счета пополнения произошла ошибка: "
         SP_UPDATE_ERROR: str = "Ошибка сохранения параметров сервиса "
         USER_TRANSACTION_CREATE: str = "Сервис зарегистрировал транзакцию. Администратор проверит вашу транзакцию в ближайшее время"
+        USER_TRANSACTION_PROMO_CREATE: str = "Ваш промокод применен."
         USER_TRANSACTION_ERROR: str = "Ошибка сохранения транзакции! "
         USER_TRANSACTION_AGENT_ERROR: str = "Ошибка пополнения счета клиента! Пользователя  агентов с единым счетом не используют личный счет. Обратитесь к агенту "
         SU_TRANSACTION_CHANGE: str = "Статус транзакции успешно изменен"
