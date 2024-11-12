@@ -240,7 +240,6 @@ def h_tg_verify_detail(u_id: int):
 # like big methods
 def h_pa_refill(u_id: int, sa_id: int):
     status = 'danger'
-    only_promo = False
 
     # all neccessary checks
     if u_id != current_user.id:
@@ -271,6 +270,8 @@ def h_pa_refill(u_id: int, sa_id: int):
     if amount_orig != 0 and amount_orig < settings.PA_REFILL_MIN:
         message = settings.Messages.STRANGE_REQUESTS
         return jsonify(dict(status=status, message=message))
+    elif amount_orig >= settings.PA_REFILL_MIN:
+        only_promo = False
     else:
         only_promo = True
 
