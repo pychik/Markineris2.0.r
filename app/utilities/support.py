@@ -295,7 +295,7 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
         try:
             order = Order(company_type=form_dict.get("company_type"), company_name=form_dict.get("company_name"),
                           edo_type=form_dict.get("edo_type"), edo_id=form_dict.get("edo_id"),
-                          company_idn=form_dict.get("company_idn"), mark_type=form_dict.get("mark_type_hidden"),
+                          company_idn=form_dict.get("company_idn"), mark_type=form_dict.get("mark_type_hidden", "МАРКИРОВКА НЕ УКАЗАНА"),
                           category=settings.Parfum.CATEGORY, stage=settings.OrderStage.CREATING, processed=False)
 
             updated_order = common_save_db(order=order, form_dict=form_dict,
