@@ -23,7 +23,8 @@ from utilities.support import (helper_paginate_data, check_file_extension, get_f
                                helper_get_filter_fin_order_report, helper_get_stmt_for_fin_promo_history,
                                helper_get_filter_fin_promo_history,
                                helper_get_filter_fin_bonus_history, helper_get_stmt_for_fin_bonus_history,
-                               helper_get_transactions, helper_get_user_at2_opt2)
+                               helper_get_transactions, helper_get_user_at2_opt2,
+                               helper_get_promo_on_cancel_transaction)
 from utilities.tg_verify.service import send_tg_message_with_transaction_updated_status
 
 
@@ -1145,14 +1146,21 @@ def h_su_pending_transaction_update(u_id: int, t_id: int,):
         return jsonify(dict(status=status, message=f"{message} ошибка ввода"))
 
     # check for tricksters
-    transaction_updated = UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount)\
-                                               .filter(UserTransaction.user_id == u_id,
-                                                       UserTransaction.id == t_id,
-                                                       UserTransaction.status == settings.Transactions.PENDING).first()
-
+    transaction_updated = UserTransaction.query.with_entities(UserTransaction.id,
+                                                              UserTransaction.amount,
+                                                              UserTransaction.promo_info,
+                                                              UserTransaction.status) \
+        .filter(UserTransaction.user_id == u_id,
+                UserTransaction.id == t_id,
+                UserTransaction.status == settings.Transactions.PENDING).first()
     user = User.query.with_entities(User.id).filter(User.id == u_id).first()
+
     if not user or not transaction_updated:
         return jsonify(dict(status=status, message=f"{message} нет такого пользователя или транзакции"))
+
+    # remove cancelled transaction promo used
+    if tr_type == 1 and tr_status == settings.Transactions.CANCELLED and transaction_updated.promo_info:
+        helper_get_promo_on_cancel_transaction(u_id=user.id, promo_info=transaction_updated.promo_info)
 
     process_transaction = helper_update_pending_rf_transaction_status(u_id=u_id, t_id=t_id,
                                                                       amount=transaction_updated.amount,

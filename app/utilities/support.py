@@ -22,7 +22,7 @@ from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 from config import settings
 from logger import logger
 from models import Order, OrderStat, User, EmailMessage, db, Shoe, Clothes, ClothesQuantitySize, Linen, Parfum, \
-    Price, Promo, ServerParam, ServiceAccount, UserTransaction
+    Price, Promo, ServerParam, ServiceAccount, UserTransaction, users_promos
 from utilities.daily_price import get_cocmd
 from utilities.google_settings.schema import TransactionRow
 from utilities.google_settings.gt_utilities import helper_google_collect_and_send_stat
@@ -1625,6 +1625,26 @@ def helper_check_promo(user: User, promo_code: str) -> tuple[bool, int, str]:
             logger.error(f"{settings.Messages.PROMO_ADD_USER_ERROR}")
             return False, 0, settings.Messages.PROMO_ADD_USER_ERROR
         return True, promo_append.value, ''
+
+
+def helper_get_promo_on_cancel_transaction(u_id: int, promo_info: str) -> None:
+    promo_code = promo_info.split(':')[0]
+
+    promo = Promo.query.with_entities(Promo.id).filter(Promo.code == promo_code).first()
+
+    if promo:
+        promo_id = promo.id
+
+        user_promo = db.session.query(users_promos).filter(
+            users_promos.c.user_id == u_id,
+            users_promos.c.promo_id == promo_id
+        ).first()
+
+        if user_promo:
+            db.session.query(users_promos).filter(
+                users_promos.c.user_id == u_id,
+                users_promos.c.promo_id == promo_id
+            ).delete(synchronize_session=False)
 
 
 def helper_check_form(on: str) -> bool:
