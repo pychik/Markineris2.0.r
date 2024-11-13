@@ -32,8 +32,8 @@ class SmsOTP:
         }
         response = requests.get(url, params=params)
         result = response.json()
-        print(result)
-        print(self.otp_code)
+        # print(result)
+        # print(self.otp_code)
         # print(result['sms'].get(phone), result['sms'][phone].get('status'))
         if result['sms'].get(phone) and result['sms'][phone].get('status') == 'OK':
             return True
