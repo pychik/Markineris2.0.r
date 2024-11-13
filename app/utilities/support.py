@@ -1140,24 +1140,24 @@ def helper_process_category_order(user: User, category: str, o_id: int, order_co
 
 
 def helper_get_order_notification(admin_id: int) -> tuple:
-    res = db.session.execute(text(f"""
+    res = db.session.execute(text("""
                                                 SELECT u.order_notification as order_notification,
                                                        u.login_name as admin_name,
                                                        u.is_crm as crm
                                                 FROM public.users u
-                                                WHERE u.id={admin_id};
-                                                """)).fetchone()
+                                                WHERE u.id=:admin_id;
+                                                """).bindparams(admin_id=admin_id)).fetchone()
 
     return (res.order_notification, res.admin_name, res.crm, ) if res else (settings.AGENT_DEFAULT_NOTE, None, None, )
 
 
 def helper_update_order_note(on: str, u_id: int) -> bool:
     try:
-        db.session.execute(text(f"""
+        db.session.execute(text("""
                                     UPDATE public.users 
-                                    SET order_notification ='{on}'
-                                    WHERE public.users.id={u_id};
-                                    """))
+                                    SET order_notification =:on
+                                    WHERE public.users.id=:u_id;
+                                    """).bindparams(on=on, u_id=u_id))
         db.session.commit()
         return True
     except Exception as e:
@@ -1168,11 +1168,11 @@ def helper_update_order_note(on: str, u_id: int) -> bool:
 
 def helper_get_user_balance(u_id: int) -> tuple[int, int]:
     try:
-        res = db.session.execute(text(f"""SELECT u.balance,
+        res = db.session.execute(text("""SELECT u.balance,
                                             u.pending_balance_rf
                                           FROM public.users u
-                                          WHERE u.id={u_id} LIMIT 1;
-                                          """)).fetchone()
+                                          WHERE u.id=:u_id LIMIT 1;
+                                          """).bindparams(u_id=u_id)).fetchone()
         return res.balance, res.pending_balance_rf
 
     except Exception as e:
@@ -1181,7 +1181,7 @@ def helper_get_user_balance(u_id: int) -> tuple[int, int]:
 
 
 def helper_get_server_balance() -> tuple[int, int, int, int, int]:
-    serv_res = db.session.execute(text(f"""SELECT sp.balance as balance,
+    serv_res = db.session.execute(text("""SELECT sp.balance as balance,
                                              sp.pending_balance_rf as pending_balance_rf
                                       FROM public.server_params sp;
                                       """)).fetchone()
@@ -1193,10 +1193,10 @@ def helper_get_server_balance() -> tuple[int, int, int, int, int]:
         except Exception as e:
             logger.error(f"{settings.Messages.SP_UPDATE_ERROR} {e}")
 
-    summ_at_1 = db.session.execute(text(f"""SELECT SUM(u.balance) AS at_1_summ FROM public.users u WHERE u.role != 'ordinary_user' and is_at2!=True""")).fetchone()
-    summ_at_2 = db.session.execute(text(f"""SELECT SUM(u.balance) AS at_2_summ FROM public.users u WHERE u.role != 'ordinary_user' and is_at2=True""")).fetchone()
+    summ_at_1 = db.session.execute(text("""SELECT SUM(u.balance) AS at_1_summ FROM public.users u WHERE u.role != 'ordinary_user' and is_at2!=True""")).fetchone()
+    summ_at_2 = db.session.execute(text("""SELECT SUM(u.balance) AS at_2_summ FROM public.users u WHERE u.role != 'ordinary_user' and is_at2=True""")).fetchone()
     summ_client = db.session.execute(text(
-        f"""SELECT SUM(u.balance) AS client_summ FROM public.users u WHERE u.role = 'ordinary_user';""")).fetchone()
+        """SELECT SUM(u.balance) AS client_summ FROM public.users u WHERE u.role = 'ordinary_user';""")).fetchone()
     return (serv_res.balance, serv_res.pending_balance_rf,
             summ_at_1.at_1_summ if summ_at_1 else 0, summ_at_2.at_2_summ if summ_at_2 else 0,
             summ_client.client_summ if summ_client else 0)
@@ -1313,6 +1313,9 @@ def helper_get_filter_fin_order_report(report: bool = False):
         payment_status = (False,)
     else:
         payment_status = (True, False,)
+
+    sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
+
     return date_from, date_to, sort_type, order_type, payment_status
 
 
@@ -1415,14 +1418,14 @@ def helper_isolated_session(query: str, return_flag: bool = True) -> tuple | boo
 
 def helper_get_current_sa() -> ServiceAccount:
 
-    cur_account = db.session.execute(text(f""" SELECT * from public.service_accounts sa
+    cur_account = db.session.execute(text(""" SELECT * from public.service_accounts sa
                                          WHERE sa.id =(SELECT sa.id FROM public.service_accounts sa WHERE sa.sa_type=(SELECT sp.account_type FROM public.server_params sp ORDER BY ID LIMIT 1)
                                           AND sa.current_use=True AND sa.is_active=True
                                          ORDER BY id LIMIT 1 );""")).fetchone()
     if not cur_account:
 
         # creating new session because sqlachemy orm db session makes additional current user query
-        cur_account = helper_isolated_session(query=f""" UPDATE public.service_accounts
+        cur_account = helper_isolated_session(query=""" UPDATE public.service_accounts
                                          SET current_use=True
                                          WHERE id =(SELECT sa.id FROM public.service_accounts sa WHERE sa.sa_type=(SELECT sp.account_type FROM public.server_params sp ORDER BY ID LIMIT 1) AND sa.is_active=True
                                          ORDER BY id ASC LIMIT 1 ) RETURNING *;""")
@@ -1498,7 +1501,7 @@ def helper_get_filter_fin_promo_history(report: bool = False) -> tuple[str, str,
     date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from else default_day_to
     date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
         '%Y-%m-%d') if url_date_to else default_day_from
-
+    sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
     return date_from, date_to, promo_code, sort_type
 
 
@@ -1563,13 +1566,14 @@ def helper_get_filter_fin_bonus_history(report: bool = False) -> tuple[str, str,
     date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from else default_day_to
     date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
         '%Y-%m-%d') if url_date_to else default_day_from
+    sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
 
     return date_from, date_to, bonus_code, sort_type
 
 
 def helper_process_sa(sa_id: int) -> bool:
     try:
-        cur_accounts = [a for a in db.session.execute(text(f""" SELECT * from public.service_accounts sa
+        cur_accounts = [a for a in db.session.execute(text(""" SELECT * from public.service_accounts sa
                                                   WHERE sa.sa_type=(SELECT sp.account_type FROM public.server_params sp ORDER BY ID LIMIT 1)
                                                     AND sa.is_active=True
                                                   ORDER BY sa.id;""")).fetchall()]
@@ -1584,8 +1588,10 @@ def helper_process_sa(sa_id: int) -> bool:
                 if current_processing_sa.summ_transfer > settings.ServiceAccounts.SUMM_LIMIT:
                     choosed_next_sa_id = h_choose_sa_id(cur_sa=current_processing_sa, cur_sa_ids_list=cur_accounts_ids)
 
-                    db.session.execute(text(f"""UPDATE public.service_accounts SET current_use=False, summ_transfer=0 WHERE id = {sa_id};
-                                               UPDATE public.service_accounts SET current_use=True WHERE id = {choosed_next_sa_id}; """))
+                    db.session.execute(text("""UPDATE public.service_accounts SET current_use=False, summ_transfer=0 WHERE id = :sa_id;
+                                               UPDATE public.service_accounts SET current_use=True WHERE id = :choosed_next_sa_id; """).bindparams(
+                        sa_id=sa_id, choosed_next_sa_id=choosed_next_sa_id
+                    ))
                     db.session.commit()
             return True
 
@@ -1697,7 +1703,7 @@ def helper_agent_wo_transaction(amount: int, status: int, user_id: int, bill_pat
         return False, settings.Messages.WO_TRANSACTION_BALANCE_ERROR
 
     created_at = datetime.now()
-    query = text(f"""INSERT into public.user_transactions (type, status, amount, user_id, bill_path, wo_account_info, created_at)
+    query = text("""INSERT into public.user_transactions (type, status, amount, user_id, bill_path, wo_account_info, created_at)
                     VALUES(False, :status, :amount, :user_id, :bill_path, :wo_account_info, :created_at);
 
                 """).bindparams(status=status, amount=amount, user_id=user_id, bill_path=bill_path,
@@ -2302,8 +2308,8 @@ def helper_get_admin_info(u_id: int) -> tuple[Optional[int], Optional[int], Opti
     :param u_id:
     :return:
     """
-    admin_id_stmt = f"""SELECT u.admin_parent_id as admin_parent_id, u.role as role
-                        FROM public.users u WHERE u.id={u_id};"""
+    admin_id_stmt = text("""SELECT u.admin_parent_id as admin_parent_id, u.role as role
+                        FROM public.users u WHERE u.id=:u_id;""").bindparams(u_id=u_id)
 
     res_admin_info = db.session.execute(text(admin_id_stmt)).fetchone()
 
@@ -2977,7 +2983,7 @@ def helper_get_stmt_avg_order_time_processing_report(
         manager_id: int = 0,
 ) -> TextClause:
 
-    stmt = text(f"""
+    stmt = text("""
             SELECT
                 U.LOGIN_NAME,
                 count(distinct o.id) as order_count,
@@ -2996,7 +3002,14 @@ def helper_get_stmt_avg_order_time_processing_report(
                         FROM
                             O.M_FINISHED - O.M_STARTED
                     ) 
-                ) / 60, 1) AS PROCESSING_TIME
+                ) / 60, 1) AS PROCESSING_TIME,
+                TRUNC(AVG(
+                    EXTRACT(
+                        epoch
+                        FROM
+                            O.M_FINISHED - O.M_STARTED
+                    ) 
+                ) / 60 / 60, 1) AS PROCESSING_TIME_HOUR
             FROM
                 ORDERS O
                 JOIN USERS U ON O.MANAGER_ID = U.ID

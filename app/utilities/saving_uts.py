@@ -246,40 +246,40 @@ def get_rows_marks(o_id: int, category: str) -> tuple[int, int]:
                        FROM public.orders 
                            JOIN public.shoes ON public.orders.id = public.shoes.order_id
                            JOIN  public.shoes_quantity_sizes ON public.shoes.id= public.shoes_quantity_sizes.shoe_id
-                       WHERE public.orders.category='{settings.Shoes.CATEGORY}' AND public.orders.id={o_id}
+                       WHERE public.orders.category=:category AND public.orders.id=:o_id
                        GROUP BY public.orders.id
-                       """))
+                       """).bindparams(category=settings.Shoes.CATEGORY, o_id=o_id))
             row_count, mark_count = res.fetchall()[0]
         case settings.Clothes.CATEGORY:
-            res = db.session.execute(text(f"""
+            res = db.session.execute(text("""
                 SELECT COUNT(cl_quantity_sizes.quantity),
                  SUM(public.clothes.box_quantity*public.cl_quantity_sizes.quantity)
                    FROM public.orders 
                        JOIN public.clothes ON public.orders.id = public.clothes.order_id
                        JOIN  public.cl_quantity_sizes ON public.clothes.id=public.cl_quantity_sizes.cl_id
-                   WHERE public.orders.category='{settings.Clothes.CATEGORY}' AND public.orders.id={o_id}
+                   WHERE public.orders.category=:category AND public.orders.id=:o_id
                    GROUP BY public.orders.id
-                   """))
+                   """).bindparams(category=settings.Clothes.CATEGORY, o_id=o_id))
             row_count, mark_count = res.fetchall()[0]
         case settings.Linen.CATEGORY:
-            res = db.session.execute(text(f"""
+            res = db.session.execute(text("""
                 SELECT COUNT(linen_quantity_sizes.quantity),
                     SUM(public.linen.box_quantity*public.linen_quantity_sizes.quantity)
                     FROM public.orders 
                       JOIN public.linen ON public.orders.id = public.linen.order_id
                       JOIN  public.linen_quantity_sizes ON public.linen.id=public.linen_quantity_sizes.lin_id
-                    WHERE public.orders.category='{settings.Linen.CATEGORY}' AND public.orders.id={o_id}
+                    WHERE public.orders.category=:category AND public.orders.id=:o_id
                     GROUP BY public.orders.id
-                    """))
+                    """).bindparams(catehory=settings.Linen.CATEGORY, o_id=o_id))
             row_count, mark_count = res.fetchall()[0]
         case settings.Parfum.CATEGORY:
-            res = db.session.execute(text(f"""
+            res = db.session.execute(text("""
                 SELECT COUNT(parfum.quantity), SUM(parfum.quantity)
                     FROM public.orders 
                         JOIN public.parfum ON public.orders.id = public.parfum.order_id
-                    WHERE public.orders.category='{settings.Parfum.CATEGORY}' AND public.orders.id={o_id}
+                    WHERE public.orders.category=:category AND public.orders.id=:o_id
                     GROUP BY public.orders.id
-                    """))
+                    """).bindparams(category=settings.Parfum.CATEGORY, o_id=o_id))
             row_count, mark_count = res.fetchall()[0]
 
         case _:
@@ -357,17 +357,17 @@ def get_delete_pos_stmts(category: str, m_id: int) -> str:
 
 def helper_check_partner_codes_admin(partner_id: int, admin_id: int) -> tuple[bool, Optional[str]]:
     try:
-        res = db.session.execute(text(f"""
+        res = db.session.execute(text("""
                                     SELECT 
                                         u.login_name as admin,
                                         up.user_id as up_user_id
                                         FROM public.users u
                                         LEFT JOIN  public.users_partners up on up.user_id=u.id
-                                        WHERE u.id={admin_id}
+                                        WHERE u.id=:admin_id
                                         GROUP BY u.id, up.user_id, up.partner_code_id
-                                        HAVING up.partner_code_id={partner_id}
+                                        HAVING up.partner_code_id=:partner_id
                                         ORDER BY u.id DESC
-                                 """)).fetchone()
+                                 """).bindparams(admin_id=admin_id, partner_id=partner_id)).fetchone()
 
         if res:
             return True, res.admin

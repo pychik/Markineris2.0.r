@@ -6,7 +6,7 @@ from decimal import Decimal
 from flask import flash, render_template, redirect, send_file, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
 from views.crm.crm_support import h_cancel_order_process_payment
-from sqlalchemy import asc, desc, func, text, select
+from sqlalchemy import asc, desc, func, text, select, bindparam
 from sqlalchemy.exc import NoResultFound
 
 from sqlalchemy.exc import IntegrityError
@@ -55,10 +55,11 @@ def h_index():
                             LEFT JOIN public.telegram tq on ut.telegram_id = tq.id
                             LEFT JOIN public.prices pq on au.price_id = pq.id
                             LEFT JOIN public.users u on u.admin_parent_id = au.id
-                            WHERE au.role in('{settings.ADMIN_USER}', '{settings.SUPER_USER}')
+                            WHERE au.role in :roles
                             group by au.id, pq.price_code, pq.price_1, pq.price_2,pq.price_3, pq.price_4, pq.price_5, pq.price_6, pq.price_7, pq.price_8, pq.price_9, pq.price_10, pq.price_11, pq.price_at2, tg_channel_id, tg_name, tg_comment
-                            order by au.id""")
-    su_list = db.session.execute(users_stmt).fetchall()
+                            order by au.id""").bindparams(bindparam("roles", expanding=True))
+
+    su_list = db.session.execute(users_stmt, {"roles": [settings.ADMIN_USER, settings.SUPER_USER]}).fetchall()
     new_user_stmt = text("""
            SELECT
                count(1) as new_user_cnt  
@@ -626,7 +627,7 @@ def h_bck_set_user_price(u_id: int) -> Response:
 
             status = 'success'
             message = settings.Messages.USER_PRICE_PLUG
-            db.session.execute(text(f"""UPDATE public.users SET price_id=NULL WHERE id={u_id};"""))
+            db.session.execute(text("""UPDATE public.users SET price_id=NULL WHERE id=:u_id;""").bindparams(u_id=u_id))
             db.session.commit()
             return jsonify(dict(status=status, message=message, user_block=user_block))
 
@@ -647,7 +648,7 @@ def h_bck_set_user_price(u_id: int) -> Response:
                                       price_7=price.price_7, price_8=price.price_8, price_9=price.price_9,
                                       price_10=price.price_10, price_11=price.price_11, csrf=csrf,
                                       price_at2=price.price_at2)
-        db.session.execute(text(f"""UPDATE public.users SET price_id={p_id} WHERE id={u_id};"""))
+        db.session.execute(text("""UPDATE public.users SET price_id=:p_id WHERE id=:u_id;""").bindparams(p_id=p_id, u_id=u_id))
         db.session.commit()
         status = 'success'
         message = settings.Messages.USER_PRICE_PLUG

@@ -117,12 +117,12 @@ def get_unpaid_company_idns_stmt(u_id: int, o_id: int = None) -> TextClause:
                         FROM public.users u
                         JOIN public.orders AS o ON o.user_id = u.id
                         WHERE u.id=:u_id AND o.payment != True AND o.to_delete != True 
-                          AND (o.stage>={settings.OrderStage.NEW}
-                          AND o.stage != {settings.OrderStage.CANCELLED}{order_id_stmt})
+                          AND (o.stage>= :start_stage
+                          AND o.stage != :end_stage {order_id_stmt})
                         ORDER BY o.company_idn, o.crm_created_at ASC
                     ) sub
                  ORDER BY sub.crm_created_at ASC;
-                 """).bindparams(u_id=u_id)
+                 """).bindparams(u_id=u_id, start_stage=settings.OrderStage.NEW, end_stage=settings.OrderStage.CANCELLED)
 
 
 def get_unpaid_orders_stmt(u_id: int, o_id: int = None, start_stage: int = settings.OrderStage.NEW) -> TextClause:

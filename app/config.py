@@ -162,7 +162,7 @@ class Settings(BaseSettings):
     ACTIVATE_IS_SEND_EXCEL: str = 'activate_is_send'
     DEACTIVATE_USER: str = 'deactivate_user'
     DEACTIVATE_IS_SEND_EXCEL: str = 'deactivate_is_send'
-    SQL_EXPR_CHECK: tuple = ("select", "--", "update", "insert", "delete", "truncate", "remove")
+    SQL_EXPR_CHECK: tuple = ("select", "--", "update", "insert", "delete", "truncate", "remove", "alter", "drop", )
     COMMON_COLORS: tuple = COMMON_COLORS
     COMPLICATED_COLORS: tuple = COMPLICATED_COLORS
     ALL_COLORS: tuple = ALL_COLORS
