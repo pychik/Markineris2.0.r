@@ -14,7 +14,7 @@ from utilities.support import helper_paginate_data
 
 
 def process_admin_report(u_id: int, sheet_name: str) -> Optional[BytesIO]:
-    res = db.session.execute(text(f"""
+    res = db.session.execute(text("""
                                     SELECT
                                      os.saved_at AS saved_at_d,
                                      os.saved_at AS saved_at_h,
@@ -29,9 +29,9 @@ def process_admin_report(u_id: int, sheet_name: str) -> Optional[BytesIO]:
                                      os.op_cost AS op_cost
                                      FROM public.users u
                                       JOIN public.orders_stats os ON u.id = os.user_id
-                                    WHERE u.admin_parent_id={u_id} OR u.id = {u_id}
+                                    WHERE u.admin_parent_id=:u_id OR u.id = :u_ir
                                     ORDER BY login_name, saved_at_d
-                            """))
+                            """).bindparams(u_id=u_id))
     report_info = res.fetchall()
     if not report_info:
         return None
@@ -108,7 +108,7 @@ def helper_get_orders_stats(admin_id: int = None) -> Response:
 
 
 def helper_get_clients_os(admin_id: int, client: User) -> Response:
-    order_stmt = text(f"""SELECT os.order_idn as order_idn,
+    order_stmt = text("""SELECT os.order_idn as order_idn,
                                 os.company_idn as company_idn,
                                 os.company_type as company_type,
                                 os.company_name as company_name,
@@ -184,15 +184,15 @@ def helper_get_new_orders_at2(admin_id: int) -> list:
 
 
 def helper_check_new_order_at2(admin_id: int, o_id: int) -> Row | None:
-    stmt_order = text(f"""
+    stmt_order = text("""
                               SELECT 
                                   o.order_idn as order_idn,
                                   o.user_id as user_id,
                                   o.payment as payment
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id  
-                              WHERE  (u.admin_parent_id=:admin_id OR u.id=:admin_id) AND o.id=:order_id AND o.stage={settings.OrderStage.NEW} AND o.to_delete != True
-                               """).bindparams(admin_id=admin_id, order_id=o_id)
+                              WHERE  (u.admin_parent_id=:admin_id OR u.id=:admin_id) AND o.id=:order_id AND o.stage=:stage AND o.to_delete != True
+                               """).bindparams(admin_id=admin_id, order_id=o_id, stage=settings.OrderStage.NEW)
 
     return db.session.execute(stmt_order).fetchone()
 
@@ -264,11 +264,11 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
                     LEFT JOIN public.users_partners as up on up.user_id=u.id
                     LEFT JOIN public.partner_codes as pc on pc.id=up.partner_code_id
                     LEFT JOIN public.reanimate_status as rs on rs.user_id = u.id
-                    WHERE u.role='{settings.ORD_USER}'
+                    WHERE u.role=:role
                     {user_filter}
                     GROUP BY u.id, u.login_name
                     {date_condition}
-                    ORDER BY """ + str(order_clause) + ";")
+                    ORDER BY """ + str(order_clause) + ";").bindparams(role=settings.ORD_USER)
 
     stmt = query.bindparams(u_id=u_id) if u_id else query
     return db.session.execute(stmt).fetchall()

@@ -17,6 +17,10 @@
       <th scope="col">
         Среднее время выполнения заказа(мин)
       </th>
+
+      <th scope="col">
+        Среднее время выполнения заказа(часов)
+      </th>
     </tr>
     </thead>
 
@@ -40,6 +44,10 @@
         {{ rec.processing_time }}
       </td>
 
+      <td style="color: {{ 'red' if rec.processing_time_hour > 5 else 'inherit' }};">
+        {{ rec.processing_time_hour }}
+      </td>
+
     {% endfor %}
 
     <tr>
@@ -47,29 +55,15 @@
     </tbody>
   </table>
 
-{#  <div class="pagination-page-info text-center">#}
-{#    На этой странице <b>{{ offset + 1 }} - {{ offset + records_list|length }}</b> Всего: <b>#}
-{#    {% if pagination.total %}{{ pagination.total }}{% else %}{{ records_list | length }}{% endif %}</b></div>#}
-{##}
-{#  <div class="d-flex">#}
-{#            <div class="col-3"></div>#}
-{#            <div class="col-md-1"></div>#}
-{#            <div class="col-5" style="margin-left: 3%;">{{ pagination.links }}</div>#}
-{##}
-{#        </div>#}
+  <div class="pagination-page-info text-center">На этой странице <b>{{ offset + 1 }}
+    - {{ offset + records_list|length }}</b> Всего: <b>{{ pagination.total }}</b></div>
 
-<div class="pagination-page-info text-center">На этой странице <b>{{ offset + 1 }} - {{ offset + records_list|length }}</b> Всего: <b>{{ pagination.total }}</b></div>
+  <div class="pagination_section my-1">
+    <div class="d-flex">
+      <div class="col-3"></div>
+      <div class="col-md-2"></div>
+      <div class="col-5" style="margin-left: 3%;">{{ pagination.links }}</div>
 
-  <div class="pagination_section my-1" >
-        <div class="d-flex">
-            <div class="col-3"></div>
-            <div class="col-md-2"></div>
-            <div class="col-5" style="margin-left: 3%;">{{ pagination.links }}</div>
-
-        </div>
     </div>
-
-
-
-
+  </div>
 </div>

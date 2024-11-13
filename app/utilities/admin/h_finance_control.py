@@ -305,13 +305,17 @@ def h_su_delete_prices(p_id: int) -> Response:
 
     # check for basic price
     if not price_replace_id:
-        user_update_stmt = text(f"""UPDATE public.users set price_id=NULL WHERE price_id={p_id}""")
+        user_update_stmt = text("""UPDATE public.users set price_id=NULL WHERE price_id=:p_id""").bindparams(p_id=p_id)
     else:
         # price_replace = Price.query.with_entities(Price.id).filter(Price.id == request.form.get('price_id', null(), int)).first()
         price_replace = Price.query.with_entities(Price.id).filter(Price.id == price_replace_id).first()
 
         replace_price_id = price_replace.id if price_replace else null()
-        user_update_stmt = text(f"""UPDATE public.users set price_id={replace_price_id} WHERE price_id={p_id}""")
+        user_update_stmt = text(
+            """UPDATE public.users set price_id=:replace_price_id WHERE price_id=:p_id""").bindparams(
+            replace_price_id=replace_price_id,
+            p_id=p_id
+        )
 
     try:
 
@@ -874,7 +878,7 @@ def h_bck_control_specific_ut(u_id: int):
     date_to = (datetime.strptime(url_date_to, '%d.%m.%Y')).strftime(
         '%Y-%m-%d') if url_date_to else datetime.now().strftime('%Y-%m-%d')
 
-    sort_type = request.args.get('sort_type', 'desc', str)
+    sort_type = 'desc' if request.args.get('sort_type', 'desc', str).lower() == 'desc' else 'asc'
 
     user_info = helper_get_user_at2_opt2(u_id=u_id)
     if not user_info:
