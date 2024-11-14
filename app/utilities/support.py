@@ -1140,24 +1140,24 @@ def helper_process_category_order(user: User, category: str, o_id: int, order_co
 
 
 def helper_get_order_notification(admin_id: int) -> tuple:
-    res = db.session.execute(text(f"""
+    res = db.session.execute(text("""
                                                 SELECT u.order_notification as order_notification,
                                                        u.login_name as admin_name,
                                                        u.is_crm as crm
                                                 FROM public.users u
-                                                WHERE u.id={admin_id};
-                                                """)).fetchone()
+                                                WHERE u.id=:admin_id;
+                                                """).bindparams(admin_id=admin_id)).fetchone()
 
     return (res.order_notification, res.admin_name, res.crm, ) if res else (settings.AGENT_DEFAULT_NOTE, None, None, )
 
 
 def helper_update_order_note(on: str, u_id: int) -> bool:
     try:
-        db.session.execute(text(f"""
+        db.session.execute(text("""
                                     UPDATE public.users 
-                                    SET order_notification ='{on}'
-                                    WHERE public.users.id={u_id};
-                                    """))
+                                    SET order_notification =:on
+                                    WHERE public.users.id= :u_id;
+                                    """).bindparams(on=on, u_id=u_id))
         db.session.commit()
         return True
     except Exception as e:
@@ -1168,11 +1168,11 @@ def helper_update_order_note(on: str, u_id: int) -> bool:
 
 def helper_get_user_balance(u_id: int) -> tuple[int, int]:
     try:
-        res = db.session.execute(text(f"""SELECT u.balance,
+        res = db.session.execute(text("""SELECT u.balance,
                                             u.pending_balance_rf
                                           FROM public.users u
-                                          WHERE u.id={u_id} LIMIT 1;
-                                          """)).fetchone()
+                                          WHERE u.id=:u_id LIMIT 1;
+                                          """).bindparams(u_id=u_id)).fetchone()
         return res.balance, res.pending_balance_rf
 
     except Exception as e:
@@ -1323,6 +1323,7 @@ def helper_get_stmt_for_fin_order_report(
         payment_status: tuple[bool] = (True, ),
         sort_type: str = 'DESC'
 ) -> TextClause:
+    sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
     if order_type == (9,):
         # cancel order
         stmt = text(f"""
@@ -1352,7 +1353,7 @@ def helper_get_stmt_for_fin_order_report(
                 GROUP BY o.id, o.order_idn, utr.op_cost, utr.amount , o.cc_created, cli.phone, agnt.login_name, cli.login_name
                 ORDER BY o.cc_created {sort_type};
 
-            """).bindparams(date_from=date_from, date_to=date_to, order_type=order_type)
+            """).bindparams(date_from=date_from, date_to=date_to, order_type=order_type,)
     else:
         stmt = text(f"""
                 SELECT 
@@ -1443,6 +1444,7 @@ def helper_get_stmt_for_fin_promo_history(
         promo_code: Optional[str] = None,
         sort_type: str = 'DESC'
 ) -> TextClause:
+    sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
     stmt = text(f"""select
                         usr_promo.activated_at as activate_date,
                         cli.email as user_email,
@@ -1495,6 +1497,7 @@ def helper_get_filter_fin_promo_history(report: bool = False) -> tuple[str, str,
         sort_type = request.args.get('sort_type', 'desc', str)
         promo_code = request.args.get('promo_code', '', str)
 
+    sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
     date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from else default_day_to
     date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
         '%Y-%m-%d') if url_date_to else default_day_from
@@ -1508,6 +1511,7 @@ def helper_get_stmt_for_fin_bonus_history(
         bonus_code: Optional[str] = None,
         sort_type: str = 'DESC'
 ) -> TextClause:
+    sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
     stmt = text(f"""select
                         usr_bonus.activated_at as activate_date,
                         cli.email as user_email,
@@ -2996,7 +3000,15 @@ def helper_get_stmt_avg_order_time_processing_report(
                         FROM
                             O.M_FINISHED - O.M_STARTED
                     ) 
-                ) / 60, 1) AS PROCESSING_TIME
+                ) / 60, 1) AS PROCESSING_TIME,
+                TRUNC(AVG(
+                    EXTRACT(
+                        epoch
+                        FROM
+                            O.M_FINISHED - O.M_STARTED
+                    ) 
+                ) / 60 / 60, 1) AS PROCESSING_TIME_HOUR
+
             FROM
                 ORDERS O
                 JOIN USERS U ON O.MANAGER_ID = U.ID
@@ -3019,10 +3031,10 @@ def helper_get_stmt_avg_order_time_processing_report(
     return stmt
 
 
-def sumsuu_required(func):
+def ausumsuu_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if current_user.status is True and current_user.role in [settings.SUPER_MANAGER, settings.SUPER_USER,]:
+        if current_user.status is True and current_user.role in [settings.SUPER_MANAGER, settings.SUPER_USER, settings.ADMIN_USER]:
             return func(*args, **kwargs)
         else:
             bck = request.args.get('bck', 0, type=int)

@@ -8,16 +8,13 @@ from settings.initialization import create_app
 from settings.blueprints import register_blueprints
 from settings.handlers import register_handlers, setup_login
 from .commands import create_superuser, create_superuser_custom, set_server_default_params
-from .jinja_filters import count_quantity
-
+from .jinja_filters import count_quantity, time_since
 
 urllib3.disable_warnings()
 
-
-
-
 # jinja template filter adding
 FILTERS["count_quantity"] = count_quantity
+FILTERS["time_since"] = time_since
 
 migrate_handler = Migrate()
 SIMPLE_CAPTCHA = CAPTCHA(config=settings.CAPTCHA_CONFIG)

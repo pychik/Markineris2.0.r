@@ -117,12 +117,13 @@ def get_unpaid_company_idns_stmt(u_id: int, o_id: int = None) -> TextClause:
                         FROM public.users u
                         JOIN public.orders AS o ON o.user_id = u.id
                         WHERE u.id=:u_id AND o.payment != True AND o.to_delete != True 
-                          AND (o.stage>={settings.OrderStage.NEW}
-                          AND o.stage != {settings.OrderStage.CANCELLED}{order_id_stmt})
+                         AND (o.stage>=:start_stage
+                         AND o.stage != :stage {order_id_stmt})
                         ORDER BY o.company_idn, o.crm_created_at ASC
                     ) sub
                  ORDER BY sub.crm_created_at ASC;
-                 """).bindparams(u_id=u_id)
+                 """).bindparams(u_id=u_id, start_stage=settings.OrderStage.NEW,
+                                 stage=settings.OrderStage.CANCELLED)
 
 
 def get_unpaid_orders_stmt(u_id: int, o_id: int = None, start_stage: int = settings.OrderStage.NEW) -> TextClause:
@@ -146,11 +147,11 @@ def get_unpaid_orders_stmt(u_id: int, o_id: int = None, start_stage: int = setti
                                   LEFT JOIN public.parfum p ON o.id = p.order_id 
                                   LEFT JOIN public.users managers ON o.manager_id = managers.id
                               WHERE u.id=:u_id AND o.payment != True AND o.to_delete != True 
-                                AND (o.stage>={start_stage} 
-                                AND o.stage!={settings.OrderStage.CANCELLED}{order_id_stmt})
+                                AND (o.stage>=:start_stage
+                                AND o.stage!=:stage {order_id_stmt})
                               GROUP BY  o.id, o.crm_created_at
                               ORDER BY o.crm_created_at ASC
-                             """).bindparams(u_id=u_id)
+                             """).bindparams(u_id=u_id, start_stage=start_stage, stage=settings.OrderStage.CANCELLED)
 
 
 def helper_get_user_price(price_id: int | None, pos_count: int) -> int:

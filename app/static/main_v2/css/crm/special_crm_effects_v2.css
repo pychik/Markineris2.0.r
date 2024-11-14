@@ -1,6 +1,20 @@
-body {
-    background-color: #e8e8e8; /* Light grey background color */
+.toast {
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: 0px 20px 50px 0px rgba(0, 0, 0, 0.1);
 }
+.toast-error {
+  /*border-left: 5px solid #fed337;*/
+  border-left: 5px solid #fe3755;
+}
+.toast-success {
+  border-left: 5px solid #00a958;
+}
+.toast-warning {
+  /*border-left: 5px solid #90d0ff;*/
+  border-left: 5px solid #fed337;
+}
+
 .beautiful-font {
         font-family: 'Roboto', sans-serif;
 }
@@ -11,7 +25,7 @@ body {
 .custom-rounded .card-header {
         border-top-left-radius: 10px;
         border-top-right-radius: 10px;
-}
+    }
 .border-dotted{
  border-style: dotted;
 }
@@ -182,13 +196,6 @@ border-style:solid;
   display: block;
   padding-top: 5px;
   font-size: 8px;
-}
-
-.no-select {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
 }
 
 .blink_me {

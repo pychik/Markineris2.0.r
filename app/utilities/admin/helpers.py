@@ -199,11 +199,11 @@ def helper_check_new_order_at2(admin_id: int, o_id: int) -> Row | None:
 
 def helper_prev_day_orders_marks() -> Row:
     yesterday = datetime.now() - timedelta(days=1)
-    stmt = text(""" SELECT count(id) as orders_count, sum(marks_count) as marks_count 
-                         FROM public.orders_stats WHERE saved_at >= '{yesterday_from}' 
-                        AND saved_at < '{yesterday_to}';""".format(
+    stmt = text(""" SELECT count(id) as orders_count, coalesce(sum(marks_count), 0) as marks_count 
+                     FROM public.orders_stats WHERE saved_at >= :yesterday_from
+                    AND saved_at < :yesterday_to;""").bindparams(
         yesterday_from=yesterday.strftime('%Y-%m-%d 00:00:00'),
-        yesterday_to=yesterday.strftime('%Y-%m-%d 23:59:59')))
+        yesterday_to=yesterday.strftime('%Y-%m-%d 23:59:59'))
     return db.session.execute(stmt).fetchone()
 
 

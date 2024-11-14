@@ -161,10 +161,11 @@ class BaseExcelReport(ExcelReportMixin):
     def __init__(
             self,
             data: List,
+            condition_format: Optional[dict[int, dict]],
             filters: Optional[Dict[str, Any]] = None,
             columns_name: Optional[List[str]] = None,
             sheet_name: Optional[str] = 'sheet 1',
-            output_file_name: Optional[str] = 'WorkBook.xlsx'
+            output_file_name: Optional[str] = 'WorkBook.xlsx',
     ):
         self.filters = filters
         self.data = data
@@ -173,6 +174,7 @@ class BaseExcelReport(ExcelReportMixin):
         self.output_file_name = f'{output_file_name}.xlsx'
         self.output = BytesIO()
         self.workbook = Workbook(self.output)
+        self.condition_format = condition_format
 
 
 class ExcelReport(BaseExcelReport):
@@ -180,10 +182,11 @@ class ExcelReport(BaseExcelReport):
     def __init__(
             self,
             data: List,
+            condition_format: dict[int, dict],
             filters: Optional[Dict[str, Any]] = None,
             columns_name: Optional[List[str]] = None,
             sheet_name: Optional[str] = 'sheet 1',
-            output_file_name: Optional[str] = 'WorkBook.xlsx'
+            output_file_name: Optional[str] = 'WorkBook.xlsx',
     ) -> None:
         """
         data: list of data to save in file
@@ -194,7 +197,8 @@ class ExcelReport(BaseExcelReport):
                          filters=filters,
                          columns_name=columns_name,
                          sheet_name=sheet_name,
-                         output_file_name=output_file_name
+                         output_file_name=output_file_name,
+                         condition_format=condition_format,
                          )
         self.col_name_and_filter_formatter = self.workbook.add_format(settings.ExcelFormatting.FILTER_AND_COL_NAME_FORMATTER)
         self.main_data_formatter = self.workbook.add_format(settings.ExcelFormatting.MAIN_DATA_FORMATTER)
@@ -222,10 +226,21 @@ class ExcelReport(BaseExcelReport):
                     sheet.write_datetime(row, col, value, self.datetime_formatter)
                 else:
                     sheet.write(row, col, value, formatters)
+                if self.condition_format:
+                    self.apply_condition_formatting(col, row, sheet=sheet)
                 col += 1
 
             col = 0
             row += 1
+
+    def apply_condition_formatting(self, col: int, row: int, sheet: Worksheet, ):
+        if col in self.condition_format.keys():
+            sheet.conditional_format(row, col, row, col, {
+                'type': self.condition_format[col].get('type'),
+                'criteria': self.condition_format[col].get('criteria'),
+                'value': self.condition_format[col].get('value'),
+                'format': self.workbook.add_format(self.condition_format[col].get('format')),
+            })
 
     def add_filters_and_column_name(self, sheet: Worksheet, formatters) -> int:
         """

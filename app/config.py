@@ -162,7 +162,7 @@ class Settings(BaseSettings):
     ACTIVATE_IS_SEND_EXCEL: str = 'activate_is_send'
     DEACTIVATE_USER: str = 'deactivate_user'
     DEACTIVATE_IS_SEND_EXCEL: str = 'deactivate_is_send'
-    SQL_EXPR_CHECK: tuple = ("select", "--", "update", "insert", "delete", "truncate", "remove")
+    SQL_EXPR_CHECK: tuple = ("select", "--", "update", "insert", "delete", "truncate", "remove", "alter")
     COMMON_COLORS: tuple = COMMON_COLORS
     COMPLICATED_COLORS: tuple = COMPLICATED_COLORS
     ALL_COLORS: tuple = ALL_COLORS
@@ -585,6 +585,7 @@ class Settings(BaseSettings):
                                   "Вы уверены что вы суперпользователь?"
         SUPERUM_REQUIRED: str = "Для того, чтобы контроллировать менеджеров нужна роль " \
                                 "суперпользователя или суперменеджера. "
+        SUPERUMAUS_REQUIRED: str = "Для подобный действий необходима роль суперпользователя, суперменеджера или админ."
         CRM_MANAGER_USER_REQUIRED: str = "Для работы и просмотра CRM нужна роль менеджера или суперпользователя, суперменеджера!"
         CRM_MANAGER_AGENT_USER_REQUIRED: str = "Для работы и просмотра CRM нужна роль менеджера или суперпользователя,  агента, суперменеджера!"
         CRM_MANAGER_USER_FORBIDDEN: str = "Менеджеры и суперменеджеры не могут пользоваться основной платформой!"
@@ -796,6 +797,8 @@ class Settings(BaseSettings):
         ORDER_MANAGER_CHANGE: str = "Успешно изменен менеджер к заказу "
         ORDER_MANAGER_CHANGE_ERROR: str = "Во время изменения менеджера заказа произошла ошибка базы. "
         ORDER_MANAGER_CHANGE_ABS_ERROR: str = "Во время изменения менеджера заказа произошла ошибка. Такого заказа нет"
+        ORDER_CHANGE_STAGE_SUCCESS: str = 'Cтатус заказа успешно изменен!'
+        ORDER_CHANGE_STAGE_ERROR: str = 'Ошибка во время обновления. Обновите страницу'
         ORDER_PROCESSED_NOT_PAID: str = "Заказ не оплачен. Нельзя перевести в завершенные."
         ORDER_CEPS_SUCCESS: str = "Успешно изменен флаг внешней проблемы заказа!"
         ORDER_CEPS_ERROR: str = "Во время смены флага внешней проблемы заказа произошла ошибка"
