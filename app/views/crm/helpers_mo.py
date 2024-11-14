@@ -36,11 +36,11 @@ def h_all_new_multi_pool():
                            LEFT JOIN public.linen l ON o.id = l.order_id
                            LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                            LEFT JOIN public.parfum p ON o.id = p.order_id 
-                    WHERE o.stage = :order_stage_new AND (o.processed = null or o.processed=false) AND o.to_delete != True 
+                    WHERE o.stage = :stage AND (o.processed = null or o.processed=false) AND o.to_delete != True 
                     GROUP BY o.id, o.category, o.company_idn, o.company_type, o.company_name, o.order_idn, o.stage,
                      o.created_at, o.crm_created_at, o.user_id, o.payment, ut.op_cost, o.transaction_id
                     order by o.created_at
-    """).bindparams(order_stage_new=settings.OrderStage.NEW)
+    """).bindparams(stage=settings.OrderStage.NEW)
 
     all_new_orders = [o for o in db.session.execute(all_new_orders_stmt).fetchall()]
     if not all_new_orders:

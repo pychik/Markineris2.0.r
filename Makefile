@@ -39,7 +39,7 @@ maintenance-on:					## Включение режима "технических �
 	@make flask-down
 maintenance-off:				## Выключение режима "технических работ" и удаление всех неиспользуемых докер образов.
 	@make flask-up
-	sleep 68
+	sleep 10
 	rm -fr ./maintenance/maintenance.flag
 	docker image prune -f
 

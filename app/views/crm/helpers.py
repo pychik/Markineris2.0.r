@@ -456,7 +456,7 @@ def helper_m_order_processed(user: User, o_id: int, manager_id: int, f_manager_i
         logger.error(message)
         return jsonify({'htmlresponse': None, 'status': status, 'message': message})
 
-    order_stmt = text(f"""
+    order_stmt = text("""
                     SELECT o.id as id,
                         o.order_idn as order_idn,
                         o.stage as stage,
@@ -486,11 +486,11 @@ def helper_m_order_processed(user: User, o_id: int, manager_id: int, f_manager_i
         return jsonify({'htmlresponse': None, 'status': status, 'message': message})
 
     dt_manager = datetime.now()
-    stmt = text(f"""
+    stmt = text("""
                UPDATE public.orders 
-               SET stage_setter_name='{user.login_name}', stage={settings.OrderStage.MANAGER_PROCESSED}, m_finished='{dt_manager}'
+               SET stage_setter_name=:stage_setter_name, stage=:stage, m_finished=:m_finished
                WHERE id=:o_id; 
-               """).bindparams(o_id=o_id)
+               """).bindparams(o_id=o_id, stage_setter_name=user.login_name, stage=settings.OrderStage.MANAGER_PROCESSED, m_finished=dt_manager )
     try:
         db.session.execute(stmt)
         db.session.commit()
@@ -527,7 +527,7 @@ def helper_m_order_ps(user: User, o_id: int, manager_id: int) -> Response:
         logger.error(message)
         return jsonify({'htmlresponse': None, 'status': status, 'message': message})
 
-    order_stmt = text(f"""
+    order_stmt = text("""
                     SELECT o.id as id,
                         o.stage as stage,
                         o.user_id as user_id,
@@ -558,11 +558,11 @@ def helper_m_order_ps(user: User, o_id: int, manager_id: int) -> Response:
         return jsonify({'htmlresponse': None, 'status': status, 'message': message})
 
     dt_manager = datetime.now()
-    stmt = text(f"""
+    stmt = text("""
                    UPDATE public.orders 
-                   SET stage_setter_name='{user.login_name}', stage={settings.OrderStage.MANAGER_SOLVED}, m_finished='{dt_manager}'
+                   SET stage_setter_name=:stage_setter_name, stage=:stage, m_finished=:m_finished
                    WHERE id=:o_id;
-               """).bindparams(o_id=o_id)
+               """).bindparams(o_id=o_id, stage_setter_name=user.login_name, stage=settings.OrderStage.MANAGER_SOLVED, m_finished=dt_manager)
     try:
         db.session.execute(stmt)
         db.session.commit()
@@ -603,7 +603,7 @@ def helper_m_order_bp(user: User, o_id: int, manager_id: int) -> Response:
         logger.error(message)
         return jsonify({'htmlresponse': None, 'status': status, 'message': message})
 
-    order_stmt = text(f"""
+    order_stmt = text("""
                     SELECT o.id as id,
                         o.user_id as user_id,
                         o.order_idn as order_idn,
@@ -624,9 +624,9 @@ def helper_m_order_bp(user: User, o_id: int, manager_id: int) -> Response:
             else redirect(url_for('crm_d.managers'))
 
     stmt = text(f"""UPDATE public.orders 
-                    SET stage={settings.OrderStage.MANAGER_START}, cp_created=NULL, sent_at=NULL, m_finished=NULL
+                    SET stage=:stage, cp_created=NULL, sent_at=NULL, m_finished=NULL
                     WHERE id=:o_id; 
-               """).bindparams(o_id=o_id)
+               """).bindparams(o_id=o_id, stage=settings.OrderStage.MANAGER_START)
     try:
         db.session.execute(stmt)
         db.session.commit()
@@ -719,7 +719,7 @@ def helper_attach_file(manager: str, manager_id: int, o_id: int) -> Response:
     message = ''
     htmlresponse_file = ''
     htmlresponse_footer = ''
-    order_stmt = text(f"""
+    order_stmt = text("""
                         SELECT o.id as id,
                             o.order_idn as order_idn,
                             o.stage as stage,
@@ -1581,7 +1581,7 @@ def helper_change_auto_order_pool() -> Response:
              settings.OrderStage.PS_DICT.get('ap_marks').get('max_limit')):
 
         try:
-            stmt = text(f"""
+            stmt = text("""
                         INSERT INTO public.server_params (id, auto_pool_rows, auto_pool_marks)
                         VALUES(1,:ap_rows, :ap_marks)
                         ON CONFLICT(id) DO UPDATE SET auto_pool_rows = :ap_rows, auto_pool_marks = :ap_marks;
@@ -1635,11 +1635,16 @@ def helpers_move_orders_to_processed() -> Response:
     date_compare = date.today() - timedelta(days=settings.OrderStage.DAYS_SENT_CONTENT)
     stmt = text(f"""
                UPDATE public.orders 
-               SET stage={settings.OrderStage.CRM_PROCESSED},
-                   closed_at='{closed_at}', processed={True}
-               WHERE stage={settings.OrderStage.SENT}
-                AND sent_at < '{date_compare}' AND payment=True AND to_delete != True; 
-            """)
+               SET stage=:new_stage,
+                   closed_at=:closed_at, processed={True}
+               WHERE stage=:stage
+                AND sent_at < :date_compare' AND payment=True AND to_delete != True; 
+            """).bindparams(
+        new_stage=settings.OrderStage.CRM_PROCESSED,
+        closed_at=closed_at,
+        stage=settings.OrderStage.SENT,
+        date_compare=date_compare
+    )
     try:
         db.session.execute(stmt)
         db.session.commit()
@@ -1672,11 +1677,11 @@ def helpers_bck_change_orders_stage() -> Response:
         message = settings.Messages.STRANGE_REQUESTS
         return jsonify({'status': status, 'message': message})
 
-    stmt = text(f"""
+    stmt = text("""
                    UPDATE public.orders 
-                   SET stage={stage_to},
-                   WHERE stage={settings.OrderStage.SENT} AND payment=False AND o.to_delete != True; 
-                """)
+                   SET stage=stage_to,
+                   WHERE stage=:stage AND payment=False AND o.to_delete != True; 
+                """).bindparams(stage_to=stage_to, stage=settings.OrderStage.SENT)
     try:
         db.session.execute(stmt)
         db.session.commit()
@@ -2023,12 +2028,12 @@ def helpers_crm_mpo_so_task():
                                                                     STAGES[settings.OrderStage.MANAGER_PROCESSED][1],
                                                                     stage_to=settings.OrderStage.
                                                                     STAGES[settings.OrderStage.SENT][1])}
-    stmt = text(f"""
+    stmt = text("""
                      UPDATE public.orders 
-                     SET stage={settings.OrderStage.SENT},
-                         sent_at='{sent_at}'
-                     WHERE stage={settings.OrderStage.MANAGER_PROCESSED} AND to_delete != True; 
-                  """)
+                     SET stage=:new_stage,
+                         sent_at=:sent_at
+                     WHERE stage=:stage AND to_delete != True; 
+                  """).bindparams(new_stage=settings.OrderStage.SENT, sent_at=sent_at, stage=settings.OrderStage.MANAGER_PROCESSED)
 
     try:
         db.session.execute(stmt)
@@ -2110,11 +2115,15 @@ def helper_auto_problem_cancel_order():
         order_query = text(f"""
                    UPDATE public.orders 
                    SET payment=False,
-                       stage={settings.OrderStage.CANCELLED},
-                       comment_cancel='{settings.OrderStage.APCO_MESSAGE}',
+                       stage=:new_stage,
+                       comment_cancel=:comment,
                        cc_created='{current_date}'
                    WHERE id=:o_id 
-                """).bindparams(o_id=order.id)
+                """).bindparams(
+            o_id=order.id,
+            new_stage=settings.OrderStage.CANCELLED,
+            comment=settings.OrderStage.APCO_MESSAGE
+        )
 
         try:
             db.session.execute(order_query)

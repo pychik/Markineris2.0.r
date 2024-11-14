@@ -23,7 +23,8 @@ from utilities.support import (helper_paginate_data, check_file_extension, get_f
                                helper_get_filter_fin_order_report, helper_get_stmt_for_fin_promo_history,
                                helper_get_filter_fin_promo_history,
                                helper_get_filter_fin_bonus_history, helper_get_stmt_for_fin_bonus_history,
-                               helper_get_transactions, helper_get_user_at2_opt2)
+                               helper_get_transactions, helper_get_user_at2_opt2,
+                               helper_get_promo_on_cancel_transaction)
 from utilities.tg_verify.service import send_tg_message_with_transaction_updated_status
 
 
@@ -305,13 +306,17 @@ def h_su_delete_prices(p_id: int) -> Response:
 
     # check for basic price
     if not price_replace_id:
-        user_update_stmt = text(f"""UPDATE public.users set price_id=NULL WHERE price_id={p_id}""")
+        user_update_stmt = text("""UPDATE public.users set price_id=NULL WHERE price_id=:p_id""").bindparams(p_id=p_id)
     else:
         # price_replace = Price.query.with_entities(Price.id).filter(Price.id == request.form.get('price_id', null(), int)).first()
         price_replace = Price.query.with_entities(Price.id).filter(Price.id == price_replace_id).first()
 
         replace_price_id = price_replace.id if price_replace else null()
-        user_update_stmt = text(f"""UPDATE public.users set price_id={replace_price_id} WHERE price_id={p_id}""")
+        user_update_stmt = text(
+            """UPDATE public.users set price_id=:replace_price_id WHERE price_id=:p_id""").bindparams(
+            replace_price_id=replace_price_id,
+            p_id=p_id
+        )
 
     try:
 
@@ -874,7 +879,7 @@ def h_bck_control_specific_ut(u_id: int):
     date_to = (datetime.strptime(url_date_to, '%d.%m.%Y')).strftime(
         '%Y-%m-%d') if url_date_to else datetime.now().strftime('%Y-%m-%d')
 
-    sort_type = request.args.get('sort_type', 'desc', str)
+    sort_type = 'desc' if request.args.get('sort_type', 'desc', str).lower() == 'desc' else 'asc'
 
     user_info = helper_get_user_at2_opt2(u_id=u_id)
     if not user_info:
@@ -1141,14 +1146,21 @@ def h_su_pending_transaction_update(u_id: int, t_id: int,):
         return jsonify(dict(status=status, message=f"{message} ошибка ввода"))
 
     # check for tricksters
-    transaction_updated = UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount)\
-                                               .filter(UserTransaction.user_id == u_id,
-                                                       UserTransaction.id == t_id,
-                                                       UserTransaction.status == settings.Transactions.PENDING).first()
-
+    transaction_updated = UserTransaction.query.with_entities(UserTransaction.id,
+                                                              UserTransaction.amount,
+                                                              UserTransaction.promo_info,
+                                                              UserTransaction.status) \
+        .filter(UserTransaction.user_id == u_id,
+                UserTransaction.id == t_id,
+                UserTransaction.status == settings.Transactions.PENDING).first()
     user = User.query.with_entities(User.id).filter(User.id == u_id).first()
+
     if not user or not transaction_updated:
         return jsonify(dict(status=status, message=f"{message} нет такого пользователя или транзакции"))
+
+    # remove cancelled transaction promo used
+    if tr_type == 1 and tr_status == settings.Transactions.CANCELLED and transaction_updated.promo_info:
+        helper_get_promo_on_cancel_transaction(u_id=user.id, promo_info=transaction_updated.promo_info)
 
     process_transaction = helper_update_pending_rf_transaction_status(u_id=u_id, t_id=t_id,
                                                                       amount=transaction_updated.amount,

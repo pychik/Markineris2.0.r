@@ -156,6 +156,7 @@ class BaseExcelReport(ExcelReportMixin):
     output_file_name: output file name without extensions
     sheet_name: name of sheet
     columns_name: list of main data columns name
+    cell_condition_format: dict with keys as column index and values with
     """
 
     def __init__(
@@ -182,7 +183,7 @@ class ExcelReport(BaseExcelReport):
     def __init__(
             self,
             data: List,
-            condition_format: dict[int, dict],
+            condition_format: Optional[dict[int, dict]] = None,
             filters: Optional[Dict[str, Any]] = None,
             columns_name: Optional[List[str]] = None,
             sheet_name: Optional[str] = 'sheet 1',
@@ -226,21 +227,14 @@ class ExcelReport(BaseExcelReport):
                     sheet.write_datetime(row, col, value, self.datetime_formatter)
                 else:
                     sheet.write(row, col, value, formatters)
+
                 if self.condition_format:
                     self.apply_condition_formatting(col, row, sheet=sheet)
+
                 col += 1
 
             col = 0
             row += 1
-
-    def apply_condition_formatting(self, col: int, row: int, sheet: Worksheet, ):
-        if col in self.condition_format.keys():
-            sheet.conditional_format(row, col, row, col, {
-                'type': self.condition_format[col].get('type'),
-                'criteria': self.condition_format[col].get('criteria'),
-                'value': self.condition_format[col].get('value'),
-                'format': self.workbook.add_format(self.condition_format[col].get('format')),
-            })
 
     def add_filters_and_column_name(self, sheet: Worksheet, formatters) -> int:
         """
@@ -261,6 +255,15 @@ class ExcelReport(BaseExcelReport):
                 col += 1
             row += 1
         return row
+
+    def apply_condition_formatting(self, col: int, row: int, sheet: Worksheet, ):
+        if col in self.condition_format.keys():
+            sheet.conditional_format(row, col, row, col, {
+                'type': self.condition_format[col].get('type'),
+                'criteria': self.condition_format[col].get('criteria'),
+                'value': self.condition_format[col].get('value'),
+                'format': self.workbook.add_format(self.condition_format[col].get('format')),
+            })
 
 
 class ExcelReportWithSheets(ExcelReportWithSheetMixin):
