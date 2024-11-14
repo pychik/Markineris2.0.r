@@ -34,7 +34,7 @@
             <div class="input-group" >
                 <input type="text" id="verification-code" class="form-control" placeholder="Введите код из SMS">
                 <button type="button" class="btn btn-secondary" onclick="verifySignUpCode(`{{ url_for('auth.verify_sign_up_phone_code') }}`)">
-                    Верификация формы
+                    Проверить код
                 </button>
             </div>
             <small class="text-muted">Введите код, отправленный на ваш номер.</small>
