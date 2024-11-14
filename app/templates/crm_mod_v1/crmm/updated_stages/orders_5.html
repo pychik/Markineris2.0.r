@@ -58,7 +58,7 @@
 
                     </div>
                     <div class="steps">
-                          {% if user.role in ['superuser', 'supermanager', 'markineris_admin'] %}
+                          {% if current_user.role in ['superuser', 'supermanager', 'markineris_admin'] %}
                             <img src="{{url_for('static', filename='crm_mod/img/icons/arrow-left-circle-fill.svg')}}" alt="Переместить заказ в статус В ОБРАБОТКЕ У МЕНЕДЖЕРА"
                             class="img-fluid" width="24" height="24" data-bs-toggle="tooltip"
                             data-bs-placement="top" data-bs-title="Переместить заказ в статус В ОБРАБОТКЕ У МЕНЕДЖЕРА"
