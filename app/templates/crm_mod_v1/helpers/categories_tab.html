@@ -1,0 +1,47 @@
+{% if 'manager' in request.path%}{%set manager_flag=1 %}{% else %}{%set manager_flag=0%}{%endif%}
+{% if not 'crm_uoc' in request.path %}
+    <div class="categories header__categories">
+        <div class="categories__list">
+            <!-- Для активной категории свой класс .categories__item--active -->
+            <span onclick="update_category_crm_info(update_url, 'all', this, '{{manager_flag}}')" class="categories__item categories__item--active" style="cursor:pointer; user-select: none;">
+                <img src="{{url_for('static', filename='crm_mod/img/icons/01.svg')}}" class="img-fluid" alt="Все">
+<!--                                <span id="all_commonCounter" class="font-12">{{categories_counter['all']}}</span>-->
+                <div class="categories-item__body">
+                    <p class="categories-item__text" >Все <span id="all_commonCounter" class="font-12">({{categories_counter['all']}})</span></p>
+<!--<span id="all_commonCounter" class="font-12">{{categories_counter['all']}}</span>-->
+                </div>
+            </span>
+            <span onclick="update_category_crm_info(update_url, 'одежда', this, '{{manager_flag}}')" class="categories__item" style="cursor:pointer; user-select: none;">
+                <img src="{{url_for('static', filename='crm_mod/img/icons/01.svg')}}" class="img-fluid" alt="Одежда">
+<!--                                <span id="clothes_commonCounter" class="font-12">{{categories_counter['одежда']}}</span>-->
+                <div class="categories-item__body">
+                    <p class="categories-item__text">Одежда <span id="clothes_commonCounter" class="font-12">({{categories_counter['одежда']}})</span></p>
+<!--<span id="clothes_commonCounter" class="font-12">{{categories_counter['одежда']}}</span>-->
+                </div>
+            </span>
+            <span onclick="update_category_crm_info(update_url, 'обувь', this, '{{manager_flag}}')" class="categories__item" style="cursor:pointer; user-select: none;">
+                <img src="{{url_for('static', filename='crm_mod/img/icons/02.svg')}}" class="img-fluid" alt="Обувь">
+
+                <div class="categories-item__body">
+                    <p class="categories-item__text">Обувь <span id="shoes_commonCounter" class="font-12">({{categories_counter['обувь']}})</span></p>
+<!--<span id="shoes_commonCounter" class="font-12">{{categories_counter['обувь']}}</span>-->
+                </div>
+            </span>
+            <span onclick="update_category_crm_info(update_url, 'белье', this, '{{manager_flag}}')" class="categories__item" style="cursor:pointer; user-select: none;">
+                <img src="{{url_for('static', filename='crm_mod/img/icons/03.svg')}}" class="img-fluid" alt="Белье">
+                <div class="categories-item__body">
+                    <p class="categories-item__text">Белье <span id="linen_commonCounter" class="font-12">({{categories_counter['белье']}})</span></p>
+<!--<span id="linen_commonCounter" class="font-12">{{categories_counter['белье']}}</span>-->
+                </div>
+            </span>
+            <span onclick="update_category_crm_info(update_url, 'парфюм', this, '{{manager_flag}}')" class="categories__item" style="cursor:pointer; user-select: none;">
+                <img src="{{url_for('static', filename='crm_mod/img/icons/04.svg')}}" class="img-fluid" alt="Духи">
+<!--                                <span id="parfum_commonCounter" class="font-12">{{categories_counter['парфюм']}}</span>-->
+                <div class="categories-item__body">
+                    <p class="categories-item__text">Духи <span id="parfum_commonCounter" class="font-12">({{categories_counter['парфюм']}})</span></p>
+<!--<span id="parfum_commonCounter" class="font-12">{{categories_counter['парфюм']}}</span>-->
+                </div>
+            </span>
+        </div>
+    </div>
+{% endif%}

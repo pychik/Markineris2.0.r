@@ -1,0 +1,43 @@
+<div class="steps ms-3">
+    {% if file %}
+        <form method="POST" id="download_file_order{{ o_id }}" action="{{ url_for('crm_d.download_file', manager_id=manager_id, o_id=o_id) }}"
+              style="cursor: pointer" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <img class="icons__item" src="{{url_for('static', filename='crm_mod/img/icons/download.svg')}}"
+              width="24" height="24" data-bs-toggle="tooltip"
+              data-bs-placement="top" data-bs-title="Скачать файл заказа" onclick="this.closest('form').submit();">
+        </form>
+    {% endif %}
+
+    {% if stage == 3 %}
+        <img src="{{url_for('static', filename='crm_mod/img/icons/x-circle-problem-fill.svg')}}"
+                        id="problem_order{{o_id}}" alt="Проблема в заказе"
+                        class="icons__item" width="24" height="24" data-bs-toggle="tooltip"
+                        data-bs-placement="top" data-bs-title="Переместить заказ в проблемные"
+                        onclick="problem_order(`{{ url_for('crm_d.set_problem_order', o_id=o_id) }}`,
+                                                            'm_problem_ordersMainDiv', 6, '{{csrf_token()}}',
+                                                             'problem_order{{o_id}}', `{{o_id}}`, `{{order_info.order_idn}}`,
+                                                             'm_start_ordersMainDiv_quantity')">
+
+        {% if file or file_link %}
+            <img src="{{url_for('static', filename='crm_mod/img/icons/arrow-right-circle-fill.svg')}}" alt="Вперед"
+                class="icons__item" width="24" height="24" data-bs-toggle="tooltip"
+                data-bs-placement="top" data-bs-title="Переместить заказ в готовые"
+                onclick="update_spec_block_info(`{{ url_for('crm_d.m_order_processed', manager_id=manager_id, o_id=o_id) }}`,
+                                                'm_processed_ordersMainDiv', 5, '{{csrf_token()}}',
+                                                 this, `{{o_id}}`, `{{order_idn}}`,
+                                                 'm_start_ordersMainDiv_quantity')">
+        {% endif %}
+    {% else %}
+        {% if file or file_link %}
+            <img src="{{url_for('static', filename='crm_mod/img/icons/arrow-right-circle-fill.svg')}}" alt="Вперед"
+                class="icons__item" width="24" height="24" data-bs-toggle="tooltip"
+                data-bs-placement="top" data-bs-title="Переместить заказ в проблема решена"
+                onclick="update_spec_block_info(`{{ url_for('crm_d.m_order_ps', manager_id=manager_id, o_id=o_id) }}`,
+                                                'm_solved_ordersMainDiv', 7, '{{csrf_token()}}',
+                                                 this, `{{o_id}}`, `{{order_idn}}`,
+                                                 'm_problem_ordersMainDiv_quantity')">
+        {% endif %}
+    {%endif%}
+
+</div>

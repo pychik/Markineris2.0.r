@@ -1,0 +1,26 @@
+ <div class="order__text">
+    <b>Номер заказа:</b> <span style="cursor:pointer" class="text-secondary" onclick="copy_buffer('{{ n.order_idn }}')">{{ n.order_idn }}</span><br>
+    <b>Категория:</b> {{ n.category }}<br>
+    <b>Агент: </b>{{ n.agent_name }}<br>
+    <b>Код клиента: </b>{{n.client_code}}<br>
+    <span style="cursor:pointer" class="text-secondary" onclick="copy_buffer('{{ n.company_type }} {{ n.company_name }}')">{{ n.company_type }} {{ n.company_name }}</span><br>
+    <span style="cursor:pointer" class="text-secondary" onclick="copy_buffer('{{ n.company_idn }}')">{{ n.company_idn }}</span><br>
+    <b>Логин:</b>{{ n.login_name }}<br>
+    <b>Email:</b>{{ n.email }}<br>
+    <b>Телефон:</b>{{ n.phone }}<br>
+    <b>Тип этикетки:</b> {{ n.mark_type }}<br>
+    **************************<br>
+    ЭДО-ЛАЙТ<br>
+    **************************<br>
+</div>
+
+{% if n.user_comment %}
+    <div class="comment order__comment">
+        <div class="comment__title">
+            Комментарий:
+        </div>
+        <div class="comment__text">
+            {{ n.user_comment }}
+        </div>
+    </div>
+{% endif %}

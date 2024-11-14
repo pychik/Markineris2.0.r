@@ -1,0 +1,20 @@
+<div class="crm faded">
+    <div class="crm__wrapper">
+        {% include "crm_mod_v1/crmm/crmm_2.html" %}
+        {% include "crm_mod_v1/crmm/crmm_3.html" %}
+        {% include "crm_mod_v1/crmm/crmm_4.html" %}
+        {% include "crm_mod_v1/crmm/crmm_5.html" %}
+        {% include "crm_mod_v1/crmm/crmm_6.html" %}
+        {% include "crm_mod_v1/crmm/crmm_7.html" %}
+
+    </div>
+</div>
+<script>
+    var update_managers_url = "{{url_for('crm_d.managers', bck=1)}}";
+    var update_url = update_managers_url;
+    var update_url_temp = '';
+    var managers_list = [{% for m in managers_list %}['{{m[0]}}','{{m[1]}}'], {% endfor %}];
+    var OF_MAX_SIZE = {{ of_max_size }};
+    var SEARCH_ORDER_URL = "{{search_order_url}}";
+    var delta_timer_color = {{ problem_order_time_limit }};
+</script>

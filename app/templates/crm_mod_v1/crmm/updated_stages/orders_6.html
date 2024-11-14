@@ -1,0 +1,150 @@
+<div class="faded orders__list">
+    <!--<h6>{% if update_orders %}{{update_orders | length}} шт.{%endif%}</h6>-->
+    {% for n in update_orders %}
+        <div class="orders__item order order--warning {% if n.to_delete %} div-disabled {%endif%}" id="cardCommonBlock_{{n.id}}"
+            data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Есть нерешенная проблема">
+            <div class="order__header">
+                <div class="order__name">{{n.order_idn}} {%if n.is_at2%}<span>(Агент тип 2)</span>{%endif%} </div>
+                {% include 'crm_mod_v1/helpers/order_category.html' %}
+            </div>
+            <div class="order__body">
+                <div class="order__info">
+                    <div class="order__small-text">
+                        <div class="order__num">
+                           КС: {{ n.row_count }} КМ: {{ n.pos_count }}
+                        </div>
+                        <div class="order__time" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right"
+                            data-bs-title="CRM: {{n.crm_created_at.strftime('%d-%m-%Y %H:%M:%S')}}<br>POL: {%if n.p_started %}{{n.p_started.strftime('%d-%m-%Y %H:%M:%S')}}{%else%}{{n.crm_created_at.strftime('%d-%m-%Y %H:%M:%S')}}{%endif%}<br>MS: {{n.m_started.strftime('%d-%m-%Y %H:%M:%S')}}{% if n.cp_created %}<br>MCP: {{n.cp_created.strftime('%d-%m-%Y %H:%M:%S')}}{% endif %}">
+                            {%if n.p_started %}{{n.p_started | time_since}}{%else%}{{n.crm_created_at | time_since}}{%endif%}
+                        </div>
+                    </div>
+                    <div class="order__icons icons">
+                        {% include 'crm_mod_v1/crmm/special_alerts.html' %}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-10">
+                        <div class="problem mt-3 fw-bold fo">Проблема <span class="font-10">{{n.cp_created.strftime('%H:%M:%S %d-%m-%Y')}}</span></div>
+                    </div>
+                    <div class="col-2" id="{{n.id}}_externalProblem">
+                        {% if n.external_problem %}
+                            <span class="badge bg-error" title="Оператор поставил флаг внешней проблемы заказа, Нажмите если проблема устранена"
+                                >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-lock" viewBox="0 0 16 16">
+                                  <path d="M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0M8 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4m0 5.996V14H3s-1 0-1-1 1-4 6-4q.845.002 1.544.107a4.5 4.5 0 0 0-.803.918A11 11 0 0 0 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664zM9 13a1 1 0 0 1 1-1v-1a2 2 0 1 1 4 0v1a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1zm3-3a1 1 0 0 0-1 1v1h2v-1a1 1 0 0 0-1-1"/>
+                                </svg>
+                            </span>
+                        {%else%}
+                            <span class="badge bg-solved text-white" title="Заказ без внешних проблем"
+                                  style="cursor:pointer"
+                                onclick="change_external_problem_stage(`{{url_for('crm_d.ceps', o_id=n.id, ep=1) }}`, `{{ csrf_token() }}`, `{{n.id}}_externalProblem`, 'manager')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard-check" viewBox="0 0 16 16">
+                                  <path fill-rule="evenodd" d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0"></path>
+                                  <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z"></path>
+                                  <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0z"></path>
+                                </svg>
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="comment order__comment">
+                    <div class="comment__text">
+                       {{ n.comment_problem }}
+                    </div>
+                </div>
+
+                <div class="order__all">
+                    <div class="manager" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="top"
+                         {% if current_user.role in['superuser', 'supermanager', 'markineris_admin'] %}
+                         data-bs-title="Оператор заказа. Нажмите, чтобы изменить."
+                         onclick="change_operator('{{ n.id }}', '{{n.order_idn}}', `{{ url_for('crm_d.change_order_manager', manager_id=n.manager_id, o_id= n.id) }}`, '{{ csrf_token() }}')"
+                         {% else %} data-bs-title="Оператор заказа"
+                         {% endif %} readonly>
+                        <img src="{{url_for('static', filename='crm_mod/img/icons/file-person.svg')}}" alt="" class="img-fluid" width="24"
+                            height="24">
+                        <span>{{n.manager}}</span>
+                    </div>
+
+                    {% include 'crm_mod_v1/crmm/order_description.html' %}
+
+                    <div id="orderFile_{{n.id}}" class="file">
+                        {% if n.order_file %}
+                            <img src="{{url_for('static', filename='crm_mod/img/icons/check-circle-fill.svg')}}" alt="Файл прикреплен" width="24"
+                                height="24" class="img-fluid">
+                            <b>Файл прикреплен</b><br>
+                            <span class="ms-4 font-10">{{ n.order_file }}</span>
+                            <img src="{{url_for('static', filename='crm_mod/img/icons/x-circle-fill.svg')}}" alt="Удалить файл"
+                                 data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right"
+                                 data-bs-title="Удалить файл" class="img-fluid ms-3" width="14"  height="14"
+                                 onclick="process_post_delete_file(`{{ url_for('crm_d.delete_order_file', manager_id=n.manager_id, o_id=n.id) }}?stage=6`, '{{csrf_token()}}', '{{n.id}}')">
+
+                        {% elif n.order_file_link %}
+                            <img src="{{url_for('static', filename='crm_mod/img/icons/check-circle-fill.svg')}}" alt="Файл прикреплен" width="24"
+                                    height="24" class="img-fluid">
+                            <b>Прикреплена ссылка на файл</b>
+                            <span class="ms-4 font-10" onclick="copy_buffer('{{ n.order_file_link }}')">{{ n.order_file_link }}</span>
+                            <img src="{{url_for('static', filename='crm_mod/img/icons/x-circle-fill.svg')}}" alt="Удалить файл"
+                                 data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right"
+                                 data-bs-title="Удалить файл" class="img-fluid ms-3" width="14"  height="14"
+                                 onclick="process_post_delete_file(`{{ url_for('crm_d.delete_order_file', manager_id=n.manager_id, o_id=n.id) }}?stage=6`, '{{csrf_token()}}', '{{n.id}}')">
+
+                        {% else %}
+                            <span onclick="process_attach_file(`{{ url_for('crm_d.attach_file',  manager=n.manager, manager_id=n.manager_id, o_id=n.id) }}?stage=6`,
+                                 `{{ url_for('crm_d.attach_of_link', manager=n.manager, manager_id=n.manager_id, o_id=n.id) }}?stage=6`,
+                                  `{{ csrf_token() }}`, '{{n.id}}', '{{n.order_idn}}')">
+                                    <img src="{{url_for('static', filename='crm_mod/img/icons/paperclip.svg')}}" alt="Прикрепите архив файлов заказа" class="img-fluid"
+                                        width="25" height="25">
+                                    <b>Прикрепите файл заказа</b></span>
+
+                        {% endif %}
+
+                    </div>
+                    <div class="order__footer mt-2">
+                        <div class="order__icons icons">
+                            {% include 'crm_mod_v1/helpers/table_download.html' %}
+
+                        </div>
+                        <div id="footer_card_btns{{n.id}}">
+                            <div class="steps ms-3">
+                                {%if n.order_file%}
+                                    <form method="POST" id="download_file_order{{ n.id }}" action="{{ url_for('crm_d.download_file', manager_id=n.manager_id, o_id=n.id) }}"
+                                          style="cursor: pointer" enctype="multipart/form-data">
+                                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                      <img class="icons__item" src="{{url_for('static', filename='crm_mod/img/icons/download.svg')}}"
+                                          width="24" height="24" data-bs-toggle="tooltip"
+                                          data-bs-placement="top" data-bs-title="Скачать файл заказа" onclick="this.closest('form').submit();">
+                                    </form>
+
+                                {%endif%}
+
+
+                                {% if n.order_file or n.order_file_link %}
+                                    <img src="{{url_for('static', filename='crm_mod/img/icons/arrow-right-circle-fill.svg')}}" alt="Вперед"
+                                        class="icons__item" width="24" height="24" data-bs-toggle="tooltip"
+                                        data-bs-placement="top" data-bs-title="Переместить заказа в проблема решена"
+                                        onclick="update_spec_block_info(`{{ url_for('crm_d.m_order_ps', manager_id=n.manager_id, o_id=n.id)}}`,
+                                                                        'm_solved_ordersMainDiv', 7, '{{csrf_token()}}',
+                                                                         this, `{{n.id}}`, `{{n.order_idn}}`,
+                                                                         'm_problem_ordersMainDiv_quantity')">
+                                {% endif %}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+
+
+                    <div class="order__roll">
+                        Свернуть
+                        <img src="{{url_for('static', filename='crm_mod/img/icons/roll.svg')}}" alt="Свернуть" class="img-fluid" width="19"
+                            height="19">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    {% endfor %}
+</div>

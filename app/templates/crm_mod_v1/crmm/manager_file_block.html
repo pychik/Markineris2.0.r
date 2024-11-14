@@ -1,0 +1,28 @@
+{% if file %}
+    <img src="{{url_for('static', filename='crm_mod/img/icons/check-circle-fill.svg')}}" alt="Файл прикреплен" width="24"
+        height="24" class="img-fluid">
+    <b>Файл прикреплен</b><br>
+    <span class="ms-4 font-10">{{ origin }}</span>
+    <img src="{{url_for('static', filename='crm_mod/img/icons/x-circle-fill.svg')}}" alt="Удалить файл"
+         data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right"
+         data-bs-title="Удалить файл" class="img-fluid ms-3" width="14"  height="14"
+         onclick="process_post_delete_file(`{{ url_for('crm_d.delete_order_file', manager_id=manager_id, o_id=o_id) }}?stage={{stage}}`, '{{csrf_token()}}', '{{o_id}}')">
+
+{% elif file_link %}
+    <img src="{{url_for('static', filename='crm_mod/img/icons/check-circle-fill.svg')}}" alt="Файл прикреплен" width="24"
+                                                height="24" class="img-fluid">
+    <b>Прикреплена ссылка на файл</b>
+    <span class="ms-4 font-10" onclick="copy_buffer('{{ file_link }}')">{{ file_link }}</span>
+    <img src="{{url_for('static', filename='crm_mod/img/icons/x-circle-fill.svg')}}" alt="Удалить файл"
+         data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right"
+         data-bs-title="Удалить файл" class="img-fluid ms-3" width="14"  height="14"
+         onclick="process_post_delete_file(`{{ url_for('crm_d.delete_order_file', manager_id=manager_id, o_id=o_id) }}?stage={{stage}}`, '{{csrf_token()}}', '{{o_id}}')">
+{% elif delete_flag %}
+        <span onclick="process_attach_file(`{{ url_for('crm_d.attach_file', manager=order_info.manager, manager_id=manager_id, o_id=o_id) }}?stage={{stage}}`,
+                                             `{{ url_for('crm_d.attach_of_link', manager=order_info.manager, manager_id=manager_id, o_id=o_id) }}?stage={{stage}}`,
+                                              `{{ csrf_token() }}`, '{{o_id}}', '{{order_info.order_idn}}')">
+        <img src="{{url_for('static', filename='crm_mod/img/icons/paperclip.svg')}}" alt="Прикрепите архив файлов заказа" class="img-fluid"
+                width="25" height="25">
+        <b>Прикрепите файл заказа</b></span>
+
+{% endif %}
