@@ -672,6 +672,9 @@ def process_order_start(user: User, category: str, o_id: int, order_idn: str, or
         #     else:
         #         order.stage = settings.OrderStage.NEW
         #         order.crm_created_at = datetime.now()
+        if not order.mark_type:
+            flash("В заказе не заполнено поле тип маркировки. Попробуйте снова", category='error')
+            return None
 
         _stage = get_process_stage(o_id=o_id, category=category)
         try:
