@@ -678,7 +678,7 @@ def process_order_start(user: User, category: str, o_id: int, order_idn: str, or
             if check_new_tnved_in_list():
                 order.has_new_tnveds = True
             mark_type = order.mark_type
-            order.mark_type = mark_type if mark_type else 'МАРКИРОВКА НЕ УКЗАНА'
+            order.mark_type = mark_type if mark_type else 'МАРКИРОВКА НЕ УКАЗАНА'
             dt = datetime.now()
             order.stage = _stage  # settings.OrderStage.NEW
             order.crm_created_at = dt
