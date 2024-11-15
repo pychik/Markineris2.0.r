@@ -1,0 +1,27 @@
+<div class="crm faded">
+    <div class="crm__wrapper">
+        {% include "crm_mod_v1/crma/crma_1.html" %}
+        {% include "crm_mod_v1/crma/crma_2.html" %}
+        {% include "crm_mod_v1/crma/crma_3.html" %}
+        {% include "crm_mod_v1/crma/crma_4.html" %}
+        {% include "crm_mod_v1/crma/crma_5.html" %}
+        {% include "crm_mod_v1/crma/crma_6.html" %}
+        {% include "crm_mod_v1/crma/crma_7.html" %}
+        {% include "crm_mod_v1/crma/crma_8.html" %}
+        {% include "crm_mod_v1/crma/crma_9.html" %}
+        {% include "crm_mod_v1/crma/crma_10.html" %}
+
+    </div>
+
+</div>
+<script>
+
+
+    var update_agents_url = "{{url_for('crm_d.agents', bck=1)}}";
+    var update_url = update_agents_url;
+    var update_url_temp = '';
+    var SEARCH_ORDER_URL = "{{search_order_url}}";
+    var delta_timer_color = {{ problem_order_time_limit }};
+    // initializeJSPage(document);
+    // window.onload = setTimeout(function() {update_crm_info(update_agents_url);}, 5000);
+</script>

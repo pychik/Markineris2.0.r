@@ -162,10 +162,11 @@ class BaseExcelReport(ExcelReportMixin):
     def __init__(
             self,
             data: List,
+            condition_format: Optional[dict[int, dict]],
             filters: Optional[Dict[str, Any]] = None,
             columns_name: Optional[List[str]] = None,
             sheet_name: Optional[str] = 'sheet 1',
-            output_file_name: Optional[str] = 'WorkBook.xlsx'
+            output_file_name: Optional[str] = 'WorkBook.xlsx',
     ):
         self.filters = filters
         self.data = data
@@ -186,7 +187,7 @@ class ExcelReport(BaseExcelReport):
             filters: Optional[Dict[str, Any]] = None,
             columns_name: Optional[List[str]] = None,
             sheet_name: Optional[str] = 'sheet 1',
-            output_file_name: Optional[str] = 'WorkBook.xlsx'
+            output_file_name: Optional[str] = 'WorkBook.xlsx',
     ) -> None:
         """
         data: list of data to save in file

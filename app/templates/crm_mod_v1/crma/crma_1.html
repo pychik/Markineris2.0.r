@@ -1,0 +1,79 @@
+<div class="crm__col">
+    <div class="orders">
+        <h2 class="orders__title">
+            Новые заказы <span id="new_ordersMainDiv_quantity">({{new_orders | length}})</span>
+            {%if new_orders%}
+                <span class="badge" style="cursor: pointer"  data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="top"
+                                    data-bs-title="Перевести все заказы в ОТПРАВЛЕНЫ ФИРМЕ"
+                      onclick="bck_all_new_multi_pool(`{{ url_for('crm_d.all_new_multi_pool')}}`, `{{ csrf_token() }}`);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8z"/>
+                    </svg>
+                </span>
+            {%endif%}
+        </h2>
+        <div style="width:335px"></div>
+        <div class="orders__list" id="new_ordersMainDiv">
+            {% for n in new_orders %}
+                <div class="orders__item order {% if n.to_delete %} div-disabled {%endif%}" id="cardCommonBlock_{{n.id}}">
+                    <div class="order__header">
+                        <div class="order__name">{{n.order_idn}} {%if n.is_at2%}<span>(Агент тип 2)</span>{%endif%} </div>
+                        {% include 'crm_mod_v1/helpers/order_category.html' %}
+                    </div>
+                    <div class="order__body">
+                        <div class="order__info">
+                            <div class="order__small-text">
+                                <div class="order__num">
+                                   КС: {{ n.row_count }} КМ: {{ n.pos_count }}
+                                </div>
+                                <div class="order__time" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right"
+                                    data-bs-title="CRM: {{n.crm_created_at.strftime('%d-%m-%Y %H:%M:%S')}}">
+                                    {{n.crm_created_at | time_since}}
+                                </div>
+                            </div>
+                            <div class="order__icons icons">
+                                {% include 'crm_mod_v1/crma/special_alerts.html' %}
+                            </div>
+                        </div>
+                        <div class="order__all">
+
+                            {% include 'crm_mod_v1/crma/order_description.html' %}
+
+                            <div class="order__footer">
+                                <div class="order__icons icons">
+                                  {% include 'crm_mod_v1/helpers/table_download.html' %}
+                                </div>
+                                <div class="steps">
+                                    <img src="{{url_for('static', filename='crm_mod/img/icons/x-circle-fill.svg')}}"
+                                        id="cancel_order{{n.id}}" alt="Отменить заказ"
+                                        class="img-fluid" width="24" height="24" data-bs-toggle="tooltip"
+                                        data-bs-placement="top" data-bs-title="Отменить заказ"
+                                        onclick="cancel_order('{{ n.order_idn }}', '{{n.id}}',
+                                         'new_ordersMainDiv_quantity',
+                                         `{{ url_for('crm_d.cancel_crm_order', o_id=n.id) }}`,
+                                         '{{ csrf_token() }}')">
+
+
+                                    <img src="{{url_for('static', filename='crm_mod/img/icons/arrow-right-circle-fill.svg')}}" alt="Вперед"
+                                        class="img-fluid" width="24" height="24" data-bs-toggle="tooltip"
+                                        data-bs-placement="top" data-bs-title="Перевести заказ в ОТПРАВЛЕНЫ ФИРМЕ"
+                                        onclick="update_spec_block_info(`{{url_for('crm_d.update_agent_stage')}}`,
+                                                                        'pool_ordersMainDiv', 2, '{{csrf_token()}}',
+                                                                         this, `{{n.id}}`, `{{n.order_idn}}`,
+                                                                         'new_ordersMainDiv_quantity')">
+
+                                </div>
+                            </div>
+                            <div class="order__roll">
+                                Свернуть
+                                <img src="{{url_for('static', filename='crm_mod/img/icons/roll.svg')}}" alt="Свернуть" class="img-fluid" width="19"
+                                    height="19">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+
+        </div>
+    </div>
+</div>

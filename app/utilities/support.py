@@ -1158,7 +1158,7 @@ def helper_update_order_note(on: str, u_id: int) -> bool:
         db.session.execute(text("""
                                     UPDATE public.users 
                                     SET order_notification =:on
-                                    WHERE public.users.id=:u_id;
+                                    WHERE public.users.id= :u_id;
                                     """).bindparams(on=on, u_id=u_id))
         db.session.commit()
         return True
@@ -1328,6 +1328,7 @@ def helper_get_stmt_for_fin_order_report(
         payment_status: tuple[bool] = (True, ),
         sort_type: str = 'DESC'
 ) -> TextClause:
+    sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
     if order_type == (9,):
         # cancel order
         stmt = text(f"""
@@ -1357,7 +1358,7 @@ def helper_get_stmt_for_fin_order_report(
                 GROUP BY o.id, o.order_idn, utr.op_cost, utr.amount , o.cc_created, cli.phone, agnt.login_name, cli.login_name
                 ORDER BY o.cc_created {sort_type};
 
-            """).bindparams(date_from=date_from, date_to=date_to, order_type=order_type)
+            """).bindparams(date_from=date_from, date_to=date_to, order_type=order_type,)
     else:
         stmt = text(f"""
                 SELECT 
@@ -1448,6 +1449,7 @@ def helper_get_stmt_for_fin_promo_history(
         promo_code: Optional[str] = None,
         sort_type: str = 'DESC'
 ) -> TextClause:
+    sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
     stmt = text(f"""select
                         usr_promo.activated_at as activate_date,
                         cli.email as user_email,
@@ -3054,10 +3056,10 @@ def helper_get_stmt_avg_order_time_processing_report(
     return stmt
 
 
-def sumsuu_required(func):
+def ausumsuu_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if current_user.status is True and current_user.role in [settings.SUPER_MANAGER, settings.SUPER_USER,]:
+        if current_user.status is True and current_user.role in [settings.SUPER_MANAGER, settings.SUPER_USER, settings.ADMIN_USER]:
             return func(*args, **kwargs)
         else:
             bck = request.args.get('bck', 0, type=int)

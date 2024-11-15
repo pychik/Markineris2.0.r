@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{{url_for('static',filename='main_v2/images/favicon.ico')}}" type="image/x-icon">
+    <link rel="icon" href="{{url_for('static',filename='main_v2/images/favicon.ico')}}">
+<!--    <link rel="preconnect" href="https://fonts.googleapis.com">-->
+<!--    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>-->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="{{url_for('static',filename='main_v2/css/service/g_fonts.css')}}" crossorigin>
+    <link href="{{url_for('static',filename='main_v2/css/service/g_fonts.css')}}" rel="stylesheet">
+    <link rel="stylesheet" href="{{url_for('static', filename='crm_mod/libs/bootstrap/css/bootstrap.min.css')}}">
+    <link rel="stylesheet" href="{{url_for('static', filename='crm_mod/css/main.css')}}?v=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='crm_mod/css/special_crm_effects_v2.css') }}?v=1">
+
+    <script src="{{url_for('static',filename='main_v2/js/assets/jquery.min.js')}}"></script>
+
+    <title>CRM</title>
+
+</head>
+
+<body>
+    <header class="header container-fluid py-3">
+        <div class="header__wrapper d-flex justify-content-between align-items-start">
+            <div class="header__left d-flex">
+                <div class="logo header__logo">
+                    <a class="text-secondary" style="text-decoration: none" href="{{url_for('main.enter')}}">
+                        MARKA-SERVICE <br>CRM
+                    </a>
+                </div>
+                {% if not 'crm_uoc' in request.path %}
+                    {% include 'crm_mod_v1/helpers/search_order_find_manager.html' %}
+                {% endif %}
+            </div>
+
+            <div class="header__right d-flex ">
+                {% include 'crm_mod_v1/helpers/categories_tab.html'%}
+                {% include 'crm_mod_v1/helpers/user_tab.html'%}
+
+            </div>
+
+        </div>
+
+    </header>
+
+    <main class="main container-fluid">
+
+        {% block crm_dashboard %}
+        {% endblock %}
+
+        {% block crm_uoc %}
+        {% endblock %}
+
+    </main>
+    <!-- Модальное окно - Выбор менеджера -->
+    <div class="modal fade" id="manager" tabindex="-1" aria-labelledby="Окно выбора менеджера" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header ">
+                    <h5 class="modal-title " id="choose_manager_title">Выберите менеджера</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="filter filter-manager ">
+                        <select class=" form-select filter__select" aria-label="Выберите менеджера">
+                            <option selected="">Выберите менеджера</option>
+                            <option value="1">Один</option>
+                            <option value="2">Два</option>
+                            <option value="3">Три</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Модальное окно - Файл -->
+    <div id="blockModalFileLinkAttach"></div>
+
+
+    <!-- УВЕДОМЛЕНИЯ  https://getbootstrap.ru/docs/5.1/components/toasts/ -->
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11" id="all_messages">
+       {% with messages = get_flashed_messages(with_categories=true) %}
+           {% if messages %}
+               {% for category, message in messages %}
+                    {% if category == 'error' %}
+                        <div id="alert-message-error" class="toast toast-error" role="alert" data-bs-delay="30000"
+                             aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header">
+                                <strong class="me-auto fw-bold ">Ошибка!</strong>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+                            </div>
+                            <div class="toast-body d-flex align-items-center ">
+                                <img src="{{url_for('static',filename='crm_mod/img/icons/error.svg')}}" alt="" width="66" height="66" class="img-fluid ">
+                                <p class="mt-2">{{ message | safe }}</p>
+                            </div>
+                        </div>
+                    {% elif category == 'warning' %}
+                        <div id="alert-message-warning" class="toast toast-warning " role="alert" data-bs-delay="30000"
+                             aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header">
+                                <strong class="me-auto fw-bold ">Предупреждение!</strong>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+                            </div>
+                            <div class="toast-body d-flex align-items-center ">
+                                <img src="{{url_for('static',filename='crm_mod/img/icons/warning.svg')}}" alt="" width="66" height="66" class="img-fluid ">
+                                <p class="mt-2">{{ message | safe }}</p>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div id="alert-message-success" class="toast toast-success " role="alert" data-bs-delay="30000"
+                             aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header">
+                                <strong class="me-auto fw-bold ">Успешно!</strong>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+                            </div>
+                            <div class="toast-body d-flex align-items-center ">
+                                <img src="{{url_for('static',filename='crm_mod/img/icons/success.svg')}}" alt="" width="66" height="66" class="img-fluid ">
+                                <p class="mt-2">{{ message | safe }}</p>
+                            </div>
+                        </div>
+                    {% endif %}
+               {% endfor %}
+           {% endif %}
+       {% endwith %}
+
+    </div>
+    <div class="overlay" id="overlay_loading" >
+        <div class="d-flex justify-content-center">
+          <div class="text-warning over_text text-center">
+             <h3>Производится обработка запроса...</h3>
+             <h5>Если процесс длится более 3 мин, обновите страницу!</h5>
+             <div class="spinner-border" style="width: 5rem; height: 5rem;" role="status">
+                 <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <script src="{{url_for('static',filename='main_v2/js/assets/popper.min.js')}}"></script>
+    <script src="{{url_for('static', filename='crm_mod/libs/bootstrap/js/bootstrap.bundle.min.js')}}"></script>
+    <script src="{{url_for('static', filename='crm_mod/js/crm_main_v1_1.js')}}?v=2"></script>
+    <script src="{{url_for('static', filename='crm_mod/libs/scrollbooster/scrollbooster.min.js')}}" defer></script>
+    <script src="{{url_for('static',filename='main_v2/js/new_messages.js')}}?v=1"></script>
+
+    <script>
+
+        const message_icon_error = `{{url_for('static',filename='main_v2/img/icons/error.svg')}}`;
+        const message_icon_warning = `{{url_for('static',filename='main_v2/img/icons/warning.svg')}}`;
+        const message_icon_success = `{{url_for('static',filename='main_v2/img/icons/success.svg')}}`;
+         $(document).ready(function() {
+         // сообщение будет закрыто через 10 секунд после загрузки страницы
+             show_user_messages();
+             window.setTimeout(function() {
+             clear_user_messages();
+         }, 10000);
+         });
+
+         initializeJSPage(document);
+
+
+    </script>
+
+
+
+</body>
+
+
+
+
+
+</html>

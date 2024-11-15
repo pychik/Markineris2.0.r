@@ -1,0 +1,76 @@
+<div class="d-flex flex-column ">
+    <div class="header__form mb-2">
+        <div class="input-group" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Введите номер заказа и нажмите кнопку поиск. Для очистки результата, нажмите Очистить">
+           <input type="text" id="searchOrdertext" name="search_order_idn" class="form-control" placeholder="Введите номер заказа" >
+           <div class="input-group-append no-user-activity-block" >
+             <span class="input-group-text bg-warning" id="searchOrderButton" style="cursor:pointer" onclick="search_crm_order(`${SEARCH_ORDER_URL}`,`{{csrf_token()}}`);">Поиск</span>
+           </div>
+            <div class="input-group-append no-user-activity-block">
+             <span class="input-group-text bg-secondary text-white" id="clearSearchOrder" style="cursor:pointer" onclick="clear_search_order_res();">Очистить</span>
+           </div>
+        </div>
+        <div id="OrderSearchResult"></div>
+    </div>
+
+<!--  {% if current_user.role == 'superuser' %}-->
+<!--                {% if 'manager' in request.path %}-->
+<!--                    <a href="{{ url_for('crm_d.agents') }}" class="alert-link">-->
+<!--                        <span class="badge badge-light">ОТКРЫТЬ AGENTS CRM</span>-->
+<!--                    </a>-->
+<!--                {% else %}-->
+<!--                    <a href="{{ url_for('crm_d.managers') }}" class="alert-link">-->
+<!--                        <span class="badge badge-light">ОТКРЫТЬ MANAGERS CRM</span>-->
+<!--                    </a>-->
+
+<!--                {% endif %}-->
+<!--          {% endif %}  -->
+
+    <div class="top__filter" {% if 'manager' in request.path and user.role in ['superuser', 'supermanager', 'markineris_admin'] %} {%else%}style="display:none"{%endif%}>
+        <div class="filter filter-manager">
+          <select class="form-select filter__select" id="selectManager" onchange="filter_category_manager('{{url_for('crm_d.managers')}}?bck=1');"
+              aria-label="Выберите менеджера" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Фильтр по менеджерам"
+              style="width: 220px;">
+              <option value="" {% if not filtered_manager_id%}selected{% endif %}>
+                    Все заказы
+              </option>
+              {%for m in managers_list%}
+                <option value="{{m[0]}}" {% if filtered_manager_id == m[0] %}selected{% endif %}>
+                    Заказы {{m[1]}}
+                </option>
+              {% endfor %}
+          </select>
+        </div>
+    </div>
+</div>
+
+
+
+
+<script>
+    // set this vars to prevent multiple code processings on keypress
+    var enterActionPerformed = false;
+    var escapeActionPerformed = false;
+    document.getElementById("searchOrdertext").addEventListener("keydown", function(event) {
+      if (event.key === "Enter" && !enterActionPerformed) {
+        // Call your function or perform your action here
+        search_crm_order(`${SEARCH_ORDER_URL}`,`{{csrf_token()}}`);
+        enterActionPerformed = true;
+        // Prevent the default action (form submission)
+        event.preventDefault();
+        setTimeout(function() {
+          enterActionPerformed = false;
+        }, 3000);
+      }
+      else if (event.key === "Escape"&& !escapeActionPerformed) {
+        clear_search_order_res();
+        escapeActionPerformed = true;
+        // Prevent the default action (form submission)
+        event.preventDefault();
+        setTimeout(function() {
+          escapeActionPerformed = false;
+        }, 3000);
+      }
+    });
+
+
+</script>
