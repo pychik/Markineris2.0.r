@@ -29,7 +29,7 @@ def process_admin_report(u_id: int, sheet_name: str) -> Optional[BytesIO]:
                                      os.op_cost AS op_cost
                                      FROM public.users u
                                       JOIN public.orders_stats os ON u.id = os.user_id
-                                    WHERE u.admin_parent_id=:u_id OR u.id = :u_ir
+                                    WHERE u.admin_parent_id=:u_id OR u.id = :u_id
                                     ORDER BY login_name, saved_at_d
                             """).bindparams(u_id=u_id))
     report_info = res.fetchall()
