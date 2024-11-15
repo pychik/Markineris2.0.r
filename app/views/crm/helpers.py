@@ -1679,7 +1679,7 @@ def helpers_bck_change_orders_stage() -> Response:
 
     stmt = text("""
                    UPDATE public.orders 
-                   SET stage=stage_to,
+                   SET stage=:stage_to,
                    WHERE stage=:stage AND payment=False AND o.to_delete != True; 
                 """).bindparams(stage_to=stage_to, stage=settings.OrderStage.SENT)
     try:
