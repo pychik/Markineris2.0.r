@@ -349,7 +349,7 @@ class CommonMixin:
     article_price = db.Column(db.Float(), default=0)
     tnved_code = db.Column(db.String(50), default='')
     country = db.Column(db.String(58), default='')
-    tax = db.Column(db.Integer(), default=20)
+    tax = db.Column(db.Integer(), default=0)
     trademark = db.Column(db.String(100))
 
     rd_type = db.Column(db.String(50))
