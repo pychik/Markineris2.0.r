@@ -3064,5 +3064,16 @@ def ausumsuu_required(func):
         else:
             bck = request.args.get('bck', 0, type=int)
             if bck:
+                return jsonify(dict(status='danger', message=settings.Messages.CRM_MANAGER_AGENT_USER_REQUIRED))
+    return wrapper
+
+def sumsuu_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.status is True and current_user.role in [settings.SUPER_MANAGER, settings.SUPER_USER, ]:
+            return func(*args, **kwargs)
+        else:
+            bck = request.args.get('bck', 0, type=int)
+            if bck:
                 return jsonify(dict(status='danger', message=settings.Messages.CRM_REPORT_USER_REQUIRED))
     return wrapper

@@ -11,12 +11,12 @@ from config import settings
 from logger import logger
 from models import User, Order, db
 from utilities.admin.excel_report import ExcelReport
-from utilities.support import user_activated, su_required, susmu_required, susmumu_required, manager_exist_check, \
-    helper_get_filter_avg_order_time_processing_report, helper_get_stmt_avg_order_time_processing_report, \
-    ausumsuu_required, helper_paginate_data
-from views.crm.helpers import helper_clean_oco, check_manager_orders, helper_change_manager_limit, helper_get_limits, \
-                              helper_change_auto_order_pool, helper_change_auto_order_sent
-
+from utilities.support import (user_activated, su_required, susmu_required, susmumu_required, manager_exist_check,
+                               helper_get_filter_avg_order_time_processing_report,
+                               helper_get_stmt_avg_order_time_processing_report,
+                               helper_paginate_data, sumsuu_required)
+from views.crm.helpers import (helper_clean_oco, check_manager_orders, helper_change_manager_limit, helper_get_limits,
+                               helper_change_auto_order_pool, helper_change_auto_order_sent)
 
 # crm user order control
 crm_uoc = Blueprint('crm_uoc', __name__)
@@ -220,7 +220,7 @@ def change_auto_order_sent():
 
 @crm_uoc.route('/avg_order_processing_time_report', methods=['GET'])
 @login_required
-@ausumsuu_required
+@sumsuu_required
 def avg_order_processing_time_rpt():
     date_from = datetime.now() - timedelta(settings.ORDERS_REPORT_TIMEDELTA)
     date_to = datetime.now()
@@ -238,7 +238,7 @@ def avg_order_processing_time_rpt():
 
 @crm_uoc.route('/bck_avg_order_processing_time_report', methods=['GET'])
 @login_required
-@ausumsuu_required
+@sumsuu_required
 def bck_avg_order_processing_time_rpt():
     date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report()
     stmt = helper_get_stmt_avg_order_time_processing_report(
@@ -261,7 +261,7 @@ def bck_avg_order_processing_time_rpt():
 
 @crm_uoc.route('/avg_order_processing_time_report_excel', methods=['POST'])
 @login_required
-@ausumsuu_required
+@sumsuu_required
 def avg_order_processing_time_rpt_excel():
     date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(report=True)
     stmt = helper_get_stmt_avg_order_time_processing_report(
