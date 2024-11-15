@@ -270,7 +270,7 @@ def get_rows_marks(o_id: int, category: str) -> tuple[int, int]:
                       JOIN  public.linen_quantity_sizes ON public.linen.id=public.linen_quantity_sizes.lin_id
                     WHERE public.orders.category=:category AND public.orders.id=:o_id
                     GROUP BY public.orders.id
-                    """).bindparams(catehory=settings.Linen.CATEGORY, o_id=o_id))
+                    """).bindparams(category=settings.Linen.CATEGORY, o_id=o_id))
             row_count, mark_count = res.fetchall()[0]
         case settings.Parfum.CATEGORY:
             res = db.session.execute(text("""
