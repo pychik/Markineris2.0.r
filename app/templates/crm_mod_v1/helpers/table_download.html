@@ -1,15 +1,25 @@
-<form method="post" action="{{ url_for('crm_d.download_order', o_id=n.id) }}" style="cursor: pointer;">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    <img class="icons__item" src="{{url_for('static', filename='crm_mod/img/icons/table.svg')}}"
-         width="24" height="24" data-bs-toggle="tooltip"
-         data-bs-placement="top" data-bs-title="Скачать таблицу заказа формат 029" onclick="this.closest('form').submit();">
-</form>
-
-{% if n.category in ['одежда', 'обувь'] %}
-    <form method="post" action="{{ url_for('crm_d.download_order', o_id=n.id) }}?flag_046=1" style="cursor: pointer;">
+{% if current_user.role == 'superuser' %}
+    <form method="post" action="{{ url_for('crm_d.download_order', o_id=n.id) }}" style="cursor: pointer;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-        <img class="icons__item" src="{{url_for('static', filename='crm_mod/img/icons/table_046.svg')}}"
+        <img class="icons__item" src="{{url_for('static', filename='crm_mod/img/icons/table.svg')}}"
              width="24" height="24" data-bs-toggle="tooltip"
-             data-bs-placement="top" data-bs-title="Скачать таблицу заказа  формат 046" onclick="this.closest('form').submit();">
+             data-bs-placement="top" data-bs-title="Скачать таблицу заказа формат 029" onclick="this.closest('form').submit();">
     </form>
+
+    {% if n.category in ['одежда', 'обувь'] %}
+        <form method="post" action="{{ url_for('crm_d.download_order', o_id=n.id) }}?flag_046=1" style="cursor: pointer;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <img class="icons__item" src="{{url_for('static', filename='crm_mod/img/icons/table_046.svg')}}"
+                 width="24" height="24" data-bs-toggle="tooltip"
+                 data-bs-placement="top" data-bs-title="Скачать таблицу заказа  формат 046" onclick="this.closest('form').submit();">
+        </form>
+    {% endif %}
+
+{% else %}
+    <a href="{{ url_for('crm_d.crm_preload', o_id=n.id) }}">
+        <img class="icons__item" src="{{url_for('static', filename='crm_mod/img/icons/table.svg')}}"
+             width="24" height="24" data-bs-toggle="tooltip"
+             data-bs-placement="top" data-bs-title="Просмотр таблицы">
+    </a>
 {% endif %}
+
