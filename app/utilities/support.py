@@ -2335,7 +2335,7 @@ def helper_get_admin_info(u_id: int) -> tuple[Optional[int], Optional[int], Opti
     admin_id_stmt = text("""SELECT u.admin_parent_id as admin_parent_id, u.role as role
                         FROM public.users u WHERE u.id=:u_id;""").bindparams(u_id=u_id)
 
-    res_admin_info = db.session.execute(text(admin_id_stmt)).fetchone()
+    res_admin_info = db.session.execute(admin_id_stmt).fetchone()
 
     if res_admin_info.admin_parent_id and res_admin_info.role == settings.ORD_USER:
         # if user is a client and has agent
@@ -2659,7 +2659,7 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
         else:
             return 0, 0
     except Exception as e:
-        logger.error(f"An error occured during transaction write off perform: {str(e)}")
+        logger.exception(f"An error occured during transaction write off perform: {str(e)}")
         db.session.rollback()
         return 0, 0
 
