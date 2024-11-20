@@ -221,10 +221,10 @@ class ExcelReport(BaseExcelReport):
         col = 0
         for data_row in self.data:
             for value in data_row:
-                if isinstance(value, datetime):
-                    sheet.write_datetime(row, col, value, self.date_formatter)
-                if isinstance(value, date):
+                if type(value) is datetime:
                     sheet.write_datetime(row, col, value, self.datetime_formatter)
+                elif type(value) is date:
+                    sheet.write_datetime(row, col, value, self.date_formatter)
                 else:
                     sheet.write(row, col, value, formatters)
 
