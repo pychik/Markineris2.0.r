@@ -219,9 +219,9 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
     if o_id and not p_id:
         return order_table_update(user=current_user, o_id=o_id, category=category) if order_id \
             else jsonify(dict(status='error'))
-    if o_id and p_id:
+    if o_id and p_id and order_id:
         flash(message=settings.Messages.ORDER_EDIT_POS_SUCCESS)
-    if not o_id and not p_id:
+    if not o_id and not p_id and order_id:
         flash(message=f"{settings.Messages.ORDER_ADD_POS_SUCCESS} {form_data_raw.get('article') if category != settings.Parfum.CATEGORY else form_data_raw.get('trademark')}")
 
     return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=order_id,
@@ -249,9 +249,13 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
             process_delete_order_pos(o_id=o_id, m_id=p_id, category=category, edit=True)
 
     else:
+        company_idn = form_dict.get("company_idn")
+        if company_idn in settings.ExceptionOrders.COMPANIES_IDNS:
+            flash(message=settings.ExceptionOrders.COMPANY_IDN_ERROR.format(company_idn=company_idn), category='error')
+            return (None,) * 3
         order = Order(company_type=form_dict.get("company_type"), company_name=form_dict.get("company_name"),
                       edo_type=form_dict.get("edo_type"), edo_id=form_dict.get("edo_id"),
-                      company_idn=form_dict.get("company_idn"), mark_type=form_dict.get("mark_type_hidden", "МАРКИРОВКА НЕ УКАЗАНА"),
+                      company_idn=company_idn, mark_type=form_dict.get("mark_type_hidden", "МАРКИРОВКА НЕ УКАЗАНА"),
                       category=category, stage=settings.OrderStage.CREATING, processed=False, to_delete=False)
     try:
         if category == settings.Clothes.CATEGORY:
@@ -1090,9 +1094,19 @@ def helper_get_cat_models_sort_dict(category: str) -> Optional[dict]:
     return cat_models_dict
 
 
-def helper_process_category_order(user: User, category: str, o_id: int, order_comment: str) -> Response:
+def helper_process_category_order(user: User, order: Order, category: str, order_comment: str) -> Response:
     from .download import orders_process_send_order
     _category_name = settings.CATEGORIES_DICT.get(category)
+    if not order:
+        flash(message=settings.Messages.EMPTY_ORDER, category='error')
+        return redirect(url_for(f'{_category_name}.index'))
+    o_id = order.id
+
+    # check for company_idn exception
+    company_idn = order.company_idn
+    if company_idn in settings.ExceptionOrders.COMPANIES_IDNS:
+        flash(message=settings.ExceptionOrders.COMPANY_IDN_ERROR.format(company_idn=company_idn), category='error')
+        return redirect(url_for(f'{_category_name}.index', o_id=o_id))
 
     status_balance, total_order_price, agent_at2, message_balance = helper_check_uoabm(user=current_user, o_id=o_id)
     if status_balance == 0:

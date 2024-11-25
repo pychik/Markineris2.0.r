@@ -86,14 +86,8 @@ def process_order(o_id: int):
     order = (user.orders.filter_by(category=settings.Clothes.CATEGORY, processed=False, id=o_id)
              .filter(~Order.to_delete).first())
 
-    if not order:
-        flash(message=settings.Messages.EMPTY_ORDER, category='error')
-        return redirect(url_for('clothes.index'))
-    if not check_order_pos(category=settings.Clothes.CATEGORY, order=order):
-        return redirect(url_for('clothes.index', o_id=order.id))
-
-    return helper_process_category_order(user=user, category=settings.Clothes.CATEGORY,
-                                         o_id=o_id, order_comment=order_comment)
+    return helper_process_category_order(user=user, order=order, category=settings.Clothes.CATEGORY,
+                                         order_comment=order_comment)
 
 
 @clothes.route('/search_by_article/<int:o_id>', methods=['POST', ])

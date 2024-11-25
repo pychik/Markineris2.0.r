@@ -889,6 +889,10 @@ class Settings(BaseSettings):
         SHEET_NAME: str = "Данные"
         TYPE_UPLOADS: list = ['standart', 'extended']
 
+    class ExceptionOrders:
+        COMPANIES_IDNS: tuple = ('7703381056', )
+        COMPANY_IDN_ERROR: str = "Невозможно оформить заказ по указанному ИНН {company_idn}"
+
     class Shoes:
         CATEGORY: str = 'обувь'
         CATEGORY_PROCESS: str = 'shoes'

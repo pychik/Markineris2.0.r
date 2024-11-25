@@ -86,14 +86,9 @@ def process_order(o_id: int):
 
     order = (user.orders.filter_by(category=settings.Linen.CATEGORY, processed=False, id=o_id)
              .filter(~Order.to_delete).first())
-    if not order:
-        flash(message=settings.Messages.EMPTY_ORDER, category='error')
-        return redirect(url_for('linen.index'))
-    if not check_order_pos(category=settings.Linen.CATEGORY, order=order):
-        return redirect(url_for('linen.index', o_id=order.id))
 
-    return helper_process_category_order(user=user, category=settings.Linen.CATEGORY,
-                                         o_id=o_id, order_comment=order_comment)
+    return helper_process_category_order(user=user, order=order, category=settings.Linen.CATEGORY,
+                                         order_comment=order_comment)
 
 
 @linen.route('/search_by_article/<int:o_id>', methods=['POST', ])

@@ -83,14 +83,9 @@ def process_order(o_id: int):
     order_comment = request.form.to_dict().get("order_comment", "")
 
     order = user.orders.filter_by(category=settings.Parfum.CATEGORY, processed=False, id=o_id).first()
-    if not order:
-        flash(message=settings.Messages.EMPTY_ORDER, category='error')
-        return redirect(url_for('parfum.index'))
-    if not check_order_pos(category=settings.Parfum.CATEGORY, order=order):
-        return redirect(url_for('parfum.index', o_id=order.id))
 
-    return helper_process_category_order(user=user, category=settings.Parfum.CATEGORY,
-                                         o_id=o_id, order_comment=order_comment)
+    return helper_process_category_order(user=user, order=order, category=settings.Parfum.CATEGORY,
+                                         order_comment=order_comment)
 
 
 @parfum.route('/search_by_trademark/<int:o_id>', methods=['POST', ])

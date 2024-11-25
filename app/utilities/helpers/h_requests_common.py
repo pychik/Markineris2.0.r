@@ -153,6 +153,11 @@ def h_change_order_org_param_form(o_id: int) -> Response:
         flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
         return redirect(url_for('main.enter'))
 
+    company_idn = order.company_idn
+    if company_idn in settings.ExceptionOrders.COMPANIES_IDNS:
+        flash(message=settings.ExceptionOrders.COMPANY_IDN_ERROR.format(company_idn=company_idn), category='error')
+        return redirect(url_for('main.enter'))
+
     form_dict = request.form.to_dict()
     category = form_dict.get("category_hidden")
     try:
