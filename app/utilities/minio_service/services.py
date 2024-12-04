@@ -38,7 +38,13 @@ class S3Service:
         with self.get_client() as client:
             return client.get_presigned_url(method="GET", bucket_name=bucket_name, object_name=object_name)
 
-    def upload_file(self, file_data: IO[bytes], object_name: str, bucket_name: str) -> None:
+    def upload_file(
+            self,
+            file_data: IO[bytes],
+            object_name: str,
+            bucket_name: str,
+            content_type="application/octet-stream",
+    ) -> None:
         file_data.seek(0, 2)
         file_size = file_data.tell()
         file_data.seek(0)
@@ -48,6 +54,7 @@ class S3Service:
                 object_name=object_name,
                 data=file_data,
                 length=file_size,
+                content_type=content_type,
             )
 
     def remove_object(self, object_name: str, bucket_name: str) -> None:
