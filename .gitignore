@@ -182,3 +182,5 @@ app/static/qr_imgs/
 !app/static/qr_imgs/README.md
 app/db_backups
 !app/db_backups/__init__.py
+
+app/static

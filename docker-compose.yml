@@ -5,7 +5,6 @@ services:
     image: nginx:1.25.2
     container_name: nginx
     volumes:
-      - ./app/static:/app/static
       - ./maintenance/maintenance.html:/usr/share/nginx/html/maintenance.html
       - ./app/static/response_pages/429.html:/usr/share/nginx/html/429.html
       - ./maintenance:/app/maintenance
