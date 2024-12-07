@@ -44,7 +44,11 @@
           <div class="fw-bold setting__title">Статистика</div>
           <div class="d-flex flex-column">
             <a class="btn btn-secondary mb-3" type="button"
-               href="{{ url_for('admin_control.bck_ar_orders', u_id=admin_info.id) }}">Статистика по заказам</a>
+               href="{{ url_for('admin_control.bck_ar_orders', u_id=admin_info.id) }}">Статистика по заказам и категориям</a>
+            <a class="btn btn-secondary mb-3" type="button"
+              href="{{ url_for('admin_control.users_orders_stats', admin_id=admin_info.id) }}">
+              Список заказов клиентов
+            </a>
             <a class="btn btn-secondary " type="button"
                href="{{ url_for('admin_control.bck_agent_control_reanimate', u_id=admin_info.id) }}">Реанимация
               клиентов</a>
