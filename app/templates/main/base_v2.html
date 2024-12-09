@@ -77,7 +77,7 @@
                                         </a>
                                     </li>
                                     <li class="nav-item">
-                                        {% set new_order =  ('enter' in request.path or 'shoes' in request.path or 'clothes' in request.path or 'linen' in request.path or 'parfum' in request.path or 'toys' in request.path)%}
+                                        {% set new_order =  ('enter' in request.path or 'shoes' in request.path or 'clothes' in request.path or 'linen' in request.path or 'parfum' in request.path or 'socks' in request.path or 'toys' in request.path)%}
                                         <a href="{{url_for('main.enter')}}" class="nav-link {% if new_order %}active{%else%}no-link{% endif %}" aria-current="page">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                                 fill="none">
@@ -96,6 +96,9 @@
                                     </li>
                                     <li class="nav-item nav-item--sub {% if 'clothes' in request.path %}active{%endif%} ps-5">
                                         <a href="{{url_for('clothes.index')}}" class="nav-link text-light" aria-current="page">Одежда</a>
+                                    </li>
+                                    <li class="nav-item nav-item--sub {% if 'socks' in request.path %}active{%endif%} ps-5">
+                                        <a href="{{url_for('socks.index')}}" class="nav-link text-light" aria-current="page">Носки и прочее <span class="badge bg-success">new</span></a>
                                     </li>
                                     <li class="nav-item nav-item--sub {% if 'linen' in request.path %}active{%endif%} ps-5">
                                         <a href="{{url_for('linen.index')}}" class="nav-link text-light" aria-current="page">Белье</a>

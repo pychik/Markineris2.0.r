@@ -438,6 +438,37 @@ def helper_clothes_index(o_id: int, p_id: int = None, update_flag: int = None,
     return helper_category_common_index(**locals())
 
 
+def helper_socks_index(o_id: int, p_id: int = None, update_flag: int = None,
+                         copied_order: db.Model = None, edit_order: str = None) -> Union[Response, str]:
+    copy_order_edit_org = request.args.get('copy_order_edit_org')
+    user = current_user
+    admin_id = user.admin_parent_id
+    order_notification, admin_name, crm = helper_get_order_notification(admin_id=admin_id if admin_id else user.id)
+
+    price_description = settings.PRICE_DESCRIPTION
+    tnved_description = settings.TNVED_DESCRIPTION
+    socks_all_tnved = settings.Socks.TNVED_ALL
+
+    rd_description = settings.RD_DESCRIPTION
+    rd_types_list = settings.RD_TYPES
+
+    price_text = settings.PRICES_TEXT
+    company_types = settings.COMPANY_TYPES
+    edo_types = settings.EDO_TYPES
+    tax_list = settings.TAX_LIST
+    countries = settings.COUNTRIES_LIST
+    socks_content = settings.Socks.CLOTHES_CONTENT
+    socks_types_sizes_dict = settings.Socks.SIZE_ALL_DICT
+
+    category = settings.Socks.CATEGORY
+    category_process_name = settings.Socks.CATEGORY_PROCESS
+
+    types = settings.Socks.TYPES
+    colors = settings.Clothes.COLORS
+    genders = settings.Socks.GENDERS
+    return helper_category_common_index(**locals())
+
+
 def helper_linen_index(o_id: int, p_id: int = None, update_flag: int = None,
                          copied_order: db.Model = None, edit_order: str = None) -> Union[Response, str]:
     copy_order_edit_org = request.args.get('copy_order_edit_org')

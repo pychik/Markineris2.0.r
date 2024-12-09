@@ -1,0 +1,266 @@
+<div class="row setup-content faded" id="step-2" {% if not o_id or 'page' in request.url %}style="display:none"{% endif %}>
+    <div class="col-md-6">
+        <div class="return mb-2">
+            <div class="prevBtn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                    viewBox="0 0 24 24" fill="none">
+                    <path
+                        d="M10.7071 4.99998L4.20708 11.5H21.5V12.5H4.20708L10.7071 19L9.99995 19.7071L2.29285 12L2.99995 11.2929L10 4.29287L10.7071 4.99998Z"
+                        fill="#575757" />
+                </svg> Вернуться назад</div>
+        </div>
+    </div>
+    <div class="col-md-2"></div>
+    <div class="col-md-4">
+
+    </div>
+    <div class="row justify-content-end g-3">
+        <div class="col-xl-8">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="control-label">Товарный знак</label>
+                        <input type="text" name="trademark" id="trademark" class="form-control"
+                               onchange="check_valid(this);" minlength="1" maxlength="50" required
+                               title="Вводимое значение не должно превышать 50 знаков"
+                            {% if copied_order %}value="{{ copied_order.trademark }}"
+                            {% endif %}>
+                        <div class="row">
+                            <div class="col-6"></div>
+                            <div class="col-4 text-right">
+                                <div onclick="set_no_tm();"><span class="badge link-secondary font-8" style="font-size: 8px; font-weight:bold; cursor:pointer">БЕЗ ТОВАРНОГО ЗНАКА</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="control-label">Артикул</label>
+                        <input type="text" name="article" id="article" class="form-control"
+                               onchange="check_valid(this);" minlength="3"
+                               value="{% if copied_order %}{{ copied_order.article }}{% endif %}"
+                               required>
+                        <div class="row">
+                            <div class="col-7"></div>
+                            <div class="col-4 text-right">
+                                <div onclick="set_no_article();"><span class="badge link-secondary font-8" style="font-size: 8px; font-weight:bold; cursor:pointer">БЕЗ АРТИКУЛА</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="control-label">Вид изделий</label>
+                        <select class="form-control search-select" id="type" name="type"
+                            required>
+                            <option disabled selected value="">Выберите из списка..</option>
+                            {%for s in types%}
+                              <option value="{{s}}" {% if copied_order %}
+                                                        {% if copied_order.type == s %}
+                                                            selected
+                                                        {% endif %}
+                                                    {% endif %}>{{s}}</option>
+                            {%endfor%}
+
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="control-label">Цвет</label>
+                        <select class="form-control search-select is-invalid" id="color" name="color"
+                            required="">
+                            <option disabled selected value="">Выберите цвет..</option>
+                                {%for c in colors%}
+                                  <option value="{{c}}" {% if copied_order %}
+                                                            {% if copied_order.color == c %}
+                                                                selected
+                                                            {% endif %}
+                                                        {% endif %}>{{c}}
+                                  </option>
+                                {%endfor%}
+
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="control-label">Пол</label>
+                        <select class="form-control search-select" id="gender" name="gender"
+                            required>
+{#                            onchange="javascript:set_tnved();" required>#}
+                            <option disabled selected value="">Выберите пол...</option>
+                              {% for el in genders%}
+                                <option value="{{el}}" {% if copied_order %}
+                                                                {% if copied_order.gender == el %}
+                                                                    selected
+                                                                {% endif %}
+                                                            {% endif %}>{{el}}
+                                </option>
+                              {%endfor%}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    {% include 'helpers/countries_block_v2.html' %}
+                </div>
+            </div>
+            <div class="row g-4 mt-1">
+                <div class="col-md-8">
+                      <label class="control-label">Состав</label>
+                      <div class="row">
+                          <div class="col-md-8">
+                            <div class="form-group">
+                                <select class="form-control search-select mb-1" id="multi_content"
+                                    onchange="socks_content_add()">
+                                  <option disabled selected value="">Выберите состав</option>
+                                    {%for con in socks_content%}
+                                        <option value="{{con}}">{{con}}</option>
+                                    {%endfor%}
+                                </select>
+                            </div>
+                          </div>
+                          <div class="col-md-4 text-left form-check">
+
+                            <input type="checkbox" id="manual_content_checkbox" name="manual_content_checkbox"
+                                    title="Нажмите, для ручного ввода состава"  onchange="manual_content_edit()">
+                            <label class="font-12" for="manual_content_checkbox" style="color:red"
+                                     title="Нажмите, для ручного ввода состава">Ручной ввод
+
+
+                            </label>
+
+                          </div>
+                      </div>
+                      <textarea type="text" rows="3" title="Итоговый состав позиции"
+                                oninput="this.value = this.value.toUpperCase()" onchange="check_content()"
+                                name="content" id="content" class="form-control bg-light"
+                                style="margin-top: 10px;" readonly minlength="3" maxlength="100"
+                                required >{% if copied_order %}{{ copied_order.content }}{% endif %}</textarea>
+
+
+
+
+                      <small class="text-secondary font-10">Вводимое значение не должно превышать 100 знаков</small>
+
+                      <br><label class="font-12" for="nat_materials_check" style="color:red"
+                                 title="" disabled>Наличие кожи/замши</label>
+                      <input type="checkbox" id="nat_materials_check" name="nat_materials_check"
+                             title="Нажмите, если в составе есть кожа/замша/композиционная кожа" disabled>
+{#                             title="Нажмите, если в составе есть кожа/замша/композиционная кожа" disabled onchange="set_tnved()">#}
+                </div>
+                <div class="col-md-4">
+                    {% include 'helpers/socks/socks_sizes_quantity.html' %}
+                </div>
+                <div class="col-md-4" hidden>
+                    <div id="in_box_block">
+                        <input type="hidden" min="1" step="1" id="with_packages" name="with_packages" value={{ with_packages }}>
+                        {% if with_packages %}
+                            <div class="col-xs-12 text-center mt-3 ">
+                                <label><h4>В коробке</h4></label>
+                            </div>
+                            <div class="col-xs-12">
+                                <input type="number" id="socks_in_box" class="form-control ms-1" disabled>
+
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+
+
+                <div class="col-md-4">
+                    {% include 'helpers/socks/socks_tnved_code_block.html' %}
+                </div>
+                <div class="col-md-4">
+                    {% include 'helpers/article_price_rd_box_v2.html' %}
+                </div>
+
+
+
+            </div>
+
+
+        </div>
+        <div class=" col-md-6 col-xl-4">
+            <div class="important-card text-light">
+
+                <div class="important-card__item">
+                    <div class="important-card__prop">
+                        Количество строк в накладной (максимально 1600 строк)
+                    </div>
+                    <div class="important-card__val" value="300" id="orders_row_count">
+                        {%if pos_count %}{{pos_count}}{%else%}0{%endif%}
+                    </div>
+                </div>
+                <div class="important-card__item">
+                    <div class="important-card__prop">
+                        Общее количество по накладной
+                    </div>
+                    <div class="important-card__val" id="orders_pos_count">
+                        {%if orders_pos_count %}{{orders_pos_count}}{%else%}0{%endif%}
+                    </div>
+                </div>
+                <div class="important-card__item">
+                    <div class="important-card__prop">
+                        Сумма по накладной
+                    </div>
+                    <div class="important-card__val" id="orders_total_price">
+                        {%if total_price %}{{total_price}}{%else%}Не указано{%endif%}
+                    </div>
+                </div>
+                <div class="important-card__item">
+                    <div class="important-card__prop">
+                        В коробке
+                    </div>
+                    <div class="important-card__val" id="socks_in_box_info"></div>
+                </div>
+                <div class="important-card__item border-bottom-0">
+                    <div class="important-card__prop">
+                        Размеры
+                    </div>
+                </div>
+                <div id="sizes_quantity">
+                    {% if copied_order %}
+                        {% for sq in copied_order.sizes_quantities %}
+                            <div class="important-card__item important-card__size ms-2">
+                                <div class="d-flex align-items-center g-3">
+
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" onclick="$(this).closest('div').parent().remove();setClothes();"
+                                        viewBox="0 0 20 20" fill="none">
+                                        <path fill-rule="evenodd" clip-rule="evenodd"
+                                            d="M4.34074 0.312213C8.07158 -0.104071 11.9285 -0.104071 15.6593 0.312213C17.7413 0.544517 19.4209 2.18214 19.6655 4.26889C20.1115 8.07671 20.1115 11.9234 19.6655 15.7312C19.4209 17.8179 17.7413 19.4555 15.6593 19.6878C11.9285 20.1041 8.07158 20.1041 4.34074 19.6878C2.25873 19.4555 0.579043 17.8179 0.33457 15.7312C-0.111523 11.9234 -0.111523 8.07671 0.33457 4.26889C0.579043 2.18214 2.25873 0.544517 4.34074 0.312213ZM10 9.08981H10.9117H15.1575C15.661 9.08981 16.0692 9.49734 16.0692 10C16.0692 10.5027 15.661 10.9102 15.1575 10.9102H10.9117C10.9117 10.9102 10.2506 10.9102 10 10.9102C9.74947 10.9102 9.46208 10.9102 9.46208 10.9102H9.08832H4.84265C4.33912 10.9102 3.93094 10.5027 3.93094 10C3.93094 9.49734 4.33912 9.08981 4.84265 9.08981H9.08832H10Z"
+                                            fill="white" />
+                                    </svg>
+                                    <div class="ms-2">
+<!--                                        <span id="size_type_info">{{sq.size_type}}</span>&nbsp;размер-->
+                                        <span id="size_info">{{sq.size}}</span>
+                                        <span id="size_type_info" style="font-size: 8px">{% if sq.size_type %}{{sq.size_type}}{%endif%}</span>
+                                    </div>
+                                </div>
+                                <div class="important-card__val"><span id="quantity_info">{{sq.quantity}}</span> <span>шт.</span></div>
+                                <input type="hidden" id="size" name="size" value="{{sq.size}}"><input type="hidden" id="quantity" name="quantity" value="{{sq.quantity}}"><input type="hidden" id="size_type" name="size_type" value="{{sq.size_type}}">
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+
+                </div>
+
+                <div class="step-btns mt-4 d-flex flex-wrap justify-content-center">
+                    <button class="btn btn-sm btn-accent border-0 text-dark"
+                        onclick="socks_perform_pos_add({% if not o_id or edit_order == 'edit_order' %}0{%else%}1, '{{ url_for(category_process_name + '.preprocess_order', o_id=o_id)}}'{%endif%}); "
+                        type="button">{%if edit_order == 'edit_order'%}Изменить{%else%}Добавить этот{%endif%} товар</button>
+                </div>
+
+            </div>
+            <button class="btn btn-accent border-0 text-dark mt-1" style="width: 100%;"
+                        onclick="document.getElementById('btn-step-3').click();"
+                        type="button">Оформить заказ</button>
+
+        </div>
+    </div>
+</div>
+{% include 'helpers/socks/manual_tc_modal.html' %}
+
+<div id="sizesSocksDiv"></div>
