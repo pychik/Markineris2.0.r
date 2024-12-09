@@ -177,7 +177,6 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
 
         stmt_orders = text(f"""
                                       SELECT u.client_code as client_code,
-                                          u.client_code as client_code,
                                           CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end as agent_name ,
                                           u.login_name as login_name,
                                           u.phone as phone,
