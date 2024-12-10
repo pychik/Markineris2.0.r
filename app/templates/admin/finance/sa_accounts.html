@@ -111,6 +111,16 @@
 <!--                            {this.classList.remove('is-valid');this.classList.add('is-invalid');this.value=''}-->
 <!--                            else{this.classList.remove('is-invalid');this.classList.add('is-valid');}"/>-->
                     </div>
+                    <div class="form-group mb-3" id="outer_payment_block" style="display:none">
+                        <label>Реквизиты счета (от 10 знаков)</label>
+                        <input class="form-control" type="text" id="outer_payment_req" name="outer_payment_req"
+                               placeholder="Введите реквизиты счета"
+                               title="Введите реквизиты счета. Минимальное количество символов - 10"
+                               minlength="10" maxlength="150" required
+                               onchange="if(this.value.length < 10 || this.value.length >= 150)
+                               {this.classList.remove('is-valid');this.classList.add('is-invalid');this.value=''}
+                               else{this.classList.remove('is-invalid');this.classList.add('is-valid');}"/>
+                    </div>
 
 
                     <button type="button" class="btn btn-accent mt-md-1"
