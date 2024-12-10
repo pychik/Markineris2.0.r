@@ -4,6 +4,7 @@ from typing import IO
 from minio import Minio
 
 from src.core.config import settings
+from src.schemas.minio import DetailMinIOResponseDTO
 
 
 class S3Service:
@@ -33,6 +34,11 @@ class S3Service:
                 data=file_data,
                 length=file_size,
             )
+
+    def get_object(self, object_name: str, bucket_name: str) -> DetailMinIOResponseDTO:
+        with self.get_client() as client:
+            response = client.get_object(bucket_name=bucket_name, object_name=object_name)
+            return DetailMinIOResponseDTO(data=response.data, size=response.headers["Content-Length"])
 
 
 def get_s3_service() -> S3Service:

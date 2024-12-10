@@ -15,6 +15,7 @@ from logger import logger
 from models import Promo, Price, ServiceAccount, ServerParam, User, UserTransaction, Bonus
 from models import db
 from utilities.admin.excel_report import ExcelReportProcessor, ExcelReport, ExcelReportWithSheets
+from utilities.minio_service.services import get_s3_service
 from utilities.support import (helper_paginate_data, check_file_extension, get_file_extension,
                                helper_get_server_balance, helper_get_filters_transactions,
                                helper_update_pending_rf_transaction_status, helper_get_image_html,
@@ -428,7 +429,13 @@ def h_su_add_sa():
             sa_extension = get_file_extension(filename=sa_qr_file.filename)
             sa_qr_path = f'img_{sa_name}.{sa_extension}'
             # save file
-            sa_qr_file.save(f"{settings.DOWNLOAD_DIR_SA_QR}{sa_qr_path}")
+            try:
+                s3_service = get_s3_service()
+                s3_service.upload_file(object_name=f"qr_imgs/{sa_qr_path}", bucket_name="static", file_data=sa_qr_file.stream)
+            except Exception as e:
+                logger.exception("Ошибка сохранении qr кода в s3")
+                message = settings.Messages.SA_TYPE_FILE_ERROR
+                return jsonify(dict(status=status, message=message))
         else:
             # requisites service_account
             sa_reqs = request.form.get('sa_req', '').replace('--', '')
@@ -469,12 +476,21 @@ def h_su_delete_sa(sa_id: int) -> Response:
         message = settings.Messages.DELETE_NE_SA
         return jsonify(dict(status=status, message=message))
     try:
+        s3_service = get_s3_service()
+        try:
+            qr_codes = s3_service.list_objects(bucket_name="static")
+        except Exception:
+            logger.exception("Ошибка при получении qr кодов из s3")
+            qr_codes = []
+
         db.session.execute(db.delete(ServiceAccount).filter_by(id=sa_id))
 
-        if account.sa_type == settings.ServiceAccounts.TYPES_KEYS[0] and account.sa_qr_path in o_list_dir(settings.DOWNLOAD_DIR_SA_QR):
+        if account.sa_type == settings.ServiceAccounts.TYPES_KEYS[0] and account.sa_qr_path in qr_codes:
 
-            # sa is qr_type, removing image from service
-            o_remove(path=f"{settings.DOWNLOAD_DIR_SA_QR}{account.sa_qr_path}")
+            try:
+                s3_service.remove_object(object_name=f"qr_imgs/{account.sa_qr_path}", bucket_name="static")
+            except Exception as e:
+                logger.exception("Ошибка при удалении qr кода из s3 хранилища")
 
         db.session.commit()
         message = f"{settings.Messages.DELETE_SA} {account.sa_name}"
