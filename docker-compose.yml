@@ -6,7 +6,6 @@ services:
     container_name: nginx
     volumes:
       - ./maintenance/maintenance.html:/usr/share/nginx/html/maintenance.html
-      - ./app/static/response_pages/429.html:/usr/share/nginx/html/429.html
       - ./maintenance:/app/maintenance
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - /etc/ssl/certs/ssl_cert.crt:/etc/ssl/certs/bundle.crt
@@ -53,7 +52,6 @@ services:
       dockerfile: infra/Dockerfile
     volumes:
       - /var/log/bot-notifications/:/var/log/bot-notifications/
-      - ./app/static/qr_imgs/:/app/files/qr_imgs/
     command: python3 -m main
     env_file:
       - .env
