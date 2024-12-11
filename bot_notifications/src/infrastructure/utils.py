@@ -109,4 +109,11 @@ async def download_bill_img(message: Message, user_service, tg_user_schema) -> s
 
 
 def get_qr_code(filename: str):
-    return f"{settings.qr_image_dir_path}/{filename}"
+    key = f"qr_imgs/{filename}"
+    try:
+        s3_service = get_s3_service()
+        file_data = s3_service.get_object(bucket_name="static", object_name=key)
+    except Exception:
+        logger.exception(f"Ошибка при получении qr кода из хранилища. Файл - {key}")
+        return None
+    return file_data

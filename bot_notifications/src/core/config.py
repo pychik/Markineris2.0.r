@@ -58,20 +58,6 @@ class Setting(BaseSettings):
         )
 
     @property
-    def bill_image_dir_path(self) -> str:
-        download_dir = Path(f"{self.ROOT_DIR}/files/bill_imgs/")
-        download_dir.mkdir(parents=True, exist_ok=True)
-
-        return download_dir.as_posix()
-
-    @property
-    def qr_image_dir_path(self) -> str:
-        download_dir = Path(f"{self.ROOT_DIR}/files/qr_imgs/")
-        download_dir.mkdir(parents=True, exist_ok=True)
-
-        return download_dir.as_posix()
-
-    @property
     def log_path(self) -> str:
         log_path: Path = Path('/var/log/bot-notifications/')
 
