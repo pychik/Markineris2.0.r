@@ -1,3 +1,4 @@
+import json
 import urllib
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -431,7 +432,11 @@ def h_su_add_sa():
             # save file
             try:
                 s3_service = get_s3_service()
-                s3_service.upload_file(object_name=f"qr_imgs/{sa_qr_path}", bucket_name="static", file_data=sa_qr_file.stream)
+                s3_service.upload_file(
+                    object_name=f"{settings.DOWNLOAD_QA_BASIC}{sa_qr_path}",
+                    bucket_name="static",
+                    file_data=sa_qr_file.stream,
+                )
             except Exception as e:
                 logger.exception("Ошибка сохранении qr кода в s3")
                 message = settings.Messages.SA_TYPE_FILE_ERROR
@@ -478,18 +483,19 @@ def h_su_delete_sa(sa_id: int) -> Response:
     try:
         s3_service = get_s3_service()
         try:
-            qr_codes = s3_service.list_objects(bucket_name="static")
+            qr_codes = s3_service.list_objects(bucket_name="static", prefix=f"{settings.DOWNLOAD_QA_BASIC}")
         except Exception:
             logger.exception("Ошибка при получении qr кодов из s3")
             qr_codes = []
 
         db.session.execute(db.delete(ServiceAccount).filter_by(id=sa_id))
 
-        if account.sa_type == settings.ServiceAccounts.TYPES_KEYS[0] and account.sa_qr_path in qr_codes:
+        qr_code_key = f"{settings.DOWNLOAD_QA_BASIC}{account.sa_qr_path}"
+        if account.sa_type == settings.ServiceAccounts.TYPES_KEYS[0] and qr_code_key in qr_codes:
 
             try:
-                s3_service.remove_object(object_name=f"qr_imgs/{account.sa_qr_path}", bucket_name="static")
-            except Exception as e:
+                s3_service.remove_object(object_name=qr_code_key, bucket_name="static")
+            except Exception:
                 logger.exception("Ошибка при удалении qr кода из s3 хранилища")
 
         db.session.commit()
