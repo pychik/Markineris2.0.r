@@ -28,13 +28,13 @@ services:
     image: minio/mc
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc config host add --api s3v4 s3 ${MINIO_API_URL} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+      /usr/bin/mc config host add --api s3v4 s3 http://${MINIO_API_URL} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
       /usr/bin/mc mb s3/${MINIO_CRM_BUCKET_NAME}/;
       /usr/bin/mc mb s3/${MINIO_BILL_BUCKET_NAME}/;
       /usr/bin/mc mb s3/static/
       "
     networks:
-      - markineris_r_network
+      - minio_network
     depends_on:
       minio:
         condition: service_healthy
