@@ -401,8 +401,7 @@ def h_su_bck_sa():
 
 
 def h_su_add_sa():
-
-    status = 'danger'
+    status = settings.ERROR
 
     sa_quantity = ServiceAccount.query.count()
 
@@ -410,8 +409,10 @@ def h_su_add_sa():
     if sa_quantity >= settings.ServiceAccounts.QUANTITY_LIMIT:
         message = f'{settings.Messages.SA_LIMIT_ERROR} {sa_quantity}'
         return jsonify(dict(status=status, message=message))
+
     sa_name = request.form.get('sa_name', '').replace('--', '')
     sa_type = request.form.get('sa_type', '').replace('--', '')
+
     try:
         # check sa_type
         if sa_type not in settings.ServiceAccounts.TYPES_KEYS:
@@ -419,8 +420,10 @@ def h_su_add_sa():
 
         sa_qr_path = None
         sa_reqs = None
-        if sa_type == settings.ServiceAccounts.TYPES_KEYS[0]:
-            # qr service_account
+        outer_payment_reqs = None
+
+        if sa_type == settings.ServiceAccounts.TYPES_KEYS[0]:  # qr_code
+            # QR service_account
             sa_qr_file = request.files.get('sa_qr_file')
             # check file
             if sa_qr_file is None or sa_qr_file is False or check_file_extension(filename=sa_qr_file.filename,
@@ -441,20 +444,33 @@ def h_su_add_sa():
                 logger.exception("Ошибка сохранении qr кода в s3")
                 message = settings.Messages.SA_TYPE_FILE_ERROR
                 return jsonify(dict(status=status, message=message))
-        else:
-            # requisites service_account
+        elif sa_type == settings.ServiceAccounts.TYPES_KEYS[1]:  # requisites
+            # Requisites service_account
             sa_reqs = request.form.get('sa_req', '').replace('--', '')
+        elif sa_type == 'external_payment':  # external_payment
+            # External payment service_account
+            outer_payment_reqs = request.form.get('outer_payment_req', '').replace('--', '')
 
-        # another trick check
-        if not sa_reqs and not sa_qr_path:
+        # Validation for required fields based on type
+        if sa_type == 'qr_code' and not sa_qr_path:
+            raise ValueError
+        if sa_type == 'requisites' and not sa_reqs:
+            raise ValueError
+        if sa_type == 'external_payment' and not outer_payment_reqs:
             raise ValueError
 
-        sa_new = ServiceAccount(sa_name=sa_name, sa_type=sa_type, sa_qr_path=sa_qr_path, sa_reqs=sa_reqs)
+        # Create a new service account entry
+        sa_new = ServiceAccount(
+            sa_name=sa_name,
+            sa_type=sa_type,
+            sa_qr_path=sa_qr_path,
+            sa_reqs=sa_reqs or outer_payment_reqs
+        )
 
         db.session.add(sa_new)
         db.session.commit()
         message = f"{settings.Messages.SA_CREATE} {sa_name} {sa_type}"
-        status = 'success'
+        status = settings.SUCCESS
 
     except ValueError:
         db.session.rollback()
@@ -463,8 +479,8 @@ def h_su_add_sa():
 
     except IntegrityError as e:
         db.session.rollback()
-        message = f"{settings.Messages.SA_DUPLICATE_ERROR} {sa_name}" if "psycopg2.errors.UniqueViolation)" \
-            in str(e) else f"{settings.Messages.SA_ERROR}{str(e)}"
+        message = f"{settings.Messages.SA_DUPLICATE_ERROR} {sa_name}" if "psycopg2.errors.UniqueViolation)" in str(e) \
+            else f"{settings.Messages.SA_ERROR}{str(e)}"
         logger.error(message)
 
     return jsonify(dict(status=status, message=message))

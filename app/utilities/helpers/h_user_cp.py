@@ -330,11 +330,11 @@ def h_pa_refill(u_id: int, sa_id: int):
             )
 
             # send promo_info to google tables
-            if promo_code:
-                date_time = datetime.now().strftime("%d.%m.%Y %H:%M")
-                GoogleProcess.send_promo_data(data_packet=PromoRow(date_value=date_time, login_name=username,
-                                                                   service_account=cur_sa.sa_name, promo_code=promo_code,
-                                                                   promo_summ=amount_add))
+            # if promo_code:
+            #     date_time = datetime.now().strftime("%d.%m.%Y %H:%M")
+            #     GoogleProcess.send_promo_data(data_packet=PromoRow(date_value=date_time, login_name=username,
+            #                                                        service_account=cur_sa.sa_name, promo_code=promo_code,
+            #                                                        promo_summ=amount_add))
 
             message = f"{settings.Messages.USER_TRANSACTION_CREATE}" if not only_promo else settings.Messages.USER_TRANSACTION_PROMO_CREATE
             status = 'success'

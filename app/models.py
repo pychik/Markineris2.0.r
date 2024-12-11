@@ -183,7 +183,7 @@ class ServiceAccount(db.Model, UserMixin):
     sa_name = db.Column(db.String(50), unique=True)
     sa_type = db.Column(db.String(50))
     sa_qr_path = db.Column(db.String(100))
-    sa_reqs = db.Column(db.String(150))
+    sa_reqs = db.Column(db.String(350))
     summ_transfer = db.Column(db.Integer, default=0)
     current_use = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
