@@ -2534,10 +2534,7 @@ def helper_perform_ut_wo(user_ids: list[tuple[int]]) -> tuple[int, int]:
 
 def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str]:
     total_amount = 0
-    transaction_google_packets = []
 
-    # hardcode for agent ruznak
-    transaction_rz_packets = []
     try:
         for u_raw in user_ids:
             u_id = u_raw[0]
@@ -2648,26 +2645,13 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
                 total_amount += total_order_price
 
                 db.session.commit()
-                # logger.warning(f"total_amount for user {u_id}: {total_amount}")
-                # collecting info for google statistiks with hardcode checkin for ruznak
-                transaction_google_packets.append(TransactionRow(u_id=u_id,
-                                                                 tr_id=tr_id,
-                                                                 is_at2=is_at2,
-                                                                 transaction_price=transaction_price)) if not admin_id == 2 \
-                    else transaction_rz_packets.append(TransactionRow(u_id=u_id,
-                                                                      tr_id=tr_id,
-                                                                      is_at2=is_at2,
-                                                                      transaction_price=transaction_price))
 
-        if transaction_google_packets or transaction_rz_packets:
+        if total_amount:
             update_server_balance_stmt = f"""UPDATE public.server_params set balance=balance-{total_amount} RETURNING balance;"""
             server_balance = db.session.execute(text(update_server_balance_stmt)).fetchone().balance
 
             db.session.commit()
 
-            # sending data to google
-            helper_google_collect_and_send_stat(transaction_google_packets=transaction_google_packets,
-                                                transaction_rz_packets=transaction_rz_packets)
             # logger.warning(f"total_amount for session: {total_amount}")
             return 1, server_balance
         else:
