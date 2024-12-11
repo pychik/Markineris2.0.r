@@ -31,6 +31,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/log/flask-app/:/var/log/flask-app/
+      - ./app/migrations:/app/migrations/
     expose:
       - "5005"
     entrypoint: ./entrypoint.sh
