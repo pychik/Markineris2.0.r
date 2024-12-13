@@ -732,19 +732,24 @@ function sa_form_update_type() {
 
 
 function get_sa_history(url) {
+    let show_archived = document.getElementById('show_archived_service_accounts').checked
+
     $.ajax({
         url: url,
         method: "GET",
+        data: {
+            'show_archived': show_archived
+        },
 
         success: function (data) {
 
             $('#sa_table').html(data);
             $("#sa_table").append(data.htmlresponse);
-            // update_category(category);
+            toggleArchivedColumn(show_archived, 'sa_table', 'show_archived_service_accounts');
         }
     });
-
 }
+
 
 async function bck_delete_sa(url, csrf, update_url) {
 
