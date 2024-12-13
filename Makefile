@@ -127,3 +127,6 @@ minio-logs:						## Логи сервиса Minio(minio, create_buckets)
 
 help:       					## Показать все команды.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m (default: help)\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+
+run-python-script:
+	python3 app/data_migrations/static_synchronize_script.py
