@@ -1,0 +1,258 @@
+.no-link{
+    color: white;
+    text-decoration:none;
+}
+.nav-link:hover {
+  color: #ffffff;
+  border-bottom: 1px solid #ffd600;
+}
+
+
+.grow { transition: all .2s ease-in-out; }
+.grow:hover { transform: scale(1.3); }
+
+.tooltip.show {
+  opacity: 1;
+}
+
+.tooltip-inner {
+  background-color: #ffdd00;
+  color: #484747;
+  font-size: 15px;
+  opacity: 1 !important;
+}
+
+.tooltip.bs-tooltip-right .arrow:before {
+  border-right-color: #ffdd00 !important;
+}
+
+.tooltip.bs-tooltip-left .arrow:before {
+ border-left-color: #ffdd00 !important;
+}
+
+.tooltip.bs-tooltip-bottom .arrow:before {
+ border-bottom-color: #ffdd00 !important;
+}
+
+.tooltip.bs-tooltip-top .arrow:before {
+ border-top-color: #ffdd00 !important;
+}
+.overlay {
+  position: fixed; /* Sit on top of the page content */
+  display: none; /* Hidden by default */
+  width: 100%; /* Full width (cover the whole page) */
+  height: 100%; /* Full height (cover the whole page) */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5); /* Black background with opacity */
+  z-index: 10; /* Specify a stack order in case you're using a different order for other elements */
+  cursor: pointer; /* Add a pointer on hover */
+}
+.over_text {
+  position: absolute;
+  top: 36%;
+  left: 36%;
+}
+.arrows {
+  position: relative;
+  cursor: pointer;
+}
+.sortOrder {
+  display: none;
+}
+.sortOrder + .arrows:after {
+  content: ' ';
+  position: absolute;
+  left: 1px;
+  bottom: -22px;
+  border: 8px solid transparent;
+  border-top: 8px solid #fccd57;
+  border-width: 9px 5px;
+}
+.sortOrder:checked + .arrows:after {
+  content: ' ';
+  position: absolute;
+  left: 1px;
+  bottom: -22px;
+  border: 8px solid transparent;
+  border-top: 8px solid gray;
+  border-width: 9px 5px;
+}
+.sortOrder + .arrows:before {
+  content: ' ';
+  position: absolute;
+  left: 1px;
+  bottom: -2px;
+  border: 8px solid transparent;
+  border-bottom: 8px solid gray;
+  border-width: 9px 5px;
+}
+.sortOrder:checked + .arrows:before {
+  content: ' ';
+  position: absolute;
+  left: 1px;
+  bottom: -2px;
+  border: 8px solid transparent;
+  border-bottom: 8px solid #68dc68;
+  border-width: 9px 5px;
+}
+
+.custom-file-button input[type=file] {
+  margin-left: -2px !important;
+}
+
+.custom-file-button input[type=file]::-webkit-file-upload-button {
+  display: none;
+}
+
+.custom-file-button input[type=file]::file-selector-button {
+  display: none;
+}
+
+.custom-file-button:hover label {
+  background-color: #dde0e3;
+  cursor: pointer;
+}
+
+.font-24{
+ font-size: 24px;
+}
+
+.font-18{
+ font-size: 18px;
+}
+
+.font-12{
+ font-size: 12px;
+}
+
+.faded {
+    animation: fadeInAnimation ease 1.4s;
+    animation-iteration-count: 1;
+    animation-fill-mode: forwards;
+}
+@keyframes fadeInAnimation {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.img-zoom {
+  transition: transform .2s; /* Animation */
+  width: 100px;
+  height: 100px;
+  margin: 0 auto;
+}
+
+.img-zoom:hover {
+  transform: scale(3)
+}
+
+.img-zoom-orig {
+  transition: transform .2s; /* Animation */
+  width: 100%;
+  height: 100%;
+  margin: 0 auto;
+}
+
+.img-zoom-orig-clicked {
+  transform: scale(2)
+}
+
+@keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    .blink-badge {
+        animation: blink 2.3s infinite;
+    }
+
+@keyframes y_border_blink {
+        0% { border-color: yellow; }
+        50% { border-color: transparent; }
+        100% { border-color: yellow; }
+    }
+
+.y_border_blinking {
+        animation: y_border_blink 3s infinite;
+    }
+@keyframes fadeInLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes blink-yb {
+      0% {
+        border-color: #ffc107;
+      }
+      50% {
+        border-color: transparent;
+      }
+      100% {
+        border-color: #ffc107;
+      }
+    }
+
+.blink-y-border {
+  border: 2px solid #ffc107; /* Bootstrap warning color */
+  animation: blink-yb 3s infinite;
+}
+
+.blink-y-border-rounded {
+      border: 2px solid #ffc107; /* Bootstrap warning color */
+      border-radius: 50%; /* Makes the border rounded for a circle effect */
+      animation: blink-yb 3s infinite;
+      transition: transform 0.3s ease; /* Smooth transition for the hover effect */
+      display: inline-block; /* Ensures the element respects its original size */
+      overflow: hidden; /* Prevents overflow issues during animation */
+    }
+
+.blink-y-border-rounded:hover {
+  transform: scale(1.4); /* Enlarge by 30% on hover */
+}
+
+
+.fadeInLeft {
+  animation: fadeInLeft 0.5s ease-in-out;
+}
+@keyframes fadeInRight {
+      0% {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+      100% {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+.fadeInRight {
+  animation: fadeInRight 0.5s ease-in-out;
+}
+
+.input-light-grey {
+    background-color: #f0f0f0; /* light grey */
+}
+
+.input-white {
+    background-color: #ffffff; /* white */
+}
+
+.no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
