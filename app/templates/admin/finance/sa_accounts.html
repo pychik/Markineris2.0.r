@@ -132,10 +132,15 @@
             </form>
         </div>
     </div>
+    <div class="form-check form-switch my-2">
+            <label>Показать/скрыть архивные счета</label>
+            <input class="form-check-input border border-warning" type="checkbox" role="switch" id="show_archived_service_accounts"
+                   name="show_archived_service_accounts"
+                onclick="get_sa_history('{{url_for('admin_control.su_bck_sa')}}')"
+            >
+    </div>
     <div id="sa_table" class="mb-3">
         {% include 'admin/finance/sa_table.html' %}
     </div>
-
-
 
 </div>
