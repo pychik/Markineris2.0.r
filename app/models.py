@@ -187,6 +187,8 @@ class ServiceAccount(db.Model, UserMixin):
     summ_transfer = db.Column(db.Integer, default=0)
     current_use = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=False)
+    is_archived = db.Column(db.Boolean, default=False)
+    archived_at = db.Column(db.DateTime(), default=None, nullable=True)
     created_at = db.Column(db.DateTime(), default=datetime.now)
     transactions = db.relationship('UserTransaction', back_populates='service_accounts', lazy='dynamic')
 

@@ -1,13 +1,10 @@
-import json
 import urllib
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal, InvalidOperation
-from os import listdir as o_list_dir
-from os import remove as o_remove
 from flask import flash, redirect, render_template, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
-from sqlalchemy import desc, text, create_engine, null, select, or_, not_
+from sqlalchemy import desc, text, create_engine, null, select, or_, not_, exists
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -75,7 +72,8 @@ def h_su_control_finance():
 
     account_type_db = ServerParam.query.with_entities(ServerParam.account_type).first()
     account_type = settings.ServiceAccounts.DEFAULT_QR_ACCOUNT_TYPE if not account_type_db else account_type_db.account_type
-    service_accounts = ServiceAccount.query.order_by(desc(ServiceAccount.created_at)).all()
+    service_accounts = ServiceAccount.query.filter(
+        not_(ServiceAccount.is_archived.is_(True))).order_by(desc(ServiceAccount.created_at)).all()
 
     # rf- refill , wo write off
     balance, pending_balance_rf, summ_at1, summ_at2, summ_client = helper_get_server_balance()
@@ -96,6 +94,11 @@ def h_su_control_finance():
     page, per_page, \
         offset, pagination, \
         bonuses_list = helper_paginate_data(data=bonuses, href=link_bonuses, per_page=settings.PAGINATION_PER_PROMOS)
+
+    link_sa = 'javascript:get_sa_history(\'' + url_for('admin_control.su_bck_sa') + '?page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        sa_list = helper_paginate_data(data=service_accounts, href=link_sa, per_page=settings.PAGINATION_PER_PROMOS)
 
     return render_template('admin/finance/su_finance_control.html', **locals())
 
@@ -393,10 +396,24 @@ def h_su_edit_price(p_id: int) -> Response:
     return jsonify(dict(status=status, message=message))
 
 
-def h_su_bck_sa():
+def h_su_bck_sa(show_archived: bool = False):
+    show_archived = request.args.get('show_archived', default=False, type=lambda v: v.lower() == 'true')
+
+    if show_archived:
+        filter_by = ServiceAccount.is_archived.is_(True)
+    else:
+        filter_by = not_(ServiceAccount.is_archived.is_(True))
+
+    service_accounts = ServiceAccount.query.filter(filter_by).order_by(desc(ServiceAccount.created_at)).all()
+
+    link_sa = 'javascript:get_sa_history(\'' + url_for('admin_control.su_bck_sa') + '?page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        sa_list = helper_paginate_data(data=service_accounts, href=link_sa, per_page=settings.PAGINATION_PER_PROMOS)
+
     base_path = settings.DOWNLOAD_QA_BASIC
     sa_types = settings.ServiceAccounts.TYPES_DICT
-    service_accounts = ServiceAccount.query.order_by(desc(ServiceAccount.created_at)).all()
+
     return jsonify({'htmlresponse': render_template(f'admin/finance/sa_table.html', **locals())})
 
 
@@ -487,9 +504,9 @@ def h_su_add_sa():
 
 
 def h_su_delete_sa(sa_id: int) -> Response:
-    account = ServiceAccount.query.with_entities(
-        ServiceAccount.id, ServiceAccount.sa_name, ServiceAccount.sa_type,
-        ServiceAccount.sa_qr_path).filter(ServiceAccount.id == sa_id).first()
+    account = ServiceAccount.query.filter(
+        ServiceAccount.id == sa_id
+    ).first()
     status = 'danger'
 
     # check for trickers
@@ -497,22 +514,28 @@ def h_su_delete_sa(sa_id: int) -> Response:
         message = settings.Messages.DELETE_NE_SA
         return jsonify(dict(status=status, message=message))
     try:
-        s3_service = get_s3_service()
-        try:
-            qr_codes = s3_service.list_objects(bucket_name="static", prefix=f"{settings.DOWNLOAD_QA_BASIC}")
-        except Exception:
-            logger.exception("Ошибка при получении qr кодов из s3")
-            qr_codes = []
-
-        db.session.execute(db.delete(ServiceAccount).filter_by(id=sa_id))
-
-        qr_code_key = f"{settings.DOWNLOAD_QA_BASIC}{account.sa_qr_path}"
-        if account.sa_type == settings.ServiceAccounts.TYPES_KEYS[0] and qr_code_key in qr_codes:
-
+        transactions = db.session.query(exists().where(UserTransaction.sa_id == account.id)).scalar()
+        if transactions:
+            account.is_archived = True
+            account.is_active = False
+            account.archived_at = datetime.now()
+        else:
+            s3_service = get_s3_service()
             try:
-                s3_service.remove_object(object_name=qr_code_key, bucket_name="static")
+                qr_codes = s3_service.list_objects(bucket_name="static", prefix=f"{settings.DOWNLOAD_QA_BASIC}")
             except Exception:
-                logger.exception("Ошибка при удалении qr кода из s3 хранилища")
+                logger.exception("Ошибка при получении qr кодов из s3")
+                qr_codes = []
+
+            db.session.execute(db.delete(ServiceAccount).filter_by(id=sa_id))
+
+            qr_code_key = f"{settings.DOWNLOAD_QA_BASIC}{account.sa_qr_path}"
+            if account.sa_type == settings.ServiceAccounts.TYPES_KEYS[0] and qr_code_key in qr_codes:
+
+                try:
+                    s3_service.remove_object(object_name=qr_code_key, bucket_name="static")
+                except Exception:
+                    logger.exception("Ошибка при удалении qr кода из s3 хранилища")
 
         db.session.commit()
         message = f"{settings.Messages.DELETE_SA} {account.sa_name}"

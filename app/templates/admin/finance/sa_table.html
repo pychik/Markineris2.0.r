@@ -1,95 +1,120 @@
 <div class="col-xs-12 faded">
-      <table class="table mt-5 table-result" >
-          <thead class="text-dark">
-              <tr>
-                  <th scope="col">#</th>
-                  <th scope="col">
-                      <span class="font-12">Наименование счета</span>
-                  </th>
-                  <th scope="col">
-                      <span class="font-12">Тип счета</span>
-                  </th>
-                  <th scope="col">
-                      <span class="font-12">Qr/реквизиты</span>
-                  </th>
-                  <th scope="col">
-                      <span class="font-12">Дата создания</span>
-                  </th>
-                  <th scope="col">
-                      <span class="font-12">Активация счета</span>
-                  </th>
-                  <th scope="col">
-                      <span class="font-12">Удалить счет при отсутствии транзакций</span>
-                  </th>
-              </tr>
-          </thead>
+    <table class="table mt-5 table-result">
+        <thead class="text-dark">
+        <tr>
+            <th scope="col">#</th>
+            <th scope="col">
+                <span class="font-12">Наименование счета</span>
+            </th>
+            <th scope="col">
+                <span class="font-12">Тип счета</span>
+            </th>
+            <th scope="col">
+                <span class="font-12">Qr/реквизиты</span>
+            </th>
+            <th scope="col">
+                <span class="font-12">Дата создания</span>
+            </th>
+            <th scope="col" class="archived-column" style="display: none;">
+                <font size="2">Дата архивации</font>
+            </th>
+            <th scope="col">
+                <span class="font-12">Активация счета</span>
+            </th>
+            <th scope="col">
+                <span class="font-12">Удалить/Архивировать счет</span>
+            </th>
+        </tr>
+        </thead>
 
-          <tbody>
+        <tbody>
 
-          {% for t in service_accounts %}
-              <tr>
-                  <td>{{ loop.index }}</td>
-                  <td>
-                      {{t.sa_name}}
-                  </td>
-                  <td>
-                      {{sa_types[t.sa_type]}}
-                  </td>
-                  {% if t.sa_type == 'qr_code' %}
-                      <td>
-                          <img class="rounded img-zoom" style="width:100px; height:100px" src="{{url_for('static', filename=base_path + t.sa_qr_path)}}"/>
-                      </td>
-                  {% else %}
-                      <td>
+        {% for t in sa_list %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>
+                    {{ t.sa_name }}
+                </td>
+                <td>
+                    {{ sa_types[t.sa_type] }}
+                </td>
+                {% if t.sa_type == 'qr_code' %}
+                    <td>
+                        <img class="rounded img-zoom" style="width:100px; height:100px"
+                             src="{{ url_for('static', filename=base_path + t.sa_qr_path) }}"/>
+                    </td>
+                {% else %}
+                    <td>
                         {{ t.sa_reqs | safe }}
-                      </td>
-                  {% endif %}
+                    </td>
+                {% endif %}
 
-                  <td>
-                     {{t.created_at.strftime("%d.%m.%Y %H:%M:%S")}}
+                <td>
+                    {{ t.created_at.strftime("%d.%m.%Y %H:%M:%S") }}
 
-                  </td>
-                  <td>
-                        <div class="form-check form-switch">
+                </td>
+                <td class="archived-column" style="display: none;">
+                    {% if t.is_archived %}
+                        {{ t.archived_at.strftime("%d.%m.%Y %H:%M:%S") }}
+                    {% else %}
+                        {{ '' }}
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="form-check form-switch">
 
-                            <input {% if t.is_active %}
-                                       class="form-check-input bg-warning border border-warning"  checked
-                                   {% else %}
-                                        class="form-check-input border border-warning"
-                                   {%endif%}
-                                   type="checkbox" role="switch" name="account_type_switch" id="sa_activity_{{t.id}}" onclick="bck_change_sa_activity(`{{url_for('admin_control.su_change_activity', sa_id=t.id)}}`, `{{csrf_token()}}`, `{{url_for('admin_control.su_bck_sa')}}`, `sa_activity_{{t.id}}`);">
-                        </div>
+                        <input {% if t.is_active %}
+                            class="form-check-input bg-warning border border-warning"  checked
+                        {% else %}
+                            class="form-check-input border border-warning"
+                        {% endif %}
+                            type="checkbox" role="switch" name="account_type_switch" id="sa_activity_{{ t.id }}"
+                            onclick="bck_change_sa_activity(`{{ url_for('admin_control.su_change_activity', sa_id=t.id) }}`, `{{ csrf_token() }}`, `{{ url_for('admin_control.su_bck_sa') }}`, `sa_activity_{{ t.id }}`);">
+                    </div>
 
-                  </td>
-                  <td>
-                     <label class="btn-table me-2">
-                        <input style="display: none;" type="button" onclick="bck_delete_sa('{{url_for('admin_control.su_delete_sa', sa_id=t.id)}}',
-                                    '{{ csrf_token() }}', '{{url_for('admin_control.su_bck_sa')}}')" />
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                              style="cursor:pointer" viewBox="0 0 24 24" fill="none">
-                            <path
-                                d="M10.1001 2.25C9.68589 2.25 9.3501 2.58579 9.3501 3V3.75H5.1001C4.68589 3.75 4.3501 4.08579 4.3501 4.5C4.3501 4.91421 4.68589 5.25 5.1001 5.25H19.1001C19.5143 5.25 19.8501 4.91421 19.8501 4.5C19.8501 4.08579 19.5143 3.75 19.1001 3.75H14.8501V3C14.8501 2.58579 14.5143 2.25 14.1001 2.25H10.1001Z"
-                                fill="#7C7C7C" />
-                            <path
-                                d="M10.1001 10.65C10.5143 10.65 10.8501 10.9858 10.8501 11.4V18.4C10.8501 18.8142 10.5143 19.15 10.1001 19.15C9.68589 19.15 9.3501 18.8142 9.3501 18.4V11.4C9.3501 10.9858 9.68589 10.65 10.1001 10.65Z"
-                                fill="#7C7C7C" />
-                            <path
-                                d="M14.8501 11.4C14.8501 10.9858 14.5143 10.65 14.1001 10.65C13.6859 10.65 13.3501 10.9858 13.3501 11.4V18.4C13.3501 18.8142 13.6859 19.15 14.1001 19.15C14.5143 19.15 14.8501 18.8142 14.8501 18.4V11.4Z"
-                                fill="#7C7C7C" />
-                            <path fill-rule="evenodd" clip-rule="evenodd"
-                                d="M6.0914 7.91718C6.13361 7.53735 6.45466 7.25 6.83682 7.25H17.3632C17.7453 7.25 18.0664 7.53735 18.1086 7.91718L18.3087 9.71852C18.6715 12.9838 18.6715 16.2793 18.3087 19.5446L18.289 19.722C18.145 21.0181 17.1404 22.0517 15.8489 22.2325C13.3618 22.5807 10.8382 22.5807 8.35106 22.2325C7.05952 22.0517 6.05498 21.0181 5.91096 19.722L5.89126 19.5446C5.52844 16.2793 5.52844 12.9838 5.89126 9.71852L6.0914 7.91718ZM7.5081 8.75L7.38208 9.88417C7.0315 13.0394 7.0315 16.2238 7.38208 19.379L7.40178 19.5563C7.47009 20.171 7.9465 20.6612 8.55903 20.747C10.9082 21.0758 13.2918 21.0758 15.6409 20.747C16.2535 20.6612 16.7299 20.171 16.7982 19.5563L16.8179 19.379C17.1685 16.2238 17.1685 13.0394 16.8179 9.88417L16.6919 8.75H7.5081Z"
-                                fill="#7C7C7C" />
-                        </svg>
-                     </label>
+                </td>
+                <td>
+                    {% if not t.is_archived %}
+                        <label class="btn-table me-2">
+                            <input style="display: none;" type="button"
+                                   onclick="bck_delete_sa('{{ url_for('admin_control.su_delete_sa', sa_id=t.id) }}',
+                                           '{{ csrf_token() }}', '{{ url_for('admin_control.su_bck_sa') }}')"/>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                 style="cursor:pointer" viewBox="0 0 24 24" fill="none">
+                                <path
+                                        d="M10.1001 2.25C9.68589 2.25 9.3501 2.58579 9.3501 3V3.75H5.1001C4.68589 3.75 4.3501 4.08579 4.3501 4.5C4.3501 4.91421 4.68589 5.25 5.1001 5.25H19.1001C19.5143 5.25 19.8501 4.91421 19.8501 4.5C19.8501 4.08579 19.5143 3.75 19.1001 3.75H14.8501V3C14.8501 2.58579 14.5143 2.25 14.1001 2.25H10.1001Z"
+                                        fill="#7C7C7C"/>
+                                <path
+                                        d="M10.1001 10.65C10.5143 10.65 10.8501 10.9858 10.8501 11.4V18.4C10.8501 18.8142 10.5143 19.15 10.1001 19.15C9.68589 19.15 9.3501 18.8142 9.3501 18.4V11.4C9.3501 10.9858 9.68589 10.65 10.1001 10.65Z"
+                                        fill="#7C7C7C"/>
+                                <path
+                                        d="M14.8501 11.4C14.8501 10.9858 14.5143 10.65 14.1001 10.65C13.6859 10.65 13.3501 10.9858 13.3501 11.4V18.4C13.3501 18.8142 13.6859 19.15 14.1001 19.15C14.5143 19.15 14.8501 18.8142 14.8501 18.4V11.4Z"
+                                        fill="#7C7C7C"/>
+                                <path fill-rule="evenodd" clip-rule="evenodd"
+                                      d="M6.0914 7.91718C6.13361 7.53735 6.45466 7.25 6.83682 7.25H17.3632C17.7453 7.25 18.0664 7.53735 18.1086 7.91718L18.3087 9.71852C18.6715 12.9838 18.6715 16.2793 18.3087 19.5446L18.289 19.722C18.145 21.0181 17.1404 22.0517 15.8489 22.2325C13.3618 22.5807 10.8382 22.5807 8.35106 22.2325C7.05952 22.0517 6.05498 21.0181 5.91096 19.722L5.89126 19.5446C5.52844 16.2793 5.52844 12.9838 5.89126 9.71852L6.0914 7.91718ZM7.5081 8.75L7.38208 9.88417C7.0315 13.0394 7.0315 16.2238 7.38208 19.379L7.40178 19.5563C7.47009 20.171 7.9465 20.6612 8.55903 20.747C10.9082 21.0758 13.2918 21.0758 15.6409 20.747C16.2535 20.6612 16.7299 20.171 16.7982 19.5563L16.8179 19.379C17.1685 16.2238 17.1685 13.0394 16.8179 9.88417L16.6919 8.75H7.5081Z"
+                                      fill="#7C7C7C"/>
+                            </svg>
+                        </label>
+                    {% else %}
+                        <b>В архиве</b>
+                    {% endif %}
+                </td>
 
-                  </td>
+            </tr>
 
-              </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <div class="pagination-page-info text-center">
+        На этой странице <b>{{ offset + 1 }} - {{ offset + sa_list | length }}</b>
+        Всего: <b>{% if pagination.total %}{{ pagination.total }}{% else %}{{ sa_list | length }}{% endif %}</b>
+    </div>
 
-              {% endfor %}
-          </tbody>
-      </table>
-      <div class="pagination-page-info text-center">Всего: <b>{{ service_accounts|length }}</b></div>
-
-
+    <div class="pagination_section my-1">
+        <div class="d-flex">
+            <div class="col-3"></div>
+            <div class="col-md-2"></div>
+            <div class="col-5" style="margin-left: 3%;">{{ pagination.links }}</div>
+        </div>
+    </div>
 </div>
