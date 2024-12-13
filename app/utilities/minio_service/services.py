@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from typing import IO, Optional
 
 from flask import Response
-from minio import Minio
+from minio import Minio, S3Error
 
 from config import settings
 from logger import logger
@@ -25,10 +25,13 @@ class S3Service:
         )
         yield client
 
-    def get_object(self, object_name: str, bucket_name: str) -> DetailMinIOResponseDTO:
+    def get_object(self, object_name: str, bucket_name: str) -> Optional[DetailMinIOResponseDTO]:
         with self.get_client() as client:
-            response = client.get_object(bucket_name=bucket_name, object_name=object_name)
-            return DetailMinIOResponseDTO(data=response.data, size=response.headers["Content-Length"])
+            try:
+                response = client.get_object(bucket_name=bucket_name, object_name=object_name)
+                return DetailMinIOResponseDTO(data=response.data, size=response.headers["Content-Length"])
+            except S3Error:
+                return None
 
     def list_objects(self, bucket_name: str, **kwargs) -> list[Optional[str]]:
         with self.get_client() as client:
