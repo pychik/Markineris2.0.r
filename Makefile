@@ -18,7 +18,7 @@ else
 endif
 
 # --------------------------
-.PHONY: flask-local-run maintenance-on maintenance-off service-logs service-start service-stop flask-up flask-down set-vm elk-setup elk-up collect-logs elk-down elk-stop elk-restart elk-rm elk-logs elk-images elk-prune ps minio-up minio-down help
+.PHONY: flask-local-run maintenance-on maintenance-off service-logs service-start service-stop flask-up flask-down set-vm elk-setup elk-up collect-logs elk-down elk-stop elk-restart elk-rm elk-logs elk-images elk-prune ps minio-up minio-down run-static-synchronize help
 
 
 up-all:				## Запуск всего сервиса и elk-stack.
@@ -128,5 +128,5 @@ minio-logs:						## Логи сервиса Minio(minio, create_buckets)
 help:       					## Показать все команды.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m (default: help)\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
-run-static-synchronize:
+run-static-synchronize:         ## Синхронизация статики s3 хранилища со статикой репы
 	python3 app/data_migrations/static_synchronize_script.py
