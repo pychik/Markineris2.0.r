@@ -1,0 +1,86 @@
+  <div class="faded mt-3">
+    <script>
+        $(function () {
+            $.datepicker.setDefaults($.datepicker.regional["ru"]);
+
+            let max_date = new Date();
+            max_date.setDate(max_date.getDate() - 1);
+            var dateFormat = "dd.mm.yy",
+                from = $("#date_from").datepicker({
+                    defaultDate: "-1w",
+                    changeMonth: true,
+                    changeYear: true,
+                    maxDate: max_date,
+                    numberOfMonths: 3
+                }).on("change", function () {
+                    to.datepicker("option", "minDate", getDate(this));
+                }),
+                to = $("#date_to").datepicker({
+                    defaultDate: new Date(),
+                    changeMonth: true,
+                    changeYear: true,
+                    maxDate: new Date(),
+                    numberOfMonths: 3
+                }).on("change", function () {
+                    from.datepicker("option", "maxDate", getDate(this));
+                });
+
+            function getDate(element) {
+                var date;
+                try {
+                    date = $.datepicker.parseDate(dateFormat, element.value);
+                } catch (error) {
+                    date = null;
+                }
+                return date;
+            }
+        });
+    </script>
+    <div class="row">
+      <div class="col-md-6">
+        <label for="date_from" class="col-form-label text-right">Дата "C"</label>
+        <input type="text" placeholder="Выберите дату" class="form-control" id="date_from" onpaste="return false;"
+               oncopy="return false" oncut="return false" ondrag="return false" ondrop="return false" autocomplete="off"
+               name="rd_date" aria-describedby="date_from_input_btn" readonly value="{{ date_from }}">
+      </div>
+      <div class="col-md-6">
+        <label for="date_to" class="col-form-label text-right">Дата "По"</label>
+        <input type="text" placeholder="Выберите дату" class="form-control" id="date_to" onpaste="return false;"
+               oncopy="return false" oncut="return false" ondrag="return false" ondrop="return false" autocomplete="off"
+               name="rd_date" aria-describedby="date_from_input_btn" readonly value="{{ date_to }}">
+      </div>
+    </div>
+    {% if admin_id %}
+      <div class="col-4">
+        <div class="form-check">
+          <input class="form-check-input  border-warning" type="radio"
+                 name="agent_orders" id="agent_orders" {% if extend_agent %}checked{% endif %}
+          >
+          <label class="form-check-label" for="agent_orders">
+            С заказами агента
+          </label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input  border-warning" type="radio"
+                 name="agent_orders" id="no_agent_orders" {% if not extend_agent %}checked{% endif %}
+          >
+          <label class="form-check-label" for="no_agent_orders">
+            Без заказов агента
+          </label>
+        </div>
+      </div>
+    {% endif %}
+    <div class="d-flex gap-2">
+    <div title="Скачать отчет excel">
+      <a
+        href="javascript:get_order_stats_rpt(`{{ url_for('admin_control.users_orders_stats_rpt') }}`, '{{ admin_id }}', '{{ csrf_token() }}')"
+        class="btn btn-secondary">Скачать отчет</a>
+    </div>
+    <div title="Обновить">
+      <a
+        onclick="javascript:bck_get_orders_stats(`{{ url_for('admin_control.users_orders_stats', admin_id=admin_id) }}`)"
+        class="btn btn-secondary">Обновить</a>
+    </div>
+</div>
+
+  </div>

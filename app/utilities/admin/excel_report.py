@@ -183,7 +183,7 @@ class ExcelReport(BaseExcelReport):
     def __init__(
             self,
             data: List,
-            condition_format: Optional[dict[int, dict]] = None,
+            condition_format: Optional[dict[int, list]] = None,
             filters: Optional[Dict[str, Any]] = None,
             columns_name: Optional[List[str]] = None,
             sheet_name: Optional[str] = 'sheet 1',
@@ -258,12 +258,13 @@ class ExcelReport(BaseExcelReport):
 
     def apply_condition_formatting(self, col: int, row: int, sheet: Worksheet, ):
         if col in self.condition_format.keys():
-            sheet.conditional_format(row, col, row, col, {
-                'type': self.condition_format[col].get('type'),
-                'criteria': self.condition_format[col].get('criteria'),
-                'value': self.condition_format[col].get('value'),
-                'format': self.workbook.add_format(self.condition_format[col].get('format')),
-            })
+            for condition in self.condition_format[col]:
+                sheet.conditional_format(row, col, row, col, {
+                    'type': condition.get('type'),
+                    'criteria': condition.get('criteria'),
+                    'value': condition.get('value'),
+                    'format': self.workbook.add_format(condition.get('format')),
+                })
 
 
 class ExcelReportWithSheets(ExcelReportWithSheetMixin):

@@ -19,7 +19,8 @@ from utilities.admin.h_admin_control import (h_index, h_admin, h_set_order_notif
                                              h_su_user_search, h_bck_change_user_password, h_bck_reanimate,
                                              h_bck_ar_orders, h_bck_save_call_result, h_bck_su_control_reanimate_excel,
                                              h_at2_new_orders, h_at2_orders_process, h_su_not_basic_price_report,
-                                             h_su_get_telegram, h_get_partner_codes, h_get_registration_link)
+                                             h_su_get_telegram, h_get_partner_codes, h_get_registration_link,
+                                             h_users_orders_stats_rpt)
 from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_promo, h_su_add_promo, h_su_delete_promo,
                                                h_su_bck_bonus, h_su_add_bonus, h_su_delete_bonus,
                                                h_su_bck_prices, h_su_bck_specific_price, h_su_add_prices, h_su_edit_price,
@@ -652,6 +653,16 @@ def users_orders_stats(admin_id: int = None):
     """
     return h_users_orders_stats(admin_id=admin_id)
 
+
+@admin_control.route('/users_orders_stats_rpt', methods=['POST', ])
+@login_required
+@bck_aus_required
+def users_orders_stats_rpt(admin_id: int = None):
+    """
+        gets all orders of agent clients for admin and all orders for super
+    :return:
+    """
+    return h_users_orders_stats_rpt(admin_id=admin_id)
 
 @admin_control.route('/client_orders_stats/<int:admin_id>/<int:client_id>', methods=['GET', ])
 @login_required

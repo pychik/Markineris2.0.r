@@ -1285,9 +1285,22 @@ function clear_au_userstd_modal() {
 
 
 function bck_get_orders_stats(url) {
+    let date_from = $('#date_from').val()
+    let date_to = $('#date_to').val()
+    let data = {
+            bck: 1,
+            date_from: date_from,
+            date_to: date_to,
+        };
+    let extend_agent_elem = document.getElementById('agent_orders')
+    if (extend_agent_elem) {
+        data['extend_agent'] = +extend_agent_elem.checked
+    }
+
     $.ajax({
         url: url,
         method: "GET",
+        data: data,
 
         success: function (data) {
             $('#orders_stats_table').html(data);
@@ -1302,6 +1315,53 @@ function bck_get_orders_stats(url) {
         }
     });
 
+}
+
+
+function get_order_stats_rpt(url, admin_id, csrf_token) {
+    let date_from = $('#date_from').val();
+    let date_to = $('#date_to').val();
+
+    let data = {
+            date_from: date_from,
+            date_to: date_to,
+            admin_id: admin_id
+        };
+    let extend_agent_elem = document.getElementById('agent_orders')
+    if (extend_agent_elem) {
+        data['extend_agent'] = +extend_agent_elem.checked
+    }
+
+    $.ajax({
+        url: url,
+        headers: { "X-CSRFToken": csrf_token },
+        method: "POST",
+        data: data,
+        xhrFields: {
+            responseType: 'blob' // Set response type to blob
+        },
+        success: function(response, status, xhr) {
+            if (xhr.status === 200) {
+                var blob = new Blob([response], { type: 'application/xlsx' });
+                var link = document.createElement('a');
+
+                var dataName = xhr.getResponseHeader('data_file_name');
+
+                link.href = window.URL.createObjectURL(blob);
+                // console.log()
+                link.download = decodeURIComponent(dataName) || 'история кодов.xlsx'; //
+                link.click();
+            } else {
+                // Handle other status codes
+                console.error('Error:', xhr.status);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#overlay_loading').hide();
+            // Error handling
+            console.error('Error:', error);
+        }
+    });
 }
 
 function bck_get_users_activated(url) {
