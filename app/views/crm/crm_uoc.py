@@ -284,12 +284,12 @@ def avg_order_processing_time_rpt_excel():
         columns_name=['login', 'Кол-во КС', 'Кол-во КМ', 'Кол-во заказов', 'Среднее время выполнения заказа(мин)',
                       'Среднее время выполнения заказа(часов)', ],
         output_file_name=output_file_name,
-        condition_format={5: {
+        condition_format={5: [{
             'type': 'cell',
             'criteria': '>',
             'value': 5,
             'format': {'bg_color': 'red'}
-        }}
+        }]}
     )
 
     excel_io = excel.create_report()

@@ -25,7 +25,7 @@ from utilities.admin.schemas import AROrdersSchema, ar_categories_types
 from utilities.admin.helpers import (process_admin_report, helper_get_clients_os, helper_get_orders_stats,
                                      helper_prev_day_orders_marks, helper_get_users_reanimate,
                                      helper_get_reanimate_call_result, helper_get_new_orders_at2,
-                                     helper_check_new_order_at2)
+                                     helper_check_new_order_at2, helper_get_orders_stats_rpt)
 from utilities.admin.excel_report import ExcelReport
 
 
@@ -1126,6 +1126,18 @@ def h_users_orders_stats(admin_id=None):
             return jsonify(dict(status='danger', message=settings.Messages.STRANGE_REQUESTS))
         else:
             return helper_get_orders_stats(admin_id=admin_id)
+
+
+def h_users_orders_stats_rpt(admin_id=None):
+    if current_user.role == settings.SUPER_USER and admin_id is None:
+        return helper_get_orders_stats_rpt()
+    elif current_user.role == settings.SUPER_USER and admin_id:
+        return helper_get_orders_stats_rpt()
+    else:
+        if current_user.id != admin_id:
+            return jsonify(dict(status='danger', message=settings.Messages.STRANGE_REQUESTS))
+        else:
+            return helper_get_orders_stats_rpt()
 
 
 def h_client_orders_stats(admin_id: int, client_id: int) -> Response:
