@@ -64,9 +64,9 @@ def process_admin_report(u_id: int, sheet_name: str) -> Optional[BytesIO]:
 def helper_get_orders_stats_stmt(date_from, date_to, admin_id: Optional[int] = None,
                                  extend_agent: int = 0, ) -> TextClause:
     additional_stmt = ""
-    sub_stmt = f" OR u.id={admin_id}" if extend_agent else ""
+    sub_stmt = " OR u.id=:admin_id" if extend_agent else ""
     if admin_id:
-        additional_stmt = f"""and os.user_id in (SELECT u.id FROM public.users u WHERE u.admin_parent_id={admin_id} {sub_stmt})"""
+        additional_stmt = f"""and os.user_id in (SELECT u.id FROM public.users u WHERE u.admin_parent_id=:admin_id {sub_stmt})"""
     order_stmt = text(f"""SELECT    
                                     os.created_at as created_at,
                                     os.order_idn as order_idn,
@@ -83,7 +83,6 @@ def helper_get_orders_stats_stmt(date_from, date_to, admin_id: Optional[int] = N
                                     os.op_cost * os.marks_count as price,
                                     case when os.op_cost is not null then 'Оплачен' else 'Не оплачен' end as order_status
 
-
                                  FROM public.orders_stats os
                                  LEFT JOIN public.users u on u.id=os.user_id
                                  LEFT JOIN public.users_partners up on up.user_id =u.id
@@ -94,11 +93,16 @@ def helper_get_orders_stats_stmt(date_from, date_to, admin_id: Optional[int] = N
                                  {additional_stmt}
                                  GROUP BY os.id, os.created_at
                                  ORDER BY os.created_at DESC
-                             """).bindparams(
-        date_from=datetime.strptime(date_from, '%d.%m.%Y').strftime('%Y-%m-%d'),
-        date_to=datetime.strptime(date_to, '%d.%m.%Y').strftime('%Y-%m-%d'))
+                             """)
 
-    return order_stmt
+    params = {
+        "date_from": datetime.strptime(date_from, '%d.%m.%Y').strftime('%Y-%m-%d'),
+        "date_to": datetime.strptime(date_to, '%d.%m.%Y').strftime('%Y-%m-%d'),
+    }
+    if admin_id:
+        params["admin_id"] = admin_id
+
+    return order_stmt.bindparams(**params)
 
 
 def helper_get_orders_stats_param(report: bool = False):
@@ -126,6 +130,7 @@ def helper_get_orders_stats_param(report: bool = False):
 def helper_get_orders_stats(admin_id: Optional[int] = None) -> Response:
     date_from, date_to, extend_agent, _ = helper_get_orders_stats_param()
     order_stmt = helper_get_orders_stats_stmt(date_from, date_to, admin_id, extend_agent, )
+    print(order_stmt)
     order_stats = db.session.execute(order_stmt).fetchall()
 
     bck = request.args.get('bck', 0, type=int)
