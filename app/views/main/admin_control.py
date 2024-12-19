@@ -664,6 +664,7 @@ def users_orders_stats_rpt(admin_id: int = None):
     """
     return h_users_orders_stats_rpt(admin_id=admin_id)
 
+
 @admin_control.route('/client_orders_stats/<int:admin_id>/<int:client_id>', methods=['GET', ])
 @login_required
 @bck_aus_required
