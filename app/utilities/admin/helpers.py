@@ -130,7 +130,6 @@ def helper_get_orders_stats_param(report: bool = False):
 def helper_get_orders_stats(admin_id: Optional[int] = None) -> Response:
     date_from, date_to, extend_agent, _ = helper_get_orders_stats_param()
     order_stmt = helper_get_orders_stats_stmt(date_from, date_to, admin_id, extend_agent, )
-    print(order_stmt)
     order_stats = db.session.execute(order_stmt).fetchall()
 
     bck = request.args.get('bck', 0, type=int)
