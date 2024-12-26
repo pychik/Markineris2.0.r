@@ -1965,6 +1965,20 @@ def helper_update_tid_orders_stats(order_idn: str, transaction_id: int):
 
 
 def helper_get_user_pb(user_id: int, admin_id: int, is_at2: bool) -> tuple[str, int, int, int]:
+    # """
+    #     Return user price_id and user balance and login_name or agent_type 2 balance and price_id
+    # :param user_id:
+    # :param admin_id:
+    # :param is_at2:
+    # :return:
+    # """
+    # if is_at2:
+    #     stmt = f"SELECT (SELECT uu.login_name FROM public.users uu WHERE uu.id={user_id} LIMIT 1) AS login_name, u.price_id as price_id, u.balance as balance, u.trust_limit as trust_limit FROM public.users u WHERE u.id={admin_id};"
+    # else:
+    #     stmt = f"SELECT u.login_name as login_name, u.price_id as price_id, u.balance as balance, u.trust_limit as trust_limit FROM public.users u WHERE u.id={user_id};"
+    #
+    # res = db.session.execute(text(stmt)).fetchone()
+    # return res.login_name, res.price_id, res.balance, res.trust_limit
     """
     Return user price_id and user balance and login_name or agent_type 2 balance and price_id.
 
@@ -1978,44 +1992,36 @@ def helper_get_user_pb(user_id: int, admin_id: int, is_at2: bool) -> tuple[str, 
     """
     if is_at2:
         # Fetch the admin's price_id and balance when is_at2 is True.
-        # stmt = """
-        #     SELECT
-        #         CASE
-        #             WHEN u.price_id != (SELECT uu.price_id FROM public.users uu WHERE uu.id = :user_id LIMIT 1)
-        #             THEN (SELECT uu.price_id FROM public.users uu WHERE uu.id = :user_id LIMIT 1)
-        #             ELSE u.price_id
-        #         END AS price_id,
-        #         (SELECT uu.login_name FROM public.users uu WHERE uu.id = :user_id LIMIT 1) AS login_name,
-        #         u.balance AS balance,
-        #         u.trust_limit AS trust_limit
-        #     FROM public.users u
-        #     WHERE u.id = :admin_id;
-        # """
-
-    # else:
-    #     # Fetch the user's price_id and balance directly when is_at2 is False.
-    #     stmt = """
-    #         SELECT
-    #             u.login_name AS login_name,
-    #             u.price_id AS price_id,
-    #             u.balance AS balance,
-    #             u.trust_limit AS trust_limit
-    #         FROM public.users u
-    #         WHERE u.id = :user_id;
-    #     """
-    #
-    # # Execute the SQL query with parameters.
-    # result = db.session.execute(text(stmt), {'user_id': user_id, 'admin_id': admin_id}).fetchone()
-    #
-    # return (result.login_name, result.price_id, result.balance, result.trust_limit) if result \
-    #     else ("Unknown", 0, 0, 0)
-
-        stmt = f"SELECT (SELECT uu.login_name FROM public.users uu WHERE uu.id={user_id} LIMIT 1) AS login_name, u.price_id as price_id, u.balance as balance, u.trust_limit as trust_limit FROM public.users u WHERE u.id={admin_id};"
+        stmt = """
+            SELECT 
+                CASE 
+                    WHEN u.price_id != (SELECT uu.price_id FROM public.users uu WHERE uu.id = :user_id LIMIT 1) 
+                    THEN (SELECT uu.price_id FROM public.users uu WHERE uu.id = :user_id LIMIT 1) 
+                    ELSE u.price_id 
+                END AS price_id,
+                (SELECT uu.login_name FROM public.users uu WHERE uu.id = :user_id LIMIT 1) AS login_name,
+                u.balance AS balance, 
+                u.trust_limit AS trust_limit
+            FROM public.users u 
+            WHERE u.id = :admin_id;
+        """
     else:
-        stmt = f"SELECT u.login_name as login_name, u.price_id as price_id, u.balance as balance, u.trust_limit as trust_limit FROM public.users u WHERE u.id={user_id};"
+        # Fetch the user's price_id and balance directly when is_at2 is False.
+        stmt = """
+            SELECT 
+                u.login_name AS login_name, 
+                u.price_id AS price_id, 
+                u.balance AS balance, 
+                u.trust_limit AS trust_limit 
+            FROM public.users u 
+            WHERE u.id = :user_id;
+        """
 
-    res = db.session.execute(text(stmt)).fetchone()
-    return res.login_name, res.price_id, res.balance, res.trust_limit
+    # Execute the SQL query with parameters.
+    result = db.session.execute(text(stmt), {'user_id': user_id, 'admin_id': admin_id}).fetchone()
+
+    return (result.login_name, result.price_id, result.balance, result.trust_limit) if result \
+        else ("Unknown", 0, 0, 0)
 
 
 def helper_find_price_index(target: int) -> int:
