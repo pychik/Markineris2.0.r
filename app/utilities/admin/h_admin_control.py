@@ -588,12 +588,9 @@ def h_bck_set_user_price(u_id: int) -> Response:
     :param u_id:
     :return:
     """
-
     def _make_user_block(user_id: int, login_name: str, price_code: str,
-                         price_1: Decimal, price_2: Decimal, price_3: Decimal, price_4: Decimal, price_5: Decimal,
-                         price_6: Decimal,
-                         price_7: Decimal, price_8: Decimal, price_9: Decimal, price_10: Decimal, price_11: Decimal,
-                         csrf: str,
+                         price_1: Decimal, price_2: Decimal, price_3: Decimal, price_4: Decimal, price_5: Decimal, price_6: Decimal,
+                         price_7: Decimal, price_8: Decimal, price_9: Decimal, price_10: Decimal, price_11: Decimal, csrf: str,
                          price_at2: bool = False) -> str:
         text_badge = "bg-secondary" if price_at2 else "bg-warning text-black"
         return f'<span class="badge {text_badge}" style="cursor:pointer" ' \
@@ -603,7 +600,7 @@ def h_bck_set_user_price(u_id: int) -> Response:
                f'\'{url_for("admin_control.bck_set_user_price", u_id=u_id)}?bck=1\', \'{csrf}\')">' \
                f'{price_code}</span>'
 
-    status = 'danger'
+    status = settings.ERROR
     message = settings.Messages.USER_PRICE_TYPE_VALUE_ERROR
     user_block = None
     user = User.query.filter(User.id == u_id).with_entities(User.id, User.login_name, User.admin_parent_id, User.role, User.is_at2).first()
@@ -625,9 +622,27 @@ def h_bck_set_user_price(u_id: int) -> Response:
                                           price_7=basic_prices[7], price_8=basic_prices[8], price_9=basic_prices[9],
                                           price_10=basic_prices[10], price_11=basic_prices[11], csrf=csrf)
 
-            status = 'success'
+            status = settings.SUCCESS
             message = settings.Messages.USER_PRICE_PLUG
-            db.session.execute(text("""UPDATE public.users SET price_id=NULL WHERE id=:u_id;""").bindparams(u_id=u_id))
+
+            if user.role == settings.ORD_USER:
+                db.session.execute(text(f"""UPDATE public.users SET price_id=NULL WHERE id=:u_id;""").bindparams(u_id=u_id))
+            elif user.role in [settings.ADMIN_USER, settings.SUPER_USER, ]:
+                db.session.execute(text(f"""UPDATE public.users
+                                            SET price_id = NULL
+                                            WHERE id IN (
+                                                SELECT cl.id
+                                                FROM public.users cl
+                                                JOIN public.users admin ON admin.id = :u_id
+                                                WHERE cl.admin_parent_id = :u_id
+                                                  AND (
+                                                      (cl.price_id = admin.price_id)
+                                                      OR (cl.price_id IS NULL AND admin.price_id IS NULL)
+                                                  )
+                                            )
+                                            OR id = :u_id;""").bindparams(u_id=u_id))
+            else:
+                raise ValueError
             db.session.commit()
             return jsonify(dict(status=status, message=message, user_block=user_block))
 
@@ -648,14 +663,34 @@ def h_bck_set_user_price(u_id: int) -> Response:
                                       price_7=price.price_7, price_8=price.price_8, price_9=price.price_9,
                                       price_10=price.price_10, price_11=price.price_11, csrf=csrf,
                                       price_at2=price.price_at2)
-        db.session.execute(text("""UPDATE public.users SET price_id=:p_id WHERE id=:u_id;""").bindparams(p_id=p_id, u_id=u_id))
+        # db.session.execute(text(f"""UPDATE public.users SET price_id={p_id} WHERE id={u_id};"""))
+        if user.role == settings.ORD_USER:
+            db.session.execute(text(f"""UPDATE public.users SET price_id=:p_id WHERE id=:u_id;""").bindparams(u_id=u_id, p_id=p_id))
+        elif user.role in [settings.ADMIN_USER, settings.SUPER_USER, ]:
+            db.session.execute(text(f"""UPDATE public.users
+                                        SET price_id = :p_id
+                                        WHERE id IN (
+                                                SELECT cl.id
+                                                FROM public.users cl
+                                                JOIN public.users admin ON admin.id = :u_id
+                                                WHERE cl.admin_parent_id = :u_id
+                                                  AND (
+                                                      (cl.price_id = admin.price_id)
+                                                      OR (cl.price_id IS NULL AND admin.price_id IS NULL)
+                                                  )
+                                            )
+                                            OR id = :u_id;""").bindparams(
+                u_id=u_id, p_id=p_id))
+        else:
+            raise ValueError
         db.session.commit()
-        status = 'success'
+        status = settings.SUCCESS
         message = settings.Messages.USER_PRICE_PLUG
 
     except ValueError:
-        status = 'danger'
+        status = settings.ERROR
         logger.error(message)
+        db.session.rollback()
         return jsonify(dict(status=status, message=message))
     except IntegrityError as e:
         db.session.rollback()
