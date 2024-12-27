@@ -59,7 +59,7 @@ class User(db.Model, UserMixin):
     telegram_message = db.relationship('TelegramMessage', backref='users', cascade="all,delete", lazy='joined')
 
     admin_parent_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
-    admin_group = db.relationship("User", backref=db.backref('admin_parent', remote_side=[id]), lazy='joined',
+    admin_group = db.relationship("User", backref=db.backref('admin_parent', remote_side=[id]), lazy='dynamic',
                                   order_by="desc(User.id)")
     restore_link = db.relationship('RestoreLink', backref="users", cascade="all,delete", lazy='dynamic')
     em_messages = db.relationship('EmailMessage', backref="users", cascade="all,delete", lazy='dynamic')
