@@ -112,8 +112,8 @@ def h_admin(u_id: int):
             .subquery()
         prices_query = db.session.query(Price.id.label("price_id"), Price.price_code, Price.price_1, Price.price_2, Price.price_3,
                                         Price.price_4, Price.price_5, Price.price_6, Price.price_7, Price.price_8, Price.price_9,
-                                        Price.price_10, Price.price_11) \
-            .filter(User.price_id == Price.id) \
+                                        Price.price_10, Price.price_11, Price.price_at2) \
+            .filter(User.price_id == Price.id)\
             .subquery()
 
         sort_type = request.args.get("sort_type")
@@ -130,7 +130,7 @@ def h_admin(u_id: int):
                            prices_query.c.price_code, prices_query.c.price_1, prices_query.c.price_2,
                            prices_query.c.price_3, prices_query.c.price_4, prices_query.c.price_5,
                            prices_query.c.price_6, prices_query.c.price_7, prices_query.c.price_8, prices_query.c.price_9,
-                           prices_query.c.price_10, prices_query.c.price_11)\
+                           prices_query.c.price_10, prices_query.c.price_11, prices_query.c.price_at2)\
             .filter(User.admin_parent_id == u_id).group_by(User.id, os_query.c.orders_count, os_query.c.total_rows_count,
                                                            os_query.c.total_marks_count, os_query.c.os_created_at,
                                                            partner_query.c.user_id, partner_query.c.code,
@@ -139,7 +139,8 @@ def h_admin(u_id: int):
                                                            prices_query.c.price_4, prices_query.c.price_5,
                                                            prices_query.c.price_6, prices_query.c.price_7,
                                                            prices_query.c.price_8, prices_query.c.price_9,
-                                                           prices_query.c.price_10, prices_query.c.price_11)\
+                                                           prices_query.c.price_10, prices_query.c.price_11,
+                                                           prices_query.c.price_at2)\
             .order_by(order_type).all()
 
         page, per_page, \
