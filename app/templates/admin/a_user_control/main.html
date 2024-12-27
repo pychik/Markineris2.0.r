@@ -241,7 +241,7 @@
 
             <div id="user_price{{ u.id }}">
               {% if u.price_code %}
-                <span class="badge bg-{%if not u.price_at2%}warning text-black{% else %}secondary{% endif %}" style="cursor:pointer"
+                <span class="badge bg-warning text-black" style="cursor:pointer"
                       onclick="perform_modal_prices('{{ u.id }}', '{{ u.login_name }}', '{{ u.price_code }}',
                        '{{ u.price_1 }}',
                           '{{ u.price_2 }}',
