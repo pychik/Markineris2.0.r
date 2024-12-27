@@ -65,7 +65,7 @@ class User(db.Model, UserMixin):
     em_messages = db.relationship('EmailMessage', backref="users", cascade="all,delete", lazy='dynamic')
 
     prices = db.relationship('Price', back_populates='users', lazy='joined')
-    price_id = db.Column(db.Integer, db.ForeignKey('prices.id'))
+    price_id = db.Column(db.Integer, db.ForeignKey('prices.id'), index=True)
 
 
 users_partners = db.Table('users_partners',

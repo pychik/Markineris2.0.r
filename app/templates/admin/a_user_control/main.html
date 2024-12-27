@@ -133,7 +133,9 @@
         <th scope="col">
           <font size="2">Код клиента</font>
         </th>
-        <th scope="col"><font size="2">Ценовой пакет</font></th>
+        {% if current_user.role=='superuser' %}
+            <th scope="col"><font size="2">Ценовой пакет</font></th>
+        {% endif %}
         <th scope="col">
           <font size="2">Статусы</font>
         </th>
@@ -234,7 +236,9 @@
         <td>
           {% if u.client_code %}{{ u.client_code }}{% endif %}
         </td>
-        <td>
+        {% if  current_user.role=='superuser' %}
+          <td>
+
             <div id="user_price{{ u.id }}">
               {% if u.price_code %}
                 <span class="badge bg-{%if not u.price_at2%}warning text-black{% else %}secondary{% endif %}" style="cursor:pointer"
@@ -268,7 +272,8 @@
                             '{{ basic_prices[11] }}', '{{ url_for('admin_control.bck_set_user_price', u_id=u.id) }}?bck=1', '{{ csrf_token() }}')">{{ basic_prices[0] }}</span>
               {% endif %}
             </div>
-        </td>
+          </td>
+        {% endif %}
         <td>
 
           <td>
