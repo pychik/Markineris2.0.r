@@ -849,7 +849,8 @@ TEMPLATE_TABLES_DICT: dict = {"обувь": (
 CATEGORIES_DICT: dict = {"обувь": "shoes",
                          "одежда": "clothes",
                          "белье": "linen",
-                         "парфюм": "parfum", }
+                         "парфюм": "parfum",
+                          "носки и прочее": "socks" }
 
 
 BIG_TNVED_LIST: tuple = SHOE_TNVED + ALL_CLOTHES_TNVED + (LINEN_TNVED, '', ) + PARFUM_TNVED

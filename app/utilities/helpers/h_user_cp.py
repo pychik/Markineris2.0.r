@@ -215,7 +215,8 @@ def h_order_book_detail(u_id: int):
     categories: dict = {"обувь": 'shoes',
                         "одежда": 'clothes',
                         "белье": 'linen',
-                        "парфюм": 'parfum', }
+                        "парфюм": 'parfum',
+                        "носки и прочее": 'socks', }
 
     active_orders_raw = (current_user.orders.filter_by(stage=settings.OrderStage.CREATING)
                          .filter(~Order.processed, ~Order.to_delete)

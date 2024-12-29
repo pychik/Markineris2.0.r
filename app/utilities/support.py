@@ -21,7 +21,7 @@ from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
 from config import settings
 from logger import logger
-from models import Order, OrderStat, User, EmailMessage, db, Shoe, Clothes, ClothesQuantitySize, Linen, Parfum, \
+from models import Order, OrderStat, User, EmailMessage, db, Shoe, Clothes, ClothesQuantitySize, Socks, SocksQuantitySize, Linen, Parfum, \
     Price, Promo, ServerParam, ServiceAccount, UserTransaction, users_promos
 from utilities.daily_price import get_cocmd
 from utilities.google_settings.schema import TransactionRow
@@ -78,6 +78,10 @@ def order_count(category: str, order_list) -> tuple:
                                  for el in order_list]
 
         case settings.Clothes.CATEGORY:
+            quantity_list_raw = [[(e.quantity, el.article_price, el.box_quantity) for e in el.sizes_quantities]
+                                 for el in order_list]
+
+        case settings.Socks.CATEGORY:
             quantity_list_raw = [[(e.quantity, el.article_price, el.box_quantity) for e in el.sizes_quantities]
                                  for el in order_list]
 
@@ -174,6 +178,9 @@ def check_order_pos(category: str, order: Order) -> Optional[int]:
         case settings.Clothes.CATEGORY:
             rd_exist, quantity_list_raw, pos_count, order_pos_count = order_count(category=settings.Clothes.CATEGORY,
                                                                                   order_list=order.clothes)
+        case settings.Socks.CATEGORY:
+            rd_exist, quantity_list_raw, pos_count, order_pos_count = order_count(category=settings.Socks.CATEGORY,
+                                                                                  order_list=order.socks)
         case settings.Linen.CATEGORY:
             rd_exist, quantity_list_raw, pos_count, order_pos_count = order_count(category=settings.Linen.CATEGORY,
                                                                                   order_list=order.linen)
@@ -197,8 +204,12 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
     form_data_raw = request.form
 
     # validate clothes TNVED is in CLOTHES tnveds(only clothes tnveds have dicts to check)
-    if category == settings.Clothes.CATEGORY and  \
-            ValidatorProcessor.clothes_pre_validate_tnved(tnved_str=form_data_raw.get('tnved_code')):
+    clothes_tnved_condition = category == settings.Clothes.CATEGORY and \
+                              ValidatorProcessor.clothes_pre_validate_tnved(tnved_str=form_data_raw.get('tnved_code'))
+    socks_tnved_condition = category == settings.Socks.CATEGORY and \
+                            ValidatorProcessor.socks_pre_validate_tnved(tnved_str=form_data_raw.get('tnved_code'))
+
+    if clothes_tnved_condition or socks_tnved_condition:
         if o_id and not p_id:
             return jsonify(dict(status='error', message=settings.Messages.TNVED_ABSENCE_ERROR))
 
@@ -259,6 +270,11 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
                       category=category, stage=settings.OrderStage.CREATING, processed=False, to_delete=False)
     try:
         if category == settings.Clothes.CATEGORY:
+            sizes = form_data_raw.getlist("size")
+            quantities = form_data_raw.getlist("quantity")
+            size_types = form_data_raw.getlist("size_type")
+            sizes_quantities = sorted(list(zip(sizes, quantities, size_types)), key=lambda x: x[0])
+        elif category == settings.Socks.CATEGORY:
             sizes = form_data_raw.getlist("size")
             quantities = form_data_raw.getlist("quantity")
             size_types = form_data_raw.getlist("size_type")
@@ -364,7 +380,9 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
         link = f'javascript:{category_process_name}_update_table(\'' + url_for(f'{category_process_name}.index', o_id=o_id,
                                                             update_flag=1) + '?page={0}\');'
         page, per_page, offset, pagination, order_list = helper_paginate_data(data=orders, href=link)
-        with_packages = order_list[-1].with_packages if category != settings.Clothes.CATEGORY else False
+        with_packages = order_list[-1].with_packages if category not in [settings.Clothes.CATEGORY,
+                                                                         settings.Socks.CATEGORY, ] \
+            else False
 
     return render_template(f'categories/category_v2.html', **locals(), **kwargs)
 
@@ -988,6 +1006,9 @@ def get_category_orders(user: User, category: str, o_id: int, stage: int) -> tup
         case settings.Clothes.CATEGORY:
             sort_model = helper_get_sort_model(category=category)
             order_list = Clothes.query.filter_by(order_id=o_id).order_by(sort_model).all()
+        case settings.Socks.CATEGORY:
+            sort_model = helper_get_sort_model(category=category)
+            order_list = Socks.query.filter_by(order_id=o_id).order_by(sort_model).all()
         case settings.Linen.CATEGORY:
             sort_model = helper_get_sort_model(category=category)
             order_list = Linen.query.filter_by(order_id=o_id).order_by(sort_model).all()
@@ -1121,6 +1142,10 @@ def helper_get_cat_models_sort_dict(category: str) -> Optional[dict]:
         case settings.Parfum.CATEGORY:
             cat_models_dict: dict = {"id": Parfum.id,
                                      "trademark": Parfum.trademark,
+                                     }
+        case settings.Socks.CATEGORY:
+            cat_models_dict: dict = {"id": Socks.id,
+                                     "trademark": Socks.trademark,
                                      }
     return cat_models_dict
 

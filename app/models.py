@@ -298,6 +298,7 @@ class Order(db.Model, UserMixin):
     linen = db.relationship('Linen', backref='orders', cascade="all,delete", lazy='joined')
     parfum = db.relationship('Parfum', backref='orders', cascade="all,delete", lazy='joined')
     clothes = db.relationship('Clothes', backref='orders', cascade="all,delete", lazy='joined')
+    socks = db.relationship('Socks', backref='orders', cascade="all,delete", lazy='joined')
 
 
 class OrderFile(db.Model, UserMixin):

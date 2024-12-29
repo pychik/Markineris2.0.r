@@ -421,6 +421,69 @@ class ClothesProcessor(OrdersProcessor):
         return settings.Clothes.GENDERS_ORDER_046.get(gender_value)
 
 
+class SocksProcessor(OrdersProcessor):
+
+    @staticmethod
+    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list]:
+        res_list_common = []
+        res_list_outer = []
+        res_list_inner = []
+
+        actual_date = datetime.now().strftime('%d.%m.%Y')
+        for el in orders_list:
+            #     if not el.tnved_code else el.tnved_code
+            tnved = el.tnved_code
+            fc_tnved = tnved if tnved == '4304000000' or tnved[:4] in settings.Clothes.FULL_TNVED_4DIGIT_LIST \
+                else tnved[:4]
+            # fc_tnved = tnved if tnved == '4304000000' else tnved[:4]
+
+            declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" \
+                if all([el.rd_date, el.rd_type, el.rd_name]) else ''
+            for sq in el.sizes_quantities:
+
+                gender_dec = SocksProcessor.get_gender_dec(clothes_type=el.type, gender=el.gender)
+                gender = SocksProcessor.get_gender(gender=el.gender) if not flag_046 \
+                    else SocksProcessor.get_gender_046(gender=el.gender)
+                full_name = f'{el.type} {gender_dec} ' \
+                            f'{el.trademark} арт. {el.article} цвет {el.color} р. {sq.size}'
+
+                temp_list = [fc_tnved, full_name,
+                             el.trademark, 'Артикул', el.article, el.type, el.color, gender, sq.size_type, sq.size,
+                             el.content, tnved, settings.Clothes.NUMBER_STANDART,
+                             '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,
+                             declar_doc, ] if not flag_046 else \
+                            ['', '', el.article, actual_date, full_name, el.trademark, settings.COUNTRIES_CODES.get(el.country), '',
+                             '', settings.Socks.TYPES_CODES.get(el.type), '', tnved,
+                             settings.Socks.SYZE_TYPES_CODES.get(sq.size_type), sq.size, '', el.color, '', gender,
+                             el.content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
+                             sq.quantity * el.box_quantity, declar_doc, ]
+                res_list_common.append(temp_list)
+                if el.country.upper() in settings.COUNTRIES_INNER:
+                    res_list_inner.append(temp_list)
+                else:
+                    res_list_outer.append(temp_list)
+
+        return res_list_common, res_list_outer, res_list_inner
+
+    @staticmethod
+    def get_gender_dec(clothes_type: str, gender: str) -> Optional[str]:
+        declination_dict = settings.Socks.DEC
+        return declination_dict.get('socks').get(gender)
+
+
+    @staticmethod
+    def get_gender(gender: str) -> Optional[str]:
+        gender_value = gender.capitalize()
+        #same genders as in clothes
+        return settings.Clothes.GENDERS_ORDER.get(gender_value)
+
+    @staticmethod
+    def get_gender_046(gender: str) -> Optional[str]:
+        # same genders as in clothes
+        gender_value = gender.capitalize()
+        return settings.Clothes.GENDERS_ORDER_046.get(gender_value)
+
+
 # not used currently
 def orders_list_get(model: db.Model) -> Optional[Union[tuple, list]]:
     order_list = [o for o in model]
@@ -476,6 +539,19 @@ def get_download_info(o_id, user: User, flag_046: bool = False) -> Union[Respons
         rd_exist, quantity_list_raw, pos_count, orders_pos_count = order_count(category=category, order_list=order_list)
 
         op = ClothesProcessor(category=category, company_idn=company_idn, orders_list=order_list, flag_046=flag_046)
+
+    elif order.category == settings.Socks.CATEGORY:
+        # order_list, old_tnved, new_tnved = helper_get_clothes_divided_list(order_id=o_id,)
+        order_list = order.socks
+        if not order_list:
+            flash(message=settings.Messages.EMPTY_ORDER, category='error')
+
+            return (None,) * 12
+
+        category = settings.Socks.CATEGORY
+        rd_exist, quantity_list_raw, pos_count, orders_pos_count = order_count(category=category, order_list=order_list)
+
+        op = SocksProcessor(category=category, company_idn=company_idn, orders_list=order_list, flag_046=flag_046)
 
     elif order.category == settings.Linen.CATEGORY:
         order_list = order.linen
@@ -601,6 +677,11 @@ def orders_common_preload(category: str, company_idn: str, orders_list: list) ->
         res_list_raw = cp.orders_list
         # res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
         res_list = list(map(lambda x: x[1:11] + x[15:18] + x[20:], res_list_raw))
+    elif category == settings.Socks.CATEGORY:
+        start_list = copy(settings.Socks.START_PRELOAD)
+        cp = SocksProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
+        res_list_raw = cp.orders_list
+        res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
     elif category == settings.Linen.CATEGORY:
         # start_list = copy(settings.Linen.START_PRELOAD)
         start_list = copy(settings.Linen.START_CRM_PRELOAD)
