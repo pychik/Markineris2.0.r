@@ -1813,15 +1813,19 @@ def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: in
 def helper_get_image_html(img_path: str):
     try:
         s3_service = get_s3_service()
-        image_obj = s3_service.get_object(object_name=img_path, bucket_name=settings.MINIO_BILL_BUCKET_NAME)
-    except Exception as e:
+        image_obj = s3_service.get_object(object_name=img_path, bucket_name=settings.MINIO_BILL_BUCKET_NAME).data
+    except Exception:
         logger.exception(f"Ошибка при получении файла {img_path} из хранилища")
-        transaction_image = f"""<p>Не удалось загрузить изображение.</p>"""
+        image_obj = b''
     else:
         if img_path.endswith('.pdf'):
-            return get_first_page_as_image(pdf_file_stream=image_obj.data)
-        transaction_image = f"""<img id="bill-modal-image" class="border border-1 rounded img-zoom-orig" onclick="zoom_image();" src="data:image/png;base64,
-                                        {encodebytes(image_obj.data).decode()}">"""
+            return get_first_page_as_image(pdf_file_stream=image_obj)
+
+    transaction_image = f"""
+            <img id="bill-modal-image" class="border border-1 rounded img-zoom-orig" 
+            onclick="zoom_image();" src="data:image/png;base64,{encodebytes(image_obj).decode()}">
+            """
+
     return transaction_image
 
 
