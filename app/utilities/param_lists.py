@@ -858,7 +858,8 @@ BIG_TNVED_LIST: tuple = SHOE_TNVED + ALL_CLOTHES_TNVED + (LINEN_TNVED, '', ) + P
 BIG_TNVED_DICT: dict = {'shoes': ('обувь', BIG_SHOE_TNVED, BIG_SHOE_TNVED_4DIGIT),
                         'clothes': ('одежда', ALL_CLOTHES_TNVED, BIG_CLOTHES_TNVED_4DIGIT),
                         'linen': ('белье', BIG_LINEN_TNVED, BIG_LINEN_TNVED_4DIGIT),
-                        'parfum': ('парфюм', PARFUM_TNVED, BIG_PARFUM_TNVED_4DIGIT)
+                        'parfum': ('парфюм', PARFUM_TNVED, BIG_PARFUM_TNVED_4DIGIT),
+                        'socks': ('носки и прочее', ALL_SOCKS_TNVEDS, BIG_SOCKS_TNVED_4DIGIT)
                         }
 
 ADMIN_REPORT_HEAD: dict = {'saved_at_d': 'Дата отправки заказа', 'saved_at_h': 'Время отправки заказа',

@@ -42,6 +42,13 @@
 <!--<span id="parfum_commonCounter" class="font-12">{{categories_counter['парфюм']}}</span>-->
                 </div>
             </span>
+            <span onclick="update_category_crm_info(update_url, 'носки и прочее', this, '{{manager_flag}}')" class="categories__item" style="cursor:pointer; user-select: none;">
+                <img src="{{url_for('static', filename='crm_mod/img/icons/socks.svg')}}" class="img-fluid" alt="Носки и прочее">
+<!--                                <span id="parfum_commonCounter" class="font-12">{{categories_counter['парфюм']}}</span>-->
+                <div class="categories-item__body">
+                    <p class="categories-item__text">Носки <span id="socks_commonCounter" class="font-12">({{categories_counter['носки и прочее']}})</span></p>
+                </div>
+            </span>
         </div>
     </div>
 {% endif%}

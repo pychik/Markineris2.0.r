@@ -1408,16 +1408,18 @@ def helper_get_stmt_for_fin_order_report(
                 o.company_type ||' ' || o.company_name || ' '|| o.company_idn as company,
                 cli.phone as cli_phone_number,
 	            CASE WHEN MAX(agnt.login_name) IS NOT NULL THEN MAX(agnt.login_name) ELSE cli.login_name end as agent_login,
-                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count,
-                COUNT(coalesce(sh.id, cl.id, l.id, p.id)) as rows_count, 
+                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count,
+                COUNT(coalesce(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count, 
                 o.category as category,
                 utr.op_cost as op_cost,
-                utr.op_cost*SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as amount
+                utr.op_cost*SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as amount
             FROM public.orders o
                 LEFT JOIN public.shoes sh ON o.id = sh.order_id
                 LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                 LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                 LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                LEFT JOIN public.socks sk ON o.id = sk.order_id
+                LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                 LEFT JOIN public.linen l ON o.id = l.order_id
                 LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                 LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -1437,16 +1439,18 @@ def helper_get_stmt_for_fin_order_report(
                 o.company_type ||' ' || o.company_name || ' '|| o.company_idn as company,
                 cli.phone as cli_phone_number,
 	            CASE WHEN MAX(agnt.login_name) IS NOT NULL THEN MAX(agnt.login_name) ELSE cli.login_name end as agent_login,
-                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count,
-                COUNT(coalesce(sh.id, cl.id, l.id, p.id)) as rows_count, 
+                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count,
+                COUNT(coalesce(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count, 
                 o.category as category,
                 utr.op_cost as op_cost,
-                utr.op_cost*SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as amount
+                utr.op_cost*SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as amount
             FROM public.orders o
                 LEFT JOIN public.shoes sh ON o.id = sh.order_id
                 LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                 LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                 LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                LEFT JOIN public.socks sk ON o.id = sk.order_id
+                LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                 LEFT JOIN public.linen l ON o.id = l.order_id
                 LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                 LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -1949,12 +1953,14 @@ def helper_get_orders_marks(u_id: int, o_id: int = None, wo_flag: bool = False) 
         add_stmt = f"o.stage > {start_stage} AND o.stage != {settings.OrderStage.CANCELLED} AND order_idn != ''"
     stmt_orders = f"""SELECT 
                         o.order_idn as order_idn,
-                        SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                        SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                       FROM public.orders o
                           LEFT JOIN public.shoes sh ON o.id = sh.order_id
                           LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                           LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                           LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                          LEFT JOIN public.socks sk ON o.id = sk.order_id
+                          LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                           LEFT JOIN public.linen l ON o.id = l.order_id
                           LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                           LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -1976,13 +1982,15 @@ def helper_get_at2_pending_balance(admin_id: int, price_id: int, balance: int, t
     message = ''
     status = False
     stmt = f"""SELECT DISTINCT u.id as user_id,
-                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                FROM public.users u
                    JOIN public.orders o on o.user_id = u.id
                       LEFT JOIN public.shoes sh ON o.id = sh.order_id
                       LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
                       LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                       LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                      LEFT JOIN public.socks sk ON o.id = sk.order_id
+                      LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                       LEFT JOIN public.linen l ON o.id = l.order_id
                       LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                       LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -2491,8 +2499,8 @@ def helper_perform_ut_wo(user_ids: list[tuple[int]]) -> tuple[int, int]:
                                                 o.company_type as company_type, 
                                                 o.company_name as company_name, 
                                                 o.order_idn as order_idn, 
-                                                COUNT(COALESCE(sh.id, cl.id, l.id, p.id)) as rows_count, 
-                                                SUM(COALESCE(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count, 
+                                                COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count, 
+                                                SUM(COALESCE(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count, 
                                                 {transaction_price} AS transaction_price, 
                                                 o.created_at as created_at, 
                                                 o.crm_created_at as crm_created_at, 
@@ -2509,6 +2517,8 @@ def helper_perform_ut_wo(user_ids: list[tuple[int]]) -> tuple[int, int]:
                                                 public.clothes  cl ON o.id = cl.order_id
                                             LEFT JOIN 
                                                 public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                            LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                            LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                             LEFT JOIN 
                                                 public.linen l ON o.id = l.order_id
                                             LEFT JOIN 
@@ -2637,8 +2647,8 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
                                                 o.company_type as company_type, 
                                                 o.company_name as company_name, 
                                                 o.order_idn as order_idn, 
-                                                COUNT(COALESCE(sh.id, cl.id, l.id, p.id)) as rows_count, 
-                                                SUM(COALESCE(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count, 
+                                                COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count, 
+                                                SUM(COALESCE(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count, 
                                                 {transaction_price} AS transaction_price, 
                                                 o.created_at as created_at, 
                                                 o.crm_created_at as crm_created_at, 
@@ -2655,6 +2665,8 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
                                                 public.clothes  cl ON o.id = cl.order_id
                                             LEFT JOIN 
                                                 public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                            LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                            LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                             LEFT JOIN 
                                                 public.linen l ON o.id = l.order_id
                                             LEFT JOIN 

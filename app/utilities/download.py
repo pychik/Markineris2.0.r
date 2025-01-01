@@ -175,6 +175,8 @@ class OrdersProcessor(ProcessorInterface, ABC):
             res = copy(settings.Parfum.START_EXT)
         if category == settings.Clothes.CATEGORY:
             res = copy(settings.Clothes.START_EXT_046) if flag_046 else copy(settings.Clothes.START_EXT)
+        if category == settings.Socks.CATEGORY:
+            res = copy(settings.Socks.START_EXT_046) if flag_046 else copy(settings.Socks.START_EXT)
         return res
 
     @staticmethod

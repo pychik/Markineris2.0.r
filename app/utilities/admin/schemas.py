@@ -7,7 +7,9 @@ from config import settings
 ar_categories_types: dict = {settings.Clothes.CATEGORY: settings.Clothes.TYPES,
                              settings.Shoes.CATEGORY: settings.Shoes.TYPES,
                              settings.Linen.CATEGORY: settings.Linen.TYPES,
-                             settings.Parfum.CATEGORY: settings.Parfum.TYPES}
+                             settings.Parfum.CATEGORY: settings.Parfum.TYPES,
+                             settings.Socks.CATEGORY: settings.Socks.TYPES
+                             }
 
 
 class AROrdersSchema(BaseModel):

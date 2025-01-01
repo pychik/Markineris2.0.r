@@ -111,7 +111,7 @@ class Settings(BaseSettings):
 
     SQ_CATEGORIES: list = ['обувь', 'одежда', 'белье']
     CATEGORIES_PROCESS_NAMES: list = ['shoes', 'clothes', 'linen', 'parfum', 'send_table']
-    CATEGORIES_UPLOAD: tuple = ('обувь', 'одежда', 'парфюм', 'белье')
+    CATEGORIES_UPLOAD: tuple = ('обувь', 'одежда', 'парфюм', 'белье', 'носки и прочее')
     RZ_GENDERS_RD_LIST: tuple = ("Детские", "Мальчик", "Девочка", "Детск.",)
     COMPANY_TYPES: list = ["ИП", "ООО", "АО"]
     CATEGORIES_DICT: dict = CATEGORIES_DICT

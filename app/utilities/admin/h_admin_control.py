@@ -1514,13 +1514,15 @@ def helper_get_ar_orders_stat(ar_schema: AROrdersSchema, u_id: int) -> tuple:
         SELECT max(o.category) as category,
                {category_pos_type_stmt} as category_pos_type, 
                COUNT(DISTINCT o.id) as orders_count,
-               COUNT(coalesce(sh.id, cl.id, l.id, p.id)) as pos_count, 
-               SUM(coalesce(sh.box_quantity * sh_qs.quantity, cl.box_quantity * cl_qs.quantity, l.box_quantity * l_qs.quantity, p.quantity)) as marks_count
+               COUNT(coalesce(sh.id, cl.id, sk.id, l.id, p.id)) as pos_count, 
+               SUM(coalesce(sh.box_quantity * sh_qs.quantity, cl.box_quantity * cl_qs.quantity, sk.box_quantity * sk_qs.quantity, l.box_quantity * l_qs.quantity, p.quantity)) as marks_count
         FROM public.orders o
         LEFT JOIN public.shoes sh ON o.id = sh.order_id
         LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
         LEFT JOIN public.clothes cl ON o.id = cl.order_id
         LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+        LEFT JOIN public.socks sk ON o.id = sk.order_id
+        LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
         LEFT JOIN public.linen l ON o.id = l.order_id
         LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
         LEFT JOIN public.parfum p ON o.id = p.order_id 

@@ -133,7 +133,7 @@ def get_unpaid_orders_stmt(u_id: int, o_id: int = None, start_stage: int = setti
                                     o.category as category,
                                     o.company_idn as company_idn,
                                     o.crm_created_at as crm_created_at,
-                                    SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count
+                                    SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id  
                                   LEFT JOIN public.users a ON u.admin_parent_id = a.id  
@@ -141,6 +141,8 @@ def get_unpaid_orders_stmt(u_id: int, o_id: int = None, start_stage: int = setti
                                   LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                                   LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                   LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                  LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                  LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                   LEFT JOIN public.linen l ON o.id = l.order_id
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                   LEFT JOIN public.parfum p ON o.id = p.order_id 
