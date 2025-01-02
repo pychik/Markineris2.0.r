@@ -300,6 +300,7 @@ class Order(db.Model, UserMixin):
     linen = db.relationship('Linen', backref='orders', cascade="all,delete", lazy='joined')
     parfum = db.relationship('Parfum', backref='orders', cascade="all,delete", lazy='joined')
     clothes = db.relationship('Clothes', backref='orders', cascade="all,delete", lazy='joined')
+    socks = db.relationship('Socks', backref='orders', cascade="all,delete", lazy='joined')
 
 
 class OrderFile(db.Model, UserMixin):
@@ -421,26 +422,61 @@ class Parfum(db.Model, UserMixin, CommonMixin):
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), index=True)
 
 
-class Clothes(db.Model, UserMixin, OrderCommon):
-    __tablename__ = "clothes"
-
+class ClothesMixin(db.Model, UserMixin, OrderCommon):
+    # __tablename__ = "clothes"
+    __abstract__ = True
     # CLOTHES PRODUCT tYPE IS TYPE COMMONMIXIN
     color = db.Column(db.String(50))
     gender = db.Column(db.String(50))
 
     content = db.Column(db.String(100))
-    sizes_quantities = db.relationship('ClothesQuantitySize', backref='clothes', cascade="all,delete", lazy='joined')
-    order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), index=True)
 
 
-class ClothesQuantitySize(db.Model, UserMixin):
-    __tablename__ = "cl_quantity_sizes"
+class CQSMixin(db.Model, UserMixin):
+    # __tablename__ = "cl_quantity_sizes"
+    __abstract__ = True
 
     id = db.Column(db.BigInteger, primary_key=True)
     size = db.Column(db.String())
     quantity = db.Column(db.Integer())
     size_type = db.Column(db.String(50))
+    # cl_id = db.Column(db.Integer, db.ForeignKey('clothes.id', ondelete='CASCADE'), index=True)
+
+
+class Clothes(ClothesMixin):
+    __tablename__ = "clothes"
+
+    # CLOTHES PRODUCT tYPE IS TYPE COMMONMIXIN
+    # color = db.Column(db.String(50))
+    # gender = db.Column(db.String(50))
+    #
+    # content = db.Column(db.String(100))
+    sizes_quantities = db.relationship('ClothesQuantitySize', backref='clothes', cascade="all,delete", lazy='joined')
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), index=True)
+
+
+class ClothesQuantitySize(CQSMixin):
+    __tablename__ = "cl_quantity_sizes"
+
+    # id = db.Column(db.BigInteger, primary_key=True)
+    # size = db.Column(db.String())
+    # quantity = db.Column(db.Integer())
+    # size_type = db.Column(db.String(50))
     cl_id = db.Column(db.Integer, db.ForeignKey('clothes.id', ondelete='CASCADE'), index=True)
+
+
+class Socks(ClothesMixin):
+    __tablename__ = "socks"
+    sizes_quantities = db.relationship('SocksQuantitySize', backref='socks', cascade="all,delete", lazy='joined')
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), index=True)
+
+
+class SocksQuantitySize(CQSMixin):
+    __tablename__ = "socks_quantity_sizes"
+    # id = db.Column(db.BigInteger, primary_key=True)
+    # size = db.Column(db.String())
+    # quantity = db.Column(db.Integer())
+    socks_id = db.Column(db.Integer, db.ForeignKey('socks.id', ondelete='CASCADE'), index=True)
 
 
 class ServerParam(db.Model):

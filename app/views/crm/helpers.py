@@ -81,8 +81,8 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   o.stage_setter_name as stage_setter_name,
                                   {additional_stmt}
                                   COUNT(o.id) as row_count,
-                                  COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                  COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id
                                   LEFT JOIN public.users a ON u.admin_parent_id = a.id
@@ -91,6 +91,8 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
                                   LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                   LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                  LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                  LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                   LEFT JOIN public.linen l ON o.id = l.order_id
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                   LEFT JOIN public.parfum p ON o.id = p.order_id
@@ -130,8 +132,8 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   o.stage_setter_name as stage_setter_name,
                                   {additional_stmt}
                                   COUNT(o.id) as row_count,
-                                  COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                  COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id  
                                   LEFT JOIN public.users a ON u.admin_parent_id = a.id  
@@ -140,6 +142,8 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                                   LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                   LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                  LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                  LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                   LEFT JOIN public.linen l ON o.id = l.order_id
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                   LEFT JOIN public.parfum p ON o.id = p.order_id
@@ -213,8 +217,8 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                           o.sent_at as sent_at,
                                           o.closed_at as closed_at,
                                           COUNT(o.id) as row_count,
-                                          COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                          SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                          COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                          SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                                       FROM public.users u
                                           JOIN public.orders o ON o.user_id = u.id
                                           LEFT JOIN public.users a ON u.admin_parent_id = a.id  
@@ -223,6 +227,8 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                           LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
                                           LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                           LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                          LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                          LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                           LEFT JOIN public.linen l ON o.id = l.order_id
                                           LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                           LEFT JOIN public.parfum p ON o.id = p.order_id
@@ -272,8 +278,8 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                   o.sent_at as sent_at,
                                   o.closed_at as closed_at,
                                   COUNT(o.id) as row_count,
-                                  COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                  COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id  
                                   LEFT JOIN public.users a ON u.admin_parent_id = a.id  
@@ -282,6 +288,8 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                   LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                                   LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                   LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                  LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                  LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                   LEFT JOIN public.linen l ON o.id = l.order_id
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                   LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -347,8 +355,8 @@ def helper_get_manager_orders(
                                  o.stage_setter_name as stage_setter_name,
                                  {additional_stmt}
                                  COUNT(o.id) as row_count,
-                                 COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                 SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                 COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                 SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                              FROM public.users u
                                  JOIN public.orders o ON o.user_id = u.id
                                  LEFT JOIN public.users a ON u.admin_parent_id = a.id   
@@ -357,6 +365,8 @@ def helper_get_manager_orders(
                                  LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                                  LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                  LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                 LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                 LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                  LEFT JOIN public.linen l ON o.id = l.order_id
                                  LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                  LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -397,8 +407,8 @@ def helper_get_manager_orders(
                                   o.stage_setter_name as stage_setter_name,
                                   {additional_stmt}
                                   COUNT(o.id) as row_count,
-                                  COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                  COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id
                                   LEFT JOIN public.users a ON u.admin_parent_id = a.id   
@@ -407,6 +417,8 @@ def helper_get_manager_orders(
                                   LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                                   LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                   LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                  LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                  LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                   LEFT JOIN public.linen l ON o.id = l.order_id
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                   LEFT JOIN public.parfum p ON o.id = p.order_id
@@ -1759,8 +1771,8 @@ def h_get_agent_order_info(search_order_idn):
                                       o.stage_setter_name as stage_setter_name,
                                       {additional_stmt}
                                       COUNT(o.id) as row_count,
-                                      COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                      COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                                   FROM public.users u
                                       JOIN public.orders o ON o.user_id = u.id  
                                       LEFT JOIN public.users a ON u.admin_parent_id = a.id  
@@ -1769,6 +1781,8 @@ def h_get_agent_order_info(search_order_idn):
                                       LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                                       LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                       LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                      LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                      LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                       LEFT JOIN public.linen l ON o.id = l.order_id
                                       LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                       LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -1828,8 +1842,8 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                      o.stage_setter_name as stage_setter_name,
                                      {additional_stmt}
                                      COUNT(o.id) as row_count,
-                                     COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                     SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                     COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                     SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                                  FROM public.users u
                                      JOIN public.orders o ON o.user_id = u.id
                                      LEFT JOIN public.users a ON u.admin_parent_id = a.id   
@@ -1838,6 +1852,8 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                      LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                                      LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                      LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                     LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                     LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                      LEFT JOIN public.linen l ON o.id = l.order_id
                                      LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                      LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -1879,8 +1895,8 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                       o.stage_setter_name as stage_setter_name,
                                       {additional_stmt}
                                       COUNT(o.id) as row_count,
-                                      COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                      COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                                   FROM public.users u
                                       JOIN public.orders o ON o.user_id = u.id
                                       LEFT JOIN public.users a ON u.admin_parent_id = a.id   
@@ -1889,6 +1905,8 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                       LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                                       LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                       LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                      LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                      LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                       LEFT JOIN public.linen l ON o.id = l.order_id
                                       LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                       LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -2177,7 +2195,7 @@ def helper_crm_preload(o_id: int):
 
 def helper_categories_counter(all_cards: list | tuple) -> dict:
     all_cards_proc = list(filter(lambda x: x.stage < 8, all_cards))
-    categories: tuple = ('одежда', 'обувь', 'белье', 'парфюм', )
+    categories: tuple = ('одежда', 'обувь', 'белье', 'парфюм', 'носки и прочее')
     categories_counter: dict = {'all': len(all_cards_proc)}
     for cat in categories:
         categories_counter.update({cat: sum(1 for card in all_cards_proc if card.category == cat)})

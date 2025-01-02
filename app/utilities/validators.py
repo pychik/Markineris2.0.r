@@ -34,3 +34,10 @@ class ValidatorProcessor:
             return True
         else:
             return False
+
+    @staticmethod
+    def socks_pre_validate_tnved(tnved_str: str) -> bool:
+        if not tnved_str or tnved_str not in settings.Socks.TNVED_ALL:
+            return True
+        else:
+            return False

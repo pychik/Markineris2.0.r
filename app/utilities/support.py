@@ -21,7 +21,7 @@ from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
 from config import settings
 from logger import logger
-from models import Order, OrderStat, User, EmailMessage, db, Shoe, Clothes, ClothesQuantitySize, Linen, Parfum, \
+from models import Order, OrderStat, User, EmailMessage, db, Shoe, Clothes, ClothesQuantitySize, Socks, SocksQuantitySize, Linen, Parfum, \
     Price, Promo, ServerParam, ServiceAccount, UserTransaction, users_promos
 from utilities.daily_price import get_cocmd
 from utilities.google_settings.schema import TransactionRow
@@ -78,6 +78,10 @@ def order_count(category: str, order_list) -> tuple:
                                  for el in order_list]
 
         case settings.Clothes.CATEGORY:
+            quantity_list_raw = [[(e.quantity, el.article_price, el.box_quantity) for e in el.sizes_quantities]
+                                 for el in order_list]
+
+        case settings.Socks.CATEGORY:
             quantity_list_raw = [[(e.quantity, el.article_price, el.box_quantity) for e in el.sizes_quantities]
                                  for el in order_list]
 
@@ -174,6 +178,9 @@ def check_order_pos(category: str, order: Order) -> Optional[int]:
         case settings.Clothes.CATEGORY:
             rd_exist, quantity_list_raw, pos_count, order_pos_count = order_count(category=settings.Clothes.CATEGORY,
                                                                                   order_list=order.clothes)
+        case settings.Socks.CATEGORY:
+            rd_exist, quantity_list_raw, pos_count, order_pos_count = order_count(category=settings.Socks.CATEGORY,
+                                                                                  order_list=order.socks)
         case settings.Linen.CATEGORY:
             rd_exist, quantity_list_raw, pos_count, order_pos_count = order_count(category=settings.Linen.CATEGORY,
                                                                                   order_list=order.linen)
@@ -197,8 +204,12 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
     form_data_raw = request.form
 
     # validate clothes TNVED is in CLOTHES tnveds(only clothes tnveds have dicts to check)
-    if category == settings.Clothes.CATEGORY and  \
-            ValidatorProcessor.clothes_pre_validate_tnved(tnved_str=form_data_raw.get('tnved_code')):
+    clothes_tnved_condition = category == settings.Clothes.CATEGORY and \
+                              ValidatorProcessor.clothes_pre_validate_tnved(tnved_str=form_data_raw.get('tnved_code'))
+    socks_tnved_condition = category == settings.Socks.CATEGORY and \
+                            ValidatorProcessor.socks_pre_validate_tnved(tnved_str=form_data_raw.get('tnved_code'))
+
+    if clothes_tnved_condition or socks_tnved_condition:
         if o_id and not p_id:
             return jsonify(dict(status='error', message=settings.Messages.TNVED_ABSENCE_ERROR))
 
@@ -259,6 +270,11 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
                       category=category, stage=settings.OrderStage.CREATING, processed=False, to_delete=False)
     try:
         if category == settings.Clothes.CATEGORY:
+            sizes = form_data_raw.getlist("size")
+            quantities = form_data_raw.getlist("quantity")
+            size_types = form_data_raw.getlist("size_type")
+            sizes_quantities = sorted(list(zip(sizes, quantities, size_types)), key=lambda x: x[0])
+        elif category == settings.Socks.CATEGORY:
             sizes = form_data_raw.getlist("size")
             quantities = form_data_raw.getlist("quantity")
             size_types = form_data_raw.getlist("size_type")
@@ -364,7 +380,9 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
         link = f'javascript:{category_process_name}_update_table(\'' + url_for(f'{category_process_name}.index', o_id=o_id,
                                                             update_flag=1) + '?page={0}\');'
         page, per_page, offset, pagination, order_list = helper_paginate_data(data=orders, href=link)
-        with_packages = order_list[-1].with_packages if category != settings.Clothes.CATEGORY else False
+        with_packages = order_list[-1].with_packages if category not in [settings.Clothes.CATEGORY,
+                                                                         settings.Socks.CATEGORY, ] \
+            else False
 
     return render_template(f'categories/category_v2.html', **locals(), **kwargs)
 
@@ -435,6 +453,37 @@ def helper_clothes_index(o_id: int, p_id: int = None, update_flag: int = None,
     types = settings.Clothes.TYPES
     colors = settings.Clothes.COLORS
     genders = settings.Clothes.GENDERS
+    return helper_category_common_index(**locals())
+
+
+def helper_socks_index(o_id: int, p_id: int = None, update_flag: int = None,
+                         copied_order: db.Model = None, edit_order: str = None) -> Union[Response, str]:
+    copy_order_edit_org = request.args.get('copy_order_edit_org')
+    user = current_user
+    admin_id = user.admin_parent_id
+    order_notification, admin_name, crm = helper_get_order_notification(admin_id=admin_id if admin_id else user.id)
+
+    price_description = settings.PRICE_DESCRIPTION
+    tnved_description = settings.TNVED_DESCRIPTION
+    socks_all_tnved = settings.Socks.TNVED_ALL
+
+    rd_description = settings.RD_DESCRIPTION
+    rd_types_list = settings.RD_TYPES
+
+    price_text = settings.PRICES_TEXT
+    company_types = settings.COMPANY_TYPES
+    edo_types = settings.EDO_TYPES
+    tax_list = settings.TAX_LIST
+    countries = settings.COUNTRIES_LIST
+    socks_content = settings.Socks.CLOTHES_CONTENT
+    socks_types_sizes_dict = settings.Socks.SIZE_ALL_DICT
+
+    category = settings.Socks.CATEGORY
+    category_process_name = settings.Socks.CATEGORY_PROCESS
+
+    types = settings.Socks.TYPES
+    colors = settings.Clothes.COLORS
+    genders = settings.Socks.GENDERS
     return helper_category_common_index(**locals())
 
 
@@ -957,6 +1006,9 @@ def get_category_orders(user: User, category: str, o_id: int, stage: int) -> tup
         case settings.Clothes.CATEGORY:
             sort_model = helper_get_sort_model(category=category)
             order_list = Clothes.query.filter_by(order_id=o_id).order_by(sort_model).all()
+        case settings.Socks.CATEGORY:
+            sort_model = helper_get_sort_model(category=category)
+            order_list = Socks.query.filter_by(order_id=o_id).order_by(sort_model).all()
         case settings.Linen.CATEGORY:
             sort_model = helper_get_sort_model(category=category)
             order_list = Linen.query.filter_by(order_id=o_id).order_by(sort_model).all()
@@ -1090,6 +1142,10 @@ def helper_get_cat_models_sort_dict(category: str) -> Optional[dict]:
         case settings.Parfum.CATEGORY:
             cat_models_dict: dict = {"id": Parfum.id,
                                      "trademark": Parfum.trademark,
+                                     }
+        case settings.Socks.CATEGORY:
+            cat_models_dict: dict = {"id": Socks.id,
+                                     "trademark": Socks.trademark,
                                      }
     return cat_models_dict
 
@@ -1352,16 +1408,18 @@ def helper_get_stmt_for_fin_order_report(
                 o.company_type ||' ' || o.company_name || ' '|| o.company_idn as company,
                 cli.phone as cli_phone_number,
 	            CASE WHEN MAX(agnt.login_name) IS NOT NULL THEN MAX(agnt.login_name) ELSE cli.login_name end as agent_login,
-                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count,
-                COUNT(coalesce(sh.id, cl.id, l.id, p.id)) as rows_count, 
+                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count,
+                COUNT(coalesce(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count, 
                 o.category as category,
                 utr.op_cost as op_cost,
-                utr.op_cost*SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as amount
+                utr.op_cost*SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as amount
             FROM public.orders o
                 LEFT JOIN public.shoes sh ON o.id = sh.order_id
                 LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                 LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                 LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                LEFT JOIN public.socks sk ON o.id = sk.order_id
+                LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                 LEFT JOIN public.linen l ON o.id = l.order_id
                 LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                 LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -1381,16 +1439,18 @@ def helper_get_stmt_for_fin_order_report(
                 o.company_type ||' ' || o.company_name || ' '|| o.company_idn as company,
                 cli.phone as cli_phone_number,
 	            CASE WHEN MAX(agnt.login_name) IS NOT NULL THEN MAX(agnt.login_name) ELSE cli.login_name end as agent_login,
-                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count,
-                COUNT(coalesce(sh.id, cl.id, l.id, p.id)) as rows_count, 
+                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count,
+                COUNT(coalesce(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count, 
                 o.category as category,
                 utr.op_cost as op_cost,
-                utr.op_cost*SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as amount
+                utr.op_cost*SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as amount
             FROM public.orders o
                 LEFT JOIN public.shoes sh ON o.id = sh.order_id
                 LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                 LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                 LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                LEFT JOIN public.socks sk ON o.id = sk.order_id
+                LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                 LEFT JOIN public.linen l ON o.id = l.order_id
                 LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                 LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -1897,12 +1957,14 @@ def helper_get_orders_marks(u_id: int, o_id: int = None, wo_flag: bool = False) 
         add_stmt = f"o.stage > {start_stage} AND o.stage != {settings.OrderStage.CANCELLED} AND order_idn != ''"
     stmt_orders = f"""SELECT 
                         o.order_idn as order_idn,
-                        SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                        SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                       FROM public.orders o
                           LEFT JOIN public.shoes sh ON o.id = sh.order_id
                           LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                           LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                           LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                          LEFT JOIN public.socks sk ON o.id = sk.order_id
+                          LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                           LEFT JOIN public.linen l ON o.id = l.order_id
                           LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                           LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -1924,13 +1986,15 @@ def helper_get_at2_pending_balance(admin_id: int, price_id: int, balance: int, t
     message = ''
     status = False
     stmt = f"""SELECT DISTINCT u.id as user_id,
-                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                FROM public.users u
                    JOIN public.orders o on o.user_id = u.id
                       LEFT JOIN public.shoes sh ON o.id = sh.order_id
                       LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
                       LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                       LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                      LEFT JOIN public.socks sk ON o.id = sk.order_id
+                      LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                       LEFT JOIN public.linen l ON o.id = l.order_id
                       LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                       LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -2482,8 +2546,8 @@ def helper_perform_ut_wo(user_ids: list[tuple[int]]) -> tuple[int, int]:
                                                 o.company_type as company_type, 
                                                 o.company_name as company_name, 
                                                 o.order_idn as order_idn, 
-                                                COUNT(COALESCE(sh.id, cl.id, l.id, p.id)) as rows_count, 
-                                                SUM(COALESCE(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count, 
+                                                COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count, 
+                                                SUM(COALESCE(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count, 
                                                 {transaction_price} AS transaction_price, 
                                                 o.created_at as created_at, 
                                                 o.crm_created_at as crm_created_at, 
@@ -2500,6 +2564,8 @@ def helper_perform_ut_wo(user_ids: list[tuple[int]]) -> tuple[int, int]:
                                                 public.clothes  cl ON o.id = cl.order_id
                                             LEFT JOIN 
                                                 public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                            LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                            LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                             LEFT JOIN 
                                                 public.linen l ON o.id = l.order_id
                                             LEFT JOIN 
@@ -2625,8 +2691,8 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
                                                 o.company_type as company_type, 
                                                 o.company_name as company_name, 
                                                 o.order_idn as order_idn, 
-                                                COUNT(COALESCE(sh.id, cl.id, l.id, p.id)) as rows_count, 
-                                                SUM(COALESCE(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count, 
+                                                COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count, 
+                                                SUM(COALESCE(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count, 
                                                 {transaction_price} AS transaction_price, 
                                                 o.created_at as created_at, 
                                                 o.crm_created_at as crm_created_at, 
@@ -2643,6 +2709,8 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
                                                 public.clothes  cl ON o.id = cl.order_id
                                             LEFT JOIN 
                                                 public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                            LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                            LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                             LEFT JOIN 
                                                 public.linen l ON o.id = l.order_id
                                             LEFT JOIN 
