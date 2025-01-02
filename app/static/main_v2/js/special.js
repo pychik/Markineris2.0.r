@@ -578,7 +578,9 @@ function update_category(category_p){
     if(document.getElementById(`pills-parfum-tab`)) {
         document.getElementById(`pills-parfum-tab`).classList.remove('active');
     }
-
+   if(document.getElementById(`pills-socks-tab`)) {
+        document.getElementById(`pills-socks-tab`).classList.remove('active');
+    }
     document.getElementById(`pills-${category_p}-tab`).classList.add('active');
 
 
