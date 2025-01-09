@@ -112,11 +112,6 @@ def h_admin(u_id: int):
         partner_query = db.session.query(users_partners.c.user_id, PartnerCode.code)\
             .join(PartnerCode, PartnerCode.id == users_partners.c.partner_code_id)\
             .subquery()
-        prices_query = db.session.query(Price.id.label("price_id"), Price.price_code, Price.price_1, Price.price_2, Price.price_3,
-                                        Price.price_4, Price.price_5, Price.price_6, Price.price_7, Price.price_8, Price.price_9,
-                                        Price.price_10, Price.price_11, Price.price_at2) \
-            .filter(User.price_id == Price.id)\
-            .subquery()
 
         sort_type = request.args.get("sort_type")
         order_type = desc(User.created_at) if sort_type != 'orders' else asc(os_query.c.os_created_at)
