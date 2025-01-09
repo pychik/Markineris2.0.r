@@ -5,6 +5,8 @@ from decimal import Decimal
 
 from flask import flash, render_template, redirect, send_file, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
+from sqlalchemy.orm import joinedload
+
 from views.crm.crm_support import h_cancel_order_process_payment
 from sqlalchemy import asc, desc, func, text, select, bindparam
 from sqlalchemy.exc import NoResultFound
@@ -119,36 +121,32 @@ def h_admin(u_id: int):
         sort_type = request.args.get("sort_type")
         order_type = desc(User.created_at) if sort_type != 'orders' else asc(os_query.c.os_created_at)
 
-        users_info = User.query\
-            .outerjoin(os_query, User.id == os_query.c.user_id)\
-            .outerjoin(partner_query, User.id == partner_query.c.user_id) \
-            .outerjoin(prices_query, User.price_id == prices_query.c.price_id) \
-            .with_entities(User.id, User.role, User.balance, User.login_name, User.email, User.client_code,
-                           User.status, User.phone,
-                           User.created_at, partner_query.c.code, os_query.c.orders_count, os_query.c.total_rows_count,
-                           os_query.c.total_marks_count, os_query.c.os_created_at,
-                           prices_query.c.price_code, prices_query.c.price_1, prices_query.c.price_2,
-                           prices_query.c.price_3, prices_query.c.price_4, prices_query.c.price_5,
-                           prices_query.c.price_6, prices_query.c.price_7, prices_query.c.price_8, prices_query.c.price_9,
-                           prices_query.c.price_10, prices_query.c.price_11, prices_query.c.price_at2)\
-            .filter(User.admin_parent_id == u_id).group_by(User.id, os_query.c.orders_count, os_query.c.total_rows_count,
-                                                           os_query.c.total_marks_count, os_query.c.os_created_at,
-                                                           partner_query.c.user_id, partner_query.c.code,
-                                                           prices_query.c.price_code, prices_query.c.price_1,
-                                                           prices_query.c.price_2, prices_query.c.price_3,
-                                                           prices_query.c.price_4, prices_query.c.price_5,
-                                                           prices_query.c.price_6, prices_query.c.price_7,
-                                                           prices_query.c.price_8, prices_query.c.price_9,
-                                                           prices_query.c.price_10, prices_query.c.price_11,
-                                                           prices_query.c.price_at2)\
-            .order_by(order_type).all()
+        users_info = db.session.query(
+            User.id, User.role, User.balance, User.login_name, User.email, User.client_code, User.status,
+            User.phone, User.created_at, partner_query.c.user_id, partner_query.c.code, os_query.c.orders_count,
+            os_query.c.total_rows_count, os_query.c.total_marks_count, os_query.c.os_created_at,
+            Price.price_code, Price.price_1, Price.price_2, Price.price_3, Price.price_4, Price.price_5,
+            Price.price_6, Price.price_7, Price.price_8, Price.price_9, Price.price_10, Price.price_11, Price.price_at2
+        ).outerjoin(
+            Price, User.price_id == Price.id,
+        ).outerjoin(
+            os_query, User.id == os_query.c.user_id,
+        ).outerjoin(
+            partner_query, User.id == partner_query.c.user_id,
+        ).filter(
+            User.admin_parent_id == u_id,
+        ).group_by(
+            User.id, os_query.c.orders_count, os_query.c.total_rows_count, os_query.c.total_marks_count,
+            os_query.c.os_created_at, partner_query.c.user_id, partner_query.c.code, Price.price_code,
+            Price.price_1, Price.price_2, Price.price_3, Price.price_4, Price.price_5, Price.price_6,
+            Price.price_7, Price.price_8, Price.price_9, Price.price_10, Price.price_11, Price.price_at2
+        ).order_by(order_type).all()
 
         page, per_page, \
             offset, pagination, \
             users_list = helper_paginate_data(data=users_info, per_page=settings.PAGINATION_PER_PAGE)
         basic_prices = settings.Prices.BASIC_PRICES
-        # all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2).filter(Price.price_at2.isnot(True)) \
-        #                   .order_by(desc(Price.created_at)).all()
+
         all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2) \
                           .order_by(desc(Price.created_at)).all()
 
