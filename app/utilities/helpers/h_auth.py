@@ -74,7 +74,8 @@ def h_sign_up(p_link: str) -> Union[Response, str]:
             info_list = url_decrypt(p_link).split('__')
             admin_id, partner_code_id = int(info_list[0]), int(info_list[1])
 
-            check_partner, admin_name = helper_check_partner_codes_admin(admin_id=admin_id, partner_id=partner_code_id)
+            check_partner, admin_info = helper_check_partner_codes_admin(admin_id=admin_id, partner_id=partner_code_id)
+
             if not check_partner:
                 raise Exception
             partner_code_info = PartnerCode.query.with_entities(PartnerCode.code).filter_by(id=partner_code_id).first()
@@ -151,7 +152,7 @@ def h_sign_up_post() -> Union[Response, str]:
         new_user = User(email=email, phone=phone, login_name=login_name,
                         role=settings.ORD_USER, is_crm=is_crm, is_at2=is_at2,
                         password=generate_password_hash(password, method='sha256'),
-                        status=True)
+                        status=True, phone_verified=True)
         if telegram:
             new_user.telegram.append(telegram)
         if partner:

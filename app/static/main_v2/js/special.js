@@ -140,15 +140,17 @@ function clearVerificationSession() {
     sessionStorage.removeItem('verifiedPhoneNumber');   // Remove the verified phone number
 }
 
-function verify_sign_up_form(url){
+function verify_sign_up_form(url, is_at2){
     loadingCircle();
-    if (check_intel_num() && verifySignPassword() && check_login_name()){
+    if ( check_intel_num() && verifySignPassword() && check_login_name()){
         let check = checkVerifiedNumber();
         console.log('vsuf_check:' + check)
-        if (check === true){
+        console.log('is_at2:' + is_at2 + is_at2==='True');
+        if (is_at2!=='True' && check === true){
             // close_Loading_circle();
             clearVerificationSession();
             return true}
+
         // elsereturn verifySignUpForm(url)
     }
     close_Loading_circle();

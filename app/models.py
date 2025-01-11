@@ -30,6 +30,7 @@ class User(db.Model, UserMixin):
     is_send_excel = db.Column(db.Boolean, default=False)
     order_notification = db.Column(db.String(600), default=settings.AGENT_DEFAULT_NOTE)
     agent_fee = db.Column(db.Integer, default=20)
+    phone_verified = db.Column(db.Boolean, default=False)
 
     balance = db.Column(db.Integer, default=0)
     pending_balance_rf = db.Column(db.Integer, default=0)  # pending refill balance
