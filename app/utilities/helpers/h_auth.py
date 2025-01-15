@@ -198,7 +198,7 @@ def h_send_verification_code():
         status = settings.SUCCESS
         message = settings.Sms.SMS_CODE_SUCCESS.format(phone=phone_number)
         session['verification_code'] = sms_proc.otp_code
-        print(session['verification_code'])
+        # print(session['verification_code'])
         return jsonify({'status': status, 'message': message})
     else:
         return jsonify({"status": status, 'message': settings.Sms.SMS_CODE_SEND_ERROR})
@@ -209,9 +209,9 @@ def h_verify_sign_up_phone_code():
     input_code = data.get('vcode')
 
     saved_code = session.get('verification_code')
-    print(saved_code)
-    print(input_code)
-    print(saved_code==input_code)
+    # print(saved_code, len(saved_code))
+    # print(input_code, len(input_code))
+    # print(str(saved_code)==input_code)
     if saved_code and input_code == saved_code:
         # Очистка кода из сессии после успешной проверки
         session.pop('verification_code', None)

@@ -237,6 +237,9 @@ async function verifySignUpCode(url) {
             showPasswordCaptcha();
 
         }
+        else{
+            clearVerificationSession();
+        }
 
         return result
 
@@ -632,7 +635,7 @@ function set_no_article(){
 function check_step(){
     var url_string = window.location.href;
     if( url_string.includes('orders_table' ) ){
-        console.log('got orders_table');
+        // console.log('got orders_table');
         document.getElementById('step-1').style.display='none';
         document.getElementById('step-2').style.display='none';
         document.getElementById('step-3').style.removeProperty('display')
@@ -1063,7 +1066,7 @@ function perform_wo_transactions(url, csrf){
     data:{},
     success:function(data)
     {
-        console.log(data);
+        // console.log(data);
         if(data.status === 1){
             document.getElementById('ServerBalance').innerHTML = `Баланс сервиса: <span class="link-warning"><b>${data.server_balance} р.</b></span>`;
         }
