@@ -143,19 +143,29 @@ function clearVerificationSession() {
 function verify_sign_up_form(url, is_at2){
     loadingCircle();
     if ( check_intel_num() && verifySignPassword() && check_login_name()){
-        let check = checkVerifiedNumber();
-        console.log('vsuf_check:' + check)
-        console.log('is_at2:' + is_at2 + is_at2==='True');
-        if (is_at2!=='True' && check === true){
+        if (is_at2!=='True') {
+            let check = checkVerifiedNumber();
+            console.log('vsuf_check:' + check)
+            console.log('is_at2:' + is_at2 + is_at2 === 'True');
+            if (is_at2 !== 'True' && check === true) {
+                // close_Loading_circle();
+                clearVerificationSession();
+                return true
+            }
+            else{
+                // close_Loading_circle();
+                hideVerificationCodeInput();
+                hidePasswordCaptcha();
+            }
+        }
+        else{
             // close_Loading_circle();
-            clearVerificationSession();
-            return true}
+            return true
+        }
 
         // elsereturn verifySignUpForm(url)
     }
     close_Loading_circle();
-    hideVerificationCodeInput();
-    hidePasswordCaptcha();
     return false
 }
 
