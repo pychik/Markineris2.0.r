@@ -1549,8 +1549,8 @@ def helper_get_ar_orders_stat(ar_schema: AROrdersSchema, u_id: int) -> tuple:
     :param ar_schema: AROrdersSchema instance containing the necessary parameters.
     :return: A tuple containing the orders count and marks count.
     """
-    category_type_condition_stmt = "AND coalesce(sh.type, cl.type, l.type, p.type) = '{category_pos_type}' ".format(category_pos_type=ar_schema.category_pos_type) if ar_schema.category_pos_type != settings.ALL_CATEGORY_TYPES else ''
-    category_pos_type_stmt = "max(coalesce(sh.type, cl.type, l.type, p.type))" if ar_schema.category_pos_type != settings.ALL_CATEGORY_TYPES else "\'Все типы\'"
+    category_type_condition_stmt = "AND coalesce(sh.type, cl.type, sk.type, l.type, p.type) = '{category_pos_type}' ".format(category_pos_type=ar_schema.category_pos_type) if ar_schema.category_pos_type != settings.ALL_CATEGORY_TYPES else ''
+    category_pos_type_stmt = "max(coalesce(sh.type, cl.type, sk.type, l.type, p.type))" if ar_schema.category_pos_type != settings.ALL_CATEGORY_TYPES else "\'Все типы\'"
 
     stmt = text(f"""
         SELECT max(o.category) as category,
