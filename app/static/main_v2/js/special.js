@@ -145,8 +145,8 @@ function verify_sign_up_form(url, is_at2){
     if ( check_intel_num() && verifySignPassword() && check_login_name()){
         if (is_at2!=='True') {
             let check = checkVerifiedNumber();
-            console.log('vsuf_check:' + check)
-            console.log('is_at2:' + is_at2 + is_at2 === 'True');
+            // console.log('vsuf_check:' + check)
+            // console.log('is_at2:' + is_at2 + is_at2 === 'True');
             if (is_at2 !== 'True' && check === true) {
                 // close_Loading_circle();
                 clearVerificationSession();
