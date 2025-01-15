@@ -2219,7 +2219,7 @@ def helper_check_uoabm(user: User, o_id: int = None):
     # check balance for ordinary users and  make defense against huge orders for agent type 2
 
     sum_cost = data_res['report_data']['ao_price'] + data_res['current_order']['order_cost'] \
-        if data_res['current_order']['new_idn'] else data_res['report_data']['ao_price']
+        if data_res['current_order'] and data_res['current_order']['new_idn'] else data_res['report_data']['ao_price']
 
     if sum_cost > balance:  # this check is correct for both logic options with order_id and without
         # make unnecessary check of agent type 2
