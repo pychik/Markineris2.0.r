@@ -419,12 +419,13 @@ def get_delete_pos_stmts(category: str, m_id: int) -> str:
     return stmt
 
 
-def helper_check_partner_codes_admin(partner_id: int, admin_id: int) -> tuple[bool, Optional[str]]:
+def helper_check_partner_codes_admin(partner_id: int, admin_id: int) -> tuple[bool, any]:
     try:
         res = db.session.execute(text("""
                                     SELECT 
-                                        u.login_name as admin,
-                                        up.user_id as up_user_id
+                                        u.login_name as admin_name,
+                                        u.is_at2 as admin_is_at2,
+                                        u.phone as admin_phone
                                         FROM public.users u
                                         LEFT JOIN  public.users_partners up on up.user_id=u.id
                                         WHERE u.id=:admin_id
@@ -434,7 +435,7 @@ def helper_check_partner_codes_admin(partner_id: int, admin_id: int) -> tuple[bo
                                  """).bindparams(admin_id=admin_id, partner_id=partner_id)).fetchone()
 
         if res:
-            return True, res.admin
+            return True, res
         else:
             return False, ''
     except Exception as e:

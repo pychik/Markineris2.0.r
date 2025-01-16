@@ -1,7 +1,8 @@
 from typing import Union
 
-from flask import Blueprint, render_template, redirect, url_for, request, Response, flash, Markup, session
+from flask import Blueprint, jsonify, render_template, redirect, url_for, request, Response, flash, Markup, session
 from flask_login import login_user, logout_user, current_user
+
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -9,6 +10,7 @@ from config import settings
 from logger import logger
 from models import User, PartnerCode, db
 from settings.start import SIMPLE_CAPTCHA
+from utilities.sms.sms_service import SmsOTP
 from utilities.saving_uts import helper_check_partner_codes_admin
 from utilities.support import url_decrypt, check_email
 from utilities.telegram import NewUser
@@ -72,7 +74,8 @@ def h_sign_up(p_link: str) -> Union[Response, str]:
             info_list = url_decrypt(p_link).split('__')
             admin_id, partner_code_id = int(info_list[0]), int(info_list[1])
 
-            check_partner, admin_name = helper_check_partner_codes_admin(admin_id=admin_id, partner_id=partner_code_id)
+            check_partner, admin_info = helper_check_partner_codes_admin(admin_id=admin_id, partner_id=partner_code_id)
+
             if not check_partner:
                 raise Exception
             partner_code_info = PartnerCode.query.with_entities(PartnerCode.code).filter_by(id=partner_code_id).first()
@@ -149,7 +152,7 @@ def h_sign_up_post() -> Union[Response, str]:
         new_user = User(email=email, phone=phone, login_name=login_name,
                         role=settings.ORD_USER, is_crm=is_crm, is_at2=is_at2,
                         password=generate_password_hash(password, method='sha256'),
-                        status=True)
+                        status=True, phone_verified=True)
         if telegram:
             new_user.telegram.append(telegram)
         if partner:
@@ -180,3 +183,38 @@ def h_sign_up_post() -> Union[Response, str]:
             flash(message=f"{settings.Messages.USER_SIGNUP_ERROR_UNKNOWN} {e}")
 
     return redirect(url_for('auth.login'))
+
+
+def h_send_verification_code():
+    data = request.get_json()
+    phone_number = data.get('phone')
+    status = settings.ERROR
+    if not phone_number:
+        message = settings.Sms.NO_PHONE
+        return jsonify({'status': status, 'message': message})
+
+    sms_proc = SmsOTP(api_key=settings.SMS_API_TOKEN)
+    if sms_proc.send_sms(phone=phone_number):
+        status = settings.SUCCESS
+        message = settings.Sms.SMS_CODE_SUCCESS.format(phone=phone_number)
+        session['verification_code'] = sms_proc.otp_code
+        # print(session['verification_code'])
+        return jsonify({'status': status, 'message': message})
+    else:
+        return jsonify({"status": status, 'message': settings.Sms.SMS_CODE_SEND_ERROR})
+
+
+def h_verify_sign_up_phone_code():
+    data = request.get_json()
+    input_code = data.get('vcode')
+
+    saved_code = session.get('verification_code')
+    # print(saved_code, len(saved_code))
+    # print(input_code, len(input_code))
+    # print(str(saved_code)==input_code)
+    if saved_code and input_code == saved_code:
+        # Очистка кода из сессии после успешной проверки
+        session.pop('verification_code', None)
+        return jsonify({"status": settings.SUCCESS})
+    else:
+        return jsonify({"status": settings.ERROR}), 400

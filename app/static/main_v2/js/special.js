@@ -112,14 +112,6 @@ function verifySignPassword() {
 
 }
 
-function verify_sign_up_form(){
-    if (check_intel_num() && verifySignPassword() && check_login_name()){
-        loadingCircle();
-        return true
-    }
-    return false
-}
-
 function change_input_view(block_id, eye_toggle_id){
     let block = document.getElementById(block_id);
     let eye_toggle = document.getElementById(eye_toggle_id);
@@ -142,6 +134,163 @@ function change_input_view(block_id, eye_toggle_id){
     }
 
 }
+
+function clearVerificationSession() {
+    sessionStorage.removeItem('isVerified');            // Remove the verification status
+    sessionStorage.removeItem('verifiedPhoneNumber');   // Remove the verified phone number
+}
+
+function verify_sign_up_form(url, is_at2){
+    loadingCircle();
+    if ( check_intel_num() && verifySignPassword() && check_login_name()){
+        if (is_at2!=='True') {
+            let check = checkVerifiedNumber();
+            // console.log('vsuf_check:' + check)
+            // console.log('is_at2:' + is_at2 + is_at2 === 'True');
+            if (is_at2 !== 'True' && check === true) {
+                // close_Loading_circle();
+                clearVerificationSession();
+                return true
+            }
+            else{
+                // close_Loading_circle();
+                hideVerificationCodeInput();
+                hidePasswordCaptcha();
+            }
+        }
+        else{
+            // close_Loading_circle();
+            return true
+        }
+
+        // elsereturn verifySignUpForm(url)
+    }
+    close_Loading_circle();
+    return false
+}
+
+function checkVerifiedNumber(){
+    const verifiedPhoneNumber = sessionStorage.getItem('verifiedPhoneNumber');
+
+    // Get the current phone number entered in the input field
+    const currentPhoneNumber = document.getElementById('phone').value;
+
+    // Check if the phone number has been verified and matches the input
+    if (sessionStorage.getItem('isVerified') === 'true' && currentPhoneNumber === verifiedPhoneNumber) {
+        return true;
+    }// Allow form submission
+    make_message('проверенный номер и введенный не совпадают', 'warning');
+
+    return false
+}
+
+function verifyPhoneNumber(url) {
+    const phoneNumber = iti.getNumber();
+    // Отправка номера телефона на сервер для отправки кода
+    $.ajax({
+        url: url,  // Создайте этот маршрут на сервере
+        // headers:{"X-CSRFToken": csrf},
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ phone: phoneNumber }),
+        success: function (response) {
+            if (response.status === "success") {
+                make_message(response.message, response.status);
+                showVerificationCodeInput();
+            } else {
+                make_message(response.message, response.status);
+            }
+        },
+        error: function () {
+            make_message("Произошла ошибка. Пожалуйста, попробуйте позже.", "danger");
+        }
+    });
+}
+
+function showVerificationCodeInput() {
+   document.getElementById('verification-code').value = '';
+   document.getElementById("verification-code-input").style.display = "block";
+
+
+    }
+
+function hideVerificationCodeInput() {
+
+   document.getElementById("verification-code-input").style.display = "none";
+
+
+    }
+
+  function showPasswordCaptcha() {
+
+   document.getElementById("captcha_text").value = '';
+   document.getElementById("passwordsAndCaptchaHide").style.display = "block";
+
+
+    }
+
+function hidePasswordCaptcha() {
+
+   document.getElementById("passwordsAndCaptchaHide").style.display = "none";
+
+
+    }
+async function verifySignUpCode(url) {
+    try {
+        let result = await verifySignUpForm(url);
+        // console.log('Verification result:', result);
+
+        if (result) {
+            clearVerificationSession();
+            sessionStorage.setItem('isVerified', 'true');
+            sessionStorage.setItem('verifiedPhoneNumber', document.getElementById('phone').value);
+            showPasswordCaptcha();
+
+        }
+        else{
+            clearVerificationSession();
+        }
+
+        return result
+
+    } catch (error) {
+        console.error('Verification failed:', error);
+        return false
+
+    }
+}
+
+function verifySignUpForm(url) {
+    return new Promise((resolve, reject) => {
+        let verificationCode = document.getElementById("verification-code").value;
+        if (verificationCode && verificationCode !== '') {
+            // Verifying code on the server
+            $.ajax({
+                url: url,
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ vcode: verificationCode }),
+                success: function (response) {
+                    if (response.status === "success") {
+                        make_message("Код успешно подтвержден!", 'success');
+                        resolve(true);
+                    } else {
+                        make_message("Неверный код. Проверьте код и попробуйте снова.", 'warning');
+                        resolve(false);
+                    }
+                },
+                error: function () {
+                    make_message("Произошла ошибка. Пожалуйста, попробуйте позже.", 'danger');
+                    reject(false);
+                }
+            });
+        } else {
+            make_message("Произошла ошибка, код верификации не введен", 'warning');
+            reject(false);
+        }
+    });
+}
+
 
 function clear_message_copy(){
 
@@ -496,7 +645,7 @@ function set_no_article(){
 function check_step(){
     var url_string = window.location.href;
     if( url_string.includes('orders_table' ) ){
-        console.log('got orders_table');
+        // console.log('got orders_table');
         document.getElementById('step-1').style.display='none';
         document.getElementById('step-2').style.display='none';
         document.getElementById('step-3').style.removeProperty('display')
@@ -937,7 +1086,7 @@ function perform_wo_transactions(url, csrf){
     data:{},
     success:function(data)
     {
-        console.log(data);
+        // console.log(data);
         if(data.status === 1){
             document.getElementById('ServerBalance').innerHTML = `Баланс сервиса: <span class="link-warning"><b>${data.server_balance} р.</b></span>`;
         }

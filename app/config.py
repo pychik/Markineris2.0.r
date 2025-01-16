@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     MARKINERIS_SECRET: str
     MARKINERIS_CHECK_OI_LINK: str
     MARKINERIS_CHECK_CROSS_OI_LINK: str
+    SMS_API_TOKEN: str
     TELEGRAMM_GROUP_LINK: str = "https://t.me/markinerisss"
     TELEGRAMM_USER_NOTIFY_LINK: str = "https://t.me/markiservice_un_bot"
     MAIL_LINK: str = "mailto:markineris@gmail.com"
@@ -287,6 +288,12 @@ class Settings(BaseSettings):
         APCO_NOORDERS: str = "Нет заказов для отмены"  # AUTO PROBLEM TO CANCELL  ORDERS
         APCO_MESSAGE: str = "Отменен автоматически по истечению срока решения вопроса"
         APCO_SUCCESS: str = "Перенос проблемных заказов в отмененные завершен успешно"
+
+    class Sms:
+        SMS_SERVER_URL: str = ''
+        NO_PHONE: str = 'Ошибка. Не представлен телефонный номер для проверки'
+        SMS_CODE_SUCCESS: str = "На ваш номер {phone} отправлен код верификации. Введите его ниже!"
+        SMS_CODE_SEND_ERROR: str = "Код не отправлен. Обратитесь к администратору!"
 
     class Telegram:
         URL: str = "https://api.telegram.org/bot"
