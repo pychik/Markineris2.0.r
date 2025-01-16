@@ -1,20 +1,22 @@
+import urllib
 from datetime import datetime, timedelta
-from flask import jsonify, request, render_template, Response, url_for
+from flask import jsonify, request, render_template, Response, url_for, make_response
 from io import BytesIO
 from pandas import DataFrame, ExcelWriter
 from pandas import to_datetime as pd_datetime
 from time import sleep as t_sleep
-from sqlalchemy import asc, desc, text
+from sqlalchemy import asc, desc, text, TextClause
 from sqlalchemy.engine.row import Row
 from typing import Optional
 
 from config import settings
 from models import db, User
+from utilities.admin.excel_report import ExcelReport
 from utilities.support import helper_paginate_data
 
 
 def process_admin_report(u_id: int, sheet_name: str) -> Optional[BytesIO]:
-    res = db.session.execute(text(f"""
+    res = db.session.execute(text("""
                                     SELECT
                                      os.saved_at AS saved_at_d,
                                      os.saved_at AS saved_at_h,
@@ -29,9 +31,9 @@ def process_admin_report(u_id: int, sheet_name: str) -> Optional[BytesIO]:
                                      os.op_cost AS op_cost
                                      FROM public.users u
                                       JOIN public.orders_stats os ON u.id = os.user_id
-                                    WHERE u.admin_parent_id={u_id} OR u.id = {u_id}
+                                    WHERE u.admin_parent_id=:u_id OR u.id = :u_id
                                     ORDER BY login_name, saved_at_d
-                            """))
+                            """).bindparams(u_id=u_id))
     report_info = res.fetchall()
     if not report_info:
         return None
@@ -59,56 +61,158 @@ def process_admin_report(u_id: int, sheet_name: str) -> Optional[BytesIO]:
     return output
 
 
-def helper_get_orders_stats(admin_id: int = None) -> Response:
-    extend_agent = request.args.get('extend_agent', 0, type=int)
+def helper_get_orders_stats_stmt(date_from, date_to, admin_id: Optional[int] = None,
+                                 extend_agent: int = 0, ) -> TextClause:
     additional_stmt = ""
-    sub_stmt = f" OR u.id={admin_id}" if extend_agent else ""
+    sub_stmt = " OR u.id=:admin_id" if extend_agent else ""
     if admin_id:
-        additional_stmt = f"""WHERE os.user_id in (SELECT u.id FROM public.users u WHERE u.admin_parent_id={admin_id} {sub_stmt})"""
-    order_stmt = f"""SELECT os.order_idn as order_idn,
-                                os.company_idn as company_idn,
-                                os.company_type as company_type,
-                                os.company_name as company_name,
-                                os.rows_count as rows_count,
-                                os.marks_count as marks_count,
-                                os.op_cost as op_cost,
-                                os.category as category,
-                                os.created_at as created_at,
-                                MAX(u.login_name) as user_name,
-                                MAX(u.phone) as phone,
-                                MAX(pc.code) as partner_code
-                             FROM public.orders_stats os
-                             LEFT JOIN public.users u on u.id=os.user_id
-                             LEFT JOIN public.users_partners up on up.user_id =u.id
-                             LEFT JOIN public.partner_codes pc on pc.id = up.partner_code_id
-                             {additional_stmt}
-                             GROUP BY os.id
-                             ORDER BY os.created_at DESC
-                         """
+        additional_stmt = f"""and os.user_id in (SELECT u.id FROM public.users u WHERE u.admin_parent_id=:admin_id {sub_stmt})"""
+    order_stmt = text(f"""SELECT    
+                                    os.created_at as created_at,
+                                    os.order_idn as order_idn,
+                                    MAX(pc.code) as partner_code,
+                                    MAX(u.login_name) as user_name,
+                                    os.company_idn as company_idn,
+                                    os.company_type || ' ' ||
+                                    os.company_name as company_name,
+                                     MAX(u.phone) as phone,
+                                    os.rows_count as rows_count,
+                                    os.marks_count as marks_count,
+                                    os.op_cost as op_cost,
+                                    os.category as category,
+                                    os.op_cost * os.marks_count as price,
+                                    case when os.op_cost is not null then 'Оплачен' else 'Не оплачен' end as order_status
 
-    order_stats = db.session.execute(text(order_stmt)).fetchall()
+                                 FROM public.orders_stats os
+                                 LEFT JOIN public.users u on u.id=os.user_id
+                                 LEFT JOIN public.users_partners up on up.user_id =u.id
+                                 LEFT JOIN public.partner_codes pc on pc.id = up.partner_code_id
+                                 WHERE
+                                 os.created_at >= :date_from
+                                 and os.created_at < :date_to
+                                 {additional_stmt}
+                                 GROUP BY os.id, os.created_at
+                                 ORDER BY os.created_at DESC
+                             """)
+
+    params = {
+        "date_from": datetime.strptime(date_from, '%d.%m.%Y').strftime('%Y-%m-%d'),
+        "date_to": datetime.strptime(date_to, '%d.%m.%Y').strftime('%Y-%m-%d'),
+    }
+    if admin_id:
+        params["admin_id"] = admin_id
+
+    return order_stmt.bindparams(**params)
+
+
+def helper_get_orders_stats_param(report: bool = False):
+    admin_id = None
+    default_day_to = (datetime.today() + timedelta(days=1)).strftime('%d.%m.%Y')
+    default_day_from = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%d.%m.%Y')
+    if report:
+        url_date_from = request.form.get('date_from', '', type=str)
+        url_date_to = request.form.get('date_to', '', type=str)
+        extend_agent = request.form.get('extend_agent', 0, type=int)
+        admin_id = request.form.get('admin_id', 0, type=int)
+
+    else:
+        url_date_from = request.args.get('date_from', '', type=str)
+        url_date_to = request.args.get('date_to', '', type=str)
+        extend_agent = request.args.get('extend_agent', 0, type=int)
+
+    date_to = datetime.strptime(url_date_to, '%d.%m.%Y').strftime('%d.%m.%Y') if url_date_to else default_day_to
+    date_from = (datetime.strptime(url_date_from, '%d.%m.%Y') + timedelta(days=1)).strftime(
+        '%d.%m.%Y') if url_date_from else default_day_from
+
+    return date_from, date_to, extend_agent, admin_id
+
+
+def helper_get_orders_stats(admin_id: Optional[int] = None) -> Response:
+    date_from, date_to, extend_agent, _ = helper_get_orders_stats_param()
+    order_stmt = helper_get_orders_stats_stmt(date_from, date_to, admin_id, extend_agent, )
+    order_stats = db.session.execute(order_stmt).fetchall()
 
     bck = request.args.get('bck', 0, type=int)
-
     if not order_stats:
         return render_template('admin/orders_stats/os_main.html', **locals()) if not bck \
-            else jsonify({'htmlresponse': render_template(f'admin/orders_stats/os_table.html',
-                                                        **locals())})
-    # link_filters = f'tr_type=1&tr_status={settings.Transactions.PENDING}&'
+            else jsonify(
+            {
+                'htmlresponse': render_template(
+                    f'admin/orders_stats/os_table.html',
+                    **locals()
+                )
+             }
+        )
+
     link_filters = 'bck=1&'
     link = f'javascript:bck_get_orders_stats(\'' + url_for(
         'admin_control.users_orders_stats', admin_id=admin_id) + f'?extend_agent={extend_agent}&{link_filters}' + 'page={0}\');'
     page, per_page, \
         offset, pagination, \
         os_list = helper_paginate_data(data=order_stats, per_page=settings.PAGINATION_PER_PAGE, href=link)
-
     return render_template('admin/orders_stats/os_main.html', **locals()) if not bck \
         else jsonify({'htmlresponse': render_template(f'admin/orders_stats/os_table.html',
                                                       **locals())})
 
 
+def helper_get_orders_stats_rpt():
+    date_from, date_to, extend_agent, admin_id = helper_get_orders_stats_param(report=True)
+    order_stmt = helper_get_orders_stats_stmt(date_from, date_to, admin_id, extend_agent)
+    order_stats = db.session.execute(order_stmt).fetchall()
+    order_stats = [row[:4] + row[5:9] + row[10:] for row in order_stats]
+    excel_filters = {
+        'дата начала': date_from,
+        'дата окончания': (datetime.strptime(date_to, '%d.%m.%Y') - timedelta(days=1)).strftime('%d.%m.%Y'),
+        'с заказами агента': 'да' if extend_agent else 'нет'
+    }
+    if not admin_id:
+        del excel_filters['с заказами агента']
+
+    report_name = f'статистика заказов ({datetime.today().strftime("%d.%m.%y %H-%M")})'
+
+    excel = ExcelReport(
+        data=order_stats,
+        filters=excel_filters,
+        columns_name=[
+            'дата',
+            'номер заказа',
+            'код партнера',
+            'аккаунт ID',
+            'фирма',
+            'телефонный номер',
+            'сколько строк',
+            'сколько марок',
+            'категория',
+            'цена заказа(руб)',
+            'статус',
+        ],
+        sheet_name='История заказов',
+        output_file_name=report_name,
+        condition_format={10: [{
+            'type': 'cell',
+            'criteria': 'equal',
+            'value': '"Оплачен"',
+            'format': {'bg_color': 'green'}
+        }, {
+            'type': 'cell',
+            'criteria': '!=',
+            'value': '"Оплачен"',
+            'format': {'bg_color': 'red'}
+        }]
+        }
+    )
+
+    excel_io = excel.create_report()
+    content = excel_io.getvalue()
+    response = make_response(content)
+    response.headers['data_file_name'] = urllib.parse.quote(excel.output_file_name)
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    response.headers['data_status'] = 'success'
+    return response
+
+
 def helper_get_clients_os(admin_id: int, client: User) -> Response:
-    order_stmt = text(f"""SELECT os.order_idn as order_idn,
+    order_stmt = text("""SELECT os.order_idn as order_idn,
                                 os.company_idn as company_idn,
                                 os.company_type as company_type,
                                 os.company_name as company_name,
@@ -164,7 +268,7 @@ def helper_get_new_orders_at2(admin_id: int) -> list:
                                   o.company_name as company_name,
                                   o.crm_created_at as crm_created_at,
                                   COUNT(o.id) as row_count,
-                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id  
                                   LEFT JOIN public.users a ON u.admin_parent_id = a.id  
@@ -172,6 +276,8 @@ def helper_get_new_orders_at2(admin_id: int) -> list:
                                   LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                                   LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                   LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                  LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                  LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                   LEFT JOIN public.linen l ON o.id = l.order_id
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                   LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -184,26 +290,26 @@ def helper_get_new_orders_at2(admin_id: int) -> list:
 
 
 def helper_check_new_order_at2(admin_id: int, o_id: int) -> Row | None:
-    stmt_order = text(f"""
+    stmt_order = text("""
                               SELECT 
                                   o.order_idn as order_idn,
                                   o.user_id as user_id,
                                   o.payment as payment
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id  
-                              WHERE  (u.admin_parent_id=:admin_id OR u.id=:admin_id) AND o.id=:order_id AND o.stage={settings.OrderStage.NEW} AND o.to_delete != True
-                               """).bindparams(admin_id=admin_id, order_id=o_id)
+                              WHERE  (u.admin_parent_id=:admin_id OR u.id=:admin_id) AND o.id=:order_id AND o.stage=:stage AND o.to_delete != True
+                               """).bindparams(admin_id=admin_id, order_id=o_id, stage=settings.OrderStage.NEW)
 
     return db.session.execute(stmt_order).fetchone()
 
 
 def helper_prev_day_orders_marks() -> Row:
     yesterday = datetime.now() - timedelta(days=1)
-    stmt = text(""" SELECT count(id) as orders_count, sum(marks_count) as marks_count 
-                         FROM public.orders_stats WHERE saved_at >= '{yesterday_from}' 
-                        AND saved_at < '{yesterday_to}';""".format(
+    stmt = text(""" SELECT count(id) as orders_count, coalesce(sum(marks_count), 0) as marks_count 
+                     FROM public.orders_stats WHERE saved_at >= :yesterday_from
+                    AND saved_at < :yesterday_to;""").bindparams(
         yesterday_from=yesterday.strftime('%Y-%m-%d 00:00:00'),
-        yesterday_to=yesterday.strftime('%Y-%m-%d 23:59:59')))
+        yesterday_to=yesterday.strftime('%Y-%m-%d 23:59:59'))
     return db.session.execute(stmt).fetchone()
 
 
@@ -264,11 +370,11 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
                     LEFT JOIN public.users_partners as up on up.user_id=u.id
                     LEFT JOIN public.partner_codes as pc on pc.id=up.partner_code_id
                     LEFT JOIN public.reanimate_status as rs on rs.user_id = u.id
-                    WHERE u.role='{settings.ORD_USER}'
+                    WHERE u.role=:role
                     {user_filter}
                     GROUP BY u.id, u.login_name
                     {date_condition}
-                    ORDER BY """ + str(order_clause) + ";")
+                    ORDER BY """ + str(order_clause) + ";").bindparams(role=settings.ORD_USER)
 
     stmt = query.bindparams(u_id=u_id) if u_id else query
     return db.session.execute(stmt).fetchall()

@@ -1,18 +1,15 @@
 from datetime import date, datetime, timedelta
-from os import listdir as o_listdir
-from os import path as o_path
-from os import remove as o_remove
+from typing import Optional
+from uuid import uuid4
+
+from flask import jsonify, redirect, render_template, request, Response, flash, url_for
+from flask_login import current_user
 from redis import Redis
 from rq import Queue
 from rq_scheduler.scheduler import Scheduler
-from uuid import uuid4
-
-from flask import jsonify, redirect, render_template, request, Response, flash, url_for, send_from_directory
-from flask_login import current_user
 from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
-from typing import Optional
 from werkzeug.utils import secure_filename
 
 from config import settings
@@ -21,6 +18,7 @@ from models import User, Order, OrderStat, db, ServerParam
 from redis_queue.callbacks import on_success_periodic_task, on_failure_periodic_task
 from utilities.download import crm_orders_common_preload
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify, helper_suotls
+from utilities.minio_service.services import get_s3_service, download_file_from_minio
 from utilities.pdf_processor import helper_check_attached_file
 from utilities.saving_uts import get_rows_marks
 from utilities.support import (helper_get_at2_pending_balance, helper_get_limits, orders_list_common)
@@ -28,12 +26,10 @@ from utilities.telegram import MarkinerisInform
 from .crm_support import h_cancel_order_process_payment
 
 
-def helper_get_agent_orders(user: User) -> list:
-# def helper_get_agent_orders() -> list:
+def helper_get_agent_orders(user: User, category: str | None = None) -> list:
+    category_stmt = f" AND o.category=\'{category}\'" if category in settings.CATEGORIES_UPLOAD else ""
 
-    date_compare = date.today() - timedelta(days=settings.OrderStage.DAYS_CONTENT)
-    conditional_stmt = f"o.stage>{settings.OrderStage.CREATING}  AND o.stage < {settings.OrderStage.SENT}"
-    stmt_get_manager = f"(select managers.login_name from public.users managers where managers.id=o.manager_id)"
+    conditional_stmt = f"o.stage>{settings.OrderStage.CREATING}  AND o.stage < {settings.OrderStage.SENT}{category_stmt}"
     additional_stmt = """
                                  o.comment_problem as comment_problem,
                                  o.comment_cancel as comment_cancel,
@@ -47,10 +43,10 @@ def helper_get_agent_orders(user: User) -> list:
                                  o.closed_at as closed_at,
                               """
     stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
+
     if user.role != settings.SUPER_USER:
         admin_id = user.id
 
-        # stmt_get_agent = f"SELECT public.users.login_name from public.users where public.users.id={admin_id}"
         stmt_users = f"""SELECT users.id AS users_id
                          FROM users
                          WHERE users.admin_parent_id = {admin_id} OR users.id = {admin_id}
@@ -62,55 +58,7 @@ def helper_get_agent_orders(user: User) -> list:
                                   u.login_name as login_name,
                                   u.phone as phone,
                                   u.email as email,
-                                  o.id as id,
-                                  o.stage as stage,
-                                  o.payment as payment,
-                                  o.order_idn as order_idn,
-                                  o.category as category,
-                                  o.company_type as company_type,
-                                  o.company_name as company_name,
-                                  o.company_idn as company_idn,
-                                  o.external_problem as external_problem,
-                                  o.edo_type as edo_type,
-                                  o.mark_type as mark_type,
-                                  o.user_comment as user_comment,
-                                  o.has_new_tnveds as has_new_tnveds,
-                                  o.manager_id as manager_id,
-                                  o.to_delete as to_delete,
-                                  MAX(orf.origin_name) as order_file,
-                                  MAX(orf.file_link) as order_file_link,
-                                  MAX(managers.login_name) as manager,
-                                  o.stage_setter_name as stage_setter_name,
-                                  {additional_stmt}
-                                  COUNT(o.id) as row_count,
-                                  COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
-                              FROM public.users u
-                                  JOIN public.orders o ON o.user_id = u.id
-                                  LEFT JOIN public.users a ON u.admin_parent_id = a.id
-                                  LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                                  LEFT JOIN public.shoes sh ON o.id = sh.order_id
-                                  LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
-                                  LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-                                  LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                                  LEFT JOIN public.linen l ON o.id = l.order_id
-                                  LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                  LEFT JOIN public.parfum p ON o.id = p.order_id
-                                  LEFT JOIN public.users managers ON o.manager_id = managers.id
-                        WHERE u.id in({stmt_users}) AND {conditional_stmt} AND o.to_delete != True
-                        GROUP BY u.id, o.id, o,crm_created_at
-                        ORDER BY o.crm_created_at ASC 
-                       """
-    else:
-        # stmt_get_agent = f"SELECT a.login_name FROM public.users a  WHERE ((a.id=u.admin_parent_id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')) OR (a.id=u.id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')))"
-
-        stmt_orders = f"""
-                              SELECT 
-                                  u.client_code as client_code,
-                                  {stmt_get_agent} as agent_name ,
-                                  u.login_name as login_name, 
-                                  u.phone as phone, 
-                                  u.email as email, 
+                                  u.is_at2 as is_at2,
                                   o.id as id,
                                   o.stage as stage,
                                   o.payment as payment,
@@ -133,8 +81,59 @@ def helper_get_agent_orders(user: User) -> list:
                                   o.stage_setter_name as stage_setter_name,
                                   {additional_stmt}
                                   COUNT(o.id) as row_count,
-                                  COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                  COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                              FROM public.users u
+                                  JOIN public.orders o ON o.user_id = u.id
+                                  LEFT JOIN public.users a ON u.admin_parent_id = a.id
+                                  LEFT JOIN public.order_files orf ON o.id=orf.order_id
+                                  LEFT JOIN public.shoes sh ON o.id = sh.order_id
+                                  LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
+                                  LEFT JOIN public.clothes  cl ON o.id = cl.order_id
+                                  LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                  LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                  LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
+                                  LEFT JOIN public.linen l ON o.id = l.order_id
+                                  LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
+                                  LEFT JOIN public.parfum p ON o.id = p.order_id
+                                  LEFT JOIN public.users managers ON o.manager_id = managers.id
+                        WHERE u.id in({stmt_users}) AND {conditional_stmt} AND o.to_delete != True
+                        GROUP BY u.id, o.id, o.crm_created_at
+                        ORDER BY o.crm_created_at ASC 
+                       """
+    else:
+        stmt_orders = f"""
+                              SELECT 
+                                  u.client_code as client_code,
+                                  {stmt_get_agent} as agent_name ,
+                                  u.login_name as login_name, 
+                                  u.phone as phone, 
+                                  u.email as email, 
+                                  u.is_at2 as is_at2,
+                                  o.id as id,
+                                  o.stage as stage,
+                                  o.payment as payment,
+                                  o.order_idn as order_idn,
+                                  o.category as category,
+                                  o.company_type as company_type,
+                                  o.company_name as company_name,
+                                  o.company_idn as company_idn,
+                                  o.external_problem as external_problem,
+                                  o.edo_type as edo_type,
+                                  o.mark_type as mark_type,
+                                  o.user_comment as user_comment,
+                                  o.has_new_tnveds as has_new_tnveds,
+                                  o.manager_id as manager_id,
+                                  o.to_delete as to_delete,
+                                  o.crm_created_at as crm_created_at,
+                                  MAX(orf.origin_name) as order_file,
+                                  MAX(orf.file_link) as order_file_link,
+                                  MAX(managers.login_name) as manager,
+                                  o.stage_setter_name as stage_setter_name,
+                                  {additional_stmt}
+                                  COUNT(o.id) as row_count,
+                                  COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id  
                                   LEFT JOIN public.users a ON u.admin_parent_id = a.id  
@@ -143,6 +142,8 @@ def helper_get_agent_orders(user: User) -> list:
                                   LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                                   LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                   LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                  LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                  LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                   LEFT JOIN public.linen l ON o.id = l.order_id
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                   LEFT JOIN public.parfum p ON o.id = p.order_id
@@ -156,16 +157,20 @@ def helper_get_agent_orders(user: User) -> list:
     return res.fetchall()
 
 
-def helper_get_agent_stage_orders(stage: int, user: User) -> list:
+def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all') -> list:
     """
     returns a list of orders for cancelled sent and performed stages asynchroniously
     :param stage: stage of order
     :param user: current agent
+    :param category: category
     :return:
     """
     date_compare = date.today() - timedelta(days=settings.OrderStage.DAYS_UPDATE_CONTENT)
-    time_field = settings.OrderStage.STAGES_TF.get(stage)
+    time_field = settings.OrderStage.STAGES_TF.get(stage, 'crm_created_at')
+    time_stmt = f"AND o.{time_field} > '{date_compare}'" \
+        if stage in [settings.OrderStage.SENT, settings.OrderStage.CANCELLED, settings.OrderStage.CRM_PROCESSED] else ""
 
+    category_stmt = f"AND o.category='{category}'" if category in settings.CATEGORIES_UPLOAD else ""
     if user.role != settings.SUPER_USER:
         admin_id = user.id
 
@@ -180,6 +185,7 @@ def helper_get_agent_stage_orders(stage: int, user: User) -> list:
                                           u.login_name as login_name,
                                           u.phone as phone,
                                           u.email as email,
+                                          u.is_at2 as is_at2,
                                           o.id as id,
                                           o.stage as stage,
                                           o.payment as payment,
@@ -195,6 +201,7 @@ def helper_get_agent_stage_orders(stage: int, user: User) -> list:
                                           o.has_new_tnveds as has_new_tnveds,
                                           o.manager_id as manager_id,
                                           o.to_delete as to_delete,
+                                          o.crm_created_at as crm_created_at,
                                           MAX(orf.origin_name) as order_file,
                                           MAX(orf.file_link) as order_file_link,
                                           MAX(managers.login_name) as manager,
@@ -210,8 +217,8 @@ def helper_get_agent_stage_orders(stage: int, user: User) -> list:
                                           o.sent_at as sent_at,
                                           o.closed_at as closed_at,
                                           COUNT(o.id) as row_count,
-                                          COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                          SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                          COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                          SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                                       FROM public.users u
                                           JOIN public.orders o ON o.user_id = u.id
                                           LEFT JOIN public.users a ON u.admin_parent_id = a.id  
@@ -220,14 +227,16 @@ def helper_get_agent_stage_orders(stage: int, user: User) -> list:
                                           LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
                                           LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                           LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                          LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                          LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                           LEFT JOIN public.linen l ON o.id = l.order_id
                                           LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                           LEFT JOIN public.parfum p ON o.id = p.order_id
                                           LEFT JOIN public.users managers ON o.manager_id = managers.id
-                                WHERE o.stage=:stage AND u.id in({stmt_users}) AND o.{time_field} > :date_compare AND o.to_delete != True
+                                WHERE o.stage=:stage AND u.id in({stmt_users}) {time_stmt} AND o.to_delete != True {category_stmt}
                                 GROUP BY u.id, o.id, o,crm_created_at
                                 ORDER BY o.crm_created_at ASC 
-                               """.format(time_field=time_field)).bindparams(stage=stage, date_compare=date_compare)
+                               """.format(time_stmt=time_stmt)).bindparams(stage=stage)
     else:
 
         stmt_orders = text(f"""
@@ -253,6 +262,7 @@ def helper_get_agent_stage_orders(stage: int, user: User) -> list:
                                   o.has_new_tnveds as has_new_tnveds,
                                   o.manager_id as manager_id,
                                   o.to_delete as to_delete,
+                                  o.crm_created_at as crm_created_at,
                                   MAX(orf.origin_name) as order_file,
                                   MAX(orf.file_link) as order_file_link,
                                   MAX(managers.login_name) as manager,
@@ -268,8 +278,8 @@ def helper_get_agent_stage_orders(stage: int, user: User) -> list:
                                   o.sent_at as sent_at,
                                   o.closed_at as closed_at,
                                   COUNT(o.id) as row_count,
-                                  COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                  COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id  
                                   LEFT JOIN public.users a ON u.admin_parent_id = a.id  
@@ -278,41 +288,47 @@ def helper_get_agent_stage_orders(stage: int, user: User) -> list:
                                   LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                                   LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                   LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                  LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                  LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                   LEFT JOIN public.linen l ON o.id = l.order_id
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                   LEFT JOIN public.parfum p ON o.id = p.order_id 
                                   LEFT JOIN public.users managers ON o.manager_id = managers.id
-                              WHERE  o.stage=:stage AND o.{time_field} > :date_compare AND o.to_delete != True
+                              WHERE  o.stage=:stage {time_stmt} AND o.to_delete != True {category_stmt}
                               GROUP BY u.id, o.id, o.crm_created_at
                               ORDER BY o.crm_created_at ASC
-                               """.format(time_field=time_field)).bindparams(stage=stage, date_compare=date_compare)
-
+                               """.format(time_stmt=time_stmt)).bindparams(stage=stage)
     res = db.session.execute(stmt_orders)
 
     return res.fetchall()
 
 
-def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tuple:
+def helper_get_manager_orders(
+        user: User,
+        filtered_manager_id: int | None = None,
+        category: str | None = None,
+        stage: int | None = None,
+) -> tuple:
     manager_id = user.id
+    stage_stmt = f" AND o.stage={stage}" if stage in settings.OrderStage.CHECK_TUPLE else ""
+    category_stmt = f" AND o.category=\'{category}\'" if category in settings.CATEGORIES_UPLOAD else ""
     additional_stmt = """
                             o.comment_problem as comment_problem,
                             o.comment_cancel as comment_cancel,
                             o.cp_created as cp_created,
                             o.cc_created as cc_created,
+                            o.crm_created_at as crm_created_at,
                             o.p_started as p_started,
                             o.m_started as m_started,
                             o.m_finished as m_finished,
+                            o.sent_at as sent_at,
+                            o.closed_at as closed_at,
                          """
 
     conditional_stmt_common = f"(o.stage!={settings.OrderStage.POOL} AND o.stage>{settings.OrderStage.CREATING} AND o.stage<={settings.OrderStage.MANAGER_SOLVED} AND o.stage!={settings.OrderStage.CRM_PROCESSED})"
 
-    # stmt_get_manager = f"(select login_name from public.users managers where managers.id=o.manager_id)"
-
     if user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, ]:
-        # conditional_stmt = f"o.stage={settings.OrderStage.POOL}" if pool else conditional_stmt_common + f" AND o.manager_id={manager_id}"
-        conditional_stmt = f"({conditional_stmt_common} AND o.manager_id=:manager_id) OR o.stage={settings.OrderStage.POOL}"
-
-        # stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
+        conditional_stmt = f"(({conditional_stmt_common} AND o.manager_id=:manager_id) OR o.stage={settings.OrderStage.POOL}){category_stmt}{stage_stmt}"
         stmt_orders = text(f"""
                              SELECT u.client_code as client_code,
                                  u.login_name as login_name, 
@@ -323,7 +339,6 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                  o.payment as payment,
                                  o.order_idn as order_idn,
                                  o.category as category,
-                                 o.crm_created_at as crm_created_at,
                                  o.company_type as company_type,
                                  o.company_name as company_name,
                                  o.company_idn as company_idn,
@@ -336,12 +351,12 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                  MAX(orf.origin_name) as order_file,
                                  MAX(orf.file_link) as order_file_link,
                                  o.manager_id as manager_id,
-                                  MAX(managers.login_name) as manager,
+                                 MAX(managers.login_name) as manager,
                                  o.stage_setter_name as stage_setter_name,
                                  {additional_stmt}
                                  COUNT(o.id) as row_count,
-                                 COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                 SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                 COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                 SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                              FROM public.users u
                                  JOIN public.orders o ON o.user_id = u.id
                                  LEFT JOIN public.users a ON u.admin_parent_id = a.id   
@@ -350,20 +365,21 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                  LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                                  LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                  LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                 LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                 LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                  LEFT JOIN public.linen l ON o.id = l.order_id
                                  LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                 LEFT JOIN public.parfum p ON o.id = p.order_id
-                                 LEFT JOIN public.users managers ON o.manager_id = managers.id 
+                                 LEFT JOIN public.parfum p ON o.id = p.order_id 
+                                 LEFT JOIN public.users managers ON o.manager_id = managers.id
                            WHERE {conditional_stmt} AND o.to_delete != True
                            GROUP BY u.id, o.id, o.crm_created_at
                            ORDER BY o.crm_created_at ASC
                           """).bindparams(manager_id=manager_id)
     else:
         manager_condition = f" AND o.manager_id=:filtered_manager_id" if filtered_manager_id else ""
-        conditional_stmt = f"({conditional_stmt_common}{manager_condition} OR o.stage={settings.OrderStage.POOL})"
+        conditional_stmt = f"({conditional_stmt_common}{manager_condition} OR o.stage={settings.OrderStage.POOL}){category_stmt}{stage_stmt}"
         # visibility spec orders condition
         vsoc = f" AND ( (o.manager_id is not NULL AND managers.role not in ('{settings.SUPER_USER}', '{settings.MARKINERIS_ADMIN_USER}')) or o.manager_id is NULL)" if current_user.role == settings.SUPER_MANAGER else ""
-        # stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
         stmt_orders_qry = text(f"""
                               SELECT 
                                   u.client_code as client_code,
@@ -375,7 +391,6 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                   o.payment as payment,
                                   o.order_idn as order_idn,
                                   o.category as category,
-                                  o.crm_created_at as crm_created_at,
                                   o.company_type as company_type,
                                   o.company_name as company_name,
                                   o.company_idn as company_idn,
@@ -392,8 +407,8 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                   o.stage_setter_name as stage_setter_name,
                                   {additional_stmt}
                                   COUNT(o.id) as row_count,
-                                  COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                  COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id
                                   LEFT JOIN public.users a ON u.admin_parent_id = a.id   
@@ -402,6 +417,8 @@ def helper_get_manager_orders(user: User, filtered_manager_id: int = None) -> tu
                                   LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                                   LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                   LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                  LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                  LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                   LEFT JOIN public.linen l ON o.id = l.order_id
                                   LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                   LEFT JOIN public.parfum p ON o.id = p.order_id
@@ -434,9 +451,25 @@ def helper_create_filename(order_idn: int, manager_name: str, filename: str) -> 
 
 
 def helper_m_order_processed(user: User, o_id: int, manager_id: int, f_manager_id: int = None) -> Response:
+    status = settings.ERROR
+    message = ''
 
-    order_stmt = text(f"""
+    stage = request.form.get("stage", -1, int)
+    category = request.form.get("category", 'all')
+    filtered_manager_id = request.args.get('filtered_manager_id', None, int)
+
+    if not stage or stage not in settings.OrderStage.CHECK_TUPLE:
+        message = f"Invalid stage: {stage}"
+        logger.error(message)
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
+    if not category or (category != 'all' and category not in settings.CATEGORIES_UPLOAD):
+        message = f" Invalid category: {category}"
+        logger.error(message)
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
+
+    order_stmt = text("""
                     SELECT o.id as id,
+                        o.order_idn as order_idn,
                         o.stage as stage,
                         orf.id as of_id,
                         orf.file_system_name as file_system_name,
@@ -448,38 +481,64 @@ def helper_m_order_processed(user: User, o_id: int, manager_id: int, f_manager_i
     order_info = db.session.execute(order_stmt).fetchone()
 
     if not order_info:
-        flash(message=settings.Messages.ORDER_MANAGER_PROCESSED_ABS_ERROR, category='error')
-        return redirect(url_for('crm_d.managers'))
+        message = settings.Messages.ORDER_MANAGER_PROCESSED_ABS_ERROR
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
     if not order_info.file_system_name and not order_info.file_link:
-        flash(message=settings.Messages.ORDER_MANAGER_PROCESSED_ABS_FILE_ERROR, category='error')
-        return redirect(url_for('crm_d.managers'))
-    if order_info.file_system_name and not check_order_file(order_file_name=order_info.file_system_name, o_id=o_id):
-        return redirect(url_for(f'crm_d.managers'))
+        message = settings.Messages.ORDER_MANAGER_PROCESSED_ABS_FILE_ERROR
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
+    elif order_info.file_system_name:
+        # check order file
+        check_of_status, check_of_message = check_order_file(order_file_name=order_info.file_system_name, o_id=o_id)
+        if order_info.file_system_name and not check_of_status:
+            return jsonify({'htmlresponse': None, 'status': status, 'message': check_of_message})
 
-    if user.id != manager_id and user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER]:
-        flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
-        return redirect(url_for('crm_d.managers'))
+    if user.id != manager_id and user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MARKINERIS_ADMIN_USER]:
+        message = settings.Messages.STRANGE_REQUESTS
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
+
     dt_manager = datetime.now()
-    stmt = text(f"""
+    stmt = text("""
                UPDATE public.orders 
-               SET stage_setter_name='{user.login_name}', stage={settings.OrderStage.MANAGER_PROCESSED}, m_finished='{dt_manager}'
+               SET stage_setter_name=:stage_setter_name, stage=:stage, m_finished=:m_finished
                WHERE id=:o_id; 
-               """).bindparams(o_id=o_id)
+               """).bindparams(o_id=o_id, stage_setter_name=user.login_name, stage=settings.OrderStage.MANAGER_PROCESSED, m_finished=dt_manager )
     try:
         db.session.execute(stmt)
         db.session.commit()
-        flash(message=settings.Messages.ORDER_MANAGER_PROCESSED)
+        message = settings.Messages.ORDER_MANAGER_PROCESSED.format(order_idn=order_info.order_idn)
+        status = settings.SUCCESS
+        update_orders = helper_get_manager_orders(user=user, filtered_manager_id=filtered_manager_id,
+                                                  category=category, stage=stage)
+
+        return jsonify({'htmlresponse': render_template(
+            'crm_mod_v1/crmm/updated_stages/orders_{stage}.html'.format(stage=stage), **locals()),
+            'quantity': len(update_orders), 'status': status, 'message': message})
     except IntegrityError:
         db.session.rollback()
-        flash(message=settings.Messages.ORDER_MANAGER_PROCESSED_ERROR)
-        logger.error(settings.Messages.ORDER_MANAGER_PROCESSED_ERROR)
-
-    return redirect(url_for('crm_d.managers', filtered_manager_id=f_manager_id))
+        message = settings.Messages.ORDER_MANAGER_PROCESSED_ERROR
+        logger.error(message)
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
 
 
 # push to problem-solved stage
-def helper_m_order_ps(user: User, o_id: int, manager_id: int, f_manager_id: int = None) -> Response:
-    order_stmt = text(f"""
+def helper_m_order_ps(user: User, o_id: int, manager_id: int) -> Response:
+    status = settings.ERROR
+    message = ''
+
+    stage = request.form.get("stage", -1, int)
+    category = request.form.get("category", 'all')
+    filtered_manager_id = request.args.get('filtered_manager_id', None, int)
+
+    if not stage or stage not in settings.OrderStage.CHECK_TUPLE:
+        message = f"Invalid stage: {stage}"
+        logger.error(message)
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
+    if not category or (category != 'all' and category not in settings.CATEGORIES_UPLOAD):
+        message = f" Invalid category: {category}"
+        logger.error(message)
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
+
+    order_stmt = text("""
                     SELECT o.id as id,
                         o.stage as stage,
                         o.user_id as user_id,
@@ -494,37 +553,129 @@ def helper_m_order_ps(user: User, o_id: int, manager_id: int, f_manager_id: int 
     order_info = db.session.execute(order_stmt).fetchone()
 
     if not order_info:
-        flash(message=settings.Messages.ORDER_MANAGER_PS_ABS_ERROR, category='error')
-        return redirect(url_for('crm_d.managers'))
+        message = settings.Messages.ORDER_MANAGER_PS_ABS_ERROR
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
     if not order_info.file_system_name and not order_info.file_link:
-        flash(message=settings.Messages.ORDER_MANAGER_PROCESSED_ABS_FILE_ERROR, category='error')
-        return redirect(url_for('crm_d.managers'))
-    if order_info.file_system_name and not check_order_file(order_file_name=order_info.file_system_name, o_id=o_id):
-        return redirect(url_for(f'crm_d.managers'))
-    if user.id != manager_id and user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER]:
-        flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
-        return redirect(url_for('crm_d.managers'))
+        message = settings.Messages.ORDER_MANAGER_PROCESSED_ABS_FILE_ERROR
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
+    elif order_info.file_system_name:
+        # check order file
+        check_of_status, check_of_message = check_order_file(order_file_name=order_info.file_system_name, o_id=o_id)
+        if order_info.file_system_name and not check_of_status:
+            return jsonify({'htmlresponse': None, 'status': status, 'message': check_of_message})
+
+    if user.id != manager_id and user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MARKINERIS_ADMIN_USER]:
+        message = settings.Messages.STRANGE_REQUESTS
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
+
     dt_manager = datetime.now()
-    stmt = text(f"""
+    stmt = text("""
                    UPDATE public.orders 
-                   SET stage_setter_name='{user.login_name}', stage={settings.OrderStage.MANAGER_SOLVED}, m_finished='{dt_manager}'
+                   SET stage_setter_name=:stage_setter_name, stage=:stage, m_finished=:m_finished
                    WHERE id=:o_id;
-               """).bindparams(o_id=o_id)
+               """).bindparams(o_id=o_id, stage_setter_name=user.login_name, stage=settings.OrderStage.MANAGER_SOLVED, m_finished=dt_manager)
     try:
         db.session.execute(stmt)
         db.session.commit()
-        flash(message=settings.Messages.ORDER_MANAGER_PS)
+
     except IntegrityError:
         db.session.rollback()
-        flash(message=settings.Messages.ORDER_MANAGER_PROCESSED_ERROR)
-        logger.error(settings.Messages.ORDER_MANAGER_PROCESSED_ERROR)
+        message = settings.Messages.ORDER_MANAGER_PROCESSED_ERROR
+        logger.error(message)
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
+
     else:
         helper_send_user_order_tg_notify(user_id=order_info.user_id, order_idn=order_info.order_idn,
                                          order_stage=settings.OrderStage.MANAGER_SOLVED)
-    return redirect(url_for('crm_d.managers', filtered_manager_id=f_manager_id))
+
+    message = settings.Messages.ORDER_MANAGER_PS.format(order_idn=order_info.order_idn)
+    status = settings.SUCCESS
+    update_orders = helper_get_manager_orders(user=user, filtered_manager_id=filtered_manager_id,
+                                              category=category, stage=stage)
+    return jsonify({'htmlresponse': render_template(
+        'crm_mod_v1/crmm/updated_stages/orders_{stage}.html'.format(stage=stage), **locals()),
+        'quantity': len(update_orders), 'status': status, 'message': message})
 
 
-def helper_m_order_bp(user: User, o_id: int, manager_id: int, f_manager_id: int = None) -> Response:
+def helper_m_order_bp(user: User, o_id: int, manager_id: int) -> Response:
+    status = settings.ERROR
+    message = ''
+
+    stage = request.form.get("stage", -1, int)
+    category = request.form.get("category", 'all')
+    filtered_manager_id = request.args.get('filtered_manager_id', None, int)
+
+    if not stage or stage not in settings.OrderStage.CHECK_TUPLE:
+        message = f"Invalid stage: {stage}"
+        logger.error(message)
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
+    if not category or (category != 'all' and category not in settings.CATEGORIES_UPLOAD):
+        message = f" Invalid category: {category}"
+        logger.error(message)
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
+
+    order_stmt = text("""
+                    SELECT o.id as id,
+                        o.user_id as user_id,
+                        o.order_idn as order_idn,
+                        o.stage as stage
+                    FROM public.orders o 
+                    LEFT JOIN public.order_files orf ON o.id=orf.order_id
+                    WHERE o.id=:o_id AND o.manager_id=:manager_id AND o.to_delete != True;
+                  """).bindparams(o_id=o_id, manager_id=manager_id)
+    order_info = db.session.execute(order_stmt).fetchone()
+
+    if not order_info:
+        message = settings.Messages.ORDER_MANAGER_PS_ABS_ERROR
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
+
+    if user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER] or order_info.stage not in [settings.OrderStage.MANAGER_PROCESSED, settings.OrderStage.MANAGER_SOLVED, settings.OrderStage.SENT]:
+        flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
+        return redirect(url_for('crm_d.agents')) if user.role not in [settings.MANAGER_USER, settings.SUPER_MANAGER] \
+            else redirect(url_for('crm_d.managers'))
+
+    stmt = text(f"""UPDATE public.orders 
+                    SET stage=:stage, cp_created=NULL, sent_at=NULL, m_finished=NULL
+                    WHERE id=:o_id; 
+               """).bindparams(o_id=o_id, stage=settings.OrderStage.MANAGER_START)
+    try:
+        db.session.execute(stmt)
+        db.session.commit()
+
+    except IntegrityError:
+        db.session.rollback()
+        message = settings.Messages.ORDER_MANAGER_BP_ERROR
+        logger.error(message)
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
+    else:
+        helper_send_user_order_tg_notify(user_id=order_info.user_id, order_idn=order_info.order_idn,
+                                         order_stage=settings.OrderStage.MANAGER_START)
+
+    message = settings.Messages.ORDER_MANAGER_BP.format(order_idn=order_info.order_idn)
+    update_orders = helper_get_manager_orders(user=user, filtered_manager_id=filtered_manager_id,
+                                              stage=stage, category=category)
+    status = settings.SUCCESS
+    return jsonify({'htmlresponse': render_template(
+        'crm_mod_v1/crmm/updated_stages/orders_{stage}.html'.format(stage=stage), **locals()),
+        'quantity': len(update_orders), 'status': status, 'message': message})
+
+
+def helper_a_order_bp(user: User, o_id: int, manager_id: int, f_manager_id: int = None) -> Response:
+    status = 'danger'
+    message = ''
+
+    stage = request.form.get("stage", -1, int)
+    category = request.form.get("category", 'all')
+
+    if not stage or stage not in settings.OrderStage.CHECK_TUPLE:
+        mes = f"{message} Invalid stage: {stage}"
+        logger.error(mes)
+        return jsonify({'htmlresponse': None, 'status': status, 'message': mes})
+    if not category or (category != 'all' and category not in settings.CATEGORIES_UPLOAD):
+        mes = f"{message} Invalid category: {category}"
+        logger.error(mes)
+        return jsonify({'htmlresponse': None, 'status': status, 'message': mes})
+
     order_stmt = text(f"""
                     SELECT o.id as id,
                         o.user_id as user_id,
@@ -537,14 +688,14 @@ def helper_m_order_bp(user: User, o_id: int, manager_id: int, f_manager_id: int 
     order_info = db.session.execute(order_stmt).fetchone()
 
     if not order_info:
-        flash(message=settings.Messages.ORDER_MANAGER_PS_ABS_ERROR, category='error')
-        return redirect(url_for('crm_d.agents')) if user.role not in [settings.MANAGER_USER, settings.SUPER_MANAGER] \
-            else redirect(url_for('crm_d.managers'))
+        message = settings.Messages.ORDER_MANAGER_PS_ABS_ERROR
+        return jsonify({'status': status, 'message': message})
 
-    if user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER] or order_info.stage not in [settings.OrderStage.MANAGER_PROCESSED, settings.OrderStage.MANAGER_SOLVED]:
-        flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
-        return redirect(url_for('crm_d.agents')) if user.role not in [settings.MANAGER_USER, settings.SUPER_MANAGER] \
-            else redirect(url_for('crm_d.managers'))
+    # todo: КТО МОЖЕТ ВОЗВРАЩАТЬ ЗАКАЗ МЕНЕДЖЕРАМ И ЧТО ВОЗВРАЩАТЬ JSON ИЛИ РЕДИРЕКТ
+    if (user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MARKINERIS_ADMIN_USER, settings.ADMIN_USER]
+            or order_info.stage not in [settings.OrderStage.MANAGER_PROCESSED, settings.OrderStage.MANAGER_SOLVED, settings.OrderStage.SENT]):
+        return redirect(url_for('crm_d.agents')) if user.role not in [settings.MANAGER_USER, settings.SUPER_MANAGER]\
+            else redirect(url_for('crm_d.managers', filtered_manager_id=f_manager_id))
 
     stmt = text(f"""UPDATE public.orders 
                     SET stage={settings.OrderStage.MANAGER_START}, cp_created=NULL, sent_at=NULL, m_finished=NULL
@@ -553,20 +704,33 @@ def helper_m_order_bp(user: User, o_id: int, manager_id: int, f_manager_id: int 
     try:
         db.session.execute(stmt)
         db.session.commit()
-        flash(message=settings.Messages.ORDER_MANAGER_BP)
+        status = settings.SUCCESS
+        message = settings.Messages.ORDER_MANAGER_BP.format(order_idn=order_info.order_idn)
     except IntegrityError:
         db.session.rollback()
-        flash(message=settings.Messages.ORDER_MANAGER_BP_ERROR)
-        logger.error(settings.Messages.ORDER_MANAGER_BP_ERROR)
+        message = settings.Messages.ORDER_MANAGER_BP_ERROR
+        logger.error(message)
+        return jsonify({'status': status, 'message': message})
+
     else:
         helper_send_user_order_tg_notify(user_id=order_info.user_id, order_idn=order_info.order_idn,
                                          order_stage=settings.OrderStage.MANAGER_START)
-    return redirect(url_for('crm_d.agents')) if user.role not in [settings.MANAGER_USER, settings.SUPER_MANAGER]\
-        else redirect(url_for('crm_d.managers', filtered_manager_id=f_manager_id))
+
+    update_orders = helper_get_agent_stage_orders(stage=stage, category=category, user=current_user)
+
+    status = settings.SUCCESS
+    message = settings.Messages.ORDER_CHANGE_STAGE_SUCCESS
+    return jsonify({'htmlresponse': render_template(
+        'crm_mod_v1/crma/updated_stages/orders_{stage}.html'.format(stage=stage), **locals()),
+                    'quantity': len(update_orders), 'status': status, 'message': message})
 
 
 def helper_attach_file(manager: str, manager_id: int, o_id: int) -> Response:
-    order_stmt = text(f"""
+    status = settings.ERROR
+    message = ''
+    htmlresponse_file = ''
+    htmlresponse_footer = ''
+    order_stmt = text("""
                         SELECT o.id as id,
                             o.order_idn as order_idn,
                             o.stage as stage,
@@ -579,38 +743,48 @@ def helper_attach_file(manager: str, manager_id: int, o_id: int) -> Response:
     order_info = db.session.execute(order_stmt).fetchone()
 
     if not order_info:
-        flash(message=settings.Messages.ORDER_ATTACH_FILE_ABS_ERROR, category='error')
-        return redirect(url_for('crm_d.managers'))
+        message = settings.Messages.ORDER_ATTACH_FILE_ABS_ERROR
+        return jsonify({'htmlresponse_file': htmlresponse_file,
+                        'htmlresponse_footer': htmlresponse_footer,
+                        'status': status, 'message': message})
 
     file = request.files.get('order_file', '')
 
     if file.filename == '' or not helper_check_extension(filename=file.filename):
-        flash(message=f'{settings.Messages.ORDER_MANAGER_FEXT} {file.filename}', category='error')
-        return redirect(url_for('crm_d.managers'))
-
-    # check file structure for folder and pdf
+        message = f'{settings.Messages.ORDER_MANAGER_FEXT} {file.filename}'
+        return jsonify({'htmlresponse_file': htmlresponse_file,
+                        'htmlresponse_footer': htmlresponse_footer,
+                        'status': status, 'message': message})
     check, check_file_message = helper_check_attached_file(order_file=file)
     if not check:
-        flash(message=check_file_message, category='error')
-        return redirect(url_for('crm_d.managers'))
-    # not correct- make file read if you want to save file to disk
-    # file_size = len(file.read())
-    #
-    # if file_size > settings.OrderStage.MAX_ORDER_FILE_SIZE:
-    #     flash(message=f'{settings.Messages.ORDER_ATTACH_FILE_EXCEED_ERROR} {file_size} bytes', category='error')
-    #     return redirect(url_for('crm_d.managers'))
+        message = check_file_message
+        return jsonify({'htmlresponse_file': htmlresponse_file,
+                        'htmlresponse_footer': htmlresponse_footer,
+                        'status': status, 'message': message})
+
+    s3_service = get_s3_service()
 
     of_id = order_info.of_id
     ofs_name = order_info.file_system_name
-    if ofs_name and ofs_name in o_listdir(path=settings.DOWNLOAD_DIR_CRM):
-        o_remove(settings.DOWNLOAD_DIR_CRM + order_info.file_system_name)
+
+    try:
+        if ofs_name and ofs_name in s3_service.list_objects(settings.MINIO_CRM_BUCKET_NAME):
+            s3_service.remove_object(object_name=ofs_name, bucket_name=settings.MINIO_CRM_BUCKET_NAME)
+    except Exception:
+        logger.exception("Ошибка при удалении файла из хранилища")
+        message = "Ошибка при удалении файла из хранилища, попробуйте позже."
+        return jsonify({'htmlresponse_file': htmlresponse_file,
+                        'htmlresponse_footer': htmlresponse_footer,
+                        'status': status, 'message': message})
 
     filename = secure_filename(filename=file.filename)
     origin, fs_name = helper_create_filename(order_idn=order_info.order_idn, manager_name=manager, filename=filename)
 
     if not fs_name:
-        flash(message=settings.Messages.CRM_FILENAME_ERROR, category='error')
-        return redirect(url_for('crm_d.managers'))
+        message = settings.Messages.CRM_FILENAME_ERROR,
+        return jsonify({'htmlresponse_file': htmlresponse_file,
+                        'htmlresponse_footer': htmlresponse_footer,
+                        'status': status, 'message': message})
 
     # insert data
     stmt = text(f"""UPDATE public.order_files 
@@ -624,24 +798,42 @@ def helper_attach_file(manager: str, manager_id: int, o_id: int) -> Response:
     try:
         db.session.execute(stmt)
         db.session.commit()
-        flash(message=settings.Messages.ORDER_ATTACH_FILE)
+
+        if file:
+            s3_service.upload_file(
+                file_data=file.stream,
+                object_name=fs_name,
+                bucket_name=settings.MINIO_CRM_BUCKET_NAME,
+            )
+        status = settings.SUCCESS
+        message = settings.Messages.ORDER_ATTACH_FILE.format(order_idn=order_info.order_idn)
+
+        stage = request.args.get('stage', 0, int)
+
+        htmlresponse_file = render_template('crm_mod_v1/crmm/manager_file_block.html', **locals())
+        htmlresponse_footer = render_template('crm_mod_v1/crmm/manager_footer_btn_block.html', **locals())
     except IntegrityError as ie:
         db.session.rollback()
-        flash(message=settings.Messages.ORDER_ATTACH_FILE_ERROR, category='error')
-        logger.error(settings.Messages.ORDER_ATTACH_FILE_ERROR + str(ie))
+        message = settings.Messages.ORDER_ATTACH_FILE_ERROR
+        logger.error(message + str(ie))
     except Exception as e:
-        flash(message=settings.Messages.ORDER_ATTACH_FILE_ERROR, category='error')
-        logger.error(settings.Messages.ORDER_ATTACH_FILE_ERROR + str(e))
-        return redirect(url_for('crm_d.managers'))
-    if file:
-        file.save(dst=o_path.join(settings.DOWNLOAD_DIR_CRM, fs_name))
+        message = settings.Messages.ORDER_ATTACH_FILE_ERROR
+        logger.error(message + str(e))
 
-    return redirect(url_for('crm_d.managers'))
+    return jsonify({'htmlresponse_file': htmlresponse_file,
+                    'htmlresponse_footer': htmlresponse_footer,
+                    'status': status, 'message': message})
 
 
 def helper_attach_of_link(manager: str, manager_id: int, o_id: int) -> Response:
+    status = settings.ERROR
+    message = ''
+    htmlresponse_file = ''
+    htmlresponse_footer = ''
+
     order_stmt = f"""
                         SELECT o.id as id,
+                            o.order_idn as order_idn,
                             o.stage as stage,
                             orf.id as of_id,
                             orf.file_system_name as file_system_name
@@ -652,15 +844,25 @@ def helper_attach_of_link(manager: str, manager_id: int, o_id: int) -> Response:
     order_info = db.session.execute(text(order_stmt)).fetchone()
 
     if not order_info:
-        flash(message=settings.Messages.ORDER_ATTACH_FILE_ABS_ERROR, category='error')
-        return redirect(url_for('crm_d.managers'))
+        message = settings.Messages.ORDER_ATTACH_FILE_ABS_ERROR
+        return jsonify({'htmlresponse_file': htmlresponse_file,
+                        'htmlresponse_footer': htmlresponse_footer,
+                        'status': status, 'message': message})
 
     file_link = request.form.get('of_link', '').replace('--', '')
 
     of_id = order_info.of_id
     ofs_name = order_info.file_system_name
-    if ofs_name and ofs_name in o_listdir(path=settings.DOWNLOAD_DIR_CRM):
-        o_remove(settings.DOWNLOAD_DIR_CRM + order_info.file_system_name)
+    try:
+        s3_service = get_s3_service()
+        if ofs_name and ofs_name in s3_service.list_objects(settings.MINIO_CRM_BUCKET_NAME):
+            s3_service.remove_object(object_name=ofs_name, bucket_name=settings.MINIO_CRM_BUCKET_NAME)
+    except Exception:
+        logger.exception("Ошибка при удалении файла из хранилища")
+        message = "Ошибка при удалении файла из хранилища, попробуйте позже."
+        return jsonify({'htmlresponse_file': htmlresponse_file,
+                        'htmlresponse_footer': htmlresponse_footer,
+                        'status': status, 'message': message})
 
     # insert data
     stmt = f"""UPDATE public.order_files 
@@ -674,14 +876,20 @@ def helper_attach_of_link(manager: str, manager_id: int, o_id: int) -> Response:
     try:
         db.session.execute(text(stmt))
         db.session.commit()
-        flash(message=settings.Messages.ORDER_ATTACH_FILE_LINK)
+        status = settings.SUCCESS
+        message = settings.Messages.ORDER_ATTACH_FILE_LINK.format(order_idn=order_info.order_idn)
+
+        stage = request.args.get('stage', 0, int)
+        htmlresponse_file = render_template('crm_mod_v1/crmm/manager_file_block.html', **locals())
+        htmlresponse_footer = render_template('crm_mod_v1/crmm/manager_footer_btn_block.html', **locals())
     except IntegrityError as e:
         db.session.rollback()
-        message = f"{settings.Messages.ORDER_ATTACH_FILE_LINK_ERROR} {e}"
-        flash(message=message, category='error')
-        logger.error(message)
+        message = settings.Messages.ORDER_ATTACH_FILE_LINK_ERROR
+        logger.error(f"{message} {e}")
 
-    return redirect(url_for('crm_d.managers'))
+    return {'htmlresponse_file': htmlresponse_file,
+            'htmlresponse_footer': htmlresponse_footer,
+            'status': status, 'message': message}
 
 
 def helper_download_file(manager_id: int, o_id: int, user_type: str) -> Response:
@@ -704,51 +912,78 @@ def helper_download_file(manager_id: int, o_id: int, user_type: str) -> Response
 
     if not check_order_file(order_file_name=order_info.file_system_name, o_id=o_id):
         return redirect(url_for(f'crm_d.{user_type}'))
-    return send_from_directory(directory=settings.DOWNLOAD_DIR_CRM, path=fs_name, download_name=o_name)
+    return download_file_from_minio(object_name=fs_name, bucket_name=settings.MINIO_CRM_BUCKET_NAME, download_name=o_name)
 
 
 def helper_delete_order_file(manager_id: int, o_id: int) -> Response:
+    status = settings.ERROR
+    message = ''
+    htmlresponse_file = ''
+    htmlresponse_footer = ''
 
     order_stmt = f"""
                         SELECT o.id as id,
+                            o.order_idn as order_idn,
                             o.stage as stage,
                             orf.id as of_id,
-                            orf.file_system_name as file_system_name
+                            orf.file_system_name as file_system_name,
+                            managers.login_name as manager
                         FROM public.orders o 
                         LEFT JOIN public.order_files orf ON o.id=orf.order_id
+                        LEFT JOIN public.users managers ON o.manager_id = managers.id
                         WHERE o.id={o_id} AND o.manager_id={manager_id} AND o.to_delete != True;
                       """
     order_info = db.session.execute(text(order_stmt)).fetchone()
 
     if not order_info:
-        flash(message=settings.Messages.ORDER_DELETE_FILE_ABS_ERROR, category='error')
-        return redirect(url_for('crm_d.managers'))
+        message = settings.Messages.ORDER_DELETE_FILE_ABS_ERROR
+        return jsonify({'htmlresponse_file': htmlresponse_file,
+                        'htmlresponse_footer': htmlresponse_footer,
+                        'status': status, 'message': message})
 
     of_id = order_info.of_id
     ofs_name = order_info.file_system_name
-    if ofs_name and ofs_name in o_listdir(path=settings.DOWNLOAD_DIR_CRM):
-        o_remove(settings.DOWNLOAD_DIR_CRM + order_info.file_system_name)
+
+    try:
+        s3_service = get_s3_service()
+        if ofs_name and ofs_name in s3_service.list_objects(settings.MINIO_CRM_BUCKET_NAME):
+            s3_service.remove_object(object_name=ofs_name, bucket_name=settings.MINIO_CRM_BUCKET_NAME)
+    except Exception:
+        logger.exception("Ошибка при удалении файла из хранилища")
+        message = "Ошибка при удалении файла из хранилища, попробуйте позже."
+        return jsonify({'htmlresponse_file': htmlresponse_file,
+                        'htmlresponse_footer': htmlresponse_footer,
+                        'status': status, 'message': message})
 
     stmt = f"DELETE FROM public.order_files pof WHERE pof.id={of_id}"
 
     try:
         db.session.execute(text(stmt))
         db.session.commit()
-        flash(message=settings.Messages.ORDER_DELETE_FILE)
+        stage = request.args.get('stage', 0, int)
+        delete_flag = True
+        message = settings.Messages.ORDER_DELETE_FILE.format(order_idn=order_info.order_idn)
+        status = settings.SUCCESS
+        htmlresponse_file = render_template('crm_mod_v1/crmm/manager_file_block.html', **locals())
+        htmlresponse_footer = render_template('crm_mod_v1/crmm/manager_footer_btn_block.html', **locals())
     except IntegrityError:
         db.session.rollback()
-        flash(message=settings.Messages.ORDER_DELETE_FILE_ERROR, category='error')
-        logger.error(settings.Messages.ORDER_DELETE_FILE_ERROR)
+        message = settings.Messages.ORDER_DELETE_FILE_ERROR
+        logger.error(message)
 
-    return redirect(url_for('crm_d.managers'))
+    return jsonify({'htmlresponse_file': htmlresponse_file,
+                    'htmlresponse_footer': htmlresponse_footer,
+                    'status': status, 'message': message})
 
 
 def helper_change_manager(manager_id: int, o_id: int) -> Response:
+    status = settings.ERROR
+
     order_stmt = f"""
                             SELECT o.id as id,
+                                o.order_idn as order_idn,
                                 o.stage as stage,
                                 o.manager_id as manager_id
-                                
                             FROM public.orders o 
                             LEFT JOIN public.order_files orf ON o.id=orf.order_id
                             WHERE o.id={o_id} AND o.manager_id={manager_id} AND o.to_delete != True;
@@ -756,8 +991,8 @@ def helper_change_manager(manager_id: int, o_id: int) -> Response:
     order_info = db.session.execute(text(order_stmt)).fetchone()
 
     if not order_info:
-        flash(message=settings.Messages.ORDER_MANAGER_CHANGE_ABS_ERROR, category='error')
-        return redirect(url_for('crm_d.managers'))
+        message = settings.Messages.ORDER_MANAGER_CHANGE_ABS_ERROR
+        return jsonify(dict(status=status, message=message))
 
     new_manager_id = int(request.form.get('operator_id')) if request.form.get('operator_id') else None
 
@@ -765,8 +1000,7 @@ def helper_change_manager(manager_id: int, o_id: int) -> Response:
                     filter((User.role == settings.MANAGER_USER) | (User.role == settings.SUPER_MANAGER)).all())
 
     if (new_manager_id, ) not in managers_ids:
-        # print(managers_ids)
-        flash(message=settings.Messages.ORDER_MANAGER_CHANGE_ABS_ERROR, category='error')
+        message = settings.Messages.ORDER_MANAGER_CHANGE_ABS_ERROR
 
     else:
         stmt = (text("UPDATE public.orders SET manager_id=:new_manager_id WHERE id=:o_id;")
@@ -774,17 +1008,24 @@ def helper_change_manager(manager_id: int, o_id: int) -> Response:
         try:
             db.session.execute(stmt)
             db.session.commit()
-            flash(message=settings.Messages.ORDER_MANAGER_CHANGE)
+            status = settings.SUCCESS
+            message = settings.Messages.ORDER_MANAGER_CHANGE
         except IntegrityError:
-            flash(message=settings.Messages.ORDER_MANAGER_CHANGE_ERROR, category='error')
+            db.session.rollback()
+            message = settings.Messages.ORDER_MANAGER_CHANGE_ERROR
             logger.error(settings.Messages.ORDER_MANAGER_CHANGE_ERROR)
-
-    return redirect(url_for('crm_d.managers'))
+        except Exception as e:
+            db.session.rollback()
+            message = settings.Messages.ORDER_MANAGER_CHANGE_ERROR
+            logger.error(settings.Messages.ORDER_MANAGER_CHANGE_ERROR + str(e))
+    return jsonify(dict(status=status, message=message))
 
 
 def helper_cancel_order(user: User, o_id: int, cancel_comment: str):
-    stmt_get_agent = f"SELECT a.admin_parent_id FROM public.users a WHERE a.id  = (SELECT o.user_id FROM public.orders o WHERE o.id={o_id} LIMIT 1)"
-    order_stmt = f"""
+    status = settings.ERROR
+
+    stmt_get_agent = "SELECT a.admin_parent_id FROM public.users a WHERE a.id  = (SELECT o.user_id FROM public.orders o WHERE o.id=:o_id LIMIT 1)"
+    order_stmt = text(f"""
                     SELECT o.id as id,
                         o.user_id as user_id,
                         o.order_idn as order_idn,
@@ -795,13 +1036,14 @@ def helper_cancel_order(user: User, o_id: int, cancel_comment: str):
                         orf.file_system_name as file_system_name
                     FROM public.orders o 
                     LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                    WHERE o.id={o_id} AND o.to_delete != True;
-                  """
-    order_info = db.session.execute(text(order_stmt)).fetchone()
+                    WHERE o.id=:o_id AND o.to_delete != True;
+                  """).bindparams(o_id=o_id)
+    order_info = db.session.execute(order_stmt).fetchone()
     # check for order exist and admin correct
     if not order_info or ((user.id != order_info.agent_id and user.id != order_info.user_id) and user.role != settings.SUPER_USER):
         flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
-        return redirect(url_for('crm_d.agents'))
+        message = settings.Messages.STRANGE_REQUESTS
+        return jsonify({'status': status, 'message': message})
 
     # delete rows from db and delete file from syst
     of_delete_remove(order_info=order_info, o_id=o_id)
@@ -826,26 +1068,27 @@ def helper_cancel_order(user: User, o_id: int, cancel_comment: str):
                                            user_id=order_info.user_id)
 
         db.session.commit()
-        flash(message=settings.Messages.ORDER_CANCEL)
+        status = settings.SUCCESS
+        message = settings.Messages.ORDER_CANCEL.format(order_idn=order_info.order_idn)
     except IntegrityError as ie:
         db.session.rollback()
-        flash(message=settings.Messages.ORDER_CANCEL_ERROR, category="error")
+        message = settings.Messages.ORDER_CANCEL_ERROR
         logger.error(f"{settings.Messages.ORDER_CANCEL_ERROR} {ie}")
     except Exception as e:
         db.session.rollback()
-        flash(message=settings.Messages.ORDER_CANCEL_ERROR, category="error")
+        message = settings.Messages.ORDER_CANCEL_ERROR
         logger.error(str(e))
     else:
         helper_send_user_order_tg_notify(user_id=order_info.user_id, order_idn=order_info.order_idn,
                                          order_stage=settings.OrderStage.CANCELLED)
-    return redirect(url_for('crm_d.agents'))
+    return jsonify({'status': status, 'message': message})
 
 
 def helper_change_agent_stage(o_id: int, stage: int, user: User):
 
     stmt_get_agent = "SELECT a.admin_parent_id FROM public.users a  WHERE a.id  = (SELECT o.user_id FROM public.orders o WHERE o.id=:o_id LIMIT 1)"
 
-    order_stmt = text(f"""
+    order_stmt = f"""
                         SELECT o.id as id,
                             o.category as category,
                             o.company_type as company_type,
@@ -873,18 +1116,19 @@ def helper_change_agent_stage(o_id: int, stage: int, user: User):
                         LEFT JOIN public.order_files orf ON o.id=orf.order_id
                         LEFT JOIN public.user_transactions ut ON o.transaction_id=ut.id
                         WHERE o.id=:o_id AND o.to_delete != True;
-                      """).bindparams(o_id=o_id)
-    order_info = db.session.execute(order_stmt).fetchone()
+                      """
+    order_info = db.session.execute(text(order_stmt).bindparams(o_id=o_id)).fetchone()
 
+    if not order_info:
+        flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
+        return redirect(url_for('crm_d.agents'))
     # check for order exist and admin correct
     # ordinary user change state check for his admin
     user_order_agent_check = (order_info.agent_id and user.id != order_info.agent_id)
     # agent user change state check for his admin
     agent_order_agent_check = (not order_info.agent_id and user.id != order_info.user_id)
 
-    # (((order_info.agent_id and user.id != order_info.agent_id) or (
-    #             not order_info.agent_id and order_info.user_id != user.id)) and user.role != settings.SUPER_USER)
-    if stage not in settings.OrderStage.CHECK_TUPLE or not order_info or \
+    if stage not in settings.OrderStage.CHECK_TUPLE or \
             ((user_order_agent_check or agent_order_agent_check) and user.role != settings.SUPER_USER):
         flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
         return redirect(url_for('crm_d.agents'))
@@ -895,16 +1139,18 @@ def helper_change_agent_stage(o_id: int, stage: int, user: User):
         case settings.OrderStage.POOL:
             if user.is_at2:
                 # count all not paid orders and compare with balance
-                status_balance, message_balance = helper_get_at2_pending_balance(admin_id=user.id,
-                                                                                 price_id=user.price_id,
-                                                                                 balance=user.balance,
-                                                                                 trust_limit=user.trust_limit)
-                if not status_balance:
-                    flash(message=message_balance, category='error')
+                balance_check, balance_message = helper_get_at2_pending_balance(admin_id=user.id,
+                                                                                price_id=user.price_id,
+                                                                                balance=user.balance,
+                                                                                trust_limit=user.trust_limit)
+                if not balance_check:
+                    flash(message=balance_message, category='warning')
                     return redirect(url_for('crm_d.agents'))
             additional_stmt += f", p_started='{dt_agent}'"
-            return helper_crm_process_order_stats(o_id=o_id, order_info=order_info,
-                                                  stage=stage, additional_stmt=additional_stmt)
+            crm_os_status, crm_os_messsage = helper_crm_process_order_stats(o_id=o_id, order_info=order_info,
+                                                                            stage=stage, additional_stmt=additional_stmt)
+            flash(message=crm_os_messsage, category='success' if crm_os_status else 'danger')
+            return redirect(url_for('crm_d.agents'))
         case settings.OrderStage.SENT:
             additional_stmt += f", sent_at='{dt_agent}'"
         case settings.OrderStage.CRM_PROCESSED:
@@ -937,6 +1183,102 @@ def helper_change_agent_stage(o_id: int, stage: int, user: User):
     return redirect(url_for('crm_d.agents'))
 
 
+def helper_change_agent_stage_bck(o_id: int, stage: int, user: User) -> tuple[bool, str]:
+
+    stmt_get_agent = f"SELECT a.admin_parent_id FROM public.users a  WHERE a.id  = (SELECT o.user_id FROM public.orders o WHERE o.id=:o_id LIMIT 1)"
+
+    order_stmt = f"""
+                        SELECT o.id as id,
+                            o.category as category,
+                            o.company_type as company_type,
+                            o.company_name as company_name,
+                            o.company_idn as company_idn,
+                            o.order_idn as order_idn,
+                            o.created_at as created_at,
+                            o.user_id as user_id,
+                            o.transaction_id as transaction_id,
+                            ut.op_cost as op_cost,
+                            o.manager_id as manager_id,
+                            o.comment_problem as comment_problem,
+                            o.cp_created as cp_created,
+                            o.m_started as m_started,
+                            o.m_finished as m_finished,
+                            o.crm_created_at as crm_created_at,
+                            o.sent_at as sent_at,
+                            o.stage_setter_name as stage_setter_name,
+                            o.payment as payment,
+                            o.to_delete as to_delete,
+                            ({stmt_get_agent}) as agent_id,
+                            orf.id as of_id,
+                            orf.file_system_name as file_system_name
+                        FROM public.orders o 
+                        LEFT JOIN public.order_files orf ON o.id=orf.order_id
+                        LEFT JOIN public.user_transactions ut ON o.transaction_id=ut.id
+                        WHERE o.id={o_id} AND o.to_delete != True;
+                      """
+    order_info = db.session.execute(text(order_stmt).bindparams(o_id=o_id)).fetchone()
+    if not order_info:
+        return False, settings.Messages.STRANGE_REQUESTS
+    # check for order exist and admin correct
+    # ordinary user change state check for his admin
+    user_order_agent_check = (order_info.agent_id and user.id != order_info.agent_id)
+    # agent user change state check for his admin
+    agent_order_agent_check = (not order_info.agent_id and user.id != order_info.user_id)
+
+    if stage not in settings.OrderStage.CHECK_TUPLE  or \
+            ((user_order_agent_check or agent_order_agent_check) and user.role != settings.SUPER_USER):
+        return False, settings.Messages.STRANGE_REQUESTS
+    # update order stage
+    dt_agent = datetime.now()
+    additional_stmt = ''
+    match stage:
+        case settings.OrderStage.POOL:
+            if user.is_at2:
+                # count all not paid orders and compare with balance
+                balance_check, balance_message = helper_get_at2_pending_balance(admin_id=user.id,
+                                                                                price_id=user.price_id,
+                                                                                balance=user.balance,
+                                                                                trust_limit=user.trust_limit)
+                if not balance_check:
+                    return False, balance_message
+
+            additional_stmt += f", p_started='{dt_agent}'"
+            return helper_crm_process_order_stats(o_id=o_id, order_info=order_info, stage=stage,
+                                                  additional_stmt=additional_stmt)
+
+        case settings.OrderStage.SENT:
+            additional_stmt += f", sent_at='{dt_agent}'"
+        case settings.OrderStage.CRM_PROCESSED:
+            additional_stmt += f", closed_at='{dt_agent}', processed={True}"
+
+            if not order_info.payment:
+                logger.error(settings.Messages.ORDER_PROCESSED_NOT_PAID)
+                return False, settings.Messages.ORDER_PROCESSED_NOT_PAID
+
+    stmt = f"""
+                   UPDATE public.orders 
+                   SET stage={stage}
+                   {additional_stmt}
+                   WHERE id={o_id} 
+                """
+    try:
+        db.session.execute(text(stmt))
+        db.session.commit()
+        status = True
+        message = settings.Messages.ORDER_STAGE_CHANGE
+    except IntegrityError:
+        db.session.rollback()
+        logger.error(settings.Messages.ORDER_STAGE_CHANGE_ERROR)
+        status = False
+        message = settings.Messages.ORDER_STAGE_CHANGE_ERROR
+    else:
+        # sending user notification
+        if stage == settings.OrderStage.SENT:
+            helper_send_user_order_tg_notify(user_id=order_info.user_id, order_idn=order_info.order_idn,
+                                             order_stage=stage)
+    return status, message
+
+
 def helper_crm_process_order_stats(o_id: int, order_info, stage: int, additional_stmt: str) -> Response:
     stmt = f"""
                                       UPDATE public.orders 
@@ -946,7 +1288,6 @@ def helper_crm_process_order_stats(o_id: int, order_info, stage: int, additional
                                    """
     try:
         db.session.execute(text(stmt))
-
         db.session.commit()  # not sure
 
         row_count, mark_count = get_rows_marks(o_id=o_id, category=order_info.category)
@@ -979,21 +1320,27 @@ def helper_crm_process_order_stats(o_id: int, order_info, stage: int, additional
 
         db.session.execute(stmt)
         db.session.commit()
-        flash(message=settings.Messages.ORDER_STAGE_CHANGE)
+        message = settings.Messages.ORDER_STAGE_CHANGE
     except IntegrityError:
-        flash(message=settings.Messages.ORDER_STAGE_CHANGE_ERROR, category='error')
+        message = settings.Messages.ORDER_STAGE_CHANGE_ERROR
         db.session.rollback()
         logger.error(settings.Messages.ORDER_STAGE_CHANGE_ERROR)
+        return False, message
     else:
         helper_send_user_order_tg_notify(user_id=order_info.user_id, order_idn=order_info.order_idn,
                                          order_stage=settings.OrderStage.POOL)
-    return redirect(url_for('crm_d.agents'))
+    return True, message
 
 
 def of_delete_remove(order_info: Order, o_id: int) -> None:
     # check if we got a file in pur folder
-    if order_info.file_system_name and order_info.file_system_name in o_listdir(path=settings.DOWNLOAD_DIR_CRM):
-        o_remove(settings.DOWNLOAD_DIR_CRM + order_info.file_system_name)
+    try:
+        s3_service = get_s3_service()
+        if order_info.file_system_name and order_info.file_system_name in s3_service.list_objects(settings.MINIO_CRM_BUCKET_NAME):
+            s3_service.remove_object(object_name=order_info.file_system_name, bucket_name=settings.MINIO_CRM_BUCKET_NAME)
+    except Exception:
+        logger.exception(f"Ошибка при удалении файла из хранилища. Заказ {order_info.id}")
+
     # delete order file info in db
     if order_info.of_id:
         stmt = f"DELETE FROM public.order_files pof WHERE pof.order_id={o_id}"
@@ -1005,7 +1352,7 @@ def of_delete_remove(order_info: Order, o_id: int) -> None:
             logger.error(e)
 
 
-def helpers_problem_order(problem_order: Order, problem_comment: str, with_check: bool = False) -> None:
+def helpers_problem_order(problem_order: Order, problem_comment: str, with_check: bool = False) -> str:
     try:
         problem_order.stage = settings.OrderStage.MANAGER_PROBLEM
         problem_order.external_problem = True
@@ -1018,18 +1365,72 @@ def helpers_problem_order(problem_order: Order, problem_comment: str, with_check
                            """
             db.session.execute(text(delete_stmt))
         db.session.commit()
-        flash(message=settings.Messages.ORDER_PROBLEM)
+        message = settings.Messages.ORDER_PROBLEM
     except IntegrityError:
         db.session.rollback()
-        flash(message=settings.Messages.ORDER_PROBLEM_ERROR, category='error')
-        logger.error(settings.Messages.ORDER_PROBLEM_ERROR)
+        message = settings.Messages.ORDER_PROBLEM_ERROR
+        logger.error(message)
     else:
         helper_send_user_order_tg_notify(user_id=problem_order.user_id, order_idn=problem_order.order_idn,
                                          order_stage=settings.OrderStage.MANAGER_PROBLEM)
         MarkinerisInform.send_message_tg.delay(order_idn=problem_order.order_idn, problem_order_flag=True)
 
+    return message
 
-def helpers_ceps_order(o_id: int, ep: int):
+
+def helpers_problem_order_response(user: User, o_id: int) -> Response:
+    status = settings.ERROR
+    message = ''
+    htmlresponse = ''
+
+    stage = request.form.get("stage", -1, int)
+    category = request.form.get("category", 'all')
+    filtered_manager_id = request.args.get('filtered_manager_id', None, int)
+
+    if not stage or stage not in settings.OrderStage.CHECK_TUPLE:
+        mes = f"{message} Invalid stage: {stage}"
+        logger.error(mes)
+        return jsonify({'htmlresponse': htmlresponse, 'status': status, 'message': mes})
+    if not category or (category != 'all' and category not in settings.CATEGORIES_UPLOAD):
+        mes = f"{message} Invalid category: {category}"
+        logger.error(mes)
+        return jsonify({'htmlresponse': htmlresponse, 'status': status, 'message': mes})
+
+    problem_comment = request.form.get("problem_order_comment", '').replace("--", '').replace("#", '')
+    problem_order = Order.query.get(o_id)
+
+    if not o_id or not problem_order:
+        message = settings.Messages.EMPTY_ORDER
+        return jsonify({'htmlresponse': htmlresponse, 'status': status, 'message': message})
+    status = False
+    try:
+        problem_order.stage = settings.OrderStage.MANAGER_PROBLEM
+        problem_order.external_problem = True
+        problem_order.comment_problem = problem_comment
+        problem_order.cp_created = datetime.now()
+        problem_order.m_finished = None
+        db.session.commit()
+
+    except IntegrityError:
+        db.session.rollback()
+        message = settings.Messages.ORDER_PROBLEM_ERROR
+        logger.error(message)
+        return jsonify({'htmlresponse': htmlresponse, 'status': status, 'message': message})
+    else:
+        helper_send_user_order_tg_notify(user_id=problem_order.user_id, order_idn=problem_order.order_idn,
+                                         order_stage=settings.OrderStage.MANAGER_PROBLEM)
+        MarkinerisInform.send_message_tg.delay(order_idn=problem_order.order_idn, problem_order_flag=True)
+    message = settings.Messages.ORDER_PROBLEM.format(order_idn=problem_order.order_idn)
+    status = settings.SUCCESS
+    update_orders = helper_get_manager_orders(user=user, filtered_manager_id=filtered_manager_id,
+                                              category=category, stage=stage)
+
+    return jsonify({'htmlresponse': render_template(
+            'crm_mod_v1/crmm/updated_stages/orders_{stage}.html'.format(stage=stage), **locals()),
+            'quantity': len(update_orders), 'status': status, 'message': message})
+
+
+def helpers_ceps_order(o_id: int, ep: int, executor: str):
     status = 'danger'
     message = settings.Messages.NO_SUCH_ORDER_CRM
     try:
@@ -1045,7 +1446,19 @@ def helpers_ceps_order(o_id: int, ep: int):
 
         status = 'success'
         message = settings.Messages.ORDER_CEPS_SUCCESS
-        return jsonify({'status': status, 'message': message})
+        html_block = """<span class="badge bg-solved text-white" title="Заказ без внешних проблем">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard-check" viewBox="0 0 16 16">
+                                      <path fill-rule="evenodd" d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0"></path>
+                                      <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z"></path>
+                                      <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0z"></path>
+                                    </svg>
+                                </span>""" if executor == 'agent' else """<span class="badge bg-error" title="Оператор поставил флаг внешней проблемы заказа, Нажмите если проблема устранена" 
+                                                >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-lock" viewBox="0 0 16 16">
+                                                  <path d="M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0M8 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4m0 5.996V14H3s-1 0-1-1 1-4 6-4q.845.002 1.544.107a4.5 4.5 0 0 0-.803.918A11 11 0 0 0 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664zM9 13a1 1 0 0 1 1-1v-1a2 2 0 1 1 4 0v1a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1zm3-3a1 1 0 0 0-1 1v1h2v-1a1 1 0 0 0-1-1"/>
+                                                </svg>
+                                            </span>"""
+        return jsonify({'status': status, 'message': message, 'html_block': html_block})
     except Exception as e:
         db.session.rollback()
         logger.error(f"{settings.Messages.ORDER_CEPS_ERROR} {e}")
@@ -1053,12 +1466,28 @@ def helpers_ceps_order(o_id: int, ep: int):
 
 
 def helpers_m_take_order(user: User, o_id: int) -> Response:
+    status = settings.ERROR
+    message = settings.Messages.ORDER_CHANGE_STAGE_ERROR
+    # attempt to decrease sql queries
+    stage = request.form.get("stage", -1, int)
+    category = request.form.get("category", 'all')
+    filtered_manager_id = request.args.get('filtered_manager_id', None, int)
+
+    if not stage or stage not in settings.OrderStage.CHECK_TUPLE:
+        mes = f"{message} Invalid stage: {stage}"
+        logger.error(mes)
+        return jsonify({'htmlresponse': None, 'status': status, 'message': mes})
+    if not category or (category != 'all' and category not in settings.CATEGORIES_UPLOAD):
+        mes = f"{message} Invalid category: {category}"
+        logger.error(mes)
+        return jsonify({'htmlresponse': None, 'status': status, 'message': mes})
+
     order_id = (Order.query.with_entities(Order.id, Order.stage).filter_by(id=o_id, stage=settings.OrderStage.POOL)
                 .filter(~Order.to_delete).first())
 
     if not order_id:
-        flash(message=settings.Messages.ORDER_MANAGER_TAKE_ABS_ERROR, category='error')
-        return redirect(url_for('crm_d.managers'))
+        message = settings.Messages.ORDER_MANAGER_TAKE_ABS_ERROR
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
 
     if user.role == settings.MANAGER_USER:
         o_stmt = f"""
@@ -1075,9 +1504,8 @@ def helpers_m_take_order(user: User, o_id: int) -> Response:
         mo_limit, po_limit = limits.mo_limit, limits.po_limit
 
         if o_count >= mo_limit or po_count >= po_limit:
-            flash(message=f'{settings.Messages.ORDERS_MANAGER_LIMIT}<br>Всего взято заказов: {o_count}, допуск({mo_limit})'
-                          f'<br>Всего проблемных заказов {po_count}, допуск({po_limit})', category='error')
-            return redirect(url_for('crm_d.managers'))
+            message = f'{settings.Messages.ORDERS_MANAGER_LIMIT} <br>Всего взято заказов: {o_count}, допуск({mo_limit}) <br>Всего проблемных заказов {po_count}, допуск({po_limit})'
+            return jsonify({'htmlresponse': None, 'status': status, 'message': message})
 
     dt_manager = datetime.now()
     stmt = f"""
@@ -1088,22 +1516,37 @@ def helpers_m_take_order(user: User, o_id: int) -> Response:
     try:
         db.session.execute(text(stmt))
         db.session.commit()
-        flash(message=settings.Messages.ORDER_MANAGER_TAKE)
+
+        update_orders = helper_get_manager_orders(user=user, filtered_manager_id=filtered_manager_id,
+                                                  category=category, stage=stage)
+
+        status = settings.SUCCESS
+        message = settings.Messages.ORDER_MANAGER_TAKE
+        return jsonify({'htmlresponse': render_template(
+            'crm_mod_v1/crmm/updated_stages/orders_{stage}.html'.format(stage=stage), **locals()),
+                        'quantity': len(update_orders), 'status': status, 'message': message})
     except IntegrityError:
         db.session.rollback()
-        flash(message=settings.Messages.ORDER_MANAGER_TAKE_ERROR)
+        message = settings.Messages.ORDER_MANAGER_TAKE_ERROR
         logger.error(settings.Messages.ORDER_MANAGER_TAKE_ERROR)
 
-    return redirect(url_for('crm_d.managers'))
+        return jsonify({'status': status, 'message': message})
 
 
-def check_order_file(order_file_name: str, o_id: int) -> bool:
-    if order_file_name not in o_listdir(path=settings.DOWNLOAD_DIR_CRM):
+def check_order_file(order_file_name: str, o_id: int) -> tuple[bool, str]:
+
+    try:
+        s3_service = get_s3_service()
+        list_objects = s3_service.list_objects(bucket_name=settings.MINIO_CRM_BUCKET_NAME)
+    except Exception as e:
+        logger.exception("Ошибка при получении списка объектов из хранилища")
+        list_objects = []
+
+    if order_file_name not in list_objects:
         problem_order = Order.query.get(o_id)
-        flash(message=settings.Messages.ORDER_FILE_ABS_ERROR, category='error')
-        helpers_problem_order(problem_order=problem_order, problem_comment=settings.Messages.ORDER_FILE_ABS_ERROR, with_check=True)
-        return False
-    return True
+        message = settings.Messages.ORDER_FILE_ABS_ERROR + helpers_problem_order(problem_order=problem_order, problem_comment=settings.Messages.ORDER_FILE_ABS_ERROR, with_check=True)
+        return False, message
+    return True, ''
 
 
 def helper_clean_oco() -> Response:
@@ -1149,7 +1592,7 @@ def helper_change_auto_order_pool() -> Response:
              settings.OrderStage.PS_DICT.get('ap_marks').get('max_limit')):
 
         try:
-            stmt = text(f"""
+            stmt = text("""
                         INSERT INTO public.server_params (id, auto_pool_rows, auto_pool_marks)
                         VALUES(1,:ap_rows, :ap_marks)
                         ON CONFLICT(id) DO UPDATE SET auto_pool_rows = :ap_rows, auto_pool_marks = :ap_marks;
@@ -1203,15 +1646,20 @@ def helpers_move_orders_to_processed() -> Response:
     date_compare = date.today() - timedelta(days=settings.OrderStage.DAYS_SENT_CONTENT)
     stmt = text(f"""
                UPDATE public.orders 
-               SET stage={settings.OrderStage.CRM_PROCESSED},
-                   closed_at='{closed_at}', processed={True}
-               WHERE stage={settings.OrderStage.SENT}
-                AND sent_at < '{date_compare}' AND payment=True AND to_delete != True; 
-            """)
+               SET stage=:new_stage,
+                   closed_at=:closed_at, processed={True}
+               WHERE stage=:stage
+                AND sent_at < :date_compare' AND payment=True AND to_delete != True; 
+            """).bindparams(
+        new_stage=settings.OrderStage.CRM_PROCESSED,
+        closed_at=closed_at,
+        stage=settings.OrderStage.SENT,
+        date_compare=date_compare
+    )
     try:
         db.session.execute(stmt)
         db.session.commit()
-        status = 'success'
+        status = settings.SUCCESS
         message = settings.Messages.OS_CHANGE_SUCCESS \
             .format(stage_from=settings.OrderStage.STAGES[settings.OrderStage.SENT][1],
                     stage_to=settings.OrderStage.STAGES[settings.OrderStage.CRM_PROCESSED][1])
@@ -1240,16 +1688,16 @@ def helpers_bck_change_orders_stage() -> Response:
         message = settings.Messages.STRANGE_REQUESTS
         return jsonify({'status': status, 'message': message})
 
-    stmt = text(f"""
+    stmt = text("""
                    UPDATE public.orders 
-                   SET stage={stage_to},
-                   WHERE stage={settings.OrderStage.SENT} AND payment=False; 
-                """)
+                   SET stage=:stage_to,
+                   WHERE stage=:stage AND payment=False AND o.to_delete != True; 
+                """).bindparams(stage_to=stage_to, stage=settings.OrderStage.SENT)
     try:
         db.session.execute(stmt)
         db.session.commit()
 
-        status = 'success'
+        status = settings.SUCCESS
         message = settings.Messages.OS_CHANGE_SUCCESS.format(stage_from=settings.OrderStage.STAGES[stage_from][1],
                                                              stage_to=settings.OrderStage.STAGES[stage_to][1])
     except Exception as e:
@@ -1289,8 +1737,6 @@ def h_get_agent_order_info(search_order_idn):
     agent_condition = ''
     if current_user.role != settings.SUPER_USER:
         admin_id = current_user.id
-
-        # stmt_get_agent = f"SELECT public.users.login_name from public.users where public.users.id={admin_id}"
         stmt_users = f"""SELECT users.id AS users_id
                          FROM users
                          WHERE users.admin_parent_id = {admin_id} OR users.id = {admin_id}
@@ -1317,6 +1763,7 @@ def h_get_agent_order_info(search_order_idn):
                                       o.user_comment as user_comment,
                                       o.has_new_tnveds as has_new_tnveds,
                                       o.manager_id as manager_id,
+                                      o.crm_created_at as crm_created_at,
                                       o.to_delete as to_delete,
                                       MAX(orf.origin_name) as order_file,
                                       MAX(orf.file_link) as order_file_link,
@@ -1324,8 +1771,8 @@ def h_get_agent_order_info(search_order_idn):
                                       o.stage_setter_name as stage_setter_name,
                                       {additional_stmt}
                                       COUNT(o.id) as row_count,
-                                      COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                      COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                                   FROM public.users u
                                       JOIN public.orders o ON o.user_id = u.id  
                                       LEFT JOIN public.users a ON u.admin_parent_id = a.id  
@@ -1334,6 +1781,8 @@ def h_get_agent_order_info(search_order_idn):
                                       LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                                       LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                       LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                      LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                      LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                       LEFT JOIN public.linen l ON o.id = l.order_id
                                       LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                       LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -1351,10 +1800,9 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
     additional_stmt = """
                                 o.comment_problem as comment_problem,
                                 o.comment_cancel as comment_cancel,
+                                o.p_started as p_started,
                                 o.cp_created as cp_created,
                                 o.cc_created as cc_created,
-                                o.crm_created_at as crm_created_at,
-                                o.p_started as p_started,
                                 o.m_started as m_started,
                                 o.m_finished as m_finished,
                              """
@@ -1364,10 +1812,8 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
     stmt_get_manager = f"(select login_name from public.users managers where managers.id=o.manager_id)"
 
     if user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, ]:
-        # conditional_stmt = f"o.stage={settings.OrderStage.POOL}" if pool else conditional_stmt_common + f" AND o.manager_id={manager_id}"
         conditional_stmt = f"(({conditional_stmt_common} AND o.manager_id={manager_id}) OR o.stage={settings.OrderStage.POOL})"
 
-        # stmt_get_agent = f"SELECT a.login_name FROM public.users a  WHERE ((a.id=u.admin_parent_id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')) OR (a.id=u.id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')))"
         stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
         stmt_orders = text(f"""SELECT u.client_code as client_code,
                                      ({stmt_get_agent})  as agent_name ,
@@ -1379,6 +1825,7 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                      o.payment as payment,
                                      o.order_idn as order_idn,
                                      o.category as category,
+                                     o.crm_created_at as crm_created_at,
                                      o.company_type as company_type,
                                      o.company_name as company_name,
                                      o.company_idn as company_idn,
@@ -1395,8 +1842,8 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                      o.stage_setter_name as stage_setter_name,
                                      {additional_stmt}
                                      COUNT(o.id) as row_count,
-                                     COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                     SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                     COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                     SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                                  FROM public.users u
                                      JOIN public.orders o ON o.user_id = u.id
                                      LEFT JOIN public.users a ON u.admin_parent_id = a.id   
@@ -1405,6 +1852,8 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                      LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                                      LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                      LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                     LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                     LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                      LEFT JOIN public.linen l ON o.id = l.order_id
                                      LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                      LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -1413,11 +1862,8 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                ORDER BY o.crm_created_at
                               """).bindparams(search_order_idn=search_order_idn)
     else:
-        # manager_condition = f" AND o.manager_id={filtered_manager_id}" if filtered_manager_id else ""
-        # conditional_stmt = f"({conditional_stmt_common}{manager_condition} OR o.stage={settings.OrderStage.POOL})"
         conditional_stmt = f"({conditional_stmt_common} OR o.stage={settings.OrderStage.POOL})"
 
-        # stmt_get_agent = f"SELECT a.login_name FROM public.users a  WHERE ((a.id=u.admin_parent_id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')) OR (a.id=u.id and (a.role='{settings.ADMIN_USER}' or a.role='{settings.SUPER_USER}')))"
         stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
         stmt_orders = text(f"""
                                   SELECT 
@@ -1431,12 +1877,14 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                       o.payment as payment,
                                       o.order_idn as order_idn,
                                       o.category as category,
+                                      o.crm_created_at as crm_created_at,
                                       o.company_type as company_type,
                                       o.company_name as company_name,
                                       o.company_idn as company_idn,
                                       o.external_problem as external_problem,
                                       o.edo_type as edo_type,
                                       o.mark_type as mark_type,
+                                      o.to_delete as to_delete,
                                       o.user_comment as user_comment,
                                       o.has_new_tnveds as has_new_tnveds,
                                       o.to_delete as to_delete,
@@ -1447,8 +1895,8 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                       o.stage_setter_name as stage_setter_name,
                                       {additional_stmt}
                                       COUNT(o.id) as row_count,
-                                      COUNT(coalesce(sh.rd_date, cl.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                      COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
+                                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                                   FROM public.users u
                                       JOIN public.orders o ON o.user_id = u.id
                                       LEFT JOIN public.users a ON u.admin_parent_id = a.id   
@@ -1457,6 +1905,8 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                       LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                                       LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                                       LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                      LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                      LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                       LEFT JOIN public.linen l ON o.id = l.order_id
                                       LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                                       LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -1481,41 +1931,33 @@ def helper_search_crma_order() -> Response:
         message = settings.Messages.CRM_SEARCH_ORDER_ERROR.format(comment=f"Либо заказ отсутствует, либо отменен и готов и старше {settings.OrderStage.DAYS_SEARCH_CONTENT} дней!")
         return jsonify({'status': status, 'message': message})
 
-    status = 'success'
+    status = settings.SUCCESS
     ps_limit_qry = ServerParam.query.get(1)
     problem_order_time_limit = ps_limit_qry.crm_manager_ps_limit if ps_limit_qry and ps_limit_qry.crm_manager_ps_limit \
         else settings.OrderStage.DEFAULT_PS_LIMIT
     cur_time = datetime.now()
 
     htmlresponse = ''
+    update_orders = [order_info, ]
     match order_info.stage:
         case settings.OrderStage.NEW:
-            new_orders = [order_info, ]
-            htmlresponse = render_template(f'crm/crma/crma_1.html', **locals())
+            htmlresponse = render_template(f'crm_mod_v1/crma/updated_stages/crma_search_1.html', **locals())
         case settings.OrderStage.POOL:
-            pool_orders = [order_info, ]
-            htmlresponse = render_template(f'crm/crma/crma_2.html', **locals())
+            htmlresponse = render_template(f'crm_mod_v1/crma/updated_stages/crma_search_2.html', **locals())
         case settings.OrderStage.MANAGER_START:
-            m_start_orders = [order_info, ]
-            htmlresponse = render_template(f'crm/crma/crma_3.html', **locals())
+            htmlresponse = render_template(f'crm_mod_v1/crma/updated_stages/crma_search_3.html', **locals())
         case settings.OrderStage.MANAGER_PROCESSED:
-            m_processed_orders = [order_info, ]
-            htmlresponse = render_template(f'crm/crma/crma_5.html', **locals())
+            htmlresponse = render_template(f'crm_mod_v1/crma/updated_stages/crma_search_5.html', **locals())
         case settings.OrderStage.MANAGER_PROBLEM:
-            m_problem_orders = [order_info, ]
-            htmlresponse = render_template(f'crm/crma/crma_6.html', **locals())
+            htmlresponse = render_template(f'crm_mod_v1/crma/updated_stages/crma_search_6.html', **locals())
         case settings.OrderStage.MANAGER_SOLVED:
-            m_solved_orders = [order_info, ]
-            htmlresponse = render_template(f'crm/crma/crma_7.html', **locals())
+            htmlresponse = render_template(f'crm_mod_v1/crma/updated_stages/crma_search_7.html', **locals())
         case settings.OrderStage.SENT:
-            update_orders = [order_info, ]
-            htmlresponse = render_template(f'crm/crma/updated_stages/crma_search_8.html', **locals())
+            htmlresponse = render_template(f'crm_mod_v1/crma/updated_stages/crma_search_8.html', **locals())
         case settings.OrderStage.CANCELLED:
-            update_orders = [order_info, ]
-            htmlresponse = render_template(f'crm/crma/updated_stages/crma_search_9.html', **locals())
+            htmlresponse = render_template(f'crm_mod_v1/crma/updated_stages/crma_search_9.html', **locals())
         case settings.OrderStage.CRM_PROCESSED:
-            update_orders = [order_info, ]
-            htmlresponse = render_template(f'crm/crma/updated_stages/crma_search_10.html', **locals())
+            htmlresponse = render_template(f'crm_mod_v1/crma/updated_stages/crma_search_10.html', **locals())
     return jsonify({'htmlresponse': htmlresponse, 'status': status})
 
 
@@ -1535,29 +1977,25 @@ def helper_search_crmm_order() -> Response:
         message = settings.Messages.CRM_SEARCH_ORDER_ERROR.format(comment=f"Либо заказ отсутствует, либо отправлен!")
         return jsonify({'status': status, 'message': message})
 
-    status = 'success'
+    status = settings.SUCCESS
     ps_limit_qry = ServerParam.query.get(1)
     problem_order_time_limit = ps_limit_qry.crm_manager_ps_limit if ps_limit_qry and ps_limit_qry.crm_manager_ps_limit \
         else settings.OrderStage.DEFAULT_PS_LIMIT
     cur_time = datetime.now()
 
     htmlresponse = ''
+    update_orders = [order_info, ]
     match order_info.stage:
         case settings.OrderStage.POOL:
-            pool_orders = [order_info, ]
-            htmlresponse = render_template(f'crm/crmm/crmm_1.html', **locals())
+            htmlresponse = render_template(f'crm_mod_v1/crmm/updated_stages/crmm_search_2.html', **locals())
         case settings.OrderStage.MANAGER_START:
-            m_start_orders = [order_info, ]
-            htmlresponse = render_template(f'crm/crmm/crmm_2.html', **locals())
+            htmlresponse = render_template(f'crm_mod_v1/crmm/updated_stages/crmm_search_3.html', **locals())
         case settings.OrderStage.MANAGER_PROCESSED:
-            m_processed_orders = [order_info, ]
-            htmlresponse = render_template(f'crm/crmm/crmm_4.html', **locals())
+            htmlresponse = render_template(f'crm_mod_v1/crmm/updated_stages/crmm_search_5.html', **locals())
         case settings.OrderStage.MANAGER_PROBLEM:
-            m_problem_orders = [order_info, ]
-            htmlresponse = render_template(f'crm/crmm/crmm_5.html', **locals())
+            htmlresponse = render_template(f'crm_mod_v1/crmm/updated_stages/crmm_search_6.html', **locals())
         case settings.OrderStage.MANAGER_SOLVED:
-            m_solved_orders = [order_info, ]
-            htmlresponse = render_template(f'crm/crmm/crmm_6.html', **locals())
+            htmlresponse = render_template(f'crm_mod_v1/crmm/updated_stages/crmm_search_7.html', **locals())
 
     return jsonify({'htmlresponse': htmlresponse, 'status': status})
 
@@ -1607,12 +2045,12 @@ def helpers_crm_mpo_so_task():
                                                                     STAGES[settings.OrderStage.MANAGER_PROCESSED][1],
                                                                     stage_to=settings.OrderStage.
                                                                     STAGES[settings.OrderStage.SENT][1])}
-    stmt = text(f"""
+    stmt = text("""
                      UPDATE public.orders 
-                     SET stage={settings.OrderStage.SENT},
-                         sent_at='{sent_at}'
-                     WHERE stage={settings.OrderStage.MANAGER_PROCESSED} AND to_delete != True; 
-                  """)
+                     SET stage=:new_stage,
+                         sent_at=:sent_at
+                     WHERE stage=:stage AND to_delete != True; 
+                  """).bindparams(new_stage=settings.OrderStage.SENT, sent_at=sent_at, stage=settings.OrderStage.MANAGER_PROCESSED)
 
     try:
         db.session.execute(stmt)
@@ -1663,7 +2101,7 @@ def helper_auto_problem_cancel_order():
     """
 
     current_date = datetime.now()
-    date_compare = current_date - timedelta(hours=settings.OrderStage.AUTO_HOURS_CP, minutes= settings.OrderStage.AUTO_MINUTES_CP)
+    date_compare = current_date - timedelta(hours=settings.OrderStage.AUTO_HOURS_CP, minutes=settings.OrderStage.AUTO_MINUTES_CP)
     orders_stmt = f"""
                     SELECT o.id as id,
                         o.user_id as user_id,
@@ -1694,11 +2132,15 @@ def helper_auto_problem_cancel_order():
         order_query = text(f"""
                    UPDATE public.orders 
                    SET payment=False,
-                       stage={settings.OrderStage.CANCELLED},
-                       comment_cancel='{settings.OrderStage.APCO_MESSAGE}',
+                       stage=:new_stage,
+                       comment_cancel=:comment,
                        cc_created='{current_date}'
                    WHERE id=:o_id 
-                """).bindparams(o_id=order.id)
+                """).bindparams(
+            o_id=order.id,
+            new_stage=settings.OrderStage.CANCELLED,
+            comment=settings.OrderStage.APCO_MESSAGE
+        )
 
         try:
             db.session.execute(order_query)
@@ -1749,3 +2191,13 @@ def helper_crm_preload(o_id: int):
                                                                                            orders_list=orders,)
 
     return render_template('crm/preload/crm_preload.html', **locals())
+
+
+def helper_categories_counter(all_cards: list | tuple) -> dict:
+    all_cards_proc = list(filter(lambda x: x.stage < 8, all_cards))
+    categories: tuple = ('одежда', 'обувь', 'белье', 'парфюм', 'носки и прочее')
+    categories_counter: dict = {'all': len(all_cards_proc)}
+    for cat in categories:
+        categories_counter.update({cat: sum(1 for card in all_cards_proc if card.category == cat)})
+
+    return categories_counter

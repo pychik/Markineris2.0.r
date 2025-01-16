@@ -1,0 +1,42 @@
+{% extends "crm_mod_v1/base_crm.html" %}
+
+{% block crm_dashboard %}
+
+<div id="update_all_info">
+    {% include 'crm_mod_v1/crma/crma_main_block.html'%}
+</div>
+
+<div class="modal fade" id="cancel_orderModal" tabindex="-1" data-bs-backdrop="static" role="dialog" aria-labelledby="cancel_orderModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+          <h5 class="modal-title" id="cancel_orderModalLabel">
+          </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="clear_cancel_order()"  aria-label="Close">
+        </button>
+      </div>
+      <div id="order_cancel_block"></div>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="problem_orderModal" tabindex="-1" data-bs-backdrop="static" role="dialog" aria-labelledby="problem_orderModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-error">
+          <h5 class="modal-title" id="problem_orderModalLabel">
+          </h5>
+        <button type="button" class="close" data-dismiss="modal" onclick="clear_problem_order()"  aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div id="order_problem_block">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{{url_for('static', filename='crm_mod/js/crm_agents_v1.js')}}?v=1"></script>
+
+{% endblock %}

@@ -1,0 +1,42 @@
+<div class="container-fluid">
+    <div class="card text-center p-3 mt-3">
+        <div class="input-group">
+
+          <input type="text" class="form-control" placeholder="Введите ваш ТНВЭД" minlength="10" maxlength="10" id="manual_tnved_input" value="">
+
+            <div class="input-group-postend" style="cursor:pointer">
+                <span class="input-group-text btn-accent" onclick="socks_manual_tnved()">Подтвердить</span>
+            </div>
+        </div>
+        <span class="small text-muted">Ввод собственного ТНВЭД</span>
+        <div id="manual_tnved_message" class="text-danger"></div>
+
+    </div>
+    <div id="accordionBlockies">
+    {% for tnved in tnved_list %}
+
+      <div class="card my-1" title="Нажмите чтобы раскрыть блок" data-bs-toggle="collapse" style="cursor: pointer"
+                    data-bs-target="#collapse{{ loop.index }}" aria-expanded="true" aria-controls="collapse{{ loop.index }}">
+        <div class="card-header " style="background-color:#f8f5f5" id="heading{{ loop.index }}">
+          <h6 class="mb-0">
+                <b>{{ tnved[0] }}</b>: {{ tnved[1][:50] }} ...
+          </h6>
+        </div>
+
+        <div id="collapse{{ loop.index }}" class="collapse {% if loop.index == 1 %}show{% endif %}" aria-labelledby="heading{{ loop.index }}"
+             >
+          <div class="card-body">
+            {{ tnved[1] }}
+              <div class="mt-3">
+                  <button type="button"
+                     onclick="javascript:document.getElementById('tnved_code').value='{{ tnved[0] }}';clear_manual_tnved();$('#mTMCloseButton').click()"
+                          data-dismiss="modal"
+                     class="btn btn-sm btn-primary">Выбрать</button>
+              </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+    </div>
+
+</div>

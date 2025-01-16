@@ -128,9 +128,9 @@ def create_transaction_from_tg(data: TransactionInData) -> bool:
 
 def send_tg_message_with_transaction_updated_status(user_id, transaction_id):
     messages = {
-        0: "Транзакция отклонена оператором",
-        1: "Транзакция в обработке",
-        2: "Транзакция успешно проведена оператором",
+        0: "Транзакция на сумму {amount} отклонена оператором",
+        1: "Транзакция на сумму {amount} в обработке",
+        2: "Транзакция на сумму {amount} успешно проведена оператором",
     }
     try:
         tg_user = TgUser.query.filter(TgUser.flask_user_id == user_id).first()
@@ -138,7 +138,10 @@ def send_tg_message_with_transaction_updated_status(user_id, transaction_id):
             UserTransaction.id == transaction_id,
         ).first()
         if tg_user is not None and transaction is not None:
-            tg_message = {"chat_id": tg_user.tg_chat_id, "message": messages[transaction.status]}
+            tg_message = {
+                "chat_id": tg_user.tg_chat_id,
+                "message": messages[transaction.status].format(amount=transaction.amount)
+            }
             NotificationTgUser.send_notification.delay(**tg_message)
     except Exception:
         logger.exception("Ошибка отправки при формировании и отправки сообщения в телеграм по статусу транзакции")

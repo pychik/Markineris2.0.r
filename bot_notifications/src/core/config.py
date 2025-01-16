@@ -41,6 +41,14 @@ class Setting(BaseSettings):
     REQUISITE_ID_STORAGE_KEY: str = "requisite_id"
     PROMO_CODE_ID_STORAGE_KEY: str = "promo_id"
 
+    MAINTENANCE_MODE: bool = Field(default=False, alias="BOT_MAINTENANCE_MODE")
+    MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10 мб
+
+    MINIO_API_URL: str
+    MINIO_ACCESS_KEY: str
+    MINIO_SECRET_KEY: str
+    MINIO_BILL_BUCKET_NAME: str
+
     @property
     def database_url(self) -> str:
         return (
@@ -48,20 +56,6 @@ class Setting(BaseSettings):
             f"{self.DB_USER}:{self.DB_PASSWORD}@"
             f"{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         )
-
-    @property
-    def bill_image_dir_path(self) -> str:
-        download_dir = Path(f"{self.ROOT_DIR}/files/bill_imgs/")
-        download_dir.mkdir(parents=True, exist_ok=True)
-
-        return download_dir.as_posix()
-
-    @property
-    def qr_image_dir_path(self) -> str:
-        download_dir = Path(f"{self.ROOT_DIR}/files/qr_imgs/")
-        download_dir.mkdir(parents=True, exist_ok=True)
-
-        return download_dir.as_posix()
 
     @property
     def log_path(self) -> str:

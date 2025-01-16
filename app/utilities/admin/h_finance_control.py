@@ -2,11 +2,9 @@ import urllib
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal, InvalidOperation
-from os import listdir as o_list_dir
-from os import remove as o_remove
 from flask import flash, redirect, render_template, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
-from sqlalchemy import desc, text, create_engine, null, select, or_, not_
+from sqlalchemy import desc, text, create_engine, null, select, or_, not_, exists
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -15,6 +13,7 @@ from logger import logger
 from models import Promo, Price, ServiceAccount, ServerParam, User, UserTransaction, Bonus
 from models import db
 from utilities.admin.excel_report import ExcelReportProcessor, ExcelReport, ExcelReportWithSheets
+from utilities.minio_service.services import get_s3_service
 from utilities.support import (helper_paginate_data, check_file_extension, get_file_extension,
                                helper_get_server_balance, helper_get_filters_transactions,
                                helper_update_pending_rf_transaction_status, helper_get_image_html,
@@ -23,7 +22,8 @@ from utilities.support import (helper_paginate_data, check_file_extension, get_f
                                helper_get_filter_fin_order_report, helper_get_stmt_for_fin_promo_history,
                                helper_get_filter_fin_promo_history,
                                helper_get_filter_fin_bonus_history, helper_get_stmt_for_fin_bonus_history,
-                               helper_get_transactions, helper_get_user_at2_opt2)
+                               helper_get_transactions, helper_get_user_at2_opt2,
+                               helper_get_promo_on_cancel_transaction)
 from utilities.tg_verify.service import send_tg_message_with_transaction_updated_status
 
 
@@ -72,7 +72,8 @@ def h_su_control_finance():
 
     account_type_db = ServerParam.query.with_entities(ServerParam.account_type).first()
     account_type = settings.ServiceAccounts.DEFAULT_QR_ACCOUNT_TYPE if not account_type_db else account_type_db.account_type
-    service_accounts = ServiceAccount.query.order_by(desc(ServiceAccount.created_at)).all()
+    service_accounts = ServiceAccount.query.filter(
+        not_(ServiceAccount.is_archived.is_(True))).order_by(desc(ServiceAccount.created_at)).all()
 
     # rf- refill , wo write off
     balance, pending_balance_rf, summ_at1, summ_at2, summ_client = helper_get_server_balance()
@@ -93,6 +94,11 @@ def h_su_control_finance():
     page, per_page, \
         offset, pagination, \
         bonuses_list = helper_paginate_data(data=bonuses, href=link_bonuses, per_page=settings.PAGINATION_PER_PROMOS)
+
+    link_sa = 'javascript:get_sa_history(\'' + url_for('admin_control.su_bck_sa') + '?page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        sa_list = helper_paginate_data(data=service_accounts, href=link_sa, per_page=settings.PAGINATION_PER_PROMOS)
 
     return render_template('admin/finance/su_finance_control.html', **locals())
 
@@ -305,13 +311,17 @@ def h_su_delete_prices(p_id: int) -> Response:
 
     # check for basic price
     if not price_replace_id:
-        user_update_stmt = text(f"""UPDATE public.users set price_id=NULL WHERE price_id={p_id}""")
+        user_update_stmt = text("""UPDATE public.users set price_id=NULL WHERE price_id=:p_id""").bindparams(p_id=p_id)
     else:
         # price_replace = Price.query.with_entities(Price.id).filter(Price.id == request.form.get('price_id', null(), int)).first()
         price_replace = Price.query.with_entities(Price.id).filter(Price.id == price_replace_id).first()
 
         replace_price_id = price_replace.id if price_replace else null()
-        user_update_stmt = text(f"""UPDATE public.users set price_id={replace_price_id} WHERE price_id={p_id}""")
+        user_update_stmt = text(
+            """UPDATE public.users set price_id=:replace_price_id WHERE price_id=:p_id""").bindparams(
+            replace_price_id=replace_price_id,
+            p_id=p_id
+        )
 
     try:
 
@@ -386,16 +396,29 @@ def h_su_edit_price(p_id: int) -> Response:
     return jsonify(dict(status=status, message=message))
 
 
-def h_su_bck_sa():
+def h_su_bck_sa(show_archived: bool = False):
+    show_archived = request.args.get('show_archived', default=False, type=lambda v: v.lower() == 'true')
+
+    if show_archived:
+        filter_by = ServiceAccount.is_archived.is_(True)
+    else:
+        filter_by = not_(ServiceAccount.is_archived.is_(True))
+
+    service_accounts = ServiceAccount.query.filter(filter_by).order_by(desc(ServiceAccount.created_at)).all()
+
+    link_sa = 'javascript:get_sa_history(\'' + url_for('admin_control.su_bck_sa') + '?page={0}\');'
+    page, per_page, \
+        offset, pagination, \
+        sa_list = helper_paginate_data(data=service_accounts, href=link_sa, per_page=settings.PAGINATION_PER_PROMOS)
+
     base_path = settings.DOWNLOAD_QA_BASIC
     sa_types = settings.ServiceAccounts.TYPES_DICT
-    service_accounts = ServiceAccount.query.order_by(desc(ServiceAccount.created_at)).all()
+
     return jsonify({'htmlresponse': render_template(f'admin/finance/sa_table.html', **locals())})
 
 
 def h_su_add_sa():
-
-    status = 'danger'
+    status = settings.ERROR
 
     sa_quantity = ServiceAccount.query.count()
 
@@ -403,8 +426,10 @@ def h_su_add_sa():
     if sa_quantity >= settings.ServiceAccounts.QUANTITY_LIMIT:
         message = f'{settings.Messages.SA_LIMIT_ERROR} {sa_quantity}'
         return jsonify(dict(status=status, message=message))
+
     sa_name = request.form.get('sa_name', '').replace('--', '')
     sa_type = request.form.get('sa_type', '').replace('--', '')
+
     try:
         # check sa_type
         if sa_type not in settings.ServiceAccounts.TYPES_KEYS:
@@ -412,8 +437,10 @@ def h_su_add_sa():
 
         sa_qr_path = None
         sa_reqs = None
-        if sa_type == settings.ServiceAccounts.TYPES_KEYS[0]:
-            # qr service_account
+        outer_payment_reqs = None
+
+        if sa_type == settings.ServiceAccounts.TYPES_KEYS[0]:  # qr_code
+            # QR service_account
             sa_qr_file = request.files.get('sa_qr_file')
             # check file
             if sa_qr_file is None or sa_qr_file is False or check_file_extension(filename=sa_qr_file.filename,
@@ -423,21 +450,44 @@ def h_su_add_sa():
             sa_extension = get_file_extension(filename=sa_qr_file.filename)
             sa_qr_path = f'img_{sa_name}.{sa_extension}'
             # save file
-            sa_qr_file.save(f"{settings.DOWNLOAD_DIR_SA_QR}{sa_qr_path}")
-        else:
-            # requisites service_account
+            try:
+                s3_service = get_s3_service()
+                s3_service.upload_file(
+                    object_name=f"{settings.DOWNLOAD_QA_BASIC}{sa_qr_path}",
+                    bucket_name="static",
+                    file_data=sa_qr_file.stream,
+                )
+            except Exception as e:
+                logger.exception("Ошибка сохранении qr кода в s3")
+                message = settings.Messages.SA_TYPE_FILE_ERROR
+                return jsonify(dict(status=status, message=message))
+        elif sa_type == settings.ServiceAccounts.TYPES_KEYS[1]:  # requisites
+            # Requisites service_account
             sa_reqs = request.form.get('sa_req', '').replace('--', '')
+        elif sa_type == 'external_payment':  # external_payment
+            # External payment service_account
+            outer_payment_reqs = request.form.get('outer_payment_req', '').replace('--', '')
 
-        # another trick check
-        if not sa_reqs and not sa_qr_path:
+        # Validation for required fields based on type
+        if sa_type == 'qr_code' and not sa_qr_path:
+            raise ValueError
+        if sa_type == 'requisites' and not sa_reqs:
+            raise ValueError
+        if sa_type == 'external_payment' and not outer_payment_reqs:
             raise ValueError
 
-        sa_new = ServiceAccount(sa_name=sa_name, sa_type=sa_type, sa_qr_path=sa_qr_path, sa_reqs=sa_reqs)
+        # Create a new service account entry
+        sa_new = ServiceAccount(
+            sa_name=sa_name,
+            sa_type=sa_type,
+            sa_qr_path=sa_qr_path,
+            sa_reqs=sa_reqs or outer_payment_reqs
+        )
 
         db.session.add(sa_new)
         db.session.commit()
         message = f"{settings.Messages.SA_CREATE} {sa_name} {sa_type}"
-        status = 'success'
+        status = settings.SUCCESS
 
     except ValueError:
         db.session.rollback()
@@ -446,17 +496,17 @@ def h_su_add_sa():
 
     except IntegrityError as e:
         db.session.rollback()
-        message = f"{settings.Messages.SA_DUPLICATE_ERROR} {sa_name}" if "psycopg2.errors.UniqueViolation)" \
-            in str(e) else f"{settings.Messages.SA_ERROR}{str(e)}"
+        message = f"{settings.Messages.SA_DUPLICATE_ERROR} {sa_name}" if "psycopg2.errors.UniqueViolation)" in str(e) \
+            else f"{settings.Messages.SA_ERROR}{str(e)}"
         logger.error(message)
 
     return jsonify(dict(status=status, message=message))
 
 
 def h_su_delete_sa(sa_id: int) -> Response:
-    account = ServiceAccount.query.with_entities(
-        ServiceAccount.id, ServiceAccount.sa_name, ServiceAccount.sa_type,
-        ServiceAccount.sa_qr_path).filter(ServiceAccount.id == sa_id).first()
+    account = ServiceAccount.query.filter(
+        ServiceAccount.id == sa_id
+    ).first()
     status = 'danger'
 
     # check for trickers
@@ -464,12 +514,28 @@ def h_su_delete_sa(sa_id: int) -> Response:
         message = settings.Messages.DELETE_NE_SA
         return jsonify(dict(status=status, message=message))
     try:
-        db.session.execute(db.delete(ServiceAccount).filter_by(id=sa_id))
+        transactions = db.session.query(exists().where(UserTransaction.sa_id == account.id)).scalar()
+        if transactions:
+            account.is_archived = True
+            account.is_active = False
+            account.archived_at = datetime.now()
+        else:
+            s3_service = get_s3_service()
+            try:
+                qr_codes = s3_service.list_objects(bucket_name="static", prefix=f"{settings.DOWNLOAD_QA_BASIC}")
+            except Exception:
+                logger.exception("Ошибка при получении qr кодов из s3")
+                qr_codes = []
 
-        if account.sa_type == settings.ServiceAccounts.TYPES_KEYS[0] and account.sa_qr_path in o_list_dir(settings.DOWNLOAD_DIR_SA_QR):
+            db.session.execute(db.delete(ServiceAccount).filter_by(id=sa_id))
 
-            # sa is qr_type, removing image from service
-            o_remove(path=f"{settings.DOWNLOAD_DIR_SA_QR}{account.sa_qr_path}")
+            qr_code_key = f"{settings.DOWNLOAD_QA_BASIC}{account.sa_qr_path}"
+            if account.sa_type == settings.ServiceAccounts.TYPES_KEYS[0] and qr_code_key in qr_codes:
+
+                try:
+                    s3_service.remove_object(object_name=qr_code_key, bucket_name="static")
+                except Exception:
+                    logger.exception("Ошибка при удалении qr кода из s3 хранилища")
 
         db.session.commit()
         message = f"{settings.Messages.DELETE_SA} {account.sa_name}"
@@ -874,7 +940,7 @@ def h_bck_control_specific_ut(u_id: int):
     date_to = (datetime.strptime(url_date_to, '%d.%m.%Y')).strftime(
         '%Y-%m-%d') if url_date_to else datetime.now().strftime('%Y-%m-%d')
 
-    sort_type = request.args.get('sort_type', 'desc', str)
+    sort_type = 'desc' if request.args.get('sort_type', 'desc', str).lower() == 'desc' else 'asc'
 
     user_info = helper_get_user_at2_opt2(u_id=u_id)
     if not user_info:
@@ -1063,7 +1129,7 @@ def h_su_transaction_detail(u_id: int, t_id: int):
     if transaction.type and transaction.status in [settings.Transactions.SUCCESS, settings.Transactions.PENDING,
                                                    settings.Transactions.CANCELLED]:
         if not transaction.is_bonus:
-            transaction_image = helper_get_image_html(img_path=f"{settings.DOWNLOAD_DIR_BILLS}{transaction.bill_path}")
+            transaction_image = helper_get_image_html(img_path=transaction.bill_path)
         service_account = ServiceAccount.query.filter(ServiceAccount.id == transaction.sa_id).first()
 
     # elif (not transaction.type or (transaction.type and transaction.op_cost)) and transaction.status == settings.Transactions.SUCCESS:
@@ -1141,14 +1207,21 @@ def h_su_pending_transaction_update(u_id: int, t_id: int,):
         return jsonify(dict(status=status, message=f"{message} ошибка ввода"))
 
     # check for tricksters
-    transaction_updated = UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount)\
-                                               .filter(UserTransaction.user_id == u_id,
-                                                       UserTransaction.id == t_id,
-                                                       UserTransaction.status == settings.Transactions.PENDING).first()
-
+    transaction_updated = UserTransaction.query.with_entities(UserTransaction.id,
+                                                              UserTransaction.amount,
+                                                              UserTransaction.promo_info,
+                                                              UserTransaction.status) \
+        .filter(UserTransaction.user_id == u_id,
+                UserTransaction.id == t_id,
+                UserTransaction.status == settings.Transactions.PENDING).first()
     user = User.query.with_entities(User.id).filter(User.id == u_id).first()
+
     if not user or not transaction_updated:
         return jsonify(dict(status=status, message=f"{message} нет такого пользователя или транзакции"))
+
+    # remove cancelled transaction promo used
+    if tr_type == 1 and tr_status == settings.Transactions.CANCELLED and transaction_updated.promo_info:
+        helper_get_promo_on_cancel_transaction(u_id=user.id, promo_info=transaction_updated.promo_info)
 
     process_transaction = helper_update_pending_rf_transaction_status(u_id=u_id, t_id=t_id,
                                                                       amount=transaction_updated.amount,

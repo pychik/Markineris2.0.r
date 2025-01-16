@@ -4,6 +4,7 @@ FLASK_APP := -f docker-compose.yml
 
 COMPOSE_ALL_FILES := -f docker-compose.elk.yml -f docker-compose.logs.yml
 COMPOSE_LOGGING := -f docker-compose.elk.yml -f docker-compose.logs.yml
+COMPOSE_S3_STORAGE := -f docker-compose-minio.yml
 ELK_SERVICES := elasticsearch logstash kibana apm-server
 ELK_LOG_COLLECTION := filebeat
 ELK_MAIN_SERVICES := ${ELK_SERVICES}
@@ -17,7 +18,7 @@ else
 endif
 
 # --------------------------
-.PHONY: flask-local-run maintenance-on maintenance-off service-logs service-start service-stop flask-up flask-down set-vm elk-setup elk-up collect-logs elk-down elk-stop elk-restart elk-rm elk-logs elk-images elk-prune ps help
+.PHONY: flask-local-run maintenance-on maintenance-off service-logs service-start service-stop flask-up flask-down set-vm elk-setup elk-up collect-logs elk-down elk-stop elk-restart elk-rm elk-logs elk-images elk-prune ps minio-up minio-down run-static-synchronize help
 
 
 up-all:				## Запуск всего сервиса и elk-stack.
@@ -38,7 +39,7 @@ maintenance-on:					## Включение режима "технических �
 	@make flask-down
 maintenance-off:				## Выключение режима "технических работ" и удаление всех неиспользуемых докер образов.
 	@make flask-up
-	sleep 68
+	sleep 10
 	rm -fr ./maintenance/maintenance.flag
 	docker image prune -f
 
@@ -115,5 +116,23 @@ elk-prune:						## Удалить ELK контейнеры и удалить в�
 	@make stop && make rm
 	@docker volume prune -f --filter label=com.docker.compose.project=elastic
 
+minio-up:						## Запустить контейнеры сервиса Minio(minio, create_buckets)
+	$(DOCKER_COMPOSE_COMMAND) $(COMPOSE_S3_STORAGE) up --build -d
+
+minio-down:						## Остановить контейнеры сервиса Minio(minio, create_buckets)
+	$(DOCKER_COMPOSE_COMMAND) $(COMPOSE_S3_STORAGE) down
+
+minio-logs:						## Логи сервиса Minio(minio, create_buckets)
+	$(DOCKER_COMPOSE_COMMAND) $(COMPOSE_S3_STORAGE) logs -f
+
 help:       					## Показать все команды.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m (default: help)\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+
+run-static-synchronize:        ## Синхронизация статики s3 хранилища со статикой репы
+		@bash -c '\
+    export PYTHONPATH=$(shell pwd)/app:$$PYTHONPATH && \
+    echo "PYTHONPATH: $$PYTHONPATH" && \
+	export $$(grep -v "^#" .env | grep -E "^[a-zA-Z_][a-zA-Z0-9_]*=.*" | xargs -d "\n"); \
+	export MINIO_API_URL=0.0.0.0:9000 && \
+	. venv/bin/activate && \
+	python3 app/data_migrations/static_synchronize_script.py'

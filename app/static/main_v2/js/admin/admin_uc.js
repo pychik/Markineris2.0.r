@@ -560,74 +560,196 @@ function get_marks_count_report(url, csrf_token, btn) {
         }
     });
 }
+
 function check_sa_form() {
+    let form = document.getElementById('service_account_form');
+    let accountType = document.getElementById('sa_type')?.value;
+    let saName = document.getElementById('sa_name')?.value;
 
-    let form = document.getElementById('service_account_form')
-    // console.log(form.reportValidity());
-    if (!form.checkValidity || form.checkValidity()) {
-        return true
-    } else {
-        var allInputs = $('#service_account_form input');
-        let errors_list = [];
-        allInputs.each(function (index) {
-            // console.log(allInputs[index]);
+    let errors_list = [];
 
-            let error_field_id = check_valid(allInputs[index]);
-            // console.log(error_field_id);
-            if (error_field_id !== true) {
-                let label_text = jQuery(`#${error_field_id}`).closest(".form-group").find("label").text();
-                // document.getElementById().parent().label.innerText
-                // errors_list.push(error_field_name);
-                if (label_text) {
-                    errors_list.push(label_text);
-                }
-            }
-        })
-        if ($('#sa_type').val() === null) {
-            errors_list.push('Укажите тип счета!');
+    if (!saName || saName.length < 3 || saName.length > 100) {
+        errors_list.push("Введите корректное наименование счета (от 3 до 100 символов)!");
+    }
+
+    if (!accountType) {
+        errors_list.push("Укажите тип счета!");
+    } else if (accountType === "requisites") {
+        const validationResult = validateAllFields();
+        if (!validationResult.isValid) {
+            errors_list.push(...validationResult.errors);
         }
+    } else if (accountType === "qr_code") {
+        let qrFile = document.getElementById('sa_qr_file');
+        if (!qrFile.value) {
+            errors_list.push("Загрузите файл QR-кода!");
+        }
+    } else if (accountType === "external_payment") {
+    let outerPaymentField = document.getElementById('outer_payment_req');
+    if (!outerPaymentField || !outerPaymentField.value.trim()) {
+        errors_list.push("Введите реквизиты для внешнего платежа (минимум 10 символов)!");
+    } else if (outerPaymentField.value.trim().length < 10) {
+        errors_list.push("Реквизиты для внешнего платежа должны содержать не менее 10 символов!");
+    }
+}
 
+    if (errors_list.length > 0) {
         show_form_errors(errors_list);
         $('#form_errorModal').modal('show');
-        return false
+        return false;
     }
+
+    return true;
 }
+
+
+
+function handleInputChange(event) {
+    const input = event.target;
+    const pattern = input.getAttribute('pattern');
+
+    validateField(input, pattern);
+
+    updateSaReq();
+}
+
+function validateField(input, pattern = null) {
+    if (input.required && !input.value.trim()) {
+        input.classList.add('is-invalid');
+        input.classList.remove('is-valid');
+        return false;
+    }
+
+    if (pattern && !new RegExp(pattern).test(input.value.trim())) {
+        input.classList.add('is-invalid');
+        input.classList.remove('is-valid');
+        return false;
+    }
+
+    input.classList.add('is-valid');
+    input.classList.remove('is-invalid');
+    return true;
+}
+
+
+function validateAllFields() {
+    const bankName = document.getElementById('bank_name');
+    const cardNumber = document.getElementById('card_number');
+    const phoneNumber = document.getElementById('phone_number');
+    const fio = document.getElementById('fio');
+    const sbp = document.getElementById('sbp');
+
+    let isValid = true;
+    let errors = [];
+
+
+    if (!validateField(bankName)) {
+        isValid = false;
+        errors.push('Пожалуйста, заполните поле: НАЗВАНИЕ БАНКА.');
+    }
+
+    if (!validateField(fio)) {
+        isValid = false;
+        errors.push('Пожалуйста, заполните поле: ФИО.');
+    }
+
+    const isCardNumberValid = cardNumber.value.trim() ? validateField(cardNumber) : false;
+    const isPhoneNumberValid = phoneNumber.value.trim() ? validateField(phoneNumber) : false;
+    const isSbpValid = sbp.value.trim() ? validateField(sbp) : false;
+
+    if (!isCardNumberValid && !isPhoneNumberValid && !isSbpValid) {
+        isValid = false;
+        errors.push('Заполните хотя бы одно из полей: НОМЕР КАРТЫ, НОМЕР ТЕЛЕФОНА или СБП.');
+    }
+
+    [cardNumber, phoneNumber, sbp].forEach(input => {
+        if (!input.value.trim()) {
+            input.classList.remove('is-valid');
+            input.classList.add('is-invalid');
+        }
+    });
+
+    return { isValid, errors };
+}
+
+
+function updateSaReq() {
+    const bankName = document.getElementById('bank_name').value.trim();
+    const cardNumber = document.getElementById('card_number').value.trim();
+    const phoneNumber = document.getElementById('phone_number').value.trim();
+    const fio = document.getElementById('fio').value.trim();
+    const sbp = document.getElementById('sbp').value.trim();
+    const saReqField = document.getElementById('sa_req');
+    const saReqPreview = document.getElementById('sa_req_preview');
+
+    if (!bankName || !fio) {
+        saReqField.value = '';
+        saReqPreview.innerHTML = '';
+        return;
+    }
+
+    let saReqText = `<h2 class="btn-accent faded">${bankName}</h2>`;
+    if (cardNumber) saReqText += `НОМЕР КАРТЫ: ${cardNumber}<br>`;
+    saReqText += `ПОЛУЧАТЕЛЬ: ${fio}<br>`;
+    if (phoneNumber) saReqText += `Номер телефона: ${phoneNumber}<br>`;
+    if (sbp) saReqText += `СБП: ${sbp}`;
+
+    saReqField.value = saReqText;
+    saReqPreview.innerHTML = saReqText;
+}
+
 
 function sa_form_update_type() {
-    let qr_block = ``
-    let req_block = ``
-    let sa_type = document.getElementById('sa_type').value
-    if (document.getElementById('sa_type').value === 'qr_code') {
-        // document.getElementById('change_sa_type_block').innerHTML = qr_block;
+    let sa_type = document.getElementById('sa_type').value;
+
+    if (sa_type === 'qr_code') {
+        // QR-код блок
         document.getElementById('req_block').style.display = 'none';
+        document.getElementById('outer_payment_block').style.display = 'none';
         document.getElementById('sa_req').disabled = true;
+
         document.getElementById('qr_img_block').style.removeProperty('display');
         document.getElementById('sa_qr_file').disabled = false;
-
-    } else {
+    } else if (sa_type === 'external_payment') {
+        // Внешний платежный блок
         document.getElementById('qr_img_block').style.display = 'none';
         document.getElementById('sa_qr_file').disabled = true;
+
+        document.getElementById('req_block').style.display = 'none';
+        document.getElementById('outer_payment_block').style.removeProperty('display');
+        document.getElementById('sa_req').disabled = false;
+    } else {
+        // Реквизиты блок
+        document.getElementById('qr_img_block').style.display = 'none';
+        document.getElementById('sa_qr_file').disabled = true;
+
+        document.getElementById('outer_payment_block').style.display = 'none';
         document.getElementById('req_block').style.removeProperty('display');
-        document.getElementById('req_block').classList.remove('is-valid')
+        document.getElementById('req_block').classList.remove('is-valid');
         document.getElementById('sa_req').disabled = false;
     }
-    // console.log(sa_type)
 }
 
+
 function get_sa_history(url) {
+    let show_archived = document.getElementById('show_archived_service_accounts').checked
+
     $.ajax({
         url: url,
         method: "GET",
+        data: {
+            'show_archived': show_archived
+        },
 
         success: function (data) {
 
             $('#sa_table').html(data);
             $("#sa_table").append(data.htmlresponse);
-            // update_category(category);
+            toggleArchivedColumn(show_archived, 'sa_table', 'show_archived_service_accounts');
         }
     });
-
 }
+
 
 async function bck_delete_sa(url, csrf, update_url) {
 
@@ -1163,9 +1285,22 @@ function clear_au_userstd_modal() {
 
 
 function bck_get_orders_stats(url) {
+    let date_from = $('#date_from').val()
+    let date_to = $('#date_to').val()
+    let data = {
+            bck: 1,
+            date_from: date_from,
+            date_to: date_to,
+        };
+    let extend_agent_elem = document.getElementById('agent_orders')
+    if (extend_agent_elem) {
+        data['extend_agent'] = +extend_agent_elem.checked
+    }
+
     $.ajax({
         url: url,
         method: "GET",
+        data: data,
 
         success: function (data) {
             $('#orders_stats_table').html(data);
@@ -1180,6 +1315,53 @@ function bck_get_orders_stats(url) {
         }
     });
 
+}
+
+
+function get_order_stats_rpt(url, admin_id, csrf_token) {
+    let date_from = $('#date_from').val();
+    let date_to = $('#date_to').val();
+
+    let data = {
+            date_from: date_from,
+            date_to: date_to,
+            admin_id: admin_id
+        };
+    let extend_agent_elem = document.getElementById('agent_orders')
+    if (extend_agent_elem) {
+        data['extend_agent'] = +extend_agent_elem.checked
+    }
+
+    $.ajax({
+        url: url,
+        headers: { "X-CSRFToken": csrf_token },
+        method: "POST",
+        data: data,
+        xhrFields: {
+            responseType: 'blob' // Set response type to blob
+        },
+        success: function(response, status, xhr) {
+            if (xhr.status === 200) {
+                var blob = new Blob([response], { type: 'application/xlsx' });
+                var link = document.createElement('a');
+
+                var dataName = xhr.getResponseHeader('data_file_name');
+
+                link.href = window.URL.createObjectURL(blob);
+                // console.log()
+                link.download = decodeURIComponent(dataName) || 'история кодов.xlsx'; //
+                link.click();
+            } else {
+                // Handle other status codes
+                console.error('Error:', xhr.status);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#overlay_loading').hide();
+            // Error handling
+            console.error('Error:', error);
+        }
+    });
 }
 
 function bck_get_users_activated(url) {

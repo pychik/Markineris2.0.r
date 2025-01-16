@@ -196,18 +196,22 @@ function bck_get_users_from_markineris(url, csrf)
   }
 
 
-function get_agent_info_modal(u_name, email){
-
+function get_agent_info_modal(url, csrf, u_name, email){
    let form_block= `
         <div class="text-center">
             <div class="row">
                 <div class="col-2"></div>
                 <div class="col-8">
-                    <label for="agent_info_input">Email агента</label>
-                    <input id="agent_info_input" class="form-control" type="text" readonly value="${email}">
+                    <label for="agent_info_email_input">Email агента</label>
+                    <input id="agent_info_email_input" class="form-control" type="text" readonly value="">
                 </div>
             </div>
-
+            <div class="row">
+                <div class="col-2"></div>
+                <div class="col-8" id="agent_info_input">
+                    
+                </div>
+            </div>
 
             <button type="button" class="btn btn-secondary mt-3" onclick="clear_agent_info_modal();" data-bs-dismiss="modal">Закрыть</button>
         </div>
@@ -233,9 +237,43 @@ function get_agent_info_modal(u_name, email){
             </div>
           </div>
         </div>`;
-
+    bck_get_agent_info(url, csrf, email);
     $("#agent_infoModal").modal("show");
 }
+
+function bck_get_agent_info(url, csrf, email)
+  {
+
+   $.ajax({
+    url:url,
+    headers:{"X-CSRFToken": csrf},
+    method:"POST",
+    data: {'agent_email': email},
+    success:function(data)
+    {
+        $('#agent_info_email_input').val(email);
+        if (data.password){
+
+            document.getElementById("agent_info_input").innerHTML = `<label for="agent_info_password_input">Пароль агента</label>
+                    <input id="agent_info_password_input" class="form-control" type="text" readonly value="${data.password}">`;
+
+        }
+        else{
+            $('#agent_info_input').val('');
+
+        }
+
+    },
+     error: function() {
+        make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
+        // $("#agent_infoModal").modal("hide");
+        clear_agent_info_modal();
+    }
+   });
+
+   setTimeout(function() {clear_user_messages();}, 15000);
+
+  }
 
 function clear_agent_info_modal(){
     document.getElementById("agent_info_modal").innerHTML = '';

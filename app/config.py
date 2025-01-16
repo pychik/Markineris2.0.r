@@ -5,23 +5,25 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import SecretStr
 
-from utilities.clothes_tnveds import CLOTHES_TNVED_DICT
-from utilities.param_lists import SHOE_GENDERS, SHOE_MATERIALS_UP_LINEN, SHOE_MATERIALS_BOTTOM, \
-    SHOE_MATERIALS_CORRECT, SHOE_PRELOAD_START, SHOE_SIZES, SHOES_SIZES_DESCRIPTION, \
-    SHOE_AL, SHOE_OT, SHOE_NL, SHOE_START, SHOE_TNVED, SHOE_TYPES, SHOE_SIZES_FULL, \
-    LINEN_TNVED, LINEN_TYPES, LINEN_CUSTOMER_AGES, LINEN_START, \
-    LINEN_PRELOAD_START, LINEN_TEXTILE_TYPES, PARFUM_MATERIAL_PACKAGES, PARFUM_PACKAGE_TYPES, \
-    PARFUM_START, PARFUM_PRELOAD_START, PARFUM_TNVED, PARFUM_TYPES, PARFUM_VOLUMES, \
-    CLOTHES_DICT, CLOTHES_GENDERS, \
-    CLOTHES_GENDERS_ORDER, CLOTHES_START, CLOTHES_PRELOAD_START, CLOTHES_TNVED, CLOTHES_TYPES, \
-    COUNTRIES_LIST, TEMPLATE_TABLES_DICT, ORDER_EDIT_DESCRIPTION, \
-    SHOE_TNVED_CHECK_LIST, CLOTHES_TYPES_SIZES_DICT, CATEGORIES_DICT, CLOTHES_ST_DICT, \
-    BIG_TNVED_LIST, BIG_TNVED_DICT, ADMIN_REPORT_HEAD, AGENT_DEFAULT_NOTE, ORDER_STAGES, COUNTRIES_CODES, \
-    CHECK_ORDER_STAGES, COMMON_COLORS, SHOE_START_EXT_029, SHOE_START_EXT_046, LINEN_START_EXT, PARFUM_START_EXT, \
-    CRM_PS_DICT, CLOTHES_CONTENT, CLOTHES_NAT_CONTENT, CLOTHES_UPPER, SHOE_TYPES_CODES, SHOE_SIZES_ND, SHOE_SIZES_CODES, \
-    USER_TRANSLATE_DICT, CLOTHES_SIZES_FULL, CLOTHES_SIZES_DESCRIPTION, CLOTHES_OLD_TNVED, ALL_CLOTHES_TNVED, \
-    COMPLICATED_COLORS, ALL_COLORS, UT_REPORT_START_FILL, UT_REPORT_START_ELSE, CLOTHES_TYPES_CODES, CLOTHES_START_EXT_029, CLOTHES_START_EXT_046, \
-    CLOTHES_GENDERS_ORDER_046
+from utilities.categories_data.clothes_tnveds import CLOTHES_TNVED_DICT
+from utilities.categories_data.socks_data import (SOCKS_DEC_DICT, SOCKS_TYPES,SOCKS_TNVED_DICT,
+                                                  SOCKS_TYPE_NUMBER_DICT)
+from utilities.param_lists import (SHOE_GENDERS, SHOE_MATERIALS_UP_LINEN, SHOE_MATERIALS_BOTTOM,
+    SHOE_MATERIALS_CORRECT, SHOE_PRELOAD_START, SHOE_SIZES, SHOES_SIZES_DESCRIPTION,
+    SHOE_AL, SHOE_OT, SHOE_NL, SHOE_START, SHOE_TNVED, SHOE_TYPES, SHOE_SIZES_FULL,
+    LINEN_TNVED, LINEN_TYPES, LINEN_CUSTOMER_AGES, LINEN_START,
+    LINEN_PRELOAD_START, LINEN_TEXTILE_TYPES, PARFUM_MATERIAL_PACKAGES, PARFUM_PACKAGE_TYPES,
+    PARFUM_START, PARFUM_PRELOAD_START, PARFUM_TNVED, PARFUM_TYPES, PARFUM_VOLUMES,
+    CLOTHES_DICT, CLOTHES_GENDERS,
+    CLOTHES_GENDERS_ORDER, CLOTHES_START, CLOTHES_PRELOAD_START, CLOTHES_TNVED, CLOTHES_TYPES,
+    COUNTRIES_LIST, TEMPLATE_TABLES_DICT, ORDER_EDIT_DESCRIPTION,
+    SHOE_TNVED_CHECK_LIST, CLOTHES_TYPES_SIZES_DICT, CATEGORIES_DICT, CLOTHES_ST_DICT,
+    BIG_TNVED_LIST, BIG_TNVED_DICT, ADMIN_REPORT_HEAD, AGENT_DEFAULT_NOTE, ORDER_STAGES, COUNTRIES_CODES,
+    CHECK_ORDER_STAGES, COMMON_COLORS, SHOE_START_EXT_029, SHOE_START_EXT_046, LINEN_START_EXT, PARFUM_START_EXT,
+    CRM_PS_DICT, CLOTHES_CONTENT, CLOTHES_NAT_CONTENT, CLOTHES_UPPER, SHOE_TYPES_CODES, SHOE_SIZES_ND, SHOE_SIZES_CODES,
+    USER_TRANSLATE_DICT, CLOTHES_SIZES_FULL, CLOTHES_SIZES_DESCRIPTION, CLOTHES_OLD_TNVED, ALL_CLOTHES_TNVED,
+    COMPLICATED_COLORS, ALL_COLORS, UT_REPORT_START_FILL, UT_REPORT_START_ELSE, CLOTHES_TYPES_CODES, CLOTHES_START_EXT_029, CLOTHES_START_EXT_046,
+    CLOTHES_GENDERS_ORDER_046, ALL_SOCKS_TNVEDS, SOCKS_TYPES_SIZES_DICT, SOCKS_SIZE_TYPES, SOCKS_ST_DICT,)
 
 CUR_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -33,6 +35,12 @@ class Settings(BaseSettings):
     APM_IS_DEBUG: str = False
     ELASTIC_APM_SECRET_TOKEN: str
     APM_SERVER_URL: str
+
+    MINIO_API_URL: str
+    MINIO_ACCESS_KEY: str
+    MINIO_SECRET_KEY: str
+    MINIO_CRM_BUCKET_NAME: str
+    MINIO_BILL_BUCKET_NAME: str
 
     DATA_DOWNLOAD_URL_FROM_MARKINERS_1: str
     SALT: SecretStr
@@ -104,14 +112,14 @@ class Settings(BaseSettings):
 
     SQ_CATEGORIES: list = ['обувь', 'одежда', 'белье']
     CATEGORIES_PROCESS_NAMES: list = ['shoes', 'clothes', 'linen', 'parfum', 'send_table']
-    CATEGORIES_UPLOAD: tuple = ('обувь', 'одежда', 'парфюм', 'белье')
+    CATEGORIES_UPLOAD: tuple = ('обувь', 'одежда', 'парфюм', 'белье', 'носки и прочее')
     RZ_GENDERS_RD_LIST: tuple = ("Детские", "Мальчик", "Девочка", "Детск.",)
     COMPANY_TYPES: list = ["ИП", "ООО", "АО"]
     CATEGORIES_DICT: dict = CATEGORIES_DICT
     COUNTRIES_LIST: list = COUNTRIES_LIST
     COUNTRIES_CODES: dict = COUNTRIES_CODES
     COUNTRY_RUSSIA: str = "РОССИЯ"
-    COUNTRIES_INNER: tuple = ('РОССИЯ', 'КИТАЙ', 'КИРГИЗИЯ', 'ТУРЦИЯ', )
+    COUNTRIES_INNER: tuple = ('РОССИЯ', )
     EDO_TYPES: list = ["СБИС", "КОНТУР", "ТАКСКОМ", "КАЛУГА АСТРАЛ"]
     DOWNLOAD_DIR: str = f"{CUR_PATH}/download_dir"
     DOWNLOAD_DIR_CRM: str = f"{CUR_PATH}/download_dir/crm/"
@@ -157,7 +165,7 @@ class Settings(BaseSettings):
     ACTIVATE_IS_SEND_EXCEL: str = 'activate_is_send'
     DEACTIVATE_USER: str = 'deactivate_user'
     DEACTIVATE_IS_SEND_EXCEL: str = 'deactivate_is_send'
-    SQL_EXPR_CHECK: tuple = ("select", "--", "update", "insert", "delete", "truncate", "remove")
+    SQL_EXPR_CHECK: tuple = ("select", "--", "update", "insert", "delete", "truncate", "remove", "alter", "drop", )
     COMMON_COLORS: tuple = COMMON_COLORS
     COMPLICATED_COLORS: tuple = COMPLICATED_COLORS
     ALL_COLORS: tuple = ALL_COLORS
@@ -565,8 +573,9 @@ class Settings(BaseSettings):
         USER_NOT_ACTIVATED_2: str = f". Ожидайте , пока администратор активирует ваш аккаунт или сразу обратитесь " \
                                     f"к What's Up менеджеру {USER_WHATSAPP_LOGO_LINK}"
 
-        USER_ORDERS_LIMIT: str = "Пользователь может одновременно создавать не более 5 заказов! " \
-                                 "Вы перенаправлены на ваш первый заказ. Оформите хотя бы один и продолжайте"
+        USER_ORDERS_LIMIT: str = ("Пользователь может одновременно создавать не более 5 заказов на категорию! Вы "
+                                  "перенаправлены на ваш первый заказ. Оформите хотя бы один или удалите ненужные "
+                                  "во вкладке «Черновик заказов»")
         USER_ORDERS_COPY_LIMIT: str = "Пользователь может одновременно создавать не более 5 заказов! " \
                                       "Выберите заказ из списка активных заказов .Удалите или оформите хотя бы один и" \
                                       " продолжайте"
@@ -585,9 +594,11 @@ class Settings(BaseSettings):
                                   "Вы уверены что вы суперпользователь?"
         SUPERUM_REQUIRED: str = "Для того, чтобы контроллировать менеджеров нужна роль " \
                                 "суперпользователя или суперменеджера. "
+        SUPERUMAUS_REQUIRED: str = "Для подобный действий необходима роль суперпользователя, суперменеджера или админ."
         CRM_MANAGER_USER_REQUIRED: str = "Для работы и просмотра CRM нужна роль менеджера или суперпользователя, суперменеджера!"
         CRM_MANAGER_AGENT_USER_REQUIRED: str = "Для работы и просмотра CRM нужна роль менеджера или суперпользователя,  агента, суперменеджера!"
         CRM_MANAGER_USER_FORBIDDEN: str = "Менеджеры и суперменеджеры не могут пользоваться основной платформой!"
+        CRM_REPORT_USER_REQUIRED: str = "Для просмотра отчета нужна роль суперпользователя или суперменеджера!"
         CRM_FILENAME_ERROR: str = "Во время загрузки файла произошла ошибка. Проблема с названием файла! Попробуйте латинские буквы и расширение .rar !"
         CRM_CHANGE_STAGE_AT2_BALANCE_ERROR: str = "Пополните баланс. Общее количество этикеток и стоимость их проведения "
         CRM_SEARCH_ORDER_ERROR: str = "Такого заказа нет в системе! {comment}"
@@ -637,6 +648,7 @@ class Settings(BaseSettings):
         SA_UPDATE_CHANGE: str = "Во время первичного обновления приоритетного счета пополнения произошла ошибка: "
         SP_UPDATE_ERROR: str = "Ошибка сохранения параметров сервиса "
         USER_TRANSACTION_CREATE: str = "Сервис зарегистрировал транзакцию. Администратор проверит вашу транзакцию в ближайшее время"
+        USER_TRANSACTION_PROMO_CREATE: str = "Ваш промокод применен."
         USER_TRANSACTION_ERROR: str = "Ошибка сохранения транзакции! "
         USER_TRANSACTION_AGENT_ERROR: str = "Ошибка пополнения счета клиента! Пользователя  агентов с единым счетом не используют личный счет. Обратитесь к агенту "
         SU_TRANSACTION_CHANGE: str = "Статус транзакции успешно изменен"
@@ -794,6 +806,8 @@ class Settings(BaseSettings):
         ORDER_MANAGER_CHANGE: str = "Успешно изменен менеджер к заказу "
         ORDER_MANAGER_CHANGE_ERROR: str = "Во время изменения менеджера заказа произошла ошибка базы. "
         ORDER_MANAGER_CHANGE_ABS_ERROR: str = "Во время изменения менеджера заказа произошла ошибка. Такого заказа нет"
+        ORDER_CHANGE_STAGE_SUCCESS: str = 'Cтатус заказа успешно изменен!'
+        ORDER_CHANGE_STAGE_ERROR: str = 'Ошибка во время обновления. Обновите страницу'
         ORDER_PROCESSED_NOT_PAID: str = "Заказ не оплачен. Нельзя перевести в завершенные."
         ORDER_CEPS_SUCCESS: str = "Успешно изменен флаг внешней проблемы заказа!"
         ORDER_CEPS_ERROR: str = "Во время смены флага внешней проблемы заказа произошла ошибка"
@@ -883,6 +897,10 @@ class Settings(BaseSettings):
         EXTENDED: str = 'extended'
         SHEET_NAME: str = "Данные"
         TYPE_UPLOADS: list = ['standart', 'extended']
+
+    class ExceptionOrders:
+        COMPANIES_IDNS: tuple = ('7703381056', )
+        COMPANY_IDN_ERROR: str = "Невозможно оформить заказ по указанному ИНН {company_idn}"
 
     class Shoes:
         CATEGORY: str = 'обувь'
@@ -1050,6 +1068,54 @@ class Settings(BaseSettings):
         OLD_TNVEDS: set = CLOTHES_OLD_TNVED
         FULL_TNVED_4DIGIT_LIST: tuple = ('4203', '6112', '6211',)
         # OLD_TNVEDS_SQL: str = ', '.join(list(map(lambda x: '\'' + x + '\'', CLOTHES_OLD_TNVED)))
+
+    class Socks:
+        CATEGORY: str = 'носки и прочее'
+        CATEGORY_PROCESS: str = 'socks'
+        TYPES: list = SOCKS_TYPES
+        TYPES_CODES: dict = SOCKS_TYPE_NUMBER_DICT
+        # UPPER_TYPES: list = CLOTHES_UPPER
+        COLORS: tuple = COMMON_COLORS
+        # SIZES_ALL: list = CLOTHES_SIZES_FULL
+        # CLOTHES_SIZE_DESC: tuple = CLOTHES_SIZES_DESCRIPTION
+        CLOTHES_CONTENT: list = CLOTHES_CONTENT
+        # CLOTHES_NAT_CONTENT: list = CLOTHES_NAT_CONTENT
+        GENDERS: list = CLOTHES_GENDERS
+        GENDERS_ORDER: dict = CLOTHES_GENDERS_ORDER
+        GENDERS_ORDER_046: dict = CLOTHES_GENDERS_ORDER_046
+        DEC: dict = SOCKS_DEC_DICT
+
+        SIZE_ALL_DICT: dict = SOCKS_TYPES_SIZES_DICT
+        DEFAULT_SIZE_TYPE: str = "РОССИЯ"
+        UNITE_SIZE_VALUE: str = "ЕДИНЫЙ РАЗМЕР"
+        SYZE_TYPES_CODES: dict = SOCKS_ST_DICT
+        SIZE_TYPES_ALL: list = SOCKS_SIZE_TYPES  # temporary before all types are ok to use
+        # TNVED_CODE: tuple = CLOTHES_TNVED  # "6202900001"
+        # TNVED_CHECK_LIST: tuple = BIG_CLOTHES_TNVED_4DIGIT
+        SOCKS_TNVED_DICT: dict = SOCKS_TNVED_DICT
+        TNVED_ALL: tuple = ALL_SOCKS_TNVEDS
+        START: list = CLOTHES_START
+        START_EXT: list = CLOTHES_START_EXT_029
+        START_EXT_046: list = CLOTHES_START_EXT_046
+        START_PRELOAD: list = CLOTHES_PRELOAD_START
+        UPLOAD_STANDART_ROW: int = 7
+        MAX_QUANTITY: int = 100000000
+        MIN_QUANTITY: int = 1
+        NUMBER_STANDART: str = "ТР ТС 017/2011 \"О безопасности продукции легкой промышленности\""
+
+        UPLOAD_TYPE_ERROR: str = "Проверьте правильность выбора типа одежды (посмотрите вкладку справочник)"
+        UPLOAD_COLOR_ERROR: str = "Проверьте правильность указанного цвета одежды (посмотрите вкладку справочник)"
+        UPLOAD_SIZE_TYPE_ERROR: str = "Проверьте правильность указанного типа размера одежды (справочник)"
+
+        UPLOAD_SIZE_ERROR: str = "Проверьте правильность указанного размера одежды во вкладке справочник"
+
+        UPLOAD_CONTENT_ERROR: str = "Проверьте правильность указанного состава одежды (это не может быть цифра или пустое поле)"
+        UPLOAD_GENDER_ERROR: str = "Проверьте правильность указанного пола (посмотрите вкладку справочник)"
+        UPLOAD_QUANTITY_ERROR: str = "Проверьте правильность указанного количества (Это должно быть число )"
+        UPLOAD_COUNTRY_ERROR: str = "Проверьте правильность указанной страны (посмотрите вкладку справочник)"
+        CLOTHES_TNVED_DICT: dict = SOCKS_TNVED_DICT
+        # OLD_TNVEDS: set = CLOTHES_OLD_TNVED
+        # FULL_TNVED_4DIGIT_LIST: tuple = ('4203', '6112', '6211',)
 
     # class Config:
     #     env_file = '.env'

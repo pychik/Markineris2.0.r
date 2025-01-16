@@ -1,0 +1,56 @@
+<div class="faded orders__list">
+<!--<h6>{% if update_orders %}{{update_orders | length}} шт.{%endif%}</h6>-->
+{% for n in update_orders %}
+    <div class="orders__item order {% if n.to_delete %} div-disabled {%endif%}" id="cardCommonBlock_{{n.id}}">
+        <div class="order__header">
+            <div class="order__name">{{n.order_idn}} {%if n.is_at2%}<span>(Агент тип 2)</span>{%endif%} </div>
+            {% include 'crm_mod_v1/helpers/order_category.html' %}
+        </div>
+        <div class="order__body">
+            <div class="order__info">
+                <div class="order__small-text">
+                    <div class="order__num">
+                       КС: {{ n.row_count }} КМ: {{ n.pos_count }}
+                    </div>
+                    <div class="order__time" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right"
+                        data-bs-title="CRM: {{n.crm_created_at.strftime('%d-%m-%Y %H:%M:%S')}}">
+                        {{n.crm_created_at | time_since}}
+                    </div>
+                </div>
+                <div class="order__icons icons">
+                    {% include 'crm_mod_v1/crma/special_alerts.html' %}
+                </div>
+            </div>
+            <div class="order__all">
+
+                {% include 'crm_mod_v1/crma/order_description.html' %}
+
+                <div class="order__footer">
+                    <div class="order__icons icons">
+                    {% include 'crm_mod_v1/helpers/table_download.html' %}
+
+
+                    </div>
+                    <div class="steps">
+                        <img src="{{url_for('static', filename='crm_mod/img/icons/x-circle-fill.svg')}}"
+                            id="cancel_order{{n.id}}" alt="Отменить заказ"
+                            class="img-fluid" width="24" height="24" data-bs-toggle="tooltip"
+                            data-bs-placement="top" data-bs-title="Отменить заказ"
+                            onclick="cancel_order('{{ n.order_idn }}', '{{n.id}}',
+                             'pool_ordersMainDiv_quantity',
+                             `{{ url_for('crm_d.cancel_crm_order', o_id=n.id) }}`,
+                             '{{ csrf_token() }}')">
+
+                    </div>
+                </div>
+                <div class="order__roll">
+                    Свернуть
+                    <img src="{{url_for('static', filename='crm_mod/img/icons/roll.svg')}}" alt="Свернуть" class="img-fluid" width="19"
+                        height="19">
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endfor %}
+</div>

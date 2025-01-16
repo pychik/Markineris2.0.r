@@ -37,6 +37,18 @@ make service-up
 make service-logs
 ```
 
+### Запуск minio s3 хранилища и вспомогательных сервисов(minio, create_buckets)
+---
+## Для запуска minio
+```shell
+make minio-up
+```
+---
+## Для остановки minio
+```shell
+make minio-down
+```
+
 ### Режим технического обслуживания(maintenance mode)
 - Включить режим технического обслуживания
 ```shell
@@ -67,10 +79,14 @@ make flask-local-run
 ```
 9181 - rq-dashboard
 5005 - flask_app(обращайся к приложению через 80 порт)
-80 - nginx
+80/443 - nginx
+9001 - web interface minio
 ```
 
 ## Доступные ссылки после запуска
 - [Главная Маркинерис 2.0](http://0.0.0.0:80)
 - [Kibana](https://0.0.0.0:5601)
 - [Web интерфейс для мониторинга фоновых задач](http://0.0.0.0:9181)
+- [Web интерфейс minio s3 хранилища](http://0.0.0.0:9001)
+
+

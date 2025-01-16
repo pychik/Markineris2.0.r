@@ -156,15 +156,17 @@ class BaseExcelReport(ExcelReportMixin):
     output_file_name: output file name without extensions
     sheet_name: name of sheet
     columns_name: list of main data columns name
+    cell_condition_format: dict with keys as column index and values with
     """
 
     def __init__(
             self,
             data: List,
+            condition_format: Optional[dict[int, dict]],
             filters: Optional[Dict[str, Any]] = None,
             columns_name: Optional[List[str]] = None,
             sheet_name: Optional[str] = 'sheet 1',
-            output_file_name: Optional[str] = 'WorkBook.xlsx'
+            output_file_name: Optional[str] = 'WorkBook.xlsx',
     ):
         self.filters = filters
         self.data = data
@@ -173,6 +175,7 @@ class BaseExcelReport(ExcelReportMixin):
         self.output_file_name = f'{output_file_name}.xlsx'
         self.output = BytesIO()
         self.workbook = Workbook(self.output)
+        self.condition_format = condition_format
 
 
 class ExcelReport(BaseExcelReport):
@@ -180,10 +183,11 @@ class ExcelReport(BaseExcelReport):
     def __init__(
             self,
             data: List,
+            condition_format: Optional[dict[int, list]] = None,
             filters: Optional[Dict[str, Any]] = None,
             columns_name: Optional[List[str]] = None,
             sheet_name: Optional[str] = 'sheet 1',
-            output_file_name: Optional[str] = 'WorkBook.xlsx'
+            output_file_name: Optional[str] = 'WorkBook.xlsx',
     ) -> None:
         """
         data: list of data to save in file
@@ -194,7 +198,8 @@ class ExcelReport(BaseExcelReport):
                          filters=filters,
                          columns_name=columns_name,
                          sheet_name=sheet_name,
-                         output_file_name=output_file_name
+                         output_file_name=output_file_name,
+                         condition_format=condition_format,
                          )
         self.col_name_and_filter_formatter = self.workbook.add_format(settings.ExcelFormatting.FILTER_AND_COL_NAME_FORMATTER)
         self.main_data_formatter = self.workbook.add_format(settings.ExcelFormatting.MAIN_DATA_FORMATTER)
@@ -216,12 +221,16 @@ class ExcelReport(BaseExcelReport):
         col = 0
         for data_row in self.data:
             for value in data_row:
-                if isinstance(value, datetime):
-                    sheet.write_datetime(row, col, value, self.date_formatter)
-                if isinstance(value, date):
+                if type(value) is datetime:
                     sheet.write_datetime(row, col, value, self.datetime_formatter)
+                elif type(value) is date:
+                    sheet.write_datetime(row, col, value, self.date_formatter)
                 else:
                     sheet.write(row, col, value, formatters)
+
+                if self.condition_format:
+                    self.apply_condition_formatting(col, row, sheet=sheet)
+
                 col += 1
 
             col = 0
@@ -246,6 +255,16 @@ class ExcelReport(BaseExcelReport):
                 col += 1
             row += 1
         return row
+
+    def apply_condition_formatting(self, col: int, row: int, sheet: Worksheet, ):
+        if col in self.condition_format.keys():
+            for condition in self.condition_format[col]:
+                sheet.conditional_format(row, col, row, col, {
+                    'type': condition.get('type'),
+                    'criteria': condition.get('criteria'),
+                    'value': condition.get('value'),
+                    'format': self.workbook.add_format(condition.get('format')),
+                })
 
 
 class ExcelReportWithSheets(ExcelReportWithSheetMixin):

@@ -3,7 +3,7 @@ from abc import ABC
 from copy import copy
 from datetime import datetime
 from io import BytesIO
-from typing import Optional, Union
+from typing import Generator, Optional, Union
 
 from flask import flash, redirect, Response, send_file, url_for
 from pandas import DataFrame
@@ -20,10 +20,8 @@ from .telegram import TelegramProcessor
 class OrdersProcessor(ProcessorInterface, ABC):
     def __init__(self, category: str, company_idn: str, orders_list: list, flag_046: bool = False) -> None:
         (self._orders_list,
-         self._orders_list_outer_rd,
-         self._orders_list_outer_no_rd,
-         self._orders_list_inner_rd,
-         self._orders_list_inner_no_rd) = self.prepare_ext_data(orders_list=orders_list, flag_046=flag_046)
+         self._orders_list_outer,
+         self._orders_list_inner) = self.prepare_ext_data(orders_list=orders_list, flag_046=flag_046)
 
         self.company_idn = company_idn
         self.path = ''
@@ -37,20 +35,12 @@ class OrdersProcessor(ProcessorInterface, ABC):
         return self._orders_list
 
     @property
-    def orders_list_outer_rd(self) -> list:
-        return self._orders_list_outer_rd
+    def orders_list_outer(self) -> list:
+        return self._orders_list_outer
 
     @property
-    def orders_list_outer_no_rd(self) -> list:
-        return self._orders_list_outer_no_rd
-
-    @property
-    def orders_list_inner_rd(self) -> list:
-        return self._orders_list_inner_rd
-
-    @property
-    def orders_list_inner_no_rd(self) -> list:
-        return self._orders_list_inner_no_rd
+    def orders_list_inner(self) -> list:
+        return self._orders_list_inner
 
     @staticmethod
     def archive_excels(excel_files: list[tuple[BytesIO, str]], filename: str) -> tuple[BytesIO, str]:
@@ -69,6 +59,23 @@ class OrdersProcessor(ProcessorInterface, ABC):
         archive.seek(0)
         return archive, filename
 
+    @staticmethod
+    def prepare_batches(orders_divided: list, batch_size=400):
+        """
+        Делит каждый список в `orders_divided` на батчи и добавляет индекс к имени файла.
+
+        :param orders_divided: Список кортежей (список данных, имя файла).
+        :param batch_size: Размер батча (по умолчанию 400).
+        :return: Список кортежей (имя файла с индексом, данные батча).
+        """
+        for data_list, file_name in orders_divided:
+            for batch_index, i in enumerate(range(0, len(data_list), batch_size), start=1):
+                start_index = i + 1
+                end_index = min(i + batch_size, len(data_list))
+                batch_indexed_name = f"{batch_index}_{file_name}_{start_index}-{end_index}.xlsx"
+                batch_data = data_list[i:i + batch_size]
+                yield batch_data, batch_indexed_name
+
     def excel_add_worksheet_data(self, company_idn: str, company_name: str, company_type: str, edo_type: str,
                                  edo_id: str, mark_type: str,
                                  user_name: str, user_phone: str, user_email: str, partner: str) -> None:
@@ -80,15 +87,13 @@ class OrdersProcessor(ProcessorInterface, ABC):
                                 ['Тип этикетки', mark_type],
                                 ]
 
-    def process_to_excel(self, list_of_orders: list[tuple[list, str]]) -> list[tuple[BytesIO, str],]:
+    def process_to_excel(self, list_of_orders: Generator) -> list[tuple[BytesIO, str],]:
 
         """
             receives list of orders in sequence
-            :param list_of_orders: (self._orders_list_outer_rd, name),
-                                   (self._orders_list_outer_no_rd, name),
-                                   (self._orders_list_inner_rd, name),
-                                   (self._orders_list_inner_no_rd, name)
-            return 4 excel tables and it's names
+            :param list_of_orders: (self._orders_list_outer, name),
+                                   (self._orders_list_inner, name),
+            return excel table and it's name
         """
         res_tables = []
         for el in list_of_orders:
@@ -170,6 +175,8 @@ class OrdersProcessor(ProcessorInterface, ABC):
             res = copy(settings.Parfum.START_EXT)
         if category == settings.Clothes.CATEGORY:
             res = copy(settings.Clothes.START_EXT_046) if flag_046 else copy(settings.Clothes.START_EXT)
+        if category == settings.Socks.CATEGORY:
+            res = copy(settings.Socks.START_EXT_046) if flag_046 else copy(settings.Socks.START_EXT)
         return res
 
     @staticmethod
@@ -195,10 +202,9 @@ class OrdersProcessor(ProcessorInterface, ABC):
                                       user_name=c_name, user_phone=c_phone,
                                       user_email=c_email, partner=c_partner_code)
 
-        excel_files = self.process_to_excel(list_of_orders=[(self.orders_list_outer_rd, "ВВЕЗЕН_РД.xlsx"),
-                                                            (self.orders_list_outer_no_rd, "ВВЕЗЕН_БЕЗ_РД.xlsx"),
-                                                            (self.orders_list_inner_rd, "ВНУТР_РД.xlsx"),
-                                                            (self.orders_list_inner_no_rd, "ВНУТР_БЕЗ_РД.xlsx")])
+        excel_files = self.process_to_excel(list_of_orders=OrdersProcessor
+                                            .prepare_batches(orders_divided=[(self.orders_list_outer, "ВВЕЗЕН"),
+                                                                             (self.orders_list_inner, "РФ_ВНУТР")]))
 
         return OrdersProcessor.archive_excels(excel_files=excel_files, filename=self.path)
 
@@ -206,15 +212,11 @@ class OrdersProcessor(ProcessorInterface, ABC):
 class ShoesProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list, list, list]:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list, ]:
         res_list_common = []
-        res_list_inner_no_rd = []
-        res_list_inner_rd = []
-        res_list_outer_no_rd = []
-        res_list_outer_rd = []
-        # res_list = []
-        # res_list_rf = []
-        # res_list_norf = []
+        res_list_outer = []
+        res_list_inner = []
+
         actual_date = datetime.now().strftime('%d.%m.%Y')
         for el in orders_list:
 
@@ -238,17 +240,12 @@ class ShoesProcessor(OrdersProcessor):
                      '' if sq.size in settings.Shoes.SIZES_ND else sq.size, tnved, '', sq.quantity, declar_doc, ]
 
                 res_list_common.append(temp_list)
-                if declar_doc and el.country.upper() in settings.COUNTRIES_INNER:
-                    res_list_inner_rd.append(temp_list)
-                elif declar_doc and el.country.upper() not in settings.COUNTRIES_INNER:
-                    res_list_outer_rd.append(temp_list)
-                elif not declar_doc and el.country.upper() in settings.COUNTRIES_INNER:
-                    res_list_inner_no_rd.append(temp_list)
+                if el.country.upper() in settings.COUNTRIES_INNER:
+                    res_list_inner.append(temp_list)
                 else:
-                    res_list_outer_no_rd.append(temp_list)
-                # res_list.append(temp_list)
-                # res_list_norf.append(temp_list) if el.country.upper() != settings.COUNTRY_RUSSIA else res_list_rf.append(temp_list)
-        return res_list_common, res_list_outer_rd, res_list_outer_no_rd, res_list_inner_rd, res_list_inner_no_rd
+                    res_list_outer.append(temp_list)
+
+        return res_list_common, res_list_outer, res_list_inner
 
     @staticmethod
     def get_tnved(material: str, gender: str) -> str:
@@ -269,12 +266,11 @@ class ShoesProcessor(OrdersProcessor):
 class LinenProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list, list, list]:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list]:
         res_list_common = []
-        res_list_inner_no_rd = []
-        res_list_inner_rd = []
-        res_list_outer_no_rd = []
-        res_list_outer_rd = []
+        res_list_outer = []
+        res_list_inner = []
+
         for el in orders_list:
             tnved = settings.Linen.TNVED_CODE if not el.tnved_code else el.tnved_code
             declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
@@ -294,26 +290,22 @@ class LinenProcessor(OrdersProcessor):
                              tnved, settings.Linen.NUMBER_STANDART, '', '', el.article_price, el.tax,
                              fin_quantity, '', '', el.country, declar_doc, ]
                 res_list_common.append(temp_list)
-                if declar_doc and el.country.upper() in settings.COUNTRIES_INNER:
-                    res_list_inner_rd.append(temp_list)
-                elif declar_doc and el.country.upper() not in settings.COUNTRIES_INNER:
-                    res_list_outer_rd.append(temp_list)
-                elif not declar_doc and el.country.upper() in settings.COUNTRIES_INNER:
-                    res_list_inner_no_rd.append(temp_list)
+                if el.country.upper() in settings.COUNTRIES_INNER:
+                    res_list_inner.append(temp_list)
                 else:
-                    res_list_outer_no_rd.append(temp_list)
-        return res_list_common, res_list_outer_rd, res_list_outer_no_rd, res_list_inner_rd, res_list_inner_no_rd
+                    res_list_outer.append(temp_list)
+
+        return res_list_common, res_list_outer, res_list_inner
 
 
 class ParfumProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list, list, list]:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list]:
         res_list_common = []
-        res_list_inner_no_rd = []
-        res_list_inner_rd = []
-        res_list_outer_no_rd = []
-        res_list_outer_rd = []
+        res_list_outer = []
+        res_list_inner = []
+
         for el in orders_list:
             if el.with_packages == 'да':
                 full_name = f'Набор {el.type} {el.trademark} {el.quantity} шт., ' \
@@ -334,15 +326,12 @@ class ParfumProcessor(OrdersProcessor):
                          el.article_price, el.tax, fin_quantity, '', '', el.country,
                          declar_doc, ]
             res_list_common.append(temp_list)
-            if declar_doc and el.country.upper() in settings.COUNTRIES_INNER:
-                res_list_inner_rd.append(temp_list)
-            elif declar_doc and el.country.upper() not in settings.COUNTRIES_INNER:
-                res_list_outer_rd.append(temp_list)
-            elif not declar_doc and el.country.upper() in settings.COUNTRIES_INNER:
-                res_list_inner_no_rd.append(temp_list)
+            if el.country.upper() in settings.COUNTRIES_INNER:
+                res_list_inner.append(temp_list)
             else:
-                res_list_outer_no_rd.append(temp_list)
-        return res_list_common, res_list_outer_rd, res_list_outer_no_rd, res_list_inner_rd, res_list_inner_no_rd
+                res_list_outer.append(temp_list)
+
+        return res_list_common, res_list_outer, res_list_inner
 
     @staticmethod
     def get_tnved(parfum_type: str) -> str:
@@ -357,12 +346,10 @@ class ParfumProcessor(OrdersProcessor):
 class ClothesProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list, list, list]:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list]:
         res_list_common = []
-        res_list_inner_no_rd = []
-        res_list_inner_rd = []
-        res_list_outer_no_rd = []
-        res_list_outer_rd = []
+        res_list_outer = []
+        res_list_inner = []
         actual_date = datetime.now().strftime('%d.%m.%Y')
         for el in orders_list:
             #     if not el.tnved_code else el.tnved_code
@@ -392,15 +379,12 @@ class ClothesProcessor(OrdersProcessor):
                              el.content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
                              sq.quantity * el.box_quantity, declar_doc, ]
                 res_list_common.append(temp_list)
-                if declar_doc and el.country.upper() in settings.COUNTRIES_INNER:
-                    res_list_inner_rd.append(temp_list)
-                elif declar_doc and el.country.upper() not in settings.COUNTRIES_INNER:
-                    res_list_outer_rd.append(temp_list)
-                elif not declar_doc and el.country.upper() in settings.COUNTRIES_INNER:
-                    res_list_inner_no_rd.append(temp_list)
+                if el.country.upper() in settings.COUNTRIES_INNER:
+                    res_list_inner.append(temp_list)
                 else:
-                    res_list_outer_no_rd.append(temp_list)
-        return res_list_common, res_list_outer_rd, res_list_outer_no_rd, res_list_inner_rd, res_list_inner_no_rd
+                    res_list_outer.append(temp_list)
+
+        return res_list_common, res_list_outer, res_list_inner
 
     @staticmethod
     def get_tnved(clothes_type: str, gender: str, content: str) -> str:
@@ -435,6 +419,69 @@ class ClothesProcessor(OrdersProcessor):
 
     @staticmethod
     def get_gender_046(gender: str) -> Optional[str]:
+        gender_value = gender.capitalize()
+        return settings.Clothes.GENDERS_ORDER_046.get(gender_value)
+
+
+class SocksProcessor(OrdersProcessor):
+
+    @staticmethod
+    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list]:
+        res_list_common = []
+        res_list_outer = []
+        res_list_inner = []
+
+        actual_date = datetime.now().strftime('%d.%m.%Y')
+        for el in orders_list:
+            #     if not el.tnved_code else el.tnved_code
+            tnved = el.tnved_code
+            fc_tnved = tnved if tnved == '4304000000' or tnved[:4] in settings.Clothes.FULL_TNVED_4DIGIT_LIST \
+                else tnved[:4]
+            # fc_tnved = tnved if tnved == '4304000000' else tnved[:4]
+
+            declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" \
+                if all([el.rd_date, el.rd_type, el.rd_name]) else ''
+            for sq in el.sizes_quantities:
+
+                gender_dec = SocksProcessor.get_gender_dec(clothes_type=el.type, gender=el.gender)
+                gender = SocksProcessor.get_gender(gender=el.gender) if not flag_046 \
+                    else SocksProcessor.get_gender_046(gender=el.gender)
+                full_name = f'{el.type} {gender_dec} ' \
+                            f'{el.trademark} арт. {el.article} цвет {el.color} р. {sq.size}'
+
+                temp_list = [fc_tnved, full_name,
+                             el.trademark, 'Артикул', el.article, el.type, el.color, gender, sq.size_type, sq.size,
+                             el.content, tnved, settings.Clothes.NUMBER_STANDART,
+                             '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,
+                             declar_doc, ] if not flag_046 else \
+                            ['', '', el.article, actual_date, full_name, el.trademark, settings.COUNTRIES_CODES.get(el.country), '',
+                             '', settings.Socks.TYPES_CODES.get(el.type), '', tnved,
+                             settings.Socks.SYZE_TYPES_CODES.get(sq.size_type), sq.size, '', el.color, '', gender,
+                             el.content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
+                             sq.quantity * el.box_quantity, declar_doc, ]
+                res_list_common.append(temp_list)
+                if el.country.upper() in settings.COUNTRIES_INNER:
+                    res_list_inner.append(temp_list)
+                else:
+                    res_list_outer.append(temp_list)
+
+        return res_list_common, res_list_outer, res_list_inner
+
+    @staticmethod
+    def get_gender_dec(clothes_type: str, gender: str) -> Optional[str]:
+        declination_dict = settings.Socks.DEC
+        return declination_dict.get('socks').get(gender)
+
+
+    @staticmethod
+    def get_gender(gender: str) -> Optional[str]:
+        gender_value = gender.capitalize()
+        #same genders as in clothes
+        return settings.Clothes.GENDERS_ORDER.get(gender_value)
+
+    @staticmethod
+    def get_gender_046(gender: str) -> Optional[str]:
+        # same genders as in clothes
         gender_value = gender.capitalize()
         return settings.Clothes.GENDERS_ORDER_046.get(gender_value)
 
@@ -494,6 +541,19 @@ def get_download_info(o_id, user: User, flag_046: bool = False) -> Union[Respons
         rd_exist, quantity_list_raw, pos_count, orders_pos_count = order_count(category=category, order_list=order_list)
 
         op = ClothesProcessor(category=category, company_idn=company_idn, orders_list=order_list, flag_046=flag_046)
+
+    elif order.category == settings.Socks.CATEGORY:
+        # order_list, old_tnved, new_tnved = helper_get_clothes_divided_list(order_id=o_id,)
+        order_list = order.socks
+        if not order_list:
+            flash(message=settings.Messages.EMPTY_ORDER, category='error')
+
+            return (None,) * 12
+
+        category = settings.Socks.CATEGORY
+        rd_exist, quantity_list_raw, pos_count, orders_pos_count = order_count(category=category, order_list=order_list)
+
+        op = SocksProcessor(category=category, company_idn=company_idn, orders_list=order_list, flag_046=flag_046)
 
     elif order.category == settings.Linen.CATEGORY:
         order_list = order.linen
@@ -619,6 +679,11 @@ def orders_common_preload(category: str, company_idn: str, orders_list: list) ->
         res_list_raw = cp.orders_list
         # res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
         res_list = list(map(lambda x: x[1:11] + x[15:18] + x[20:], res_list_raw))
+    elif category == settings.Socks.CATEGORY:
+        start_list = copy(settings.Socks.START_PRELOAD)
+        cp = SocksProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
+        res_list_raw = cp.orders_list
+        res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
     elif category == settings.Linen.CATEGORY:
         # start_list = copy(settings.Linen.START_PRELOAD)
         start_list = copy(settings.Linen.START_CRM_PRELOAD)

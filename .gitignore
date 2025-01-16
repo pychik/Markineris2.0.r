@@ -172,3 +172,15 @@ elk/secrets/keystore/*
 /app/download_dir/bill_imgs
 /app/download_dir/crm
 
+minio_dir/
+redis_storage_backups/
+app/download_dir/crm/
+!app/download_dir/crm/__init__.py
+app/download_dir/bill_imgs/
+!app/download_dir/readme.md
+app/static/qr_imgs/*
+!app/static/qr_imgs/
+!app/static/qr_imgs/*.md
+app/db_backups
+!app/db_backups/__init__.py
+

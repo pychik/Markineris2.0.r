@@ -47,7 +47,7 @@
                     <div class="form-group">
                         <label class="control-label">Артикул</label>
                         <input type="text" name="article" id="article" class="form-control"
-                               onchange="check_valid(this);" minlength="3"
+                               onchange="check_valid(this);" minlength="2" maxlength="50"
                                value="{% if copied_order %}{{ copied_order.article }}{% endif %}"
                                required>
                         <div class="row">

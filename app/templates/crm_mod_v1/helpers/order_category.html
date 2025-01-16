@@ -1,0 +1,27 @@
+
+    {% if n.category == 'обувь' %}
+        <div class="order__img order__img--green" data-bs-toggle="tooltip" style="user-select: none;"
+                            data-bs-placement="top" data-bs-title="{{n.category}}">
+            <img src="{{ url_for('static', filename='crm_mod/img/icons/02.svg')}}" alt="" class="img-fluid">
+        </div>
+    {% elif n.category == 'одежда' %}
+        <div class="order__img order__img--blue" data-bs-toggle="tooltip" style="user-select: none;"
+                        data-bs-placement="top" data-bs-title="{{n.category}}">
+            <img src="{{ url_for('static', filename='crm_mod/img/icons/01.svg')}}" alt="" class="img-fluid">
+        </div>
+    {% elif n.category == 'носки и прочее' %}
+        <div class="order__img order__img--blue" data-bs-toggle="tooltip" style="user-select: none;"
+                        data-bs-placement="top" data-bs-title="{{n.category}}">
+            <img src="{{ url_for('static', filename='crm_mod/img/icons/socks.svg')}}" alt="" class="img-fluid">
+        </div>
+    {% elif n.category == 'белье' %}
+        <div class="order__img order__img--blue" data-bs-toggle="tooltip" style="user-select: none;"
+                        data-bs-placement="top" data-bs-title="{{n.category}}">
+            <img src="{{ url_for('static', filename='crm_mod/img/icons/03.svg')}}" alt="" class="img-fluid">
+        </div>
+    {% elif n.category == 'парфюм' %}
+        <div class="order__img order__img--pink" data-bs-toggle="tooltip" style="user-select: none;"
+                        data-bs-placement="top" data-bs-title="{{n.category}}">
+            <img src="{{ url_for('static', filename='crm_mod/img/icons/04.svg')}}" alt="" class="img-fluid">
+        </div>
+    {% endif %}

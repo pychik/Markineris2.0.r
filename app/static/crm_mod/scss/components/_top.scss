@@ -1,0 +1,22 @@
+.top {
+    &__grid {
+        display: flex;
+        align-items: center;
+    }
+    &__filter {
+        flex: 0 1 46%;
+    }
+    &__title {
+        flex: 0 1 54%;
+    }
+}
+
+.filter {
+    &-manager {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: fit-content;
+        color: var(--light-black);
+    }
+}

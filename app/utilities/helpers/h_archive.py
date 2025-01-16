@@ -1,10 +1,11 @@
-from flask import Blueprint, jsonify, render_template, redirect, url_for, flash, Response, send_file, \
-    send_from_directory, make_response
+from flask import Blueprint, jsonify, render_template, redirect, url_for, flash, Response, make_response
 from flask_login import current_user
 from sqlalchemy import desc
 
+from loguru import logger
 from config import settings
 from models import Order, OrderFile
+from utilities.minio_service.services import download_file_from_minio, get_s3_service
 from utilities.pdf_processor import RarPdfProcessor
 from utilities.saving_uts import common_save_copy_order
 from utilities.support import get_category_archive_all, \
@@ -113,7 +114,11 @@ def h_download_oa(o_id: int, category: str = settings.Shoes.CATEGORY) -> Respons
 
     if fs_name:
         rar_name = f"order_{o_id}.rar"
-        return send_from_directory(directory=settings.DOWNLOAD_DIR_CRM, path=fs_name, download_name=rar_name, as_attachment=True)
+        return download_file_from_minio(
+            bucket_name=settings.MINIO_CRM_BUCKET_NAME,
+            object_name=fs_name,
+            download_name=rar_name,
+        )
     elif f_link is not None:
         flash(message=f"{settings.Messages.FILE_DOWNLOAD_LINK} "
                       f"<a href=\"{file_download_obj.file_link}\">Ссылка на скачивание архива</a>", category="info")
@@ -147,16 +152,21 @@ def h_download_opdf(o_id: int, category: str = settings.Shoes.CATEGORY) -> Respo
     f_link = file_download_obj.file_link
 
     if fs_name:
-
-        rar_file = f"{settings.DOWNLOAD_DIR_CRM}{fs_name}"
-        rar_pdf_proc = RarPdfProcessor(rar_file=rar_file)
-        pdf_io = rar_pdf_proc.get_extract_and_merge_pdfs()
-        pdf_name = "order_{order_idn}.pdf".format(order_idn=order.order_idn)
-        # response = make_response(send_file(pdf_io, as_attachment=True, download_name=pdf_name))
-        response = make_response(pdf_io.getvalue())
-        response.headers['data_file_name'] = pdf_name
-        response.headers['Content-type'] = 'text/plain'
-        response.headers['data_status'] = 'success'
+        try:
+            s3_service = get_s3_service()
+            rar_file = s3_service.get_object(object_name=fs_name, bucket_name=settings.MINIO_CRM_BUCKET_NAME)
+        except Exception:
+            response.headers['data_status'] = 'no file'
+            response.headers['data_message'] = settings.Messages.NO_FILES_TO_DOWNLOAD_ENG
+            logger.exception("Ошибка при получении файла из хранилища")
+        else:
+            rar_pdf_proc = RarPdfProcessor(rar_file=rar_file.data)
+            pdf_io = rar_pdf_proc.get_extract_and_merge_pdfs()
+            pdf_name = "order_{order_idn}.pdf".format(order_idn=order.order_idn)
+            response = make_response(pdf_io.getvalue())
+            response.headers['data_file_name'] = pdf_name
+            response.headers['Content-type'] = 'text/plain'
+            response.headers['data_status'] = 'success'
 
     elif f_link is not None:
         response.headers['data_status'] = 'file_link_download'
@@ -167,36 +177,3 @@ def h_download_opdf(o_id: int, category: str = settings.Shoes.CATEGORY) -> Respo
         response.headers['data_message'] = settings.Messages.NO_FILES_TO_DOWNLOAD_ENG
 
     return response
-
-
-def h_download_opdf_common(o_id: int, category: str = settings.Shoes.CATEGORY) -> Response:
-    user = current_user
-
-    order = (Order.query.with_entities(Order.id, Order.user_id).filter_by(id=o_id, category=category, user_id=user.id)
-             .filter(~Order.to_delete).first())
-
-    if not order:
-        flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
-        return redirect(url_for('orders_archive.index'))
-    file_download_obj = OrderFile.query.with_entities(OrderFile.origin_name, OrderFile.file_system_name,
-                                                      OrderFile.file_link).filter_by(order_id=order.id).first()
-    if not file_download_obj:
-        flash(message=settings.Messages.NO_FILES_TO_DOWNLOAD, category='error')
-        return redirect(url_for('orders_archive.index'))
-
-    fs_name = file_download_obj.file_system_name
-    f_link = file_download_obj.file_link
-
-    if fs_name:
-        rar_file = f"{settings.DOWNLOAD_DIR_CRM}{fs_name}"
-        rar_pdf_proc = RarPdfProcessor(rar_file=rar_file)
-        pdf_io = rar_pdf_proc.get_extract_and_merge_pdfs()
-        pdf_name = f"order_{o_id}.pdf"
-        return send_file(pdf_io, as_attachment=True, download_name=pdf_name)
-    elif f_link is not None:
-        flash(message=f"{settings.Messages.FILE_DOWNLOAD_LINK} "
-                      f"<a href=\"{file_download_obj.file_link}\">Ссылка на скачивание архива</a>", category="info")
-        return redirect(url_for('orders_archive.index', category=category))
-    else:
-        flash(message=settings.Messages.NO_FILES_TO_DOWNLOAD, category='error')
-        return redirect(url_for('orders_archive.index'))

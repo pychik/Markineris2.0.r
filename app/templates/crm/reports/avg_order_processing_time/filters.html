@@ -1,0 +1,71 @@
+<div class="border border-1 p-3" id="form_filters_collapse">
+    <form action="" class="me-3">
+
+        <script>
+            $(function() {
+                let max_date = new Date();
+                max_date.setDate(max_date.getDate() - 1);
+                var dateFormat = "dd.mm.yy",
+                    from = $("#date_from").datepicker({
+                        defaultDate: "-1w",
+                        changeMonth: true,
+                        changeYear: true,
+                        maxDate: max_date,
+                        numberOfMonths: 3
+                    }).on("change", function() {
+                        to.datepicker("option", "minDate", getDate(this));
+                    }),
+                    to = $("#date_to").datepicker({
+                        defaultDate: new Date(),
+                        changeMonth: true,
+                        changeYear: true,
+                        maxDate: new Date(),
+                        numberOfMonths: 3
+                    }).on("change", function() {
+                        from.datepicker("option", "maxDate", getDate(this));
+                    });
+
+                function getDate(element) {
+                    var date;
+                    try {
+                        date = $.datepicker.parseDate(dateFormat, element.value);
+                    } catch (error) {
+                        date = null;
+                    }
+                    return date;
+                }
+            });
+        </script>
+
+        <div class="row">
+            <div class="col-md-6">
+                <label for="date_from" class="col-form-label text-right">Дата "C"</label>
+                <input type="text" placeholder="Выберите дату" class="form-control" id="date_from" onpaste="return false;" oncopy="return false" oncut="return false" ondrag="return false" ondrop="return false" autocomplete="off" name="rd_date" aria-describedby="date_from_input_btn" readonly value="{{ date_from.strftime('%d.%m.%Y') }}">
+            </div>
+            <div class="col-md-6">
+                <label for="date_to" class="col-form-label text-right">Дата "По"</label>
+                <input type="text" placeholder="Выберите дату" class="form-control" id="date_to" onpaste="return false;" oncopy="return false" oncut="return false" ondrag="return false" ondrop="return false" autocomplete="off" name="rd_date" aria-describedby="date_from_input_btn" readonly value="{{ date_to.strftime('%d.%m.%Y') }}">
+            </div>
+        </div>
+
+        <div class="col-md-4" style="width:max-content">
+                  <label class="col-form-label" for="manager_filter">Агент</label><br>
+                  <select class="form-control search-select" id="manager_filter" name="manager_filter" required>
+                    <option selected value="">Выберите менеджера</option>
+                    {%for id,login_name in managers%}
+                      <option value="{{id}}">{{login_name}}</option>
+                    {%endfor%}
+                  </select>
+            </div>
+
+
+        <div class="row mt-3">
+            <div class="col-md-2" title="Выполнить запрос">
+                <a href="javascript:bck_avg_order_processing_time_rpt(`{{ url_for('crm_uoc.bck_avg_order_processing_time_rpt') }}?bck=1`)" class="btn btn-secondary">Обновить</a>
+            </div>
+            <div class="col-md-2" title="Скачать отчет excel">
+                <a href="javascript:get_avg_order_processing_time_rpt_excel(`{{ url_for('crm_uoc.avg_order_processing_time_rpt_excel') }}`, `{{ csrf_token() }}`)" class="btn btn-secondary">Скачать отчет</a>
+            </div>
+        </div>
+    </form>
+</div>

@@ -2,14 +2,15 @@ import os
 from datetime import datetime, timedelta
 
 import sqlalchemy.exc
+from sqlalchemy import create_engine, MetaData
 from sqlalchemy import delete, select, and_, or_
+from sqlalchemy.orm import sessionmaker
 
 from config import settings
 from logger import logger
 from models import db, RestoreLink, OrderFile, Order
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine, MetaData
 from utilities.admin.h_finance_control import h_su_wo_transactions
+from utilities.minio_service.services import get_s3_service
 from views.crm.helpers import helpers_move_orders_to_processed
 
 
@@ -30,23 +31,32 @@ def delete_order_files_from_server() -> dict[str, int]:
     with db.session.begin():
         threshold_time = datetime.now() - timedelta(days=settings.OrderStage.DEFAULT_ORDER_FILE_TO_REMOVE)
 
-        stmt = select(OrderFile).join(Order).where(or_(Order.to_delete.is_(True),
-                                                       and_(Order.processed, Order.closed_at < threshold_time)))
+        stmt = select(OrderFile).join(Order).where(
+            or_(Order.to_delete.is_(True), and_(Order.processed, Order.closed_at < threshold_time))
+        )
         order_files = db.session.scalars(stmt).fetchall()
 
-        links = [order_file.file_link for order_file in order_files]
+        file_names = [order_file.file_system_name for order_file in order_files]
 
-        archive_deleted = len(links)
+        archive_deleted = len(file_names)
 
+        if not archive_deleted:
+            return {"archive_deleted": archive_deleted}
+
+        s3_service = get_s3_service()
         try:
+
             for order_file in order_files:
                 db.session.delete(order_file)
         except sqlalchemy.exc.SQLAlchemyError as e:
             logger.error(str(e))
 
         try:
-            for link in links:
-                os.remove(link)
+            list_objects = s3_service.list_objects(settings.MINIO_CRM_BUCKET_NAME)
+
+            for obj in list_objects:
+                if obj in file_names:
+                    s3_service.remove_object(bucket_name=settings.MINIO_CRM_BUCKET_NAME, object_name=obj)
         except OSError as e:
             logger.error(str(e))
 

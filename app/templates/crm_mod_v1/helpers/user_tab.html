@@ -1,0 +1,99 @@
+<div class="dropdown user-login__dropdown">
+    <button
+        class="dropdown-toggle user d-flex align-items-center justify-content-end user-info__btn text-decoration-none ms-auto"
+        role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
+        <svg xmlns="http://www.w3.org/2000/svg" width="33" height="33" viewBox="0 0 33 33" fill="none"
+            class="me-2">
+            <path
+                d="M33 16.5C33 25.6128 25.6128 33 16.5 33C7.38717 33 0 25.6128 0 16.5C0 7.38717 7.38717 0 16.5 0C25.6128 0 33 7.38717 33 16.5Z"
+                fill="#CECECE"></path>
+            <path
+                d="M20.2513 15.9804C21.767 14.8388 22.7489 13.0251 22.7489 10.986C22.7489 7.5405 19.9457 4.7373 16.5 4.7373C13.0545 4.7373 10.2512 7.5405 10.2512 10.986C10.2512 13.0251 11.2329 14.8388 12.7486 15.9804C8.69057 17.5035 5.79443 21.4231 5.79443 26.0068H7.72803C7.72803 21.1698 11.6632 17.2349 16.5002 17.2349C21.337 17.2349 25.2722 21.1698 25.2722 26.0068H27.2058C27.2055 21.4231 24.3096 17.5035 20.2513 15.9803V15.9804ZM12.1849 10.986C12.1849 8.60649 14.1205 6.6709 16.5 6.6709C18.8794 6.6709 20.8151 8.60649 20.8151 10.986C20.8151 13.3656 18.8794 15.3013 16.5 15.3013C14.1205 15.3013 12.1849 13.3655 12.1849 10.986Z"
+                fill="white"></path>
+        </svg>
+        <div class="user-info d-flex align-items-center ">
+            <div class="user-name fw-bold me-md-2 text-truncate">{{ current_user.login_name }}
+            </div>
+
+        </div>
+    </button>
+    <ul class="dropdown-menu mt-2" aria-labelledby="dropdownMenuLink">
+        <li><a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('auth.logout')}}">
+            <img src="{{url_for('static', filename='main_v2/img/icons/exit.svg')}}" class="me-2" width="24"
+                    height="24">Выход</a>
+        </li>
+         {% if current_user.role == 'superuser'%}
+             <li><a class="dropdown-item d-flex align-items-center py-2"
+                    href="{{ url_for('crm_uoc.index') }}" class="alert-link">
+                 <img
+                    src="{{url_for('static', filename='main_v2/img/icons/settings_icon.svg')}}" class="me-2" width="24"
+                    height="24">
+                    Панель управления CRM
+                </a>
+            </li>
+            <li><a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('main.enter')}}">
+                <img src="{{url_for('static', filename='main_v2/img/icons/home.svg')}}" class="me-2" width="32"
+                        height="32">Платформа</a>
+            </li>
+        {% elif current_user.role == 'markineris_admin' %}
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_d.agents') }}"
+                               title="Перейти в CRM">
+                                &nbspCRM&nbsp
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.su_control_ut') }}"
+                               title="Перейти в CRM">
+                                Контроль транзакций
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('admin_control.bck_control_reanimate')}}"
+                               title="Перейти в CRM">
+                                Реанимация клиентов
+                            </a>
+                        </li>
+
+        {% elif current_user.role == 'supermanager' %}
+           <li><a class="dropdown-item d-flex align-items-center py-2"
+                  href="{{ url_for('crm_uoc.index') }}" class="alert-link">
+               <img
+                    src="{{url_for('static', filename='main_v2/img/icons/settings_icon.svg')}}" class="me-2" width="24"
+                    height="24">
+                  Панель управления менеджерами
+               </a>
+           </li>
+      {% endif %}
+
+    {% if current_user.role in ['supermanager', 'superuser',] %}
+       <li><a class="dropdown-item d-flex align-items-center py-2"
+                    href="{{ url_for('crm_uoc.avg_order_processing_time_rpt') }}" >
+                 <img
+                    src="{{url_for('static', filename='main_v2/img/icons/settings_icon.svg')}}" class="me-2" width="24"
+                    height="24">
+                    Отчет по времени обработки заказов
+                </a>
+            </li>
+    {% endif %}
+
+    </ul>
+    {% if current_user.role in ['superuser', 'markineris_admin'] %}
+        <div class="mt-2 d-flex flex-column align-items-end text-reset g-2">
+            {% if 'agents' in request.path %}
+                <a href="{{url_for('crm_d.managers')}}" class="user__type" data-bs-toggle="tooltip" data-bs-placement="top"
+                    data-bs-title="Открыть MANAGERS CRM">AGENT CRM</a>
+            {% elif 'managers' in request.path %}
+                <a href="{{url_for('crm_d.agents')}}" class="user__type" data-bs-toggle="tooltip" data-bs-placement="top"
+                    data-bs-title="Открыть AGENTS CRM">MANAGERS CRM</a>
+            {% else %}
+                <a href="{{url_for('crm_d.managers')}}" class="user__type" data-bs-toggle="tooltip" data-bs-placement="top"
+                        data-bs-title="Открыть MANAGERS CRM">MANAGERS CRM</a>
+                <a href="{{url_for('crm_d.agents')}}" class="user__type" data-bs-toggle="tooltip" data-bs-placement="top"
+                        data-bs-title="Открыть AGENTS CRM">AGENTS CRM</a>
+            {%endif%}
+
+        </div>
+    {% endif %}
+
+</div>

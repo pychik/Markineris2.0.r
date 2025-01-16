@@ -19,11 +19,11 @@ def h_all_new_multi_pool():
     """
     status = 'danger'
 
-    all_new_orders_stmt = text(f"""SELECT o.id as id, o.category as category, o.company_idn as company_idn, 
+    all_new_orders_stmt = text("""SELECT o.id as id, o.category as category, o.company_idn as company_idn, 
                           o.stage as stage, o.company_type as company_type, o.company_name, o.order_idn,
                           o.payment as payment, MAX(ut.op_cost) as op_cost, 
-                          COUNT(coalesce(sh.id, cl.id, l.id, p.id)) as rows_count, 
-                          SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count,
+                          COUNT(coalesce(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count, 
+                          SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count,
                           o.created_at as created_at, 
                           o.crm_created_at as crm_created_at,
                           o.user_id as user_id, o.transaction_id
@@ -33,14 +33,16 @@ def h_all_new_multi_pool():
                            LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                            LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                            LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                           LEFT JOIN public.socks sk ON o.id = sk.order_id
+                           LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                            LEFT JOIN public.linen l ON o.id = l.order_id
                            LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                            LEFT JOIN public.parfum p ON o.id = p.order_id 
-                    WHERE o.stage = {settings.OrderStage.NEW} AND (o.processed = null or o.processed=false) AND o.to_delete != True 
+                    WHERE o.stage = :stage AND (o.processed = null or o.processed=false) AND o.to_delete != True 
                     GROUP BY o.id, o.category, o.company_idn, o.company_type, o.company_name, o.order_idn, o.stage,
                      o.created_at, o.crm_created_at, o.user_id, o.payment, ut.op_cost, o.transaction_id
                     order by o.created_at
-    """)
+    """).bindparams(stage=settings.OrderStage.NEW)
 
     all_new_orders = [o for o in db.session.execute(all_new_orders_stmt).fetchall()]
     if not all_new_orders:

@@ -5,8 +5,10 @@ from decimal import Decimal
 
 from flask import flash, render_template, redirect, send_file, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
+from sqlalchemy.orm import joinedload
+
 from views.crm.crm_support import h_cancel_order_process_payment
-from sqlalchemy import asc, desc, func, text, select
+from sqlalchemy import asc, desc, func, text, select, bindparam
 from sqlalchemy.exc import NoResultFound
 
 from sqlalchemy.exc import IntegrityError
@@ -25,7 +27,7 @@ from utilities.admin.schemas import AROrdersSchema, ar_categories_types
 from utilities.admin.helpers import (process_admin_report, helper_get_clients_os, helper_get_orders_stats,
                                      helper_prev_day_orders_marks, helper_get_users_reanimate,
                                      helper_get_reanimate_call_result, helper_get_new_orders_at2,
-                                     helper_check_new_order_at2)
+                                     helper_check_new_order_at2, helper_get_orders_stats_rpt)
 from utilities.admin.excel_report import ExcelReport
 
 
@@ -55,10 +57,11 @@ def h_index():
                             LEFT JOIN public.telegram tq on ut.telegram_id = tq.id
                             LEFT JOIN public.prices pq on au.price_id = pq.id
                             LEFT JOIN public.users u on u.admin_parent_id = au.id
-                            WHERE au.role in('{settings.ADMIN_USER}', '{settings.SUPER_USER}')
+                            WHERE au.role in :roles
                             group by au.id, pq.price_code, pq.price_1, pq.price_2,pq.price_3, pq.price_4, pq.price_5, pq.price_6, pq.price_7, pq.price_8, pq.price_9, pq.price_10, pq.price_11, pq.price_at2, tg_channel_id, tg_name, tg_comment
-                            order by au.id""")
-    su_list = db.session.execute(users_stmt).fetchall()
+                            order by au.id""").bindparams(bindparam("roles", expanding=True))
+
+    su_list = db.session.execute(users_stmt, {"roles": [settings.ADMIN_USER, settings.SUPER_USER]}).fetchall()
     new_user_stmt = text("""
            SELECT
                count(1) as new_user_cnt  
@@ -109,43 +112,37 @@ def h_admin(u_id: int):
         partner_query = db.session.query(users_partners.c.user_id, PartnerCode.code)\
             .join(PartnerCode, PartnerCode.id == users_partners.c.partner_code_id)\
             .subquery()
-        prices_query = db.session.query(Price.id.label("price_id"), Price.price_code, Price.price_1, Price.price_2, Price.price_3,
-                                        Price.price_4, Price.price_5, Price.price_6, Price.price_7, Price.price_8, Price.price_9,
-                                        Price.price_10, Price.price_11) \
-            .filter(User.price_id == Price.id, Price.price_at2.isnot(True)) \
-            .subquery()
 
         sort_type = request.args.get("sort_type")
         order_type = desc(User.created_at) if sort_type != 'orders' else asc(os_query.c.os_created_at)
 
-        users_info = User.query\
-            .outerjoin(os_query, User.id == os_query.c.user_id)\
-            .outerjoin(partner_query, User.id == partner_query.c.user_id) \
-            .outerjoin(prices_query, User.price_id == prices_query.c.price_id) \
-            .with_entities(User.id, User.role, User.balance, User.login_name, User.email, User.client_code,
-                           User.status, User.phone,
-                           User.created_at, partner_query.c.code, os_query.c.orders_count, os_query.c.total_rows_count,
-                           os_query.c.total_marks_count, os_query.c.os_created_at,
-                           prices_query.c.price_code, prices_query.c.price_1, prices_query.c.price_2,
-                           prices_query.c.price_3, prices_query.c.price_4, prices_query.c.price_5,
-                           prices_query.c.price_6, prices_query.c.price_7, prices_query.c.price_8, prices_query.c.price_9,
-                           prices_query.c.price_10, prices_query.c.price_11)\
-            .filter(User.admin_parent_id == u_id).group_by(User.id, os_query.c.orders_count, os_query.c.total_rows_count,
-                                                           os_query.c.total_marks_count, os_query.c.os_created_at,
-                                                           partner_query.c.user_id, partner_query.c.code,
-                                                           prices_query.c.price_code, prices_query.c.price_1,
-                                                           prices_query.c.price_2, prices_query.c.price_3,
-                                                           prices_query.c.price_4, prices_query.c.price_5,
-                                                           prices_query.c.price_6, prices_query.c.price_7,
-                                                           prices_query.c.price_8, prices_query.c.price_9,
-                                                           prices_query.c.price_10, prices_query.c.price_11)\
-            .order_by(order_type).all()
+        users_info = db.session.query(
+            User.id, User.role, User.balance, User.login_name, User.email, User.client_code, User.status,
+            User.phone, User.created_at, partner_query.c.user_id, partner_query.c.code, os_query.c.orders_count,
+            os_query.c.total_rows_count, os_query.c.total_marks_count, os_query.c.os_created_at,
+            Price.price_code, Price.price_1, Price.price_2, Price.price_3, Price.price_4, Price.price_5,
+            Price.price_6, Price.price_7, Price.price_8, Price.price_9, Price.price_10, Price.price_11, Price.price_at2
+        ).outerjoin(
+            Price, User.price_id == Price.id,
+        ).outerjoin(
+            os_query, User.id == os_query.c.user_id,
+        ).outerjoin(
+            partner_query, User.id == partner_query.c.user_id,
+        ).filter(
+            User.admin_parent_id == u_id,
+        ).group_by(
+            User.id, os_query.c.orders_count, os_query.c.total_rows_count, os_query.c.total_marks_count,
+            os_query.c.os_created_at, partner_query.c.user_id, partner_query.c.code, Price.price_code,
+            Price.price_1, Price.price_2, Price.price_3, Price.price_4, Price.price_5, Price.price_6,
+            Price.price_7, Price.price_8, Price.price_9, Price.price_10, Price.price_11, Price.price_at2
+        ).order_by(order_type).all()
 
         page, per_page, \
             offset, pagination, \
             users_list = helper_paginate_data(data=users_info, per_page=settings.PAGINATION_PER_PAGE)
         basic_prices = settings.Prices.BASIC_PRICES
-        all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2).filter(Price.price_at2.isnot(True)) \
+
+        all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2) \
                           .order_by(desc(Price.created_at)).all()
 
         order_notification = admin_info.order_notification if admin_info.order_notification is not None\
@@ -587,12 +584,9 @@ def h_bck_set_user_price(u_id: int) -> Response:
     :param u_id:
     :return:
     """
-
     def _make_user_block(user_id: int, login_name: str, price_code: str,
-                         price_1: Decimal, price_2: Decimal, price_3: Decimal, price_4: Decimal, price_5: Decimal,
-                         price_6: Decimal,
-                         price_7: Decimal, price_8: Decimal, price_9: Decimal, price_10: Decimal, price_11: Decimal,
-                         csrf: str,
+                         price_1: Decimal, price_2: Decimal, price_3: Decimal, price_4: Decimal, price_5: Decimal, price_6: Decimal,
+                         price_7: Decimal, price_8: Decimal, price_9: Decimal, price_10: Decimal, price_11: Decimal, csrf: str,
                          price_at2: bool = False) -> str:
         text_badge = "bg-secondary" if price_at2 else "bg-warning text-black"
         return f'<span class="badge {text_badge}" style="cursor:pointer" ' \
@@ -602,7 +596,7 @@ def h_bck_set_user_price(u_id: int) -> Response:
                f'\'{url_for("admin_control.bck_set_user_price", u_id=u_id)}?bck=1\', \'{csrf}\')">' \
                f'{price_code}</span>'
 
-    status = 'danger'
+    status = settings.ERROR
     message = settings.Messages.USER_PRICE_TYPE_VALUE_ERROR
     user_block = None
     user = User.query.filter(User.id == u_id).with_entities(User.id, User.login_name, User.admin_parent_id, User.role, User.is_at2).first()
@@ -624,9 +618,27 @@ def h_bck_set_user_price(u_id: int) -> Response:
                                           price_7=basic_prices[7], price_8=basic_prices[8], price_9=basic_prices[9],
                                           price_10=basic_prices[10], price_11=basic_prices[11], csrf=csrf)
 
-            status = 'success'
+            status = settings.SUCCESS
             message = settings.Messages.USER_PRICE_PLUG
-            db.session.execute(text(f"""UPDATE public.users SET price_id=NULL WHERE id={u_id};"""))
+
+            if user.role == settings.ORD_USER:
+                db.session.execute(text(f"""UPDATE public.users SET price_id=NULL WHERE id=:u_id;""").bindparams(u_id=u_id))
+            elif user.role in [settings.ADMIN_USER, settings.SUPER_USER, ]:
+                db.session.execute(text(f"""UPDATE public.users
+                                            SET price_id = NULL
+                                            WHERE id IN (
+                                                SELECT cl.id
+                                                FROM public.users cl
+                                                JOIN public.users admin ON admin.id = :u_id
+                                                WHERE cl.admin_parent_id = :u_id
+                                                  AND (
+                                                      (cl.price_id = admin.price_id)
+                                                      OR (cl.price_id IS NULL AND admin.price_id IS NULL)
+                                                  )
+                                            )
+                                            OR id = :u_id;""").bindparams(u_id=u_id))
+            else:
+                raise ValueError
             db.session.commit()
             return jsonify(dict(status=status, message=message, user_block=user_block))
 
@@ -647,14 +659,35 @@ def h_bck_set_user_price(u_id: int) -> Response:
                                       price_7=price.price_7, price_8=price.price_8, price_9=price.price_9,
                                       price_10=price.price_10, price_11=price.price_11, csrf=csrf,
                                       price_at2=price.price_at2)
-        db.session.execute(text(f"""UPDATE public.users SET price_id={p_id} WHERE id={u_id};"""))
+        # db.session.execute(text(f"""UPDATE public.users SET price_id={p_id} WHERE id={u_id};"""))
+        if user.role == settings.ORD_USER:
+            db.session.execute(text(f"""UPDATE public.users SET price_id=:p_id WHERE id=:u_id;""").bindparams(u_id=u_id, p_id=p_id))
+        elif user.role in [settings.ADMIN_USER, settings.SUPER_USER, ]:
+
+            db.session.execute(text(f"""UPDATE public.users
+                                        SET price_id = :p_id
+                                        WHERE id IN (
+                                                SELECT cl.id
+                                                FROM public.users cl
+                                                JOIN public.users admin ON admin.id = :u_id
+                                                WHERE cl.admin_parent_id = :u_id
+                                                  AND (
+                                                      (cl.price_id = admin.price_id)
+                                                      OR (cl.price_id IS NULL AND admin.price_id IS NULL)
+                                                  )
+                                            )
+                                            OR id = :u_id;""").bindparams(
+                u_id=u_id, p_id=p_id))
+        else:
+            raise ValueError
         db.session.commit()
-        status = 'success'
+        status = settings.SUCCESS
         message = settings.Messages.USER_PRICE_PLUG
 
     except ValueError:
-        status = 'danger'
+        status = settings.ERROR
         logger.error(message)
+        db.session.rollback()
         return jsonify(dict(status=status, message=message))
     except IntegrityError as e:
         db.session.rollback()
@@ -1127,6 +1160,18 @@ def h_users_orders_stats(admin_id=None):
             return helper_get_orders_stats(admin_id=admin_id)
 
 
+def h_users_orders_stats_rpt(admin_id=None):
+    if current_user.role == settings.SUPER_USER and admin_id is None:
+        return helper_get_orders_stats_rpt()
+    elif current_user.role == settings.SUPER_USER and admin_id:
+        return helper_get_orders_stats_rpt()
+    else:
+        if current_user.id != admin_id:
+            return jsonify(dict(status='danger', message=settings.Messages.STRANGE_REQUESTS))
+        else:
+            return helper_get_orders_stats_rpt()
+
+
 def h_client_orders_stats(admin_id: int, client_id: int) -> Response:
     if current_user.role == settings.SUPER_USER or (current_user.role == settings.ADMIN_USER and current_user.id == admin_id):
         client = (User.query.with_entities(User.id, User.login_name, User.admin_parent_id)
@@ -1401,8 +1446,7 @@ def h_bck_reanimate():
     numrows = len(users)
 
     basic_prices = settings.Prices.BASIC_PRICES
-    all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2).filter(
-        Price.price_at2.isnot(True)) \
+    all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2) \
         .order_by(desc(Price.created_at)).all()
 
 
@@ -1481,8 +1525,7 @@ def h_bck_agent_reanimate(u_id: int):
     numrows = len(users)
 
     basic_prices = settings.Prices.BASIC_PRICES
-    all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2).filter(
-        Price.price_at2.isnot(True)) \
+    all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2) \
         .order_by(desc(Price.created_at)).all()
 
 
@@ -1506,20 +1549,22 @@ def helper_get_ar_orders_stat(ar_schema: AROrdersSchema, u_id: int) -> tuple:
     :param ar_schema: AROrdersSchema instance containing the necessary parameters.
     :return: A tuple containing the orders count and marks count.
     """
-    category_type_condition_stmt = "AND coalesce(sh.type, cl.type, l.type, p.type) = '{category_pos_type}' ".format(category_pos_type=ar_schema.category_pos_type) if ar_schema.category_pos_type != settings.ALL_CATEGORY_TYPES else ''
-    category_pos_type_stmt = "max(coalesce(sh.type, cl.type, l.type, p.type))" if ar_schema.category_pos_type != settings.ALL_CATEGORY_TYPES else "\'Все типы\'"
+    category_type_condition_stmt = "AND coalesce(sh.type, cl.type, sk.type, l.type, p.type) = '{category_pos_type}' ".format(category_pos_type=ar_schema.category_pos_type) if ar_schema.category_pos_type != settings.ALL_CATEGORY_TYPES else ''
+    category_pos_type_stmt = "max(coalesce(sh.type, cl.type, sk.type, l.type, p.type))" if ar_schema.category_pos_type != settings.ALL_CATEGORY_TYPES else "\'Все типы\'"
 
     stmt = text(f"""
         SELECT max(o.category) as category,
                {category_pos_type_stmt} as category_pos_type, 
                COUNT(DISTINCT o.id) as orders_count,
-               COUNT(coalesce(sh.id, cl.id, l.id, p.id)) as pos_count, 
-               SUM(coalesce(sh.box_quantity * sh_qs.quantity, cl.box_quantity * cl_qs.quantity, l.box_quantity * l_qs.quantity, p.quantity)) as marks_count
+               COUNT(coalesce(sh.id, cl.id, sk.id, l.id, p.id)) as pos_count, 
+               SUM(coalesce(sh.box_quantity * sh_qs.quantity, cl.box_quantity * cl_qs.quantity, sk.box_quantity * sk_qs.quantity, l.box_quantity * l_qs.quantity, p.quantity)) as marks_count
         FROM public.orders o
         LEFT JOIN public.shoes sh ON o.id = sh.order_id
         LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
         LEFT JOIN public.clothes cl ON o.id = cl.order_id
         LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+        LEFT JOIN public.socks sk ON o.id = sk.order_id
+        LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
         LEFT JOIN public.linen l ON o.id = l.order_id
         LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
         LEFT JOIN public.parfum p ON o.id = p.order_id 

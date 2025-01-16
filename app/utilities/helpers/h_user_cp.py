@@ -13,6 +13,7 @@ from logger import logger
 from models import db, Order, User, RestoreLink, Price, ServiceAccount, UserTransaction, TgUser
 from utilities.daily_price import get_cocmd
 from utilities.mailer import MailSender
+from utilities.minio_service.services import get_s3_service
 from utilities.support import url_encrypt, url_decrypt, check_email, check_user_messages, \
     helper_get_order_notification, helper_get_current_sa, \
     helper_check_promo, check_file_extension, get_file_extension, \
@@ -197,7 +198,7 @@ def h_transaction_detail(u_id: int, t_id: int):
         return '', 404
     if transaction.type and transaction.status in [settings.Transactions.SUCCESS, settings.Transactions.PENDING,
                                                    settings.Transactions.CANCELLED]:
-        transaction_image = helper_get_image_html(img_path=f"{settings.DOWNLOAD_DIR_BILLS}{transaction.bill_path}")
+        transaction_image = helper_get_image_html(img_path=transaction.bill_path)
         service_account = ServiceAccount.query.filter(ServiceAccount.id == transaction.sa_id).first()
     else:
         order_prices_marks = helper_get_transaction_orders_detail(t_id=t_id)
@@ -214,7 +215,8 @@ def h_order_book_detail(u_id: int):
     categories: dict = {"обувь": 'shoes',
                         "одежда": 'clothes',
                         "белье": 'linen',
-                        "парфюм": 'parfum', }
+                        "парфюм": 'parfum',
+                        "носки и прочее": 'socks', }
 
     active_orders_raw = (current_user.orders.filter_by(stage=settings.OrderStage.CREATING)
                          .filter(~Order.processed, ~Order.to_delete)
@@ -260,31 +262,52 @@ def h_pa_refill(u_id: int, sa_id: int):
 
     amount_orig = int(float(request.form.get('bill_summ', '0').replace('--', '').strip()))
 
-    if amount_orig < settings.PA_REFILL_MIN:
-        message = settings.Messages.STRANGE_REQUESTS
-        return jsonify(dict(status=status, message=message))
-
     amount_add = 0
     if promo_code:
         promo_success, amount_add, message = helper_check_promo(user=current_user, promo_code=promo_code)
         if not promo_success:
             return jsonify(dict(status=status, message=message))
 
+    if amount_orig != 0 and amount_orig < settings.PA_REFILL_MIN:
+        message = settings.Messages.STRANGE_REQUESTS
+        return jsonify(dict(status=status, message=message))
+    elif amount_orig >= settings.PA_REFILL_MIN:
+        only_promo = False
+    else:
+        only_promo = True
+
     try:
 
-        bill_file = request.files.get('bill_file')
-        # check file
-        if bill_file is None or bill_file is False or check_file_extension(filename=bill_file.filename,
-                                                                           extensions=settings.ALLOWED_BILL_EXTENSIONS) is False:
-            message = settings.Messages.UT_TYPE_FILE_ERROR
-            return jsonify(dict(status=status, message=message))
+        if not only_promo:
+            bill_file = request.files.get('bill_file')
+            # check file
+            if bill_file is None or bill_file is False or check_file_extension(filename=bill_file.filename,
+                                                                               extensions=settings.ALLOWED_BILL_EXTENSIONS) is False:
+                message = settings.Messages.UT_TYPE_FILE_ERROR
+                return jsonify(dict(status=status, message=message))
 
-        bill_extension = get_file_extension(filename=bill_file.filename)
+            bill_extension = get_file_extension(filename=bill_file.filename)
 
-        uuid_prefix = str(uuid4())[:8]
-        bill_path = f'{uuid_prefix}_{current_user.login_name}.{bill_extension}'
-        # save file
-        bill_file.save(f"{settings.DOWNLOAD_DIR_BILLS}{bill_path}")
+            uuid_prefix = str(uuid4())[:8]
+            bill_path = f'{uuid_prefix}_{current_user.login_name}.{bill_extension}'
+            status = settings.Transactions.PENDING
+            # save file
+            try:
+                s3_service = get_s3_service()
+                s3_service.upload_file(
+                    file_data=bill_file.stream,
+                    object_name=bill_path,
+                    bucket_name=settings.MINIO_BILL_BUCKET_NAME,
+                )
+            except Exception:
+                logger.exception("Ошибка при скачивании и сохранении фото чека")
+                message = settings.Messages.UPLOAD_FILE_UNKNOWN_ERROR
+                return jsonify(dict(status=status, message=message))
+        else:
+            bill_extension = 'only_promo'
+            uuid_prefix = str(uuid4())[:8]
+            bill_path = f'{uuid_prefix}_{current_user.login_name}.{bill_extension}'
+            status = settings.Transactions.SUCCESS
 
         # make this variables to avoid current_user reload after update sessions
 
@@ -294,8 +317,8 @@ def h_pa_refill(u_id: int, sa_id: int):
 
         amount = amount_orig + amount_add
         promo_info = f'{promo_code}: {amount_orig} + {amount_add}' if promo_code else ''
-        if helper_refill_transaction(amount=amount, status=settings.Transactions.PENDING, promo_info=promo_info,
-                                     user_id=current_user.id, sa_id=cur_sa.id, bill_path=bill_path):
+        if helper_refill_transaction(amount=amount, status=status, promo_info=promo_info,
+                                     user_id=u_id, sa_id=cur_sa.id, bill_path=bill_path, only_promo=only_promo):
 
             # send message to admin TG
             RefillBalance.send_messages_refill_balance.delay(
@@ -308,13 +331,13 @@ def h_pa_refill(u_id: int, sa_id: int):
             )
 
             # send promo_info to google tables
-            if promo_code:
-                date_time = datetime.now().strftime("%d.%m.%Y %H:%M")
-                GoogleProcess.send_promo_data(data_packet=PromoRow(date_value=date_time, login_name=username,
-                                                                   service_account=cur_sa.sa_name, promo_code=promo_code,
-                                                                   promo_summ=amount_add))
+            # if promo_code:
+            #     date_time = datetime.now().strftime("%d.%m.%Y %H:%M")
+            #     GoogleProcess.send_promo_data(data_packet=PromoRow(date_value=date_time, login_name=username,
+            #                                                        service_account=cur_sa.sa_name, promo_code=promo_code,
+            #                                                        promo_summ=amount_add))
 
-            message = f"{settings.Messages.USER_TRANSACTION_CREATE}"
+            message = f"{settings.Messages.USER_TRANSACTION_CREATE}" if not only_promo else settings.Messages.USER_TRANSACTION_PROMO_CREATE
             status = 'success'
 
             return jsonify(dict(status=status, message=message, pending_amount=amount))

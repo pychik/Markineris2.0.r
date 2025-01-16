@@ -57,7 +57,10 @@ class UserMessages:
     )
     SEND_RECEIPT_PHOTO: str = "Отправьте чек"
     INVALID_FORMAT_PHOTO: str = f"Чек должен быть формате {', '.join(settings.ALLOWED_BILL_EXTENSIONS)}"
-    SEND_RECEIPT_PHOTO_HELP_TEXT: str = f"Отправьте чек в формате {', '.join(settings.ALLOWED_BILL_EXTENSIONS)}"
+    SEND_RECEIPT_PHOTO_HELP_TEXT: str = (
+        f"Отправьте чек в формате {', '.join(settings.ALLOWED_BILL_EXTENSIONS)}\n"
+        f"Размер файла должен быть не более {settings.MAX_FILE_SIZE // (1024 ** 2)} мб"
+    )
     PHOTO_PROCESSING_ERROR: str = "Ошибка загрузки, попробуйте отправить чек снова."
     TRANSACTION_CREATE_SUCCESSFULLY: str = "Транзакция успешно создана"
     TRANSACTION_CREATE_FAILED: str = "Транзакция не создана. Попробуйте еще раз"

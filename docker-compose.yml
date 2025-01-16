@@ -5,9 +5,7 @@ services:
     image: nginx:1.25.2
     container_name: nginx
     volumes:
-      - ./app/static:/app/static
       - ./maintenance/maintenance.html:/usr/share/nginx/html/maintenance.html
-      - ./app/static/response_pages/429.html:/usr/share/nginx/html/429.html
       - ./maintenance:/app/maintenance
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - /etc/ssl/certs/ssl_cert.crt:/etc/ssl/certs/bundle.crt
@@ -31,12 +29,9 @@ services:
     env_file:
       - .env
     volumes:
-      - ./app/migrations:/app/migrations
-      - ./app/static:/app/static/
-      - ./app/download_dir:/app/download_dir/
-      - ./app/db_backups:/app/db_backups/
       - /etc/localtime:/etc/localtime:ro
       - /var/log/flask-app/:/var/log/flask-app/
+      - ./app/migrations:/app/migrations/
     expose:
       - "5005"
     entrypoint: ./entrypoint.sh
@@ -58,8 +53,6 @@ services:
       dockerfile: infra/Dockerfile
     volumes:
       - /var/log/bot-notifications/:/var/log/bot-notifications/
-      - ./app/download_dir/bill_imgs/:/app/files/bill_imgs/
-      - ./app/static/qr_imgs/:/app/files/qr_imgs/
     command: python3 -m main
     env_file:
       - .env

@@ -21,8 +21,8 @@ from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
 from config import settings
 from logger import logger
-from models import Order, OrderStat, User, EmailMessage, db, Shoe, Clothes, ClothesQuantitySize, Linen, Parfum, \
-    Price, Promo, ServerParam, ServiceAccount, UserTransaction
+from models import Order, OrderStat, User, EmailMessage, db, Shoe, Clothes, ClothesQuantitySize, Socks, SocksQuantitySize, Linen, Parfum, \
+    Price, Promo, ServerParam, ServiceAccount, UserTransaction, users_promos
 from utilities.daily_price import get_cocmd
 from utilities.google_settings.schema import TransactionRow
 from utilities.google_settings.gt_utilities import helper_google_collect_and_send_stat
@@ -33,6 +33,7 @@ from views.crm.schema import CrmDefaults
 from .cipher.instance import encryptor
 from .helpers.h_categories import order_table_update
 from .http_client import Requester
+from .minio_service.services import get_s3_service
 from .saving_uts import common_save_db, get_delete_pos_stmts, get_rows_marks
 from .telegram import TelegramProcessor, MarkinerisInform
 from .useful_objects import Olc, OLC_NONE, OLC_PARFUM_NONE, OLC_PARFUM_9NONE
@@ -77,6 +78,10 @@ def order_count(category: str, order_list) -> tuple:
                                  for el in order_list]
 
         case settings.Clothes.CATEGORY:
+            quantity_list_raw = [[(e.quantity, el.article_price, el.box_quantity) for e in el.sizes_quantities]
+                                 for el in order_list]
+
+        case settings.Socks.CATEGORY:
             quantity_list_raw = [[(e.quantity, el.article_price, el.box_quantity) for e in el.sizes_quantities]
                                  for el in order_list]
 
@@ -173,6 +178,9 @@ def check_order_pos(category: str, order: Order) -> Optional[int]:
         case settings.Clothes.CATEGORY:
             rd_exist, quantity_list_raw, pos_count, order_pos_count = order_count(category=settings.Clothes.CATEGORY,
                                                                                   order_list=order.clothes)
+        case settings.Socks.CATEGORY:
+            rd_exist, quantity_list_raw, pos_count, order_pos_count = order_count(category=settings.Socks.CATEGORY,
+                                                                                  order_list=order.socks)
         case settings.Linen.CATEGORY:
             rd_exist, quantity_list_raw, pos_count, order_pos_count = order_count(category=settings.Linen.CATEGORY,
                                                                                   order_list=order.linen)
@@ -196,8 +204,12 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
     form_data_raw = request.form
 
     # validate clothes TNVED is in CLOTHES tnveds(only clothes tnveds have dicts to check)
-    if category == settings.Clothes.CATEGORY and  \
-            ValidatorProcessor.clothes_pre_validate_tnved(tnved_str=form_data_raw.get('tnved_code')):
+    clothes_tnved_condition = category == settings.Clothes.CATEGORY and \
+                              ValidatorProcessor.clothes_pre_validate_tnved(tnved_str=form_data_raw.get('tnved_code'))
+    socks_tnved_condition = category == settings.Socks.CATEGORY and \
+                            ValidatorProcessor.socks_pre_validate_tnved(tnved_str=form_data_raw.get('tnved_code'))
+
+    if clothes_tnved_condition or socks_tnved_condition:
         if o_id and not p_id:
             return jsonify(dict(status='error', message=settings.Messages.TNVED_ABSENCE_ERROR))
 
@@ -218,9 +230,9 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
     if o_id and not p_id:
         return order_table_update(user=current_user, o_id=o_id, category=category) if order_id \
             else jsonify(dict(status='error'))
-    if o_id and p_id:
+    if o_id and p_id and order_id:
         flash(message=settings.Messages.ORDER_EDIT_POS_SUCCESS)
-    if not o_id and not p_id:
+    if not o_id and not p_id and order_id:
         flash(message=f"{settings.Messages.ORDER_ADD_POS_SUCCESS} {form_data_raw.get('article') if category != settings.Parfum.CATEGORY else form_data_raw.get('trademark')}")
 
     return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=order_id,
@@ -248,12 +260,21 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
             process_delete_order_pos(o_id=o_id, m_id=p_id, category=category, edit=True)
 
     else:
+        company_idn = form_dict.get("company_idn")
+        if company_idn in settings.ExceptionOrders.COMPANIES_IDNS:
+            flash(message=settings.ExceptionOrders.COMPANY_IDN_ERROR.format(company_idn=company_idn), category='error')
+            return (None,) * 3
         order = Order(company_type=form_dict.get("company_type"), company_name=form_dict.get("company_name"),
                       edo_type=form_dict.get("edo_type"), edo_id=form_dict.get("edo_id"),
-                      company_idn=form_dict.get("company_idn"), mark_type=form_dict.get("mark_type_hidden", "МАРКИРОВКА НЕ УКАЗАНА"),
+                      company_idn=company_idn, mark_type=form_dict.get("mark_type_hidden", "МАРКИРОВКА НЕ УКАЗАНА"),
                       category=category, stage=settings.OrderStage.CREATING, processed=False, to_delete=False)
     try:
         if category == settings.Clothes.CATEGORY:
+            sizes = form_data_raw.getlist("size")
+            quantities = form_data_raw.getlist("quantity")
+            size_types = form_data_raw.getlist("size_type")
+            sizes_quantities = sorted(list(zip(sizes, quantities, size_types)), key=lambda x: x[0])
+        elif category == settings.Socks.CATEGORY:
             sizes = form_data_raw.getlist("size")
             quantities = form_data_raw.getlist("quantity")
             size_types = form_data_raw.getlist("size_type")
@@ -294,7 +315,7 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
         try:
             order = Order(company_type=form_dict.get("company_type"), company_name=form_dict.get("company_name"),
                           edo_type=form_dict.get("edo_type"), edo_id=form_dict.get("edo_id"),
-                          company_idn=form_dict.get("company_idn"), mark_type=form_dict.get("mark_type_hidden"),
+                          company_idn=form_dict.get("company_idn"), mark_type=form_dict.get("mark_type_hidden", "МАРКИРОВКА НЕ УКАЗАНА"),
                           category=settings.Parfum.CATEGORY, stage=settings.OrderStage.CREATING, processed=False)
 
             updated_order = common_save_db(order=order, form_dict=form_dict,
@@ -359,7 +380,9 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
         link = f'javascript:{category_process_name}_update_table(\'' + url_for(f'{category_process_name}.index', o_id=o_id,
                                                             update_flag=1) + '?page={0}\');'
         page, per_page, offset, pagination, order_list = helper_paginate_data(data=orders, href=link)
-        with_packages = order_list[-1].with_packages if category != settings.Clothes.CATEGORY else False
+        with_packages = order_list[-1].with_packages if category not in [settings.Clothes.CATEGORY,
+                                                                         settings.Socks.CATEGORY, ] \
+            else False
 
     return render_template(f'categories/category_v2.html', **locals(), **kwargs)
 
@@ -430,6 +453,37 @@ def helper_clothes_index(o_id: int, p_id: int = None, update_flag: int = None,
     types = settings.Clothes.TYPES
     colors = settings.Clothes.COLORS
     genders = settings.Clothes.GENDERS
+    return helper_category_common_index(**locals())
+
+
+def helper_socks_index(o_id: int, p_id: int = None, update_flag: int = None,
+                         copied_order: db.Model = None, edit_order: str = None) -> Union[Response, str]:
+    copy_order_edit_org = request.args.get('copy_order_edit_org')
+    user = current_user
+    admin_id = user.admin_parent_id
+    order_notification, admin_name, crm = helper_get_order_notification(admin_id=admin_id if admin_id else user.id)
+
+    price_description = settings.PRICE_DESCRIPTION
+    tnved_description = settings.TNVED_DESCRIPTION
+    socks_all_tnved = settings.Socks.TNVED_ALL
+
+    rd_description = settings.RD_DESCRIPTION
+    rd_types_list = settings.RD_TYPES
+
+    price_text = settings.PRICES_TEXT
+    company_types = settings.COMPANY_TYPES
+    edo_types = settings.EDO_TYPES
+    tax_list = settings.TAX_LIST
+    countries = settings.COUNTRIES_LIST
+    socks_content = settings.Socks.CLOTHES_CONTENT
+    socks_types_sizes_dict = settings.Socks.SIZE_ALL_DICT
+
+    category = settings.Socks.CATEGORY
+    category_process_name = settings.Socks.CATEGORY_PROCESS
+
+    types = settings.Socks.TYPES
+    colors = settings.Clothes.COLORS
+    genders = settings.Socks.GENDERS
     return helper_category_common_index(**locals())
 
 
@@ -676,6 +730,8 @@ def process_order_start(user: User, category: str, o_id: int, order_idn: str, or
         try:
             if check_new_tnved_in_list():
                 order.has_new_tnveds = True
+            mark_type = order.mark_type
+            order.mark_type = mark_type if mark_type else 'МАРКИРОВКА НЕ УКАЗАНА'
             dt = datetime.now()
             order.stage = _stage  # settings.OrderStage.NEW
             order.crm_created_at = dt
@@ -950,6 +1006,9 @@ def get_category_orders(user: User, category: str, o_id: int, stage: int) -> tup
         case settings.Clothes.CATEGORY:
             sort_model = helper_get_sort_model(category=category)
             order_list = Clothes.query.filter_by(order_id=o_id).order_by(sort_model).all()
+        case settings.Socks.CATEGORY:
+            sort_model = helper_get_sort_model(category=category)
+            order_list = Socks.query.filter_by(order_id=o_id).order_by(sort_model).all()
         case settings.Linen.CATEGORY:
             sort_model = helper_get_sort_model(category=category)
             order_list = Linen.query.filter_by(order_id=o_id).order_by(sort_model).all()
@@ -1084,12 +1143,26 @@ def helper_get_cat_models_sort_dict(category: str) -> Optional[dict]:
             cat_models_dict: dict = {"id": Parfum.id,
                                      "trademark": Parfum.trademark,
                                      }
+        case settings.Socks.CATEGORY:
+            cat_models_dict: dict = {"id": Socks.id,
+                                     "trademark": Socks.trademark,
+                                     }
     return cat_models_dict
 
 
-def helper_process_category_order(user: User, category: str, o_id: int, order_comment: str) -> Response:
+def helper_process_category_order(user: User, order: Order, category: str, order_comment: str) -> Response:
     from .download import orders_process_send_order
     _category_name = settings.CATEGORIES_DICT.get(category)
+    if not order:
+        flash(message=settings.Messages.EMPTY_ORDER, category='error')
+        return redirect(url_for(f'{_category_name}.index'))
+    o_id = order.id
+
+    # check for company_idn exception
+    company_idn = order.company_idn
+    if company_idn in settings.ExceptionOrders.COMPANIES_IDNS:
+        flash(message=settings.ExceptionOrders.COMPANY_IDN_ERROR.format(company_idn=company_idn), category='error')
+        return redirect(url_for(f'{_category_name}.index', o_id=o_id))
 
     status_balance, total_order_price, agent_at2, message_balance = helper_check_uoabm(user=current_user, o_id=o_id)
     if status_balance == 0:
@@ -1139,24 +1212,24 @@ def helper_process_category_order(user: User, category: str, o_id: int, order_co
 
 
 def helper_get_order_notification(admin_id: int) -> tuple:
-    res = db.session.execute(text(f"""
+    res = db.session.execute(text("""
                                                 SELECT u.order_notification as order_notification,
                                                        u.login_name as admin_name,
                                                        u.is_crm as crm
                                                 FROM public.users u
-                                                WHERE u.id={admin_id};
-                                                """)).fetchone()
+                                                WHERE u.id=:admin_id;
+                                                """).bindparams(admin_id=admin_id)).fetchone()
 
     return (res.order_notification, res.admin_name, res.crm, ) if res else (settings.AGENT_DEFAULT_NOTE, None, None, )
 
 
 def helper_update_order_note(on: str, u_id: int) -> bool:
     try:
-        db.session.execute(text(f"""
+        db.session.execute(text("""
                                     UPDATE public.users 
-                                    SET order_notification ='{on}'
-                                    WHERE public.users.id={u_id};
-                                    """))
+                                    SET order_notification =:on
+                                    WHERE public.users.id= :u_id;
+                                    """).bindparams(on=on, u_id=u_id))
         db.session.commit()
         return True
     except Exception as e:
@@ -1167,11 +1240,11 @@ def helper_update_order_note(on: str, u_id: int) -> bool:
 
 def helper_get_user_balance(u_id: int) -> tuple[int, int]:
     try:
-        res = db.session.execute(text(f"""SELECT u.balance,
+        res = db.session.execute(text("""SELECT u.balance,
                                             u.pending_balance_rf
                                           FROM public.users u
-                                          WHERE u.id={u_id} LIMIT 1;
-                                          """)).fetchone()
+                                          WHERE u.id=:u_id LIMIT 1;
+                                          """).bindparams(u_id=u_id)).fetchone()
         return res.balance, res.pending_balance_rf
 
     except Exception as e:
@@ -1180,7 +1253,7 @@ def helper_get_user_balance(u_id: int) -> tuple[int, int]:
 
 
 def helper_get_server_balance() -> tuple[int, int, int, int, int]:
-    serv_res = db.session.execute(text(f"""SELECT sp.balance as balance,
+    serv_res = db.session.execute(text("""SELECT sp.balance as balance,
                                              sp.pending_balance_rf as pending_balance_rf
                                       FROM public.server_params sp;
                                       """)).fetchone()
@@ -1192,10 +1265,10 @@ def helper_get_server_balance() -> tuple[int, int, int, int, int]:
         except Exception as e:
             logger.error(f"{settings.Messages.SP_UPDATE_ERROR} {e}")
 
-    summ_at_1 = db.session.execute(text(f"""SELECT SUM(u.balance) AS at_1_summ FROM public.users u WHERE u.role != 'ordinary_user' and is_at2!=True""")).fetchone()
-    summ_at_2 = db.session.execute(text(f"""SELECT SUM(u.balance) AS at_2_summ FROM public.users u WHERE u.role != 'ordinary_user' and is_at2=True""")).fetchone()
+    summ_at_1 = db.session.execute(text("""SELECT SUM(u.balance) AS at_1_summ FROM public.users u WHERE u.role != 'ordinary_user' and is_at2!=True""")).fetchone()
+    summ_at_2 = db.session.execute(text("""SELECT SUM(u.balance) AS at_2_summ FROM public.users u WHERE u.role != 'ordinary_user' and is_at2=True""")).fetchone()
     summ_client = db.session.execute(text(
-        f"""SELECT SUM(u.balance) AS client_summ FROM public.users u WHERE u.role = 'ordinary_user';""")).fetchone()
+        """SELECT SUM(u.balance) AS client_summ FROM public.users u WHERE u.role = 'ordinary_user';""")).fetchone()
     return (serv_res.balance, serv_res.pending_balance_rf,
             summ_at_1.at_1_summ if summ_at_1 else 0, summ_at_2.at_2_summ if summ_at_2 else 0,
             summ_client.client_summ if summ_client else 0)
@@ -1312,6 +1385,9 @@ def helper_get_filter_fin_order_report(report: bool = False):
         payment_status = (False,)
     else:
         payment_status = (True, False,)
+
+    sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
+
     return date_from, date_to, sort_type, order_type, payment_status
 
 
@@ -1322,6 +1398,7 @@ def helper_get_stmt_for_fin_order_report(
         payment_status: tuple[bool] = (True, ),
         sort_type: str = 'DESC'
 ) -> TextClause:
+    sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
     if order_type == (9,):
         # cancel order
         stmt = text(f"""
@@ -1331,16 +1408,18 @@ def helper_get_stmt_for_fin_order_report(
                 o.company_type ||' ' || o.company_name || ' '|| o.company_idn as company,
                 cli.phone as cli_phone_number,
 	            CASE WHEN MAX(agnt.login_name) IS NOT NULL THEN MAX(agnt.login_name) ELSE cli.login_name end as agent_login,
-                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count,
-                COUNT(coalesce(sh.id, cl.id, l.id, p.id)) as rows_count, 
+                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count,
+                COUNT(coalesce(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count, 
                 o.category as category,
                 utr.op_cost as op_cost,
-                utr.op_cost*SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as amount
+                utr.op_cost*SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as amount
             FROM public.orders o
                 LEFT JOIN public.shoes sh ON o.id = sh.order_id
                 LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                 LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                 LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                LEFT JOIN public.socks sk ON o.id = sk.order_id
+                LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                 LEFT JOIN public.linen l ON o.id = l.order_id
                 LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                 LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -1351,7 +1430,7 @@ def helper_get_stmt_for_fin_order_report(
                 GROUP BY o.id, o.order_idn, utr.op_cost, utr.amount , o.cc_created, cli.phone, agnt.login_name, cli.login_name
                 ORDER BY o.cc_created {sort_type};
 
-            """).bindparams(date_from=date_from, date_to=date_to, order_type=order_type)
+            """).bindparams(date_from=date_from, date_to=date_to, order_type=order_type,)
     else:
         stmt = text(f"""
                 SELECT 
@@ -1360,16 +1439,18 @@ def helper_get_stmt_for_fin_order_report(
                 o.company_type ||' ' || o.company_name || ' '|| o.company_idn as company,
                 cli.phone as cli_phone_number,
 	            CASE WHEN MAX(agnt.login_name) IS NOT NULL THEN MAX(agnt.login_name) ELSE cli.login_name end as agent_login,
-                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count,
-                COUNT(coalesce(sh.id, cl.id, l.id, p.id)) as rows_count, 
+                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count,
+                COUNT(coalesce(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count, 
                 o.category as category,
                 utr.op_cost as op_cost,
-                utr.op_cost*SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as amount
+                utr.op_cost*SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as amount
             FROM public.orders o
                 LEFT JOIN public.shoes sh ON o.id = sh.order_id
                 LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                 LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                 LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                LEFT JOIN public.socks sk ON o.id = sk.order_id
+                LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                 LEFT JOIN public.linen l ON o.id = l.order_id
                 LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                 LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -1414,14 +1495,14 @@ def helper_isolated_session(query: str, return_flag: bool = True) -> tuple | boo
 
 def helper_get_current_sa() -> ServiceAccount:
 
-    cur_account = db.session.execute(text(f""" SELECT * from public.service_accounts sa
+    cur_account = db.session.execute(text(""" SELECT * from public.service_accounts sa
                                          WHERE sa.id =(SELECT sa.id FROM public.service_accounts sa WHERE sa.sa_type=(SELECT sp.account_type FROM public.server_params sp ORDER BY ID LIMIT 1)
                                           AND sa.current_use=True AND sa.is_active=True
                                          ORDER BY id LIMIT 1 );""")).fetchone()
     if not cur_account:
 
         # creating new session because sqlachemy orm db session makes additional current user query
-        cur_account = helper_isolated_session(query=f""" UPDATE public.service_accounts
+        cur_account = helper_isolated_session(query=""" UPDATE public.service_accounts
                                          SET current_use=True
                                          WHERE id =(SELECT sa.id FROM public.service_accounts sa WHERE sa.sa_type=(SELECT sp.account_type FROM public.server_params sp ORDER BY ID LIMIT 1) AND sa.is_active=True
                                          ORDER BY id ASC LIMIT 1 ) RETURNING *;""")
@@ -1442,6 +1523,7 @@ def helper_get_stmt_for_fin_promo_history(
         promo_code: Optional[str] = None,
         sort_type: str = 'DESC'
 ) -> TextClause:
+    sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
     stmt = text(f"""select
                         usr_promo.activated_at as activate_date,
                         cli.email as user_email,
@@ -1497,7 +1579,7 @@ def helper_get_filter_fin_promo_history(report: bool = False) -> tuple[str, str,
     date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from else default_day_to
     date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
         '%Y-%m-%d') if url_date_to else default_day_from
-
+    sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
     return date_from, date_to, promo_code, sort_type
 
 
@@ -1562,13 +1644,14 @@ def helper_get_filter_fin_bonus_history(report: bool = False) -> tuple[str, str,
     date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from else default_day_to
     date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
         '%Y-%m-%d') if url_date_to else default_day_from
+    sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
 
     return date_from, date_to, bonus_code, sort_type
 
 
 def helper_process_sa(sa_id: int) -> bool:
     try:
-        cur_accounts = [a for a in db.session.execute(text(f""" SELECT * from public.service_accounts sa
+        cur_accounts = [a for a in db.session.execute(text(""" SELECT * from public.service_accounts sa
                                                   WHERE sa.sa_type=(SELECT sp.account_type FROM public.server_params sp ORDER BY ID LIMIT 1)
                                                     AND sa.is_active=True
                                                   ORDER BY sa.id;""")).fetchall()]
@@ -1583,8 +1666,10 @@ def helper_process_sa(sa_id: int) -> bool:
                 if current_processing_sa.summ_transfer > settings.ServiceAccounts.SUMM_LIMIT:
                     choosed_next_sa_id = h_choose_sa_id(cur_sa=current_processing_sa, cur_sa_ids_list=cur_accounts_ids)
 
-                    db.session.execute(text(f"""UPDATE public.service_accounts SET current_use=False, summ_transfer=0 WHERE id = {sa_id};
-                                               UPDATE public.service_accounts SET current_use=True WHERE id = {choosed_next_sa_id}; """))
+                    db.session.execute(text("""UPDATE public.service_accounts SET current_use=False, summ_transfer=0 WHERE id = :sa_id;
+                                               UPDATE public.service_accounts SET current_use=True WHERE id = :choosed_next_sa_id; """).bindparams(
+                        sa_id=sa_id, choosed_next_sa_id=choosed_next_sa_id
+                    ))
                     db.session.commit()
             return True
 
@@ -1620,6 +1705,26 @@ def helper_check_promo(user: User, promo_code: str) -> tuple[bool, int, str]:
         return True, promo_append.value, ''
 
 
+def helper_get_promo_on_cancel_transaction(u_id: int, promo_info: str) -> None:
+    promo_code = promo_info.split(':')[0]
+
+    promo = Promo.query.with_entities(Promo.id).filter(Promo.code == promo_code).first()
+
+    if promo:
+        promo_id = promo.id
+
+        user_promo = db.session.query(users_promos).filter(
+            users_promos.c.user_id == u_id,
+            users_promos.c.promo_id == promo_id
+        ).first()
+
+        if user_promo:
+            db.session.query(users_promos).filter(
+                users_promos.c.user_id == u_id,
+                users_promos.c.promo_id == promo_id
+            ).delete(synchronize_session=False)
+
+
 def helper_check_form(on: str) -> bool:
     if any(sub in on for sub in settings.SQL_EXPR_CHECK):
         return False
@@ -1627,7 +1732,7 @@ def helper_check_form(on: str) -> bool:
 
 
 def helper_get_transactions(u_id: int, date_from: str = settings.Transactions.DEFAULT_DATE_FROM,
-                            date_to: str = datetime.today().strftime("%Y-%m-%d"), sort_type: str = 'desc'):
+                            date_to: str = (datetime.today() + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S"), sort_type: str = 'desc'):
     model_order_type = desc(UserTransaction.created_at) if sort_type == 'desc'  \
         else asc(UserTransaction.created_at)
 
@@ -1642,13 +1747,18 @@ def helper_get_transactions(u_id: int, date_from: str = settings.Transactions.DE
 
 
 def helper_refill_transaction(amount: int, status: int, promo_info: str,
-                              user_id: int, sa_id: int, bill_path: str) -> bool:
+                              user_id: int, sa_id: int, bill_path: str, only_promo: bool = False) -> bool:
 
     created_at = datetime.now()
     query = f"""INSERT into public.user_transactions (type, status, amount, promo_info, user_id, sa_id, bill_path, created_at)
                 VALUES(True, {status}, {amount}, '{promo_info}', {user_id}, {sa_id}, '{bill_path}', '{created_at}');
                 UPDATE public.users SET pending_balance_rf=pending_balance_rf + {amount} WHERE public.users.id = {user_id};
                 UPDATE public.server_params SET pending_balance_rf=pending_balance_rf + {amount};
+            """ if not only_promo else \
+        f"""INSERT into public.user_transactions (type, status, amount, promo_info, user_id, sa_id, bill_path, created_at)
+                VALUES(True, {status}, {amount}, '{promo_info}', {user_id}, {sa_id}, '{bill_path}', '{created_at}');
+                UPDATE public.users SET balance=balance + {amount} WHERE public.users.id = {user_id};
+                UPDATE public.server_params SET balance=balance + {amount};
             """
     try:
         db.session.execute(text(query))
@@ -1691,7 +1801,7 @@ def helper_agent_wo_transaction(amount: int, status: int, user_id: int, bill_pat
         return False, settings.Messages.WO_TRANSACTION_BALANCE_ERROR
 
     created_at = datetime.now()
-    query = text(f"""INSERT into public.user_transactions (type, status, amount, user_id, bill_path, wo_account_info, created_at)
+    query = text("""INSERT into public.user_transactions (type, status, amount, user_id, bill_path, wo_account_info, created_at)
                     VALUES(False, :status, :amount, :user_id, :bill_path, :wo_account_info, :created_at);
 
                 """).bindparams(status=status, amount=amount, user_id=user_id, bill_path=bill_path,
@@ -1746,29 +1856,36 @@ def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: in
                 u_query = f"""UPDATE public.users SET balance=balance - {amount} WHERE id={u_id};"""
     t_query = f"""UPDATE public.user_transactions SET status={tr_status} WHERE id={t_id};"""
 
-    if sp_query or u_query:
-        try:
-            db.session.execute(text(f"{sp_query}{u_query}{sa_query}{t_query}"))
-            db.session.commit()
+    try:
+        db.session.execute(text(f"{sp_query}{u_query}{sa_query}{t_query}"))
+        db.session.commit()
 
-            # make check of current sa
-            if sa_id:
-                helper_process_sa(sa_id=sa_id)
-            return True, ''
-        except Exception as e:
-            logger.error(f"pending_transaction queries processing caused exception: {e}")
-            db.session.rollback()
-            return False, 'Возникло исключение- обратитесь к администратору'
-    else:
-        return False, 'Возникло исключение- нет запросов к БД. обратитесь к администратору'
+        # make check of current sa
+        if sa_id:
+            helper_process_sa(sa_id=sa_id)
+        return True, ''
+    except Exception as e:
+        logger.error(f"pending_transaction queries processing caused exception: {e}")
+        db.session.rollback()
+        return False, 'Возникло исключение- обратитесь к администратору'
 
 
 def helper_get_image_html(img_path: str):
-    if img_path.endswith('.pdf'):
-        return get_first_page_as_image(pdf_path=img_path)
-    with open(img_path, 'rb') as fd:
-        transaction_image = f"""<img id="bill-modal-image" class="border border-1 rounded img-zoom-orig" onclick="zoom_image();" src="data:image/png;base64,
-                                {encodebytes(fd.read()).decode()}">"""
+    try:
+        s3_service = get_s3_service()
+        image_obj = s3_service.get_object(object_name=img_path, bucket_name=settings.MINIO_BILL_BUCKET_NAME).data
+    except Exception:
+        logger.exception(f"Ошибка при получении файла {img_path} из хранилища")
+        image_obj = b''
+    else:
+        if img_path.endswith('.pdf'):
+            return get_first_page_as_image(pdf_file_stream=image_obj)
+
+    transaction_image = f"""
+            <img id="bill-modal-image" class="border border-1 rounded img-zoom-orig" 
+            onclick="zoom_image();" src="data:image/png;base64,{encodebytes(image_obj).decode()}">
+            """
+
     return transaction_image
 
 
@@ -1793,8 +1910,9 @@ def helper_get_check_archive(category_process: str, order_ids: str) -> list:
 
 
 def helper_check_user_order_in_archive(category: str, o_id: int) -> tuple[int, str]:
-    check_order_list = ''.join(helper_get_check_archive(category_process=settings.CATEGORIES_DICT.get(category),
-                                                        order_ids=str(o_id))[0])
+    check_res = helper_get_check_archive(category_process=settings.CATEGORIES_DICT.get(category),
+                                         order_ids=str(o_id))
+    check_order_list = ''.join(check_res[0]) if check_res else None
     result_status = 0
 
     if not check_order_list:
@@ -1839,12 +1957,14 @@ def helper_get_orders_marks(u_id: int, o_id: int = None, wo_flag: bool = False) 
         add_stmt = f"o.stage > {start_stage} AND o.stage != {settings.OrderStage.CANCELLED} AND order_idn != ''"
     stmt_orders = f"""SELECT 
                         o.order_idn as order_idn,
-                        SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                        SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                       FROM public.orders o
                           LEFT JOIN public.shoes sh ON o.id = sh.order_id
                           LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
                           LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                           LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                          LEFT JOIN public.socks sk ON o.id = sk.order_id
+                          LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                           LEFT JOIN public.linen l ON o.id = l.order_id
                           LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                           LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -1866,13 +1986,15 @@ def helper_get_at2_pending_balance(admin_id: int, price_id: int, balance: int, t
     message = ''
     status = False
     stmt = f"""SELECT DISTINCT u.id as user_id,
-                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
                FROM public.users u
                    JOIN public.orders o on o.user_id = u.id
                       LEFT JOIN public.shoes sh ON o.id = sh.order_id
                       LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
                       LEFT JOIN public.clothes  cl ON o.id = cl.order_id
                       LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                      LEFT JOIN public.socks sk ON o.id = sk.order_id
+                      LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                       LEFT JOIN public.linen l ON o.id = l.order_id
                       LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                       LEFT JOIN public.parfum p ON o.id = p.order_id 
@@ -1911,20 +2033,63 @@ def helper_update_tid_orders_stats(order_idn: str, transaction_id: int):
 
 
 def helper_get_user_pb(user_id: int, admin_id: int, is_at2: bool) -> tuple[str, int, int, int]:
+    # """
+    #     Return user price_id and user balance and login_name or agent_type 2 balance and price_id
+    # :param user_id:
+    # :param admin_id:
+    # :param is_at2:
+    # :return:
+    # """
+    # if is_at2:
+    #     stmt = f"SELECT (SELECT uu.login_name FROM public.users uu WHERE uu.id={user_id} LIMIT 1) AS login_name, u.price_id as price_id, u.balance as balance, u.trust_limit as trust_limit FROM public.users u WHERE u.id={admin_id};"
+    # else:
+    #     stmt = f"SELECT u.login_name as login_name, u.price_id as price_id, u.balance as balance, u.trust_limit as trust_limit FROM public.users u WHERE u.id={user_id};"
+    #
+    # res = db.session.execute(text(stmt)).fetchone()
+    # return res.login_name, res.price_id, res.balance, res.trust_limit
     """
-        Return user price_id and user balance and login_name or agent_type 2 balance and price_id
-    :param user_id:
-    :param admin_id:
-    :param is_at2:
-    :return:
+    Return user price_id and user balance and login_name or agent_type 2 balance and price_id.
+
+    If the client's `price_id` differs from the admin's `price_id` (considering `is_at2`),
+    the client's `price_id` will be used.
+
+    :param user_id: ID of the user for whom data is being retrieved.
+    :param admin_id: ID of the admin or agent managing the user.
+    :param is_at2: Indicates whether the user is of agent_type 2.
+    :return: Tuple containing login_name, price_id, balance, and trust_limit.
     """
     if is_at2:
-        stmt = f"SELECT (SELECT uu.login_name FROM public.users uu WHERE uu.id={user_id} LIMIT 1) AS login_name, u.price_id as price_id, u.balance as balance, u.trust_limit as trust_limit FROM public.users u WHERE u.id={admin_id};"
+        # Fetch the admin's price_id and balance when is_at2 is True.
+        stmt = """
+            SELECT 
+                CASE 
+                    WHEN u.price_id != (SELECT uu.price_id FROM public.users uu WHERE uu.id = :user_id LIMIT 1) 
+                    THEN (SELECT uu.price_id FROM public.users uu WHERE uu.id = :user_id LIMIT 1) 
+                    ELSE u.price_id 
+                END AS price_id,
+                (SELECT uu.login_name FROM public.users uu WHERE uu.id = :user_id LIMIT 1) AS login_name,
+                u.balance AS balance, 
+                u.trust_limit AS trust_limit
+            FROM public.users u 
+            WHERE u.id = :admin_id;
+        """
     else:
-        stmt = f"SELECT u.login_name as login_name, u.price_id as price_id, u.balance as balance, u.trust_limit as trust_limit FROM public.users u WHERE u.id={user_id};"
+        # Fetch the user's price_id and balance directly when is_at2 is False.
+        stmt = """
+            SELECT 
+                u.login_name AS login_name, 
+                u.price_id AS price_id, 
+                u.balance AS balance, 
+                u.trust_limit AS trust_limit 
+            FROM public.users u 
+            WHERE u.id = :user_id;
+        """
 
-    res = db.session.execute(text(stmt)).fetchone()
-    return res.login_name, res.price_id, res.balance, res.trust_limit
+    # Execute the SQL query with parameters.
+    result = db.session.execute(text(stmt), {'user_id': user_id, 'admin_id': admin_id}).fetchone()
+
+    return (result.login_name, result.price_id, result.balance, result.trust_limit) if result \
+        else ("Unknown", 0, 0, 0)
 
 
 def helper_find_price_index(target: int) -> int:
@@ -2054,7 +2219,7 @@ def helper_check_uoabm(user: User, o_id: int = None):
     # check balance for ordinary users and  make defense against huge orders for agent type 2
 
     sum_cost = data_res['report_data']['ao_price'] + data_res['current_order']['order_cost'] \
-        if data_res['current_order']['new_idn'] else data_res['report_data']['ao_price']
+        if data_res['current_order'] and data_res['current_order']['new_idn'] else data_res['report_data']['ao_price']
 
     if sum_cost > balance:  # this check is correct for both logic options with order_id and without
         # make unnecessary check of agent type 2
@@ -2292,10 +2457,10 @@ def helper_get_admin_info(u_id: int) -> tuple[Optional[int], Optional[int], Opti
     :param u_id:
     :return:
     """
-    admin_id_stmt = f"""SELECT u.admin_parent_id as admin_parent_id, u.role as role
-                        FROM public.users u WHERE u.id={u_id};"""
+    admin_id_stmt = text("""SELECT u.admin_parent_id as admin_parent_id, u.role as role
+                        FROM public.users u WHERE u.id=:u_id;""").bindparams(u_id=u_id)
 
-    res_admin_info = db.session.execute(text(admin_id_stmt)).fetchone()
+    res_admin_info = db.session.execute(admin_id_stmt).fetchone()
 
     if res_admin_info.admin_parent_id and res_admin_info.role == settings.ORD_USER:
         # if user is a client and has agent
@@ -2381,8 +2546,8 @@ def helper_perform_ut_wo(user_ids: list[tuple[int]]) -> tuple[int, int]:
                                                 o.company_type as company_type, 
                                                 o.company_name as company_name, 
                                                 o.order_idn as order_idn, 
-                                                COUNT(COALESCE(sh.id, cl.id, l.id, p.id)) as rows_count, 
-                                                SUM(COALESCE(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count, 
+                                                COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count, 
+                                                SUM(COALESCE(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count, 
                                                 {transaction_price} AS transaction_price, 
                                                 o.created_at as created_at, 
                                                 o.crm_created_at as crm_created_at, 
@@ -2399,6 +2564,8 @@ def helper_perform_ut_wo(user_ids: list[tuple[int]]) -> tuple[int, int]:
                                                 public.clothes  cl ON o.id = cl.order_id
                                             LEFT JOIN 
                                                 public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                            LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                            LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                             LEFT JOIN 
                                                 public.linen l ON o.id = l.order_id
                                             LEFT JOIN 
@@ -2480,10 +2647,7 @@ def helper_perform_ut_wo(user_ids: list[tuple[int]]) -> tuple[int, int]:
 
 def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str]:
     total_amount = 0
-    transaction_google_packets = []
 
-    # hardcode for agent ruznak
-    transaction_rz_packets = []
     try:
         for u_raw in user_ids:
             u_id = u_raw[0]
@@ -2527,8 +2691,8 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
                                                 o.company_type as company_type, 
                                                 o.company_name as company_name, 
                                                 o.order_idn as order_idn, 
-                                                COUNT(COALESCE(sh.id, cl.id, l.id, p.id)) as rows_count, 
-                                                SUM(COALESCE(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count, 
+                                                COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count, 
+                                                SUM(COALESCE(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count, 
                                                 {transaction_price} AS transaction_price, 
                                                 o.created_at as created_at, 
                                                 o.crm_created_at as crm_created_at, 
@@ -2545,6 +2709,8 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
                                                 public.clothes  cl ON o.id = cl.order_id
                                             LEFT JOIN 
                                                 public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
+                                            LEFT JOIN public.socks sk ON o.id = sk.order_id
+                                            LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
                                             LEFT JOIN 
                                                 public.linen l ON o.id = l.order_id
                                             LEFT JOIN 
@@ -2594,32 +2760,19 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
                 total_amount += total_order_price
 
                 db.session.commit()
-                # logger.warning(f"total_amount for user {u_id}: {total_amount}")
-                # collecting info for google statistiks with hardcode checkin for ruznak
-                transaction_google_packets.append(TransactionRow(u_id=u_id,
-                                                                 tr_id=tr_id,
-                                                                 is_at2=is_at2,
-                                                                 transaction_price=transaction_price)) if not admin_id == 2 \
-                    else transaction_rz_packets.append(TransactionRow(u_id=u_id,
-                                                                      tr_id=tr_id,
-                                                                      is_at2=is_at2,
-                                                                      transaction_price=transaction_price))
 
-        if transaction_google_packets or transaction_rz_packets:
+        if total_amount:
             update_server_balance_stmt = f"""UPDATE public.server_params set balance=balance-{total_amount} RETURNING balance;"""
             server_balance = db.session.execute(text(update_server_balance_stmt)).fetchone().balance
 
             db.session.commit()
 
-            # sending data to google
-            helper_google_collect_and_send_stat(transaction_google_packets=transaction_google_packets,
-                                                transaction_rz_packets=transaction_rz_packets)
             # logger.warning(f"total_amount for session: {total_amount}")
             return 1, server_balance
         else:
             return 0, 0
     except Exception as e:
-        logger.error(f"An error occured during transaction write off perform: {str(e)}")
+        logger.exception(f"An error occured during transaction write off perform: {str(e)}")
         db.session.rollback()
         return 0, 0
 
@@ -2939,3 +3092,101 @@ def get_partner_code_max_id(partners) -> str:
                    extract_id_from_partner_name(partner.name) is not None]
     auto_increment_id = max(partners_id) + 1 if partners_id else 1
     return str(auto_increment_id)
+
+
+def helper_get_filter_avg_order_time_processing_report(report: bool = False):
+    default_day_to = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d')
+    default_day_from = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d')
+    if report:
+        url_date_from = request.form.get('date_from', '', type=str)
+        url_date_to = request.form.get('date_to', 0, type=str)
+        manager_id = request.form.get('manager', 0, int)
+
+    else:
+        url_date_from = request.args.get('date_from', '', type=str)
+        url_date_to = request.args.get('date_to', '', type=str)
+        manager_id = request.args.get('manager', 0, int)
+
+    date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from else default_day_to
+    date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
+        '%Y-%m-%d') if url_date_to else default_day_from
+
+    return date_from, date_to, manager_id
+
+
+def helper_get_stmt_avg_order_time_processing_report(
+        date_from: str = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d'),
+        date_to: str = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d'),
+        manager_id: int = 0,
+) -> TextClause:
+
+    stmt = text("""
+            SELECT
+                U.LOGIN_NAME,
+                count(distinct o.id) as order_count,
+                SUM(
+                    COALESCE(
+                        SH.BOX_QUANTITY * SH_QS.QUANTITY,
+                        CL.BOX_QUANTITY * CL_QS.QUANTITY,
+                        L.BOX_QUANTITY * L_QS.QUANTITY,
+                        P.QUANTITY
+                    )
+                ) AS pos_count,
+                COUNT(COALESCE(SH.ID, CL.ID, L.ID, P.ID)) AS rows_count,
+                TRUNC(AVG(
+                    EXTRACT(
+                        epoch
+                        FROM
+                            O.M_FINISHED - O.M_STARTED
+                    ) 
+                ) / 60, 1) AS PROCESSING_TIME,
+                TRUNC(AVG(
+                    EXTRACT(
+                        epoch
+                        FROM
+                            O.M_FINISHED - O.M_STARTED
+                    ) 
+                ) / 60 / 60, 1) AS PROCESSING_TIME_HOUR
+            FROM
+                ORDERS O
+                JOIN USERS U ON O.MANAGER_ID = U.ID
+                LEFT JOIN PUBLIC.SHOES SH ON O.ID = SH.ORDER_ID
+                LEFT JOIN PUBLIC.SHOES_QUANTITY_SIZES SH_QS ON SH.ID = SH_QS.SHOE_ID
+                LEFT JOIN PUBLIC.CLOTHES CL ON O.ID = CL.ORDER_ID
+                LEFT JOIN PUBLIC.CL_QUANTITY_SIZES CL_QS ON CL.ID = CL_QS.CL_ID
+                LEFT JOIN PUBLIC.LINEN L ON O.ID = L.ORDER_ID
+                LEFT JOIN PUBLIC.LINEN_QUANTITY_SIZES L_QS ON L.ID = L_QS.LIN_ID
+                LEFT JOIN PUBLIC.PARFUM P ON O.ID = P.ORDER_ID
+            WHERE
+                O.M_STARTED >= :date_from
+                and O.M_FINISHED < :date_to
+                and (o.stage = 5 or o.stage > 7)
+                and (o.manager_id = :manager_id or 0 = :manager_id)
+            GROUP BY
+                U.LOGIN_NAME
+            ORDER BY 3 DESC;
+        """).bindparams(date_from=date_from, date_to=date_to, manager_id=manager_id)
+    return stmt
+
+
+def ausumsuu_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.status is True and current_user.role in [settings.SUPER_MANAGER, settings.SUPER_USER, settings.ADMIN_USER]:
+            return func(*args, **kwargs)
+        else:
+            bck = request.args.get('bck', 0, type=int)
+            if bck:
+                return jsonify(dict(status='danger', message=settings.Messages.CRM_MANAGER_AGENT_USER_REQUIRED))
+    return wrapper
+
+def sumsuu_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.status is True and current_user.role in [settings.SUPER_MANAGER, settings.SUPER_USER, ]:
+            return func(*args, **kwargs)
+        else:
+            bck = request.args.get('bck', 0, type=int)
+            if bck:
+                return jsonify(dict(status='danger', message=settings.Messages.CRM_REPORT_USER_REQUIRED))
+    return wrapper

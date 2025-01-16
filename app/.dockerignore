@@ -1,0 +1,7 @@
+download_dir/bill_imgs
+download_dir/crm
+static
+
+**/__pycache__
+.gitignore
+README.md
