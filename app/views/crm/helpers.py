@@ -21,6 +21,7 @@ from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify, help
 from utilities.minio_service.services import get_s3_service, download_file_from_minio
 from utilities.pdf_processor import helper_check_attached_file
 from utilities.saving_uts import get_rows_marks
+from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.support import (helper_get_at2_pending_balance, helper_get_limits, orders_list_common)
 from utilities.telegram import MarkinerisInform
 from .crm_support import h_cancel_order_process_payment
@@ -81,21 +82,13 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   o.stage_setter_name as stage_setter_name,
                                   {additional_stmt}
                                   COUNT(o.id) as row_count,
-                                  COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                  {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                  {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id
                                   LEFT JOIN public.users a ON u.admin_parent_id = a.id
                                   LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                                  LEFT JOIN public.shoes sh ON o.id = sh.order_id
-                                  LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
-                                  LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-                                  LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                                  LEFT JOIN public.socks sk ON o.id = sk.order_id
-                                  LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                                  LEFT JOIN public.linen l ON o.id = l.order_id
-                                  LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                  LEFT JOIN public.parfum p ON o.id = p.order_id
+                                  {SQLQueryCategoriesAll.get_joins()}
                                   LEFT JOIN public.users managers ON o.manager_id = managers.id
                         WHERE u.id in({stmt_users}) AND {conditional_stmt} AND o.to_delete != True
                         GROUP BY u.id, o.id, o.crm_created_at
@@ -132,21 +125,13 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   o.stage_setter_name as stage_setter_name,
                                   {additional_stmt}
                                   COUNT(o.id) as row_count,
-                                  COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                  {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                  {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id  
                                   LEFT JOIN public.users a ON u.admin_parent_id = a.id  
                                   LEFT JOIN public.order_files orf ON o.id=orf.order_id 
-                                  LEFT JOIN public.shoes sh ON o.id = sh.order_id
-                                  LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
-                                  LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-                                  LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                                  LEFT JOIN public.socks sk ON o.id = sk.order_id
-                                  LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                                  LEFT JOIN public.linen l ON o.id = l.order_id
-                                  LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                  LEFT JOIN public.parfum p ON o.id = p.order_id
+                                  {SQLQueryCategoriesAll.get_joins()}
                                   LEFT JOIN public.users managers ON o.manager_id = managers.id 
                               WHERE  {conditional_stmt} AND o.to_delete != True
                               GROUP BY u.id, o.id, o.crm_created_at
@@ -217,21 +202,13 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                           o.sent_at as sent_at,
                                           o.closed_at as closed_at,
                                           COUNT(o.id) as row_count,
-                                          COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                          SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                          {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                          {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                                       FROM public.users u
                                           JOIN public.orders o ON o.user_id = u.id
                                           LEFT JOIN public.users a ON u.admin_parent_id = a.id  
                                           LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                                          LEFT JOIN public.shoes sh ON o.id = sh.order_id
-                                          LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
-                                          LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-                                          LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                                          LEFT JOIN public.socks sk ON o.id = sk.order_id
-                                          LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                                          LEFT JOIN public.linen l ON o.id = l.order_id
-                                          LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                          LEFT JOIN public.parfum p ON o.id = p.order_id
+                                          {SQLQueryCategoriesAll.get_joins()}
                                           LEFT JOIN public.users managers ON o.manager_id = managers.id
                                 WHERE o.stage=:stage AND u.id in({stmt_users}) {time_stmt} AND o.to_delete != True {category_stmt}
                                 GROUP BY u.id, o.id, o,crm_created_at
@@ -278,21 +255,13 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                   o.sent_at as sent_at,
                                   o.closed_at as closed_at,
                                   COUNT(o.id) as row_count,
-                                  COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                  {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                  {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id  
                                   LEFT JOIN public.users a ON u.admin_parent_id = a.id  
                                   LEFT JOIN public.order_files orf ON o.id=orf.order_id 
-                                  LEFT JOIN public.shoes sh ON o.id = sh.order_id
-                                  LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
-                                  LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-                                  LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                                  LEFT JOIN public.socks sk ON o.id = sk.order_id
-                                  LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                                  LEFT JOIN public.linen l ON o.id = l.order_id
-                                  LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                  LEFT JOIN public.parfum p ON o.id = p.order_id 
+                                  {SQLQueryCategoriesAll.get_joins()} 
                                   LEFT JOIN public.users managers ON o.manager_id = managers.id
                               WHERE  o.stage=:stage {time_stmt} AND o.to_delete != True {category_stmt}
                               GROUP BY u.id, o.id, o.crm_created_at
@@ -355,21 +324,13 @@ def helper_get_manager_orders(
                                  o.stage_setter_name as stage_setter_name,
                                  {additional_stmt}
                                  COUNT(o.id) as row_count,
-                                 COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                 SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                 {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                  {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                              FROM public.users u
                                  JOIN public.orders o ON o.user_id = u.id
                                  LEFT JOIN public.users a ON u.admin_parent_id = a.id   
                                  LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                                 LEFT JOIN public.shoes sh ON o.id = sh.order_id
-                                 LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
-                                 LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-                                 LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                                 LEFT JOIN public.socks sk ON o.id = sk.order_id
-                                 LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                                 LEFT JOIN public.linen l ON o.id = l.order_id
-                                 LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                 LEFT JOIN public.parfum p ON o.id = p.order_id 
+                                 {SQLQueryCategoriesAll.get_joins()} 
                                  LEFT JOIN public.users managers ON o.manager_id = managers.id
                            WHERE {conditional_stmt} AND o.to_delete != True
                            GROUP BY u.id, o.id, o.crm_created_at
@@ -407,21 +368,13 @@ def helper_get_manager_orders(
                                   o.stage_setter_name as stage_setter_name,
                                   {additional_stmt}
                                   COUNT(o.id) as row_count,
-                                  COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                  SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                  {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                  {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id
                                   LEFT JOIN public.users a ON u.admin_parent_id = a.id   
                                   LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                                  LEFT JOIN public.shoes sh ON o.id = sh.order_id
-                                  LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
-                                  LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-                                  LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                                  LEFT JOIN public.socks sk ON o.id = sk.order_id
-                                  LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                                  LEFT JOIN public.linen l ON o.id = l.order_id
-                                  LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                  LEFT JOIN public.parfum p ON o.id = p.order_id
+                                  {SQLQueryCategoriesAll.get_joins()}
                                   LEFT JOIN public.users managers ON o.manager_id = managers.id 
                               WHERE  {conditional_stmt}{vsoc} AND o.to_delete != True
                               GROUP BY u.id, o.id, o.crm_created_at
@@ -1771,21 +1724,13 @@ def h_get_agent_order_info(search_order_idn):
                                       o.stage_setter_name as stage_setter_name,
                                       {additional_stmt}
                                       COUNT(o.id) as row_count,
-                                      COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                      {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                      {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                                   FROM public.users u
                                       JOIN public.orders o ON o.user_id = u.id  
                                       LEFT JOIN public.users a ON u.admin_parent_id = a.id  
                                       LEFT JOIN public.order_files orf ON o.id=orf.order_id 
-                                      LEFT JOIN public.shoes sh ON o.id = sh.order_id
-                                      LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
-                                      LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-                                      LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                                      LEFT JOIN public.socks sk ON o.id = sk.order_id
-                                      LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                                      LEFT JOIN public.linen l ON o.id = l.order_id
-                                      LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                      LEFT JOIN public.parfum p ON o.id = p.order_id 
+                                      {SQLQueryCategoriesAll.get_joins()} 
                                   WHERE  {agent_condition}{conditional_stmt} AND o.order_idn=:search_order_idn
                                   GROUP BY u.id, o.id, o.crm_created_at
                                   ORDER BY o.crm_created_at
@@ -1842,21 +1787,13 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                      o.stage_setter_name as stage_setter_name,
                                      {additional_stmt}
                                      COUNT(o.id) as row_count,
-                                     COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                     SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                     {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                     {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                                  FROM public.users u
                                      JOIN public.orders o ON o.user_id = u.id
                                      LEFT JOIN public.users a ON u.admin_parent_id = a.id   
                                      LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                                     LEFT JOIN public.shoes sh ON o.id = sh.order_id
-                                     LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
-                                     LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-                                     LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                                     LEFT JOIN public.socks sk ON o.id = sk.order_id
-                                     LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                                     LEFT JOIN public.linen l ON o.id = l.order_id
-                                     LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                     LEFT JOIN public.parfum p ON o.id = p.order_id 
+                                     {SQLQueryCategoriesAll.get_joins()} 
                                WHERE o.order_idn=:search_order_idn AND {conditional_stmt}
                                GROUP BY u.id, o.id, o.crm_created_at
                                ORDER BY o.crm_created_at
@@ -1895,21 +1832,13 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                       o.stage_setter_name as stage_setter_name,
                                       {additional_stmt}
                                       COUNT(o.id) as row_count,
-                                      COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date)) as declar_doc,
-                                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                                      {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                  {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                                   FROM public.users u
                                       JOIN public.orders o ON o.user_id = u.id
                                       LEFT JOIN public.users a ON u.admin_parent_id = a.id   
                                       LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                                      LEFT JOIN public.shoes sh ON o.id = sh.order_id
-                                      LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
-                                      LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-                                      LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                                      LEFT JOIN public.socks sk ON o.id = sk.order_id
-                                      LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                                      LEFT JOIN public.linen l ON o.id = l.order_id
-                                      LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                      LEFT JOIN public.parfum p ON o.id = p.order_id 
+                                      {SQLQueryCategoriesAll.get_joins()}
                                   WHERE  {conditional_stmt} AND o.order_idn=:search_order_idn
                                   GROUP BY u.id, o.id, o.crm_created_at
                                   ORDER BY o.crm_created_at

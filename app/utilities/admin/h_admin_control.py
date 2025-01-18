@@ -20,6 +20,7 @@ from logger import logger
 from models import db, Order, OrderStat, PartnerCode, RestoreLink, Telegram, TelegramMessage, User, users_partners, \
     Price, TgUser, ReanimateStatus
 from utilities.download import orders_process_send_order
+from utilities.sql_categories_aggregations import SQLQueryCategoriesAll, SQLQueryFactory
 from utilities.support import (url_encrypt, helper_check_form, helper_update_order_note, helper_paginate_data,
                                helper_strange_response, sql_count, helper_get_filter_users,
                                helper_get_at2_pending_balance, get_partner_code_max_id)
@@ -1547,27 +1548,31 @@ def helper_get_ar_orders_stat(ar_schema: AROrdersSchema, u_id: int) -> tuple:
     Returns a tuple of orders quantity and marks quantity.
 
     :param ar_schema: AROrdersSchema instance containing the necessary parameters.
+    :param u_id: Agent_id for sorting orders.
     :return: A tuple containing the orders count and marks count.
     """
-    category_type_condition_stmt = "AND coalesce(sh.type, cl.type, sk.type, l.type, p.type) = '{category_pos_type}' ".format(category_pos_type=ar_schema.category_pos_type) if ar_schema.category_pos_type != settings.ALL_CATEGORY_TYPES else ''
-    category_pos_type_stmt = "max(coalesce(sh.type, cl.type, sk.type, l.type, p.type))" if ar_schema.category_pos_type != settings.ALL_CATEGORY_TYPES else "\'Все типы\'"
+    category_type_condition_stmt = (
+        "AND {category_pos_type_stmt} = '{category_pos_type}' "
+        .format(category_pos_type_stmt=SQLQueryFactory.get_stmt(
+                field='category_pos_type', category=settings.CATEGORIES_DICT.get(ar_schema.category)),
+                category_pos_type=ar_schema.category_pos_type)) \
+        if ar_schema.category_pos_type != settings.ALL_CATEGORY_TYPES else ''
+
+    category_pos_type_stmt = (
+        "{category_pos_type_max_stmt}"
+        .format(category_pos_type_max_stmt=SQLQueryFactory.get_stmt(
+                field='category_pos_type_max',
+                category=settings.CATEGORIES_DICT.get(ar_schema.category)))) \
+        if ar_schema.category_pos_type != settings.ALL_CATEGORY_TYPES else "\'Все типы\'"
 
     stmt = text(f"""
         SELECT max(o.category) as category,
                {category_pos_type_stmt} as category_pos_type, 
                COUNT(DISTINCT o.id) as orders_count,
-               COUNT(coalesce(sh.id, cl.id, sk.id, l.id, p.id)) as pos_count, 
-               SUM(coalesce(sh.box_quantity * sh_qs.quantity, cl.box_quantity * cl_qs.quantity, sk.box_quantity * sk_qs.quantity, l.box_quantity * l_qs.quantity, p.quantity)) as marks_count
+               {SQLQueryFactory.get_stmt(field='pos_count', category=settings.CATEGORIES_DICT.get(ar_schema.category))} as pos_count, 
+               {SQLQueryFactory.get_stmt(field='marks_count', category=settings.CATEGORIES_DICT.get(ar_schema.category))} as marks_count
         FROM public.orders o
-        LEFT JOIN public.shoes sh ON o.id = sh.order_id
-        LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
-        LEFT JOIN public.clothes cl ON o.id = cl.order_id
-        LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-        LEFT JOIN public.socks sk ON o.id = sk.order_id
-        LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-        LEFT JOIN public.linen l ON o.id = l.order_id
-        LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-        LEFT JOIN public.parfum p ON o.id = p.order_id 
+        {SQLQueryFactory.get_joins(category=settings.CATEGORIES_DICT.get(ar_schema.category))} 
         WHERE o.category=:category AND o.payment=True
         AND o.user_id in (SELECT u.id from public.users u where u.admin_parent_id=:u_id OR u.id=:u_id)
         {category_type_condition_stmt}

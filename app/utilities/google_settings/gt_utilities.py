@@ -5,6 +5,7 @@ from models import db
 from .schema import OrderRow, RuznakRow, TransactionRow
 from .google_tables import GoogleProcess
 from config import settings
+from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 
 
 def helper_get_orders_for_google(tr_pack: TransactionRow):
@@ -18,21 +19,13 @@ def helper_get_orders_for_google(tr_pack: TransactionRow):
                                 o.company_idn as company_idn,
                                 o.order_idn as order_idn,
                                 o.category as category,
-                                COUNT(coalesce(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count,    
-                                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count    
+                                {SQLQueryCategoriesAll.get_stmt(field='rows_count')} as rows_count,    
+                                {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as marks_count    
                             FROM public.users u
                                 JOIN public.orders o ON o.user_id = u.id
                                 LEFT JOIN public.users_partners up ON up.user_id = u.id
                                 LEFT JOIN public.partner_codes p_code ON p_code.id = up.partner_code_id 
-                                LEFT JOIN public.shoes sh ON o.id = sh.order_id
-                                LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
-                                LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-                                LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                                LEFT JOIN public.socks sk ON o.id = sk.order_id
-                                LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                                LEFT JOIN public.linen l ON o.id = l.order_id
-                                LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                LEFT JOIN public.parfum p ON o.id = p.order_id 
+                                {SQLQueryCategoriesAll.get_joins()}
                             WHERE u.id = {tr_pack.u_id} AND o.transaction_id={tr_pack.tr_id}
                             GROUP BY u.id, o.id;"""
     return db.session.execute(text(data_packet_stmt)).fetchall()
@@ -47,21 +40,13 @@ def helper_get_orders_for_google_rz(tr_pack: TransactionRow):
                                 o.company_type as company_type,
                                 o.company_name as company_name,
                                 o.category as category,
-                                COUNT(coalesce(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count,    
-                                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count    
+                                {SQLQueryCategoriesAll.get_stmt(field='rows_count')} as rows_count,    
+                                {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as marks_count    
                             FROM public.users u
                                 JOIN public.orders o ON o.user_id = u.id
                                 LEFT JOIN public.users_partners up ON up.user_id = u.id
                                 LEFT JOIN public.partner_codes p_code ON p_code.id = up.partner_code_id 
-                                LEFT JOIN public.shoes sh ON o.id = sh.order_id
-                                LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
-                                LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-                                LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                                LEFT JOIN public.socks sk ON o.id = sk.order_id
-                                LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                                LEFT JOIN public.linen l ON o.id = l.order_id
-                                LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                LEFT JOIN public.parfum p ON o.id = p.order_id 
+                                {SQLQueryCategoriesAll.get_joins()} 
                             WHERE u.id = {tr_pack.u_id} AND o.transaction_id={tr_pack.tr_id}
                             GROUP BY u.id, o.id;"""
     return db.session.execute(text(data_packet_stmt)).fetchall()

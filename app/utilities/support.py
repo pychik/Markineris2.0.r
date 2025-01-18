@@ -28,6 +28,7 @@ from utilities.google_settings.schema import TransactionRow
 from utilities.google_settings.gt_utilities import helper_google_collect_and_send_stat
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
 from utilities.pdf_processor import get_first_page_as_image
+from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.validators import ValidatorProcessor
 from views.crm.schema import CrmDefaults
 from .cipher.instance import encryptor
@@ -1408,21 +1409,13 @@ def helper_get_stmt_for_fin_order_report(
                 o.company_type ||' ' || o.company_name || ' '|| o.company_idn as company,
                 cli.phone as cli_phone_number,
 	            CASE WHEN MAX(agnt.login_name) IS NOT NULL THEN MAX(agnt.login_name) ELSE cli.login_name end as agent_login,
-                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count,
-                COUNT(coalesce(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count, 
+                {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count,
+                {SQLQueryCategoriesAll.get_stmt(field='rows_count')} as rows_count, 
                 o.category as category,
                 utr.op_cost as op_cost,
-                utr.op_cost*SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as amount
+                utr.op_cost*{SQLQueryCategoriesAll.get_stmt(field='marks_count')} as amount
             FROM public.orders o
-                LEFT JOIN public.shoes sh ON o.id = sh.order_id
-                LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
-                LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-                LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                LEFT JOIN public.socks sk ON o.id = sk.order_id
-                LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                LEFT JOIN public.linen l ON o.id = l.order_id
-                LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                LEFT JOIN public.parfum p ON o.id = p.order_id 
+                {SQLQueryCategoriesAll.get_joins()} 
                 LEFT JOIN public.user_transactions utr ON o.transaction_id = utr.id
                 JOIN public.users cli on cli.id = o.user_id
  	            LEFT JOIN public.users agnt on cli.admin_parent_id = agnt.id
@@ -1439,21 +1432,13 @@ def helper_get_stmt_for_fin_order_report(
                 o.company_type ||' ' || o.company_name || ' '|| o.company_idn as company,
                 cli.phone as cli_phone_number,
 	            CASE WHEN MAX(agnt.login_name) IS NOT NULL THEN MAX(agnt.login_name) ELSE cli.login_name end as agent_login,
-                SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count,
-                COUNT(coalesce(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count, 
+                {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count,
+                {SQLQueryCategoriesAll.get_stmt(field='rows_count')} as rows_count, 
                 o.category as category,
                 utr.op_cost as op_cost,
-                utr.op_cost*SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as amount
+                utr.op_cost*{SQLQueryCategoriesAll.get_stmt(field='marks_count')} as amount
             FROM public.orders o
-                LEFT JOIN public.shoes sh ON o.id = sh.order_id
-                LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
-                LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-                LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                LEFT JOIN public.socks sk ON o.id = sk.order_id
-                LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                LEFT JOIN public.linen l ON o.id = l.order_id
-                LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                LEFT JOIN public.parfum p ON o.id = p.order_id 
+                {SQLQueryCategoriesAll.get_joins()} 
                 LEFT JOIN public.user_transactions utr ON o.transaction_id = utr.id
                 JOIN public.users cli on cli.id = o.user_id
  	            LEFT JOIN public.users agnt on cli.admin_parent_id = agnt.id
@@ -1957,17 +1942,9 @@ def helper_get_orders_marks(u_id: int, o_id: int = None, wo_flag: bool = False) 
         add_stmt = f"o.stage > {start_stage} AND o.stage != {settings.OrderStage.CANCELLED} AND order_idn != ''"
     stmt_orders = f"""SELECT 
                         o.order_idn as order_idn,
-                        SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                        {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                       FROM public.orders o
-                          LEFT JOIN public.shoes sh ON o.id = sh.order_id
-                          LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
-                          LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-                          LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                          LEFT JOIN public.socks sk ON o.id = sk.order_id
-                          LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                          LEFT JOIN public.linen l ON o.id = l.order_id
-                          LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                          LEFT JOIN public.parfum p ON o.id = p.order_id 
+                        {SQLQueryCategoriesAll.get_joins()} 
                       WHERE o.user_id = {u_id} AND o.processed != True AND o.payment != True AND o.to_delete != True AND {add_stmt}
                       GROUP BY o.order_idn  
                       ORDER BY o.order_idn DESC 
@@ -1986,18 +1963,10 @@ def helper_get_at2_pending_balance(admin_id: int, price_id: int, balance: int, t
     message = ''
     status = False
     stmt = f"""SELECT DISTINCT u.id as user_id,
-                      SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as pos_count
+                      {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                FROM public.users u
                    JOIN public.orders o on o.user_id = u.id
-                      LEFT JOIN public.shoes sh ON o.id = sh.order_id
-                      LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
-                      LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-                      LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                      LEFT JOIN public.socks sk ON o.id = sk.order_id
-                      LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                      LEFT JOIN public.linen l ON o.id = l.order_id
-                      LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                      LEFT JOIN public.parfum p ON o.id = p.order_id 
+                      {SQLQueryCategoriesAll.get_joins()} 
                WHERE u.id in (SELECT au.id FROM public.users au where au.admin_parent_id={admin_id} or au.id={admin_id}) 
                and o.payment=False and (o.to_delete = FALSE OR o.to_delete IS NULL) and o.stage>=1 and o.stage !=9 
                GROUP BY u.id;
@@ -2521,18 +2490,12 @@ def helper_perform_ut_wo(user_ids: list[tuple[int]]) -> tuple[int, int]:
             #                                     marks_count, op_cost, created_at, crm_created_at, user_id,
             #                                     transaction_id, saved_at)
             #                                  (SELECT o.category, o.company_idn, o.company_type, o.company_name, o.order_idn,
-            #                                         COUNT(coalesce(sh.id, cl.id, l.id, p.id)),
-            #                                         SUM(coalesce(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)),
+            #                                         {SQLQueryCategoriesAll.get_stmt(field='pos_count')},
+            #                                         {SQLQueryCategoriesAll.get_stmt(field='marks_count')},
             #                                          {transaction_price}, o.created_at,
             #                                         o.crm_created_at, o.user_id, {tr_id}, '{created_at}'
             #                                  FROM public.orders o
-            #                                       LEFT JOIN public.shoes sh ON o.id = sh.order_id
-            #                                       LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
-            #                                       LEFT JOIN public.clothes  cl ON o.id = cl.order_id
-            #                                       LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-            #                                       LEFT JOIN public.linen l ON o.id = l.order_id
-            #                                       LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-            #                                       LEFT JOIN public.parfum p ON o.id = p.order_id
+            #                                       {SQLQueryCategoriesAll.get_joins()}
             #                                  WHERE o.order_idn in ({order_idns})
             #                                  GROUP BY o.category, o.company_idn, o.company_type, o.company_name, o.order_idn, o.created_at, o.crm_created_at, o.user_id)
             #                                ON CONFLICT(order_idn) DO UPDATE SET
@@ -2546,8 +2509,8 @@ def helper_perform_ut_wo(user_ids: list[tuple[int]]) -> tuple[int, int]:
                                                 o.company_type as company_type, 
                                                 o.company_name as company_name, 
                                                 o.order_idn as order_idn, 
-                                                COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count, 
-                                                SUM(COALESCE(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count, 
+                                                {SQLQueryCategoriesAll.get_stmt(field='rows_count')} as rows_count, 
+                                                {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as marks_count, 
                                                 {transaction_price} AS transaction_price, 
                                                 o.created_at as created_at, 
                                                 o.crm_created_at as crm_created_at, 
@@ -2556,22 +2519,7 @@ def helper_perform_ut_wo(user_ids: list[tuple[int]]) -> tuple[int, int]:
                                                 '{created_at}'::timestamp AS saved_at
                                             FROM 
                                                 public.orders o
-                                            LEFT JOIN 
-                                                public.shoes sh ON o.id = sh.order_id
-                                            LEFT JOIN 
-                                                public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
-                                            LEFT JOIN 
-                                                public.clothes  cl ON o.id = cl.order_id
-                                            LEFT JOIN 
-                                                public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                                            LEFT JOIN public.socks sk ON o.id = sk.order_id
-                                            LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                                            LEFT JOIN 
-                                                public.linen l ON o.id = l.order_id
-                                            LEFT JOIN 
-                                                public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                            LEFT JOIN 
-                                                public.parfum p ON o.id = p.order_id 
+                                            {SQLQueryCategoriesAll.get_joins()}
                                             WHERE 
                                                 o.order_idn IN ({order_idns})
                                             GROUP BY 
@@ -2691,8 +2639,8 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
                                                 o.company_type as company_type, 
                                                 o.company_name as company_name, 
                                                 o.order_idn as order_idn, 
-                                                COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id)) as rows_count, 
-                                                SUM(COALESCE(sh.box_quantity*sh_qs.quantity, cl.box_quantity*cl_qs.quantity, sk.box_quantity*sk_qs.quantity, l.box_quantity*l_qs.quantity, p.quantity)) as marks_count, 
+                                                {SQLQueryCategoriesAll.get_stmt(field='rows_count')} as rows_count, 
+                                                {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as marks_count, 
                                                 {transaction_price} AS transaction_price, 
                                                 o.created_at as created_at, 
                                                 o.crm_created_at as crm_created_at, 
@@ -2701,22 +2649,7 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
                                                 '{created_at}'::timestamp AS saved_at
                                             FROM 
                                                 public.orders o
-                                            LEFT JOIN 
-                                                public.shoes sh ON o.id = sh.order_id
-                                            LEFT JOIN 
-                                                public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id 
-                                            LEFT JOIN 
-                                                public.clothes  cl ON o.id = cl.order_id
-                                            LEFT JOIN 
-                                                public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                                            LEFT JOIN public.socks sk ON o.id = sk.order_id
-                                            LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                                            LEFT JOIN 
-                                                public.linen l ON o.id = l.order_id
-                                            LEFT JOIN 
-                                                public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                                            LEFT JOIN 
-                                                public.parfum p ON o.id = p.order_id 
+                                                {SQLQueryCategoriesAll.get_joins()} 
                                             WHERE 
                                                 o.order_idn IN ({order_idns})
                                             GROUP BY 
@@ -3120,19 +3053,12 @@ def helper_get_stmt_avg_order_time_processing_report(
         manager_id: int = 0,
 ) -> TextClause:
 
-    stmt = text("""
+    stmt = text(f"""
             SELECT
                 U.LOGIN_NAME,
                 count(distinct o.id) as order_count,
-                SUM(
-                    COALESCE(
-                        SH.BOX_QUANTITY * SH_QS.QUANTITY,
-                        CL.BOX_QUANTITY * CL_QS.QUANTITY,
-                        L.BOX_QUANTITY * L_QS.QUANTITY,
-                        P.QUANTITY
-                    )
-                ) AS pos_count,
-                COUNT(COALESCE(SH.ID, CL.ID, L.ID, P.ID)) AS rows_count,
+                {SQLQueryCategoriesAll.get_stmt(field='marks_count')} AS pos_count,
+                {SQLQueryCategoriesAll.get_stmt(field='rows_count')} AS rows_count,
                 TRUNC(AVG(
                     EXTRACT(
                         epoch
@@ -3150,13 +3076,7 @@ def helper_get_stmt_avg_order_time_processing_report(
             FROM
                 ORDERS O
                 JOIN USERS U ON O.MANAGER_ID = U.ID
-                LEFT JOIN PUBLIC.SHOES SH ON O.ID = SH.ORDER_ID
-                LEFT JOIN PUBLIC.SHOES_QUANTITY_SIZES SH_QS ON SH.ID = SH_QS.SHOE_ID
-                LEFT JOIN PUBLIC.CLOTHES CL ON O.ID = CL.ORDER_ID
-                LEFT JOIN PUBLIC.CL_QUANTITY_SIZES CL_QS ON CL.ID = CL_QS.CL_ID
-                LEFT JOIN PUBLIC.LINEN L ON O.ID = L.ORDER_ID
-                LEFT JOIN PUBLIC.LINEN_QUANTITY_SIZES L_QS ON L.ID = L_QS.LIN_ID
-                LEFT JOIN PUBLIC.PARFUM P ON O.ID = P.ORDER_ID
+                {SQLQueryCategoriesAll.get_joins()}
             WHERE
                 O.M_STARTED >= :date_from
                 and O.M_FINISHED < :date_to
