@@ -5,7 +5,7 @@ from src.keyboards.keyboard_events_data import START_COMMAND_TEXT
 
 class UserMessages:
     # верификация
-    EMAIL_REQUEST: str = "Введите свой адрес электронной почты зарегистрированной в сервисе Маркинерис."
+    EMAIL_REQUEST: str = "Введите свой адрес электронной почты зарегистрированной в марка- сервис."
     USER_NOT_FOUND: str = "Пользователя с почтой '{email}' не найдено, попробуйте ввести еще раз."
     INVALID_EMAIL_ADDRESS: str = "Введите корректный адрес электронной почты. Пример: ivan1968@main.ru."
     PUSH_VERIFY_BUTTON: str = "Для того чтобы получить код верификации, нажмите на кнопку."
@@ -69,11 +69,11 @@ class UserMessages:
     # общие
     AVAILABLE_FUNCTIONS: str = "Доступные функции"
     ALREADY_IN_MAIN_MENU: str = "Вы уже находитесь в главном меню."
-    GREETING: str = f"Привет, Я бот уведомлений сервиса Маркинерис!\n{EMAIL_REQUEST}"
+    GREETING: str = f"Привет, Я бот уведомлений марка- сервис!\n{EMAIL_REQUEST}"
     INFO_VERIFICATION_CODE_GENERATED: str = f"Вы верифицированы. {AVAILABLE_FUNCTIONS}"
     CANCEL: str = "Действие отменено, возвращаемся в главное меню."
     NO_STATE_HELP_MESSAGE: str = "Вам нужно пройти верификацию, нажмите на кнопку 'start'"
     UNKNOWN: str = "Я не знаю такой команды."
-    # ошибки связанные с Маркинерис
+    # ошибки связанные с марка- сервис
     INTERNAL_SERVER_ERROR = "Сервис временно не отвечает, попробуйте позже."
     CANT_CANCEL = "Не получилось отменить действие."

@@ -43,15 +43,15 @@ maintenance-off:				## Выключение режима "технических
 	rm -fr ./maintenance/maintenance.flag
 	docker image prune -f
 
-service-logs:					## Отображение в режиме реального времени всех логов поступающих в сеть контейнеров сервиса маркинерис(Flask app, db, nginx).
+service-logs:					## Отображение в режиме реального времени всех логов поступающих в сеть контейнеров сервиса марка- сервис(Flask app, db, nginx).
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} logs -f
 
-service-up:					## Запуск контейнеров сервиса маркинерис(Flask app, db, nginx).
+service-up:					## Запуск контейнеров сервиса марка- сервис(Flask app, db, nginx).
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} up --build -d
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} restart bot_notification
 	docker image prune -f
 
-service-down:					## Остановка контейнеров сервиса маркинерис(Flask app, db, nginx).
+service-down:					## Остановка контейнеров сервиса марка- сервис(Flask app, db, nginx).
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} down
 
 service-bccr:     ## builder cache clean restart

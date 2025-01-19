@@ -1,7 +1,7 @@
 <div class="container">
       <div class="modal-body text-justify">
         {% if tg_user and tg_user.flask_user_id %}
-          <h6>Вы подписаны на уведомления от бота <span class="text-warning">{% if not is_at2 %}Маркинерис{% else %} сервиса маркировки{% endif %}</span> в Телеграмм</h6>
+          <h6>Вы подписаны на уведомления от бота <span class="text-warning">{% if not is_at2 %}марка-сервис{% else %} сервиса маркировки{% endif %}</span> в Телеграмм</h6>
           <h6> Если хотите <span class="text-warning">отписаться</span> от уведомлений, то нажмите на кнопку ниже</h6>
           <div class="text-right">
               <button type="button" class="btn btn-accent" onclick="bck_tg_stop_verify('{{url_for('user_cp.bck_tg_markineris_stop_verify')}}', '{{csrf_token()}}');">
@@ -11,7 +11,7 @@
 
         {% else %}
           <div class="container text-justify">
-              <h6><b>Вы не подписаны на уведомления от бота {% if not is_at2 %}Маркинерис{% else %} сервиса маркировки{% endif %}!</b></h6>
+              <h6><b>Вы не подписаны на уведомления от бота {% if not is_at2 %}марка-сервис{% else %} сервиса маркировки{% endif %}!</b></h6>
               <h6>Для того, чтобы подписаться, сделайте следующее:</h6>
               <span class="text-warning">-</span> пройдите по <a href="{{bot_link}}" target="_blank">ссылке</a> и получите код верификации от бота<br>
               <span class="text-warning">-</span> введите код верификации в форму ниже

@@ -49,7 +49,7 @@ async def start_transaction_of_account_refill_balance_first_time_handler(
         state (FSMContext): Объект машины состояний.
         user_service (UserService): Сервис для взаимодействия с пользователем.
         tg_user_schema (TgUserSchema): Схема с данными телеграм аккаунта пользователя.
-        client (BaseClient): Базовый клиент для взаимодействия с API Маркинерис.
+        client (BaseClient): Базовый клиент для взаимодействия с API марка- сервис.
 
     Returns:
 
@@ -82,7 +82,7 @@ async def start_transaction_of_account_refill_balance_repeat_handler(
         state (FSMContext): Объект машины состояний.
         user_service (UserService): Сервис для взаимодействия с пользователем.
         tg_user_schema (TgUserSchema): Схема с данными телеграм аккаунта пользователя.
-        client (BaseClient): Базовый клиент для взаимодействия с API Маркинерис.
+        client (BaseClient): Базовый клиент для взаимодействия с API марка- сервис.
 
     Returns:
 
@@ -155,7 +155,7 @@ async def promo_code_handler(
     Args:
         message (Message): Объект полученного обновления.
         state (FSMContext): Объект машины состояний.
-        client (BaseClient): Базовый клиент для взаимодействия с API Маркинерис.
+        client (BaseClient): Базовый клиент для взаимодействия с API марка- сервис.
 
     Returns:
 
@@ -211,14 +211,14 @@ async def photo_receipt_handler(
         client: BaseClient,
 ) -> None:
     """
-    Обрабатывает чек отправленный пользователем и делает запрос на создание транзакции в Маркинерис.
+    Обрабатывает чек отправленный пользователем и делает запрос на создание транзакции в марка- сервис.
 
     Args:
         message (Message): Объект полученного обновления.
         state (FSMContext): Объект машины состояний.
         user_service (UserService): Сервис для взаимодействия с пользователем.
         tg_user_schema (TgUserSchema): Схема с данными телеграм аккаунта пользователя.
-        client (BaseClient): Базовый клиент для взаимодействия с API Маркинерис.
+        client (BaseClient): Базовый клиент для взаимодействия с API марка- сервис.
 
     Returns:
 
@@ -269,7 +269,7 @@ async def refill_balance_start_transaction(
     Args:
         message (Message): Объект полученного обновления.
         state (FSMContext): Объект машины состояний.
-        client (BaseClient): Базовый клиент для взаимодействия с API Маркинерис.
+        client (BaseClient): Базовый клиент для взаимодействия с API марка- сервис.
 
     Returns:
 
@@ -317,9 +317,9 @@ async def refill_balance_start_transaction(
 
 async def create_transaction(client: BaseClient, state: FSMContext) -> bool:
     """
-    Функция формирует данные для запроса в API Маркинерис по созданию транзакции
+    Функция формирует данные для запроса в API марка- сервис по созданию транзакции
     Args:
-        client (BaseClient): Базовый клиент для взаимодействия с API Маркинерис.
+        client (BaseClient): Базовый клиент для взаимодействия с API марка- сервис.
         state (FSMContext): Объект машины состояний.
 
     Returns:

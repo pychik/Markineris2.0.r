@@ -80,7 +80,7 @@ class BaseClient:
                 else:
                     return NotOkResponseSchema(status_code=response.status, detail=response_data.get('detail', 'Error'))
         except ClientError:
-            logger.exception("Ошибка при запросе в Маркинерис")
+            logger.exception("Ошибка при запросе в марка-сервис")
             return NotOkResponseSchema(status_code=500, detail=self.INTERNAL_SERVER_ERROR_MESSAGE)
 
     @staticmethod

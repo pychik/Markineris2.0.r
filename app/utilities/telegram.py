@@ -246,7 +246,7 @@ class RefillBalance:
         promo_string = f"\n👑- <i>{promo_code}</i>\n<b>Добавочное</b>- <i>{amount_add} р</i>\n" if amount_add else '\n'
         amount_string = f"💰 - <i>{amount} р</i>\n"
 
-        message_title = f"<b>Новое ПОПОЛНЕНИЕ счета на маркинерис 2.0!</b>\n\n"
+        message_title = f"<b>Новое ПОПОЛНЕНИЕ счета на марка-сервис!</b>\n\n"
 
         message_body = "👨‍💼 - <i>{u_login}</i>\n" \
                        "📪 - <i>{u_email}</i>\n" \
@@ -309,7 +309,7 @@ class WriteOffBalance:
 
         amount_string = f"💰 - <i>{amount} р</i>\n"
 
-        message_title = f"<b>Новый запрос на СПИСАНИЕ со счета агента маркинерис 2.0!</b>\n\n"
+        message_title = f"<b>Новый запрос на СПИСАНИЕ со счета агента марка-сервис!</b>\n\n"
 
         message_body = "👨‍💼 - <i>{u_login}</i>\n" \
                        "📪 - <i>{u_email}</i>\n" \
