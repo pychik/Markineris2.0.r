@@ -705,7 +705,7 @@ class Settings(BaseSettings):
         CHANGE_AGENT_FEE_ERROR: str = "При изменении лимита отрицательного баланса агента произошла ошибка "
         CHANGE_TRUST_LIMIT_ERROR: str = "При изменении лимита отрицательного баланса агента произошла ошибка "
         CONNECTION_CRM: str = "Нет соединения с сервером регистрации заказов"
-        CONNECTION_MARKINERIS_ERROR: str = "Нет соединения с сервером проверки заказов марка-сервис"
+        CONNECTION_MARKINERIS_ERROR: str = "Нет соединения с сервером проверки заказов Марка сервис"
         CLEAN_EMPTY: str = "Нет позиций для удаления"
         ORDER_DELETE_ERROR: str = "Во время удаления заказа произошла ошибка"
         ORDER_DELETE_STAGE: str = "Заказ уже в обработке. Чтобы его отменить свяжитесь с ваши менеджером!"
