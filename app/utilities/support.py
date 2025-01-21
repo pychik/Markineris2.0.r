@@ -1409,8 +1409,8 @@ def helper_get_stmt_for_fin_order_report(
                 o.company_type ||' ' || o.company_name || ' '|| o.company_idn as company,
                 cli.phone as cli_phone_number,
 	            CASE WHEN MAX(agnt.login_name) IS NOT NULL THEN MAX(agnt.login_name) ELSE cli.login_name end as agent_login,
-                {SQLQueryCategoriesAll.get_stmt(field='rows_count')} as rows_count,
                 {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count,
+                {SQLQueryCategoriesAll.get_stmt(field='rows_count')} as rows_count,
                 o.category as category,
                 utr.op_cost as op_cost,
                 utr.op_cost*{SQLQueryCategoriesAll.get_stmt(field='marks_count')} as amount
@@ -1432,8 +1432,8 @@ def helper_get_stmt_for_fin_order_report(
                 o.company_type ||' ' || o.company_name || ' '|| o.company_idn as company,
                 cli.phone as cli_phone_number,
 	            CASE WHEN MAX(agnt.login_name) IS NOT NULL THEN MAX(agnt.login_name) ELSE cli.login_name end as agent_login,
-                {SQLQueryCategoriesAll.get_stmt(field='rows_count')} as rows_count,
                 {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count,
+                {SQLQueryCategoriesAll.get_stmt(field='rows_count')} as rows_count,
                 o.category as category,
                 utr.op_cost as op_cost,
                 utr.op_cost*{SQLQueryCategoriesAll.get_stmt(field='marks_count')} as amount
