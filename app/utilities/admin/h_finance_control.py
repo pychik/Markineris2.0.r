@@ -1098,7 +1098,7 @@ def h_bck_fin_order_report_excel():
     excel = ExcelReport(
         data=orders,
         filters=excel_filters,
-        columns_name=['дата', 'номер заказа', 'компания', 'тел. номер клиента', 'агент', 'КС', 'КМ', 'Чего', 'Цена за марку',],
+        columns_name=['дата', 'номер заказа', 'компания', 'тел. номер клиента', 'агент', 'КМ', 'КС', 'Чего', 'Цена за марку',],
         sheet_name='Отчет по заказам',
         output_file_name=report_name,
     )
