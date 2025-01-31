@@ -20,6 +20,7 @@ services:
         condition: service_started
     networks:
       - markineris_r_network
+      - minio_shared_network
 
   flask_app:
     container_name: flask_app
@@ -32,6 +33,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /var/log/flask-app/:/var/log/flask-app/
       - ./app/migrations:/app/migrations/
+      - ./app/db_backups:/app/db_backups/
     expose:
       - "5005"
     entrypoint: ./entrypoint.sh
@@ -44,6 +46,7 @@ services:
     networks:
       - markineris_r_network
       - elk_shared_network
+      - minio_shared_network
 
   bot_notification:
     restart: on-failure
@@ -63,6 +66,7 @@ services:
         condition: service_healthy
     networks:
       - markineris_r_network
+      - minio_shared_network
 
   db:
     container_name: db
@@ -126,4 +130,6 @@ networks:
   markineris_r_network:
     name: markineris_r_network
   elk_shared_network:
+    external: true
+  minio_shared_network:
     external: true
