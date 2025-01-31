@@ -134,5 +134,7 @@ run-static-synchronize:        ## Синхронизация статики s3 �
     echo "PYTHONPATH: $$PYTHONPATH" && \
 	export $$(grep -v "^#" .env | grep -E "^[a-zA-Z_][a-zA-Z0-9_]*=.*" | xargs -d "\n"); \
 	export MINIO_API_URL=0.0.0.0:9000 && \
+	python3 -m venv venv && \
 	. venv/bin/activate && \
+	pip install -r app/requirements.txt && \
 	python3 app/data_migrations/static_synchronize_script.py'
