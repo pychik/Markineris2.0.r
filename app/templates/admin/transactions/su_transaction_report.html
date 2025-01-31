@@ -4,39 +4,35 @@
     <div><b>Телефон:</b> {{ transaction.phone }}</div>
     <div><b>Номер:</b> {{ transaction.id }}</div>
     <div><b>Дата формирования:</b> {{ transaction.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</div>
-    <div><b>Статус:</b> <span class="badge bg-warning text-black">{{ transaction_dict[transaction.status] }}</span></div>
-<!--    <div><b>Тип:</b> {% if transaction.type %}Пополнение {% else %}Списание{%endif%}</div>-->
+    <div><b>Статус:</b> <span class="badge bg-warning text-black">{{ transaction_statuses[transaction.status] }}</span></div>
 
     {% if transaction.promo_info %}
         <div><b>Промо:</b> {{ transaction.promo_info }}</div>
     {%endif%}
 
+    {% set transaction_type = transaction_types.get(transaction.transaction_type) %}
+
+    {% if transaction.is_bonus %}
+        {% set transaction_type = "БОНУС КОД" %}
+    {% endif %}
+
+    <div><b>Тип транзакции:</b> {{ transaction_type }}</div>
+
+    {% set tr_enum  = transaction_type_enum %}
+
     {% if transaction.type %}
-        {% if transaction.is_bonus %}
-            {% set type = "БОНУС КОД" %}
-        {% else %}
-            {% set type = "Пополнение лицевого счета" %}
-        {% endif %}
-        <div><b>Тип транзакции:</b> {{ type }}</div>
-<!--        <div><b>Счет:</b> {% if not transaction.op_cost%}-->
-<!--                                {% if service_account %}{{ service_account.sa_name }}{% endif %}-->
-<!--                          {%else%}Возврат средств отмененного заказа-->
-<!--                            <span class="text-warning">{{ transaction.wo_account_info }}</span>-->
-<!--                          {%endif%}-->
-<!--        </div>-->
-        {% if transaction.status in (0, 1, 2) %}
+        {% if transaction.transaction_type in [tr_enum.refill_balance.value, tr_enum.promo.value] %}
             <div>
                 <b>Счет:</b> {% if service_account %}{{ service_account.sa_name }}{% endif %}
             </div>
 
-        {% elif transaction.status == 3%}
+        {% elif transaction.transaction_type == transaction_type_enum.refund_funds.value %}
             <div>
                 <b>Описание:</b> Возврат средств отмененного заказа <span class="text-warning">{{ transaction.wo_account_info }}</span>
 
             </div>
         {% endif %}
     {% else %}
-        <div><b>Тип транзакции:</b> Списание с лицевого счета</div>
         {% if transaction.wo_account_info%}<div><b>Реквизиты счета:</b> {{ transaction.wo_account_info | safe }}</div>{% endif %}
         {%if order_prices_marks%}
             <div class="my-1"><b>Заказы</b>: <!--<a href="{{url_for('orders_archive.index')}}" target="_blank" style="text-decoration: none">-->
@@ -46,7 +42,7 @@
                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 {%endif%}
                 <span class="text-warning">{{o.order_idn}}</span> - {{o.category}}, {{o.marks_count}} шт. - {{o.marks_count * transaction.op_cost}} р.{% if not loop.last %},<br>{% endif %}
-            {% endfor %}<!--</a>-->
+            {% endfor %}
             </div>
 
             <b>Цена за марку</b>: {{transaction.op_cost}} р.<br>
@@ -88,15 +84,5 @@
                 </div>
             </div>
         </div>
-
-<!--    {#   {% elif transaction.status == 2%}-->
-<!--        <div class="text-center">-->
-<!--            <button class="btn btn-sm btn-outline-danger my-3">Отменить транзакцию</button>-->
-<!--        </div>-->
-<!--    {% elif transaction.status == 0 %}-->
-<!--        <div class="text-center">-->
-<!--            <button class="btn btn-sm btn-outline-success my-3">Подтвердить транзакцию снова</button>-->
-<!--        </div>&ndash;&gt;#}-->
-
     {% endif %}
 </div>

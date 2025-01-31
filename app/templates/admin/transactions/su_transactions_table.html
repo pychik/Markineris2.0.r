@@ -2,10 +2,11 @@
 
         <div class="row">
             <div class="col-md-5 text-right">
-                <label><b>Тип транзакций</b>: {{ tr_type }}</label><br>
-                <label><b>Статус транзакций</b>: {{ tr_status }}</label><br>
+                <label><b>Тип операции</b>: {{ operation_types.get(transaction_filters.operation_type, 'Все') }}</label><br>
+                <label><b>Тип транзакций</b>: {{ transaction_types.get(transaction_filters.transaction_type, 'Все') }}</label><br>
+                <label><b>Статус транзакций</b>: {{ transaction_statuses.get(transaction_filters.status, 'Все') }}</label><br>
                 <label><b>Общая сумма транзакций</b>: {{ transaction_summ }}</label><br>
-                <label class="content"><b>От</b> {{ date_from.strftime('%d.%m.%Y') }} <b>до</b> {{ date_to.strftime('%d.%m.%Y') }}</label>
+                <label class="content"><b>От</b> {{ transaction_filters.date_from.strftime('%d.%m.%Y') }} <b>до</b> {{ transaction_filters.date_to.strftime('%d.%m.%Y') }}</label>
             </div>
             <div class="col-md-7">
                 <div class="pagination_section my-1" >
@@ -21,29 +22,13 @@
         <table class="table mt-3 table-result"  id="transactions_table_info" >
             <thead class="text-dark">
                 <tr>
-                    <th scope="col">
-                        Дата
-                    </th>
-                    <th scope="col">
-                        Пользователь
-                    </th>
-                    <th scope="col">
-                        Пополнения, руб.
-                    </th>
-                    <th scope="col">
-                        Списания, руб.
-                    </th>
-                    <th scope="col">
-                        Статус
-                    </th>
-                    {% if tr_type == 'Пополнение' %}
-                        <th scope="col">
-                            Счет пополнения
-                        </th>
-                    {% endif %}
-                    <th scope="col">
-                        Детализация
-                    </th>
+                    <th scope="col">Дата</th>
+                    <th scope="col">Пользователь</th>
+                    <th scope="col">Сумма</th>
+                    <th scope="col">Тип транзакции</th>
+                    <th scope="col">Статус</th>
+                    <th scope="col">Счет</th>
+                    <th scope="col">Детализация</th>
                 </tr>
             </thead>
 
@@ -51,46 +36,28 @@
 
             {% for t in transactions_list %}
                 <tr>
-<!--                    <td class="tablesaw-cell-content">{{ loop.index }}</td>-->
-                    <td class="tablesaw-cell-content">
-
-                        {{t.created_at.strftime('%d.%m.%Y %H:%M')}}
-                    </td>
+                    <td class="tablesaw-cell-content">{{t.created_at.strftime('%d.%m.%Y %H:%M')}}</td>
+                    <td>{{ t.email }}</td>
+                    <td>{{t.amount}}</td>
+                    <td>{{transaction_types.get(t.transaction_type)}}</td>
+                    <td>{{transaction_statuses[t.status]}}</td>
+                    {% if t.sa_id %}
+                        <td>{{t.sa_name}} ({{t.sa_type}})</td>
+                    {% else %}
+                        <td></td>
+                    {% endif %}
                     <td>
-                        {{ t.email }}
-                    </td>
-                    <td>
-                        {% if t.type %}{{t.amount}}{% endif %}
-                    </td>
-                    <td>
-                        {% if not t.type %}{{t.amount}}{% endif %}
-                    </td>
-                    <td>
-                        {{transaction_dict[t.status]}}
-                    </td>
-                    {% if t.type %}
-                        <td>
-                            {{t.sa_name}} ({{t.sa_type}})
-                        </td>
-                    {%endif%}
-                    <td>
-
                             <button type="button" onclick="bck_su_transaction_detalization('{{url_for('admin_control.bck_su_transaction_detail', u_id=t.user_id, t_id=t.id)}}')"
                                 class="btn btn-dark btn-sm btn-watch ms-md-auto">
                                 Подробнее
                             </button>
-
-
                     </td>
-
-
                 </tr>
-
                 {% endfor %}
-
             <tr>
             </tr>
             </tbody>
+
         </table>
         <div class="pagination-page-info text-center">На этой странице <b>{{ offset + 1 }} - {{ offset + transactions_list|length }}</b> Всего: <b>{{ pagination.total }}</b></div>
         <div class="pagination_section my-1" >

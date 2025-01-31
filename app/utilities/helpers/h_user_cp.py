@@ -10,7 +10,18 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from config import settings
 from logger import logger
-from models import db, Order, User, RestoreLink, Price, ServiceAccount, UserTransaction, TgUser
+from models import (
+    db,
+    Order,
+    User,
+    RestoreLink,
+    Price,
+    ServiceAccount,
+    UserTransaction,
+    TgUser,
+    TransactionStatuses,
+    TransactionTypes,
+)
 from utilities.daily_price import get_cocmd
 from utilities.mailer import MailSender
 from utilities.minio_service.services import get_s3_service
@@ -19,9 +30,6 @@ from utilities.support import url_encrypt, url_decrypt, check_email, check_user_
     helper_check_promo, check_file_extension, get_file_extension, \
     helper_paginate_data, helper_get_transactions, helper_refill_transaction, \
     helper_agent_wo_transaction, helper_get_image_html, helper_get_transaction_orders_detail, helper_get_user_at2
-from utilities.saving_uts import get_rows_marks
-from utilities.google_settings.google_tables import GoogleProcess
-from utilities.google_settings.schema import PromoRow
 from utilities.telegram import WriteOffBalance, RefillBalance
 
 
@@ -163,6 +171,8 @@ def h_update_transactions_history(u_id: int):
             {'status': status, 'message': message, 'htmlresponse': ''})
 
     is_at2 = helper_get_user_at2(user=current_user)
+    transaction_types = settings.Transactions.TRANSACTION_TYPES
+    transaction_statuses = settings.Transactions.TRANSACTIONS
 
     pa_detalize_list, sum_fill, sum_spend = helper_get_transactions(u_id=u_id)
     link = f'javascript:get_transaction_history(\'' + url_for(f'user_cp.bck_update_transactions', u_id=u_id) + '?page={0}\');'
@@ -176,29 +186,30 @@ def h_update_transactions_history(u_id: int):
 
 
 def h_transaction_detail(u_id: int, t_id: int):
-    # background transaction detail getter
-    # user_info = User.query.with_entities(User.admin_parent_id, User.role, User.is_at2).filter(User.id == u_id).first()
-    # if current_user.role == settings.ORD_USER:
-    #     agent_info = User.query.with_entities(User.is_at2).filter(User.id == current_user.admin_parent_id).first()
-    #     is_at2 = agent_info.is_at2 if agent_info else False  # not sure
-    # else:
-    #     is_at2 = current_user.is_at2
     is_at2 = helper_get_user_at2(user=current_user)
 
     transaction = UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.type, UserTransaction.status,
                                                       UserTransaction.amount, UserTransaction.op_cost,
                                                       UserTransaction.bill_path, UserTransaction.promo_info,
                                                       UserTransaction.wo_account_info, UserTransaction.sa_id,
-                                                      UserTransaction.created_at) \
+                                                      UserTransaction.created_at,
+                                                      UserTransaction.transaction_type) \
         .filter(UserTransaction.user_id == u_id, UserTransaction.id == t_id).first()
 
     transaction_dict = settings.Transactions.TRANSACTIONS
     sa_types = settings.ServiceAccounts.TYPES_DICT
     if not transaction:
         return '', 404
-    if transaction.type and transaction.status in [settings.Transactions.SUCCESS, settings.Transactions.PENDING,
-                                                   settings.Transactions.CANCELLED]:
-        transaction_image = helper_get_image_html(img_path=transaction.bill_path)
+
+    transaction_statuses = settings.Transactions.TRANSACTIONS
+    transaction_types = settings.Transactions.TRANSACTION_TYPES
+    transaction_type_enum = TransactionTypes
+    sa_types = settings.ServiceAccounts.TYPES_DICT
+
+    if transaction.type and transaction.status in [TransactionStatuses.success.value, TransactionStatuses.pending.value,
+                                                   TransactionStatuses.cancelled.value]:
+        if not transaction.is_bonus and check_file_extension(transaction.bill_path, settings.ALLOWED_BILL_EXTENSIONS):
+            transaction_image = helper_get_image_html(img_path=transaction.bill_path)
         service_account = ServiceAccount.query.filter(ServiceAccount.id == transaction.sa_id).first()
     else:
         order_prices_marks = helper_get_transaction_orders_detail(t_id=t_id)
@@ -290,7 +301,7 @@ def h_pa_refill(u_id: int, sa_id: int):
 
             uuid_prefix = str(uuid4())[:8]
             bill_path = f'{uuid_prefix}_{current_user.login_name}.{bill_extension}'
-            status = settings.Transactions.PENDING
+            transaction_status = TransactionStatuses.pending.value
             # save file
             try:
                 s3_service = get_s3_service()
@@ -307,7 +318,7 @@ def h_pa_refill(u_id: int, sa_id: int):
             bill_extension = 'only_promo'
             uuid_prefix = str(uuid4())[:8]
             bill_path = f'{uuid_prefix}_{current_user.login_name}.{bill_extension}'
-            status = settings.Transactions.SUCCESS
+            transaction_status = TransactionStatuses.pending.value
 
         # make this variables to avoid current_user reload after update sessions
 
@@ -317,8 +328,16 @@ def h_pa_refill(u_id: int, sa_id: int):
 
         amount = amount_orig + amount_add
         promo_info = f'{promo_code}: {amount_orig} + {amount_add}' if promo_code else ''
-        if helper_refill_transaction(amount=amount, status=status, promo_info=promo_info,
-                                     user_id=u_id, sa_id=cur_sa.id, bill_path=bill_path, only_promo=only_promo):
+        if helper_refill_transaction(
+                amount=amount,
+                status=transaction_status,
+                promo_info=promo_info,
+                transaction_type=TransactionTypes.refill_balance.value,
+                user_id=u_id,
+                sa_id=cur_sa.id,
+                bill_path=bill_path,
+                only_promo=only_promo
+        ):
 
             # send message to admin TG
             RefillBalance.send_messages_refill_balance.delay(
@@ -329,13 +348,6 @@ def h_pa_refill(u_id: int, sa_id: int):
                 promo_code=promo_code,
                 amount_add=amount_add,
             )
-
-            # send promo_info to google tables
-            # if promo_code:
-            #     date_time = datetime.now().strftime("%d.%m.%Y %H:%M")
-            #     GoogleProcess.send_promo_data(data_packet=PromoRow(date_value=date_time, login_name=username,
-            #                                                        service_account=cur_sa.sa_name, promo_code=promo_code,
-            #                                                        promo_summ=amount_add))
 
             message = f"{settings.Messages.USER_TRANSACTION_CREATE}" if not only_promo else settings.Messages.USER_TRANSACTION_PROMO_CREATE
             status = 'success'
@@ -381,7 +393,7 @@ def h_agent_wo(u_id: int):
             return jsonify(dict(status=status, message=message))
 
         tg_wo_account_info = f"<i>{wo_fio}</i>\n<b>{wo_bill_acc}</b>\n<b>{wo_bik}</b>\n{wo_account_info}"
-        check = helper_agent_wo_transaction(amount=amount, status=settings.Transactions.PENDING,
+        check = helper_agent_wo_transaction(amount=amount, status=TransactionStatuses.pending.value,
                                        user_id=current_user.id, bill_path=bill_path, wo_account_info=tg_wo_account_info)
         if check[0]:
 

@@ -13,11 +13,10 @@ from models import UserTransaction
 
 
 class ExcelReportProcessor:
-    def __init__(self, transactions: list[UserTransaction], transaction_summ: int, tr_type: str, tr_status: str,
+    def __init__(self, transactions: list[UserTransaction], transaction_summ: int, tr_status: str,
                  date_range: str, ) -> None:
         self._transactions = transactions
         self._transaction_summ = transaction_summ
-        self._tr_type = tr_type
         self._date_range = date_range
         self._tr_status = tr_status
         self._report_file_name = self.report_file_name()
@@ -28,20 +27,17 @@ class ExcelReportProcessor:
 
     def transactions_processed(self) -> list:
         res = []
-        if self._tr_type == settings.Transactions.TRANSACTION_TYPES[settings.Transactions.TRANSACTION_REFILL]:
-            for el in self.transactions:
-                res.append([el.created_at.strftime("%d-%m-%Y %H:%M"), el.email, el.login_name,
-                            f"{self._tr_type}_{self._tr_status}", el.amount, f"{el.sa_name} ({el.sa_type})",
-                            el.wo_account_info, ])
-        else:
-            for el in self.transactions:
-                res.append([el.created_at.strftime("%d-%m-%Y %H:%M"), el.email, el.login_name,
-                            f"{self._tr_type}_{self._tr_status}", el.amount,
-                            el.wo_account_info, ])
+        for el in self.transactions:
+            operation_type = settings.Transactions.TRANSACTION_OPERATION_TYPES.get(el.type)
+            status = settings.Transactions.TRANSACTIONS.get(el.status)
+            sa_row = f"{el.sa_name} ({el.sa_type})" if el.type else ""
+            res.append([el.created_at.strftime("%d-%m-%Y %H:%M"), el.email, el.login_name,
+                        operation_type, status, el.amount, sa_row,
+                        el.wo_account_info, ])
         return res
 
     def report_file_name(self) -> str:
-        return f"{self._tr_type}"
+        return f"{self._tr_status}"
 
     def get_excel_report(self) -> BytesIO:
 
@@ -53,7 +49,7 @@ class ExcelReportProcessor:
         worksheet_1 = workbook.add_worksheet(name=self._report_file_name)
 
         # Some data we want to write to the worksheet.
-        main_data = self.excel_start_data(tr_type=self._tr_type)
+        main_data = self.excel_start_data()
         main_data.extend(self.transactions_processed())
 
         df_dict = {}
@@ -65,7 +61,7 @@ class ExcelReportProcessor:
         workbook.close()
         df_dict.clear()
 
-        output.name = "{tr_type}_report.xlsx".format(tr_type=self._tr_type)
+        output.name = "{status}_report.xlsx".format(status=self._tr_status)
         output.seek(0)
         output.flush()
         return output
@@ -87,11 +83,8 @@ class ExcelReportProcessor:
             row += 1
 
     @staticmethod
-    def excel_start_data(tr_type: str):
-        res = copy(settings.Reports.UT_START_FILL) \
-            if tr_type == settings.Transactions.TRANSACTION_TYPES[settings.Transactions.TRANSACTION_REFILL] \
-            else copy(settings.Reports.UT_START_ELSE)
-        return res
+    def excel_start_data():
+        return copy(settings.Reports.UT_START_FILL)
 
     @staticmethod
     def adjusting_df(df: DataFrame, worksheet: Worksheet):

@@ -76,42 +76,60 @@
             <span class="badge bg-light text-secondary" style="cursor:pointer" onclick="set_current_date_su_filters();"> За сегодня</span>
         </div>
         <div class="row">
-
-            {% if current_user.role == 'markineris_admin'%}
-                    <input type="hidden" id="transaction_type" name="transaction_type" value="1">
-            {%else%}
-                  <div class="col-md-4" style="width:max-content">
-                      <label for="transaction_type" class="col-form-label text-right">Тип</label><br>
-                      <select class="form-control search-select" id="transaction_type" name="transaction_type" required>
-    <!--                    <option disabled selected value="">Выберите из списка..</option>-->
-
-                          {%for k, v in transaction_types.items()%}
-                          <option value="{{k}}">{{v}}</option>
-                        {%endfor%}
-
-                      </select>
-                  </div>
+            {% if current_user.role == 'markineris_admin' %}
+                <input type="hidden" id="operation_type" name="operation_type" value="1">
+            {% else %}
+                <div class="col-md-2">
+                    <label for="transaction_type" class="col-form-label text-right">Тип операции</label><br>
+                    <select class="form-select" id="operation_type" name="operation_type">
+                        <option value="" {% if transaction_filters.operation_type is not none %}selected{% endif %}>Все</option>
+                        {% for k, v in operation_types.items() %}
+                            <option value="{{ k }}" {% if k == transaction_filters.operation_type %} selected {% endif %}>
+                                {{ v }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
             {% endif %}
-
-            <div class="col-md-6" style="width:max-content">
-                  <label class="col-form-label" for="transaction_status">Статус</label><br>
-                  <select class="form-control search-select" id="transaction_status" name="transaction_status" required>
-<!--                    <option disabled selected value="">Выберите из списка..</option>-->
-                    {%for k,v in transaction_dict.items()%}
-                      <option value="{{k}}">{{v}}</option>
-                    {%endfor%}
-
-                  </select>
+            <div class="col-md-2" style="width:max-content">
+                <label class="col-form-label" for="transaction_type">Тип транзакции</label><br>
+                <select class="form-select" id="transaction_type" name="transaction_type" required>
+                     <option value="" {% if transaction_filters.transaction_type is not none %} selected {% endif %}>Все</option>
+                    {% for k, v in transaction_types.items() %}
+                        <option value="{{ k }}" {% if k == transaction_filters.transaction_type %} selected {% endif %}>
+                            {{ v }}
+                        </option>
+                    {% endfor %}
+                </select>
             </div>
-            <div class="col-md-4" style="width:max-content">
-                  <label class="col-form-label" for="user_filter">Агент</label><br>
-                  <select class="form-control search-select" id="user_filter" name="user_filter" required>
+            <div class="col-md-2" style="width:max-content">
+                <label class="col-form-label" for="transaction_status">Статус</label><br>
+                <select class="form-select" id="transaction_status" name="transaction_status" required>
+                    {% for k,v in transaction_statuses.items() %}
+                        <option value="{{ k }}">{{ v }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2" style="width:max-content">
+                <label class="col-form-label" for="service_account">Счет</label><br>
+                <select class="form-select" id="service_account" name="service_account" required>
+                    <option value="" {% if transaction_filters.service_account is not none %}selected{% endif %}>Все</option>
+                    {% for service_account in service_accounts %}
+                        <option value="{{ service_account.id }}" {% if service_account.id == transaction_filters.service_account %} selected {% endif %}>
+                            {{ service_account.sa_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2" style="width:max-content">
+                <label class="col-form-label" for="user_filter">Агент</label><br>
+                <select class="form-select" id="user_filter" name="user_filter" required>
                     <option selected value="">Выберите агента</option>
-                    {%for id,login_name in users_filter%}
-                      <option value="{{id}}">{{login_name}}</option>
-                    {%endfor%}
+                    {% for id,login_name in users_filter %}
+                        <option value="{{ id }}">{{ login_name }}</option>
+                    {% endfor %}
 
-                  </select>
+                </select>
             </div>
 
         </div>

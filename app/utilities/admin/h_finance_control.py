@@ -10,20 +10,41 @@ from sqlalchemy.orm import Session
 
 from config import settings
 from logger import logger
-from models import Promo, Price, ServiceAccount, ServerParam, User, UserTransaction, Bonus
-from models import db
+from models import (
+    db,
+    Promo,
+    Price,
+    ServiceAccount,
+    ServerParam,
+    User,
+    UserTransaction,
+    Bonus,
+    TransactionStatuses,
+    TransactionTypes,
+)
 from utilities.admin.excel_report import ExcelReportProcessor, ExcelReport, ExcelReportWithSheets
 from utilities.minio_service.services import get_s3_service
-from utilities.support import (helper_paginate_data, check_file_extension, get_file_extension,
-                               helper_get_server_balance, helper_get_filters_transactions,
-                               helper_update_pending_rf_transaction_status, helper_get_image_html,
-                               helper_perform_ut_wo_mod, helper_get_transaction_orders_detail,
-                               helper_get_stmt_for_fin_order_report,
-                               helper_get_filter_fin_order_report, helper_get_stmt_for_fin_promo_history,
-                               helper_get_filter_fin_promo_history,
-                               helper_get_filter_fin_bonus_history, helper_get_stmt_for_fin_bonus_history,
-                               helper_get_transactions, helper_get_user_at2_opt2,
-                               helper_get_promo_on_cancel_transaction)
+from utilities.support import (
+    helper_paginate_data,
+    check_file_extension,
+    get_file_extension,
+    helper_get_server_balance,
+    helper_get_filters_transactions,
+    helper_update_pending_rf_transaction_status,
+    helper_get_image_html,
+    helper_perform_ut_wo_mod,
+    helper_get_transaction_orders_detail,
+    helper_get_stmt_for_fin_order_report,
+    helper_get_filter_fin_order_report,
+    helper_get_stmt_for_fin_promo_history,
+    helper_get_filter_fin_promo_history,
+    helper_get_filter_fin_bonus_history,
+    helper_get_stmt_for_fin_bonus_history,
+    helper_get_transactions,
+    helper_get_user_at2_opt2,
+    helper_get_promo_on_cancel_transaction,
+    TransactionFilters,
+)
 from utilities.tg_verify.service import send_tg_message_with_transaction_updated_status
 
 
@@ -616,71 +637,123 @@ def h_su_bck_change_sa_type(sa_type: str = 'qr_code') -> Response:
 
 
 def h_su_control_ut(user_ids: list = None):
-    # PENDING transactions refill, WITH default DATE filter
+    date_to = datetime.now()
+
     roles = (settings.SUPER_USER, settings.ADMIN_USER)
     transaction_types = settings.Transactions.TRANSACTION_TYPES
-    transaction_dict = settings.Transactions.TRANSACTIONS
+    operation_types = settings.Transactions.TRANSACTION_OPERATION_TYPES
+    transaction_statuses = settings.Transactions.TRANSACTIONS
+    transaction_filters = TransactionFilters(
+        status=TransactionStatuses.pending.value,
+        transaction_type=TransactionTypes.refill_balance.value,
+        operation_type=settings.Transactions.TRANSACTION_REFILL,
+        date_from=date_to - timedelta(days=settings.Transactions.DEFAULT_DAYS_RANGE),
+        date_to=date_to,
+    )
 
-    tr_type = transaction_types.get(1)
-
-    tr_status = transaction_dict[settings.Transactions.PENDING]
-
-    # default date range conditions
-    date_to = datetime.now()
-    date_from = date_to - timedelta(days=settings.Transactions.DEFAULT_DAYS_RANGE)
     users_filter = User.query.with_entities(User.id, User.login_name).filter(User.role.in_(roles)).all()
-
-    transactions = [t for t in UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount,
-                                                                   UserTransaction.promo_info, UserTransaction.type,
-                                                                   UserTransaction.status,
-                                                                   UserTransaction.created_at, UserTransaction.user_id,
-                                                                   User.login_name, User.email, ServiceAccount.sa_type,
-                                                                   ServiceAccount.sa_name)
-                                              .join(User, User.id == UserTransaction.user_id)
-                                              .outerjoin(ServiceAccount, ServiceAccount.id == UserTransaction.sa_id)
-                                              .filter(UserTransaction.status == settings.Transactions.PENDING, UserTransaction.type.is_(True),
-                                                      UserTransaction.created_at >= date_from)
-                                              .order_by(desc(UserTransaction.created_at)).all()]
-
-    sa_types = settings.ServiceAccounts.TYPES_DICT
-    transaction_types = settings.Transactions.TRANSACTION_TYPES
+    transactions = UserTransaction.query.with_entities(
+        UserTransaction.id,
+        UserTransaction.amount,
+        UserTransaction.promo_info,
+        UserTransaction.type,
+        UserTransaction.status,
+        UserTransaction.created_at,
+        UserTransaction.user_id,
+        UserTransaction.transaction_type,
+        UserTransaction.sa_id,
+        User.login_name,
+        User.email,
+        ServiceAccount.sa_type,
+        ServiceAccount.sa_name,
+    ).join(
+        User, User.id == UserTransaction.user_id,
+    ).outerjoin(
+        ServiceAccount, ServiceAccount.id == UserTransaction.sa_id,
+    ).filter(
+        UserTransaction.status == TransactionStatuses.pending.value,
+        UserTransaction.transaction_type == TransactionTypes.refill_balance.value,
+        UserTransaction.type == bool(settings.Transactions.TRANSACTION_REFILL),
+        UserTransaction.created_at >= transaction_filters.date_from,
+    ).order_by(
+        desc(UserTransaction.created_at),
+    ).all()
 
     transaction_summ = sum(t.amount for t in transactions)
 
-    link_filters = f'tr_type=1&tr_status={settings.Transactions.PENDING}&'
+    sa_types = settings.ServiceAccounts.TYPES_DICT
+    service_accounts = ServiceAccount.query.with_entities(
+        ServiceAccount.id,
+        ServiceAccount.sa_name,
+    ).filter(
+        ServiceAccount.is_archived.isnot(True),
+    ).all()
+
+    link_filters = f'operation_type=1&tr_status={TransactionStatuses.pending.value}&'
     link = f'javascript:bck_get_transactions(\'' + url_for(
         'admin_control.su_bck_control_ut') + f'?bck=1&{link_filters}' + 'page={0}\');'
-    page, per_page, \
-        offset, pagination, \
-        transactions_list = helper_paginate_data(data=transactions, per_page=settings.PAGINATION_PER_PAGE, href=link)
+
+    page, per_page, offset, pagination, transactions_list = helper_paginate_data(
+        data=transactions,
+        per_page=settings.PAGINATION_PER_PAGE,
+        href=link,
+    )
+
     return render_template('admin/transactions/su_control_transactions.html', **locals())
 
 
 def h_bck_control_ut():
-    transaction_dict = settings.Transactions.TRANSACTIONS
+    transaction_statuses = settings.Transactions.TRANSACTIONS
+    transaction_types = settings.Transactions.TRANSACTION_TYPES
+    operation_types = settings.Transactions.TRANSACTION_OPERATION_TYPES
+    transaction_filters = helper_get_filters_transactions()
 
-    tr_type, tr_status, date_from, date_to,\
-        link_filters, model_conditions, model_order_type = helper_get_filters_transactions()
-
-    transactions = [t for t in UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount,
-                                                                   UserTransaction.promo_info, UserTransaction.type,
-                                                                   UserTransaction.status,
-                                                                   UserTransaction.created_at, UserTransaction.user_id,
-                                                                   User.login_name, User.email,
-                                                                   ServiceAccount.sa_type, ServiceAccount.sa_name)
-                                              .join(User, User.id == UserTransaction.user_id)
-                                              .outerjoin(ServiceAccount, ServiceAccount.id == UserTransaction.sa_id)
-                                              .filter(*model_conditions).order_by(model_order_type).all()]
-
-    link = f'javascript:bck_get_transactions(\'' + url_for('admin_control.su_bck_control_ut') + f'?bck=1&{link_filters}' + 'page={0}\');'
+    transactions = UserTransaction.query.with_entities(
+        UserTransaction.id,
+        UserTransaction.amount,
+        UserTransaction.promo_info,
+        UserTransaction.transaction_type,
+        UserTransaction.type,
+        UserTransaction.status,
+        UserTransaction.created_at,
+        UserTransaction.user_id,
+        UserTransaction.sa_id,
+        User.login_name,
+        User.email,
+        ServiceAccount.sa_type,
+        ServiceAccount.sa_name,
+    ).join(
+        User, User.id == UserTransaction.user_id,
+    ).outerjoin(
+        ServiceAccount, ServiceAccount.id == UserTransaction.sa_id,
+    ).filter(
+        *transaction_filters.model_conditions,
+    ).order_by(
+        transaction_filters.model_order_type,
+    ).all()
 
     transaction_summ = sum(t.amount for t in transactions)
+    service_accounts = ServiceAccount.query.with_entities(
+        ServiceAccount.id,
+        ServiceAccount.sa_name,
+    ).filter(
+        ServiceAccount.is_archived.isnot(True),
+    ).all()
+
+    link = (
+            f'javascript:bck_get_transactions(\''
+            + url_for('admin_control.su_bck_control_ut')
+            + f'?bck=1&{transaction_filters.link_filters}'
+            + 'page={0}\');'
+    )
 
     page, per_page, \
         offset, pagination, \
         transactions_list = helper_paginate_data(data=transactions, per_page=settings.PAGINATION_PER_PAGE, href=link)
 
-    return jsonify({'htmlresponse': render_template(f'admin/transactions/su_transactions_table.html', **locals())})
+    return jsonify({
+        'htmlresponse': render_template(f'admin/transactions/su_transactions_table.html', **locals()),
+    })
 
 
 def h_au_bck_control_ut():
@@ -689,31 +762,48 @@ def h_au_bck_control_ut():
     :return:
     """
     transaction_types = settings.Transactions.TRANSACTION_TYPES
-    transaction_dict = settings.Transactions.TRANSACTIONS
+    transaction_statuses = settings.Transactions.TRANSACTIONS
+    operation_types = settings.Transactions.TRANSACTION_OPERATION_TYPES
 
     user_ids = [uid.id for uid in User.query.filter(User.admin_parent_id == current_user.id).with_entities(User.id).all()]
     user_ids.append(current_user.id)
 
     is_at2 = current_user.is_at2
 
-    transaction_dict = settings.Transactions.TRANSACTIONS
-
     # set manually type and status for render page case
-    tr_type, tr_status, date_from, date_to, link_filters, model_conditions, model_order_type = \
-        helper_get_filters_transactions(tr_type=settings.Transactions.TRANSACTION_WRITEOFF,
-                                        tr_status=settings.Transactions.SUCCESS)
+    transaction_filters = helper_get_filters_transactions(
+        tr_status=TransactionStatuses.success.value,
+        current_user_id=current_user.id,
+    )
 
-    transactions = UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount,
-                                                       UserTransaction.agent_fee, UserTransaction.promo_info,
-                                                       UserTransaction.type, UserTransaction.status,
-                                                       UserTransaction.created_at, UserTransaction.user_id,
-                                                       User.login_name) \
-                                  .join(User, User.id == UserTransaction.user_id) \
-                                  .filter(*model_conditions, User.id.in_(user_ids), UserTransaction.agent_fee.isnot(None),) \
-                                  .order_by(model_order_type).all()
+    transactions = UserTransaction.query.with_entities(
+        UserTransaction.id,
+        UserTransaction.amount,
+        UserTransaction.agent_fee,
+        UserTransaction.promo_info,
+        UserTransaction.type,
+        UserTransaction.status,
+        UserTransaction.created_at,
+        UserTransaction.user_id,
+        UserTransaction.transaction_type,
+        UserTransaction.sa_id,
+        User.login_name,
+    ).join(
+        User, User.id == UserTransaction.user_id,
+    ).filter(
+        UserTransaction.transaction_type.in_([
+                TransactionTypes.order_payment.value,
+                TransactionTypes.users_order_payment.value,
+        ]),
+        User.id.in_(user_ids),
+        UserTransaction.agent_fee.is_not(None),
+        *transaction_filters.model_conditions,
+    ).order_by(
+        transaction_filters.model_order_type,
+    ).all()
 
     link = f'javascript:bck_get_transactions(\'' + url_for(
-        'admin_control.au_bck_control_ut') + f'?bck=1&{link_filters}' + 'page={0}\');'
+        'admin_control.au_bck_control_ut') + f'?bck=1&{transaction_filters.link_filters}' + 'page={0}\');'
 
     page, per_page, \
         offset, pagination, \
@@ -729,27 +819,46 @@ def h_bck_ut_excel_report() -> Response:
     fetching a blob report of transactions
     :return:
     """
-    tr_type, tr_status, date_from, date_to, \
-        link_filters, model_conditions, model_order_type = helper_get_filters_transactions(report=True)
+    transaction_filters = helper_get_filters_transactions(report=True)
 
-    transactions = [t for t in UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.amount,
-                                                                   UserTransaction.promo_info, UserTransaction.type,
-                                                                   UserTransaction.status,
-                                                                   UserTransaction.wo_account_info,
-                                                                   UserTransaction.created_at, UserTransaction.user_id,
-                                                                   User.login_name, User.email,
-                                                                   ServiceAccount.sa_type, ServiceAccount.sa_name)
-                                              .join(User, User.id == UserTransaction.user_id)
-                                              .outerjoin(ServiceAccount, ServiceAccount.id == UserTransaction.sa_id)
-                                              .filter(*model_conditions)
-                                              .order_by(model_order_type).all()]
+    transactions = UserTransaction.query.with_entities(
+        UserTransaction.id,
+        UserTransaction.amount,
+        UserTransaction.promo_info,
+        UserTransaction.transaction_type,
+        UserTransaction.type,
+        UserTransaction.status,
+        UserTransaction.wo_account_info,
+        UserTransaction.created_at,
+        UserTransaction.user_id,
+        UserTransaction.sa_id,
+        User.login_name,
+        User.email,
+        ServiceAccount.sa_type,
+        ServiceAccount.sa_name,
+    ).join(
+        User, User.id == UserTransaction.user_id,
+    ).outerjoin(
+        ServiceAccount, ServiceAccount.id == UserTransaction.sa_id,
+    ).filter(
+        *transaction_filters.model_conditions,
+    ).order_by(
+        transaction_filters.model_order_type,
+    ).all()
 
     transaction_summ = sum(t.amount for t in transactions)
 
-    name_start = settings.Transactions.TRANSACTIONS_TYPES_LATIN1.get(tr_type)
-    date_range = f"{date_from} - {date_to}".replace(' 00:00:00', '')
-    excel_proc = ExcelReportProcessor(transactions=transactions, transaction_summ=transaction_summ, tr_type=tr_type,
-                                      tr_status=tr_status, date_range=date_range)
+    name_start = (
+        f"{settings.Transactions.TRANSACTIONS_OPERATION_TRANSLATE.get(transaction_filters.operation_type, 'All')}_"
+        f"{settings.Transactions.TRANSACTIONS_STATUS_TRANSLATE.get(transaction_filters.status)}"
+    )
+    date_range = f"{transaction_filters.date_from.strftime('%d.%m.%Y')} - {transaction_filters.date_to.strftime('%d.%m.%Y')}".replace(' 00:00:00', '')
+    excel_proc = ExcelReportProcessor(
+        transactions=transactions,
+        transaction_summ=transaction_summ,
+        tr_status=settings.Transactions.TRANSACTIONS[transaction_filters.status],
+        date_range=date_range,
+    )
 
     excel_io = excel_proc.get_excel_report()
 
@@ -920,7 +1029,8 @@ def h_su_control_specific_ut(u_id: int):
     link = f'javascript:get_transaction_history(\'' + url_for(f'user_cp.bck_update_transactions',
                                                               u_id=u_id) + '?page={0}\');'
 
-    transaction_dict = settings.Transactions.TRANSACTIONS
+    transaction_statuses = settings.Transactions.TRANSACTIONS
+    transaction_types = settings.Transactions.TRANSACTION_TYPES
 
     link_filters = ''
     link = f'javascript:bck_get_transactions_specific_user(\'' + url_for(
@@ -941,6 +1051,8 @@ def h_bck_control_specific_ut(u_id: int):
         '%Y-%m-%d') if url_date_to else datetime.now().strftime('%Y-%m-%d')
 
     sort_type = 'desc' if request.args.get('sort_type', 'desc', str).lower() == 'desc' else 'asc'
+    transaction_types = settings.Transactions.TRANSACTION_TYPES
+    transaction_statuses = settings.Transactions.TRANSACTIONS
 
     user_info = helper_get_user_at2_opt2(u_id=u_id)
     if not user_info:
@@ -1115,24 +1227,41 @@ def h_bck_fin_order_report_excel():
 
 def h_su_transaction_detail(u_id: int, t_id: int):
     # background retrieving info
-    transaction = UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.type, UserTransaction.status,
-                                                      UserTransaction.amount, UserTransaction.op_cost, UserTransaction.bill_path,
-                                                      UserTransaction.user_id, UserTransaction.promo_info,
-                                                      UserTransaction.wo_account_info,
-                                                      UserTransaction.sa_id, UserTransaction.created_at, User.login_name, User.email, User.phone,
-                                                      UserTransaction.is_bonus) \
-        .join(User, User.id == UserTransaction.user_id)\
-        .filter(UserTransaction.user_id == u_id, UserTransaction.id == t_id).first()
+    transaction = UserTransaction.query.with_entities(
+        UserTransaction.id,
+        UserTransaction.type,
+        UserTransaction.status,
+        UserTransaction.amount,
+        UserTransaction.op_cost,
+        UserTransaction.bill_path,
+        UserTransaction.user_id,
+        UserTransaction.promo_info,
+        UserTransaction.wo_account_info,
+        UserTransaction.transaction_type,
+        UserTransaction.sa_id,
+        UserTransaction.created_at,
+        UserTransaction.is_bonus,
+        User.login_name,
+        User.email,
+        User.phone,
+    ).join(
+        User, User.id == UserTransaction.user_id,
+    ).filter(
+        UserTransaction.user_id == u_id,
+        UserTransaction.id == t_id,
+    ).first()
 
-    transaction_dict = settings.Transactions.TRANSACTIONS
+    transaction_statuses = settings.Transactions.TRANSACTIONS
+    transaction_types = settings.Transactions.TRANSACTION_TYPES
+    transaction_type_enum = TransactionTypes
     sa_types = settings.ServiceAccounts.TYPES_DICT
-    if transaction.type and transaction.status in [settings.Transactions.SUCCESS, settings.Transactions.PENDING,
-                                                   settings.Transactions.CANCELLED]:
-        if not transaction.is_bonus:
+
+    if transaction.type and transaction.status in [TransactionStatuses.success.value, TransactionStatuses.pending.value,
+                                                   TransactionStatuses.cancelled.value]:
+        if not transaction.is_bonus and check_file_extension(transaction.bill_path, settings.ALLOWED_BILL_EXTENSIONS):
             transaction_image = helper_get_image_html(img_path=transaction.bill_path)
         service_account = ServiceAccount.query.filter(ServiceAccount.id == transaction.sa_id).first()
 
-    # elif (not transaction.type or (transaction.type and transaction.op_cost)) and transaction.status == settings.Transactions.SUCCESS:
     else:
         order_prices_marks = helper_get_transaction_orders_detail(t_id=t_id)
 
@@ -1153,14 +1282,31 @@ def h_aus_transaction_detail(u_id: int, t_id: int):
     if u_id not in user_ids:
         return jsonify(dict(status=0, message=settings.Messages.STRANGE_REQUESTS))
 
-    transaction = UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.type, UserTransaction.status,
-                                                      UserTransaction.amount, UserTransaction.op_cost, UserTransaction.bill_path,
-                                                      UserTransaction.user_id, UserTransaction.promo_info,
-                                                      UserTransaction.wo_account_info,
-                                                      UserTransaction.sa_id, UserTransaction.created_at)\
-        .filter(UserTransaction.user_id == u_id, UserTransaction.id == t_id).first()
+    transaction = UserTransaction.query.with_entities(
+        UserTransaction.id,
+        UserTransaction.type,
+        UserTransaction.status,
+        UserTransaction.amount,
+        UserTransaction.op_cost,
+        UserTransaction.bill_path,
+        UserTransaction.user_id,
+        UserTransaction.promo_info,
+        UserTransaction.wo_account_info,
+        UserTransaction.transaction_type,
+        UserTransaction.sa_id,
+        UserTransaction.created_at,
+        User.email,
+        User.phone,
+        User.login_name,
+        UserTransaction.is_bonus,
+    ).filter(
+        UserTransaction.user_id == u_id,
+        UserTransaction.id == t_id,
+    ).first()
 
-    transaction_dict = settings.Transactions.TRANSACTIONS
+    transaction_statuses = settings.Transactions.TRANSACTIONS
+    transaction_types = settings.Transactions.TRANSACTION_TYPES
+    transaction_type_enum = TransactionTypes
     sa_types = settings.ServiceAccounts.TYPES_DICT
 
     order_prices_marks = helper_get_transaction_orders_detail(t_id=t_id)
@@ -1200,10 +1346,10 @@ def h_su_pending_transaction_update(u_id: int, t_id: int,):
     status = 'danger'
     message = settings.Messages.SU_TRANSACTION_CHANGE_ERROR
 
-    tr_type = request.form.get('tr_type', 0, int)
+    operation_type = request.form.get('operation_type', 0, int)
     tr_status = request.form.get('tr_status', 0, int)
 
-    if tr_type not in [0, 1, ] and tr_status not in settings.Transactions.TRANSACTIONS.keys():
+    if operation_type not in [0, 1, ] and tr_status not in settings.Transactions.TRANSACTIONS.keys():
         return jsonify(dict(status=status, message=f"{message} ошибка ввода"))
 
     # check for tricksters
@@ -1213,19 +1359,19 @@ def h_su_pending_transaction_update(u_id: int, t_id: int,):
                                                               UserTransaction.status) \
         .filter(UserTransaction.user_id == u_id,
                 UserTransaction.id == t_id,
-                UserTransaction.status == settings.Transactions.PENDING).first()
+                UserTransaction.status == TransactionStatuses.pending.value).first()
     user = User.query.with_entities(User.id).filter(User.id == u_id).first()
 
     if not user or not transaction_updated:
         return jsonify(dict(status=status, message=f"{message} нет такого пользователя или транзакции"))
 
     # remove cancelled transaction promo used
-    if tr_type == 1 and tr_status == settings.Transactions.CANCELLED and transaction_updated.promo_info:
+    if operation_type == 1 and tr_status == TransactionStatuses.cancelled.value and transaction_updated.promo_info:
         helper_get_promo_on_cancel_transaction(u_id=user.id, promo_info=transaction_updated.promo_info)
 
     process_transaction = helper_update_pending_rf_transaction_status(u_id=u_id, t_id=t_id,
                                                                       amount=transaction_updated.amount,
-                                                                      tr_type=tr_type, tr_status=tr_status)
+                                                                      operation_type=operation_type, tr_status=tr_status)
     if process_transaction[0]:
         status = 'success'
         message = settings.Messages.SU_TRANSACTION_CHANGE

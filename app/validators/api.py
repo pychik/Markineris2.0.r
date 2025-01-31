@@ -1,5 +1,7 @@
 from pydantic import BaseModel, field_validator
 
+from models import TransactionTypes
+
 
 class TransactionInData(BaseModel):
     amount: int
@@ -10,6 +12,7 @@ class TransactionInData(BaseModel):
     bill_path: str
     promo_id: int | None = None
     is_bonus: bool = False
+    transaction_type: str = TransactionTypes.refill_balance.value
 
     @field_validator('promo_id',  mode='before')
     @classmethod

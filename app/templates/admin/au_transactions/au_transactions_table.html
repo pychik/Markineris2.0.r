@@ -2,9 +2,12 @@
 
         <div class="row">
             <div class="col-md-5 text-right">
-                <label><b>Тип транзакций</b>: {{ tr_type }}</label><br>
-                <label><b>Статус транзакций</b>: {{ tr_status }}</label><br>
-                <label class="content"><b>От</b> {{ date_from.strftime('%d.%m.%Y') }} <b>до</b> {{ date_to.strftime('%d.%m.%Y') }}</label>
+                <label><b>Тип транзакций</b>: {{ transaction_types.get(transaction_filters.transaction_type, 'Все') }}</label><br>
+                <label><b>Статус транзакций</b>: {{ transaction_statuses.get(transaction_filters.status, 'Все') }}</label><br>
+                <label class="content">
+                    <b>От</b> {{ transaction_filters.date_from.strftime('%d.%m.%Y') }}
+                    <b>до</b> {{ transaction_filters.date_to.strftime('%d.%m.%Y') }}
+                </label>
             </div>
             <div class="col-md-7">
                 <div class="pagination_section my-1" >
@@ -27,7 +30,10 @@
                         Пользователь
                     </th>
                     <th scope="col">
-                        Списания, руб.
+                        Сумма
+                    </th>
+                    <th scope="col">
+                        Тип транзакции
                     </th>
                     {% if not is_at2 %}
                         <th scope="col">
@@ -59,7 +65,10 @@
                         {{ t.login_name }}
                     </td>
                     <td>
-                        {% if not t.type %}{{t.amount}}{% endif %}
+                        {{t.amount}}
+                    </td>
+                    <td>
+                        {{transaction_types.get(t.transaction_type)}}
                     </td>
                     {% if not is_at2 %}
                         <td>
@@ -70,7 +79,7 @@
                         </td>
                     {% endif %}
                     <td>
-                        {{transaction_dict[t.status]}}
+                        {{transaction_statuses[t.status]}}
                     </td>
                     <td>
 

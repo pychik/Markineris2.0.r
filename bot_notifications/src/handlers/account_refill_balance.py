@@ -6,6 +6,7 @@ from aiogram.types.input_file import BufferedInputFile
 from src.core.config import settings
 from src.core.messages import UserMessages
 from src.core.states import UserState
+from src.gateways.db.models.base import TransactionTypes
 from src.handlers.utils import check_user_existent_and_update_state_data, clear_state_data
 from src.infrastructure.client import BaseClient
 from src.infrastructure.logger import logger
@@ -238,6 +239,7 @@ async def photo_receipt_handler(
     else:
         if filename is not None:
             await state.update_data({settings.FILENAME_STORAGE_KEY: filename})
+            await state.update_data({settings.TRANSACTION_TYPE_STORAGE_KEY: TransactionTypes.refill_balance.value})
             is_created = await create_transaction(client=client, state=state)
             if is_created:
                 await message.answer(
@@ -337,6 +339,9 @@ async def create_transaction(client: BaseClient, state: FSMContext) -> bool:
             "sa_id": state_data.get(settings.REQUISITE_ID_STORAGE_KEY),
             "bill_path": state_data.get(settings.FILENAME_STORAGE_KEY),
             "promo_id": state_data.get(settings.PROMO_CODE_ID_STORAGE_KEY, None),
+            "transaction_type": state_data.get(
+                settings.TRANSACTION_TYPE_STORAGE_KEY, TransactionTypes.refill_balance.value,
+            ),
             "is_bonus": is_bonus,
         }
     )

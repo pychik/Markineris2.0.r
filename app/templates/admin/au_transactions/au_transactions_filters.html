@@ -67,14 +67,13 @@
                       ondrop="return false" autocomplete="off" name="rd_date"
                          aria-describedby="date_from_input_btn"
                       readonly
-                         value="{{ date_to.strftime('%d.%m.%Y') }}">
+                         value="{{ transaction_filters.date_to.strftime('%d.%m.%Y') }}">
 
 
               </div>
         </div>
-        <input type="hidden" id="transaction_type" name="transaction_type" value="0">
+        <input type="hidden" id="operation_type" name="operation_type" value="0">
         <input type="hidden" id="transaction_status" name="transaction_status" value="2">
-
 
         <div class="mt-3">
           <div class="form-check">
@@ -93,9 +92,5 @@
         <div class="mt-3">
             <a href="javascript:bck_get_transactions_wp('{{url_for('admin_control.au_bck_control_ut')}}?bck=1')" class="btn btn-accent">Обновить</a>
         </div>
-
-
-
-
     </form>
 </div>
