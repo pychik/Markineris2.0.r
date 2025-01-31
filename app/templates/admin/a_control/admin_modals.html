@@ -15,14 +15,19 @@
                 <div class="col-12">
 
                     <div class="card text-center py-2">
-                        <form method="post" action="{{ url_for('admin_control.create_admin') }}">
+                        <form method="post" action="{{ url_for('admin_control.create_admin') }}" onsubmit="return checkMinLengthAdminLoginInput(document.getElementById(`admin_login_name`))">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
                             <!-- Admin Login Field -->
                             <div class="form-group align-items-center">
                                 <label class="text-md-right"><font size="4">Логин Админа</font></label>
                                 <div class="col-md-10">
-                                    <input type="text" name="admin_login_name" class="form-control" placeholder="Введите логин админа" required>
+                                    <input type="text" name="admin_login_name" id="admin_login_name" class="form-control"
+                                       oninput="validateAdminLoginInput(this)"
+                                       onblur="checkMinLengthAdminLoginInput(this)"
+                                       placeholder="Введите логин админа"
+                                       minlength='4' maxlength="18" required>
+                                    <p id="error-message-admin-login" style="color: red; display: none;">Минимум 4 символа!</p>
                                 </div>
                             </div>
 
