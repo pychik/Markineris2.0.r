@@ -346,3 +346,25 @@ function search_cross_user(url, csrf_token){
         $('#cross_user_search_result').html('');
     }
 }
+
+function validateAdminLoginInput(input) {
+    // Remove invalid characters
+    input.value = input.value.replace(/[^A-Za-z0-9_]/g, '');
+
+    // Enforce max length
+    if (input.value.length > 18) {
+        input.value = input.value.slice(0, 18);
+    }
+}
+
+function checkMinLengthAdminLoginInput(input) {
+    let errorMessage = document.getElementById("error-message-admin-login");
+
+    if (input.value.length < 4) {
+        errorMessage.style.display = "block";
+        return false// Show error message
+    } else {
+        errorMessage.style.display = "none";
+        return true// Hide error message
+    }
+}
