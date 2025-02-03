@@ -42,6 +42,11 @@
                 {% endfor %}
                 {% if not is_at2 %}
                     <tr>
+                        <th scope="col"></th>
+                        <th scope="col">Пополнение</th>
+                        <th scope="col">Списание</th>
+                    </tr>
+                    <tr>
                         <td><span class="font-18"><b>Итого</b></span></td>
                         <td>{{sum_fill}}</td>
                         <td>{{sum_spend}}</td>
