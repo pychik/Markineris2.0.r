@@ -19,7 +19,6 @@
 
     {% if transaction.type %}
         {% if transaction.transaction_type in [tr_enum.refill_balance.value, tr_enum.promo.value] %}
-        {% if transaction.status == 2 %}
             <div>
                 <b>Счет:</b> {% if service_account %}{{ service_account.sa_name }}{% endif %}
             </div>
