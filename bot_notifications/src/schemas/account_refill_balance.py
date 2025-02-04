@@ -34,6 +34,7 @@ class TransactionCreateOut(BaseModel):
     user_id: int
     sa_id: int
     bill_path: str
+    transaction_type: str
     promo_id: int | None = None
     is_bonus: bool = False
 

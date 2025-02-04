@@ -388,12 +388,23 @@ class Settings(BaseSettings):
         SUCCESS_RETURN: int = 3
         DEFAULT_DAYS_RANGE: int = 90
         DEFAULT_DATE_FROM: str = '2024-04-01'
-        TRANSACTIONS: dict = {PENDING: 'Ожидается подтверждение', CANCELLED: 'Отменена', SUCCESS: 'Успешно проведена',
-                              SUCCESS_RETURN: 'Возврат средств отмененного заказа'}
+        TRANSACTIONS: dict = {PENDING: 'Ожидается подтверждение', CANCELLED: 'Отменена', SUCCESS: 'Успешно проведена'}
         TRANSACTION_WRITEOFF: int = 0
         TRANSACTION_REFILL: int = 1
-        TRANSACTION_TYPES: dict = {TRANSACTION_REFILL: 'Пополнение', TRANSACTION_WRITEOFF: 'Снятие средств'}
-        TRANSACTIONS_TYPES_LATIN1: dict = {'Пополнение': 'refill', 'Снятие средств': 'write_off'}
+        TRANSACTION_OPERATION_TYPES: dict = {TRANSACTION_REFILL: 'Пополнение', TRANSACTION_WRITEOFF: 'Снятие средств'}
+        TRANSACTION_TYPES: dict = {
+            'refill_balance': 'Пополнение',
+            'agent_withdrawal': 'Вывод средств со счета',
+            'agent_commission': 'Агентская комиссия',
+            'order_payment': 'Оплата заказа',
+            'users_order_payment': 'Оплата заказа пользователя агента',
+            'technical': 'Техническая',
+            'promo': 'Промо/Бонус',
+            'refund_funds': 'Возврат средств',
+            'subscription': 'Подписка',
+        }
+        TRANSACTIONS_STATUS_TRANSLATE: dict = {1: 'pending', 0: 'cancelled', 2: 'success'}
+        TRANSACTIONS_OPERATION_TRANSLATE: dict = {1: 'refill', 0: 'write_off'}
 
     class Tnved:
         BIG_TNVED_LIST: tuple = BIG_TNVED_LIST

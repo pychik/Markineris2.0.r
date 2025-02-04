@@ -1,3 +1,4 @@
+import dataclasses
 import re
 from base64 import encodebytes
 from datetime import datetime, timedelta
@@ -12,7 +13,7 @@ from flask_login import current_user
 from flask_paginate import Pagination
 from flask_sqlalchemy.pagination import QueryPagination
 
-from sqlalchemy import asc, create_engine, desc, text, or_, not_
+from sqlalchemy import asc, create_engine, desc, text, or_, not_, UnaryExpression
 from sqlalchemy.engine.row import Row
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -21,8 +22,9 @@ from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
 from config import settings
 from logger import logger
-from models import Order, OrderStat, User, EmailMessage, db, Shoe, Clothes, ClothesQuantitySize, Socks, SocksQuantitySize, Linen, Parfum, \
-    Price, Promo, ServerParam, ServiceAccount, UserTransaction, users_promos
+from models import Order, OrderStat, User, EmailMessage, db, Shoe, Clothes, ClothesQuantitySize, Socks, \
+    SocksQuantitySize, Linen, Parfum, \
+    Price, Promo, ServerParam, ServiceAccount, UserTransaction, users_promos, TransactionTypes, TransactionStatuses
 from utilities.daily_price import get_cocmd
 from utilities.google_settings.schema import TransactionRow
 from utilities.google_settings.gt_utilities import helper_google_collect_and_send_stat
@@ -1275,19 +1277,42 @@ def helper_get_server_balance() -> tuple[int, int, int, int, int]:
             summ_client.client_summ if summ_client else 0)
 
 
-def helper_get_filters_transactions(tr_type: int = None, tr_status: int = None, report: bool = False, current_user_id: Optional[int] = None) -> tuple:
+@dataclasses.dataclass
+class TransactionFilters:
+    status: int
+    date_from: datetime
+    date_to: datetime
+    operation_type: int | None = None
+    service_account: int | None = None
+    transaction_type: str | None = None
+    model_conditions: tuple | None = None
+    model_order_type: UnaryExpression | None = None
+    link_filters: str | None = None
+
+
+def helper_get_filters_transactions(
+        tr_status: int | None = None,
+        transaction_type: str | None = None,
+        operation_type: str | None = None,
+        report: bool = False,
+        current_user_id: int | None = None,
+) -> TransactionFilters:
     """
         returns tuple of params with  filter conditions, link string and model conditions and order type
-    :param tr_type:
     :param tr_status:
+    :param transaction_type:
+    :param operation_type:
     :param report:
+    :param current_user_id:
     :return:
     """
     if report:
         date_from_raw = request.form.get('date_from', '', type=str)
         date_to_raw = request.form.get('date_to', '', type=str)
         tr_status = request.form.get('tr_status', 0, type=int) if not tr_status else tr_status
-        tr_type_raw = request.form.get('tr_type', 0, type=int) if not tr_type else tr_type
+        transaction_type = request.form.get('transaction_type', None, type=str) if not transaction_type else transaction_type
+        operation_type = request.form.get('operation_type', None, type=int) if not operation_type else operation_type
+        service_account = request.form.get('service_account', None, type=int)
         sort_type = request.form.get('sort_type', 0, type=int)
         amount = request.form.get('amount', 0, type=int)
         agent_id = request.form.get('agent_id', None, type=int)
@@ -1295,7 +1320,9 @@ def helper_get_filters_transactions(tr_type: int = None, tr_status: int = None, 
         date_from_raw = request.args.get('date_from', '', type=str)
         date_to_raw = request.args.get('date_to', '', type=str)
         tr_status = request.args.get('tr_status', 0, type=int) if not tr_status else tr_status
-        tr_type_raw = request.args.get('tr_type', 0, type=int) if not tr_type else tr_type
+        transaction_type = request.args.get('transaction_type', None, type=str) if not transaction_type else transaction_type
+        operation_type = request.args.get('operation_type', None, type=int) if not operation_type else operation_type
+        service_account = request.args.get('service_account', None, type=int)
         sort_type = request.args.get('sort_type', 0, type=int)
         amount = request.args.get('amount', 0, type=int)
         agent_id = request.args.get('agent_id', None, type=int)
@@ -1303,11 +1330,23 @@ def helper_get_filters_transactions(tr_type: int = None, tr_status: int = None, 
     if current_user_id:
         agent_id = current_user_id
 
-    tr_type = True if tr_type_raw else False
-    link_filters = f'tr_type={tr_type_raw}&tr_status={tr_status}&date_from={date_from_raw}&date_to={date_to_raw}&agent_id={agent_id}&'
-    model_conditions_list_raw = UserTransaction.status == tr_status \
-        if tr_status in settings.Transactions.TRANSACTIONS.keys() else None, UserTransaction.type == tr_type \
-        if tr_type in [False, True] else None, or_(User.id == agent_id, User.admin_parent_id == agent_id) if agent_id else None
+    link_filters = (
+        f'&tr_status={tr_status}'
+        f'&transaction_type={transaction_type}'
+        f'&operation_type={operation_type}'
+        f'&service_account={service_account}'
+        f'&date_from={date_from_raw}'
+        f'&date_to={date_to_raw}'
+        f'&agent_id={agent_id}&'
+    )
+
+    model_conditions_list_raw = (
+        UserTransaction.sa_id == service_account if service_account else None,
+        UserTransaction.status == tr_status if tr_status in settings.Transactions.TRANSACTIONS.keys() else None,
+        or_(User.id == agent_id, User.admin_parent_id == agent_id) if agent_id else None,
+        UserTransaction.type == bool(operation_type) if operation_type is not None else None,
+        UserTransaction.transaction_type == transaction_type if transaction_type in [item.value for item in TransactionTypes] else None,
+    )
 
     date_to = datetime.strptime(date_to_raw, '%d.%m.%Y') if date_to_raw else datetime.now()
     date_from = datetime.strptime(date_from_raw, '%d.%m.%Y') if date_from_raw \
@@ -1331,8 +1370,17 @@ def helper_get_filters_transactions(tr_type: int = None, tr_status: int = None, 
     model_order_type = desc(UserTransaction.created_at) if (sort_type == 0 or not sort_type) \
         else asc(UserTransaction.created_at)
 
-    return settings.Transactions.TRANSACTION_TYPES[tr_type_raw], settings.Transactions.TRANSACTIONS.get(tr_status), \
-        date_from, date_to, link_filters, model_conditions, model_order_type
+    return TransactionFilters(
+        status=tr_status,
+        transaction_type=transaction_type,
+        operation_type=operation_type,
+        service_account=service_account,
+        date_from=date_from,
+        date_to=date_to,
+        link_filters=link_filters,
+        model_conditions=model_conditions,
+        model_order_type=model_order_type,
+    )
 
 
 def helper_get_filter_users(excel_report: bool = False) -> tuple:
@@ -1725,23 +1773,23 @@ def helper_get_transactions(u_id: int, date_from: str = settings.Transactions.DE
                         .filter(UserTransaction.created_at >= date_from, UserTransaction.created_at <= date_to)
                         .order_by(model_order_type).all())
     sum_fill = sum(list(
-        map(lambda x: x.amount if x.type and x.status != settings.Transactions.CANCELLED else 0, pa_detalize_list)))
+        map(lambda x: x.amount if x.type and x.status != TransactionStatuses.cancelled.value else 0, pa_detalize_list)))
     sum_spend = sum(list(
-        map(lambda x: x.amount if not x.type and x.status != settings.Transactions.CANCELLED else 0, pa_detalize_list)))
+        map(lambda x: x.amount if not x.type and x.status != TransactionStatuses.cancelled.value else 0, pa_detalize_list)))
     return pa_detalize_list, sum_fill, sum_spend
 
 
-def helper_refill_transaction(amount: int, status: int, promo_info: str,
-                              user_id: int, sa_id: int, bill_path: str, only_promo: bool = False) -> bool:
+def helper_refill_transaction(amount: int, status: int, promo_info: str, transaction_type: str,
+                              user_id: int, sa_id: int | None, bill_path: str, only_promo: bool = False) -> bool:
 
     created_at = datetime.now()
-    query = f"""INSERT into public.user_transactions (type, status, amount, promo_info, user_id, sa_id, bill_path, created_at)
-                VALUES(True, {status}, {amount}, '{promo_info}', {user_id}, {sa_id}, '{bill_path}', '{created_at}');
+    query = f"""INSERT into public.user_transactions (type, status, amount, transaction_type, promo_info, user_id, sa_id, bill_path, created_at)
+                VALUES(True, {status}, {amount}, '{transaction_type}', '{promo_info}', {user_id}, {sa_id}, '{bill_path}', '{created_at}');
                 UPDATE public.users SET pending_balance_rf=pending_balance_rf + {amount} WHERE public.users.id = {user_id};
                 UPDATE public.server_params SET pending_balance_rf=pending_balance_rf + {amount};
             """ if not only_promo else \
-        f"""INSERT into public.user_transactions (type, status, amount, promo_info, user_id, sa_id, bill_path, created_at)
-                VALUES(True, {status}, {amount}, '{promo_info}', {user_id}, {sa_id}, '{bill_path}', '{created_at}');
+        f"""INSERT into public.user_transactions (type, status, amount, transaction_type, promo_info, user_id, sa_id, bill_path, created_at)
+                VALUES(True, {status}, {amount}, '{transaction_type}', '{promo_info}', {user_id}, {sa_id}, '{bill_path}', '{created_at}');
                 UPDATE public.users SET balance=balance + {amount} WHERE public.users.id = {user_id};
                 UPDATE public.server_params SET balance=balance + {amount};
             """
@@ -1786,11 +1834,12 @@ def helper_agent_wo_transaction(amount: int, status: int, user_id: int, bill_pat
         return False, settings.Messages.WO_TRANSACTION_BALANCE_ERROR
 
     created_at = datetime.now()
-    query = text("""INSERT into public.user_transactions (type, status, amount, user_id, bill_path, wo_account_info, created_at)
-                    VALUES(False, :status, :amount, :user_id, :bill_path, :wo_account_info, :created_at);
+    query = text(f"""INSERT into public.user_transactions (type, status, transaction_type, amount, user_id, bill_path, wo_account_info, created_at)
+                VALUES(False, :status, :transaction_type, :amount, :user_id, :bill_path, :wo_account_info, :created_at);
 
-                """).bindparams(status=status, amount=amount, user_id=user_id, bill_path=bill_path,
-                                wo_account_info=wo_account_info, created_at=created_at)
+            """).bindparams(status=status, amount=amount, user_id=user_id, bill_path=bill_path,
+                            wo_account_info=wo_account_info, created_at=created_at,
+                            transaction_type=TransactionTypes.agent_withdrawal.value)
     try:
         db.session.execute(query)
         db.session.commit()
@@ -1801,7 +1850,7 @@ def helper_agent_wo_transaction(amount: int, status: int, user_id: int, bill_pat
         return False, 'Возникло исключение, Обратитесь к администратору'
 
 
-def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: int, tr_type: int,
+def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: int, operation_type: int,
                                                 tr_status: int) -> tuple[bool, str]:
 
     sp_query = ''  # server params
@@ -1810,15 +1859,14 @@ def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: in
     sa_id = None
 
     match tr_status:
-        case settings.Transactions.CANCELLED:
+        case TransactionStatuses.cancelled.value:
             sp_query = f"""UPDATE public.server_params SET pending_balance_rf=pending_balance_rf - 
-                       {amount};""" if tr_type else ' '
+                       {amount};""" if operation_type else ' '
             u_query = f"""UPDATE public.users SET pending_balance_rf=pending_balance_rf - 
-               {amount} WHERE id={u_id};""" if tr_type else ' '
+               {amount} WHERE id={u_id};""" if operation_type else ' '
 
-        case settings.Transactions.SUCCESS:
-
-            if tr_type:
+        case TransactionStatuses.success.value:
+            if operation_type:
                 sp_query = f"""UPDATE public.server_params SET pending_balance_rf=pending_balance_rf - 
                        {amount},
                        balance=balance + {amount};"""
@@ -2209,35 +2257,6 @@ def helper_check_uoabm(user: User, o_id: int = None):
         return 1, data_res['report_data']['ao_price'], is_at2, ''
 
 
-def helper_utb(user_id: int, admin_id: int, is_at2: bool) -> tuple[int, int, int, str, str]:
-    """
-      checks user balance for write off transactions
-    :param user_id:
-    :param admin_id:
-    :param is_at2:
-    :return:
-    """
-
-    login_name, price_id, balance, trust_limit = helper_get_user_pb(user_id=user_id, admin_id=admin_id, is_at2=is_at2)
-
-    orders_marks = helper_get_orders_marks(u_id=user_id)
-
-    order_idns = ', '.join(tuple(map(lambda x: '\'' + x.order_idn + '\'', orders_marks))) if orders_marks else 'NULL'
-
-    prev_marks = sum(list(map(lambda x: x.pos_count, orders_marks)))
-
-    sum_count = prev_marks
-
-    current_price = helper_get_user_price2(price_id=price_id, pos_count=sum_count)
-
-    # hard code defense against huge orders for agent type2
-    if (not is_at2 and round(current_price * sum_count, 2) > balance) \
-            or (is_at2 and round(current_price * sum_count, 2) > balance + trust_limit):
-        return 0, 0, 0, login_name, order_idns
-    else:
-        return 1, current_price, round(current_price * prev_marks), login_name, order_idns
-
-
 def helper_utb_mod(user_id: int, admin_id: int, is_at2: bool) -> tuple[int, str, tuple[tuple[float, int, str], ...]]:
     """
       checks user balance for write off transactions
@@ -2446,153 +2465,6 @@ def helper_get_admin_info(u_id: int) -> tuple[Optional[int], Optional[int], Opti
             return None, None, None
 
 
-def helper_perform_ut_wo(user_ids: list[tuple[int]]) -> tuple[int, int]:
-    total_amount = 0
-    transaction_google_packets = []
-
-    # hardcode for agent ruznak
-    transaction_rz_packets = []
-    try:
-        for u_raw in user_ids:
-            u_id = u_raw[0]
-
-            # get admin id and fee for processing
-            admin_id, agent_fee, is_at2 = helper_get_admin_info(u_id=u_id)
-            if not admin_id:
-                logger.error(f"User {u_id} troubles with admin id")
-                continue
-
-            # check balance
-            status_balance, transaction_price, total_order_price, login_name, order_idns = \
-                helper_utb(user_id=u_id, admin_id=admin_id, is_at2=is_at2)
-            if status_balance == 0:
-                logger.warning(f"User {u_id} not enough balance" if not is_at2 else f"Agent {admin_id} not enough balance")
-                continue
-
-            uuid_postfix = str(uuid4())
-            bill_path = f'patch_{login_name}{uuid_postfix}'
-
-            created_at = datetime.now()
-
-            # update_transaction_order_stats_stmt = f"""WITH row as (INSERT INTO public.user_transactions (type, amount, agent_fee, status, bill_path, promo_info, created_at, user_id)
-            #                            VALUES (False, {total_order_price}, {agent_fee}, {settings.Transactions.SUCCESS}, '{bill_path}', '', '{created_at}', {u_id}) RETURNING id AS tr_id)
-            #                         UPDATE public.orders_stats set transaction_id=(SELECT tr_id from row), order_cost={transaction_price} WHERE order_idn in ({order_idns});"""
-            # update_order_stmt = f"""UPDATE public.orders set payment=True
-            #                               WHERE order_idn in ({order_idns});"""
-
-            update_transactions = f"""INSERT INTO public.user_transactions (type, amount, op_cost, agent_fee, status, bill_path, promo_info, created_at, user_id)
-                                      VALUES (False, {total_order_price}, {transaction_price}, {agent_fee}, {settings.Transactions.SUCCESS}, '{bill_path}', '', '{created_at}', {u_id}) RETURNING id AS tr_id"""
-            tr_id = db.session.execute(text(update_transactions)).fetchone()[0]
-
-            # upsert ordersstats
-            # upsert_orders_stats_stmt = f"""INSERT INTO public.orders_stats (category, company_idn, company_type,
-            #                                     company_name, order_idn, rows_count,
-            #                                     marks_count, op_cost, created_at, crm_created_at, user_id,
-            #                                     transaction_id, saved_at)
-            #                                  (SELECT o.category, o.company_idn, o.company_type, o.company_name, o.order_idn,
-            #                                         {SQLQueryCategoriesAll.get_stmt(field='pos_count')},
-            #                                         {SQLQueryCategoriesAll.get_stmt(field='marks_count')},
-            #                                          {transaction_price}, o.created_at,
-            #                                         o.crm_created_at, o.user_id, {tr_id}, '{created_at}'
-            #                                  FROM public.orders o
-            #                                       {SQLQueryCategoriesAll.get_joins()}
-            #                                  WHERE o.order_idn in ({order_idns})
-            #                                  GROUP BY o.category, o.company_idn, o.company_type, o.company_name, o.order_idn, o.created_at, o.crm_created_at, o.user_id)
-            #                                ON CONFLICT(order_idn) DO UPDATE SET
-            #                                     transaction_id={tr_id}, op_cost={transaction_price};"""
-
-
-            upsert_orders_stats_stmt = f"""WITH inserted_data AS (
-                                            SELECT 
-                                                o.category as category, 
-                                                o.company_idn as company_idn, 
-                                                o.company_type as company_type, 
-                                                o.company_name as company_name, 
-                                                o.order_idn as order_idn, 
-                                                {SQLQueryCategoriesAll.get_stmt(field='rows_count')} as rows_count, 
-                                                {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as marks_count, 
-                                                {transaction_price} AS transaction_price, 
-                                                o.created_at as created_at, 
-                                                o.crm_created_at as crm_created_at, 
-                                                o.user_id as user_id, 
-                                                {tr_id} AS tr_id, 
-                                                '{created_at}'::timestamp AS saved_at
-                                            FROM 
-                                                public.orders o
-                                            {SQLQueryCategoriesAll.get_joins()}
-                                            WHERE 
-                                                o.order_idn IN ({order_idns})
-                                            GROUP BY 
-                                                o.category, 
-                                                o.company_idn, 
-                                                o.company_type, 
-                                                o.company_name, 
-                                                o.order_idn, 
-                                                o.created_at, 
-                                                o.crm_created_at, 
-                                                o.user_id
-                                        )
-                                        INSERT INTO public.orders_stats (
-                                            category, company_idn, company_type, company_name, order_idn, 
-                                            rows_count, marks_count, op_cost, created_at, crm_created_at, 
-                                            user_id, transaction_id, saved_at
-                                        ) 
-                                        SELECT 
-                                            category, company_idn, company_type, company_name, order_idn, 
-                                            rows_count, marks_count, transaction_price, created_at, crm_created_at, 
-                                            user_id, tr_id, saved_at
-                                        FROM 
-                                            inserted_data
-                                        ON CONFLICT (order_idn) DO UPDATE 
-                                        SET 
-                                            transaction_id = EXCLUDED.transaction_id, 
-                                            op_cost = EXCLUDED.op_cost;"""
-
-            # update_orders_stats_stmt = f"""UPDATE public.orders_stats set transaction_id={tr_id}, op_cost={transaction_price} WHERE order_idn in ({order_idns});"""
-
-            update_orders_stmt = f"""UPDATE public.orders set transaction_id={tr_id}, payment=True WHERE order_idn in ({order_idns});"""
-
-            balance_user_id = admin_id if is_at2 else u_id
-            update_user_stmt = f"""UPDATE public.users set balance=balance-{total_order_price} WHERE id = {balance_user_id};"""
-            if not is_at2 and agent_fee != 0:
-                agent_fee_part = m_floor(total_order_price * agent_fee / 100)
-                update_agent_balance_stmt = f"""UPDATE public.users set balance=balance+{agent_fee_part} WHERE id = {admin_id};"""
-            else:
-                update_agent_balance_stmt = ""
-
-            db.session.execute(text(upsert_orders_stats_stmt + update_user_stmt + update_agent_balance_stmt +
-                                    update_orders_stmt))
-            total_amount += total_order_price
-
-            db.session.commit()
-
-            # collecting info for google statistiks with hardcode checkin for ruznak
-            transaction_google_packets.append(TransactionRow(u_id=u_id,
-                                                             tr_id=tr_id,
-                                                             is_at2=is_at2,
-                                                             transaction_price=transaction_price)) if not admin_id == 2 \
-                else transaction_rz_packets.append(TransactionRow(u_id=u_id,
-                                                                  tr_id=tr_id,
-                                                                  is_at2=is_at2,
-                                                                  transaction_price=transaction_price))
-
-        if transaction_google_packets or transaction_rz_packets:
-            update_server_balance_stmt = f"""UPDATE public.server_params set balance=balance-{total_amount} RETURNING balance;"""
-            server_balance = db.session.execute(text(update_server_balance_stmt)).fetchone().balance
-
-            db.session.commit()
-
-            # sending data to google
-            helper_google_collect_and_send_stat(transaction_google_packets=transaction_google_packets, transaction_rz_packets=transaction_rz_packets)
-            return 1, server_balance
-        else:
-            return 0, 0
-    except Exception as e:
-        logger.error(f"An error occured during transaction write off perform: {str(e)}")
-        db.session.rollback()
-        return 0, 0
-
-
 def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str]:
     total_amount = 0
 
@@ -2607,15 +2479,16 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
                 continue
 
             # check balance
-            status_balance, login_name, data_transactions = helper_utb_mod(user_id=u_id, admin_id=admin_id,
-                                                                           is_at2=is_at2)
+            status_balance, login_name, data_transactions = helper_utb_mod(
+                user_id=u_id,
+                admin_id=admin_id,
+                is_at2=is_at2,
+            )
+
             if status_balance == 0:
                 logger.warning(
                     f"User {u_id} not enough balance" if not is_at2 else f"Agent {admin_id} not enough balance")
                 continue
-
-            uuid_postfix = str(uuid4())
-            bill_path = f'patch_{login_name}{uuid_postfix}'
 
             created_at = datetime.now()
 
@@ -2625,12 +2498,73 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
                 total_order_price = data_pack[1]
                 order_idns = data_pack[2]
 
+                transaction_type = TransactionTypes.order_payment.value
+                agent_balance_and_commission_stmt = ''
+                relevant_user_id = u_id
+
                 uuid_postfix = str(uuid4())
                 bill_path = f'patch_{login_name}{uuid_postfix}'
 
-                update_transactions = f"""INSERT INTO public.user_transactions (type, amount, op_cost, agent_fee, status, bill_path, promo_info, created_at, user_id)
-                                      VALUES (False, {total_order_price}, {transaction_price}, {agent_fee}, {settings.Transactions.SUCCESS}, '{bill_path}', '', '{created_at}', {u_id}) RETURNING id AS tr_id"""
-                tr_id = db.session.execute(text(update_transactions)).fetchone()[0]
+                if is_at2:
+                    relevant_user_id = admin_id
+                    if u_id != admin_id:
+                        transaction_type = TransactionTypes.users_order_payment.value
+                elif agent_fee != 0:
+                    agent_fee_part = m_floor(total_order_price * agent_fee / 100)
+                    transaction_agent_commission_stmt = (
+                        f"""INSERT into public.user_transactions (
+                            type, 
+                            amount, 
+                            status, 
+                            transaction_type, 
+                            promo_info, 
+                            bill_path, 
+                            created_at,
+                            user_id
+                        )
+                        VALUES(
+                            True, 
+                            {agent_fee_part}, 
+                            {TransactionStatuses.success.value}, 
+                            '{TransactionTypes.agent_commission.value}', 
+                            '', 
+                            '{bill_path}_{TransactionTypes.agent_commission.value}', 
+                            '{created_at}',
+                            {admin_id}
+                        );
+                        """
+                    )
+                    agent_balance_stmt = f"""UPDATE public.users set balance=balance+{agent_fee_part} WHERE id = {admin_id};"""
+                    agent_balance_and_commission_stmt = transaction_agent_commission_stmt + agent_balance_stmt
+
+                create_transaction = (
+                    f"""INSERT INTO public.user_transactions (
+                                        type, 
+                                        amount, 
+                                        op_cost, 
+                                        transaction_type, 
+                                        agent_fee, 
+                                        status, 
+                                        bill_path, 
+                                        promo_info, 
+                                        created_at, 
+                                        user_id
+                                    )
+                                    VALUES (
+                                        False, 
+                                        {total_order_price}, 
+                                        {transaction_price},  
+                                        '{transaction_type}', 
+                                        {agent_fee}, 
+                                        {TransactionStatuses.success.value}, 
+                                        '{bill_path}', 
+                                        '', 
+                                        '{created_at}', 
+                                        {relevant_user_id}
+                                    ) RETURNING id AS tr_id;
+                                    """
+                )
+                tr_id = db.session.execute(text(create_transaction)).fetchone()[0]
 
                 upsert_orders_stats_stmt = f"""WITH inserted_data AS (
                                             SELECT 
@@ -2680,16 +2614,9 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
 
                 update_orders_stmt = f"""UPDATE public.orders set transaction_id={tr_id}, payment=True WHERE order_idn in ({order_idns});"""
 
-                balance_user_id = admin_id if is_at2 else u_id
-                update_user_stmt = f"""UPDATE public.users set balance=balance-{total_order_price} WHERE id = {balance_user_id};"""
-                if not is_at2 and agent_fee != 0:
-                    agent_fee_part = m_floor(total_order_price * agent_fee / 100)
-                    update_agent_balance_stmt = f"""UPDATE public.users set balance=balance+{agent_fee_part} WHERE id = {admin_id};"""
-                else:
-                    update_agent_balance_stmt = ""
+                user_balance_stmt = f"""UPDATE public.users set balance=balance-{total_order_price} WHERE id = {relevant_user_id};"""
 
-                db.session.execute(text(upsert_orders_stats_stmt + update_user_stmt + update_agent_balance_stmt +
-                                        update_orders_stmt))
+                db.session.execute(text(upsert_orders_stats_stmt + user_balance_stmt + update_orders_stmt + agent_balance_and_commission_stmt))
                 total_amount += total_order_price
 
                 db.session.commit()
@@ -2700,7 +2627,6 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
 
             db.session.commit()
 
-            # logger.warning(f"total_amount for session: {total_amount}")
             return 1, server_balance
         else:
             return 0, 0

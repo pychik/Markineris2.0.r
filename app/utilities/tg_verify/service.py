@@ -102,8 +102,8 @@ def create_transaction_from_tg(data: TransactionInData) -> bool:
     try:
         created_at = datetime.now()
         query = (
-            f"""INSERT into public.user_transactions (type, status, amount, promo_info, user_id, sa_id, bill_path, created_at, is_bonus)
-                    VALUES(True, {data.status}, {data.amount}, '{data.promo_info}', {data.user_id}, {data.sa_id}, '{data.bill_path}', '{created_at}', '{data.is_bonus}');
+            f"""INSERT into public.user_transactions (type, status, transaction_type, amount, promo_info, user_id, sa_id, bill_path, created_at, is_bonus)
+                    VALUES(True, {data.status}, '{data.transaction_type}', {data.amount}, '{data.promo_info}', {data.user_id}, {data.sa_id}, '{data.bill_path}', '{created_at}', '{data.is_bonus}');
                 UPDATE public.users SET pending_balance_rf=pending_balance_rf + {data.amount} WHERE public.users.id = {data.user_id};
                 UPDATE public.server_params SET pending_balance_rf=pending_balance_rf + {data.amount};
             """

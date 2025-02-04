@@ -1,7 +1,7 @@
 <div class="container">
     <div><b>Номер:</b> {{ transaction.id }}</div>
     <div><b>Дата формирования:</b> {{ transaction.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</div>
-    <div><b>Статус:</b> {{ transaction_dict[transaction.status] }}</div>
+    <div><b>Статус:</b> {{ transaction_statuses[transaction.status] }}</div>
 
     {% if transaction.promo_info %}
     <div><b>Промо:</b> {{ transaction.promo_info }}</div>

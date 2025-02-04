@@ -953,8 +953,10 @@ function bck_get_transactions_wp(url) {
         url: url,
         method: "GET",
         data: {
-            tr_type: $('#transaction_type').val(),
             tr_status: $('#transaction_status').val(),
+            transaction_type: $('#transaction_type').val(),
+            service_account: $('#service_account').val(),
+            operation_type: $('#operation_type').val(),
             date_from: $('#date_from').val(),
             date_to: $('#date_to').val(),
             amount: $('#transaction_amount').val(),
@@ -1079,8 +1081,11 @@ function bck_get_transactions_excel_report(url, csrf) {
         url: url,
         headers: { "X-CSRFToken": csrf },
         method: "POST",
-        data: {tr_type: $('#transaction_type').val(),
+        data: {
             tr_status: $('#transaction_status').val(),
+            transaction_type: $('#transaction_type').val(),
+            operation_type: $('#operation_type').val(),
+            service_account: $('#service_account').val(),
             date_from: date_from,
             date_to: date_to,
             amount: $('#transaction_amount').val(),
@@ -1436,14 +1441,13 @@ function bck_delete_user(url, url_update, form_id) {
     }, 15000);
 }
 
-function bck_pending_transaction_change_status(url, update_url, tr_type, tr_status, csrf) {
+function bck_pending_transaction_change_status(url, update_url, operation_type, tr_status, csrf) {
 
-    // console.log(tr_type, tr_status, csrf);
     $.ajax({
         url: url,
         headers: {"X-CSRFToken": csrf},
         method: "POST",
-        data: {'tr_type': tr_type, 'tr_status': tr_status},
+        data: {'operation_type': operation_type, 'tr_status': tr_status},
         success: function (data) {
             // console.log(data);
 

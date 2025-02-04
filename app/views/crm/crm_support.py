@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import text
 from uuid import uuid4
-from models import db, UserTransaction
+from models import db, TransactionStatuses, TransactionTypes
 from config import settings
 
 
@@ -34,11 +34,12 @@ def h_cancel_order_process_payment(order_idn: int, user_id: int) -> None:
 
     _created_at = datetime.now()
 
-    combined_query = (text("""INSERT INTO public.user_transactions(type, amount, op_cost, status, bill_path, created_at, user_id, wo_account_info) VALUES (True, :order_cost, :op_cost, :new_transaction_status, :bill_path, :created_at, :user_id_refill, :order_idn) ;
+    combined_query = (text("""INSERT INTO public.user_transactions(type, amount, op_cost, status, transaction_type, bill_path, created_at, user_id, wo_account_info) VALUES (True, :order_cost, :op_cost, :status, :transaction_type, :bill_path, :created_at, :user_id_refill, :order_idn) ;
                               UPDATE public.orders_stats SET op_cost=NULL WHERE order_idn=:order_idn;
                               UPDATE public.users SET balance=balance+:order_cost WHERE id=:user_id_refill;
                               UPDATE public.server_params SET balance=balance+:order_cost;""")
-                      .bindparams(order_idn=order_idn, new_transaction_status=settings.Transactions.SUCCESS_RETURN,
+                      .bindparams(order_idn=order_idn, status=TransactionStatuses.success.value,
+                                  transaction_type=TransactionTypes.refund_funds.value,
                                   bill_path=bill_path, created_at=_created_at, order_cost=order_cost, op_cost=op_cost,
                                   user_id_refill=user_id_refill, ))
     db.session.execute(combined_query)

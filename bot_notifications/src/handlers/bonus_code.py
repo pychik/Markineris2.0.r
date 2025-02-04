@@ -6,6 +6,7 @@ from aiogram.filters import or_f
 from src.core.config import settings
 from src.core.messages import UserMessages
 from src.core.states import UserState
+from src.gateways.db.models.base import TransactionTypes
 from src.handlers.account_refill_balance import create_transaction
 from src.handlers.utils import check_user_existent_and_update_state_data, clear_state_data
 from src.infrastructure.client import BaseClient
@@ -107,6 +108,7 @@ async def bonus_code_handler(
         if validated_bonus_code.status_code == 200:
             await state.update_data({settings.PROMO_AMOUNT_STORAGE_KEY: validated_bonus_code.amount})
             await state.update_data({settings.PROMO_CODE_ID_STORAGE_KEY: validated_bonus_code.promo_id})
+            await state.update_data({settings.TRANSACTION_TYPE_STORAGE_KEY: TransactionTypes.promo.value})
             await state.update_data({settings.PROMO_INFO_STORAGE_KEY: (
                 f"Бонус код - {bonus_code}: "
                 f"{amount_of_money} + {validated_bonus_code.amount}"

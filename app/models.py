@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum as PyEnum
 
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
@@ -194,6 +195,29 @@ class ServiceAccount(db.Model, UserMixin):
     transactions = db.relationship('UserTransaction', back_populates='service_accounts', lazy='dynamic')
 
 
+class TransactionTypes(PyEnum):
+    refill_balance: str = "refill_balance"
+    agent_withdrawal: str = "agent_withdrawal"
+    agent_commission: str = "agent_commission"
+    order_payment: str = "order_payment"
+    users_order_payment: str = "users_order_payment"
+    technical: str = "technical"
+    promo: str = "promo"
+    refund_funds: str = "refund_funds"
+    subscription: str = "subscription"
+
+
+class TransactionOperations(PyEnum):
+    refill: bool = True
+    write_off: bool = False
+
+
+class TransactionStatuses(PyEnum):
+    cancelled: int = 0
+    pending: int = 1
+    success: int = 2
+
+
 class UserTransaction(db.Model, UserMixin):
     __tablename__ = 'user_transactions'
 
@@ -201,10 +225,15 @@ class UserTransaction(db.Model, UserMixin):
 
     # True if refill and False is write-off
     type = db.Column(db.Boolean, default=False)
+    transaction_type = db.Column(
+        db.String(32),
+        nullable=False,
+        default=TransactionTypes.refill_balance.value,
+    )
     amount = db.Column(db.Integer)
     op_cost = db.Column(db.Numeric(10, 2), default=0)  # in case transaction for orders write off - price per one mark
     agent_fee = db.Column(db.Integer, default=20)
-    status = db.Column(db.Integer, default=settings.Transactions.PENDING)
+    status = db.Column(db.Integer, default=TransactionStatuses.pending.value)
     bill_path = db.Column(db.String(150), unique=True)
     created_at = db.Column(db.DateTime(), default=datetime.now)
 

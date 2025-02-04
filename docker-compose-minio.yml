@@ -14,8 +14,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     networks:
-      - markineris_r_network
       - minio_network
+      - minio_shared_network
     healthcheck:
       test: ["CMD", "curl", "-I", "http://minio:9000/minio/health/live"]
       interval: 5s
@@ -44,7 +44,7 @@ volumes:
   minio_dir:
 
 networks:
-  markineris_r_network:
-    external: true
+  minio_shared_network:
+    name: minio_shared_network
   minio_network:
     name: minio_network

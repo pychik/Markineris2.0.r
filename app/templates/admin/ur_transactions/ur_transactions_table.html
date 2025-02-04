@@ -3,21 +3,11 @@
     <table class="table mt-3 table-result"  id="transactions_table_info" >
             <thead class="text-dark">
                 <tr>
-                    <th scope="col">
-                        Дата
-                    </th>
-                    <th scope="col">
-                        Пополнения, руб.
-                    </th>
-                    <th scope="col">
-                        Списания, руб.
-                    </th>
-                    <th scope="col">
-                        Статус
-                    </th>
-                    <th scope="col">
-                        Детализация
-                    </th>
+                    <th scope="col">Дата</th>
+                    <th scope="col">Сумма</th>
+                    <th scope="col">Тип транзакции</th>
+                    <th scope="col">Статус</th>
+                    <th scope="col">Детализация</th>
                 </tr>
             </thead>
 
@@ -25,59 +15,40 @@
 
             {% for t in transactions_list%}
                 <tr>
-<!--                    <td class="tablesaw-cell-content">{{ loop.index }}</td>-->
-                    <td class="tablesaw-cell-content">
-
-                        {{t.created_at.strftime('%d.%m.%Y %H:%M')}}
-                    </td>
+                    <td class="tablesaw-cell-content">{{t.created_at.strftime('%d.%m.%Y %H:%M')}}</td>
                     {%if not is_at2%}
-                        <td>
-                            {% if t.type %}{{t.amount}}{% endif %}
-                        </td>
-                        <td>
-                            {% if not t.type %}{{t.amount}}{% endif %}
-                        </td>
+                        <td>{{t.amount}}</td>
                     {%else%}
-                        <td></td><td></td>
+                        <td></td>
                     {% endif %}
+                    <td>{{transaction_types.get(t.transaction_type)}}</td>
+                    <td>{{transaction_statuses[t.status]}}</td>
                     <td>
-                        {{transaction_dict[t.status]}}
-                    </td>
-                    <td>
-
-                            <button type="button" onclick="bck_transaction_detalization('{{url_for('user_cp.bck_transaction_detail', u_id=u_id, t_id=t.id)}}')"
+                        <button
+                                type="button"
+                                onclick="bck_transaction_detalization('{{url_for('user_cp.bck_transaction_detail', u_id=u_id, t_id=t.id)}}')"
                                 class="btn btn-dark btn-sm btn-watch ms-md-auto">
                                 Подробнее
-                            </button>
-
-
+                        </button>
                     </td>
-
-
                 </tr>
 
-                {% endfor %}
+            {% endfor %}
             {% if not is_at2 %}
                 <tr>
-                    <td>
-                        <span class="font-18"><b>Итого</b></span>
-                    </td>
-                    <td>
-                        {{sum_fill}}
-                    </td>
-                    <td>
-                        {{sum_spend}}
-                    </td>
+                    <th scope="col"></th>
+                    <th scope="col">Пополнение</th>
+                    <th scope="col">Списание</th>
+                </tr>
+                <tr>
+                    <td><span class="font-18"><b>Итого</b></span></td>
+                    <td>{{sum_fill}}</td>
+                    <td>{{sum_spend}}</td>
                 </tr>
 
                 <tr>
-                    <td>
-                        <span class="font-18"><b>Сальдо</b></span>
-                    </td>
-
-                    <td colspan="2">
-                        {{sum_fill- sum_spend}}
-                    </td>
+                    <td><span class="font-18"><b>Сальдо</b></span></td>
+                    <td colspan="2">{{sum_fill- sum_spend}}</td>
                 </tr>
             {% endif %}
             <tr>

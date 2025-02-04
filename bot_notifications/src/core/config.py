@@ -40,6 +40,7 @@ class Setting(BaseSettings):
     TG_CHAT_ID_STORAGE_KEY: str = "chat_id"
     REQUISITE_ID_STORAGE_KEY: str = "requisite_id"
     PROMO_CODE_ID_STORAGE_KEY: str = "promo_id"
+    TRANSACTION_TYPE_STORAGE_KEY: str = "transaction_type_id"
 
     MAINTENANCE_MODE: bool = Field(default=False, alias="BOT_MAINTENANCE_MODE")
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10 мб

@@ -1,7 +1,7 @@
 <div class="container">
     <div><b>Номер:</b> {{ transaction.id }}</div>
     <div><b>Дата формирования:</b> {{ transaction.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</div>
-    <div><b>Статус:</b> <span class="badge bg-warning text-black">{{ transaction_dict[transaction.status] }}</span></div>
+    <div><b>Статус:</b> <span class="badge bg-warning text-black">{{ transaction_statuses[transaction.status] }}</span></div>
     <div><b>Тип:</b> {% if transaction.type %}Пополнение {% else %}Списание{%endif%}</div>
 
 <!--    <div><b>Тип транзакции:</b> Списание с лицевого счета</div>-->

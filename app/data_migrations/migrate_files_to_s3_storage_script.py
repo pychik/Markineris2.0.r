@@ -10,7 +10,7 @@ from utilities.minio_service.services import get_s3_service
 class S3StorageSynchronizer:
 
     def __init__(self):
-        self._success_uploads = 0
+        self._success_uploads = []
         self._error_uploads = []
         self._s3_service = get_s3_service()
         self._bucket_name = None
@@ -19,8 +19,9 @@ class S3StorageSynchronizer:
         self._bucket_name = bucket_name
         self.__upload_directory(dir_path, excluded_dirs=excluded_dirs if excluded_dirs else [])
 
-        logger.info(f"Успешно загружено {self._success_uploads} файлов "
-                    f"из {len(self._error_uploads) + self._success_uploads} в бакет {bucket_name}.")
+        logger.info(f"Успешно загружено {len(self._success_uploads)} файлов "
+                    f"из {len(self._error_uploads) + len(self._success_uploads)} в бакет {bucket_name}.")
+        logger.info(f"Обновленные/загруженные файлы:\n{chr(10).join(self._success_uploads)}")
         if self._error_uploads:
             logger.info(f"Файлы не загруженные в бакет {bucket_name} "
                         f"из-за ошибок - {json.dumps(', '.join(self._error_uploads))}")
@@ -53,7 +54,7 @@ class S3StorageSynchronizer:
                                 file_data=f,
                                 content_type=self._get_content_type(s3_key),
                             )
-                            self._success_uploads += 1
+                            self._success_uploads.append(s3_key)
                 except Exception as e:
                     logger.error(f"Не удалось переместить в бакет {self._bucket_name} файл {s3_key}. Ошибка - {str(e)}")
                     self._error_uploads.append(s3_key)
