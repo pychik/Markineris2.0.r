@@ -207,7 +207,7 @@
   });
   {% if admin_info.admin_is_at2 %}
       iti.promise.then(function() {
-    console.log({{ admin_info.admin_phone }});iti.setNumber("{{ admin_info.admin_phone }}");
+    console.log('{{ admin_info.admin_phone }}');iti.setNumber("+79999999999");
     console.log('{{ admin_info.admin_is_at2 }}');
   }){% endif %}
 </script>
