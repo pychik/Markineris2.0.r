@@ -3036,3 +3036,7 @@ def sumsuu_required(func):
             if bck:
                 return jsonify(dict(status='danger', message=settings.Messages.CRM_REPORT_USER_REQUIRED))
     return wrapper
+
+
+def create_bill_path(filename: str) -> str:
+    return f'{str(uuid4())[:8]}_{current_user.login_name}.{filename}'

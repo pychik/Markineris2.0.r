@@ -1,5 +1,17 @@
+<div class="faded mt-3 d-flex align-items-center">
+    <span class="me-3 fw-bold fs-4">Актуальный баланс пользователя: {{client_balance}}</span>
+    <div>
+        <span class="badge bg-success text-white" style="width: 30px; cursor: pointer" onclick="openBalanceModal(`{{url_for('admin_control.su_update_balance', user_id=u_id)}}?bck=1`,  1)">
+            +
+        </span>
+        <br>
+        <span class="badge bg-danger text-white" style="width: 30px; cursor: pointer" onclick="openBalanceModal(`{{url_for('admin_control.su_update_balance', user_id=u_id)}}?bck=1`,  0)">
+            -
+        </span>
+    </div>
+</div>
+
 <div class="faded mt-3">
-    Актуальный баланс пользователя: {{client_balance}}
     <table class="table mt-3 table-result"  id="transactions_table_info" >
             <thead class="text-dark">
                 <tr>
