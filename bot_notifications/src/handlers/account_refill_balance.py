@@ -10,7 +10,13 @@ from src.gateways.db.models.base import TransactionTypes
 from src.handlers.utils import check_user_existent_and_update_state_data, clear_state_data
 from src.infrastructure.client import BaseClient
 from src.infrastructure.logger import logger
-from src.infrastructure.utils import download_bill_img, get_qr_code, FileSizeError, FileExtensionError
+from src.infrastructure.utils import (
+    download_bill_img,
+    get_qr_code,
+    FileSizeError,
+    FileExtensionError,
+    requisite_parser,
+)
 from src.keyboards.buttons import (
     MAIN_FUNCTIONS,
     CANCEL_BUTTON,
@@ -295,7 +301,7 @@ async def refill_balance_start_transaction(
                 )
         else:
             await message.answer(
-                text=UserMessages.NUMBER_REQUISITE_HELP_TEXT.format(requisite=requisite.requisite),
+                text=UserMessages.NUMBER_REQUISITE_HELP_TEXT.format(requisite=requisite_parser(requisite.requisite)),
             )
 
         await message.answer(

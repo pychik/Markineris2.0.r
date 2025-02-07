@@ -17,6 +17,7 @@ from logger import logger
 from models import User, Order, OrderStat, db, ServerParam
 from redis_queue.callbacks import on_success_periodic_task, on_failure_periodic_task
 from utilities.download import crm_orders_common_preload
+from utilities.exceptions import EmptyFileToUploadError
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify, helper_suotls
 from utilities.minio_service.services import get_s3_service, download_file_from_minio
 from utilities.pdf_processor import helper_check_attached_file
@@ -749,15 +750,23 @@ def helper_attach_file(manager: str, manager_id: int, o_id: int) -> Response:
                """).bindparams(o_id=o_id)
 
     try:
+        if file:
+            try:
+                s3_service.upload_file(
+                    file_data=file.stream,
+                    object_name=fs_name,
+                    bucket_name=settings.MINIO_CRM_BUCKET_NAME,
+                )
+            except EmptyFileToUploadError:
+                message = f"{settings.Messages.ORDER_ATTACH_FILE_ERROR} Переданный файл пуст"
+                logger.error(message)
+                return jsonify({'htmlresponse_file': htmlresponse_file,
+                                'htmlresponse_footer': htmlresponse_footer,
+                                'status': status, 'message': message})
+
         db.session.execute(stmt)
         db.session.commit()
 
-        if file:
-            s3_service.upload_file(
-                file_data=file.stream,
-                object_name=fs_name,
-                bucket_name=settings.MINIO_CRM_BUCKET_NAME,
-            )
         status = settings.SUCCESS
         message = settings.Messages.ORDER_ATTACH_FILE.format(order_idn=order_info.order_idn)
 

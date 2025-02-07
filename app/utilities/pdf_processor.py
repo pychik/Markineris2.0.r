@@ -7,7 +7,9 @@ from reportlab.pdfgen import canvas
 from PIL import Image
 from werkzeug.datastructures import FileStorage
 
+from logger import logger
 from config import settings
+from utilities.exceptions import GetFirstPageFromPDFError
 
 
 class RarPdfProcessor:
@@ -88,21 +90,25 @@ class RarPdfProcessor:
 
 
 def get_first_page_as_image(pdf_file_stream: bytes):
-    pdf_document = fitz.open(stream=pdf_file_stream, filetype='pdf')
-    first_page = pdf_document.load_page(0)  # Load the first page
+    try:
+        pdf_document = fitz.open(stream=pdf_file_stream, filetype='pdf')
+        first_page = pdf_document.load_page(0)  # Load the first page
 
-    zoom = 2  # Adjust this value for higher/lower DPI
-    mat = fitz.Matrix(zoom, zoom)
-    pix = first_page.get_pixmap(matrix=mat)
+        zoom = 2  # Adjust this value for higher/lower DPI
+        mat = fitz.Matrix(zoom, zoom)
+        pix = first_page.get_pixmap(matrix=mat)
 
-    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
-    buffer = BytesIO()
-    img.save(buffer, format="PNG")
-    img_str = b64encode(buffer.getvalue()).decode()
+        buffer = BytesIO()
+        img.save(buffer, format="PNG")
+        img_str = b64encode(buffer.getvalue()).decode()
 
-    transaction_image = f"""<img id="bill-modal-image" class="border border-1 rounded img-zoom-orig" onclick="zoom_image();" src="data:image/png;base64,{img_str}">"""
-    return transaction_image
+        transaction_image = f"""<img id="bill-modal-image" class="border border-1 rounded img-zoom-orig" onclick="zoom_image();" src="data:image/png;base64,{img_str}">"""
+        return transaction_image
+    except Exception as e:
+        logger.exception("Ошибка при получении первой страницы PDF файла")
+        raise GetFirstPageFromPDFError()
 
 
 def helper_check_attached_file(order_file: FileStorage) -> tuple[bool, str]:

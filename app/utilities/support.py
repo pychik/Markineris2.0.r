@@ -12,7 +12,6 @@ from flask import flash, jsonify, Markup, redirect, url_for, request, Response, 
 from flask_login import current_user
 from flask_paginate import Pagination
 from flask_sqlalchemy.pagination import QueryPagination
-
 from sqlalchemy import asc, create_engine, desc, text, or_, not_, UnaryExpression
 from sqlalchemy.engine.row import Row
 from sqlalchemy.exc import IntegrityError
@@ -22,18 +21,35 @@ from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
 from config import settings
 from logger import logger
-from models import Order, OrderStat, User, EmailMessage, db, Shoe, Clothes, ClothesQuantitySize, Socks, \
-    SocksQuantitySize, Linen, Parfum, \
-    Price, Promo, ServerParam, ServiceAccount, UserTransaction, users_promos, TransactionTypes, TransactionStatuses
+from models import (
+    Order,
+    OrderStat,
+    User,
+    EmailMessage,
+    db,
+    Shoe,
+    Clothes,
+    ClothesQuantitySize,
+    Socks,
+    Linen,
+    Parfum,
+    Price,
+    Promo,
+    ServerParam,
+    ServiceAccount,
+    UserTransaction,
+    users_promos,
+    TransactionTypes,
+    TransactionStatuses,
+)
 from utilities.daily_price import get_cocmd
-from utilities.google_settings.schema import TransactionRow
-from utilities.google_settings.gt_utilities import helper_google_collect_and_send_stat
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
 from utilities.pdf_processor import get_first_page_as_image
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.validators import ValidatorProcessor
 from views.crm.schema import CrmDefaults
 from .cipher.instance import encryptor
+from .exceptions import GetFirstPageFromPDFError
 from .helpers.h_categories import order_table_update
 from .http_client import Requester
 from .minio_service.services import get_s3_service
@@ -1904,21 +1920,27 @@ def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: in
 
 
 def helper_get_image_html(img_path: str):
+    image_obj = b''
+
     try:
         s3_service = get_s3_service()
         image_obj = s3_service.get_object(object_name=img_path, bucket_name=settings.MINIO_BILL_BUCKET_NAME).data
     except Exception:
         logger.exception(f"Ошибка при получении файла {img_path} из хранилища")
-        image_obj = b''
-    else:
-        if img_path.endswith('.pdf'):
+
+    if img_path.endswith('.pdf'):
+        try:
             return get_first_page_as_image(pdf_file_stream=image_obj)
+        except GetFirstPageFromPDFError:
+            logger.error(f"Ошибка при получении первой страницы PDF файла {img_path}")
 
-    transaction_image = f"""
-            <img id="bill-modal-image" class="border border-1 rounded img-zoom-orig" 
-            onclick="zoom_image();" src="data:image/png;base64,{encodebytes(image_obj).decode()}">
-            """
-
+    if image_obj:
+        transaction_image = f"""
+        <img id="bill-modal-image" class="border border-1 rounded img-zoom-orig" 
+        onclick="zoom_image();" src="data:image/png;base64,{encodebytes(image_obj).decode()}">
+        """
+    else:
+        transaction_image = f"""<p>Не удалось загрузить изображение.</p>"""
     return transaction_image
 
 
