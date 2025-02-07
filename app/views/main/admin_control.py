@@ -1,44 +1,113 @@
-from flask import Blueprint, jsonify, request
+from http import HTTPStatus
+
+from flask import Blueprint, jsonify, request, redirect, url_for, flash
 from flask_login import login_required
+from pydantic import ValidationError
 
 from config import settings
 from data_migrations.instance import etl_service
 from data_migrations.utils import make_password
 from models import User
-from utilities.admin.h_admin_control import (h_index, h_admin, h_set_order_notification, h_create_admin,
-                                             h_partner_code, h_delete_partner_code, h_telegram_set_group,
-                                             h_telegram_message_set, h_telegram_group_bind, h_delete_telegram_group,
-                                             h_set_user_admin, h_set_user, h_deactivate_user,
-                                             h_activate_all_admin_users,
-                                             h_deactivate_user_admin, h_set_process_type,
-                                             h_delete_user_admin, h_delete_user, h_create_link_new_password,
-                                             h_send_order, h_download_agent_report, h_user_search, h_user_search_idn,
-                                             h_cross_user_search, h_bck_set_user_price, h_change_agent_fee,
-                                             h_change_trust_limit, h_users_orders_stats, h_users_activate_list,
-                                             h_bck_user_delete, h_bck_user_activate, h_client_orders_stats,
-                                             h_su_user_search, h_bck_change_user_password, h_bck_reanimate,
-                                             h_bck_ar_orders, h_bck_save_call_result, h_bck_su_control_reanimate_excel,
-                                             h_at2_new_orders, h_at2_orders_process, h_su_not_basic_price_report,
-                                             h_su_get_telegram, h_get_partner_codes, h_get_registration_link,
-                                             h_users_orders_stats_rpt)
-from utilities.admin.h_finance_control import (h_su_control_finance, h_su_bck_promo, h_su_add_promo, h_su_delete_promo,
-                                               h_su_bck_bonus, h_su_add_bonus, h_su_delete_bonus,
-                                               h_su_bck_prices, h_su_bck_specific_price, h_su_add_prices, h_su_edit_price,
-                                               h_su_delete_prices, h_su_bck_sa, h_su_add_sa, h_su_delete_sa,
-                                               h_su_bck_change_sa_type, h_su_control_ut,
-                                               h_su_transaction_detail, h_bck_control_ut, h_au_bck_control_ut,
-                                               h_su_pending_transaction_update, h_su_wo_transactions,
-                                               h_aus_transaction_detail, h_su_bck_change_sa_activity,
-                                               h_bck_ut_excel_report, h_su_fin_order_report, h_bck_fin_order_report,
-                                               h_bck_fin_order_report_excel, h_fin_codes_history, h_bck_fin_codes_history,
-                                               h_bck_fin_promo_history_excel, h_bck_fin_bonus_history_excel,
-                                               h_su_control_specific_ut, h_bck_control_specific_ut,
-                                               h_su_fin_marks_count_report, )
-from utilities.admin.h_notifications_control import h_tg_notification_main
-from utilities.support import au_required, aus_required, bck_aus_required, bck_su_required, su_required, \
-    user_exist_check, su_mod_required, bck_at2_required, bck_su_mod_required
-
 from utilities.admin.h_admin_control import h_bck_agent_reanimate
+from utilities.admin.h_admin_control import (
+    h_index,
+    h_admin,
+    h_set_order_notification,
+    h_create_admin,
+    h_partner_code,
+    h_delete_partner_code,
+    h_telegram_set_group,
+    h_telegram_message_set,
+    h_telegram_group_bind,
+    h_delete_telegram_group,
+    h_set_user_admin,
+    h_set_user,
+    h_deactivate_user,
+    h_activate_all_admin_users,
+    h_deactivate_user_admin,
+    h_set_process_type,
+    h_delete_user_admin,
+    h_delete_user,
+    h_create_link_new_password,
+    h_send_order,
+    h_download_agent_report,
+    h_user_search,
+    h_user_search_idn,
+    h_cross_user_search,
+    h_bck_set_user_price,
+    h_change_agent_fee,
+    h_change_trust_limit,
+    h_users_orders_stats,
+    h_users_activate_list,
+    h_bck_user_delete,
+    h_bck_user_activate,
+    h_client_orders_stats,
+    h_su_user_search,
+    h_bck_change_user_password,
+    h_bck_reanimate,
+    h_bck_ar_orders,
+    h_bck_save_call_result,
+    h_bck_su_control_reanimate_excel,
+    h_at2_new_orders,
+    h_at2_orders_process,
+    h_su_not_basic_price_report,
+    h_su_get_telegram,
+    h_get_partner_codes,
+    h_get_registration_link,
+    h_users_orders_stats_rpt,
+)
+from utilities.admin.h_finance_control import (
+    h_su_control_finance,
+    h_su_bck_promo,
+    h_su_add_promo,
+    h_su_delete_promo,
+    h_su_bck_bonus,
+    h_su_add_bonus,
+    h_su_delete_bonus,
+    h_su_bck_prices,
+    h_su_bck_specific_price,
+    h_su_add_prices,
+    h_su_edit_price,
+    h_su_delete_prices,
+    h_su_bck_sa,
+    h_su_add_sa,
+    h_su_delete_sa,
+    h_su_bck_change_sa_type,
+    h_su_control_ut,
+    h_su_transaction_detail,
+    h_bck_control_ut,
+    h_au_bck_control_ut,
+    h_su_pending_transaction_update,
+    h_su_wo_transactions,
+    h_aus_transaction_detail,
+    h_su_bck_change_sa_activity,
+    h_bck_ut_excel_report,
+    h_su_fin_order_report,
+    h_bck_fin_order_report,
+    h_bck_fin_order_report_excel,
+    h_fin_codes_history,
+    h_bck_fin_codes_history,
+    h_bck_fin_promo_history_excel,
+    h_bck_fin_bonus_history_excel,
+    h_su_control_specific_ut,
+    h_bck_control_specific_ut,
+    h_su_fin_marks_count_report,
+    update_user_balance,
+)
+from utilities.admin.h_notifications_control import h_tg_notification_main
+from utilities.exceptions import UserNotFoundError, NegativeBalanceError, BalanceUpdateError
+from utilities.support import (
+    au_required,
+    aus_required,
+    bck_aus_required,
+    bck_su_required,
+    su_required,
+    user_exist_check,
+    su_mod_required,
+    bck_at2_required,
+    bck_su_mod_required,
+)
+from validators.admin_control import UpdateBalanceSchema
 
 admin_control = Blueprint('admin_control', __name__)
 
@@ -457,6 +526,39 @@ def su_control_specific_ut(u_id: int):
     :return:
     """
     return h_su_control_specific_ut(u_id=u_id)
+
+
+@admin_control.route('/su_control_specific_ut/<user_id>/update_balance', methods=['POST', ])
+@login_required
+@su_mod_required
+def su_update_balance(user_id: int):
+    """Update user balance endpoint."""
+
+    try:
+        data = UpdateBalanceSchema(**request.form)
+    except ValidationError:
+        message = "Некорректный формат данных"
+        flash(message=message, category='error')
+        return redirect(url_for('admin_control.su_control_specific_ut', u_id=user_id))
+
+    try:
+        update_user_balance(user_id=user_id, data=data)
+    except UserNotFoundError:
+        message = f"Пользователь c ID {user_id} не найден"
+        flash(message=message, category='warning')
+        return redirect(url_for('admin_control.su_control_specific_ut', u_id=user_id))
+    except NegativeBalanceError:
+        message = f"Ошибка изменения баланса, баланс не должен быть отрицательным после изменения"
+        flash(message=message, category='warning')
+        return redirect(url_for('admin_control.su_control_specific_ut', u_id=user_id))
+    except BalanceUpdateError:
+        message = "Ошибка при обновлении баланса пользователя"
+        flash(message=message, category='warning')
+        return redirect(url_for('admin_control.su_control_specific_ut', u_id=user_id))
+
+    message = "Баланс успешно обновлен"
+    flash(message=message, category='success')
+    return redirect(url_for('admin_control.su_control_specific_ut', u_id=user_id))
 
 
 @admin_control.route('/su_bck_control_specific_ut/<u_id>', methods=['GET', ])

@@ -23,13 +23,27 @@ from models import (
     TransactionTypes,
 )
 from utilities.daily_price import get_cocmd
+from utilities.exceptions import EmptyFileToUploadError
 from utilities.mailer import MailSender
 from utilities.minio_service.services import get_s3_service
-from utilities.support import url_encrypt, url_decrypt, check_email, check_user_messages, \
-    helper_get_order_notification, helper_get_current_sa, \
-    helper_check_promo, check_file_extension, get_file_extension, \
-    helper_paginate_data, helper_get_transactions, helper_refill_transaction, \
-    helper_agent_wo_transaction, helper_get_image_html, helper_get_transaction_orders_detail, helper_get_user_at2
+from utilities.support import (
+    url_encrypt,
+    url_decrypt,
+    check_email,
+    check_user_messages,
+    helper_get_order_notification,
+    helper_get_current_sa,
+    helper_check_promo,
+    check_file_extension,
+    get_file_extension,
+    helper_paginate_data,
+    helper_get_transactions,
+    helper_refill_transaction,
+    helper_agent_wo_transaction,
+    helper_get_image_html,
+    helper_get_transaction_orders_detail,
+    helper_get_user_at2,
+)
 from utilities.telegram import WriteOffBalance, RefillBalance
 
 
@@ -310,9 +324,9 @@ def h_pa_refill(u_id: int, sa_id: int):
                     object_name=bill_path,
                     bucket_name=settings.MINIO_BILL_BUCKET_NAME,
                 )
-            except Exception:
-                logger.exception("Ошибка при скачивании и сохранении фото чека")
-                message = settings.Messages.UPLOAD_FILE_UNKNOWN_ERROR
+            except EmptyFileToUploadError:
+                logger.exception("Ошибка сохранении чека в хранилище")
+                message = f"{settings.Messages.UPLOAD_FILE_UNKNOWN_ERROR} Передан пустой файл"
                 return jsonify(dict(status=status, message=message))
         else:
             bill_extension = 'only_promo'

@@ -23,6 +23,7 @@ from models import (
     TransactionTypes,
 )
 from utilities.admin.excel_report import ExcelReportProcessor, ExcelReport, ExcelReportWithSheets
+from utilities.exceptions import UserNotFoundError, NegativeBalanceError, BalanceUpdateError
 from utilities.minio_service.services import get_s3_service
 from utilities.support import (
     helper_paginate_data,
@@ -44,8 +45,10 @@ from utilities.support import (
     helper_get_user_at2_opt2,
     helper_get_promo_on_cancel_transaction,
     TransactionFilters,
+    create_bill_path,
 )
 from utilities.tg_verify.service import send_tg_message_with_transaction_updated_status
+from validators.admin_control import UpdateBalanceSchema
 
 
 class NotFoundBonusCode(Exception):
@@ -1012,7 +1015,7 @@ def h_bck_fin_bonus_history_excel():
 def h_su_control_specific_ut(u_id: int):
 
     # default date range conditions
-    url_date_to_raw = datetime.now()
+    url_date_to_raw = datetime.now() + timedelta(1)
     url_date_to = url_date_to_raw.strftime('%d.%m.%Y')
     url_date_from = (url_date_to_raw - timedelta(days=settings.Transactions.DEFAULT_DAYS_RANGE)).strftime('%d.%m.%Y')
     date_to = url_date_to_raw.strftime('%Y-%m-%d')
@@ -1047,7 +1050,7 @@ def h_bck_control_specific_ut(u_id: int):
     url_date_to = request.args.get('date_to', '', type=str)
     date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from\
         else settings.Transactions.DEFAULT_DATE_FROM
-    date_to = (datetime.strptime(url_date_to, '%d.%m.%Y')).strftime(
+    date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
         '%Y-%m-%d') if url_date_to else datetime.now().strftime('%Y-%m-%d')
 
     sort_type = 'desc' if request.args.get('sort_type', 'desc', str).lower() == 'desc' else 'asc'
@@ -1437,3 +1440,46 @@ def h_delete_bonus_code(bonus_code_id: int) -> bool:
         return jsonify({"result": False, "message": "Deletion failed"})
 
     return jsonify({"result": True, "message": "Success deleted"})
+
+
+def update_user_balance(user_id: int, data: UpdateBalanceSchema):
+    user = User.query.filter(User.id == user_id).first()
+
+    if user is None:
+        raise UserNotFoundError()
+
+    update_sum = data.amount if data.operation_type else -data.amount
+
+    if user.role == settings.ORD_USER:
+        if user.balance + update_sum < 0:
+            raise NegativeBalanceError()
+
+    try:
+        server_params = ServerParam.query.first()
+
+        comment = (
+            f'{current_user.login_name} {"Добавил на баланс" if data.operation_type else "Списал с баланса"} '
+            f'пользователя {user.login_name} {data.amount} руб.'
+        )
+
+        new_transaction = UserTransaction(
+            type=data.operation_type,
+            amount=data.amount,
+            status=TransactionStatuses.success.value,
+            transaction_type=TransactionTypes.technical.value,
+            promo_info=comment,
+            user_id=user.id,
+            agent_fee=0,
+            sa_id=None,
+            bill_path=create_bill_path(filename=f"{user.login_name}.update_balance"),
+        )
+
+        user.balance += update_sum
+        server_params.balance += update_sum
+
+        db.session.add(new_transaction)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        logger.exception("Ошибка при обновлении баланса пользователя")
+        raise BalanceUpdateError()

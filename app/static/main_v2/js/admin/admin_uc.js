@@ -1636,3 +1636,17 @@ function saveCallResultAndComment(url, u_id, csrf) {
      }
    });
 }
+
+
+function openBalanceModal(url, operationType) {
+    const modal = new bootstrap.Modal(document.getElementById('balanceModal'));
+    document.getElementById("confirmBalanceForm").setAttribute("action", url);
+    document.getElementById("balanceOperationType").value = operationType;
+    if(operationType){
+        document.getElementById('editBalanceTitle').innerText='пополнения';
+    }
+    else{
+        document.getElementById('editBalanceTitle').innerText='списания';
+    }
+    modal.show();
+}

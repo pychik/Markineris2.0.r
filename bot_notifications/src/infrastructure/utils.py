@@ -117,3 +117,12 @@ def get_qr_code(filename: str):
         logger.exception(f"Ошибка при получении qr кода из хранилища. Файл - {key}")
         return None
     return file_data
+
+
+def requisite_parser(requisite_str: str) -> str:
+    """Парсер реквизитов, достает из строки номер реквизитов и имя получателя"""
+    req = requisite_str.split("</h2>")
+    bank_name = req[0].replace('<h2 class="btn-accent faded">', '')
+    req = req[-1].split("<br>")
+
+    return f"\nНомер:{req[0].split(': ')[-1]}\nПолучатель: {req[1].split(': ')[-1]}\nБанк: {bank_name}"

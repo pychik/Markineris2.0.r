@@ -23,3 +23,27 @@
     </div>
   </div>
 </div>
+
+<div class="modal fade" id="balanceModal" tabindex="-1" aria-labelledby="balanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="balanceModalLabel">Введите сумму <span id="editBalanceTitle"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <form id="confirmBalanceForm" method="POST" >
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <input type="number" class="form-control" id="balanceAmount" name="balanceAmount" placeholder="Введите сумму" min="1" max="1000000">
+                    <input type="hidden" id="balanceOperationType" name="balanceOperationType">
+                </div>
+                <div class="modal-footer">
+                    <div class="d-flex">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-accent ms-2">Подтвердить</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

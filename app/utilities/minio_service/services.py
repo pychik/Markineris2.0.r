@@ -6,6 +6,7 @@ from minio import Minio, S3Error
 
 from config import settings
 from logger import logger
+from utilities.exceptions import EmptyFileToUploadError
 from utilities.minio_service.dto import DetailMinIOResponseDTO
 
 
@@ -51,14 +52,17 @@ class S3Service:
         file_data.seek(0, 2)
         file_size = file_data.tell()
         file_data.seek(0)
-        with self.get_client() as client:
-            client.put_object(
-                bucket_name=bucket_name,
-                object_name=object_name,
-                data=file_data,
-                length=file_size,
-                content_type=content_type,
-            )
+        if file_size > 0:
+            with self.get_client() as client:
+                client.put_object(
+                    bucket_name=bucket_name,
+                    object_name=object_name,
+                    data=file_data,
+                    length=file_size,
+                    content_type=content_type,
+                )
+        else:
+            raise EmptyFileToUploadError()
 
     def remove_object(self, object_name: str, bucket_name: str) -> None:
         with self.get_client() as client:
