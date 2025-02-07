@@ -316,6 +316,7 @@ def h_pa_refill(u_id: int, sa_id: int):
             uuid_prefix = str(uuid4())[:8]
             bill_path = f'{uuid_prefix}_{current_user.login_name}.{bill_extension}'
             transaction_status = TransactionStatuses.pending.value
+            transaction_type = TransactionTypes.refill_balance.value
             # save file
             try:
                 s3_service = get_s3_service()
@@ -333,6 +334,7 @@ def h_pa_refill(u_id: int, sa_id: int):
             uuid_prefix = str(uuid4())[:8]
             bill_path = f'{uuid_prefix}_{current_user.login_name}.{bill_extension}'
             transaction_status = TransactionStatuses.pending.value
+            transaction_type = TransactionTypes.promo.value
 
         # make this variables to avoid current_user reload after update sessions
 
@@ -346,7 +348,7 @@ def h_pa_refill(u_id: int, sa_id: int):
                 amount=amount,
                 status=transaction_status,
                 promo_info=promo_info,
-                transaction_type=TransactionTypes.refill_balance.value,
+                transaction_type=transaction_type,
                 user_id=u_id,
                 sa_id=cur_sa.id,
                 bill_path=bill_path,
