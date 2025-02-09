@@ -182,6 +182,11 @@
                       </td>
                       <td>
                         {{ u.reg_clients }}
+                        {% if u.new_users_count > 0 %}
+                          <span class="text-warning" style="font-weight: bold;" title="+ {{ u.new_users_count }} новых пользователей за сегодняшний день">
+                              + {{ u.new_users_count }}
+                          </span>
+                        {% endif %}
                       </td>
                       <td>
                         {{ u.data_orders_array[0]}}
