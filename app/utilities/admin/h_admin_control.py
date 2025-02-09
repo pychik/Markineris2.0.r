@@ -52,7 +52,7 @@ def h_index():
                                 pq.price_at2 as price_at2, tq.channel_id as tg_channel_id, tq.name as tg_name,
                                 tq.comment as tg_comment,
                                 count(u.id) as reg_clients,
-                                COUNT(CASE WHEN u.created_at >= DATE_TRUNC('DAY', NOW()) - INTERVAL '1 DAY' THEN 1 END) as new_users_count,
+                                COUNT(CASE WHEN u.created_at >= DATE_TRUNC('DAY', NOW()) THEN 1 END) as new_users_count,
                                 (select array[count(os.id), sum(os.rows_count), sum(os.marks_count)] from public.orders_stats os where os.user_id in (select uu.id from public.users uu where uu.admin_parent_id=au.id or uu.id=au.id) limit 1) as data_orders_array
                             FROM public.users au
                             LEFT JOIN public.users_telegrams ut on ut.user_id = au.id
