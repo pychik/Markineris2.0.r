@@ -732,7 +732,7 @@ function update_category(category_p){
     }
     document.getElementById(`pills-${category_p}-tab`).classList.add('active');
 
-
+    init_tooltip(document.getElementById('pills-tabContent'));
     }
 
 
@@ -1340,4 +1340,10 @@ function rd_date_erase(){
 
     document.getElementById('rd_date').classList.remove('is-valid');
     document.getElementById('rd_date').classList.add('is-invalid');
+}
+
+function init_tooltip(document){
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(tooltipTriggerEl => {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
 }
