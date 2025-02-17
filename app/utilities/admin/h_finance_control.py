@@ -1073,8 +1073,10 @@ def h_bck_control_specific_ut(u_id: int):
     page, per_page, \
         offset, pagination, \
         transactions_list = helper_paginate_data(data=pa_detalize_list, per_page=settings.PAGINATION_PER_PAGE,
-                                                 href=link)
-    return jsonify({'htmlresponse': render_template('admin/ur_transactions/ur_transactions_table.html', **locals())})
+                                               href=link)
+
+    return jsonify({'htmlresponse': render_template('admin/ur_transactions/ur_transactions_table.html', **locals()),
+                    'status': settings.SUCCESS})
 
 
 def h_su_fin_order_report():
