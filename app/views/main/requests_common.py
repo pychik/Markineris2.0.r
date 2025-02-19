@@ -5,7 +5,7 @@ from config import settings
 
 from utilities.helpers.h_requests_common import h_get_company_data, h_process_idn_error, h_check_tnved_code_data, \
     h_get_tg_user_data, h_send_table, h_send_table_order, h_change_order_org_param, h_change_order_org_param_form, \
-    h_cubaa
+    h_cubaa, h_get_dadata_token
 from utilities.support import user_activated, user_is_send_check, helper_check_user_order_in_archive, su_required
 
 requests_common = Blueprint('requests_common', __name__)
@@ -100,3 +100,14 @@ def cubaa():
     """
 
     return h_cubaa()
+
+
+@requests_common.route('get_dadata_token', methods=['GET'])
+@login_required
+@user_activated
+def get_dadata_token():
+    """
+    retrieves dadata token
+    """
+
+    return h_get_dadata_token()

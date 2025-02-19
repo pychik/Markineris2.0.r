@@ -201,3 +201,8 @@ def h_cubaa():
 
     return jsonify(dict(status_order=status_order, answer_orders=f"{answer_order}",
                         status_balance=status_balance, answer_balance=answer_balance,  agent_at2=agent_at2))
+
+
+def h_get_dadata_token():
+
+    return jsonify({"token": "eae07ba0f72cc349e91500f5a949eacf49a63051"})
