@@ -28,14 +28,26 @@
                 </div>
                 {% include 'crm_mod_v1/crma/order_description.html' %}
 
-                <div class="comment order__comment">
-                    <div class="comment__title">
-                        Причина отмены:
+                {% if n.cc_created %}
+                    <div class="comment order__comment">
+                        <div class="comment__title">
+                            Причина отмены:
+                        </div>
+                        <div class="bg-error">
+                            {{ n.comment_cancel }}
+                        </div>
                     </div>
-                    <div class="bg-error">
-                        {% if n.cc_created %}{{ n.comment_cancel }}{% endif %}
+                {% endif %}
+                {% if n.cp_created %}
+                    <div class="comment order__comment">
+                        <div class="comment__title">
+                            Описание проблемы:
+                        </div>
+                        <div class="bg-error">
+                            {{ n.comment_problem }}
+                        </div>
                     </div>
-                </div>
+                {% endif %}
 
                 <div class="order__footer">
                     <div class="order__icons icons">
