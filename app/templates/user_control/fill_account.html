@@ -6,6 +6,7 @@
                 <span style="cursor:pointer"><u>Пополнение счета</u></span>
             </div>
         </div>
+        <p>❌ В случае проблем с оплатой через Сбербанк, используйте другой банк.</p>
 
         {% if cur_sa %}
             <form method="POST" action="{{ url_for('user_cp.pa_refill', u_id=u_id, sa_id=cur_sa.id) }}"
