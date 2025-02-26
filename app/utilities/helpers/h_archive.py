@@ -1,10 +1,12 @@
-from flask import Blueprint, jsonify, render_template, redirect, url_for, flash, Response, make_response
+from flask import Blueprint, jsonify, render_template, redirect, url_for, flash, Response, make_response, request
 from flask_login import current_user
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 
 from loguru import logger
 from config import settings
-from models import Order, OrderFile
+from models import Clothes, Order, OrderFile
+from utilities.categories_data.subcategories_data import ClothesSubcategories, Category
+from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.minio_service.services import download_file_from_minio, get_s3_service
 from utilities.pdf_processor import RarPdfProcessor
 from utilities.saving_uts import common_save_copy_order
@@ -31,19 +33,36 @@ def h_category(category: str = settings.Shoes.CATEGORY, upload_flag: int = None)
     user = current_user
     admin_id = user.admin_parent_id
     order_notification, admin_name, crm = helper_get_order_notification(admin_id=admin_id if admin_id else user.id)
-    category_orders = user.orders.filter(~Order.to_delete, Order.category == category,
+
+    subcategory = request.args.get('subcategory', '')
+    if not Category.check_subcategory(category=category, subcategory=subcategory):
+        message = settings.Messages.STRANGE_REQUESTS + ' нет такой подкатегории'
+        if upload_flag:
+            return jsonify(dict(status='error', message=message))
+        else:
+            flash(message=message, category='error')
+            return redirect(url_for('main.enter'))
+
+    query = (user.orders.filter(~Order.to_delete, Order.category == category,
                                          Order.stage > 0).with_entities(Order.id, Order.stage, Order.order_idn,
                                                                         Order.category, Order.company_type,
                                                                         Order.company_name, Order.company_idn,
                                                                         Order.to_delete, Order.processed, Order.payment,
                                                                         Order.created_at, Order.crm_created_at,
                                                                         Order.stage, Order.closed_at,
-                                                                        OrderFile.file_link).outerjoin(OrderFile,
-                                                                                                       Order.order_zip_file).order_by(
-        desc(Order.crm_created_at)).all()
+                                                                        func.max(OrderFile.file_link).label(
+                                                                            'file_link')  # Агрегируем file_link
+                                                                        ).outerjoin(OrderFile, Order.order_zip_file).group_by(Order.id)
+                              .order_by(desc(Order.crm_created_at)))
+
+    if subcategory and category == settings.Clothes.CATEGORY:
+        query = query.join(Clothes, Order.id == Clothes.order_id).filter(Clothes.subcategory == subcategory)
+    category_orders = query.all()
+
     link = 'javascript:get_category_history(\''+url_for('orders_archive.index', category=category,
-                                                        upload_flag=settings.UPLOAD_BACKGROUND) +\
-           '?page={0}\', \'' + settings.CATEGORIES_DICT[category]+'\');'
+                                                        upload_flag=settings.UPLOAD_BACKGROUND,
+                                                        subcategory=subcategory) + \
+           '&page={0}\', \'' + settings.CATEGORIES_DICT[category] + '\', \'' + subcategory + '\');'
 
     page, per_page, \
         offset, pagination, \
@@ -76,7 +95,9 @@ def h_copy_order(o_id: int, category: str) -> Response:
         flash(message=f"{settings.Messages.NO_SUCH_ORDER_COPY}", category='error')
         return redirect(url_for('orders_archive.index'))
 
-    active_orders = get_category_p_orders(user=user, category=category, processed=False)
+    subcategory = get_subcategory(order_id=order.id, category=category)
+
+    active_orders = get_category_p_orders(user=user, category=category, subcategory=subcategory, processed=False)
 
     if len(active_orders) >= 5:
 

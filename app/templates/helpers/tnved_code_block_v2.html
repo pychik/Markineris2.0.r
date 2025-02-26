@@ -171,28 +171,28 @@ function set_tnved(){
 
 
     }
-    else if (category === 'clothes'){
-        const tnved_list = [{% for c in clothes_tnved %}'{{c}}',{% endfor %}];
-        const gender_list = [{% for g in genders %}'{{ g }}',{% endfor %}];
-        // const clothes_list = [{% for cl in types %}'{{ cl }}',{% endfor %}];
-        var gender = document.getElementsByName("gender")[0].value;
-        var clothes_type = document.getElementsByName("type")[0].value;
-
-        // console.log("clothes");
-        if (clothes_upper_array.includes(clothes_type)){
-            tnved.value =  tnved_list[3];
-        }
-        else if (gender === gender_list[1]){
-            tnved.value = tnved_list[1];
-        }
-        else if (gender === gender_list[0] || gender === gender_list[2] || gender === gender_list[3]){
-            tnved.value = tnved_list[2];
-        }
-
-        if(document.getElementById('nat_materials_check').checked === true){
-            tnved.value = tnved_list[0];
-        }
-    }
+    {#else if (category === 'clothes'){#}
+    {#    const tnved_list = [{% for c in clothes_tnved %}'{{c}}',{% endfor %}];#}
+    {#    const gender_list = [{% for g in genders %}'{{ g }}',{% endfor %}];#}
+    {#    // const clothes_list = [{% for cl in types %}'{{ cl }}',{% endfor %}];#}
+    {#    var gender = document.getElementsByName("gender")[0].value;#}
+    {#    var clothes_type = document.getElementsByName("type")[0].value;#}
+    {##}
+    {#    // console.log("clothes");#}
+    {#    if (clothes_upper_array.includes(clothes_type)){#}
+    {#        tnved.value =  tnved_list[3];#}
+    {#    }#}
+    {#    else if (gender === gender_list[1]){#}
+    {#        tnved.value = tnved_list[1];#}
+    {#    }#}
+    {#    else if (gender === gender_list[0] || gender === gender_list[2] || gender === gender_list[3]){#}
+    {#        tnved.value = tnved_list[2];#}
+    {#    }#}
+    {##}
+    {#    if(document.getElementById('nat_materials_check').checked === true){#}
+    {#        tnved.value = tnved_list[0];#}
+    {#    }#}
+    {#}#}
     else if (category === 'parfum') {
 
         const tnved_list = [{% for p in parfum_tnved %}'{{p}}',{% endfor %}];

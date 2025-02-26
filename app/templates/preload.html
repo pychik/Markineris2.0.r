@@ -8,10 +8,10 @@
        <a href="{{url_for('main.enter')}}" class="">Категории </a>
         /
         {% if stage == order_stages.CREATING %}
-            <a href="{{ url_for(category_process_name + '.index', o_id=o_id) }}">{{category.capitalize()}} активный заказ</a>
+            <a href="{{ url_for(category_process_name + '.index', o_id=o_id, subcategory=subcategory) }}"> {% if subcategory in subcategories_dict.keys() %}{{ subcategories_dict[subcategory].capitalize() }}{% else %}{{category.capitalize()}}{% endif %} активный заказ</a>
             /
         {% elif  stage >= order_stages.TELEGRAM_PROCESSED%}
-            <a href="{{ url_for('orders_archive.index', category=category)}}">История заказов</a>/
+            <a href="{{ url_for('orders_archive.index', category=category, subcategory=subcategory)}}">История заказов</a>/
         {% endif %}
 
         <span>Предпросмотр</span>

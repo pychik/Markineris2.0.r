@@ -3,14 +3,15 @@ from flask_login import current_user, login_required
 
 from config import settings
 from models import Clothes, Order
-from utilities.download import orders_download_common
 from utilities.helpers.h_categories import h_category_sba
-from utilities.helpers.h_clothes import h_bck_clothes_tnved
-from utilities.support import check_order_pos, preprocess_order_category, common_process_delete_order, \
-    helper_delete_order_pos, user_activated, manager_forbidden, helper_process_category_order, \
-    helper_clothes_index, helper_preload_common
+from views.main.categories.clothes.support import h_bck_clothes_tnved
+from utilities.categories_data.subcategories_logic import get_subcategory
+from utilities.support import (check_order_pos, preprocess_order_category, common_process_delete_order,
+    helper_delete_order_pos, user_activated, helper_process_category_order,
+    helper_preload_common, )
 from utilities.upload_order.upload_clothes import UploadClothes
 from utilities.upload_order.upload_logic import helper_upload_common_get, helper_upload_common_post
+from views.main.categories.clothes.support import helper_clothes_index
 
 clothes = Blueprint('clothes', __name__)
 
@@ -61,7 +62,8 @@ def delete_order_pos(o_id: int, c_id: int, async_type: int = None):
 @user_activated
 def clean_orders(o_id: int):
     common_process_delete_order(o_id=o_id, stage=settings.OrderStage.CREATING)
-    return redirect(url_for('clothes.index'))
+    subcategory = get_subcategory(order_id=o_id, category=settings.Clothes.CATEGORY)
+    return redirect(url_for('clothes.index', subcategory=subcategory))
 
 
 # @clothes.route('/download_order/<int:o_id>', methods=['POST', ])

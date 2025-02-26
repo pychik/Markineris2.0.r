@@ -853,8 +853,11 @@ CATEGORIES_DICT: dict = {"обувь": "shoes",
                          "одежда": "clothes",
                          "белье": "linen",
                          "парфюм": "parfum",
-                          "носки и прочее": "socks" }
+                          "носки и прочее": "socks",
+                         "underwear": "underwear"}
 
+SUB_CATEGORIES_DICT: dict = {"underwear": "нижнее белье",
+                             "common": "общее"}
 
 BIG_TNVED_LIST: tuple = SHOE_TNVED + ALL_CLOTHES_TNVED + (LINEN_TNVED, '', ) + PARFUM_TNVED
 

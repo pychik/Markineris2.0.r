@@ -23,7 +23,13 @@ def helper_upload_common_get(category: str, category_process_name: str) -> Union
 
     admin_id = user.admin_parent_id
     order_notification, admin_name, crm = helper_get_order_notification(admin_id=admin_id if admin_id else user.id)
-    active_orders = get_category_p_orders(user=user, category=category, processed=False)
+
+    subcategory = request.args.get('subcategory')
+    if subcategory:
+        flash(message=settings.Messages.STRANGE_REQUESTS + f'подкатегория неизвестна сервису', category='error')
+        return redirect(url_for(f'main.enter'))
+
+    active_orders = get_category_p_orders(user=user, category=category, processed=False, subcategory=subcategory)
     if len(active_orders) >= 5:
         specific_order = True
         o_id = active_orders[0].id

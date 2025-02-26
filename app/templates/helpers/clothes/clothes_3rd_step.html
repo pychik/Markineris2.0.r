@@ -12,7 +12,7 @@
 
 
             <form id="form_process" method="post"
-                  action="{{url_for(category_process_name + '.process_order', o_id=o_id)}}">
+                  action="{{url_for(category_process_name + '.process_order', o_id=o_id, subcategory=subcategory)}}">
 
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="orders_pos_count" value="{{orders_pos_count}}">

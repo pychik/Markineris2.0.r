@@ -675,22 +675,23 @@ async function fetchAsync (url) {
 
 //      #### archive  ####
 
-function get_category_history(url, category){
+function get_category_history(url, category, subcategory) {
     // $("#pills-shoes").toggle();
 
+    let proc_category = category;
+    if (subcategory && subcategory!=='common'){proc_category = subcategory}
 
-   $.ajax({
-    url: url,
-    method:"GET",
+    $.ajax({
+        url: url,
+        method: "GET",
 
-    success:function(data)
-    {
+        success: function (data) {
 
-      $('#pills-tabContent').html(data);
-      $("#pills-tabContent").append(data.htmlresponse);
-      update_category(category);
-      }
-   });
+            $('#pills-tabContent').html(data);
+            $("#pills-tabContent").append(data.htmlresponse);
+            update_category(proc_category);
+        }
+    });
 
 }
 
@@ -727,9 +728,13 @@ function update_category(category_p){
     if(document.getElementById(`pills-parfum-tab`)) {
         document.getElementById(`pills-parfum-tab`).classList.remove('active');
     }
-   if(document.getElementById(`pills-socks-tab`)) {
+    if(document.getElementById(`pills-socks-tab`)) {
         document.getElementById(`pills-socks-tab`).classList.remove('active');
     }
+    if (document.getElementById(`pills-underwear-tab`)) {
+        document.getElementById(`pills-underwear-tab`).classList.remove('active');
+    }
+
     document.getElementById(`pills-${category_p}-tab`).classList.add('active');
 
     init_tooltip(document.getElementById('pills-tabContent'));

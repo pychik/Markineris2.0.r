@@ -57,7 +57,7 @@ def order_table_update(user: User, o_id: int, category: str, jsonify_flag: bool 
     from utilities.support import orders_list_common, helper_paginate_data
     orders, company_type, company_name, company_idn, \
         edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
-        total_price, price_exist = orders_list_common(category=category, user=user, o_id=o_id)
+        total_price, price_exist, subcategory = orders_list_common(category=category, user=user, o_id=o_id)
     category_process_name = settings.CATEGORIES_DICT[category]
     link = f'javascript:{category_process_name}_update_table(\'' + url_for(f'{category_process_name}.index', o_id=o_id,
                                                         update_flag=1) + \

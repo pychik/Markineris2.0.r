@@ -1,9 +1,10 @@
+{% set category_name = category.capitalize() if category != 'одежда' or( category == 'одежда' and (not subcategory or subcategory == 'common')) else subcategories_dict[subcategory].capitalize() %}
 <div class="px-5">
     <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
         <div class="breadcrumbs">
             <a href="{{url_for('main.enter')}}" class="">Категории </a>
             /
-            <span>{{category.capitalize()}}</span>
+            <span>{{category_name}}</span>
         </div>
 <!--        <div class="partner">-->
 
@@ -18,9 +19,29 @@
 </div>
 
 <div class="front text-center">
-    <h1 class="mb-5 fs-2">{% if not o_id %}Новая накладная{% else %}Накладная{% endif %} <span class="fw-bolder">«{{category.capitalize()}}»</span></h1>
+    <h1 class="mb-5 fs-2">{% if not o_id %}Новая накладная{% else %}Накладная{% endif %} <span class="fw-bolder">«{{category_name}}»</span></h1>
 </div>
-  {% include 'helpers/upload_current_orders.html' %}
+
+<div class="row g-3">
+    <div class="col-3"></div>
+    <div class="col-6">
+        <div class=" table__btn mx-auto">
+            {% if order_list %}
+                <p>Просмотр заказа</p>
+                <a class="btn btn-secondary" href="{{ url_for(categories_dict[category]+'.preload', o_id=o_id, stage=order_stages.CREATING) }}">Смотреть<svg xmlns="http://www.w3.org/2000/svg" width="22" height="18" viewBox="0 0 22 18" fill="none" class="svg-eye">
+                    <path d="M8 1.46004C8.97019 1.15248 9.98223 0.997298 11 1.00004C15.182 1.00004 18.028 3.50004 19.725 5.70404C20.575 6.81004 21 7.36104 21 9.00004C21 10.64 20.575 11.191 19.725 12.296C18.028 14.5 15.182 17 11 17C6.818 17 3.972 14.5 2.275 12.296C1.425 11.192 1 10.639 1 9.00004C1 7.36004 1.425 6.80904 2.275 5.70404C2.79336 5.02674 3.37061 4.39662 4 3.82104"  stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M14 9C14 9.79565 13.6839 10.5587 13.1213 11.1213C12.5587 11.6839 11.7956 12 11 12C10.2044 12 9.44129 11.6839 8.87868 11.1213C8.31607 10.5587 8 9.79565 8 9C8 8.20435 8.31607 7.44129 8.87868 6.87868C9.44129 6.31607 10.2044 6 11 6C11.7956 6 12.5587 6.31607 13.1213 6.87868C13.6839 7.44129 14 8.20435 14 9Z"  stroke-width="1.5"/>
+                  </svg></a>
+                {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-center mt-5 mb-4">
+{% if not o_id %}
+        <h4>Создать заказ</h4>
+{% endif %}
+</div>
 
 
 

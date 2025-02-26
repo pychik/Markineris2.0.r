@@ -4,7 +4,7 @@
         placeholder="Введите 10-значный код или оставьте пустым"
         title="Введите 10-значный код или не вводите ничего. Просто добавьте артикул в накладную"
         name="tnved_code" id="tnved_code" class="form-control"
-        autocomplete="off" onclick="get_tnveds('{{url_for('clothes.bck_clothes_tnved')}}', '{{csrf_token()}}');" readonly
+        autocomplete="off" onclick="get_tnveds(`{{url_for('clothes.bck_clothes_tnved', subcategory=subcategory)}}`, '{{csrf_token()}}');" readonly
         {% if copied_order %}
            {% if copied_order.tnved_code %}
                 value="{{ copied_order.tnved_code }}"
@@ -26,6 +26,7 @@
 
 <script>
 const category = '{{ category_process_name }}';
+const subcategory = '{{ subcategory }}';
 const all_tnved = [{% for e in clothes_all_tnved%}'{{e}}', {% endfor %}];
 
 document.getElementById("tnved_code").addEventListener("keypress", function (evt) {

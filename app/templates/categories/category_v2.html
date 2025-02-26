@@ -9,7 +9,7 @@
 
 <div class="px-5">
     <form role="form" id="form_process_main" method="post" onsubmit="return check_rd_docs() && check_tnved('submit');"
-              action="{% if 'edit_order' in request.path %}{{ url_for(category_process_name + '.preprocess_order',o_id=o_id, p_id=p_id)}}{% else %}{{ url_for(category_process_name + '.preprocess_order', o_id=o_id)}}{% endif %}"> <!-- closed in categories-->
+              action="{% if 'edit_order' in request.path %}{{ url_for(category_process_name + '.preprocess_order', subcategory=subcategory, o_id=o_id, p_id=p_id)}}{% else %}{{ url_for(category_process_name + '.preprocess_order', subcategory=subcategory, o_id=o_id)}}{% endif %}"> <!-- closed in categories-->
 
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
@@ -37,7 +37,7 @@
 {% include 'helpers/modal_questions_v2.html' %}
 {% include 'helpers/modal_questions_org.html' %}
 
-<script src="{{url_for('static',filename='main_v2/js/categories/' + category_process_name + '.js')}}?v=7"></script>
+<script src="{{url_for('static',filename='main_v2/js/categories/' + category_process_name + '.js')}}?v=8"></script>
 
 <script>
     const RZ_CONDITION = '{{ rz_condition }}';

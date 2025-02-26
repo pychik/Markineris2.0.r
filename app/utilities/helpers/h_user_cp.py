@@ -11,6 +11,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from config import settings
 from logger import logger
 from models import (
+    Clothes,
     db,
     Order,
     User,
@@ -242,16 +243,40 @@ def h_order_book_detail(u_id: int):
                         "белье": 'linen',
                         "парфюм": 'parfum',
                         "носки и прочее": 'socks', }
-
-    active_orders_raw = (current_user.orders.filter_by(stage=settings.OrderStage.CREATING)
-                         .filter(~Order.processed, ~Order.to_delete)
-                         .with_entities(Order.id, Order.order_idn, Order.category, Order.company_type,
-                                        Order.company_name, Order.company_idn, Order.to_delete,
-                                        Order.created_at, Order.stage, Order.closed_at)
-                         .group_by(Order.category, Order.id).order_by(desc(Order.created_at)).all())
+    active_orders_raw = (
+        current_user.orders.filter_by(stage=settings.OrderStage.CREATING)
+        .filter(~Order.processed, ~Order.to_delete)
+        .outerjoin(Clothes, (Order.id == Clothes.order_id) & (Order.category == settings.Clothes.CATEGORY))  # Join с Clothes
+        .with_entities(
+            Order.id,
+            Order.order_idn,
+            Order.category,
+            Clothes.subcategory,  # Добавляем подкатегорию
+            Order.company_type,
+            Order.company_name,
+            Order.company_idn,
+            Order.to_delete,
+            Order.created_at,
+            Order.stage,
+            Order.closed_at
+        ).distinct()
+        .order_by(desc(Order.created_at))
+        .all()
+    )
     active_orders = []
     for el in categories.keys():
-        active_orders.append((el, list(filter(lambda x: x.category == el, active_orders_raw))))
+        if el == "одежда":  # Особый случай для категории "одежда"
+            orders_for_category = list(filter(lambda x: x.category == el, active_orders_raw))
+            # Группируем по подкатегориям
+            subcategories = {}
+            for order in orders_for_category:
+                subcat = order.subcategory or "общий"  # Если подкатегория не указана
+                if subcat not in subcategories:
+                    subcategories[subcat] = []
+                subcategories[subcat].append(order)
+            active_orders.append((el, subcategories))
+        else:
+            active_orders.append((el, list(filter(lambda x: x.category == el, active_orders_raw))))
 
     return jsonify({'ob_report': render_template(f'user_control/order_book/ob_modal.html', **locals())})
 

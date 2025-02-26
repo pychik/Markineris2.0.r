@@ -6,6 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 
 from config import settings
+from utilities.categories_data.subcategories_data import ClothesSubcategories
 
 db = SQLAlchemy()
 
@@ -473,14 +474,17 @@ class CQSMixin(db.Model, UserMixin):
     # cl_id = db.Column(db.Integer, db.ForeignKey('clothes.id', ondelete='CASCADE'), index=True)
 
 
+# class ClothesSubcategories(PyEnum):
+#     common: str = "common"
+#     underwear: str = "underwear"
+
+
 class Clothes(ClothesMixin):
     __tablename__ = "clothes"
 
     # CLOTHES PRODUCT tYPE IS TYPE COMMONMIXIN
-    # color = db.Column(db.String(50))
-    # gender = db.Column(db.String(50))
-    #
-    # content = db.Column(db.String(100))
+    # We use subcategory as a scaling option
+    subcategory = db.Column(db.String(32), nullable=False, default=ClothesSubcategories.common.value, server_default=ClothesSubcategories.common.value)
     sizes_quantities = db.relationship('ClothesQuantitySize', backref='clothes', cascade="all,delete", lazy='joined')
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), index=True)
 

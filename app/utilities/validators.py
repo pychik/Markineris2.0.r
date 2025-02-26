@@ -1,7 +1,10 @@
+from flask import request
 from re import fullmatch
 from typing import Optional
 
 from config import settings
+from utilities.categories_data.subcategories_data import ClothesSubcategories
+from utilities.categories_data.underwear_data import UNDERWEAR_TNVEDS
 
 
 class ValidatorProcessor:
@@ -36,8 +39,53 @@ class ValidatorProcessor:
             return False
 
     @staticmethod
+    def linen_pre_validate_tnved(tnved_str: str) -> bool:
+        if not tnved_str or tnved_str not in settings.Linen.TNVED_ALL:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def parfum_pre_validate_tnved(tnved_str: str) -> bool:
+        if not tnved_str or tnved_str not in settings.Parfum.TNVED_CODE:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def shoes_pre_validate_tnved(tnved_str: str) -> bool:
+        if not tnved_str or tnved_str not in settings.Shoes.TNVEDS_ALL:
+            return True
+        else:
+            return False
+
+    @staticmethod
     def socks_pre_validate_tnved(tnved_str: str) -> bool:
         if not tnved_str or tnved_str not in settings.Socks.TNVED_ALL:
             return True
         else:
             return False
+
+    @staticmethod
+    def underwear_pre_validate_tnved(tnved_str: str) -> bool:
+        if not tnved_str or tnved_str not in UNDERWEAR_TNVEDS:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def check_tnveds(category: str, subcategory: str, tnved_str: str) -> bool:
+        if category == settings.Socks.CATEGORY:
+            return ValidatorProcessor.socks_pre_validate_tnved(tnved_str=tnved_str)
+        elif category == settings.Linen.CATEGORY:
+            return ValidatorProcessor.linen_pre_validate_tnved(tnved_str=tnved_str)
+        elif category == settings.Parfum.CATEGORY:
+            return ValidatorProcessor.parfum_pre_validate_tnved(tnved_str=tnved_str)
+        elif category == settings.Shoes.CATEGORY:
+            return ValidatorProcessor.shoes_pre_validate_tnved(tnved_str=tnved_str)
+        else:
+            match subcategory:
+                case ClothesSubcategories.underwear.value:
+                    return ValidatorProcessor.underwear_pre_validate_tnved(tnved_str=tnved_str)
+                case _:
+                    return ValidatorProcessor.clothes_pre_validate_tnved(tnved_str=tnved_str)

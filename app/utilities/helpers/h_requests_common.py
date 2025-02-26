@@ -141,7 +141,7 @@ def h_change_order_org_param(o_id: int) -> Union[str, Response]:
 
         order_list, company_type, company_name, company_idn, \
             edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
-            total_price, price_exist = orders_list_common(category=category, user=current_user,
+            total_price, price_exist, subcategory = orders_list_common(category=category, user=current_user,
                                                           o_id=o_id)
 
     return render_template('change_org_v2.html', **locals())

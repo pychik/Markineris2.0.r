@@ -2,7 +2,7 @@
 <style>
 
     </style>
-    <div class="tab-pane faded show active" id="pills-{{categories_dict[category]}}" >
+    <div class="tab-pane faded show active" id="pills-{{categories_dict[category]}} {{ subcategories_dict.get('subcategory') if subcategories_dict.get('subcategory') else '' }}" >
         <div class="row  position-relative ">
             <div class="col-xs-12">
                 <div class="col-md-12 mt-3">

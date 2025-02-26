@@ -48,6 +48,9 @@ from utilities.pdf_processor import get_first_page_as_image
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.validators import ValidatorProcessor
 from views.crm.schema import CrmDefaults
+from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
+from .categories_data.subcategories_data import ClothesSubcategories, Category
+from .categories_data.subcategories_logic import get_subcategory
 from .cipher.instance import encryptor
 from .exceptions import GetFirstPageFromPDFError
 from .helpers.h_categories import order_table_update
@@ -175,6 +178,7 @@ def orders_list_common(category: str, user: User, new: bool = False, o_id: int =
     # prepare vars for our template
     price_exist = True if orders[0].article_price != 0 else False
     trademark = orders[0].trademark
+    subcategory = orders[0].subcategory if category == settings.Clothes.CATEGORY else ''
 
     rd_exist, quantity_list_raw, pos_count, orders_pos_count = order_count(category, order_list=orders)
     if price_exist:
@@ -183,7 +187,7 @@ def orders_list_common(category: str, user: User, new: bool = False, o_id: int =
     else:
         total_price = 0
     olc = Olc(orders, company_type, company_name, company_idn,
-              edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, total_price, price_exist)
+              edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, total_price, price_exist, subcategory)
     return olc
 
 
@@ -222,22 +226,28 @@ def check_order_pos(category: str, order: Order) -> Optional[int]:
 def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Response, str]:
     form_data_raw = request.form
 
-    # validate clothes TNVED is in CLOTHES tnveds(only clothes tnveds have dicts to check)
-    clothes_tnved_condition = category == settings.Clothes.CATEGORY and \
-                              ValidatorProcessor.clothes_pre_validate_tnved(tnved_str=form_data_raw.get('tnved_code'))
-    socks_tnved_condition = category == settings.Socks.CATEGORY and \
-                            ValidatorProcessor.socks_pre_validate_tnved(tnved_str=form_data_raw.get('tnved_code'))
+    # validate clothes TNVED is in CLOTHES tnveds(only clothes and socks tnveds have dicts to check)
+    # clothes_tnved_condition = category == settings.Clothes.CATEGORY and \
+    #         ValidatorProcessor.clothes_pre_validate_tnved(tnved_str=form_data_raw.get('tnved_code'))
+    # socks_tnved_condition = category == settings.Socks.CATEGORY and \
+    #         ValidatorProcessor.socks_pre_validate_tnved(tnved_str=form_data_raw.get('tnved_code'))
+    subcategory = request.args.get('subcategory', '')
+    if not Category.check_subcategory(category=category, subcategory=subcategory):
+        return jsonify(dict(status='error', message=settings.Messages.STRANGE_REQUESTS + 'у одежды нет такой подкатегории'))
 
-    if clothes_tnved_condition or socks_tnved_condition:
+    check_tnved_condition = ValidatorProcessor.check_tnveds(category=category,
+                                                            subcategory=subcategory,
+                                                            tnved_str=form_data_raw.get('tnved_code'))
+    if check_tnved_condition:
         if o_id and not p_id:
             return jsonify(dict(status='error', message=settings.Messages.TNVED_ABSENCE_ERROR))
 
         else:
             flash(message=settings.Messages.TNVED_ABSENCE_ERROR, category='error')
-            return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=o_id))
+            return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=o_id, subcategory=subcategory))
 
     order_id, sort_type, sort_order = preprocess_order_common(user=current_user, form_data_raw=form_data_raw,
-                                                              category=category,
+                                                              category=category, subcategory=subcategory,
                                                               o_id=o_id, p_id=p_id) \
         if category != settings.Parfum.CATEGORY else parfum_preprocess_order(user=current_user,
                                                                              form_dict=form_data_raw.to_dict(),
@@ -254,12 +264,13 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
     if not o_id and not p_id and order_id:
         flash(message=f"{settings.Messages.ORDER_ADD_POS_SUCCESS} {form_data_raw.get('article') if category != settings.Parfum.CATEGORY else form_data_raw.get('trademark')}")
 
-    return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=order_id,
+    return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=order_id, subcategory=subcategory,
                             sort_type=sort_type, sort_order=sort_order))
 
 
 def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
-                            category: str, o_id: int = None, p_id: int = None, ) -> tuple[Optional[int], Optional[str],
+                            category: str, subcategory: str = ClothesSubcategories.common.value,
+                            o_id: int = None, p_id: int = None, ) -> tuple[Optional[int], Optional[str],
                                                                                           Optional[str]]:
     form_dict: dict = form_data_raw.to_dict()
 
@@ -312,7 +323,7 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
             raise IntegrityError('Выбрана некорректная категория')
 
         updated_order = common_save_db(order=order, form_dict=form_dict,
-                                       category=category, sizes_quantities=sizes_quantities)
+                                       category=category, subcategory=subcategory, sizes_quantities=sizes_quantities)
 
         user.orders.append(updated_order)
 
@@ -369,7 +380,7 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
 def helper_category_common_index(o_id: int, category: str, category_process_name: str, user: User,
                                  update_flag: int = None, **kwargs):
     with_packages = False
-    active_orders = get_category_p_orders(user=user, category=category, processed=False)
+    active_orders = get_category_p_orders(user=user, category=category, subcategory=kwargs.get('subcategory'), processed=False)
 
     # if not specific order
     if not o_id:
@@ -379,15 +390,21 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
             flash(message=settings.Messages.USER_ORDERS_LIMIT, category='warning')
             return redirect(url_for(f'{category_process_name}.index', o_id=o_id))
 
-        else:
-            order_list, company_type, company_name, company_idn, \
-                edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
-                total_price, price_exist = orders_list_common(category=category, user=user, new=True)
+        subcategory = kwargs.get('subcategory')
+
+        # else:
+        #     order_list, company_type, company_name, company_idn, \
+        #         edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
+        #         total_price, price_exist, subcategory_proc = orders_list_common(category=category, user=user, new=True)
+            # if subcategory:
+            #     kwargs.pop('subcategory')
+            # else:
+            #     del subcategory
     else:
         specific_order = True
         orders, company_type, company_name, company_idn, \
             edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
-            total_price, price_exist = orders_list_common(category=category, user=user, o_id=o_id)
+            total_price, price_exist, subcategory = orders_list_common(category=category, user=user, o_id=o_id)
 
         if not orders:
             flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
@@ -403,6 +420,11 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
                                                                          settings.Socks.CATEGORY, ] \
             else False
 
+    kwargs.pop('subcategory') if 'subcategory' in kwargs else None
+    if category == settings.Clothes.CATEGORY:
+        (clothes_all_tnved, clothes_sizes,
+         clothes_types_sizes_dict, types, subcategory_name) = ClothesSubcategoryProcessor(
+            subcategory=subcategory).get_creds()
     return render_template(f'categories/category_v2.html', **locals(), **kwargs)
 
 
@@ -436,42 +458,12 @@ def helper_shoes_index(o_id: int, p_id: int = None, update_flag: int = None,
     genders = settings.Shoes.GENDERS
     materials_up_linen = settings.Shoes.MATERIALS_UP_LINEN
     materials_bottom = settings.Shoes.MATERIALS_BOTTOM
-    return helper_category_common_index(**locals())
 
+    subcategory = request.args.get('subcategory', '')
+    if subcategory:
+        flash(message=settings.Messages.STRANGE_REQUESTS + f'подкатегория неизвестна сервису', category='error')
+        return redirect(url_for(f'main.enter'))
 
-def helper_clothes_index(o_id: int, p_id: int = None, update_flag: int = None,
-                         copied_order: db.Model = None, edit_order: str = None) -> Union[Response, str]:
-    copy_order_edit_org = request.args.get('copy_order_edit_org')
-    user = current_user
-    admin_id = user.admin_parent_id
-    order_notification, admin_name, crm = helper_get_order_notification(admin_id=admin_id if admin_id else user.id)
-
-    price_description = settings.PRICE_DESCRIPTION
-    tnved_description = settings.TNVED_DESCRIPTION
-    clothes_tnved = settings.Clothes.TNVED_CODE
-    clothes_all_tnved = settings.Clothes.TNVED_ALL
-
-    rd_description = settings.RD_DESCRIPTION
-    rd_types_list = settings.RD_TYPES
-
-    price_text = settings.PRICES_TEXT
-    company_types = settings.COMPANY_TYPES
-    edo_types = settings.EDO_TYPES
-    tax_list = settings.TAX_LIST
-    countries = settings.COUNTRIES_LIST
-    clothes_content = settings.Clothes.CLOTHES_CONTENT
-    clothes_nat_content = settings.Clothes.CLOTHES_NAT_CONTENT
-    clothes_upper = settings.Clothes.UPPER_TYPES
-    clothes_sizes = settings.Clothes.SIZES_ALL
-    clothes_types_sizes_dict = settings.Clothes.SIZE_ALL_DICT
-
-    clothes_size_description = settings.Clothes.CLOTHES_SIZE_DESC
-    category = settings.Clothes.CATEGORY
-    category_process_name = settings.Clothes.CATEGORY_PROCESS
-
-    types = settings.Clothes.TYPES
-    colors = settings.Clothes.COLORS
-    genders = settings.Clothes.GENDERS
     return helper_category_common_index(**locals())
 
 
@@ -503,6 +495,12 @@ def helper_socks_index(o_id: int, p_id: int = None, update_flag: int = None,
     types = settings.Socks.TYPES
     colors = settings.Clothes.COLORS
     genders = settings.Socks.GENDERS
+
+    subcategory = request.args.get('subcategory', '')
+    if subcategory:
+        flash(message=settings.Messages.STRANGE_REQUESTS + f'подкатегория неизвестна сервису', category='error')
+        return redirect(url_for(f'main.enter'))
+
     return helper_category_common_index(**locals())
 
 
@@ -534,6 +532,12 @@ def helper_linen_index(o_id: int, p_id: int = None, update_flag: int = None,
     textile_types = settings.Linen.TEXTILE_TYPES
     customer_ages = settings.Linen.CUSTOMER_AGES
     box_quantity_description = settings.Linen.BOX_QUANTITY_DESCRIPTION
+
+    subcategory = request.args.get('subcategory', '')
+    if subcategory:
+        flash(message=settings.Messages.STRANGE_REQUESTS + f'подкатегория неизвестна сервису', category='error')
+        return redirect(url_for(f'main.enter'))
+
     return helper_category_common_index(**locals())
 
 
@@ -564,6 +568,11 @@ def helper_parfum_index(o_id: int, p_id: int = None, update_flag: int = None,
     package_types = settings.Parfum.PACKAGE_TYPES
     material_packages = settings.Parfum.MATERIAL_PACKAGES
     price_text = settings.PRICES_TEXT
+
+    subcategory = request.args.get('subcategory', '')
+    if subcategory:
+        flash(message=settings.Messages.STRANGE_REQUESTS + f'подкатегория неизвестна сервису', category='error')
+        return redirect(url_for(f'main.enter'))
 
     active_orders = get_category_p_orders(user=user, category=settings.Parfum.CATEGORY, processed=False)
     if not o_id:
@@ -612,7 +621,7 @@ def helper_preload_common(o_id: int, stage: int, category: str, category_process
 
     orders, company_type, company_name, company_idn, \
         edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
-        total_price, price_exist = orders_list_common(category=category, user=user, o_id=o_id, stage=stage)
+        total_price, price_exist, subcategory = orders_list_common(category=category, user=user, o_id=o_id, stage=stage)
 
     if not orders:
         flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
@@ -806,6 +815,10 @@ def common_process_delete_order(o_id: int, stage: int,) -> Optional[str]:
             flash(message=settings.Messages.ORDER_DELETE_STAGE, category='error')
             return settings.Messages.ORDER_DELETE_STAGE
 
+        subcategory = ''
+        if order.category == settings.Clothes.CATEGORY:
+            subcategory = get_subcategory(order_id=o_id, category=settings.Clothes.CATEGORY)
+
         try:
 
             # db.session.execute(text(f"DELETE FROM public.orders AS o WHERE o.id={order.id}"))
@@ -821,7 +834,7 @@ def common_process_delete_order(o_id: int, stage: int,) -> Optional[str]:
 
             return settings.Messages.ORDER_DELETE_ERROR
 
-        order_text = f"{order.category} {order.company_type} {order.company_name}" \
+        order_text = f"{order.category if not subcategory else settings.SUB_CATEGORIES_DICT[subcategory]} {order.company_type} {order.company_name}" \
                      f" от {order.created_at.strftime('%Y-%m-%d %H:%M:%S')}"
 
         flash(message=f"{settings.Messages.ORDER_DELETE_SUCCESS} {order_text}")
@@ -860,6 +873,11 @@ def process_delete_order_pos(category: str, o_id: int, m_id: int, edit: bool = F
 def helper_delete_order_pos(o_id: int, m_id: int, category: str, model: db.Model,
                             async_type: int = None) -> Union[tuple, Response]:
     cat_list = model.query.with_entities(model.id).filter_by(order_id=o_id).all()
+    subcategory = request.args.get('subcategory', '')
+    if not Category.check_subcategory(category=category, subcategory=subcategory):
+        return jsonify(
+            dict(status='error', message=settings.Messages.STRANGE_REQUESTS + ' нет такой подкатегории'))
+
     if len(cat_list) > 1:
         if not async_type:
             process_delete_order_pos(category=category, o_id=o_id, m_id=m_id)
@@ -874,9 +892,10 @@ def helper_delete_order_pos(o_id: int, m_id: int, category: str, model: db.Model
         status = common_process_delete_order(o_id=o_id, stage=settings.OrderStage.CREATING)
         o_id = None
         if async_type:
-            content = dict(status=status, type='order_delete', url=url_for(f'{settings.CATEGORIES_DICT.get(category)}.index'))
+            content = dict(status=status, type='order_delete',
+                           url=url_for(f'{settings.CATEGORIES_DICT.get(category)}.index', subcategory=subcategory))
             return jsonify(content)
-    return redirect(url_for(f'{settings.CATEGORIES_DICT.get(category)}.index', o_id=o_id))
+    return redirect(url_for(f'{settings.CATEGORIES_DICT.get(category)}.index', o_id=o_id, subcategory=subcategory))
 
 
 def get_file_extension(filename: str) -> Optional[str]:
@@ -1089,7 +1108,45 @@ def helper_get_order(user: User, category: str, o_id: int, stage: int) -> Option
     return order
 
 
-def get_category_p_orders(user: User, category: str, processed: bool) -> list:
+def h_helper_get_clothes_p_orders(user: User, processed: bool, subcategory: str = None) -> list:
+    subcategory_filter = ClothesSubcategories.common.value if not subcategory else subcategory
+    match processed:
+        case True:
+            return user.orders.filter_by(category=settings.Clothes.CATEGORY_PROCESS, processed=True).filter(~Order.to_delete) \
+                .join(Clothes).filter(Clothes.subcategory == subcategory_filter).with_entities(
+                    Order.id,
+                    Order.order_idn,
+                    Order.category,
+                    Order.company_type,
+                    Order.company_name,
+                    Order.company_idn,
+                    Order.to_delete,
+                    Order.created_at,
+                    Order.stage,
+                    Order.closed_at,
+                    Clothes.subcategory
+                ) \
+                .order_by(desc(Order.created_at)) \
+                .all()
+        case False:
+            return user.orders.filter_by(category=settings.Clothes.CATEGORY, processed=False,
+                                         stage=settings.OrderStage.CREATING).filter(~Order.to_delete) \
+                .join(Clothes).filter(Clothes.subcategory == subcategory_filter).with_entities(
+                Order.id,
+                Order.order_idn,
+                Order.category,
+                Order.company_type,
+                Order.company_name,
+                Order.company_idn,
+                Order.to_delete,
+                Order.created_at,
+                Order.stage,
+                Order.closed_at,
+                Clothes.subcategory). \
+                order_by(desc(Order.created_at)).all()
+
+
+def helper_get_p_order(user: User, category: str, processed: bool):
     match processed:
         case True:
             return (user.orders.filter_by(category=category, processed=True).filter(~Order.to_delete)
@@ -1103,6 +1160,27 @@ def get_category_p_orders(user: User, category: str, processed: bool) -> list:
                         .with_entities(Order.id, Order.company_type,
                                        Order.company_name, Order.to_delete, Order.created_at) \
                         .order_by(desc(Order.created_at)).all()
+
+
+# def get_subcategory(order_id: int, category: str) -> str | None:
+#     try:
+#         match category:
+#             case settings.Clothes.CATEGORY:
+#                 return Clothes.query.filter(
+#                         Clothes.order_id == order_id).first().subcategory
+#             case _:
+#                 return None
+#     except Exception:
+#         logger.exception(f'Ошибка подкатегории {order_id=}, {category=}')
+#         return None
+#
+#
+# def get_category_p_orders(user: User, category: str, processed: bool, subcategory: str = None) -> list:
+#     match category:
+#         case settings.Clothes.CATEGORY:
+#             return h_helper_get_clothes_p_orders(user=user, processed=processed, subcategory=subcategory)
+#         case _:
+#             return helper_get_p_order(user=user, category=category, processed=processed)
 
 
 def get_category_archive_all(user: User) -> list:
