@@ -1174,13 +1174,13 @@ def helper_get_p_order(user: User, category: str, processed: bool):
 #         logger.exception(f'Ошибка подкатегории {order_id=}, {category=}')
 #         return None
 #
-#
-# def get_category_p_orders(user: User, category: str, processed: bool, subcategory: str = None) -> list:
-#     match category:
-#         case settings.Clothes.CATEGORY:
-#             return h_helper_get_clothes_p_orders(user=user, processed=processed, subcategory=subcategory)
-#         case _:
-#             return helper_get_p_order(user=user, category=category, processed=processed)
+
+def get_category_p_orders(user: User, category: str, processed: bool, subcategory: str = None) -> list:
+    match category:
+        case settings.Clothes.CATEGORY:
+            return h_helper_get_clothes_p_orders(user=user, processed=processed, subcategory=subcategory)
+        case _:
+            return helper_get_p_order(user=user, category=category, processed=processed)
 
 
 def get_category_archive_all(user: User) -> list:
