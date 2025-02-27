@@ -761,7 +761,7 @@ function subcategory_size_add() {
     let size = sizeInput.value.trim();
     let quantity = parseInt(quantityInput.value.trim(), 10);
 
-    let sizePattern = /^[A-Za-z0-9]{1,5}$/;
+    let sizePattern = /^[A-Za-z0-9](-?[A-Za-z0-9]){0,4}$/;
 
     // Очистка ошибок при вводе
     sizeInput.addEventListener('input', () => errorBlock.textContent = "");
@@ -769,7 +769,7 @@ function subcategory_size_add() {
 
     // Проверка на корректность ввода
     if (!sizePattern.test(size)) {
-        errorBlock.textContent = "Размер должен содержать только латиницу и цифры (1-5 символов).";
+        errorBlock.textContent = "Размер должен содержать только латиницу и цифры (1-5 символов) и знак дефиса между ними.";
         return;
     }
     if (isNaN(quantity) || quantity < 1) {
@@ -812,12 +812,13 @@ function subcategory_size_add() {
                     </svg>
                     <div class="ms-2">
                         <span id="size_info">${size}</span>
-                        <span id="size_type_info" style="font-size: 10px">Свободный ввод</span>
+                        <span id="size_type_info" style="font-size: 10px">МЕЖДУНАРОДНЫЙ</span>
                     </div>
                 </div>
                 <div class="important-card__val"><span id="quantity_info">${quantity}</span> <span>шт.</span></div>
                 <input type="hidden" name="size" value="${size}">
                 <input type="hidden" name="quantity" value="${quantity}">
+                <input type="hidden" id="size_type" name="size_type" value="МЕЖДУНАРОДНЫЙ">
             </div>`;
 
         sizesQuantityBlock.innerHTML += sizeQuantityHTML;
