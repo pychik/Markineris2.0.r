@@ -8,7 +8,7 @@ from views.main.categories.clothes.support import h_bck_clothes_tnved
 from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.support import (check_order_pos, preprocess_order_category, common_process_delete_order,
     helper_delete_order_pos, user_activated, helper_process_category_order,
-    helper_preload_common, )
+    helper_preload_common, manager_forbidden)
 from utilities.upload_order.upload_clothes import UploadClothes
 from utilities.upload_order.upload_logic import helper_upload_common_get, helper_upload_common_post
 from views.main.categories.clothes.support import helper_clothes_index
