@@ -329,8 +329,9 @@ def helper_get_manager_orders(
                                  o.stage_setter_name as stage_setter_name,
                                  {additional_stmt}
                                  COUNT(o.id) as row_count,
+                                 {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                  {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
-                                  {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
+                                 {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                              FROM public.users u
                                  JOIN public.orders o ON o.user_id = u.id
                                  LEFT JOIN public.users a ON u.admin_parent_id = a.id   
@@ -373,6 +374,7 @@ def helper_get_manager_orders(
                                   o.stage_setter_name as stage_setter_name,
                                   {additional_stmt}
                                   COUNT(o.id) as row_count,
+                                  {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                   {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                   {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                               FROM public.users u
