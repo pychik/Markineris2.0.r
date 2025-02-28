@@ -6,10 +6,10 @@
         Приносим извинения за возможные неудобства и благодарим за понимание.
         С уважением,
         Команда марка сервис</p>
-
+<button type="button" class="btn-close" aria-label="Close" onclick="closeNotification()" style="position: absolute; right: 10px; top: 10px;"></button>
 </div>
 
-     <button type="button" class="btn-close" aria-label="Close" onclick="closeNotification()" style="position: absolute; right: 10px; top: 10px;"></button>
+
 <script>
 if (sessionStorage.getItem('notificationClosed')) {
     document.getElementById('notificationTop').style.display = 'none';
