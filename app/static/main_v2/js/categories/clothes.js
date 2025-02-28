@@ -704,6 +704,7 @@ function updateSizesQuantityBlock() {
 
     // Обрабатываем выбранные размеры из формы
     let selectedSizes = document.querySelectorAll('#sizesClothesModal .form-control:not([readonly]):not([disabled])');
+    let newSizes = {};
     selectedSizes.forEach(input => {
         let size = input.getAttribute('id').replace('size_', '').trim();
         let quantity = parseInt(input.value.trim(), 10);
@@ -713,15 +714,12 @@ function updateSizesQuantityBlock() {
         if (size === 'ЕДИНЫЙ РАЗМЕР') {
             sizeType = 'РОССИЯ';
         }
-        // else if (!sizeType || sizeType === "Свободный ввод") {
-        //     sizeType = "МЕЖДУНАРОДНЫЙ";
-        // }
+
+        newSizes[size] = { quantity, sizeType };
+
 
         // Если размер уже есть, обновляем количество
         if (existingSizes[size]) {
-            // let newQuantity = existingSizes[size].quantity + quantity;
-            // existingSizes[size].element.querySelector('#quantity_info').textContent = newQuantity;
-            // existingSizes[size].element.querySelector('input[name="quantity"]').value = newQuantity;
             existingSizes[size].element.querySelector('#quantity_info').textContent = quantity;
             existingSizes[size].element.querySelector('input[name="quantity"]').value = quantity;
         } else {
@@ -750,6 +748,15 @@ function updateSizesQuantityBlock() {
         }
     });
 
+    Object.keys(existingSizes).forEach(size => {
+        if (!newSizes[size] && !Object.values(clothes_types_sizes_dict).some(sizes => sizes.includes(size))) {
+            return;
+        }
+        if (!newSizes[size]) {
+            existingSizes[size].element.remove();
+        }
+    });
+
     setClothes();
 }
 
@@ -767,9 +774,23 @@ function subcategory_size_add() {
     sizeInput.addEventListener('input', () => errorBlock.textContent = "");
     quantityInput.addEventListener('input', () => errorBlock.textContent = "");
 
+    // Проверка, есть ли размер в словаре
+    let foundType = null;
+    for (let type in clothes_types_sizes_dict) {
+        if (clothes_types_sizes_dict[type].includes(size)) {
+            foundType = type;
+            break;
+        }
+    }
+
+    if (foundType) {
+        errorBlock.textContent = `Размер '${size}' уже существует в категории '${foundType}'.`;
+        return;
+    }
+
     // Проверка на корректность ввода
     if (!sizePattern.test(size)) {
-        errorBlock.textContent = "Размер должен содержать только латиницу и цифры (1-5 символов) и знак дефиса между ними.";
+        errorBlock.textContent = "Размер должен содержать только латиницу, цифры и знак дефиса между ними (1-5 символов).";
         return;
     }
     if (isNaN(quantity) || quantity < 1) {
@@ -790,7 +811,6 @@ function subcategory_size_add() {
         let sizeSpan = block.querySelector('#size_info');
         if (sizeSpan && sizeSpan.textContent === size) {
             let quantitySpan = block.querySelector('#quantity_info');
-            // let newQuantity = parseInt(quantitySpan.textContent, 10) + quantity;
             let newQuantity = quantity;
             quantitySpan.textContent = newQuantity; // Обновляем количество
             block.querySelector('input[name="quantity"]').value = newQuantity;
