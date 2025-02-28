@@ -1,0 +1,23 @@
+{% if current_user.is_authenticated %}
+<div id="notificationTop" style="background-color: #ffd500; color: #333; padding: 15px; text-align: center; font-size: 16px; position: relative; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);">
+    <p style="margin: 0; font-weight: bold;">Уважаемые клиенты платформы Маркинерис! Просьба планировать свои поставки с запасом в пару дней. Сайт «Честного Знака» работает с большими задержками из-за нагрузки на серверы последовавшие после добавления новых категорий.
+        Как только все задержки со стороны «Честного Знака» будут решены, наша скорость выполнения заказов восстановится.<br>
+        <span style="font-size:23px">Текущие сроки от 2-3 дней.</span><br>
+        Приносим извинения за возможные неудобства и благодарим за понимание.
+        С уважением,
+        Команда марка сервис</p>
+
+</div>
+
+     <button type="button" class="btn-close" aria-label="Close" onclick="closeNotification()" style="position: absolute; right: 10px; top: 10px;"></button>
+<script>
+if (sessionStorage.getItem('notificationClosed')) {
+    document.getElementById('notificationTop').style.display = 'none';
+}
+
+function closeNotification() {
+    sessionStorage.setItem('notificationClosed', 'true');
+    document.getElementById('notificationTop').style.display = 'none';
+}
+</script>
+{% endif %}
