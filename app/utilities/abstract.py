@@ -77,5 +77,6 @@ class ProcessorInterface(ABC):
                   edo_id: str, mark_type: str, c_name: str, c_phone: str, c_email: str, ) -> tuple[BytesIO, str]:
         ...
 
+    @staticmethod
     def eatp(value: str, field_type: str) -> str:
         ...
