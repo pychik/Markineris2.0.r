@@ -695,7 +695,6 @@ function updateSizesQuantityBlock() {
         let sizeType = input.getAttribute('data-size-type'); // Get the size type}
         if (special_clothes_sizes.includes(size)){sizeType = 'РОССИЯ';}
 
-
         // Create HTML for the size, size type, and quantity
         let sizeQuantityHTML = `
             <div class="important-card__item important-card__size ms-2">
