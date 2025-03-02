@@ -20,7 +20,7 @@
                                 </div>
                                 <div class="order__time" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right"
                                     data-bs-title="CRM: {{n.crm_created_at.strftime('%d-%m-%Y %H:%M:%S')}}<br>MS: {{n.m_started.strftime('%d-%m-%Y %H:%M:%S')}}{% if n.cp_created %}<br>MCP: {{n.cp_created.strftime('%d-%m-%Y %H:%M:%S')}}{% endif %}">
-                                    {{n.crm_created_at | time_since}}
+                                    {%if n.p_started %}{{n.p_started | time_since}}{%else%}{{n.crm_created_at | time_since}}{%endif%}
                                 </div>
                             </div>
                             <div class="order__icons icons">

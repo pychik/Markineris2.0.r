@@ -14,7 +14,7 @@
                     </div>
                     <div class="order__time" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right"
                         data-bs-title="CRM: {{n.crm_created_at.strftime('%d-%m-%Y %H:%M:%S')}}<br>POL: {%if n.p_started %}{{n.p_started.strftime('%d-%m-%Y %H:%M:%S')}}{%else%}{{n.crm_created_at.strftime('%d-%m-%Y %H:%M:%S')}}{%endif%}<br>MS: {{n.m_started.strftime('%d-%m-%Y %H:%M:%S')}}<br>MF: {{n.m_finished.strftime('%d-%m-%Y %H:%M:%S')}}">
-                        {%if n.p_started %}{{n.p_started | time_since}}{%else%}{{n.crm_created_at | time_since}}{%endif%}
+                        {%if n.p_started %}{{n.p_started | time_since_top}}{%else%}{{n.crm_created_at | time_since_top}}{%endif%}
                     </div>
                 </div>
                 <div class="order__icons icons">
