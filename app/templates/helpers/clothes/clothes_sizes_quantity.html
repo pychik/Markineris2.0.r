@@ -64,6 +64,7 @@ const check_list = {{ clothes_sizes | safe}};
 const clothes_types_sizes_dict =  { {% for k, v in clothes_types_sizes_dict.items() %}
                                         '{{ k }}': [{% for size in v %} '{{ size }}', {% endfor %} ],
                                     {% endfor %} }
+const special_clothes_sizes = ["ЕДИНЫЙ РАЗМЕР", "ONE SIZE"]
 
 
 

@@ -729,7 +729,7 @@ CLOTHES_ST_ROST: tuple = ('50-56', '56-62', '62-68', '68-74', '74-80', '80-86', 
                           '104-110', '110-116', '116-122', '122-128', '128-134', '134-140', '140-146', '146-152',
                           '152-158', '158-164', '164-170', '170-175', '175-180', '180-185', '185-190', '195-200', )
 
-CLOTHES_ST_SPECIAL: tuple = ('ЕДИНЫЙ РАЗМЕР',)
+CLOTHES_ST_SPECIAL: tuple = ('ЕДИНЫЙ РАЗМЕР', 'ONE SIZE')
 
 CLOTHES_TYPES_SIZES_DICT: dict = {'РОССИЯ': CLOTHES_ST_RUSSIA, 'МЕЖДУНАРОДНЫЙ': CLOTHES_ST_INTERNATIONAL,
                                   'РОСТ': CLOTHES_ST_ROST, 'ОСОБЫЕ_РАЗМЕРЫ': CLOTHES_ST_SPECIAL}
