@@ -208,6 +208,26 @@ class OrdersProcessor(ProcessorInterface, ABC):
 
         return OrdersProcessor.archive_excels(excel_files=excel_files, filename=self.path)
 
+    @staticmethod
+    def eatp(value: str, field_type: str) -> str:
+        """
+        empty_article_trademark_process
+        Обрабатывает входное значение в зависимости от типа поля.
+
+        :param value: Входное значение (строка).
+        :param field_type: Тип поля ('article' или 'trademark').
+        :return: Преобразованное значение в зависимости от условий.
+        """
+        match field_type:
+            case "article" if value == "БЕЗ АРТИКУЛА":
+                return "  "
+            case "trademark" if value == "БЕЗ ТОВАРНОГО ЗНАКА":
+                return "  "
+            case "article":
+                return "арт. " + value
+            case _:
+                return value
+
 
 class ShoesProcessor(OrdersProcessor):
 
@@ -224,8 +244,8 @@ class ShoesProcessor(OrdersProcessor):
                 if not el.tnved_code else el.tnved_code
             declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
             for sq in el.sizes_quantities:
-                full_name = f'{el.type} {el.gender} {el.trademark} ' \
-                            f'арт. {el.article} цвет. {el.color} р.{sq.size}'
+                full_name = f'{el.type} {el.gender} {OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} ' \
+                            f'{OrdersProcessor.eatp(value=el.article, field_type="article")} цвет. {el.color} р.{sq.size}'
 
                 temp_list = [tnved[:4], full_name,
                              el.trademark, "Артикул", el.article,
@@ -277,12 +297,12 @@ class LinenProcessor(OrdersProcessor):
             table_type = el.type if el.type != 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ' else 'КОМПЛЕКТ'
             for sq in el.sizes_quantities:
                 if el.with_packages == 'да':
-                    full_name = f'Комплект {el.type} {el.trademark} {sq.quantity} шт. ' \
-                                f'Арт. {el.article} цвет {el.color}, р.{sq.size}'
+                    full_name = f'Комплект {el.type} {OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {sq.quantity} шт. ' \
+                                f'{OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color}, р.{sq.size}'
                     fin_quantity = el.box_quantity
                 else:
-                    full_name = f'{el.type} {el.trademark} ' \
-                                f'арт. {el.article} цвет {el.color}, р.{sq.size}'
+                    full_name = f'{el.type} {OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} ' \
+                                f'{OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color}, р.{sq.size}'
                     fin_quantity = sq.quantity * el.box_quantity
                 temp_list = [tnved[:4], full_name,
                              el.trademark, "Артикул", el.article,
@@ -308,11 +328,11 @@ class ParfumProcessor(OrdersProcessor):
 
         for el in orders_list:
             if el.with_packages == 'да':
-                full_name = f'Набор {el.type} {el.trademark} {el.quantity} шт., ' \
+                full_name = f'Набор {el.type} {OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {el.quantity} шт., ' \
                             f'{el.volume} {el.volume_type}'
                 fin_quantity = el.box_quantity
             else:
-                full_name = f'{el.type} {el.trademark} , ' \
+                full_name = f'{el.type} {OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} , ' \
                             f'{el.volume} {el.volume_type}'
                 fin_quantity = el.quantity
 
@@ -366,7 +386,7 @@ class ClothesProcessor(OrdersProcessor):
                 gender = ClothesProcessor.get_gender(gender=el.gender) if not flag_046 \
                     else ClothesProcessor.get_gender_046(gender=el.gender)
                 full_name = f'{el.type} {gender_dec} ' \
-                            f'{el.trademark} арт. {el.article} цвет {el.color} р. {sq.size}'
+                            f'{OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color} р. {sq.size}'
 
                 temp_list = [fc_tnved, full_name,
                              el.trademark, 'Артикул', el.article, el.type, el.color, gender, sq.size_type, sq.size,
@@ -447,7 +467,7 @@ class SocksProcessor(OrdersProcessor):
                 gender = SocksProcessor.get_gender(gender=el.gender) if not flag_046 \
                     else SocksProcessor.get_gender_046(gender=el.gender)
                 full_name = f'{el.type} {gender_dec} ' \
-                            f'{el.trademark} арт. {el.article} цвет {el.color} р. {sq.size}'
+                            f'{OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color} р. {sq.size}'
 
                 temp_list = [fc_tnved, full_name,
                              el.trademark, 'Артикул', el.article, el.type, el.color, gender, sq.size_type, sq.size,

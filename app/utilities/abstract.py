@@ -76,3 +76,6 @@ class ProcessorInterface(ABC):
                   c_partner_code: str, company_type: str, company_name: str, company_idn: str, edo_type: str,
                   edo_id: str, mark_type: str, c_name: str, c_phone: str, c_email: str, ) -> tuple[BytesIO, str]:
         ...
+
+    def eatp(value: str, field_type: str) -> str:
+        ...
