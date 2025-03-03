@@ -335,7 +335,7 @@ def helper_get_manager_orders(
                                  LEFT JOIN public.users managers ON o.manager_id = managers.id
                            WHERE {conditional_stmt} AND o.to_delete != True
                            GROUP BY u.id, o.id, o.crm_created_at
-                           ORDER BY o.crm_created_at ASC
+                          ORDER BY o.p_started ASC NULLS LAST, o.crm_created_at ASC
                           """).bindparams(manager_id=manager_id)
     else:
         manager_condition = f" AND o.manager_id=:filtered_manager_id" if filtered_manager_id else ""
@@ -379,7 +379,7 @@ def helper_get_manager_orders(
                                   LEFT JOIN public.users managers ON o.manager_id = managers.id 
                               WHERE  {conditional_stmt}{vsoc} AND o.to_delete != True
                               GROUP BY u.id, o.id, o.crm_created_at
-                              ORDER BY o.crm_created_at ASC
+                              ORDER BY o.p_started ASC NULLS LAST, o.crm_created_at ASC
                                """)
         stmt_orders = stmt_orders_qry.bindparams(
             filtered_manager_id=filtered_manager_id) if filtered_manager_id else stmt_orders_qry
