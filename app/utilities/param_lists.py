@@ -717,15 +717,19 @@ CLOTHES_ST_RUSSIA: tuple = ('12', '13', '14', '15', '16', '17', '18', '19', '20'
                             '62-64', '64-66', '66-68', '68-70', '70-72', '72-74', '74-76', '76-78', '78-80', '80-82',
                             '82-84', '84-86', '86-88', '88-90', '90-92', '92-94', '94-96', '96-98', '98-100', )
 
-CLOTHES_ST_INTERNATIONAL: tuple = ('2XS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '4XL', '5XL', '6XL', '7XL', '8XL', '9XL',
-                                   '10XL', '11XL', '12XL', '13XL', '14XL', '15XL', '16XL', '17XL', '18XL',
-                                   '19XL', '20XL',)
+CLOTHES_ST_INTERNATIONAL: tuple = (
+    "3XS", "2XS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "4XL", "5XL", "6XL", "7XL", "8XL", "9XL",
+    "10XL", "11XL", "12XL", "13XL", "14XL", "15XL", "16XL", "17XL", "18XL", "19XL", "20XL",
+    "3XS-2XS", "2XS-XS", "XS-S", "S-M", "M-L", "L-XL", "XL-XXL", "XXL-XXXL", "XXXL-4XL", "4XL-5XL",
+    "5XL-6XL", "6XL-7XL", "7XL-8XL", "8XL-9XL", "9XL-10XL", "10XL-11XL", "11XL-12XL", "12XL-13XL",
+    "13XL-14XL", "14XL-15XL", "15XL-16XL", "16XL-17XL", "17XL-18XL", "18XL-19XL", "19XL-20XL"
+)
 
 CLOTHES_ST_ROST: tuple = ('50-56', '56-62', '62-68', '68-74', '74-80', '80-86', '86-92', '92-98', '98-104',
                           '104-110', '110-116', '116-122', '122-128', '128-134', '134-140', '140-146', '146-152',
                           '152-158', '158-164', '164-170', '170-175', '175-180', '180-185', '185-190', '195-200', )
 
-CLOTHES_ST_SPECIAL: tuple = ('ЕДИНЫЙ РАЗМЕР',)
+CLOTHES_ST_SPECIAL: tuple = ('ЕДИНЫЙ РАЗМЕР', 'ONE SIZE')
 
 CLOTHES_TYPES_SIZES_DICT: dict = {'РОССИЯ': CLOTHES_ST_RUSSIA, 'МЕЖДУНАРОДНЫЙ': CLOTHES_ST_INTERNATIONAL,
                                   'РОСТ': CLOTHES_ST_ROST, 'ОСОБЫЕ_РАЗМЕРЫ': CLOTHES_ST_SPECIAL}

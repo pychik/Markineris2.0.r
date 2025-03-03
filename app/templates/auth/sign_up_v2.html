@@ -68,16 +68,15 @@
                     <input type="hidden" class="form-control" id="captcha_hash" name="captcha-hash" value="{{ captcha_hash | safe }}">
             </div>
 
-    {#       <button type="submit" class="btn btn-lg btn-accent btn-block mt-3">Зарегистрироваться</button>#}
             <button type="submit" id="submit-button" class="btn btn-lg btn-accent btn-block mt-3">
                 Зарегистрироваться
             </button>
         {% else %}
             <div class="d-flex align-items-center my-3">
                 <input type="tel" name="phone" id="phone" class="form-control me-2" autocomplete="off"
-                       placeholder="Введите номер WhatsApp" onchange="check_intel_num()" required autofocus>
+                       placeholder="Введите номер WhatsApp" onchange="check_intel_num()" autofocus>
                 <input type="hidden" name="full_phone" id="full_phone" value="">
-                <button type="button" class="btn btn-secondary" onclick="verifyPhoneNumber(`{{ url_for('auth.send_verification_code') }}`)">
+                <button type="button" id ="verifyPhoneNumberButton" class="btn btn-secondary" onclick="verifyPhoneNumber(`{{ url_for('auth.send_verification_code') }}`)">
                     Верификация номера
                 </button>
             </div>
@@ -175,6 +174,8 @@
           $('#hello_signupModal').modal('show');
 
     };
+  const tele2Codes = ["900", "901", "902", "904", "908", "950", "951", "952", "953", "958",
+                                "977", "991", "992", "993", "994", "995", "996", "999" ];
 
   var tel_input = document.querySelector("#phone");
 

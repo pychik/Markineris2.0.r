@@ -1053,6 +1053,7 @@ class Settings(BaseSettings):
         SIZE_ALL_DICT: dict = CLOTHES_TYPES_SIZES_DICT
         DEFAULT_SIZE_TYPE: str = "РОССИЯ"
         UNITE_SIZE_VALUE: str = "ЕДИНЫЙ РАЗМЕР"
+        UNITE_SIZE_VALUES: tuple = ("ЕДИНЫЙ РАЗМЕР", "ONE SIZE", )
         SYZE_TYPES_CODES: dict = CLOTHES_ST_DICT
         SIZE_TYPES_ALL: list = CLOTHES_TYPES_SIZES_DICT.keys()  # temporary before all types are ok to use
         TNVED_CODE: tuple = CLOTHES_TNVED  # "6202900001"
@@ -1102,6 +1103,7 @@ class Settings(BaseSettings):
         SIZE_ALL_DICT: dict = SOCKS_TYPES_SIZES_DICT
         DEFAULT_SIZE_TYPE: str = "РОССИЯ"
         UNITE_SIZE_VALUE: str = "ЕДИНЫЙ РАЗМЕР"
+        UNITE_SIZE_VALUES: tuple = ("ЕДИНЫЙ РАЗМЕР", "ONE SIZE",)
         SYZE_TYPES_CODES: dict = SOCKS_ST_DICT
         SIZE_TYPES_ALL: list = SOCKS_SIZE_TYPES  # temporary before all types are ok to use
         # TNVED_CODE: tuple = CLOTHES_TNVED  # "6202900001"

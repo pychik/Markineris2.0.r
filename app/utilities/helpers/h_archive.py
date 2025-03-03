@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, render_template, redirect, url_for, flash, Response, make_response, request
 from flask_login import current_user
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, or_
 
 from loguru import logger
 from config import settings
@@ -42,21 +42,37 @@ def h_category(category: str = settings.Shoes.CATEGORY, upload_flag: int = None)
         else:
             flash(message=message, category='error')
             return redirect(url_for('main.enter'))
+    query = (user.orders.filter(
+            ~Order.to_delete,
+            Order.category == category,
+            Order.stage > 0
+        )
+        .with_entities(
+            Order.id, Order.stage, Order.order_idn, Order.category,
+            Order.company_type, Order.company_name, Order.company_idn,
+            Order.to_delete, Order.processed, Order.payment, Order.created_at,
+            Order.crm_created_at, Order.stage, Order.closed_at,
+            func.max(OrderFile.file_link).label('file_link')  # Агрегируем file_link
+        )
+        .outerjoin(OrderFile, Order.order_zip_file)
+        .group_by(Order.id)
+        .order_by(desc(Order.crm_created_at))
+    )
 
-    query = (user.orders.filter(~Order.to_delete, Order.category == category,
-                                         Order.stage > 0).with_entities(Order.id, Order.stage, Order.order_idn,
-                                                                        Order.category, Order.company_type,
-                                                                        Order.company_name, Order.company_idn,
-                                                                        Order.to_delete, Order.processed, Order.payment,
-                                                                        Order.created_at, Order.crm_created_at,
-                                                                        Order.stage, Order.closed_at,
-                                                                        func.max(OrderFile.file_link).label(
-                                                                            'file_link')  # Агрегируем file_link
-                                                                        ).outerjoin(OrderFile, Order.order_zip_file).group_by(Order.id)
-                              .order_by(desc(Order.crm_created_at)))
+    # Добавляем проверку на подкатегорию
+    if category == settings.Clothes.CATEGORY:
+        query = query.join(Clothes, Order.id == Clothes.order_id)
 
-    if subcategory and category == settings.Clothes.CATEGORY:
-        query = query.join(Clothes, Order.id == Clothes.order_id).filter(Clothes.subcategory == subcategory)
+        if subcategory is None or subcategory == '' or subcategory == 'common':
+            query = query.filter(or_(
+                Clothes.subcategory.is_(None),  # subcategory = NULL в базе
+                Clothes.subcategory == '',  # subcategory = '' в базе
+                Clothes.subcategory == 'common'  # subcategory = 'common' в базе
+            ))
+        else:
+            # Иначе фильтруем по конкретному subcategory
+            query = query.filter(Clothes.subcategory == subcategory)
+
     category_orders = query.all()
 
     link = 'javascript:get_category_history(\''+url_for('orders_archive.index', category=category,

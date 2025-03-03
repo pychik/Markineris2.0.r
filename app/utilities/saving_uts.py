@@ -10,6 +10,7 @@ from config import settings
 from logger import logger
 from models import User, Order, Shoe, ShoeQuantitySize, Socks, SocksQuantitySize, Linen, LinenQuantitySize, Parfum, \
     Clothes, ClothesQuantitySize, db
+from utilities.categories_data.subcategories_data import ClothesSubcategories
 
 
 def time_count(func):
@@ -60,10 +61,10 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcateg
                                 tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                                 tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
                                 rd_name=form_dict.get("rd_name").replace('№', ''),
-                                rd_date=rd_date, subcategory=subcategory)
+                                rd_date=rd_date, subcategory=subcategory if subcategory else ClothesSubcategories.common.value)
 
     extend_sq = (ClothesQuantitySize(size=el[0], quantity=el[1],
-                                     size_type=el[2] if el[0] != settings.Clothes.UNITE_SIZE_VALUE
+                                     size_type=el[2] if el[0] not in settings.Clothes.UNITE_SIZE_VALUES
                                      else settings.Clothes.DEFAULT_SIZE_TYPE) for el in sizes_quantities)
     new_clothes_order.sizes_quantities.extend(extend_sq)
     order.clothes.append(new_clothes_order)
@@ -83,7 +84,7 @@ def save_socks(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
                               rd_name=form_dict.get("rd_name").replace('№', ''),
                               rd_date=rd_date)
     extend_sq = (SocksQuantitySize(size=el[0], quantity=el[1],
-                                   size_type=el[2] if el[0] != settings.Socks.UNITE_SIZE_VALUE
+                                   size_type=el[2] if el[0] not in settings.Socks.UNITE_SIZE_VALUES
                                      else settings.Socks.DEFAULT_SIZE_TYPE) for el in sizes_quantities)
     new_socks_order.sizes_quantities.extend(extend_sq)
     order.socks.append(new_socks_order)

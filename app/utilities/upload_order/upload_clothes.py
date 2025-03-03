@@ -62,7 +62,7 @@ class ValidateClothesMixin:
 
         # corrected_value = value.strip().replace(' ', '')
         # size_value.replace not making because of spaces in sizes
-        if size_value == settings.Clothes.UNITE_SIZE_VALUE:
+        if size_value in settings.Clothes.UNITE_SIZE_VALUES:
             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = settings.Clothes.DEFAULT_SIZE_TYPE
             return
         for el in settings.Clothes.SIZE_TYPES_ALL:

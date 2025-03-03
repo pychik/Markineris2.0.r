@@ -16,7 +16,7 @@
         </div>
         <ul class=" nav-pills  nav-pills--cat mb-4" id="pills-tab" role="tablist">
 <!--            <span onclick="get_shoes_history('{{ url_for('orders_archive.index', category='обувь', upload_flag=1) }}')">-->
-            <a href="javascript:get_category_history('{{ url_for('orders_archive.index', category='обувь', upload_flag=111)}}', 'shoes')">
+            <a href="javascript:get_category_history(`{{ url_for('orders_archive.index', category='обувь', upload_flag=111)}}`, 'shoes')">
                 <li class="nav-link" id="pills-shoes-tab"
                     type="button" role="tab">
                     <button class="text-center border-0">
@@ -45,7 +45,7 @@
             </a>
 
 
-            <a href="javascript:get_category_history('{{ url_for('orders_archive.index', category='одежда', upload_flag=111)}}', 'clothes')">
+            <a href="javascript:get_category_history(`{{ url_for('orders_archive.index', category='одежда', upload_flag=111)}}`, 'clothes')">
                 <li class="nav-link"  id="pills-clothes-tab"
                     type="button" role="tab" >
                     <button class="text-center border-0">
@@ -67,7 +67,7 @@
             </a>
 
 
-            <a href="javascript:get_category_history('{{ url_for('orders_archive.index', category='белье', upload_flag=111)}}', 'linen')">
+            <a href="javascript:get_category_history(`{{ url_for('orders_archive.index', category='белье', upload_flag=111)}}`, 'linen')">
                 <li class="nav-link " id="pills-linen-tab"
                 type="button" role="tab" >
                 <button class="text-center border-0">
@@ -84,7 +84,7 @@
             </a>
 
 
-            <a href="javascript:get_category_history('{{ url_for('orders_archive.index', category='парфюм', upload_flag=111)}}', 'parfum')">
+            <a href="javascript:get_category_history(`{{ url_for('orders_archive.index', category='парфюм', upload_flag=111)}}`, 'parfum')">
                 <li class="nav-link " id="pills-parfum-tab"
                 type="button" role="tab" >
                     <button class="text-center border-0">
@@ -105,7 +105,7 @@
                     </button>
                 </li>
             </a>
-            <a href="javascript:get_category_history('{{ url_for('orders_archive.index', category='носки и прочее', upload_flag=111)}}', 'socks')">
+            <a href="javascript:get_category_history(`{{ url_for('orders_archive.index', category='носки и прочее', upload_flag=111)}}`, 'socks')">
                 <li class="nav-link" id="pills-socks-tab"
                     type="button" role="tab">
                     <button class="text-center border-0">
@@ -131,7 +131,7 @@
 
 {#        </ul>#}
 {#        <ul class=" nav-pills  nav-pills--cat mb-4" id="pills-tab" role="tablist">#}
-            <a href="javascript:get_category_history('{{ url_for('orders_archive.index', category='одежда', subcategory='underwear', upload_flag=111)}}', 'clothes', 'underwear')">
+            <a href="javascript:get_category_history(`{{ url_for('orders_archive.index', category='одежда', subcategory='underwear', upload_flag=111)}}`, 'clothes', 'underwear')">
                 <li class="nav-link"  id="pills-underwear-tab"
                     type="button" role="tab" >
                     <button class="text-center border-0">

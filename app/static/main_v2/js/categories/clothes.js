@@ -607,20 +607,19 @@ function chooseSizeClothes(subcategory) {
     let subcategoryInputBlock = '';
 
     // Если subcategory == 'underwear', добавляем input
-    if (subcategory === 'underwear') {
-        subcategoryInputBlock = `
-            <button class="btn btn-outline-secondary mb-3" type="button" onclick="document.getElementById('freeInputBlock').classList.toggle('d-none')">Свободный ввод</button>
-            <div id="freeInputBlock" class="d-none">
-                <p>Поле свободного ввода размера (введите размер, количество и нажмите добавить)</p>
-                <div class="input-group mb-3">
-                    <input type="text" class="form-control" id="subcategorySizeInput" placeholder="Введите размер" maxlength="5" pattern="[A-Za-z0-9]{1,5}" title="Только латиница и цифры (до 5 символов)" required>
-                    <input type="number" class="form-control" id="subcategorySizeQuantity" placeholder="Кол-во" min="1" required>
-                    <button class="btn btn-accent" type="button" onclick="subcategory_size_add()">Добавить</button>
-                    <div class="invalid-feedback d-block" id="subcategorySizeError"></div>
-                </div>
-            </div>`;
-    }
-
+    // if (subcategory === 'underwear') {
+    subcategoryInputBlock = `
+        <button class="btn btn-outline-secondary mb-3" type="button" onclick="document.getElementById('freeInputBlock').classList.toggle('d-none')">Свободный ввод</button>
+        <div id="freeInputBlock" class="d-none">
+            <p>Поле свободного ввода размера (введите размер, количество и нажмите добавить)</p>
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" id="subcategorySizeInput" placeholder="Введите размер" maxlength="8" pattern="[A-Za-z0-9]{1,8}" title="Только латиница и цифры (до 5 символов)" required>
+                <input type="number" class="form-control" id="subcategorySizeQuantity" placeholder="Кол-во" min="1" required>
+                <button class="btn btn-accent" type="button" onclick="subcategory_size_add()">Добавить</button>
+                <div class="invalid-feedback d-block" id="subcategorySizeError"></div>
+            </div>
+        </div>`;
+    // }
     for (let clothingType in clothes_types_sizes_dict) {
         if (clothes_types_sizes_dict.hasOwnProperty(clothingType)) {
             let sizes = clothes_types_sizes_dict[clothingType];
@@ -711,7 +710,7 @@ function updateSizesQuantityBlock() {
         let sizeType = input.getAttribute('data-size-type') || "";
 
         if (size === 'subcategorySizeInput' || size === 'subcategorySizeQuantity') return;
-        if (size === 'ЕДИНЫЙ РАЗМЕР') {
+        if (special_clothes_sizes.includes(size)) {
             sizeType = 'РОССИЯ';
         }
 
@@ -768,7 +767,7 @@ function subcategory_size_add() {
     let size = sizeInput.value.trim();
     let quantity = parseInt(quantityInput.value.trim(), 10);
 
-    let sizePattern = /^[A-Za-z0-9](-?[A-Za-z0-9]){0,4}$/;
+    let sizePattern = /^[A-Za-z0-9](-?[A-Za-z0-9]){0,7}$/;
 
     // Очистка ошибок при вводе
     sizeInput.addEventListener('input', () => errorBlock.textContent = "");
@@ -867,56 +866,54 @@ function check_clothes_quantity_input(block){
 }
 
 
-function create_size_blocks(sizes, clothingType){
+function create_size_blocks(sizes, clothingType) {
     let sizesBlock = '';
+    const special_clothes_sizes = ["ЕДИНЫЙ РАЗМЕР", "ONE SIZE"];
+    let quantityMap = {}; // Объект для хранения количества каждого специального размера
+
+    // Сначала собираем данные о наличии размеров и их количестве
+    document.querySelectorAll('#sizes_quantity .important-card__size').forEach(item => {
+        let sizeTypeInCard = item.querySelector('#size_type_info').textContent;
+        let sizeInCard = item.querySelector('#size_info').textContent;
+        let quantity = parseInt(item.querySelector('#quantity_info').textContent);
+
+        // Если это специальный размер, добавляем его в карту (объект)
+        if (clothingType === 'ОСОБЫЕ_РАЗМЕРЫ' && sizeTypeInCard === 'РОССИЯ' && special_clothes_sizes.includes(sizeInCard)) {
+            quantityMap[sizeInCard] = quantity; // Запоминаем количество каждого уникального размера
+        } else if (sizeTypeInCard === clothingType) {
+            quantityMap[sizeInCard] = quantity;
+        }
+    });
+
+    // Теперь строим блоки с учетом собранных данных
     for (let i = 0; i < sizes.length; i++) {
         let size = sizes[i];
-        let sizeAlreadyExists = false;
-        let quantity = 0;
+        let sizeAlreadyExists = quantityMap.hasOwnProperty(size); // Проверяем, есть ли размер в quantityMap
+        let quantity = sizeAlreadyExists ? quantityMap[size] : 0;
 
-        // Iterate over each size in the item card to check if it matches the current size being iterated
-        document.querySelectorAll('#sizes_quantity .important-card__size').forEach(item => {
-            let sizeTypeInCard = item.querySelector('#size_type_info').textContent;
-            let sizeInCard = item.querySelector('#size_info').textContent;
-
-            // If the size type and size are already present in the item card, set sizeAlreadyExists to true and retrieve the quantity
-            if (sizeTypeInCard === clothingType && sizeInCard === size) {
-                sizeAlreadyExists = true;
-                quantity = parseInt(item.querySelector('#quantity_info').textContent);
-            }
-            else if (clothingType === 'ОСОБЫЕ_РАЗМЕРЫ' && sizeTypeInCard==='РОССИЯ' && sizeInCard === 'ЕДИНЫЙ РАЗМЕР') {
-                sizeAlreadyExists = true;
-
-                quantity = parseInt(item.querySelector('#quantity_info').textContent);
-            }
-        });
-
-        // If the size is not already present in the item card, add it to the modal
         if (!sizeAlreadyExists) {
             sizesBlock += `
                 <div class="col-md-4 border-bottom border-0 border-warning text-center mt-1" >
                     <div class="row">
                         <div class="col-5 my-2" onclick="setQuantitySize('${size}');"><span style="cursor: pointer">${size}</span></div>
                         <div class=" col-7"><input type="number" class="form-control ms-1 input-light-grey"
-                         min="1" max="50000" id="size_${size}" name="size_${size}" style="display: none;"  placeholder="0"
-                         data-size-type="${clothingType}" disabled  onchange="check_clothes_quantity_input(this);updateSizesQuantityBlock()"></div>
+                         min="1" max="50000" id="size_${size}" name="size_${size}" style="display: none;" placeholder="0"
+                         data-size-type="${clothingType}" disabled onchange="check_clothes_quantity_input(this);updateSizesQuantityBlock()"></div>
                     </div>  
                 </div>`;
-        }
-        else {
-            // If the size is already in the item card, add it to the modal with the corresponding quantity
+        } else {
             sizesBlock += `
                 <div class="col-md-4 border-bottom border-0 border-warning text-center mt-1" >
                     <div class="row">
                         <div class="col-5 my-2" onclick="setQuantitySize('${size}');"><span style="cursor: pointer">${size}</span></div>
                         <div class=" col-7"><input type="number" class="form-control ms-1"
-                         min="1" max="10000" id="size_${size}" name="size_${size}" value="${quantity}" placeholder="0"
+                         min="1" max="50000" id="size_${size}" name="size_${size}" value="${quantity}" placeholder="0"
                          data-size-type="${clothingType}" onchange="check_clothes_quantity_input(this);updateSizesQuantityBlock()"></div>
                     </div>  
                 </div>`;
         }
     }
-    return sizesBlock
+    return sizesBlock;
 }
 
 function check_gender_ruznak(gender) {

@@ -25,11 +25,32 @@ class ValidatorProcessor:
         admin_id = form_dict.get('admin_id')
 
         res_tuple = sp_link, login_name, check_email(email_str=email), full_phone, password, partner_code_id, admin_id
-        if not all(res_tuple):
+        if not all(res_tuple) or email.lower().startswith('agent_'):
             return None
         else:
             res_tuple = tuple(map(lambda x: x.replace('--', ''), res_tuple))
             return res_tuple
+
+    @staticmethod
+    def common_pre_validate_tnved(tnved_str: str, category: str) -> bool:
+        tnved_all = []
+        match category:
+            case ClothesSubcategories.underwear.value:
+                tnved_all += UNDERWEAR_TNVEDS
+            case settings.Socks.CATEGORY:
+                tnved_all += settings.Socks.TNVED_ALL
+            case settings.Linen.CATEGORY:
+                tnved_all += settings.Linen.TNVED_ALL
+            case settings.Shoes.CATEGORY:
+                tnved_all += settings.Shoes.TNVEDS_ALL
+            case settings.Parfum.CATEGORY:
+                tnved_all += settings.Parfum.TNVED_CODE
+            case settings.Clothes.CATEGORY:
+                tnved_all += settings.Clothes.TNVED_ALL
+        if not tnved_str or tnved_str not in tnved_all:
+            return True
+        else:
+            return False
 
     @staticmethod
     def clothes_pre_validate_tnved(tnved_str: str) -> bool:
