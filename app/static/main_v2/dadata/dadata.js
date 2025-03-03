@@ -1,46 +1,67 @@
+document.addEventListener("DOMContentLoaded", function () {
+    // console.log("DOM fully loaded and ready!");
 
-// Запрашиваем токен с сервера
-$.ajax({
-    url: getDadataTokenUrl,
-    method: 'GET',
-    dataType: 'json',
-    success: function(data) {
-        const token = data.token;
+    // Store the correct jQuery version in a variable
+    var myJQuery = window.jQuery;
 
-        // Используем полученный токен для работы с DaData
-        $("#organization").suggestions({
-            minChars: 10,
-            token: token, // Токен, полученный с сервера
-            type: "PARTY",
-            onSelect: function(suggestion) {
-                let company_idn = document.getElementById('company_idn');
-                let company_type = document.getElementById('company_type');
-                let company_name = document.getElementById('company_name');
-                let modal_company_idn = document.getElementById('modal_company_idn');
-                let modal_company_name = document.getElementById('modal_company_name');
+    function waitForDadata(retries = 5) {
+        if (typeof myJQuery.fn.suggestions !== "undefined") {
+            console.log("✅ Dadata suggestions plugin is loaded.");
+            fetchDadataToken();
+        } else {
+            if (retries > 0) {
+                console.warn(`⏳ Waiting for Dadata plugin... (${retries} retries left)`);
+                setTimeout(() => waitForDadata(retries - 1), 1000); // Retry in 1 sec
+            } else {
+                console.error("❌ Dadata suggestions plugin failed to load.");
+            }
+        }
+    }
 
-                company_idn.value = suggestion.data.inn;
-                company_type.value = suggestion.data.opf.short;
-                company_name.value = suggestion.data.name.full;
-                modal_company_idn.value = suggestion.data.inn;
-                modal_company_name.value = suggestion.data.name.full;
-
-                if (count_words(document.getElementById('organization').value) < 3 || document.getElementById('organization').value.length < 5) {
-                    document.getElementById('organization').classList.remove('is-valid');
-                    document.getElementById('organization').classList.add('is-invalid');
+    function fetchDadataToken() {
+        myJQuery.ajax({
+            url: getDadataTokenUrl,
+            method: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                if (data.token) {
+                    console.log("✅ Received token");
+                    initializeDadataSuggestions(data.token);
                 } else {
-                    document.getElementById('organization').classList.remove('is-invalid');
-                    document.getElementById('organization').classList.add('is-valid');
+                    console.error("❌ Token missing in response:", data);
                 }
+            },
+            error: function (error) {
+                console.error("❌ Error fetching DaData token:", error);
             }
         });
-    },
-    error: function(error) {
-        console.error('Ошибка при получении токена:', error);
     }
+
+    function initializeDadataSuggestions(token) {
+        if (!token) {
+            console.error("❌ Cannot initialize suggestions: Token is missing!");
+            return;
+        }
+
+        console.log("🚀 Initializing Dadata Suggestions...");
+        myJQuery("#organization").suggestions({
+            minChars: 10,
+            token: token,
+            type: "PARTY",
+            onSelect: function (suggestion) {
+                console.log("✅ Organization selected:", suggestion);
+                myJQuery("#company_idn").val(suggestion.data.inn);
+                myJQuery("#company_type").val(suggestion.data.opf.short);
+                myJQuery("#company_name").val(suggestion.data.name.full);
+                myJQuery("#modal_company_idn").val(suggestion.data.inn);
+                myJQuery("#modal_company_name").val(suggestion.data.name.full);
+            }
+        });
+    }
+
+    // Start checking for Dadata plugin
+    waitForDadata();
 });
-
-
 function count_words(answer){
      answer = answer.replace(/(^\s*)|(\s*$)/gi,"");
      answer = answer.replace(/[ ]{2,}/gi," ");
