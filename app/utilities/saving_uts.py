@@ -85,7 +85,7 @@ def save_socks(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
                               rd_date=rd_date)
     extend_sq = (SocksQuantitySize(size=el[0], quantity=el[1],
                                    size_type=el[2] if el[0] not in settings.Socks.UNITE_SIZE_VALUES
-                                     else settings.Socks.DEFAULT_SIZE_TYPE) for el in sizes_quantities)
+                                   else settings.Socks.DEFAULT_SIZE_TYPE) for el in sizes_quantities)
     new_socks_order.sizes_quantities.extend(extend_sq)
     order.socks.append(new_socks_order)
     return order
