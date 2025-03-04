@@ -110,11 +110,11 @@ def save_linen(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
 
     if with_p == "True":
         max_sq = max(sizes_quantities, key=lambda x: int(x[0].split('*')[0] * int(x[0].split('*')[1])))
-        append_sq = LinenQuantitySize(size=max_sq[0], quantity=max_sq[1])
+        append_sq = LinenQuantitySize(size=max_sq[0], unit=max_sq[1], quantity=max_sq[2])
         new_linen_order.sizes_quantities.append(append_sq)
 
     else:
-        extend_sq = (LinenQuantitySize(size=el[0], quantity=el[1]) for el in sizes_quantities)
+        extend_sq = (LinenQuantitySize(size=el[0], unit=el[1], quantity=el[2]) for el in sizes_quantities)
         new_linen_order.sizes_quantities.extend(extend_sq)
 
     order.linen.append(new_linen_order)
@@ -256,7 +256,7 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
                                  tnved_code=linen.tnved_code, article_price=linen.article_price,
                                  tax=linen.tax, rd_type=linen.rd_type, rd_name=linen.rd_name.replace('№', ''),
                                  rd_date=linen.rd_date,
-                                 sizes_quantities=list((LinenQuantitySize(size=sq.size, quantity=sq.quantity)
+                                 sizes_quantities=list((LinenQuantitySize(size=sq.size, unit=sq.unit, quantity=sq.quantity)
                                                         for sq in linen.sizes_quantities)))
                            for linen in order_category_list)
 

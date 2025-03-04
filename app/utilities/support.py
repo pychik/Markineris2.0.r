@@ -41,6 +41,7 @@ from models import (
     users_promos,
     TransactionTypes,
     TransactionStatuses,
+    LinenSizesUnits,
 )
 from utilities.daily_price import get_cocmd
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
@@ -317,8 +318,9 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
             sizesX = form_data_raw.getlist("sizeX")
             sizesY = form_data_raw.getlist("sizeY")
             sizes = list(map(lambda x: f"{x[0]}*{x[1]}", zip(sizesX, sizesY)))
+            sizes_units = form_data_raw.getlist("sizeUnit")
             quantities = form_data_raw.getlist("quantity")
-            sizes_quantities = sorted(list(zip(sizes, quantities)), key=lambda x: x[0])
+            sizes_quantities = sorted(list(zip(sizes, sizes_units,  quantities)), key=lambda x: x[0])
         else:
             raise IntegrityError('Выбрана некорректная категория')
 
@@ -531,6 +533,7 @@ def helper_linen_index(o_id: int, p_id: int = None, update_flag: int = None,
     colors = settings.Linen.COLORS
     textile_types = settings.Linen.TEXTILE_TYPES
     customer_ages = settings.Linen.CUSTOMER_AGES
+    size_units = LinenSizesUnits.choices()
     box_quantity_description = settings.Linen.BOX_QUANTITY_DESCRIPTION
 
     subcategory = request.args.get('subcategory', '')

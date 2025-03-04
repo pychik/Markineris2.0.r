@@ -601,29 +601,57 @@ function check_clothes_size_on_add(value) {
     }
 }
 
-function chooseSizeClothes(subcategory) {
-    let divBlock = document.getElementById('sizesClothesDiv');
-    let content = '';
-    let subcategoryInputBlock = '';
+function perform_free_size_input(clothingType){
+    // let subcategoryInputBlock = '';
 
     // Если subcategory == 'underwear', добавляем input
     // if (subcategory === 'underwear') {
-    subcategoryInputBlock = `
-        <button class="btn btn-outline-secondary mb-3" type="button" onclick="document.getElementById('freeInputBlock').classList.toggle('d-none')">Свободный ввод</button>
-        <div id="freeInputBlock" class="d-none">
-            <p>Поле свободного ввода размера (введите размер, количество и нажмите добавить)</p>
+    let subcategoryInputBlock = `
+        <button class="btn btn-outline-secondary mb-3" type="button" onclick="document.getElementById('freeInputBlock${clothingType}').classList.toggle('d-none')">Свободный ввод</button>
+        <div id="freeInputBlock${clothingType}" class="d-none">
+            <p>Поле свободного ввода размера типа ${clothingType} (введите размер, количество и нажмите добавить)</p>
             <div class="input-group mb-3">
-                <input type="text" class="form-control" id="subcategorySizeInput" placeholder="Введите размер" maxlength="8" pattern="[A-Za-z0-9]{1,8}" title="Только латиница и цифры (до 5 символов)" required>
-                <input type="number" class="form-control" id="subcategorySizeQuantity" placeholder="Кол-во" min="1" required>
-                <button class="btn btn-accent" type="button" onclick="subcategory_size_add()">Добавить</button>
-                <div class="invalid-feedback d-block" id="subcategorySizeError"></div>
+                <input type="text" class="form-control" id="subcategorySizeInput${clothingType}" placeholder="Введите размер" maxlength="8" pattern="[A-Za-z0-9]{1,8}" title="Только латиница и цифры (до 5 символов)" required>
+                <input type="number" class="form-control" id="subcategorySizeQuantity${clothingType}" placeholder="Кол-во" min="1" required>
+                <button class="btn btn-accent" type="button" onclick="subcategory_size_add('${clothingType}')">Добавить</button>
+                <div class="invalid-feedback d-block" id="subcategorySizeError${clothingType}"></div>
             </div>
         </div>`;
     // }
+    return subcategoryInputBlock
+}
+
+function chooseSizeClothes(subcategory) {
+    let divBlock = document.getElementById('sizesClothesDiv');
+    let content = '';
+    // let subcategoryInputBlock = '';
+
+    // Если subcategory == 'underwear', добавляем input
+    // if (subcategory === 'underwear') {
+    // subcategoryInputBlock = `
+    //     <button class="btn btn-outline-secondary mb-3" type="button" onclick="document.getElementById('freeInputBlock').classList.toggle('d-none')">Свободный ввод</button>
+    //     <div id="freeInputBlock" class="d-none">
+    //         <p>Поле свободного ввода размера (введите размер, количество и нажмите добавить)</p>
+    //         <div class="input-group mb-3">
+    //             <input type="text" class="form-control" id="subcategorySizeInput" placeholder="Введите размер" maxlength="8" pattern="[A-Za-z0-9]{1,8}" title="Только латиница и цифры (до 5 символов)" required>
+    //             <input type="number" class="form-control" id="subcategorySizeQuantity" placeholder="Кол-во" min="1" required>
+    //             <button class="btn btn-accent" type="button" onclick="subcategory_size_add()">Добавить</button>
+    //             <div class="invalid-feedback d-block" id="subcategorySizeError"></div>
+    //         </div>
+    //     </div>`;
+    // }
+
+
+
+    // Перебираем типы одежды и их размеры
     for (let clothingType in clothes_types_sizes_dict) {
         if (clothes_types_sizes_dict.hasOwnProperty(clothingType)) {
             let sizes = clothes_types_sizes_dict[clothingType];
             let sizesBlock = create_size_blocks(sizes, clothingType);
+            let free_size_input = '';
+            if (clothingType !== 'ОСОБЫЕ_РАЗМЕРЫ'){
+                free_size_input = perform_free_size_input(clothingType);
+                }
 
             content += `
                 <div class="accordion-item">
@@ -634,6 +662,7 @@ function chooseSizeClothes(subcategory) {
                     </h2>
                     <div id="collapse_${clothingType}" class="accordion-collapse collapse" aria-labelledby="heading_${clothingType}">
                         <div class="accordion-body">
+                            <div>${free_size_input}</div>
                             <div class="row">${sizesBlock}</div>
                         </div>
                     </div>
@@ -650,10 +679,10 @@ function chooseSizeClothes(subcategory) {
                         <button type="button" class="btn-close" onclick="clear_clothesSizes_modal();" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body px-5">
-                        ${subcategoryInputBlock}
+                        
                         <p>Для выбора размера, кликните по нему, справа от размера появится поле - введите количество. После ввода всех необходимых размеров нажмите кнопку <b>Закрыть</b></p>
                         <p>Если нужно убрать размер, кликните на него</p>
-
+                        
                         <div class="accordion" id="accordionSizes" style="background-color: #f0f0f0;">${content}</div>
                     </div>
                     <div class="modal-footer d-flex flex-column">
@@ -709,7 +738,7 @@ function updateSizesQuantityBlock() {
         let quantity = parseInt(input.value.trim(), 10);
         let sizeType = input.getAttribute('data-size-type') || "";
 
-        if (size === 'subcategorySizeInput' || size === 'subcategorySizeQuantity') return;
+        if (size.startsWith('subcategorySize')) return;
         if (special_clothes_sizes.includes(size)) {
             sizeType = 'РОССИЯ';
         }
@@ -759,10 +788,10 @@ function updateSizesQuantityBlock() {
     setClothes();
 }
 
-function subcategory_size_add() {
-    let sizeInput = document.getElementById('subcategorySizeInput');
-    let quantityInput = document.getElementById('subcategorySizeQuantity');
-    let errorBlock = document.getElementById('subcategorySizeError');
+function subcategory_size_add(clothingType) {
+    let sizeInput = document.getElementById(`subcategorySizeInput${clothingType}`);
+    let quantityInput = document.getElementById(`subcategorySizeQuantity${clothingType}`);
+    let errorBlock = document.getElementById(`subcategorySizeError${clothingType}`);
 
     let size = sizeInput.value.trim();
     let quantity = parseInt(quantityInput.value.trim(), 10);
@@ -831,13 +860,13 @@ function subcategory_size_add() {
                     </svg>
                     <div class="ms-2">
                         <span id="size_info">${size}</span>
-                        <span id="size_type_info" style="font-size: 10px">МЕЖДУНАРОДНЫЙ</span>
+                        <span id="size_type_info" style="font-size: 10px">${clothingType}</span>
                     </div>
                 </div>
                 <div class="important-card__val"><span id="quantity_info">${quantity}</span> <span>шт.</span></div>
                 <input type="hidden" name="size" value="${size}">
                 <input type="hidden" name="quantity" value="${quantity}">
-                <input type="hidden" id="size_type" name="size_type" value="МЕЖДУНАРОДНЫЙ">
+                <input type="hidden" id="size_type" name="size_type" value="${clothingType}">
             </div>`;
 
         sizesQuantityBlock.innerHTML += sizeQuantityHTML;

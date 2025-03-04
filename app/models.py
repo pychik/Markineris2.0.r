@@ -432,11 +432,22 @@ class Linen(db.Model, UserMixin, OrderCommon):
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), index=True)
 
 
+class LinenSizesUnits(PyEnum):
+    mm = "мм"
+    sm = "см"
+    m = "м"
+
+    @classmethod
+    def choices(cls):
+        return [member.value for member in cls]
+
+
 class LinenQuantitySize(db.Model, UserMixin):
     __tablename__ = "linen_quantity_sizes"
     id = db.Column(db.BigInteger, primary_key=True)
     size = db.Column(db.String())
     quantity = db.Column(db.Integer())
+    unit = db.Column(db.String(10), default=LinenSizesUnits.sm.value, server_default=LinenSizesUnits.mm.value)
     lin_id = db.Column(db.Integer, db.ForeignKey('linen.id', ondelete='CASCADE'), index=True)
 
 

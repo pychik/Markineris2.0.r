@@ -30,7 +30,7 @@
                         <button type="button" onclick="show_linen_pos('{{loop.index}}', '{{t.trademark}}',
                          '{{t.type}}', '{{t.color}}', '{{ t.sizes_quantities | count_quantity }}',
                                         '{{t.box_quantity}}', '{{ t.sizes_quantities | count_quantity * t.box_quantity }}',
-                        [{%for sq in t.sizes_quantities%}'{{sq.size}}##{{sq.quantity}}', {%endfor%}],
+                        [{%for sq in t.sizes_quantities%}'{{sq.size}}##{{sq.unit}}##{{sq.quantity}}', {%endfor%}],
                         '{{t.age}}','{{t.textile_type}}','{{t.content}}',  '{{t.country}}',
                         '{{ url_for('linen.copy_order', o_id=o_id, p_id=t.id, edit_order='edit_order') }}',
                         '{{ url_for('linen.copy_order', o_id=o_id, p_id=t.id) }}',

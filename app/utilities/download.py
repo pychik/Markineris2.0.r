@@ -301,12 +301,11 @@ class LinenProcessor(OrdersProcessor):
             for sq in el.sizes_quantities:
                 if el.with_packages == 'да':
                     full_name = f'Комплект {el.type} {OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {sq.quantity} шт. ' \
-                                f'{OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color}, р.{sq.size}'
-
+                                f'{OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color}, р.{sq.size} {sq.unit}'
                     fin_quantity = el.box_quantity
                 else:
                     full_name = f'{el.type} {OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} ' \
-                                f'{OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color}, р.{sq.size}'
+                                f'{OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color}, р.{sq.size} {sq.unit}'
                     fin_quantity = sq.quantity * el.box_quantity
                 temp_list = [tnved[:4], full_name,
                              el.trademark, "Артикул", el.article,
