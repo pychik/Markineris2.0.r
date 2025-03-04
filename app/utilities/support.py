@@ -12,10 +12,10 @@ from flask import flash, jsonify, Markup, redirect, url_for, request, Response, 
 from flask_login import current_user
 from flask_paginate import Pagination
 from flask_sqlalchemy.pagination import QueryPagination
-from sqlalchemy import asc, create_engine, desc, text, or_, not_, UnaryExpression
+from sqlalchemy import asc, create_engine, desc, text, or_, not_, UnaryExpression, func
 from sqlalchemy.engine.row import Row
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 from sqlalchemy.sql.elements import TextClause
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
@@ -1113,40 +1113,38 @@ def helper_get_order(user: User, category: str, o_id: int, stage: int) -> Option
 
 def h_helper_get_clothes_p_orders(user: User, processed: bool, subcategory: str = None) -> list:
     subcategory_filter = ClothesSubcategories.common.value if not subcategory else subcategory
-    match processed:
-        case True:
-            return user.orders.filter_by(category=settings.Clothes.CATEGORY_PROCESS, processed=True).filter(~Order.to_delete) \
-                .join(Clothes).filter(Clothes.subcategory == subcategory_filter).with_entities(
-                    Order.id,
-                    Order.order_idn,
-                    Order.category,
-                    Order.company_type,
-                    Order.company_name,
-                    Order.company_idn,
-                    Order.to_delete,
-                    Order.created_at,
-                    Order.stage,
-                    Order.closed_at,
-                    Clothes.subcategory
-                ) \
-                .order_by(desc(Order.created_at)) \
-                .all()
-        case False:
-            return user.orders.filter_by(category=settings.Clothes.CATEGORY, processed=False,
-                                         stage=settings.OrderStage.CREATING).filter(~Order.to_delete) \
-                .join(Clothes).filter(Clothes.subcategory == subcategory_filter).with_entities(
-                Order.id,
-                Order.order_idn,
-                Order.category,
-                Order.company_type,
-                Order.company_name,
-                Order.company_idn,
-                Order.to_delete,
-                Order.created_at,
-                Order.stage,
-                Order.closed_at,
-                Clothes.subcategory). \
-                order_by(desc(Order.created_at)).all()
+
+    ClothesAlias = aliased(Clothes)
+
+    base_query = user.orders.join(ClothesAlias).filter(ClothesAlias.subcategory == subcategory_filter)
+
+    if processed:
+        base_query = base_query.filter(Order.category == settings.Clothes.CATEGORY_PROCESS, Order.processed == True)
+    else:
+        base_query = base_query.filter(
+            Order.category == settings.Clothes.CATEGORY,
+            Order.processed == False,
+            Order.stage == settings.OrderStage.CREATING
+        )
+
+    base_query = base_query.filter(~Order.to_delete)
+
+    return base_query.with_entities(
+        Order.id,
+        func.array_agg(Order.order_idn).label("order_idns"),
+        Order.category,
+        Order.company_type,
+        Order.company_name,
+        Order.company_idn,
+        Order.to_delete,
+        Order.created_at,
+        Order.stage,
+        Order.closed_at,
+        func.array_agg(ClothesAlias.subcategory).label("subcategories")
+    ).group_by(
+        Order.id, Order.category, Order.company_type, Order.company_name, Order.company_idn,
+        Order.to_delete, Order.created_at, Order.stage, Order.closed_at
+    ).order_by(desc(Order.created_at)).all()
 
 
 def helper_get_p_order(user: User, category: str, processed: bool):

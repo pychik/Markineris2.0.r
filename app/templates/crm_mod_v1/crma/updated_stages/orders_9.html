@@ -12,7 +12,7 @@
                        КС: {{ n.row_count }} КМ: {{ n.pos_count }}
                     </div>
                     <div class="order__time" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right"
-                        data-bs-title="CRM: {{n.crm_created_at.strftime('%d-%m-%Y %H:%M:%S')}}<br>CC: {{n.cc_created.strftime('%d-%m-%Y %H:%M:%S')}}">
+                        data-bs-title="CRM: {{n.crm_created_at.strftime('%d-%m-%Y %H:%M:%S')}}{%if n.p_started %}<br>POL: {{n.p_started.strftime('%d-%m-%Y %H:%M:%S')}}{%endif%}<br>CC: {{n.cc_created.strftime('%d-%m-%Y %H:%M:%S')}}">
                         {%if n.p_started %}{{n.p_started | time_since}}{%else%}{{n.crm_created_at | time_since}}{%endif%}
                     </div>
                 </div>
