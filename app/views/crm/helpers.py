@@ -2127,7 +2127,7 @@ def helper_crm_preload(o_id: int):
 
     orders, company_type, company_name, company_idn, \
         edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
-        total_price, price_exist = orders_list_common(category=category, user=User.query.get(user_id), o_id=o_id, stage=order_info.stage)
+        total_price, price_exist, subcategory = orders_list_common(category=category, user=User.query.get(user_id), o_id=o_id, stage=order_info.stage)
 
     if not orders:
         flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
