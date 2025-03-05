@@ -2406,14 +2406,17 @@ def helper_utb_mod(user_id: int, admin_id: int, is_at2: bool) -> tuple[int, str,
 
 def helper_get_transaction_orders_detail(t_id: int) -> tuple:
     orders_stmt = f"""SELECT 
-                        os.order_idn as order_idn,
-                        os.category as category,
-                        os.marks_count as marks_count,
-                        os.op_cost as op_cost
+                          os.order_idn AS order_idn,
+                          os.category AS category,
+                          cl.subcategory AS subcategory,
+                          os.marks_count AS marks_count,
+                          os.op_cost AS op_cost
                       FROM public.orders_stats os
+                      JOIN public.orders o ON o.order_idn = os.order_idn
+                      LEFT JOIN public.clothes cl ON o.id = cl.order_id
                       WHERE os.transaction_id = {t_id}
-                      ORDER BY os.order_idn DESC 
-    """
+                      ORDER BY os.order_idn DESC;
+                            """
     # order_detail = db.session.execute(text(orders_stmt)).fetchall()
     return db.session.execute(text(orders_stmt)).fetchall()
 

@@ -38,7 +38,7 @@
                     {% if not loop.index==1%}
                         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                     {%endif%}
-                    <span class="text-warning">{{o.order_idn}}</span> - {{o.category}}, {{o.marks_count}} шт.{% if not is_at2 %} - {{o.marks_count * transaction.op_cost}} р.{%endif%}{% if not loop.last %},<br>{% endif %}
+                    <span class="text-warning">{{o.order_idn}}</span> - {{o.category}} {{subcategories_dict.get(o.subcategory) if o.subcategory else ''}}, {{o.marks_count}} шт.{% if not is_at2 %} - {{o.marks_count * transaction.op_cost}} р.{%endif%}{% if not loop.last %},<br>{% endif %}
                 {% endfor %}<!--</a>-->
             </div>
             {% if not is_at2 %}
