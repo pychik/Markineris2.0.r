@@ -13,7 +13,7 @@
                 {% if not loop.index==1%}
                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 {%endif%}
-                <span class="text-warning">{{o.order_idn}}</span> - {{o.category}} {{subcategories_dict.get(o.subcategory) if o.subcategory else ''}}, {{o.pos_count}} шт. - {{o.pos_count * transaction.op_cost}} р.{% if not loop.last %},<br>{% endif %}
+                <span class="text-warning">{{o.order_idn}}</span> - {{o.category}}<span style="font-size:10px">{{' ['+subcategories_dict.get(o.subcategory) + ']' if o.subcategory else ''}}</span>, {{o.pos_count}} шт. - {{o.pos_count * transaction.op_cost}} р.{% if not loop.last %},<br>{% endif %}
             {% endfor %}</a>
             </div>
 
