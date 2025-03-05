@@ -12,8 +12,11 @@ from xlsxwriter.worksheet import Worksheet
 
 from config import settings
 from models import Order, db, User
+from .categories_data.subcategories_data import ClothesSubcategories, Category
 from .abstract import ProcessorInterface
 from .support import order_count, helper_paginate_data, check_leather
+from .categories_data.underwear_data import UNDERWEAR_DEC_DICT, UNDERWEAR_TNVEDS
+from .categories_data.subcategories_logic import get_subcategory
 from .telegram import TelegramProcessor
 
 
@@ -298,11 +301,11 @@ class LinenProcessor(OrdersProcessor):
             for sq in el.sizes_quantities:
                 if el.with_packages == 'да':
                     full_name = f'Комплект {el.type} {OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {sq.quantity} шт. ' \
-                                f'{OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color}, р.{sq.size}'
+                                f'{OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color}, р.{sq.size} {sq.unit}'
                     fin_quantity = el.box_quantity
                 else:
                     full_name = f'{el.type} {OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} ' \
-                                f'{OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color}, р.{sq.size}'
+                                f'{OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color}, р.{sq.size} {sq.unit}'
                     fin_quantity = sq.quantity * el.box_quantity
                 temp_list = [tnved[:4], full_name,
                              el.trademark, "Артикул", el.article,
@@ -374,7 +377,8 @@ class ClothesProcessor(OrdersProcessor):
         for el in orders_list:
             #     if not el.tnved_code else el.tnved_code
             tnved = el.tnved_code
-            fc_tnved = tnved if tnved == '4304000000' or tnved[:4] in settings.Clothes.FULL_TNVED_4DIGIT_LIST \
+            fc_tnved = tnved if (tnved not in settings.Clothes.TNVED_ALL or tnved == '4304000000'
+                                 or tnved[:4] in settings.Clothes.FULL_TNVED_4DIGIT_LIST) \
                 else tnved[:4]
             # fc_tnved = tnved if tnved == '4304000000' else tnved[:4]
 
@@ -382,7 +386,7 @@ class ClothesProcessor(OrdersProcessor):
                 if all([el.rd_date, el.rd_type, el.rd_name]) else ''
             for sq in el.sizes_quantities:
 
-                gender_dec = ClothesProcessor.get_gender_dec(clothes_type=el.type, gender=el.gender)
+                gender_dec = ClothesProcessor.get_gender_dec(clothes_type=el.type, gender=el.gender, subcategory=el.subcategory)
                 gender = ClothesProcessor.get_gender(gender=el.gender) if not flag_046 \
                     else ClothesProcessor.get_gender_046(gender=el.gender)
                 full_name = f'{el.type} {gender_dec} ' \
@@ -425,12 +429,17 @@ class ClothesProcessor(OrdersProcessor):
         return tnved
 
     @staticmethod
-    def get_gender_dec(clothes_type: str, gender: str) -> Optional[str]:
-        declination_dict = settings.Clothes.DEC
+    def get_gender_dec(clothes_type: str, gender: str, subcategory: str) -> Optional[str]:
+        match subcategory:
+            case ClothesSubcategories.underwear.value:
+                declination_dict = UNDERWEAR_DEC_DICT
+            case _:
+                declination_dict = settings.Clothes.DEC
+
         if declination_dict.get(clothes_type):
             return declination_dict.get(clothes_type).get(gender)
         else:
-            return None
+            return ''
 
     @staticmethod
     def get_gender(gender: str) -> Optional[str]:
@@ -455,8 +464,7 @@ class SocksProcessor(OrdersProcessor):
         for el in orders_list:
             #     if not el.tnved_code else el.tnved_code
             tnved = el.tnved_code
-            fc_tnved = tnved if tnved == '4304000000' or tnved[:4] in settings.Clothes.FULL_TNVED_4DIGIT_LIST \
-                else tnved[:4]
+
             # fc_tnved = tnved if tnved == '4304000000' else tnved[:4]
 
             declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" \
@@ -469,7 +477,7 @@ class SocksProcessor(OrdersProcessor):
                 full_name = f'{el.type} {gender_dec} ' \
                             f'{OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color} р. {sq.size}'
 
-                temp_list = [fc_tnved, full_name,
+                temp_list = [tnved, full_name,
                              el.trademark, 'Артикул', el.article, el.type, el.color, gender, sq.size_type, sq.size,
                              el.content, tnved, settings.Clothes.NUMBER_STANDART,
                              '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,
@@ -516,6 +524,8 @@ def orders_list_get(model: db.Model) -> Optional[Union[tuple, list]]:
 
 
 def get_download_info(o_id, user: User, flag_046: bool = False) -> Union[Response, tuple]:
+    category_name_excel = ''  # for filename if we got subcategory
+
     order = Order.query.filter(Order.id == o_id, ~Order.to_delete).first()
     if not order:
         flash(message=settings.Messages.EMPTY_ORDER, category='error')
@@ -559,6 +569,11 @@ def get_download_info(o_id, user: User, flag_046: bool = False) -> Union[Respons
 
         category = settings.Clothes.CATEGORY
         rd_exist, quantity_list_raw, pos_count, orders_pos_count = order_count(category=category, order_list=order_list)
+
+        from utilities.support import get_subcategory
+        subcategory = get_subcategory(order_id=o_id, category=settings.Clothes.CATEGORY)
+
+        category_name_excel = settings.SUB_CATEGORIES_DICT.get(subcategory) if subcategory in ClothesSubcategories.__members__  and subcategory != ClothesSubcategories.common.value else category
 
         op = ClothesProcessor(category=category, company_idn=company_idn, orders_list=order_list, flag_046=flag_046)
 
@@ -604,7 +619,8 @@ def get_download_info(o_id, user: User, flag_046: bool = False) -> Union[Respons
 
         return (None,) * 12
 
-    files_list = op.make_file(order_num=order_num, category=category, pos_count=pos_count, orders_pos_count=orders_pos_count,
+    category_name_excel = category if not category_name_excel else category_name_excel
+    files_list = op.make_file(order_num=order_num, category=category_name_excel, pos_count=pos_count, orders_pos_count=orders_pos_count,
                               c_partner_code=c_partner_code, company_type=company_type, company_name=company_name,
                               company_idn=company_idn, edo_type=edo_type, edo_id=edo_id, mark_type=mark_type,
                               c_name=c_name, c_phone=c_phone, c_email=c_email)

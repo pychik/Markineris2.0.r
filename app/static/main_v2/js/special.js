@@ -32,6 +32,26 @@ function check_login_name(){
     }
 }
 
+function checkTele2(){
+    const prefix = iti.getNumber().substring(2, 5); // Извлекаем код после +7
+    // console.log( iti.getNumber(), prefix, tele2Codes.includes(prefix));
+    return tele2Codes.includes(prefix);
+    }
+
+function checkAndProcessTele2(){
+    if (checkTele2()){
+        hideVerificationCodeInput();
+        document.getElementById("passwordsAndCaptchaHide").style.display = "block";
+        document.getElementById("verifyPhoneNumberButton").style.display = "none";
+    }
+    else{
+        hideVerificationCodeInput();
+        hidePasswordCaptcha();
+        document.getElementById("verifyPhoneNumberButton").style.display = "block";
+    }
+
+}
+
 function check_intel_num(){
 
     if (iti.isPossibleNumber()){
@@ -39,6 +59,7 @@ function check_intel_num(){
         document.getElementById('phone').classList.remove("is-invalid");
         document.getElementById('phone').classList.add("is-valid");
         document.getElementById("full_phone").value = iti.getNumber();
+        checkAndProcessTele2();
 
         return true
     }
@@ -143,7 +164,7 @@ function clearVerificationSession() {
 function verify_sign_up_form(url, is_at2){
     loadingCircle();
     if ( check_intel_num() && verifySignPassword() && check_login_name()){
-        if (is_at2!=='True') {
+        if (is_at2!=='True' && !checkTele2()) {
             let check = checkVerifiedNumber();
             // console.log('vsuf_check:' + check)
             // console.log('is_at2:' + is_at2 + is_at2 === 'True');
@@ -222,19 +243,13 @@ function hideVerificationCodeInput() {
     }
 
   function showPasswordCaptcha() {
-
-   document.getElementById("captcha_text").value = '';
-   document.getElementById("passwordsAndCaptchaHide").style.display = "block";
-
-
-    }
+     document.getElementById("captcha_text").value = '';
+     document.getElementById("passwordsAndCaptchaHide").style.display = "block";
+}
 
 function hidePasswordCaptcha() {
-
-   document.getElementById("passwordsAndCaptchaHide").style.display = "none";
-
-
-    }
+     document.getElementById("passwordsAndCaptchaHide").style.display = "none";
+}
 async function verifySignUpCode(url) {
     try {
         let result = await verifySignUpForm(url);
@@ -675,22 +690,23 @@ async function fetchAsync (url) {
 
 //      #### archive  ####
 
-function get_category_history(url, category){
+function get_category_history(url, category, subcategory) {
     // $("#pills-shoes").toggle();
 
+    let proc_category = category;
+    if (subcategory && subcategory!=='common'){proc_category = subcategory}
 
-   $.ajax({
-    url: url,
-    method:"GET",
+    $.ajax({
+        url: url,
+        method: "GET",
 
-    success:function(data)
-    {
+        success: function (data) {
 
-      $('#pills-tabContent').html(data);
-      $("#pills-tabContent").append(data.htmlresponse);
-      update_category(category);
-      }
-   });
+            $('#pills-tabContent').html(data);
+            $("#pills-tabContent").append(data.htmlresponse);
+            update_category(proc_category);
+        }
+    });
 
 }
 
@@ -727,9 +743,13 @@ function update_category(category_p){
     if(document.getElementById(`pills-parfum-tab`)) {
         document.getElementById(`pills-parfum-tab`).classList.remove('active');
     }
-   if(document.getElementById(`pills-socks-tab`)) {
+    if(document.getElementById(`pills-socks-tab`)) {
         document.getElementById(`pills-socks-tab`).classList.remove('active');
     }
+    if (document.getElementById(`pills-underwear-tab`)) {
+        document.getElementById(`pills-underwear-tab`).classList.remove('active');
+    }
+
     document.getElementById(`pills-${category_p}-tab`).classList.add('active');
 
     init_tooltip(document.getElementById('pills-tabContent'));

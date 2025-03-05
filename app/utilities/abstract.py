@@ -72,6 +72,10 @@ class ProcessorInterface(ABC):
     def archive_excels(excel_files: list[BytesIO], filename: str) -> BytesIO:
         ...
 
+    @staticmethod
+    def eatp(value: str, field_type: str) -> str:
+        ...
+
     def make_file(self, order_num: int, category: str, pos_count: int, orders_pos_count: int,
                   c_partner_code: str, company_type: str, company_name: str, company_idn: str, edo_type: str,
                   edo_id: str, mark_type: str, c_name: str, c_phone: str, c_email: str, ) -> tuple[BytesIO, str]:

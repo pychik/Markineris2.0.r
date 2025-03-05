@@ -23,7 +23,8 @@ from utilities.param_lists import (SHOE_GENDERS, SHOE_MATERIALS_UP_LINEN, SHOE_M
     CRM_PS_DICT, CLOTHES_CONTENT, CLOTHES_NAT_CONTENT, CLOTHES_UPPER, SHOE_TYPES_CODES, SHOE_SIZES_ND, SHOE_SIZES_CODES,
     USER_TRANSLATE_DICT, CLOTHES_SIZES_FULL, CLOTHES_SIZES_DESCRIPTION, CLOTHES_OLD_TNVED, ALL_CLOTHES_TNVED,
     COMPLICATED_COLORS, ALL_COLORS, UT_REPORT_START_FILL, UT_REPORT_START_ELSE, CLOTHES_TYPES_CODES, CLOTHES_START_EXT_029, CLOTHES_START_EXT_046,
-    CLOTHES_GENDERS_ORDER_046, ALL_SOCKS_TNVEDS, SOCKS_TYPES_SIZES_DICT, SOCKS_SIZE_TYPES, SOCKS_ST_DICT,)
+    CLOTHES_GENDERS_ORDER_046, ALL_SOCKS_TNVEDS, SOCKS_TYPES_SIZES_DICT, SOCKS_SIZE_TYPES, SOCKS_ST_DICT,
+    SUB_CATEGORIES_DICT, BIG_LINEN_TNVED, BIG_SHOE_TNVED)
 
 CUR_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -116,6 +117,7 @@ class Settings(BaseSettings):
     RZ_GENDERS_RD_LIST: tuple = ("Детские", "Мальчик", "Девочка", "Детск.",)
     COMPANY_TYPES: list = ["ИП", "ООО", "АО"]
     CATEGORIES_DICT: dict = CATEGORIES_DICT
+    SUB_CATEGORIES_DICT: dict = SUB_CATEGORIES_DICT
     COUNTRIES_LIST: list = COUNTRIES_LIST
     COUNTRIES_CODES: dict = COUNTRIES_CODES
     COUNTRY_RUSSIA: str = "РОССИЯ"
@@ -922,7 +924,7 @@ class Settings(BaseSettings):
         GENDERS: list = SHOE_GENDERS
         MATERIALS_UP_LINEN: list = SHOE_MATERIALS_UP_LINEN
         MATERIALS_BOTTOM: list = SHOE_MATERIALS_BOTTOM
-
+        TNVEDS_ALL: tuple = BIG_SHOE_TNVED
         MATERIALS_CORRECT: dict = SHOE_MATERIALS_CORRECT
 
         SHOE_AL: tuple = SHOE_AL
@@ -978,6 +980,7 @@ class Settings(BaseSettings):
                                           "Исходное значение равно 1"]
 
         TNVED_CODE: str = LINEN_TNVED
+        TNVED_ALL: str = BIG_LINEN_TNVED
         TNVED_CHECK_LIST: list = ["6302", ]
         NUMBER_STANDART: str = "ТР ТС 017/2011 \"О безопасности продукции легкой промышленности\""
         START: list = LINEN_START
@@ -1100,6 +1103,7 @@ class Settings(BaseSettings):
         SIZE_ALL_DICT: dict = SOCKS_TYPES_SIZES_DICT
         DEFAULT_SIZE_TYPE: str = "РОССИЯ"
         UNITE_SIZE_VALUE: str = "ЕДИНЫЙ РАЗМЕР"
+        UNITE_SIZE_VALUES: tuple = ("ЕДИНЫЙ РАЗМЕР", "ONE SIZE",)
         SYZE_TYPES_CODES: dict = SOCKS_ST_DICT
         SIZE_TYPES_ALL: list = SOCKS_SIZE_TYPES  # temporary before all types are ok to use
         # TNVED_CODE: tuple = CLOTHES_TNVED  # "6202900001"

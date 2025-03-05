@@ -10,7 +10,7 @@ def register_blueprints(app: Flask) -> None:
     from views.main.categories.shoes import shoes as shoes_blueprint
     from views.main.categories.linen import linen as linen_blueprint
     from views.main.categories.parfum import parfum as parfum_blueprint
-    from views.main.categories.clothes import clothes as clothes_blueprint
+    from views.main.categories.clothes.main import clothes as clothes_blueprint
     from views.main.categories.socks import socks as socks_blueprint
     from views.main.requests_common import requests_common as requests_common_blueprint
     from views.crm.crm_dash import crm_d as crm_d_blueprint

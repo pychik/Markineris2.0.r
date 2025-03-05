@@ -224,12 +224,12 @@
                                     </div>
                                     <div class="ms-2">
                                         <span id="sizeX_info">{{sq_list[0]}}</span> *
-                                        <span id="sizeY_info">{{sq_list[1]}}</span>, мм
+                                        <span id="sizeY_info">{{sq_list[1]}}</span>, <span id="sizeUnit_info">{{sq.unit}}</span>
                                     </div>
                                 </div>
 
                                 <div class="important-card__val">
-                                    <span id="quantity_info">{{sq.quantity}}</span>
+                                    <span id="quantity_info">{{sq.quantity}}</span> <span>шт. </span>
                                     <input type="number" id="quantity_input" name="quantity_input"
                                            value="{{sq.quantity}}" style="display:none; width: 68px;"
                                            min="1" placeholder="0">
@@ -237,6 +237,7 @@
 
                                 <input type="hidden" id="sizeX" name="sizeX" value="{{sq_list[0]}}">
                                 <input type="hidden" id="sizeY" name="sizeY" value="{{sq_list[1]}}">
+                                <input type="hidden" id="sizeUnit" name="sizeUnit" value="{{sq.unit}}">
                                 <input type="hidden" id="quantity" name="quantity" value="{{sq.quantity}}">
                             </div>
                         {% endfor %}

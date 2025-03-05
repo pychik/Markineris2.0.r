@@ -20,6 +20,7 @@ class SQLQueryCategoriesAll:
                 LEFT JOIN public.parfum p ON o.id = p.order_id
             """,
             "fields": {
+                "subcategory": "coalesce(max(cl.subcategory), 'common')",
                 "pos_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id))",
                 "marks_count": "SUM(COALESCE(sh.box_quantity * sh_qs.quantity, cl.box_quantity * cl_qs.quantity, sk.box_quantity * sk_qs.quantity, l.box_quantity * l_qs.quantity, p.quantity, 0))",
                 "rows_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id))",

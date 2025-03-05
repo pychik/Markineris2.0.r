@@ -83,6 +83,7 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   o.stage_setter_name as stage_setter_name,
                                   {additional_stmt}
                                   COUNT(o.id) as row_count,
+                                  {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                   {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                   {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                               FROM public.users u
@@ -126,6 +127,7 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   o.stage_setter_name as stage_setter_name,
                                   {additional_stmt}
                                   COUNT(o.id) as row_count,
+                                  {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                   {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                   {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                               FROM public.users u
@@ -203,6 +205,7 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                           o.sent_at as sent_at,
                                           o.closed_at as closed_at,
                                           COUNT(o.id) as row_count,
+                                          {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                           {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                           {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                                       FROM public.users u
@@ -256,6 +259,7 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                   o.sent_at as sent_at,
                                   o.closed_at as closed_at,
                                   COUNT(o.id) as row_count,
+                                  {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                   {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                   {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                               FROM public.users u
@@ -325,8 +329,9 @@ def helper_get_manager_orders(
                                  o.stage_setter_name as stage_setter_name,
                                  {additional_stmt}
                                  COUNT(o.id) as row_count,
+                                 {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                  {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
-                                  {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
+                                 {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                              FROM public.users u
                                  JOIN public.orders o ON o.user_id = u.id
                                  LEFT JOIN public.users a ON u.admin_parent_id = a.id   
@@ -369,6 +374,7 @@ def helper_get_manager_orders(
                                   o.stage_setter_name as stage_setter_name,
                                   {additional_stmt}
                                   COUNT(o.id) as row_count,
+                                  {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                   {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                   {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                               FROM public.users u
@@ -1733,6 +1739,7 @@ def h_get_agent_order_info(search_order_idn):
                                       o.stage_setter_name as stage_setter_name,
                                       {additional_stmt}
                                       COUNT(o.id) as row_count,
+                                      {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                       {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                       {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                                   FROM public.users u
@@ -1796,6 +1803,7 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                      o.stage_setter_name as stage_setter_name,
                                      {additional_stmt}
                                      COUNT(o.id) as row_count,
+                                     {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                      {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                      {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                                  FROM public.users u
@@ -1841,6 +1849,7 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                       o.stage_setter_name as stage_setter_name,
                                       {additional_stmt}
                                       COUNT(o.id) as row_count,
+                                      {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                       {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                   {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                                   FROM public.users u

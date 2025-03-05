@@ -5,6 +5,13 @@
                                placeholder="Размер Х" >
     <input type="number" min="10" minlength="2" step="1" name="sizeY_order" id="sizeY_order" class="form-control"
                                placeholder="Размер Y">
+    <select class="form-control search-select" id="sizeUnitOrder" name="sizeUnitOrder">
+                        <option disabled selected value="">Единицы измерения</option>
+                        {%for v in size_units%}
+                          <option value="{{v}}">{{v}}</option>
+                        {%endfor%}
+
+                    </select>
     <span id="sizes_message"></span>
 
     <label class="control-label" for="quantity_order">Количество</label>

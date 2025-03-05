@@ -3,9 +3,8 @@ from flask_login import current_user, login_required
 
 from config import settings
 from models import Socks, Order
-from utilities.download import orders_download_common
 from utilities.helpers.h_categories import h_category_sba
-from utilities.helpers.h_clothes import h_bck_socks_tnved
+from views.main.categories.clothes.support import h_bck_socks_tnved
 from utilities.support import check_order_pos, preprocess_order_category, common_process_delete_order, \
     helper_delete_order_pos, user_activated, helper_process_category_order, \
     helper_socks_index, helper_preload_common

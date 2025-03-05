@@ -10,6 +10,7 @@ from config import settings
 from logger import logger
 from models import User, Order, Shoe, ShoeQuantitySize, Socks, SocksQuantitySize, Linen, LinenQuantitySize, Parfum, \
     Clothes, ClothesQuantitySize, db
+from utilities.categories_data.subcategories_data import ClothesSubcategories
 
 
 def time_count(func):
@@ -49,7 +50,7 @@ def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     return order
 
 
-def save_clothes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
+def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcategory: str = None) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
     new_clothes_order = Clothes(trademark=process_input_str(form_dict.get("trademark")),
                                 article=process_input_str(form_dict.get("article")),
@@ -60,7 +61,7 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list) -> Order
                                 tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                                 tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
                                 rd_name=form_dict.get("rd_name").replace('№', ''),
-                                rd_date=rd_date)
+                                rd_date=rd_date, subcategory=subcategory if subcategory else ClothesSubcategories.common.value)
 
     extend_sq = (ClothesQuantitySize(size=el[0], quantity=el[1],
                                      size_type=el[2] if el[0] not in settings.Clothes.UNITE_SIZE_VALUES
@@ -109,11 +110,11 @@ def save_linen(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
 
     if with_p == "True":
         max_sq = max(sizes_quantities, key=lambda x: int(x[0].split('*')[0] * int(x[0].split('*')[1])))
-        append_sq = LinenQuantitySize(size=max_sq[0], quantity=max_sq[1])
+        append_sq = LinenQuantitySize(size=max_sq[0], unit=max_sq[1], quantity=max_sq[2])
         new_linen_order.sizes_quantities.append(append_sq)
 
     else:
-        extend_sq = (LinenQuantitySize(size=el[0], quantity=el[1]) for el in sizes_quantities)
+        extend_sq = (LinenQuantitySize(size=el[0], unit=el[1], quantity=el[2]) for el in sizes_quantities)
         new_linen_order.sizes_quantities.extend(extend_sq)
 
     order.linen.append(new_linen_order)
@@ -139,7 +140,7 @@ def save_parfum(order: Order, form_dict: dict) -> Order:
     return order
 
 
-def common_save_db(order: Order, form_dict: dict, category: str, sizes_quantities: list = None) -> Order:
+def common_save_db(order: Order, form_dict: dict, category: str, subcategory: str = None, sizes_quantities: list = None) -> Order:
     tnved_code_raw = form_dict.get("tnved_code")
 
     form_dict.update({"tnved_code": tnved_code_raw if tnved_code_raw else ''})
@@ -151,7 +152,7 @@ def common_save_db(order: Order, form_dict: dict, category: str, sizes_quantitie
         case settings.Shoes.CATEGORY:
             order = save_shoes(order=order, form_dict=form_dict, sizes_quantities=sizes_quantities)
         case settings.Clothes.CATEGORY:
-            order = save_clothes(order=order, form_dict=form_dict, sizes_quantities=sizes_quantities)
+            order = save_clothes(order=order, form_dict=form_dict, subcategory=subcategory, sizes_quantities=sizes_quantities)
         case settings.Socks.CATEGORY:
             order = save_socks(order=order, form_dict=form_dict, sizes_quantities=sizes_quantities)
         case settings.Linen.CATEGORY:
@@ -221,7 +222,7 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
                                      gender=clothes.gender, country=clothes.country,
                                      tnved_code=clothes.tnved_code, article_price=clothes.article_price,
                                      tax=clothes.tax, rd_type=clothes.rd_type, rd_name=clothes.rd_name.replace('№', ''),
-                                     rd_date=clothes.rd_date,
+                                     rd_date=clothes.rd_date, subcategory=clothes.subcategory,
                                      sizes_quantities=list((ClothesQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
                                                             for sq in clothes.sizes_quantities)))
                              for clothes in order_category_list)
@@ -255,7 +256,7 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
                                  tnved_code=linen.tnved_code, article_price=linen.article_price,
                                  tax=linen.tax, rd_type=linen.rd_type, rd_name=linen.rd_name.replace('№', ''),
                                  rd_date=linen.rd_date,
-                                 sizes_quantities=list((LinenQuantitySize(size=sq.size, quantity=sq.quantity)
+                                 sizes_quantities=list((LinenQuantitySize(size=sq.size, unit=sq.unit, quantity=sq.quantity)
                                                         for sq in linen.sizes_quantities)))
                            for linen in order_category_list)
 

@@ -1,6 +1,7 @@
 
 function linen_check_sizes_quantity_valid(){
     var sizes = document.querySelectorAll('[id=sizeX_info]');
+    console.log(sizes.length);
     return sizes.length >= 1;
 }
 
@@ -64,13 +65,14 @@ function show_linen_pos(index, trademark, type, color, pos_quantity, box_quantit
     let sq_block = ''
     sq_list.forEach(function (el) {
         let size_temp = el.split('##')[0];
-        let quantity_temp = el.split('##')[1];
+        let unit_temp = el.split('##')[1];
+        let quantity_temp = el.split('##')[2];
         sq_block += `<div class="important-card__item important-card__size ms-2">
                         <div class="d-flex align-items-center g-3">
 <!--                            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26" fill="none">-->
 <!--                                <path fill-rule="evenodd" clip-rule="evenodd" d="M5.50501 0.396617C10.2365 -0.132206 15.1279 -0.132206 19.8595 0.396617C22.4999 0.691723 24.63 2.77206 24.9402 5.42294C25.5058 10.2602 25.5058 15.1468 24.9402 19.9839C24.63 22.6348 22.4999 24.7152 19.8595 25.0102C15.1279 25.539 10.2365 25.539 5.50501 25.0102C2.86457 24.7152 0.734354 22.6348 0.424309 19.9839C-0.141436 15.1468 -0.141436 10.2602 0.424309 5.42294C0.734354 2.77206 2.86457 0.691723 5.50501 0.396617ZM12.6822 11.5472H13.8385H19.2231C19.8616 11.5472 20.3793 12.0649 20.3793 12.7034C20.3793 13.342 19.8616 13.8597 19.2231 13.8597H13.8385C13.8385 13.8597 13 13.8597 12.6822 13.8597C12.3645 13.8597 12 13.8597 12 13.8597H11.526H6.14155C5.50296 13.8597 4.9853 13.342 4.9853 12.7034C4.9853 12.0649 5.50296 11.5472 6.14155 11.5472H11.526H12.6822Z" fill="#575757"/>-->
 <!--                              </svg>-->
-                            <span class="ms-2">${size_temp} размер</span>
+                            <span class="ms-2">${size_temp}, ${unit_temp} размер</span>
                         </div>
                         <div class="important-card__val">${quantity_temp} <span>шт.</span></div>
                     </div>`;
@@ -422,8 +424,9 @@ function addLinenCell(){
 
     var sizeX = document.getElementById('sizeX_order').value;
     var sizeY = document.getElementById('sizeY_order').value;
+    var sizeUnit = document.getElementById('sizeUnitOrder').value;
     var quantity_val = document.getElementById('quantity_order').value;
-    if(sizeX.length < 2 || sizeY.length < 2){
+    if(sizeX < 1 || sizeY < 1){
         show_form_errors(['некорректный размер белья',]);
         $('#form_errorModal').modal('show');
             return false
@@ -438,7 +441,14 @@ function addLinenCell(){
         $('#form_errorModal').modal('show');
         return false
     }
-    if (check_add_same_size(sizeX, sizeY, quantity)){
+
+    if(!sizeUnit || sizeUnit === ''){
+        // alert('некорректное количество');
+        show_form_errors(['не выбраны единицы измерения для белья',]);
+        $('#form_errorModal').modal('show');
+        return false
+    }
+    if (check_add_same_size(sizeX, sizeY,sizeUnit, quantity)){
         return false
     }
     // if (size_val === '56.5' || size_val === '56' || size > 56){
@@ -466,7 +476,7 @@ function addLinenCell(){
                                   <path fill-rule="evenodd" clip-rule="evenodd" d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325" fill="white"/>
                                 </svg>
                             </div>
-                            <div class="ms-2"><span id="sizeX_info">${sizeX}</span> * <span id="sizeY_info">${sizeY}</span>, мм</div>
+                            <div class="ms-2"><span id="sizeX_info">${sizeX}</span> * <span id="sizeY_info">${sizeY}</span>, <span id="sizeUnit_info">${sizeUnit}</span></div>
                         </div>
                         <div class="important-card__val">
                             <span id="quantity_info">${quantity}</span> <span>шт. </span>
@@ -474,7 +484,9 @@ function addLinenCell(){
                                            value="${quantity}" style="display:none; width: 68px;"
                                            min="1" placeholder="0">
                         </div>
-                        <input type="hidden" id="sizeX" name="sizeX" value="${sizeX}"><input type="hidden" id="sizeY" name="sizeY" value="${sizeY}">
+                        <input type="hidden" id="sizeX" name="sizeX" value="${sizeX}">
+                        <input type="hidden" id="sizeY" name="sizeY" value="${sizeY}">
+                        <input type="hidden" id="sizeUnit" name="sizeUnit" value="${sizeUnit}">
                         <input type="hidden" id="quantity" name="quantity" value="${quantity}">
                     </div>`);
         // `<div class="row mb-3" id="container_element"><div class="col-md-6 col-xs-12 mt-1"><input type="text" name="size" id="size" minlength="2" maxlength="5" class="form-control mb-1" placeholder="Размер 16 - 56.5" autocomplete="off" oninput="check_shoes_size(value)||(value='');" value="${size}" required></div><div class="col-md-6 col-xs-12 mt-1"><input type="number" name="quantity" id="quantity" class="form-control ms-1" value="1" min="1"  oninput="validity.valid||(value='');javascript:setShoes();" max="${max_param}" placeholder="${placeholder_param}" required></div></div>`);
@@ -485,6 +497,7 @@ function addLinenCell(){
     document.getElementById('linen_in_box_info').innerText = total;
     document.getElementById('sizeX_order').value = '';
     document.getElementById('sizeY_order').value = '';
+    $('#sizeUnitOrder').val('').trigger("change");
     document.getElementById('quantity_order').value = '1';
 
 }
@@ -547,11 +560,12 @@ function linen_edit_size(el) {
     });
 }
 
-function check_add_same_size(sizeX, sizeY, quantity){
+function check_add_same_size(sizeX, sizeY, sizeUnit, quantity){
     var sizesX = document.querySelectorAll('[id=sizeX_info]');
     var sizesY = document.querySelectorAll('[id=sizeY_info]');
+    var sizesUnit = document.querySelectorAll('[id=sizeUnit_info]');
     for (let i = 0; i < sizesX.length; ++i) {
-      if (sizesX[i].innerText === sizeX && sizesY[i].innerText === sizeY){
+      if (sizesX[i].innerText === sizeX && sizesY[i].innerText === sizeY && sizesUnit[i].innerText === sizeUnit){
           let quantities = document.querySelectorAll('[id=quantity_info]');
           let quantities_hidden = document.querySelectorAll('[id=quantity]');
           let quantity_block = quantities[i];
@@ -563,7 +577,9 @@ function check_add_same_size(sizeX, sizeY, quantity){
           quantity_block.innerText = quantity_val;
           quantity_block_hidden.value = quantity_val
           setLinen();
-          document.getElementById('size_order').value = '';
+          document.getElementById('sizeX_order').value = '';
+          document.getElementById('sizeY_order').value = '';
+          $('#sizeUnitOrder').val('').trigger("change");
           document.getElementById('quantity_order').value = '1';
           return true
       }
