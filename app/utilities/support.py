@@ -2405,7 +2405,7 @@ def helper_utb_mod(user_id: int, admin_id: int, is_at2: bool) -> tuple[int, str,
 
 
 def helper_get_transaction_orders_detail(t_id: int) -> tuple:
-    orders_stmt = f"""SELECT 
+    orders_stmt = f"""SELECT DISTINCT ON (os.order_idn)
                           os.order_idn AS order_idn,
                           os.category AS category,
                           cl.subcategory AS subcategory,
