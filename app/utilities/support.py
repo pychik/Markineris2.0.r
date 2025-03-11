@@ -1543,53 +1543,68 @@ def helper_get_stmt_for_fin_order_report(
         sort_type: str = 'DESC'
 ) -> TextClause:
     sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
+    subcategory_value = SQLQueryCategoriesAll.get_stmt(field='subcategory')
+    case_mapping = "CASE "
+    for key, value in settings.SUB_CATEGORIES_DICT.items():
+        case_mapping += f"WHEN {subcategory_value} = '{key}' THEN '{value}' "
+    case_mapping += f"ELSE {subcategory_value} END"
+
     if order_type == (9,):
         # cancel order
         stmt = text(f"""
-                SELECT 
-                o.cc_created as handle_date,
-                o.order_idn as order_idn,
-                o.company_type ||' ' || o.company_name || ' '|| o.company_idn as company,
-                cli.phone as cli_phone_number,
-	            CASE WHEN MAX(agnt.login_name) IS NOT NULL THEN MAX(agnt.login_name) ELSE cli.login_name end as agent_login,
-                {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count,
-                {SQLQueryCategoriesAll.get_stmt(field='rows_count')} as rows_count,
-                o.category as category,
-                utr.op_cost as op_cost,
-                utr.op_cost*{SQLQueryCategoriesAll.get_stmt(field='marks_count')} as amount
-            FROM public.orders o
-                {SQLQueryCategoriesAll.get_joins()} 
-                LEFT JOIN public.user_transactions utr ON o.transaction_id = utr.id
-                JOIN public.users cli on cli.id = o.user_id
- 	            LEFT JOIN public.users agnt on cli.admin_parent_id = agnt.id
-                WHERE (o.cc_created >= :date_from AND o.cc_created < :date_to)  AND o.stage in :order_type
-                GROUP BY o.id, o.order_idn, utr.op_cost, utr.amount , o.cc_created, cli.phone, agnt.login_name, cli.login_name
-                ORDER BY o.cc_created {sort_type};
+                    SELECT 
+                    o.cc_created as handle_date,
+                    o.order_idn as order_idn,
+                    o.company_type ||' ' || o.company_name || ' '|| o.company_idn as company,
+                    cli.phone as cli_phone_number,
+    	            CASE WHEN MAX(agnt.login_name) IS NOT NULL THEN MAX(agnt.login_name) ELSE cli.login_name end as agent_login,
+                    {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count,
+                    {SQLQueryCategoriesAll.get_stmt(field='rows_count')} as rows_count,    
+                    CASE 
+                        WHEN {subcategory_value} = '{ClothesSubcategories.common.value}' 
+                        THEN o.category 
+                        ELSE ({case_mapping}) 
+                    END AS category,
+                    utr.op_cost as op_cost,
+                    utr.op_cost*{SQLQueryCategoriesAll.get_stmt(field='marks_count')} as amount
+                FROM public.orders o
+                    {SQLQueryCategoriesAll.get_joins()}
+                    LEFT JOIN public.user_transactions utr ON o.transaction_id = utr.id
+                    JOIN public.users cli on cli.id = o.user_id
+     	            LEFT JOIN public.users agnt on cli.admin_parent_id = agnt.id
+                    WHERE (o.cc_created >= :date_from AND o.cc_created < :date_to)  AND o.stage in :order_type
+                    GROUP BY o.id, o.order_idn, utr.op_cost, utr.amount , o.cc_created, cli.phone, agnt.login_name, cli.login_name
+                    ORDER BY o.cc_created {sort_type};
 
-            """).bindparams(date_from=date_from, date_to=date_to, order_type=order_type,)
+                """).bindparams(date_from=date_from, date_to=date_to, order_type=order_type, )
     else:
         stmt = text(f"""
-                SELECT 
-                o.sent_at as handle_date,
-                o.order_idn as order_idn,
-                o.company_type ||' ' || o.company_name || ' '|| o.company_idn as company,
-                cli.phone as cli_phone_number,
-	            CASE WHEN MAX(agnt.login_name) IS NOT NULL THEN MAX(agnt.login_name) ELSE cli.login_name end as agent_login,
-                {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count,
-                {SQLQueryCategoriesAll.get_stmt(field='rows_count')} as rows_count,
-                o.category as category,
-                utr.op_cost as op_cost,
-                utr.op_cost*{SQLQueryCategoriesAll.get_stmt(field='marks_count')} as amount
-            FROM public.orders o
-                {SQLQueryCategoriesAll.get_joins()} 
-                LEFT JOIN public.user_transactions utr ON o.transaction_id = utr.id
-                JOIN public.users cli on cli.id = o.user_id
- 	            LEFT JOIN public.users agnt on cli.admin_parent_id = agnt.id
-                WHERE o.payment in :payment_status AND (o.sent_at >= :date_from AND o.sent_at  < :date_to)  AND o.stage in :order_type
-                GROUP BY o.id, o.order_idn, utr.op_cost, utr.amount , o.sent_at, cli.phone, agnt.login_name, cli.login_name
-                ORDER BY o.sent_at {sort_type};
+                    SELECT 
+                    o.sent_at as handle_date,
+                    o.order_idn as order_idn,
+                    o.company_type ||' ' || o.company_name || ' '|| o.company_idn as company,
+                    cli.phone as cli_phone_number,
+    	            CASE WHEN MAX(agnt.login_name) IS NOT NULL THEN MAX(agnt.login_name) ELSE cli.login_name end as agent_login,
+                    {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count,
+                    {SQLQueryCategoriesAll.get_stmt(field='rows_count')} as rows_count,    
+                    CASE 
+                        WHEN {subcategory_value} = '{ClothesSubcategories.common.value}' 
+                        THEN o.category 
+                        ELSE ({case_mapping}) 
+                    END AS category,
+                    utr.op_cost as op_cost,
+                    utr.op_cost*{SQLQueryCategoriesAll.get_stmt(field='marks_count')} as amount
+                FROM public.orders o
+                    {SQLQueryCategoriesAll.get_joins()}
+                    LEFT JOIN public.user_transactions utr ON o.transaction_id = utr.id
+                    JOIN public.users cli on cli.id = o.user_id
+     	            LEFT JOIN public.users agnt on cli.admin_parent_id = agnt.id
+                    WHERE o.payment in :payment_status AND (o.sent_at >= :date_from AND o.sent_at  < :date_to)  AND o.stage in :order_type
+                    GROUP BY o.id, o.order_idn, utr.op_cost, utr.amount , o.sent_at, cli.phone, agnt.login_name, cli.login_name
+                    ORDER BY o.sent_at {sort_type};
 
-            """).bindparams(date_from=date_from, date_to=date_to, order_type=order_type, payment_status=payment_status)
+                """).bindparams(date_from=date_from, date_to=date_to, order_type=order_type,
+                                payment_status=payment_status, )
     return stmt
 
 
