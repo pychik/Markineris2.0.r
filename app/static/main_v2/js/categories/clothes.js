@@ -671,8 +671,8 @@ function chooseSizeClothes(subcategory) {
     }
 
     divBlock.innerHTML = `
-        <div class="modal fade" id="sizesClothesModal" tabindex="-1" role="dialog" aria-labelledby="sizesClothesModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-scrollable" data-backdrop="static" role="document">
+        <div class="modal fade" id="sizesClothesModal" tabindex="-1" role="dialog" aria-labelledby="sizesClothesModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" id="sizesClothesModalLabel">Выберите размеры одежды.</h5>
