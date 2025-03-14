@@ -611,7 +611,7 @@ function perform_free_size_input(clothingType){
         <div id="freeInputBlock${clothingType}" class="d-none">
             <p>Поле свободного ввода размера типа ${clothingType} (введите размер, количество и нажмите добавить)</p>
             <div class="input-group mb-3">
-                <input type="text" class="form-control" id="subcategorySizeInput${clothingType}" placeholder="Введите размер" maxlength="8" pattern="[A-Za-z0-9]{1,8}" title="Только латиница и цифры (до 5 символов)" required>
+                <input type="text" class="form-control" id="subcategorySizeInput${clothingType}" placeholder="Введите размер" maxlength="8" pattern="[A-Za-z0-9]([-,.;]?[A-Za-z0-9]){0,7}" title="Только латиница и цифры (до 8 символов)" required>
                 <input type="number" class="form-control" id="subcategorySizeQuantity${clothingType}" placeholder="Кол-во" min="1" required>
                 <button class="btn btn-accent" type="button" onclick="subcategory_size_add('${clothingType}')">Добавить</button>
                 <div class="invalid-feedback d-block" id="subcategorySizeError${clothingType}"></div>
@@ -796,7 +796,7 @@ function subcategory_size_add(clothingType) {
     let size = sizeInput.value.trim();
     let quantity = parseInt(quantityInput.value.trim(), 10);
 
-    let sizePattern = /^[A-Za-z0-9](-?[A-Za-z0-9]){0,7}$/;
+    let sizePattern = /^[A-Za-z0-9]([-]?[A-Za-z0-9]|[.,]?[0-9]){0,7}$/;
 
     // Очистка ошибок при вводе
     sizeInput.addEventListener('input', () => errorBlock.textContent = "");
@@ -818,7 +818,7 @@ function subcategory_size_add(clothingType) {
 
     // Проверка на корректность ввода
     if (!sizePattern.test(size)) {
-        errorBlock.textContent = "Размер должен содержать только латиницу, цифры и знак дефиса между ними (1-5 символов).";
+        errorBlock.textContent = "Размер должен содержать только латиницу, цифры и знак дефиса между ними (1-8 символов). Допускаются дробные размеры";
         return;
     }
     if (isNaN(quantity) || quantity < 1) {
