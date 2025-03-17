@@ -373,6 +373,7 @@ function linen_clear_pos(){
     $('#trademark').val("");
 
     $('#type').val('').trigger("change");
+    $('#customColor').val("");
     $('#color').val('').trigger("change");
     $('#gender').val('').trigger("change");
     $('#customer_age').val('').trigger("change");

@@ -370,6 +370,7 @@ function shoe_clear_pos(){
     $('#article').val("");
     $('#trademark').val("");
     $('#type').val('').trigger("change");
+    $('#customColor').val("");
     $('#color').val('').trigger("change");
     $('#gender').val('').trigger("change");
     $('#material_top').val('').trigger("change");

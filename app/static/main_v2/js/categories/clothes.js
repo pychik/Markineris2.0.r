@@ -366,6 +366,7 @@ function clothes_clear_pos() {
     $('#trademark').val("");
 
     $('#type').val('').trigger("change");
+    $('#customColor').val("");
     $('#color').val('').trigger("change");
     $('#gender').val('').trigger("change");
     $('#multi_content').val('').trigger("change");

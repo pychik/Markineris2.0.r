@@ -1,0 +1,59 @@
+
+<div class="form-group">
+     <!-- Надпись сверху -->
+    <div class="d-flex align-items-center">
+        <label class="control-label d-block">Цвет</label> <!-- Надпись слева от свитч-бокса -->
+        <div class="ms-1 form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="customColorSwitch"  title="Нажмите для ввода своего цвета" data-bs-toggle="tooltip" data-bs-placement="top">
+        </div>
+    </div>
+    <select class="form-control search-select is-invalid" id="color" name="color" required>
+        <option disabled selected value="">Выберите цвет..</option>
+        {% for c in colors %}
+            <option value="{{ c }}" {% if copied_order and copied_order.color == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+    </select>
+    <input type="text" id="customColor" name="color" class="form-control mt-2" placeholder="Введите свой цвет" style="display: none;" disabled required oninput="validateInput(this)">
+</div>
+
+<script>
+    function validateInput(input) {
+    let regex = /^[А-Яа-яЁё]+([ \-()\/]*[А-Яа-яЁё]+)*$/;
+
+    if (!regex.test(input.value)) {
+        input.value = input.value.replace(/[^А-Яа-яЁё\s\-\(\)\/]/g, '');
+    }
+
+    input.value = input.value.replace(/--+/g, '-');
+
+    input.value = input.value.toUpperCase();
+
+    // Удаляем знаки - ( ) / в начале, но оставляем в конце и внутри
+    input.value = input.value.replace(/^[\-\(\)\/]+/, '');
+}
+
+
+    document.getElementById('customColorSwitch').addEventListener('change', function() {
+        var selectBox = document.getElementById('color');
+        var customColorInput = document.getElementById('customColor');
+
+        if (this.checked) {
+            this.classList.add('bg-warning', 'border-warning');
+            selectBox.style.display = 'none';
+            selectBox.disabled = true;
+            $('#color').val('').trigger("change");
+            customColorInput.style.display = 'block';
+            customColorInput.disabled = false;
+
+        } else {
+            this.classList.remove('bg-warning', 'border-warning');
+            selectBox.style.display = 'block';
+            selectBox.disabled = false;
+            customColorInput.style.display = 'none';
+            customColorInput.disabled = true;
+            $('#customColor').val("");
+        }
+    });
+
+
+</script>

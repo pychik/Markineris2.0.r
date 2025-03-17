@@ -76,22 +76,7 @@
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="form-group">
-                        <label class="control-label">Цвет</label>
-                        <select class="form-control search-select is-invalid" id="color" name="color"
-                            required="">
-                            <option disabled selected value="">Выберите цвет..</option>
-                                {%for c in colors%}
-                                  <option value="{{c}}" {% if copied_order %}
-                                                            {% if copied_order.color == c %}
-                                                                selected
-                                                            {% endif %}
-                                                        {% endif %}>{{c}}
-                                  </option>
-                                {%endfor%}
-
-                        </select>
-                    </div>
+                    {% include 'helpers/colors_block.html' %}
                 </div>
 
                 <div class="col-md-4">
