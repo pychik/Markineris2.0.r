@@ -13,7 +13,7 @@
             <option value="{{ c }}" {% if copied_order and copied_order.color == c %}selected{% endif %}>{{ c }}</option>
         {% endfor %}
     </select>
-    <input type="text" id="customColor" name="color" class="form-control mt-2" placeholder="Введите свой цвет" style="display: none;" disabled required oninput="validateInput(this)">
+    <input type="text" id="customColor" name="color" class="form-control mt-2" maxlength="50" placeholder="Введите свой цвет" style="display: none;" disabled required oninput="validateInput(this)">
 </div>
 
 <script>
@@ -23,6 +23,7 @@
     if (!regex.test(input.value)) {
         input.value = input.value.replace(/[^А-Яа-яЁё\s\-\(\)\/]/g, '');
     }
+    input.value = input.value.slice(0, 50);
 
     input.value = input.value.replace(/--+/g, '-');
 
