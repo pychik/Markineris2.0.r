@@ -16,37 +16,9 @@
     <div class="row justify-content-end g-3">
         <div class="col-xl-8">
             <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label class="control-label">Товарный знак</label>
-                        <input type="text" name="trademark" id="trademark" class="form-control"
-                               onchange="check_valid(this);" minlength="1" maxlength="50" required
-                               title="Вводимое значение не должно превышать 50 знаков"
-                            {% if copied_order %}value="{{ copied_order.trademark }}"
-                            {% endif %}>
-                        <div class="row">
-                            <div class="col-6"></div>
-                            <div class="col-4 text-right">
-                                <div onclick="set_no_tm();"><span class="badge link-secondary font-8" style="font-size: 8px; font-weight:bold; cursor:pointer">БЕЗ ТОВАРНОГО ЗНАКА</span></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label class="control-label">Артикул</label>
-                        <input type="text" name="article" id="article" class="form-control"
-                               onchange="check_valid(this);" minlength="3"
-                               value="{% if copied_order %}{{ copied_order.article }}{% endif %}"
-                               required>
-                        <div class="row">
-                            <div class="col-7"></div>
-                            <div class="col-4 text-right">
-                                <div onclick="set_no_article();"><span class="badge link-secondary font-8" style="font-size: 8px; font-weight:bold; cursor:pointer">БЕЗ АРТИКУЛА</span></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
+                {% include 'helpers/trademark_article.html' %}
+
                 <div class="col-md-4">
                     <div class="form-group">
                         <label class="control-label">Вид изделий</label>
