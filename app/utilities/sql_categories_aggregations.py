@@ -1,5 +1,7 @@
 from sqlalchemy import text
 
+from config import settings
+
 
 class SQLQueryCategoriesAll:
     """
@@ -8,16 +10,16 @@ class SQLQueryCategoriesAll:
     """
     CATEGORY_TABLES = {
         "default": {
-            "join": """
-                LEFT JOIN public.shoes sh ON o.id = sh.order_id
+            "join": f"""
+                LEFT JOIN public.shoes sh ON o.category=\'{settings.Shoes.CATEGORY}\' AND o.id = sh.order_id
                 LEFT JOIN public.shoes_quantity_sizes sh_qs ON sh.id = sh_qs.shoe_id
-                LEFT JOIN public.clothes cl ON o.id = cl.order_id
+                LEFT JOIN public.clothes cl ON o.category=\'{settings.Clothes.CATEGORY}\' AND o.id = cl.order_id
                 LEFT JOIN public.cl_quantity_sizes cl_qs ON cl.id = cl_qs.cl_id
-                LEFT JOIN public.socks sk ON o.id = sk.order_id
+                LEFT JOIN public.socks sk ON o.category=\'{settings.Socks.CATEGORY}\' AND o.id = sk.order_id
                 LEFT JOIN public.socks_quantity_sizes sk_qs ON sk.id = sk_qs.socks_id
-                LEFT JOIN public.linen l ON o.id = l.order_id
+                LEFT JOIN public.linen l ON o.category=\'{settings.Linen.CATEGORY}\' AND o.id = l.order_id
                 LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
-                LEFT JOIN public.parfum p ON o.id = p.order_id
+                LEFT JOIN public.parfum p ON o.category=\'{settings.Parfum.CATEGORY}\' AND o.id = p.order_id
             """,
             "fields": {
                 "subcategory": "coalesce(max(cl.subcategory), 'common')",
