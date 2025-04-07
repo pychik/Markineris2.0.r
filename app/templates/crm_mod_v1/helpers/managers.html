@@ -8,8 +8,10 @@
             </div>
             <div class="col-md-3 col-xs-12 text-left">
                 <input type="text" name="manager_login_name" class="form-control"
-                           placeholder="Введите логин менеджера" required readonly
-                       value="{% if new_manager_name %}{{ new_manager_name }}{% else %}manager_1{% endif %}">
+                           placeholder="Введите логин менеджера" required minlength="3" maxlength="10"
+                       title="Только латинские буквы и цифры. Сервер добавит префикс manager_ к вашему логину"
+                       pattern="[a-z0-9]+" oninput="this.value = this.value.toLowerCase().replace(/[^a-z0-9]/g, '')"
+                       value="">
 
             </div>
         </div>
