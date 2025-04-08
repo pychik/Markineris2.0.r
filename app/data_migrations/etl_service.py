@@ -266,7 +266,7 @@ class ETLMigrateUserData:
         except Exception as e:
             self.session.rollback()
             logger.error(f"Ошибка миграции пользователя {email}: {str(e)}")
-            raise
+            raise e
 
     def migrate_user(self, user_data: dict[str, Any], admin_parent_id: Optional[int] = None) -> None:
         """Миграция данных пользователя."""

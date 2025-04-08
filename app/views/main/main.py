@@ -53,14 +53,3 @@ def check_csrf():
 def download_template_table(filename: str):
     path = f"{settings.DOWNLOAD_DIR}/system_files/{filename}"
     return send_file(path_or_file=path, as_attachment=True)
-
-
-@main.route('/etl_user_data', methods=['POST'])
-@login_required
-@user_activated
-@su_required
-def etl_user_data():
-    email = request.form.get('email')
-
-    et_prc = ETLMigrateUserData(session=db.session)
-    return Response(et_prc.start(email))
