@@ -1,8 +1,10 @@
-from flask import Blueprint, flash, render_template, send_file, session, redirect, url_for
+from flask import Blueprint, render_template, send_file, Response, request
 from flask_login import login_required, current_user
 
 from config import settings
-from utilities.support import user_activated, manager_forbidden
+from data_migrations.etl_service import ETLMigrateUserData
+from models import db
+from utilities.support import user_activated, manager_forbidden, su_required
 
 main = Blueprint('main', __name__)
 
@@ -51,3 +53,14 @@ def check_csrf():
 def download_template_table(filename: str):
     path = f"{settings.DOWNLOAD_DIR}/system_files/{filename}"
     return send_file(path_or_file=path, as_attachment=True)
+
+
+@main.route('/etl_user_data', methods=['POST'])
+@login_required
+@user_activated
+@su_required
+def etl_user_data():
+    email = request.form.get('email')
+
+    et_prc = ETLMigrateUserData(session=db.session)
+    return Response(et_prc.start(email))
