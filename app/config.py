@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     MINIO_BILL_BUCKET_NAME: str
 
     DATA_DOWNLOAD_URL_FROM_MARKINERS_1: str
+    MARKINERIS_API_HOST: str
     SALT: SecretStr
 
     MARKINERS_V2_TOKEN: str
