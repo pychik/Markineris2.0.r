@@ -874,7 +874,7 @@ function check_pa_refill_form(){
             if (error_field_id !== true){
                 let label_text = ''
                 if (error_field_id === 'bill_summ'){
-                    label_text += 'Введите сумму пополнения'
+                    label_text += 'Введите корректную сумму пополнения'
                 }
                 else{
                     label_text += jQuery(`#${error_field_id}`).closest(".form-group").find("label").text();

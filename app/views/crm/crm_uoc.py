@@ -36,10 +36,6 @@ def index():
     cancelled_orders = Order.query.with_entities(Order.id) \
         .filter(Order.stage == settings.OrderStage.CANCELLED, Order.cc_created < dt_co).count()
 
-    if managers_list:
-        new_manager_name = managers_list[-1].login_name.split('_')[0] + '_' + str(
-            int(managers_list[-1].login_name.split('_')[1]) + 1)
-
     crm_defaults = helper_get_limits()
     limits_defaults = settings.OrderStage.PS_DICT
 
@@ -53,7 +49,7 @@ def index():
 def create_manager():
 
     form_dict = request.form.to_dict()
-    login_name = form_dict.get("manager_login_name")
+    login_name = 'manager_' + form_dict.get("manager_login_name", '1')
     password = form_dict.get("manager_password")
 
     try:

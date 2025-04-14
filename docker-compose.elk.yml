@@ -50,6 +50,7 @@ services:
       - elasticsearch-data:/usr/share/elasticsearch/data
       - ./elk/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
       - ./elk/elasticsearch/config/log4j2.properties:/usr/share/elasticsearch/config/log4j2.properties
+      - ./elk/elasticsearch/scripts/init-ilm.sh:/usr/share/elasticsearch/config/init-ilm.sh
     secrets:
       - source: elasticsearch.keystore
         target: /usr/share/elasticsearch/config/elasticsearch.keystore
@@ -76,6 +77,23 @@ services:
         hard: 200000
     healthcheck:
       test: ["CMD", "sh", "-c", "curl -sf --insecure https://$ELASTIC_USERNAME:$ELASTIC_PASSWORD@localhost:$ELASTICSEARCH_PORT/_cat/health | grep -ioE 'green|yellow' || echo 'not green/yellow cluster status'"]
+      timeout: 5s
+      retries: 5
+
+  ilm-setup:
+    image: curlimages/curl
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      ELASTIC_USERNAME: ${ELASTIC_USERNAME}
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      ELASTICSEARCH_PORT: ${ELASTICSEARCH_PORT}
+    volumes:
+      - ./elk/elasticsearch/scripts/init-ilm.sh:/init-ilm.sh
+    command: sh /init-ilm.sh
+    networks:
+      - elk_shared_network
 
   logstash:
     image: logstash:${ELK_VERSION}
@@ -105,7 +123,7 @@ services:
       - default
       - elk_shared_network
     healthcheck:
-      test: ["CMD", "curl", "-s" ,"-XGET", "http://127.0.0.1:9600"]
+      test: ["CMD", "curl", "-s", "-XGET", "http://127.0.0.1:9600"]
 
   kibana:
     image: kibana:${ELK_VERSION}
@@ -137,7 +155,7 @@ services:
       - "${KIBANA_PORT}:${KIBANA_PORT}"
 
   apm-server:
-    image:  elastdocker/apm-server:${ELK_VERSION}
+    image: elastdocker/apm-server:${ELK_VERSION}
     build:
       context: elk/apm-server/
       args:

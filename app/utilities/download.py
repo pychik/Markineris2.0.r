@@ -223,9 +223,9 @@ class OrdersProcessor(ProcessorInterface, ABC):
         """
         match field_type:
             case "article" if value == "БЕЗ АРТИКУЛА":
-                return "  "
+                return ""
             case "trademark" if value == "БЕЗ ТОВАРНОГО ЗНАКА":
-                return "  "
+                return ""
             case "article":
                 return "арт. " + value
             case _:
