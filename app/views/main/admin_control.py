@@ -3,7 +3,7 @@ from flask_login import login_required
 from pydantic import ValidationError
 
 from config import settings
-from data_migrations.etl_service import ETLMigrateUserData
+from data_migrations.etl_service import ETLMigrateUserData, run_migration
 from data_migrations.instance import etl_service
 from data_migrations.utils import make_password
 from models import User, db
@@ -920,9 +920,8 @@ def etl_user_data():
         flash(message='Введите корректный email', category='error')
         return redirect(url_for('admin_control.data_migrations'))
 
-    migrator = ETLMigrateUserData(session=db.session)
     try:
-        migrator.start.delay(email)
+        run_migration.delay(email=email)
         flash(
             message='Миграция стартовала, статус миграции можно посмотреть по кнопке "Узнать статус"',
             category='success',

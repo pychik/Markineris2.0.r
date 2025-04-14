@@ -33,7 +33,7 @@ from models import (
     ShoeQuantitySize,
     LinenQuantitySize,
     ClothesQuantitySize,
-    SocksQuantitySize,
+    SocksQuantitySize, db,
 )
 from redis_queue.constants import DEFAULT_JOB_PARAMS
 from redis_queue.redis_instance import get_redis_client
@@ -255,7 +255,6 @@ class ETLMigrateUserData:
         self.minio_service = get_s3_service()
         self.redis_client = get_redis_client()
 
-    @job(**DEFAULT_JOB_PARAMS)
     def start(self, email: str) -> None:
         """Запускает процесс миграции данных пользователя."""
 
@@ -271,11 +270,11 @@ class ETLMigrateUserData:
         except Exception as e:
             self.session.rollback()
             self.redis_client.set("user_migration:result", json.dumps({"message": "ERROR", "email": email, "error": str(e)}))
+            self.redis_client.set("user_migration:process", 0)
             logger.error(f"Ошибка миграции пользователя {email}: {str(e)}")
             raise e
-        finally:
-            self.redis_client.set("user_migration:process", 0)
 
+        self.redis_client.set("user_migration:process", 0)
         self.redis_client.set("user_migration:result", json.dumps({"message": "OK", "email": email, "error": None}))
 
     def migrate_user(self, user_data: dict[str, Any], admin_parent_id: Optional[int] = None) -> None:
@@ -592,3 +591,9 @@ class ETLMigrateUserData:
             return result
 
         return {"message": "Нет миграций", "category": "warning"}
+
+
+@job(**DEFAULT_JOB_PARAMS)
+def run_migration(email: str):
+    """Запускает процесс миграции данных пользователя."""
+    ETLMigrateUserData(session=db.session).start(email=email)
