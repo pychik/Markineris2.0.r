@@ -5,6 +5,7 @@ from io import BytesIO
 from typing import Any, TypeVar, Optional
 
 import requests
+from rq.decorators import job
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -34,6 +35,7 @@ from models import (
     ClothesQuantitySize,
     SocksQuantitySize,
 )
+from redis_queue.constants import DEFAULT_JOB_PARAMS
 from redis_queue.redis_instance import get_redis_client
 from utilities.minio_service.services import get_s3_service
 from views.crm.helpers import helper_create_filename
@@ -253,20 +255,28 @@ class ETLMigrateUserData:
         self.minio_service = get_s3_service()
         self.redis_client = get_redis_client()
 
-    def start(self, email: str) -> dict:
+    @job(**DEFAULT_JOB_PARAMS)
+    def start(self, email: str) -> None:
         """Запускает процесс миграции данных пользователя."""
-        response = requests.post(f"{self.GET_USER_DATA}", json={"email": email}, headers=self.HEADERS)
-        response.raise_for_status()
 
         try:
+            self.redis_client.set("user_migration:process", 1)
+
+            response = requests.post(f"{self.GET_USER_DATA}", json={"email": email}, headers=self.HEADERS)
+            response.raise_for_status()
+
             self.migrate_user(response.json())
             self.session.commit()
             self._clear_cache()
-            return {"status": "OK"}
         except Exception as e:
             self.session.rollback()
+            self.redis_client.set("user_migration:result", json.dumps({"message": "ERROR", "email": email, "error": str(e)}))
             logger.error(f"Ошибка миграции пользователя {email}: {str(e)}")
             raise e
+        finally:
+            self.redis_client.set("user_migration:process", 0)
+
+        self.redis_client.set("user_migration:result", json.dumps({"message": "OK", "email": email, "error": None}))
 
     def migrate_user(self, user_data: dict[str, Any], admin_parent_id: Optional[int] = None) -> None:
         """Миграция данных пользователя."""
@@ -275,7 +285,8 @@ class ETLMigrateUserData:
             "price_id": None,
             "admin_order_num": 0,
         }
-
+        user_data.pop("referral_code", None)
+        user_data.pop("referral_balance", None)
         user_data = self._clear_data_before_save(user_data, defaults)
 
         nested_data = {
@@ -558,3 +569,26 @@ class ETLMigrateUserData:
                 self.redis_client.unlink(*to_unlink_keys)
         except Exception as e:
             logger.error(f"Не удалось очистить кеш: {str(e)}")
+
+    def check_migration_status(self):
+        error_message = {"message": "Не удалось получить результат", "category": "error"}
+
+        try:
+            value = self.redis_client.get("user_migration:process")
+            is_process = json.loads(value) if value else 0
+        except Exception as e:
+            is_process = False
+
+        if is_process:
+            return {"message": "Миграция в процессе", "category": "success"}
+
+        try:
+            result = self.redis_client.get("user_migration:result")
+            result = json.loads(result) if result else None
+        except Exception as e:
+            return error_message
+
+        if result:
+            return result
+
+        return {"message": "Нет миграций", "category": "warning"}

@@ -1,5 +1,3 @@
-from http import HTTPStatus
-
 from flask import Blueprint, jsonify, request, redirect, url_for, flash, render_template
 from flask_login import login_required
 from pydantic import ValidationError
@@ -924,12 +922,29 @@ def etl_user_data():
 
     migrator = ETLMigrateUserData(session=db.session)
     try:
-        result = migrator.start(email)
-        if result.get("status") == "OK":
-            flash(message=f'Миграция пользователя {email} прошла успешно', category='success')
-        else:
-            flash(message='Неизвестная ошибка при миграции', category='error')
+        migrator.start.delay(email)
+        flash(
+            message='Миграция стартовала, статус миграции можно посмотреть по кнопке "Узнать статус"',
+            category='success',
+        )
     except Exception as e:
-        flash(message=f'Ошибка при миграции: {str(e)}', category='error')
+        flash(message=str(e), category='error')
+
+    return redirect(url_for('admin_control.data_migrations'))
+
+
+@admin_control.route('/check_user_migration_status', methods=['GET'])
+@login_required
+@su_required
+def check_user_migration_status():
+    migrator = ETLMigrateUserData(session=db.session)
+    try:
+        result = migrator.check_migration_status()
+        flash(
+            message=result["message"],
+            category=result["category"],
+        )
+    except Exception as e:
+        flash(message=str(e), category='error')
 
     return redirect(url_for('admin_control.data_migrations'))

@@ -1,7 +1,6 @@
 {% extends 'main/base_v2.html' %}
 
 {% block fc_panel %}
-
 <div class="container">
     <h2 class="text-center">Миграция данных пользователя</h2>
     <form action="{{ url_for('admin_control.etl_user_data') }}" method="post" class="mt-4">
@@ -13,6 +12,10 @@
         </div>
         <button type="submit" class="btn btn-primary btn-block">Запустить миграцию</button>
         <a href="{{ url_for('admin_control.index') }}" class="btn btn-secondary btn-block mt-2">Назад</a>
+    </form>
+
+    <form action="{{ url_for('admin_control.check_user_migration_status') }}" method="get">
+        <button type="submit" class="btn btn-info btn-block mt-2">Проверить статус миграции</button>
     </form>
 </div>
 {% endblock %}
