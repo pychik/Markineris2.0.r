@@ -593,7 +593,7 @@ class ETLMigrateUserData:
         return {"message": "Нет миграций", "category": "warning"}
 
 
-@job(**DEFAULT_JOB_PARAMS)
+@job(**DEFAULT_JOB_PARAMS, timeout=3600, result_ttl=86400)
 def run_migration(email: str):
     """Запускает процесс миграции данных пользователя."""
     ETLMigrateUserData(session=db.session).start(email=email)
