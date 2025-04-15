@@ -32,3 +32,11 @@ NOTIFICATION_GT_JOB_PARAMS = {
     "on_success": on_success_gt,
     "on_failure": on_failure_gt,
 }
+
+DEFAULT_JOB_PARAMS = {
+    "queue": settings.RQ_DEFAULT_QUEUE_NAME,
+    "retry": Retry(max=3),
+    "connection": conn,
+    "on_success": on_success_telegram,
+    "on_failure": on_failure_telegram,
+}

@@ -1,13 +1,12 @@
-from http import HTTPStatus
-
-from flask import Blueprint, jsonify, request, redirect, url_for, flash
+from flask import Blueprint, jsonify, request, redirect, url_for, flash, render_template
 from flask_login import login_required
 from pydantic import ValidationError
 
 from config import settings
+from data_migrations.etl_service import ETLMigrateUserData, run_migration
 from data_migrations.instance import etl_service
 from data_migrations.utils import make_password
-from models import User
+from models import User, db
 from utilities.admin.h_admin_control import h_bck_agent_reanimate
 from utilities.admin.h_admin_control import (
     h_index,
@@ -903,3 +902,48 @@ def su_agent_info():
         password = make_password(agent_email, settings.SALT.get_secret_value())
 
     return jsonify(dict(password=password)), 200
+
+
+@admin_control.route('/migrations', methods=['GET'])
+@login_required
+@su_required
+def data_migrations():
+    return render_template('admin/migration_data/form.html')
+
+
+@admin_control.route('/etl_user_data', methods=['POST'])
+@login_required
+@su_required
+def etl_user_data():
+    email = request.form.get('email')
+    if not email or "@" not in email:
+        flash(message='Введите корректный email', category='error')
+        return redirect(url_for('admin_control.data_migrations'))
+
+    try:
+        run_migration.delay(email=email)
+        flash(
+            message='Миграция стартовала, статус миграции можно посмотреть по кнопке "Узнать статус"',
+            category='success',
+        )
+    except Exception as e:
+        flash(message=str(e), category='error')
+
+    return redirect(url_for('admin_control.data_migrations'))
+
+
+@admin_control.route('/check_user_migration_status', methods=['GET'])
+@login_required
+@su_required
+def check_user_migration_status():
+    migrator = ETLMigrateUserData(session=db.session)
+    try:
+        result = migrator.check_migration_status()
+        flash(
+            message=result["message"],
+            category=result["category"],
+        )
+    except Exception as e:
+        flash(message=str(e), category='error')
+
+    return redirect(url_for('admin_control.data_migrations'))
