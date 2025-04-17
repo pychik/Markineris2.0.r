@@ -165,7 +165,7 @@
                             src="{{url_for('static', filename='main_v2/img/icons/exit.svg')}}" class="me-2" width="24"
                             height="24">Выход</a>
                 </li>
-                </li>
+
                 {% if current_user.role == 'superuser' or current_user.role=='admin'%}
                     <li>
                         <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_d.agents') }}"
