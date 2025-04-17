@@ -86,12 +86,6 @@
                                     title="Панель управления пользователями">Заказы клиентов</a>
                             </li>
                     {% endif %}
-                    {% if current_user.role == 'admin' and current_user.is_at2%}
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.at2_new_orders') }}"
-                                    title="Панель управления пользователями">Заказы клиентов</a>
-                            </li>
-                    {% endif %}
                     {% if current_user.role == 'superuser' or current_user.role == 'admin'%}
                         <li>
                             <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.index') }}"
@@ -180,6 +174,12 @@
                         </a>
                     </li>
                 {%endif%}
+                {% if current_user.role == 'admin' and current_user.is_at2%}
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.at2_new_orders') }}"
+                                title="Панель управления пользователями">Заказы клиентов</a>
+                        </li>
+                {% endif %}
                 {% if current_user.role == 'superuser' or current_user.role == 'admin'%}
                     <li>
                         <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.index') }}"
