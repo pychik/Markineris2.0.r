@@ -1,6 +1,7 @@
 import fitz
 from io import BytesIO
 import rarfile
+import zipfile
 from base64 import b64encode
 from pdfrw import PageMerge, PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
@@ -12,9 +13,10 @@ from config import settings
 from utilities.exceptions import GetFirstPageFromPDFError
 
 
-class RarPdfProcessor:
-    def __init__(self, rar_file: bytes):
+class RarZipPdfProcessor:
+    def __init__(self, rar_file: bytes,  archive_type: str = "zip"):
         self.rar_archive_data = rar_file
+        self.archive_type = archive_type
         self.pdf_files = []
 
     @staticmethod
@@ -24,10 +26,46 @@ class RarPdfProcessor:
         return rar_data
 
     def get_extract_and_merge_pdfs(self):
-        with rarfile.RarFile(BytesIO(self.rar_archive_data), 'r') as rf:
-            for file_info in rf.infolist():
-                if settings.Pdf.PDF_FOLDER_NAME in file_info.filename and file_info.filename.endswith('.pdf'):
+        archive_bytes = BytesIO(self.rar_archive_data)
+        archive_bytes.seek(0)
+        if self.archive_type == 'rar':
+            with rarfile.RarFile(archive_bytes, 'r') as rf:
+                pdf_files = [
+                    f for f in rf.infolist() if f.filename.endswith('.pdf')
+                ]
+
+                # Сначала ищем PDF в папке ЭтикеткиPDF
+                target_pdfs = [
+                    f for f in pdf_files if f.filename.startswith(f"{settings.Pdf.PDF_FOLDER_NAME}/")
+                ]
+
+                # Если не нашли — берём PDF из корня архива
+                if not target_pdfs:
+                    target_pdfs = [
+                        f for f in pdf_files if '/' not in f.filename.rstrip('/')
+                    ]
+
+                for file_info in target_pdfs:
                     pdf_data = rf.read(file_info.filename)
+                    self.pdf_files.append(BytesIO(pdf_data))
+
+        elif self.archive_type == 'zip':
+            with zipfile.ZipFile(archive_bytes, 'r') as zf:
+                pdf_files = [
+                    f for f in zf.infolist() if f.filename.endswith('.pdf')
+                ]
+
+                target_pdfs = [
+                    f for f in pdf_files if f.filename.startswith(f"{settings.Pdf.PDF_FOLDER_NAME}/")
+                ]
+
+                if not target_pdfs:
+                    target_pdfs = [
+                        f for f in pdf_files if '/' not in f.filename.rstrip('/')
+                    ]
+
+                for file_info in target_pdfs:
+                    pdf_data = zf.read(file_info.filename)
                     self.pdf_files.append(BytesIO(pdf_data))
 
         pdf_merger = PdfWriter()
@@ -38,6 +76,7 @@ class RarPdfProcessor:
 
         return self.add_page_numbers(pdf_merger)
 
+
     @staticmethod
     def add_page_numbers(pdf_merger: PdfWriter) -> BytesIO:
         io_pdf = BytesIO()
@@ -47,7 +86,7 @@ class RarPdfProcessor:
         output = PdfReader(io_pdf)
         for i, page in enumerate(output.pages, start=1):
             page_number_text = f"{i} - {len(output.pages)}"
-            RarPdfProcessor.add_text_to_page(page, page_number_text)
+            RarZipPdfProcessor.add_text_to_page(page, page_number_text)
 
         io_pdf = BytesIO()
         io_pdf_writer = PdfWriter()
@@ -112,35 +151,54 @@ def get_first_page_as_image(pdf_file_stream: bytes):
 
 
 def helper_check_attached_file(order_file: FileStorage) -> tuple[bool, str]:
-    # Read the file into a BytesIO object
+    filename = order_file.filename.lower()
+
+    # Проверка расширения файла
+    if not (filename.endswith('.rar') or filename.endswith('.zip')):
+        message = settings.Messages.ORDER_ATTACH_FILE_ERROR + ' Поддерживаются только архивы .zip и .rar!'
+        return False, message
+
+    # Чтение файла в память
     file_bytes = BytesIO(order_file.read())
     file_bytes.seek(0)
 
-    # Open and extract the RAR file from the BytesIO object
     try:
-        with rarfile.RarFile(file_bytes) as rf:
-            # Check if 'ЭтикеткиPDF' folder exists
-            if not any(member.filename.startswith('ЭтикеткиPDF/') for member in rf.infolist()):
-                message = settings.Messages.ORDER_ATTACH_FILE_ERROR + ' нет папки ЭтикеткиPDF в прилагаемом архиве!'
-                return False, message
-            # Process files in the 'ЭтикеткиPDF' folder only first for files
-            pdf_member = next(
-                (member for member in rf.infolist()
-                 if member.filename.startswith('ЭтикеткиPDF/') and member.filename.endswith('.pdf')),
-                None
-            )
+        if filename.endswith('.rar'):
+            with rarfile.RarFile(file_bytes) as archive:
+                members = archive.infolist()
+        elif filename.endswith('.zip'):
+            with zipfile.ZipFile(file_bytes) as archive:
+                members = archive.infolist()
+        else:
+            message = settings.Messages.ORDER_ATTACH_FILE_ERROR + ' Неподдерживаемый тип архива!'
+            return False, message
 
-            if not pdf_member:
-                message = settings.Messages.ORDER_ATTACH_FILE_ERROR + ' В папке ЭтикеткиPDF нет pdf или присутствуют файлы с другим расширением!'
+        # Проверка наличия PDF-файлов в папке 'ЭтикеткиPDF/'
+        etik_pdf_files = [
+            m for m in members
+            if m.filename.startswith('ЭтикеткиPDF/') and m.filename.endswith('.pdf')
+        ]
+
+        if etik_pdf_files:
+            pass  # Всё ок, pdf в нужной папке есть
+        else:
+            # Ищем PDF в корне архива
+            root_pdf_files = [
+                m for m in members
+                if m.filename.endswith('.pdf') and '/' not in m.filename.rstrip('/')
+            ]
+            if not root_pdf_files:
+                message = settings.Messages.ORDER_ATTACH_FILE_ERROR + ' В архиве отсутствуют PDF-файлы!'
                 return False, message
 
-            file_bytes.seek(0)
-            order_file.stream = file_bytes
+        file_bytes.seek(0)
+        order_file.stream = file_bytes
+
     except Exception as e:
         message = settings.Messages.ORDER_ATTACH_FILE_ERROR + str(e)
         return False, message
-    else:
-        return True, ''
+
+    return True, ''
 
 
 # if __name__ == '__main__':

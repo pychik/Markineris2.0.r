@@ -176,7 +176,7 @@ class Settings(BaseSettings):
     ALLOWED_EXTENSIONS: tuple = ('xlsx',)
     ALLOWED_IMG_EXTENSIONS: tuple = ('png', 'jpg', 'jpeg', )
     ALLOWED_BILL_EXTENSIONS: tuple = ('png', 'jpg', 'jpeg', 'pdf', )
-    CRM_ALLOWED_EXTENSIONS: tuple = ('rar', )
+    CRM_ALLOWED_EXTENSIONS: tuple = ('rar', 'zip', )
     UPLOAD_TABLE_ERRORS_FILE: str = "Ошибки_загрузки_заказа.txt"
     SEND_TABLE_NAME: str = "таблица_заказ.xlsx"
     ERROR: str = 'error'

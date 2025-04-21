@@ -8,7 +8,7 @@ from models import Clothes, Order, OrderFile
 from utilities.categories_data.subcategories_data import ClothesSubcategories, Category
 from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.minio_service.services import download_file_from_minio, get_s3_service
-from utilities.pdf_processor import RarPdfProcessor
+from utilities.pdf_processor import RarZipPdfProcessor
 from utilities.saving_uts import common_save_copy_order
 from utilities.support import get_category_archive_all, \
     common_process_delete_order, helper_get_order_notification, \
@@ -150,11 +150,16 @@ def h_download_oa(o_id: int, category: str = settings.Shoes.CATEGORY) -> Respons
     f_link = file_download_obj.file_link
 
     if fs_name:
-        rar_name = f"order_{o_id}.rar"
+        if fs_name.lower().endswith('.zip'):
+            archive_ext = 'zip'
+        else:
+            archive_ext = 'rar'
+
+        archive_name = f"order_{o_id}.{archive_ext}"
         return download_file_from_minio(
             bucket_name=settings.MINIO_CRM_BUCKET_NAME,
             object_name=fs_name,
-            download_name=rar_name,
+            download_name=archive_name,
         )
     elif f_link is not None:
         flash(message=f"{settings.Messages.FILE_DOWNLOAD_LINK} "
@@ -197,7 +202,8 @@ def h_download_opdf(o_id: int, category: str = settings.Shoes.CATEGORY) -> Respo
             response.headers['data_message'] = settings.Messages.NO_FILES_TO_DOWNLOAD_ENG
             logger.exception("Ошибка при получении файла из хранилища")
         else:
-            rar_pdf_proc = RarPdfProcessor(rar_file=rar_file.data)
+            archive_type = 'zip' if fs_name.lower().endswith('.zip') else 'rar'
+            rar_pdf_proc = RarZipPdfProcessor(rar_file=rar_file.data, archive_type=archive_type)
             pdf_io = rar_pdf_proc.get_extract_and_merge_pdfs()
             pdf_name = "order_{order_idn}.pdf".format(order_idn=order.order_idn)
             response = make_response(pdf_io.getvalue())

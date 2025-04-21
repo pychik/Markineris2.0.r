@@ -683,7 +683,7 @@ function process_attach_file(file_url, link_url, csrf, o_id, order_idn){
                                 <button class="btn btn-secondary font-12" type="button" onclick="document.getElementById('order${o_id}_file_input').click();">Выбрать файл...</button>
                                 <span id="order${o_id}_attachFileName" class="form-control">Файл не выбран</span>
                                 
-                                <input type="file" class="form-control" accept=".rar" id="order${o_id}_file_input" style="display: none;" onchange="attachFileUpdateFileName('${o_id}')"
+                                <input type="file" class="form-control" accept=".rar, .zip" id="order${o_id}_file_input" style="display: none;" onchange="attachFileUpdateFileName('${o_id}')"
                                  name="order_file" aria-label="Upload" lang="ru">
                                  
                                 <button class="btn btn-outline-warning" type="button" onclick="process_post_attach_file('order${o_id}_file_input', '${file_url}','${csrf}', '${o_id}');">Сохранить</button>
