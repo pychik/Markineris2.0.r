@@ -25,7 +25,7 @@
         <input type="email" name="email" id="email" class="form-control mb-3" oninput="this.value = this.value.toLowerCase();"
                    placeholder="Введите email" required autofocus>
 
-        {% if admin_info.admin_is_at2 %}
+{#        {% if admin_info.admin_is_at2 %}#}
             <div class="d-flex align-items-center mt-3">
                 <input type="tel" name="phone" id="phone" class="form-control me-2" autocomplete="off"
                        placeholder="Введите номер WhatsApp" onchange="check_intel_num()" required autofocus>
@@ -71,70 +71,70 @@
             <button type="submit" id="submit-button" class="btn btn-lg btn-accent btn-block mt-3">
                 Зарегистрироваться
             </button>
-        {% else %}
-            <div class="d-flex align-items-center my-3">
-                <input type="tel" name="phone" id="phone" class="form-control me-2" autocomplete="off"
-                       placeholder="Введите номер WhatsApp" onchange="check_intel_num()" autofocus>
-                <input type="hidden" name="full_phone" id="full_phone" value="">
-                <button type="button" id ="verifyPhoneNumberButton" class="btn btn-secondary" onclick="verifyPhoneNumber(`{{ url_for('auth.send_verification_code') }}`)">
-                    Верификация номера
-                </button>
-            </div>
-
-            <div id="verification-code-input" class="mb-3" style="display: none;">
-                <div class="input-group" >
-                    <input type="text" id="verification-code" class="form-control" placeholder="Введите код из SMS">
-                    <button type="button" class="btn btn-secondary" onclick="verifySignUpCode(`{{ url_for('auth.verify_sign_up_phone_code') }}`)">
-                        Проверить код
-                    </button>
-                </div>
-                <small class="text-muted">Введите код, отправленный на ваш номер.</small>
-            </div>
-
-
-            <div id="passwordsAndCaptchaHide" style="display:none">
-                <div class="input-group mt-3">
-
-                  <input type="password" class="form-control" aria-describedby="eye-toggle-sign"
-                         id="password_sign" name="password" placeholder="Введите пароль" required>
-                    <span class="input-group-text bg-white" id="eye-toggle-sign" onclick="change_input_view('password_sign', 'eye-toggle-sign')">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
-                          <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
-                          <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
-                        </svg>
-                    </span>
-                </div>
-                <div class="small text-muted mb-3">Пароль должен состоять из 6-20 символов</div>
-                <div class="input-group mb-3">
-
-                  <input type="password" class="form-control" aria-describedby="eye-toggle-sign-check"
-                         id="password_sign_check" name="password_check" placeholder="Введите повторно пароль" required>
-
-                    <span class="input-group-text bg-white" id="eye-toggle-sign-check" style="border:none" onclick="change_input_view('password_sign_check', 'eye-toggle-sign-check')">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
-                          <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
-                          <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
-                        </svg>
-                    </span>
-
-                </div>
-
-                <div id = "message" style="color:#e75959"> </div>
-
-                <div class="form-group">
-                    <label for="captcha_text">Введите текст с картинки</label>
-                    <img class="simple-captcha-img rounded" width="180px" src="data:image/jpeg;base64, {{ captcha_img | safe }}">
-                    <input type="text" class="form-control" oninput="this.value=this.value.toUpperCase();"
-                           id="captcha_text" name="captcha-text" placeholder="Введите капчу" required>
-                    <input type="hidden" class="form-control" id="captcha_hash" name="captcha-hash" value="{{ captcha_hash | safe }}">
-                </div>
-
+{#        {% else %}#}
+{#            <div class="d-flex align-items-center my-3">#}
+{#                <input type="tel" name="phone" id="phone" class="form-control me-2" autocomplete="off"#}
+{#                       placeholder="Введите номер WhatsApp" onchange="check_intel_num()" autofocus>#}
+{#                <input type="hidden" name="full_phone" id="full_phone" value="">#}
+{#                <button type="button" id ="verifyPhoneNumberButton" class="btn btn-secondary" onclick="verifyPhoneNumber(`{{ url_for('auth.send_verification_code') }}`)">#}
+{#                    Верификация номера#}
+{#                </button>#}
+{#            </div>#}
+{##}
+{#            <div id="verification-code-input" class="mb-3" style="display: none;">#}
+{#                <div class="input-group" >#}
+{#                    <input type="text" id="verification-code" class="form-control" placeholder="Введите код из SMS">#}
+{#                    <button type="button" class="btn btn-secondary" onclick="verifySignUpCode(`{{ url_for('auth.verify_sign_up_phone_code') }}`)">#}
+{#                        Проверить код#}
+{#                    </button>#}
+{#                </div>#}
+{#                <small class="text-muted">Введите код, отправленный на ваш номер.</small>#}
+{#            </div>#}
+{##}
+{##}
+{#            <div id="passwordsAndCaptchaHide" style="display:none">#}
+{#                <div class="input-group mt-3">#}
+{##}
+{#                  <input type="password" class="form-control" aria-describedby="eye-toggle-sign"#}
+{#                         id="password_sign" name="password" placeholder="Введите пароль" required>#}
+{#                    <span class="input-group-text bg-white" id="eye-toggle-sign" onclick="change_input_view('password_sign', 'eye-toggle-sign')">#}
+{#                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">#}
+{#                          <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>#}
+{#                          <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>#}
+{#                        </svg>#}
+{#                    </span>#}
+{#                </div>#}
+{#                <div class="small text-muted mb-3">Пароль должен состоять из 6-20 символов</div>#}
+{#                <div class="input-group mb-3">#}
+{##}
+{#                  <input type="password" class="form-control" aria-describedby="eye-toggle-sign-check"#}
+{#                         id="password_sign_check" name="password_check" placeholder="Введите повторно пароль" required>#}
+{##}
+{#                    <span class="input-group-text bg-white" id="eye-toggle-sign-check" style="border:none" onclick="change_input_view('password_sign_check', 'eye-toggle-sign-check')">#}
+{#                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">#}
+{#                          <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>#}
+{#                          <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>#}
+{#                        </svg>#}
+{#                    </span>#}
+{##}
+{#                </div>#}
+{##}
+{#                <div id = "message" style="color:#e75959"> </div>#}
+{##}
+{#                <div class="form-group">#}
+{#                    <label for="captcha_text">Введите текст с картинки</label>#}
+{#                    <img class="simple-captcha-img rounded" width="180px" src="data:image/jpeg;base64, {{ captcha_img | safe }}">#}
+{#                    <input type="text" class="form-control" oninput="this.value=this.value.toUpperCase();"#}
+{#                           id="captcha_text" name="captcha-text" placeholder="Введите капчу" required>#}
+{#                    <input type="hidden" class="form-control" id="captcha_hash" name="captcha-hash" value="{{ captcha_hash | safe }}">#}
+{#                </div>#}
+{##}
         {#       <button type="submit" class="btn btn-lg btn-accent btn-block mt-3">Зарегистрироваться</button>#}
-                <button type="submit" id="submit-button" class="btn btn-lg btn-accent btn-block mt-3">
-                    Зарегистрироваться
-                </button>
-            </div>
-        {% endif %}
+{#                <button type="submit" id="submit-button" class="btn btn-lg btn-accent btn-block mt-3">#}
+{#                    Зарегистрироваться#}
+{#                </button>#}
+{#            </div>#}
+{#        {% endif %}#}
 
     </form>
 
