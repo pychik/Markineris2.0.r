@@ -49,7 +49,7 @@ def h_category(category: str = settings.Shoes.CATEGORY, upload_flag: int = None)
         )
         .with_entities(
             Order.id, Order.stage, Order.order_idn, Order.category,
-            Order.company_type, Order.company_name, Order.company_idn,
+            Order.company_type, Order.company_name, Order.company_idn, Order.user_comment,
             Order.to_delete, Order.processed, Order.payment, Order.created_at,
             Order.crm_created_at, Order.stage, Order.closed_at,
             func.max(OrderFile.file_link).label('file_link')  # Агрегируем file_link
