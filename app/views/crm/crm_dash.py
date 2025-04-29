@@ -268,7 +268,7 @@ def attach_of_link(manager: str, manager_id: int, o_id: int):
 
 
 @crm_d.route('/download_file/<int:manager_id>/<int:o_id>/', defaults={'user_type': None}, methods=["POST"])
-@crm_d.route('/download_file/<int:manager_id>/<int:o_id><string:user_type>', methods=["POST"])
+@crm_d.route('/download_file/<int:manager_id>/<int:o_id>/<string:user_type>', methods=["POST"])
 @login_required
 @user_activated
 @susmumu_required
