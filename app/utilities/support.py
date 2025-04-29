@@ -2830,6 +2830,18 @@ def sumausmumu_required(func):
     return wrapper
 
 
+def suausmumu_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.status is True and current_user.role in [settings.SUPER_USER, settings.ADMIN_USER, settings.SUPER_MANAGER,
+                                                                 settings.MANAGER_USER]:
+            return func(*args, **kwargs)
+        else:
+            flash(message=settings.Messages.CRM_MANAGER_AGENT_USER_REQUIRED, category='error')
+            return redirect(url_for('main.index'))
+    return wrapper
+
+
 # admin user required with id checks
 def au_required(func):
     @wraps(func)

@@ -862,25 +862,51 @@ def helper_attach_of_link(manager: str, manager_id: int, o_id: int) -> Response:
 
 def helper_download_file(manager_id: int, o_id: int, user_type: str) -> Response:
     order_stmt = f"""
-                        SELECT o.id as id,
-                            o.stage as stage,
-                            orf.id as of_id,
-                            orf.origin_name as origin_name,
-                            orf.file_system_name as file_system_name
-                        FROM public.orders o 
-                        LEFT JOIN public.order_files orf ON o.id=orf.order_id
-                        WHERE o.id={o_id} AND o.manager_id={manager_id} AND o.to_delete != True;
-                      """
-    order_info = db.session.execute(text(order_stmt)).fetchone()
+        SELECT 
+            o.id AS id,
+            o.stage AS stage,
+            orf.id AS of_id,
+            orf.origin_name AS origin_name,
+            orf.file_system_name AS file_system_name,
+            CASE 
+                WHEN a.login_name IS NOT NULL THEN a.login_name 
+                ELSE u.login_name 
+            END AS agent_name
+        FROM public.orders o 
+        LEFT JOIN public.order_files orf ON o.id = orf.order_id
+        LEFT JOIN public.users u ON o.user_id = u.id
+        LEFT JOIN public.users a ON u.admin_parent_id = a.id
+        WHERE o.id = :o_id 
+          AND o.manager_id = :manager_id 
+          AND o.to_delete != TRUE
+        LIMIT 1;
+    """
+
+    order_info = db.session.execute(
+        text(order_stmt),
+        {"o_id": o_id, "manager_id": manager_id}
+    ).fetchone()
 
     if not order_info:
         flash(message=settings.Messages.ORDER_DOWNLOAD_FILE_ABS_ERROR, category='error')
         return redirect(url_for(f'crm_d.{user_type}'))
+
+    # Проверка доступа для администратора
+    if current_user.role == settings.ADMIN_USER:
+        if order_info.agent_name != current_user.login_name:
+            flash(message="Недостаточно прав для скачивания этого файла.", category='error')
+            return redirect(url_for(f'crm_d.{user_type}'))
+
     o_name, fs_name = order_info.origin_name, order_info.file_system_name
 
-    if not check_order_file(order_file_name=order_info.file_system_name, o_id=o_id):
+    if not check_order_file(order_file_name=fs_name, o_id=o_id):
         return redirect(url_for(f'crm_d.{user_type}'))
-    return download_file_from_minio(object_name=fs_name, bucket_name=settings.MINIO_CRM_BUCKET_NAME, download_name=o_name)
+
+    return download_file_from_minio(
+        object_name=fs_name,
+        bucket_name=settings.MINIO_CRM_BUCKET_NAME,
+        download_name=o_name
+    )
 
 
 def helper_delete_order_file(manager_id: int, o_id: int) -> Response:

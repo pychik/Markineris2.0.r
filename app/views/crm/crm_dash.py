@@ -8,7 +8,7 @@ from config import settings
 from models import User, Order, ServerParam
 from utilities.download import orders_download_common
 from utilities.support import (user_activated, sumausmumu_required, susmumu_required, susmu_required,
-                               aus_required, ausumsuu_required)
+                               aus_required, ausumsuu_required, suausmumu_required)
 
 from .helpers import (helper_get_agent_orders, helper_get_manager_orders, helper_m_order_processed, helper_m_order_ps,
                       helper_attach_file, helper_download_file, helper_delete_order_file,
@@ -271,7 +271,7 @@ def attach_of_link(manager: str, manager_id: int, o_id: int):
 @crm_d.route('/download_file/<int:manager_id>/<int:o_id>/<string:user_type>', methods=["POST"])
 @login_required
 @user_activated
-@susmumu_required
+@suausmumu_required
 def download_file(manager_id: int, o_id: int, user_type: str = None):
     user_type = 'managers' if not user_type else 'agents'
     return helper_download_file(manager_id=manager_id, o_id=o_id, user_type=user_type)
