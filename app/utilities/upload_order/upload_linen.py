@@ -22,14 +22,18 @@ class ValidateLinenMixin:
         return row_error
 
     @staticmethod
-    @empty_value
-    def _trademark(value: str, row_num: int, col: str) -> Optional[str]:
-        return None
+    def _trademark(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
+        if not value or value == 'nan' or isna(value) \
+                or len(value) < 1:
+            order_list[row_num - settings.Linen.UPLOAD_STANDART_ROW][pos] = 'БЕЗ ТОВАРНОГО ЗНАКА'
+        return
 
     @staticmethod
-    @empty_value
-    def _article(value: str, row_num: int, col: str) -> Optional[str]:
-        return None
+    def _article(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
+        if not value or value == 'nan' or isna(value) \
+                or len(value) < 1:
+            order_list[row_num - settings.Linen.UPLOAD_STANDART_ROW][pos] = 'БЕЗ АРТИКУЛА'
+        return
 
     @staticmethod
     @empty_value
@@ -46,7 +50,7 @@ class ValidateLinenMixin:
         color_value = value.upper()
         order_list[row_num - settings.Linen.UPLOAD_STANDART_ROW][pos] = color_value
         # value is shoe_color
-        if color_value not in settings.ALL_COLORS:
+        if len(value) > 100:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Linen.UPLOAD_COLOR_ERROR}"
 
     @staticmethod
@@ -222,8 +226,10 @@ class UploadLinen(UploadCategory):
 
             for data_group in order_list:
 
-                trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C')
-                article_error = self._article(value=data_group[1].strip(), row_num=row_num, col='E')
+                trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C', pos=0,
+                                                  order_list=order_list)
+                article_error = self._article(value=data_group[1].strip(), row_num=row_num, col='E', pos=1,
+                                              order_list=order_list)
                 type_error = self._linen_type(value=data_group[2].strip(), row_num=row_num, col='F',
                                               pos=2, order_list=order_list)
 
@@ -271,8 +277,10 @@ class UploadLinen(UploadCategory):
 
             for data_group in order_list:
 
-                trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C')
-                article_error = self._article(value=data_group[1].strip(), row_num=row_num, col='E')
+                trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C', pos=0,
+                                                  order_list=order_list)
+                article_error = self._article(value=data_group[1].strip(), row_num=row_num, col='E', pos=1,
+                                              order_list=order_list)
                 type_error = self._linen_type(value=data_group[2].strip(), row_num=row_num, col='F',
                                               pos=2, order_list=order_list)
 

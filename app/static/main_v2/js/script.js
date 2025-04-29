@@ -9,6 +9,8 @@ $(document).ready(function () {
 
     navListItems.click(function (e) {
         e.preventDefault();
+        destroyAllTooltips(); // <<< СЮДА ДОБАВИТЬ
+
         var $target = $($(this).attr('href')),
                 $item = $(this);
 
@@ -18,6 +20,9 @@ $(document).ready(function () {
             allWells.hide();
             $target.show();
             $target.find('input:eq(0)').focus();
+
+            // И после показа снова инициировать тултипы
+            init_tooltip(document); // чтобы снова включить тултипы на видимых элементах
         }
     });
 

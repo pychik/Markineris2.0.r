@@ -649,12 +649,31 @@ function perform_balance_order_check(url, csrf, o_id, category){
 
 }
 
-function set_no_tm(){
-    $('#trademark').val('БЕЗ ТОВАРНОГО ЗНАКА');
-}
+function toggleArticleTrademarkField(checkbox, fieldId) {
+    const inputField = document.getElementById(fieldId);                // Поле, которое отправляется на сервер
+    const displayField = document.getElementById(fieldId + '_display');  // Видимое заблокированное поле
 
-function set_no_article(){
-    $('#article').val('БЕЗ АРТИКУЛА');
+    if (checkbox.checked) {
+        checkbox.classList.add('bg-warning', 'border-warning');
+
+        // Работа с полями
+        if (fieldId === 'trademark') {
+            inputField.value = "БЕЗ ТОВАРНОГО ЗНАКА";
+        } else if (fieldId === 'article') {
+            inputField.value = "БЕЗ АРТИКУЛА";
+        } else {
+            inputField.value = "БЕЗ ДАННЫХ";
+        }
+
+        inputField.style.display = "none";       // Скрыть оригинальное поле
+        displayField.style.display = "block";    // Показать пустое disabled поле
+    } else {
+        checkbox.classList.remove('bg-warning', 'border-warning');
+
+        inputField.style.display = "block";       // Показать настоящее поле
+        inputField.value = "";                    // Очистить значение
+        displayField.style.display = "none";      // Скрыть пустое поле
+    }
 }
 
 function check_step(){
@@ -1366,4 +1385,26 @@ function init_tooltip(document){
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(tooltipTriggerEl => {
             new bootstrap.Tooltip(tooltipTriggerEl);
         });
+}
+
+function destroyAllTooltips() {
+    const tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    tooltipElements.forEach(function (el) {
+        const tooltipInstance = bootstrap.Tooltip.getInstance(el);
+        if (tooltipInstance) {
+            tooltipInstance.dispose(); // Полностью уничтожить тултип
+        }
+    });
+}
+
+function hideAllOpenTooltips() {
+    // 1) Переинициализируем ВСЕ тултипы, чтобы быть уверенным, что у всех есть экземпляры
+    const tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    tooltipElements.forEach(function (el) {
+        let tooltipInstance = bootstrap.Tooltip.getInstance(el);
+        if (!tooltipInstance) {
+            tooltipInstance = new bootstrap.Tooltip(el);
+        }
+        tooltipInstance.hide();
+    });
 }
