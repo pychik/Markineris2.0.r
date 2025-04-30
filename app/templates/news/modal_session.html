@@ -1,0 +1,91 @@
+<div class="modal fade" id="announcementModal" tabindex="-1" aria-labelledby="announcementModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered" style="border-radius: 1rem; overflow: hidden;">
+  <div class="modal-content shadow border-0 rounded-4" style="background-color: #fff; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);">
+
+
+      <div class="modal-header bg-warning rounded-top-4 d-flex align-items-center gap-3">
+        <!-- Вставка SVG -->
+        <div class="flex-shrink-0">
+          <span class="fs-3 fw-bold text-secondary" aria-hidden="true">!</span>
+        </div>
+        <h5 class="modal-title m-0" id="announcementModalLabel">Объявление</h5>
+        <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body fs-5">
+        <p>
+          <strong>Уважаемые пользователи</strong><br>
+          Техническое обновление рабочего ПО завершено!
+        </p>
+
+        <div class="bg-light border-start border-4 border-warning p-3 mb-3 rounded-4">
+          <p class="mb-1">
+            <strong>Наша скорость выполнения заказов восстановлена и теперь стала в 2 раза быстрее!</strong>
+          </p>
+
+        </div>
+        <p class="mb-0">
+            Вы можете заказывать <strong>неограниченное количество марок</strong> через нашу платформу.
+          </p>
+        <p class="text-end fst-italic mb-0">С уважением, администрация <strong>Марка сервис</strong></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Стили только для модалки #announcementModal */
+
+  #announcementModal .modal-dialog {
+    overflow: hidden;
+    border-radius: 1rem;
+    max-width: 600px;
+    margin: auto;
+  }
+
+  #announcementModal .modal-content {
+    background-color: #fff;
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+  }
+
+  #announcementModal .modal-header {
+    border-bottom: none;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
+  }
+
+  #announcementModal .modal-body {
+    border-bottom-left-radius: 1rem;
+    border-bottom-right-radius: 1rem;
+  }
+
+  #announcementModal .modal-content::before,
+  #announcementModal .modal-content::after,
+  #announcementModal .modal-dialog::before,
+  #announcementModal .modal-dialog::after {
+    display: none !important;
+  }
+
+  #announcementModal .modal {
+    background-color: rgba(0, 0, 0, 0.4);
+  }
+</style>
+
+
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const currentUrl = window.location.href;
+    const isAuthPage = currentUrl.includes('login') || currentUrl.includes('sign_up');
+    const alreadyShown = sessionStorage.getItem('announcementModalShown');
+
+    if (!isAuthPage && !alreadyShown) {
+      const modal = new bootstrap.Modal(document.getElementById('announcementModal'));
+      modal.show();
+      sessionStorage.setItem('announcementModalShown', 'true');
+    }
+  });
+</script>
