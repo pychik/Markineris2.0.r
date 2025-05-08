@@ -4,6 +4,7 @@ from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.filters import or_f
 
 from src.core.config import settings
+from src.core.filters import IsCanEditBalanceFilter
 from src.core.messages import UserMessages
 from src.core.states import UserState
 from src.gateways.db.models.base import TransactionTypes
@@ -28,6 +29,8 @@ from src.service.user import UserService
 from src.infrastructure.logger import logger
 
 router = Router()
+router.message.filter(IsCanEditBalanceFilter())
+router.callback_query.filter(IsCanEditBalanceFilter())
 
 
 @router.message(
@@ -112,7 +115,7 @@ async def bonus_code_handler(
             await state.update_data({settings.PROMO_INFO_STORAGE_KEY: (
                 f"Бонус код - {bonus_code}: "
                 f"{amount_of_money} + {validated_bonus_code.amount}"
-                )},
+            )},
             )
             # запрос на создание транзакции на пополнения баланса по бонус коду
             is_created = await create_transaction(client, state)

@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, String, Integer
+from sqlalchemy import BigInteger, String, Integer, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.gateways.db.models import Base
@@ -24,6 +24,8 @@ class FlaskUserModel(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     email: Mapped[str] = mapped_column(String(100), unique=True)
     login_name: Mapped[str] = mapped_column(String(128), nullable=True)
+    is_at2: Mapped[bool] = mapped_column(Boolean, default=False)
+    role: Mapped[bool] = mapped_column(String)
 
     def __repr__(self) -> str:
         return f"FlaskUser(id={self.id}, login_name={self.login_name}, email={self.email}"

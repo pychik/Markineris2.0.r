@@ -26,11 +26,11 @@ def create_dispatcher(storage: RedisStorage) -> Dispatcher:
     pool = get_async_session_maker(engine=async_engine)
     async_client = get_base_client()
 
-    dp.message.middleware(UserServiceMiddleware(pool))
+    dp.message.outer_middleware(UserServiceMiddleware(pool))
     dp.message.middleware(UserSchemaMiddleware())
     dp.message.middleware(AsyncClientMiddleware(async_client))
 
-    dp.callback_query.middleware(UserServiceMiddleware(pool))
+    dp.callback_query.outer_middleware(UserServiceMiddleware(pool))
     dp.callback_query.middleware(UserSchemaMiddleware())
     dp.callback_query.middleware(AsyncClientMiddleware(async_client))
 

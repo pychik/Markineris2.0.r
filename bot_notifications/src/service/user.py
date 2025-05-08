@@ -42,3 +42,9 @@ class UserService(AbstractUserService):
 
     async def delete_user(self, user_id: int) -> None:
         await self.repo.delete_user(user_id=user_id)
+
+    async def is_edit_balance_available(self, flask_user_id: int) -> bool:
+        flask_user: FlaskUserModel = await self.get_flask_user_by_id(flask_user_id)
+        if flask_user:
+            return not flask_user.is_at2 or flask_user.role == 'admin'
+        return False

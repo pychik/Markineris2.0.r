@@ -4,6 +4,7 @@ from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.types.input_file import BufferedInputFile
 
 from src.core.config import settings
+from src.core.filters import IsCanEditBalanceFilter
 from src.core.messages import UserMessages
 from src.core.states import UserState
 from src.gateways.db.models.base import TransactionTypes
@@ -37,6 +38,8 @@ from src.schemas.user import TgUserSchema
 from src.service.user import UserService
 
 router = Router()
+router.message.filter(IsCanEditBalanceFilter())
+router.callback_query.filter(IsCanEditBalanceFilter())
 
 
 @router.message(F.text == REFILL_BALANCE_COMMAND_TEXT, UserState.verification_code_generated)
