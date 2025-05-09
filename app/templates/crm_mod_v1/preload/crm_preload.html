@@ -3,6 +3,7 @@
 {% extends "crm/base_crm.html" %}
 
 {% block preload %}
+<div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; opacity: 0;"></div>
 <div class="col-12 ml-4">
     <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-3">
         <div class="breadcrumbs">
@@ -49,7 +50,7 @@
                       {% endfor %}
                     </tr>
                   {% endfor %}
-                {% include 'crm/preload/order_pos_count_box.html' %}
+                {% include 'crm_mod_v1/preload/order_pos_count_box.html' %}
                 </tbody>
               {% endif %}
             </table>

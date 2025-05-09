@@ -2163,7 +2163,7 @@ def helper_crm_preload(o_id: int):
                                                                                            company_idn=company_idn,
                                                                                            orders_list=orders,)
 
-    return render_template('crm/preload/crm_preload.html', **locals())
+    return render_template('crm_mod_v1/preload/crm_preload.html', **locals())
 
 
 def helper_categories_counter(all_cards: list | tuple) -> dict:
