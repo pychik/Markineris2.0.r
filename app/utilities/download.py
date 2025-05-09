@@ -684,7 +684,10 @@ def orders_process_send_order(o_id: int, user: User, order_comment: str, order_i
         message=message,
         group_id=telegram_id,
         files_list=files_list,
-    )
+    ) if user.admin_parent_id != 2\
+        else TelegramProcessor.send_message_text(message=message, chat_id=telegram_id)
+    # если клиент ruznak то не отправляем файл
+
     return True
 
 

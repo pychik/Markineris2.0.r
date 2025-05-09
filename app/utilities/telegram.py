@@ -82,6 +82,15 @@ class TelegramProcessor:
             logger.error(f"{settings.Messages.TELEGRAM_SEND_ERROR}: {e}")
 
     @staticmethod
+    @job(**TELEGRAM_JOB_PARAMS)
+    def send_message_text(message: str, chat_id: str) -> None:
+        tg_bot = telebot.TeleBot(token=settings.TELEGRAM_BOT_TOKEN)
+        try:
+            tg_bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML')
+        except Exception as e:
+            logger.error(f"{settings.Messages.TELEGRAM_SEND_ERROR}: {e}")
+
+    @staticmethod
     def make_message_send_file(user: User, admin_user: User, company_type: str, company_name: str,
                                company_idn: str, edo_type: str, edo_id: str, mark_type: str):
 
