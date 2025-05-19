@@ -136,9 +136,12 @@ def h_sign_up_post() -> Union[Response, str]:
             flash(message=f"{settings.Messages.NO_SUCH_PARTNER_CODE_1} "
                           f"{settings.Messages.NO_SUCH_PARTNER_CODE_2}", category='error')
             return redirect(sp_link)
-        partner_code = partner.code
+        partner = partner.code
     else:
-        partner_code = settings.NO_PARTNER_CODE
+        partner = PartnerCode.query.with_entities(PartnerCode.code).filter_by(
+            code=settings.NO_PARTNER_CODE).first()
+
+    partner_code = partner.code
 
     user_admin = User.query.filter_by(id=admin_id).first()
 
