@@ -187,7 +187,7 @@ def orders_list_common(category: str, user: User, new: bool = False, o_id: int =
         total_price = sum(price_list)
     else:
         total_price = 0
-    olc = Olc(orders, company_type, company_name, company_idn,
+    olc = Olc(order, orders, company_type, company_name, company_idn,
               edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, total_price, price_exist, subcategory)
     return olc
 
@@ -382,8 +382,8 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
 def helper_category_common_index(o_id: int, category: str, category_process_name: str, user: User,
                                  update_flag: int = None, **kwargs):
     with_packages = False
+    order = {}
     active_orders = get_category_p_orders(user=user, category=category, subcategory=kwargs.get('subcategory'), processed=False)
-
     # if not specific order
     if not o_id:
         if len(active_orders) >= 5:
@@ -393,7 +393,6 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
             return redirect(url_for(f'{category_process_name}.index', o_id=o_id))
 
         subcategory = kwargs.get('subcategory')
-
         # else:
         #     order_list, company_type, company_name, company_idn, \
         #         edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
@@ -404,22 +403,23 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
             #     del subcategory
     else:
         specific_order = True
-        orders, company_type, company_name, company_idn, \
+        order, orders, company_type, company_name, company_idn, \
             edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
             total_price, price_exist, subcategory = orders_list_common(category=category, user=user, o_id=o_id)
 
         if not orders:
             flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
             return redirect(url_for(f'{category_process_name}.index'))
+        has_aggr = order.has_aggr
 
         if update_flag:
-            return order_table_update(user=current_user, o_id=o_id, category=category)
+            return order_table_update(user=current_user, o_id=o_id, category=category, has_aggr=has_aggr)
 
-        link = f'javascript:{category_process_name}_update_table(\'' + url_for(f'{category_process_name}.index', o_id=o_id,
-                                                            update_flag=1) + '?page={0}\');'
+        link = f'javascript:{category_process_name}_update_table(\'' + url_for(f'{category_process_name}.index',
+                                                                               o_id=o_id,
+                                                                               update_flag=1) + '?page={0}\');'
         page, per_page, offset, pagination, order_list = helper_paginate_data(data=orders, href=link)
-        with_packages = order_list[-1].with_packages if category not in [settings.Clothes.CATEGORY,
-                                                                         settings.Socks.CATEGORY, ] \
+        with_packages = order_list[-1].with_packages if category not in [settings.Clothes.CATEGORY, settings.Socks.CATEGORY, ]\
             else False
 
     kwargs.pop('subcategory') if 'subcategory' in kwargs else None
@@ -427,6 +427,7 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
         (clothes_all_tnved, clothes_sizes,
          clothes_types_sizes_dict, types, subcategory_name) = ClothesSubcategoryProcessor(
             subcategory=subcategory).get_creds()
+
     return render_template(f'categories/category_v2.html', **locals(), **kwargs)
 
 
@@ -622,7 +623,7 @@ def helper_preload_common(o_id: int, stage: int, category: str, category_process
     admin_id = user.admin_parent_id
     order_notification, admin_name, crm = helper_get_order_notification(admin_id=admin_id if admin_id else user.id)
 
-    orders, company_type, company_name, company_idn, \
+    order, orders, company_type, company_name, company_idn, \
         edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
         total_price, price_exist, subcategory = orders_list_common(category=category, user=user, o_id=o_id, stage=stage)
 

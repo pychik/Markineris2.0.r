@@ -2151,7 +2151,7 @@ def helper_crm_preload(o_id: int):
     category_process_name = settings.CATEGORIES_DICT.get(order_info.category)
     stage_name = settings.OrderStage.STAGES[stage][1]
 
-    orders, company_type, company_name, company_idn, \
+    order, orders, company_type, company_name, company_idn, \
         edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
         total_price, price_exist, subcategory = orders_list_common(category=category, user=User.query.get(user_id), o_id=o_id, stage=order_info.stage)
 

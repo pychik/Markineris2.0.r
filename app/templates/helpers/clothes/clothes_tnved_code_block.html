@@ -107,7 +107,7 @@ function get_tnveds(url, csrf){
 
         success:function(data)
         {
-            if(data.status == 'danger'){
+            if(data.status == 'danger' || data.status == 'error'){
                  show_form_errors([data.message,]);
                  $('#form_errorModal').modal('show');
 

@@ -25,7 +25,7 @@ function socks_perform_pos_add(async_flag, url) {
             console.log(pos_form.checkValidity, pos_form.checkValidity());
             pos_form.submit();
         } else {
-            socks_load_upload_table(url)
+            socks_load_upload_table(url);
         }
     } else {
         var allInputs = $('#form_process_main input, #form_process_main select ');
@@ -44,10 +44,10 @@ function socks_perform_pos_add(async_flag, url) {
             }
         })
         if (ccb === false) {
-            errors_list.push("Блок состав чулочно-носочных ихделий! Заполните!");
+            errors_list.push("Блок состав чулочно-носочных изделий! Заполните!");
         }
         if (scsq === false) {
-            errors_list.push("Размер чулочно-носочных ихделий. Добавьте хотя бы один");
+            errors_list.push("Размер чулочно-носочных изделий. Добавьте хотя бы один");
         }
         if (crd === false) {
             errors_list.push("Разрешительная документация. Должны быть заполнены все поля формы разрешительной документации, либо все должны быть пусты!");
@@ -324,6 +324,18 @@ function socks_load_upload_table(url) {
                 message_type = 'success';
                 make_message(message, message_type);
                 socks_clear_pos();
+                // Повторная инициализация чекбоксов (если используется)
+                if (typeof initAggrCheckboxes === 'function') {
+                    initAggrCheckboxes();
+                }
+
+                // Обновим кнопку создания набора
+                const btn = document.getElementById('create_aggr_btn');
+                if (btn) {
+                    const currentAggrNumber = btn.dataset.aggrNum || '—';
+                    btn.textContent = `Создать набор ${currentAggrNumber}`;
+                    restoreAggrCountFromStorage();
+                }
             } else {
                 if (data.message) {
                     message = data.message;
@@ -346,18 +358,32 @@ function socks_load_upload_table(url) {
     }, 15000);
 }
 
-
 async function socks_update_table(page) {
-    // console.log('Обновляю')
-    $.ajax({
-        url: page,
-        method: "GET",
-        success: function (data) {
-            $('#step-3_update').html(data);
-            $("#step-3_update").append(data.htmlresponse);
-        }
-    });
+    try {
+        const res = await fetch(page);
+        const data = await res.json();
 
+        if (data.status === 'success') {
+            document.getElementById('step-3_update').innerHTML = data.htmlresponse;
+
+            // Повторная инициализация чекбоксов (если используется)
+            if (typeof initAggrCheckboxes === 'function') {
+                initAggrCheckboxes();
+            }
+
+            // Обновим кнопку создания набора
+            const btn = document.getElementById('create_aggr_btn');
+            if (btn) {
+                const currentAggrNumber = btn.dataset.aggrNum || '—';
+                btn.textContent = `Создать набор ${currentAggrNumber}`;
+                restoreAggrCountFromStorage();
+            }
+        } else {
+            alert(data.message || 'Ошибка обновления блока заказа');
+        }
+    } catch (e) {
+        alert('Ошибка связи с сервером');
+    }
 }
 
 
@@ -366,8 +392,8 @@ function socks_clear_pos() {
     $('#trademark').val("");
 
     $('#type').val('').trigger("change");
-    $('#customColor').val("");
     $('#color').val('').trigger("change");
+    $('#customColor').val("");
     $('#gender').val('').trigger("change");
     $('#multi_content').val('').trigger("change");
     $('#country').val('').trigger("change");
@@ -982,3 +1008,29 @@ function check_add_same_size(size, quantity){
     }
     return false
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    const switchInput = document.getElementById('aggrModeSwitch');
+    const switchLabel = document.getElementById('aggrModeSwitchLabel');
+
+    function updateSwitchStyle() {
+        const label = document.getElementById('aggrModeLabel');
+        if (!label) return;
+
+        const switchInput = document.getElementById('aggrModeSwitch');
+        if (switchInput.checked) {
+            label.textContent = 'Режим заказа по наборам';
+            // label.classList.add('text-warning');
+            switchInput.classList.add('bg-warning', 'border-warning');
+        } else {
+            label.textContent = 'Режим заказа по позициям';
+            // label.classList.remove('text-warning');
+            switchInput.classList.remove('bg-warning', 'border-warning');
+        }
+    }
+
+    switchInput.addEventListener('change', updateSwitchStyle);
+
+    // при загрузке страницы
+    updateSwitchStyle();
+});

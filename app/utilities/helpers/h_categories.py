@@ -55,7 +55,7 @@ def h_category_trademark_sba(u_id: int, o_id: int, model_c: db.Model, category: 
 
 def order_table_update(user: User, o_id: int, category: str, jsonify_flag: bool = True) -> Union[Response, dict]:
     from utilities.support import orders_list_common, helper_paginate_data
-    orders, company_type, company_name, company_idn, \
+    order, orders, company_type, company_name, company_idn, \
         edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
         total_price, price_exist, subcategory = orders_list_common(category=category, user=user, o_id=o_id)
     category_process_name = settings.CATEGORIES_DICT[category]

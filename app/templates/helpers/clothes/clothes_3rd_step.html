@@ -19,7 +19,7 @@
                 <input type="hidden" maxlength="100"
                     id="order_comment" name="order_comment">
 
-                <button type="button" class="btn btn-primary nextBtn btn-block btn-accent border-0 text-dark order-0 order-sm-1 mb-3 mb-sm-0"
+                <button type="button" id="finalizeOrderBtn" class="btn btn-primary nextBtn btn-block btn-accent border-0 text-dark order-0 order-sm-1 mb-3 mb-sm-0"
                             data-bs-toggle="modal" data-bs-target="#processModal" data-bs-backdrop="static">
                           Оформить заказ.
                 </button>
@@ -30,7 +30,7 @@
     {% endif %}
 </div>
 
-
+<div id="aggrModalContainer"></div>
 
 <script>
     // const clothes_nat_array = [{% for c in clothes_nat_content %}'{{ c }}',{% endfor %}];

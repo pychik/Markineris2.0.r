@@ -1,0 +1,67 @@
+{% if o_id %}
+
+    <div class="col-md-12 mt-3">
+        <div class="row">
+            <div class="col-md-12 d-flex justify-content-between align-items-right flex-wrap">
+                <div class="col-md-6"></div>
+                <form action="/static" class=" col-md-3">
+                    <input type="text" class="form-control border-bottom" id="search_by_article_text"
+                        onkeyup="clothes_make_research_by_article('{{ url_for('clothes.search_by_article', o_id=o_id, subcategory=subcategory) }}', '{{ csrf_token() }}');"
+                        placeholder="Поиск по артикулу">
+                </form>
+                <div class="d-flex align-items-center">
+                    <div class="table-quantity me-2">
+                        Добавлено {{ pagination.total }} шт
+                    </div>
+                    <div class="table-add-item">
+                        <span style="cursor: pointer" onclick="make_2_step()">
+                            <!-- SVG for plus -->
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="search_article_info"></div>
+
+        <table class="table table-result tablesaw-stack" id="orders_table_info">
+            <thead class="text-dark">
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col"><font size="2">Артикул</font></th>
+                    <th scope="col"><font size="2">Товарный знак</font></th>
+                </tr>
+            </thead>
+            <tbody id="order_table_body_info">
+            {% for t in order_list %}
+                <tr>
+                    <td>
+                        {{ offset + loop.index }}
+                    </td>
+                    <td>{{ t.article }}</td>
+                    <td>{{ t.trademark }}</td>
+                    <td class="text-end actions">
+                        {% include 'helpers/clothes/tables/table_actions.html' %}
+
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="pagination-page-info text-center">
+            На этой странице <b>{{ offset + 1 }} - {{ offset + order_list|length }}</b>
+            Всего: <b>{{ pagination.total }}</b>
+        </div>
+
+        <div class="pagination_section my-1">
+            <div class="d-flex">
+                <div class="col-3"></div>
+                <div class="col-md-2"></div>
+                <div class="col-5" style="margin-left: 3%;">{{ pagination.links }}</div>
+            </div>
+        </div>
+    </div>
+{% else %}
+<h3 class="text-center">Накладная не заполнялась</h3>
+{% endif %}

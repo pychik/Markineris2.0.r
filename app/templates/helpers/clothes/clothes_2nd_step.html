@@ -1,5 +1,4 @@
 <div class="row setup-content faded" id="step-2" {% if not o_id or 'page' in request.url %}style="display:none"{% endif %}>
-
     <div class="col-md-6">
         <div class="return mb-2">
             <div class="prevBtn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
@@ -54,10 +53,8 @@
                 <div class="col-md-4">
                     <div class="form-group">
                         <label class="control-label">Пол</label>
-{#                        <select class="form-control search-select" id="gender" name="gender" onchange="check_gender_ruznak(this.value)"#}
                         <select class="form-control search-select" id="gender" name="gender"
                             required>
-{#                            onchange="javascript:set_tnved();" required>#}
                             <option disabled selected value="">Выберите пол...</option>
                               {% for el in genders%}
                                 <option value="{{el}}" {% if copied_order %}

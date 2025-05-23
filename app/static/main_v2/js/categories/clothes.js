@@ -25,7 +25,7 @@ function clothes_perform_pos_add(async_flag, url) {
             // console.log(pos_form.checkValidity, pos_form.checkValidity());
             pos_form.submit();
         } else {
-            clothes_load_upload_table(url)
+            clothes_load_upload_table(url);
         }
     } else {
         var allInputs = $('#form_process_main input, #form_process_main select ');
@@ -38,6 +38,8 @@ function clothes_perform_pos_add(async_flag, url) {
                 let label_text = jQuery(`#${error_field_id}`).closest(".form-group").find("label").text();
                 // document.getElementById().parent().label.innerText
                 // errors_list.push(error_field_name);
+                // console.log(allInputs[index]);
+                // console.log(error_field_id);
                 if (label_text) {
                     errors_list.push(label_text);
                 }
@@ -324,6 +326,18 @@ function clothes_load_upload_table(url) {
                 message_type = 'success';
                 make_message(message, message_type);
                 clothes_clear_pos();
+                // Повторная инициализация чекбоксов (если используется)
+                if (typeof initAggrCheckboxes === 'function') {
+                    initAggrCheckboxes();
+                }
+
+                // Обновим кнопку создания набора
+                const btn = document.getElementById('create_aggr_btn');
+                if (btn) {
+                    const currentAggrNumber = btn.dataset.aggrNum || '—';
+                    btn.textContent = `Создать набор ${currentAggrNumber}`;
+                    restoreAggrCountFromStorage();
+                }
             } else {
                 if (data.message) {
                     message = data.message;
@@ -348,16 +362,31 @@ function clothes_load_upload_table(url) {
 
 
 async function clothes_update_table(page) {
-    // console.log('Обновляю')
-    $.ajax({
-        url: page,
-        method: "GET",
-        success: function (data) {
-            $('#step-3_update').html(data);
-            $("#step-3_update").append(data.htmlresponse);
-        }
-    });
+    try {
+        const res = await fetch(page);
+        const data = await res.json();
 
+        if (data.status === 'success') {
+            document.getElementById('step-3_update').innerHTML = data.htmlresponse;
+
+            // Повторная инициализация чекбоксов (если используется)
+            if (typeof initAggrCheckboxes === 'function') {
+                initAggrCheckboxes();
+            }
+
+            // Обновим кнопку создания набора
+            const btn = document.getElementById('create_aggr_btn');
+            if (btn) {
+                const currentAggrNumber = btn.dataset.aggrNum || '—';
+                btn.textContent = `Создать набор ${currentAggrNumber}`;
+                restoreAggrCountFromStorage();
+            }
+        } else {
+            alert(data.message || 'Ошибка обновления блока заказа');
+        }
+    } catch (e) {
+        alert('Ошибка связи с сервером');
+    }
 }
 
 
@@ -366,8 +395,8 @@ function clothes_clear_pos() {
     $('#trademark').val("");
 
     $('#type').val('').trigger("change");
-    $('#customColor').val("");
     $('#color').val('').trigger("change");
+    $('#customColor').val("");
     $('#gender').val('').trigger("change");
     $('#multi_content').val('').trigger("change");
     $('#country').val('').trigger("change");
@@ -437,7 +466,6 @@ function check_content() {
     if (ctb.value.length > 100) {
         ctb.value = ctb.value.slice(0,100);
     }
-
 }
 
 function countClothes() {
@@ -466,75 +494,6 @@ function setClothes() {
     if (isNaN(total)){total=0;}
     document.getElementById('clothes_in_box_info').innerText = total;
 }
-
-//
-// function addClothesCell() {
-//     var size = document.getElementById('size_order').value;
-//     var quantity_val = document.getElementById('quantity_order').value;
-//     if (size.length < 1) {
-//         // console.log(size.length);
-//         return false
-//     }
-//     if (check_clothes_size_on_add(size) !== true) {
-//         return false
-//     }
-//     var quantity = parseInt(quantity_val, 10);
-//     if (isNaN(quantity)) {
-//         // alert('некорректное количество');
-//         show_form_errors(['некорректное количество размеров обуви',]);
-//         $('#form_errorModal').modal('show');
-//         return false
-//     }
-//     if (check_add_same_size(size, quantity)) {
-//         return false
-//     }
-//     // if (size_val === '56.5' || size_val === '56' || size > 56){
-//     //     size = '56.5';
-//     // }
-//     // else if(isNaN(size)){
-//     //     size = '';
-//
-//     var f = document.getElementById('sizes_quantity');
-//     var wp = document.getElementById('with_packages');
-//     var max_param = '';
-//     var placeholder_param = '';
-//
-//     if (wp.value === "True") {
-//         max_param = "12";
-//         placeholder_param = 'Max. 12';
-//
-//     }
-//
-//
-//     f.insertAdjacentHTML('beforeend', `<div class="important-card__item important-card__size ms-2"><div class="d-flex align-items-center g-3"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" onclick="$(this).closest('div').parent().remove();setClothes();" viewBox="0 0 20 20" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M4.34074 0.312213C8.07158 -0.104071 11.9285 -0.104071 15.6593 0.312213C17.7413 0.544517 19.4209 2.18214 19.6655 4.26889C20.1115 8.07671 20.1115 11.9234 19.6655 15.7312C19.4209 17.8179 17.7413 19.4555 15.6593 19.6878C11.9285 20.1041 8.07158 20.1041 4.34074 19.6878C2.25873 19.4555 0.579043 17.8179 0.33457 15.7312C-0.111523 11.9234 -0.111523 8.07671 0.33457 4.26889C0.579043 2.18214 2.25873 0.544517 4.34074 0.312213ZM10 9.08981H10.9117H15.1575C15.661 9.08981 16.0692 9.49734 16.0692 10C16.0692 10.5027 15.661 10.9102 15.1575 10.9102H10.9117C10.9117 10.9102 10.2506 10.9102 10 10.9102C9.74947 10.9102 9.46208 10.9102 9.46208 10.9102H9.08832H4.84265C4.33912 10.9102 3.93094 10.5027 3.93094 10C3.93094 9.49734 4.33912 9.08981 4.84265 9.08981H9.08832H10Z" fill="white" /></svg>
-//
-//                             <div class="ms-2"><span id="size_info">${size}</span> размер</div>
-//                         </div>
-//                         <div class="important-card__val"><span id="quantity_info">${quantity}</span> <span>шт.</span></div>
-//                         <input type="hidden" id="size" name="size" value="${size}"><input type="hidden" id="quantity" name="quantity" value="${quantity}">
-//                     </div>`);
-//     // `<div class="row mb-3" id="container_element"><div class="col-md-6 col-xs-12 mt-1"><input type="text" name="size" id="size" minlength="2" maxlength="5" class="form-control mb-1" placeholder="Размер 16 - 56.5" autocomplete="off" oninput="check_shoes_size(value)||(value='');" value="${size}" required></div><div class="col-md-6 col-xs-12 mt-1"><input type="number" name="quantity" id="quantity" class="form-control ms-1" value="1" min="1"  oninput="validity.valid||(value='');javascript:setShoes();" max="${max_param}" placeholder="${placeholder_param}" required></div></div>`);
-//
-//     var total = countClothes();
-//     document.getElementById('clothes_in_box_info').innerHTML = '';
-//     document.getElementById('clothes_in_box_info').innerText = total;
-//     // $('#size_order').val('').trigger("change");
-//     document.getElementById('size_order').value = '';
-//     document.getElementById('quantity_order').value = '1';
-//
-//
-// }
-//
-// function clothes_edit_size(parent_block) {
-//     let size = parent_block.find('#size_info').html();
-//     let quantity = parent_block.parent().find('#quantity_info').html();
-//     // console.log(size, quantity);
-//     $('#size_order').val(size);
-//     $('#quantity_order').val(quantity);
-//
-//     parent_block.parent().remove();
-//     setClothes();
-// }
 
 function check_add_same_size(size, quantity) {
     var sizes = document.querySelectorAll('[id=size_info]');
@@ -612,7 +571,7 @@ function perform_free_size_input(clothingType){
         <div id="freeInputBlock${clothingType}" class="d-none">
             <p>Поле свободного ввода размера типа ${clothingType} (введите размер, количество и нажмите добавить)</p>
             <div class="input-group mb-3">
-                <input type="text" class="form-control" id="subcategorySizeInput${clothingType}" placeholder="Введите размер" maxlength="8" pattern="[A-Za-z0-9]([-,.;]?[A-Za-z0-9]){0,7}" title="Только латиница и цифры (до 8 символов)" required>
+                <input type="text" class="form-control" id="subcategorySizeInput${clothingType}" placeholder="Введите размер" maxlength="8"  pattern="[A-Za-z0-9]([-,.;]?[A-Za-z0-9]){0,7}" title="Только латиница и цифры (до 8 символов)" required>
                 <input type="number" class="form-control" id="subcategorySizeQuantity${clothingType}" placeholder="Кол-во" min="1" required>
                 <button class="btn btn-accent" type="button" onclick="subcategory_size_add('${clothingType}')">Добавить</button>
                 <div class="invalid-feedback d-block" id="subcategorySizeError${clothingType}"></div>
@@ -672,7 +631,7 @@ function chooseSizeClothes(subcategory) {
     }
 
     divBlock.innerHTML = `
-        <div class="modal fade" id="sizesClothesModal" tabindex="-1" role="dialog" aria-labelledby="sizesClothesModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal fade" id="sizesClothesModal" tabindex="-1" role="dialog" aria-labelledby="sizesClothesModalLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
             <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -720,8 +679,8 @@ function setQuantitySize(size) {
 }
 
 function updateSizesQuantityBlock() {
-    // Get the sizes_quantity block
     let sizesQuantityBlock = document.getElementById('sizes_quantity');
+
     // Создаем объект для хранения уже добавленных размеров
     let existingSizes = {};
     sizesQuantityBlock.querySelectorAll('.important-card__item').forEach(item => {
@@ -745,7 +704,6 @@ function updateSizesQuantityBlock() {
         }
 
         newSizes[size] = { quantity, sizeType };
-
 
         // Если размер уже есть, обновляем количество
         if (existingSizes[size]) {
@@ -785,9 +743,9 @@ function updateSizesQuantityBlock() {
             existingSizes[size].element.remove();
         }
     });
-
     setClothes();
 }
+
 
 function subcategory_size_add(clothingType) {
     let sizeInput = document.getElementById(`subcategorySizeInput${clothingType}`);
@@ -879,6 +837,9 @@ function subcategory_size_add(clothingType) {
     setClothes();
 }
 
+
+
+
 function clear_clothesSizes_modal() {
     document.getElementById('sizesClothesDiv').innerHTML = '';
 }
@@ -946,34 +907,34 @@ function create_size_blocks(sizes, clothingType) {
     return sizesBlock;
 }
 
-function check_gender_ruznak(gender) {
-    if (RZ_CONDITION === 'True' && !CHILDREN_GENDER_LIST.includes(gender)){
-        // console.log('нашли условине' + gender);
-        document.getElementById('rd_name').required = true;
-        document.getElementById('rd_type').required = true;
-        document.getElementById('rd_date').required = true;
-        // document.getElementById('collapseDocResolve').classList.add('show');
-        if (!document.getElementById('collapseDocResolve').classList.contains('show')){
-            document.getElementById('clickablerdblock').click();
-        }
-    }
-    else if((RZ_CONDITION === 'True' && CHILDREN_GENDER_LIST.includes(gender))){
-        document.getElementById('rd_name').required = false;
-        document.getElementById('rd_type').required = false;
-        document.getElementById('rd_date').required = false;
-        $('#rd_type').val('').trigger("change");
-        $('#rd_name').val("");
-        $('#rd_date').val("");
-        // document.getElementById('collapseDocResolve').classList.remove('show');
-        if (document.getElementById('collapseDocResolve').classList.contains('show')){
-            document.getElementById('clickablerdblock').click();
-        }
-    }
-
-}
-
 function deleteCell() {
     var cur = $(this).closest('div');
     cur.parent().remove();
     setClothes();
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    const switchInput = document.getElementById('aggrModeSwitch');
+    const switchLabel = document.getElementById('aggrModeSwitchLabel');
+
+    function updateSwitchStyle() {
+        const label = document.getElementById('aggrModeLabel');
+        if (!label) return;
+
+        const switchInput = document.getElementById('aggrModeSwitch');
+        if (switchInput.checked) {
+            label.textContent = 'Режим заказа по наборам';
+            // label.classList.add('text-warning');
+            switchInput.classList.add('bg-warning', 'border-warning');
+        } else {
+            label.textContent = 'Режим заказа по позициям';
+            // label.classList.remove('text-warning');
+            switchInput.classList.remove('bg-warning', 'border-warning');
+        }
+    }
+
+    switchInput.addEventListener('change', updateSwitchStyle);
+
+    // при загрузке страницы
+    updateSwitchStyle();
+});
