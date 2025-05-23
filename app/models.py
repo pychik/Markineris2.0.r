@@ -288,6 +288,7 @@ class Order(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
 
     category = db.Column(db.String(100), nullable=False, default='')
+    has_aggr = db.Column(db.Boolean, default=False, nullable=False, server_default=text("false"))
 
     company_idn = db.Column(db.String(100))
     company_type = db.Column(db.String(100))
@@ -462,6 +463,45 @@ class Parfum(db.Model, UserMixin, CommonMixin):
     box_quantity = db.Column(db.Integer(), default=1)
     quantity = db.Column(db.Integer())
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), index=True)
+
+
+class AggrClothesSize(db.Model):
+    __tablename__ = 'aggr_clothes_sizes'
+
+    aggr_order_id = db.Column(db.Integer, db.ForeignKey('aggr_orders.id', ondelete='CASCADE'), primary_key=True, index=True)
+    cqs_id = db.Column(db.Integer, db.ForeignKey('cl_quantity_sizes.id', ondelete='CASCADE'), primary_key=True, index=True)
+    total_quantity = db.Column(db.Integer, nullable=False)
+
+    aggr_order = db.relationship('AggrOrder', back_populates='aggr_clothes_sizes')
+    cqs = db.relationship('ClothesQuantitySize', backref=db.backref('aggr_order_size', uselist=False))
+
+
+class AggrSocksSize(db.Model):
+    __tablename__ = 'aggr_socks_sizes'
+
+    aggr_order_id = db.Column(db.Integer, db.ForeignKey('aggr_orders.id', ondelete='CASCADE'), primary_key=True, index=True)
+    sqs_id = db.Column(db.Integer, db.ForeignKey('socks_quantity_sizes.id', ondelete='CASCADE'), primary_key=True, index=True)
+    total_quantity = db.Column(db.Integer, nullable=False)  # количество наборов * количество размеров
+
+    aggr_order = db.relationship('AggrOrder', back_populates='aggr_socks_sizes')
+    sqs = db.relationship('SocksQuantitySize', backref=db.backref('aggr_order_size', uselist=False))
+
+
+class AggrOrder(db.Model):
+    __tablename__ = "aggr_orders"
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), index=True)
+    name = db.Column(db.String(100), nullable=False, default='Набор')
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    note = db.Column(db.String(255), default='')
+    category = db.Column(db.String(50), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False) # количество самих наборов
+
+    order = db.relationship("Order", backref=db.backref("aggr_orders", cascade="all, delete-orphan"))
+
+    aggr_clothes_sizes = db.relationship("AggrClothesSize", back_populates="aggr_order", cascade="all, delete-orphan")
+    aggr_socks_sizes = db.relationship("AggrSocksSize", back_populates="aggr_order", cascade="all, delete-orphan")
 
 
 class ClothesMixin(db.Model, UserMixin, OrderCommon):
