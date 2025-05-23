@@ -6,6 +6,8 @@ from config import settings
 from utilities.helpers.h_requests_common import h_get_company_data, h_process_idn_error, h_check_tnved_code_data, \
     h_get_tg_user_data, h_send_table, h_send_table_order, h_change_order_org_param, h_change_order_org_param_form, \
     h_cubaa, h_get_dadata_token
+from utilities.order_agregation import h_create_aggr_order, h_delete_aggr_order, h_get_all_aggr_orders, \
+    h_add_items_to_aggr
 from utilities.support import user_activated, user_is_send_check, helper_check_user_order_in_archive, su_required
 
 requests_common = Blueprint('requests_common', __name__)
@@ -111,3 +113,32 @@ def get_dadata_token():
     """
 
     return h_get_dadata_token()
+
+
+@requests_common.route('/orders/<int:order_id>/aggr/create', methods=['POST'])
+@login_required
+@user_activated
+def create_aggr_order(order_id: int):
+    return h_create_aggr_order(order_id=order_id)
+
+
+@requests_common.route('/orders/<int:order_id>/aggr/<int:aggr_id>/delete', methods=['POST'])
+@login_required
+@user_activated
+def delete_aggr_order(order_id: int, aggr_id: int):
+    return h_delete_aggr_order(order_id=order_id, aggr_id=aggr_id)
+
+
+@requests_common.route('/orders/<int:order_id>/aggregations', methods=['GET'])
+@login_required
+@user_activated
+def get_all_aggr_orders(order_id: int):
+    return h_get_all_aggr_orders(order_id=order_id)
+
+
+@requests_common.route('/orders/<int:order_id>/aggr/<int:aggr_id>/add', methods=['POST'])
+@login_required
+@user_activated
+def add_items_to_aggr(order_id: int, aggr_id: int):
+    return h_add_items_to_aggr(order_id=order_id, aggr_id=aggr_id)
+
