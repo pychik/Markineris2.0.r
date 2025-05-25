@@ -3,7 +3,7 @@ from enum import Enum as PyEnum
 
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func
+from sqlalchemy import func, text
 
 from config import settings
 from utilities.categories_data.subcategories_data import ClothesSubcategories

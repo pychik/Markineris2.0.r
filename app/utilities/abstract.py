@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from io import BytesIO
 from typing import Optional, Union
 
+from models import Order
 from pandas import DataFrame
 from xlsxwriter.workbook import Workbook
 from xlsxwriter.worksheet import Worksheet
@@ -40,7 +41,7 @@ class ProcessorInterface(ABC):
         ...
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False):
+    def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False):
         ...
 
     @staticmethod
@@ -76,11 +77,7 @@ class ProcessorInterface(ABC):
     def eatp(value: str, field_type: str) -> str:
         ...
 
-    def make_file(self, order_num: int, category: str, pos_count: int, orders_pos_count: int,
+    def make_file(self, order: Order, order_num: int, category: str, pos_count: int, orders_pos_count: int,
                   c_partner_code: str, company_type: str, company_name: str, company_idn: str, edo_type: str,
-                  edo_id: str, mark_type: str, c_name: str, c_phone: str, c_email: str, ) -> tuple[BytesIO, str]:
-        ...
-
-    @staticmethod
-    def eatp(value: str, field_type: str) -> str:
+                  edo_id: str, mark_type: str, c_name: str, c_phone: str, c_email: str,) -> tuple[BytesIO, str]:
         ...

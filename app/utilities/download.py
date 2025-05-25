@@ -21,10 +21,11 @@ from .telegram import TelegramProcessor
 
 
 class OrdersProcessor(ProcessorInterface, ABC):
-    def __init__(self, category: str, company_idn: str, orders_list: list, flag_046: bool = False) -> None:
+    def __init__(self, category: str, company_idn: str, orders_list: list, flag_046: bool = False,
+                 has_aggr: bool = False) -> None:
         (self._orders_list,
          self._orders_list_outer,
-         self._orders_list_inner) = self.prepare_ext_data(orders_list=orders_list, flag_046=flag_046)
+         self._orders_list_inner) = self.prepare_ext_data(orders_list=orders_list, flag_046=flag_046, has_aggr=has_aggr)
 
         self.company_idn = company_idn
         self.path = ''
@@ -192,7 +193,103 @@ class OrdersProcessor(ProcessorInterface, ABC):
             )) + 1  # adding a little extra space
             worksheet.set_column(idx, idx, max_len)
 
-    def make_file(self, order_num: int, category: str, pos_count: int, orders_pos_count: int,
+    @staticmethod
+    def set_autowidth_columns(worksheet, data: list[list], start_col: int = 0):
+        """
+        Устанавливает ширину колонок по максимальной длине содержимого в каждой колонке.
+
+        :param worksheet: объект worksheet (XlsxWriter)
+        :param data: список списков (строки данных)
+        :param start_col: колонка начала данных
+        """
+        if not data:
+            return
+
+        col_widths = {}
+
+        for row in data:
+            for col_idx, cell in enumerate(row):
+                col = start_col + col_idx
+                length = len(str(cell)) if cell is not None else 0
+                col_widths[col] = max(col_widths.get(col, 0), length)
+
+        for col, width in col_widths.items():
+            worksheet.set_column(col, col, width + 2)  # немного запаса
+
+    def make_aggr_excel_table(self, order) -> tuple[BytesIO, str]:
+        """
+        Генерация Excel-файла с таблицей наборов по структуре шаблона.
+        """
+        output = BytesIO()
+        workbook = Workbook(output)
+        worksheet = workbook.add_worksheet('Наборы')
+
+        # Шапка
+        headers = [
+            ['Код товара', 'Код ТНВЭД', 'Это набор', 'Полное наименование набора', 'Товарный знак',
+             'Описание состава набора', '', '', 'Общее количество'],
+            ['GTIN', 'Tnved', 'ISSET', '2478', '2504', '16271', '', '', ''],
+            ['value', 'value', 'value', 'value', 'value', 'value', '', '', ''],
+            ['Не обязательно', 'Код группы', 'Только ДА', 'Текстовое значение',
+             'Значение из справочника, Текстовое значение', 'Произвольный текст, не обязательно', '', '', '']
+        ]
+
+        for r_idx, row in enumerate(headers):
+            for c_idx, cell in enumerate(row):
+                worksheet.write(r_idx, c_idx, cell)
+
+        row = 4  # Запись с 5-й строки
+        data_rows = []
+
+        for aggr in order.aggr_orders:
+            sizes = aggr.aggr_clothes_sizes if aggr.category == 'clothes' else aggr.aggr_socks_sizes
+            if not sizes:
+                continue
+
+            # Группируем по типу
+            grouped = {}
+            tnved = None
+            for s in sizes:
+                size = s.cqs if aggr.category == 'clothes' else s.sqs
+                item = size.clothes if aggr.category == 'clothes' else size.socks
+
+                key = item.type
+                if key not in grouped:
+                    grouped[key] = []
+                grouped[key].append((size.size, size.quantity, item.color))
+
+                if tnved is None:
+                    tnved = getattr(item, 'tnved_code', '') or ''
+
+            full_names = []
+            for type_, entries in grouped.items():
+                size_color_strs = [f"{quantity} шт, р. {sz} {col}" for sz, quantity, col in entries]
+                part = f"{type_} ({'; '.join(size_color_strs)})"
+                full_names.append(part)
+
+            full_name = "Набор " + "и ".join(full_names)
+
+            values = [
+                '',  # GTIN
+                tnved,  # Код ТНВЭД
+                'ДА',  # Это набор
+                full_name,  # Полное наименование
+                '',  # Товарный знак — исключено
+                full_name,  # Описание состава
+                '', '',  # пусто
+                aggr.quantity  # Общее количество наборов
+            ]
+
+            worksheet.write_row(row, 0, values)
+            data_rows.append(values)
+            row += 1
+
+        self.set_autowidth_columns(worksheet, headers + data_rows)
+        workbook.close()
+        output.seek(0)
+        return output, f'Наборы_{order.order_idn or order.id}.xlsx'
+
+    def make_file(self, order: Order, order_num: int, category: str, pos_count: int, orders_pos_count: int,
                   c_partner_code: str, company_type: str, company_name: str, company_idn: str, edo_type: str,
                   edo_id: str, mark_type: str, c_name: str, c_phone: str, c_email: str, ) -> tuple[BytesIO, str]:
         self.path = self.get_filename(order_num=order_num, category=category,
@@ -205,9 +302,19 @@ class OrdersProcessor(ProcessorInterface, ABC):
                                       user_name=c_name, user_phone=c_phone,
                                       user_email=c_email, partner=c_partner_code)
 
+        # list_of_orders = OrdersProcessor.prepare_batches(orders_divided=[(self.orders_list_outer_rd, "ВВЕЗЕН_РД"),
+        #                                                     (self.orders_list_outer_no_rd, "ВВЕЗЕН_БЕЗ_РД"),
+        #                                                     (self.orders_list_inner_rd, "ВНУТР_РД"),
+        #                                                     (self.orders_list_inner_no_rd, "ВНУТР_БЕЗ_РД")])
+        # list_of_orders = OrdersProcessor.prepare_batches(orders_divided=[(self.orders_list_outer, "ВВЕЗЕН"),
+        #                                                                  (self.orders_list_inner, "РФ_ВНУТР")])
+
         excel_files = self.process_to_excel(list_of_orders=OrdersProcessor
                                             .prepare_batches(orders_divided=[(self.orders_list_outer, "ВВЕЗЕН"),
                                                                              (self.orders_list_inner, "РФ_ВНУТР")]))
+        if getattr(order, 'has_aggr', False):
+            aggr_table, aggr_filename = self.make_aggr_excel_table(order=order)
+            excel_files.append((aggr_table, aggr_filename))
 
         return OrdersProcessor.archive_excels(excel_files=excel_files, filename=self.path)
 
@@ -235,7 +342,7 @@ class OrdersProcessor(ProcessorInterface, ABC):
 class ShoesProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list, ]:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list, ]:
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
@@ -289,7 +396,7 @@ class ShoesProcessor(OrdersProcessor):
 class LinenProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list]:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
@@ -324,7 +431,7 @@ class LinenProcessor(OrdersProcessor):
 class ParfumProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list]:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
@@ -369,7 +476,7 @@ class ParfumProcessor(OrdersProcessor):
 class ClothesProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list]:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
@@ -455,7 +562,7 @@ class ClothesProcessor(OrdersProcessor):
 class SocksProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list]:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
@@ -701,7 +808,7 @@ def upload_errors_file(error_list: list) -> BytesIO:
     return output
 
 
-def orders_common_preload(category: str, company_idn: str, orders_list: list) -> tuple:
+def orders_common_preload(category: str, company_idn: str, orders_list: list, has_aggr: bool = False) -> tuple:
     start_list, res_list = [], []
 
     if category == settings.Shoes.CATEGORY:

@@ -634,7 +634,8 @@ def helper_preload_common(o_id: int, stage: int, category: str, category_process
     from utilities.download import orders_common_preload
     start_list, page, per_page, offset, pagination, order_list = orders_common_preload(category=category,
                                                                                        company_idn=company_idn,
-                                                                                       orders_list=orders)
+                                                                                       orders_list=orders,
+                                                                                       has_aggr=order.has_aggr)
 
     return render_template('preload.html', **locals())
 
@@ -1095,21 +1096,25 @@ def helper_paginate_data(data: list, key_page: str = 'page', href: str = None,
     return page, per_page, offset, pagination, order_list
 
 
-def helper_get_order(user: User, category: str, o_id: int, stage: int) -> Optional[Order]:
+def helper_get_order(user: User, category: str, o_id: int, stage: int, full: bool = False) -> Optional[Order]:
+    query = user.orders.filter_by(category=category, stage=stage).filter(~Order.to_delete)
 
-    if not o_id:
-        order = user.orders.filter_by(category=category, stage=stage).filter(~Order.to_delete)\
-            .with_entities(Order.company_idn,
-                           Order.company_type,
-                           Order.company_name,
-                           Order.edo_type, Order.edo_id,
-                           Order.mark_type, Order.stage).first()
+    if o_id:
+        query = query.filter_by(id=o_id)
+
+    if full:
+        return query.first()  # вернёт полноценный Order с отношениями
     else:
-        order = user.orders.filter_by(category=category, id=o_id, stage=stage).filter(~Order.to_delete)\
-            .with_entities(Order.company_idn, Order.company_type, Order.company_name, Order.edo_type, Order.edo_id,
-                           Order.mark_type, Order.stage).first()
-
-    return order
+        return query.with_entities(
+            Order.company_idn,
+            Order.company_type,
+            Order.company_name,
+            Order.has_aggr,
+            Order.edo_type,
+            Order.edo_id,
+            Order.mark_type,
+            Order.stage
+        ).first()
 
 
 def h_helper_get_clothes_p_orders(user: User, processed: bool, subcategory: str = None) -> list:
