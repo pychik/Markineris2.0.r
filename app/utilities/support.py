@@ -1039,7 +1039,7 @@ def check_user_crm(user: User) -> bool:
 
 
 def get_category_orders(user: User, category: str, o_id: int, stage: int) -> tuple[Optional[Order],
-                                                                                   Optional[QueryPagination]]:
+                                                                                   Optional[list]]:
     order = helper_get_order(user=user, category=category, o_id=o_id, stage=stage)
 
     if not order:
