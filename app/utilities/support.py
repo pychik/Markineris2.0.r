@@ -193,6 +193,9 @@ def orders_list_common(category: str, user: User, new: bool = False, o_id: int =
 
 
 def check_order_pos(category: str, order: Order) -> Optional[int]:
+    if not order:
+        flash(message=f"Ошибка выполнения обработки. Заказ не найден", category='error')
+        return False
     match category:
 
         case settings.Shoes.CATEGORY:

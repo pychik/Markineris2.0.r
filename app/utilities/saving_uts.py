@@ -8,8 +8,8 @@ from sqlalchemy.sql import desc, text
 
 from config import settings
 from logger import logger
-from models import User, Order, Shoe, ShoeQuantitySize, Socks, SocksQuantitySize, Linen, LinenQuantitySize, Parfum, \
-    Clothes, ClothesQuantitySize, db
+from models import User, Order, Shoe, ShoeQuantitySize, Linen, LinenQuantitySize, Parfum, \
+    Clothes, ClothesQuantitySize, Socks, SocksQuantitySize, db, AggrOrder, AggrClothesSize, AggrSocksSize
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 
 
@@ -39,8 +39,7 @@ def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
                           gender=form_dict.get("gender"), country=form_dict.get("country"),
                           with_packages=True if form_dict.get("with_packages") == "True" else False,
                           tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
-                          tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
-                          rd_name=form_dict.get("rd_name").replace('№', ''),
+                          tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"), rd_name=form_dict.get("rd_name").replace('№', ''),
                           rd_date=rd_date)
 
     extend_sq = (ShoeQuantitySize(size=el[0], quantity=el[1]) for el in sizes_quantities)
@@ -62,7 +61,6 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcateg
                                 tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
                                 rd_name=form_dict.get("rd_name").replace('№', ''),
                                 rd_date=rd_date, subcategory=subcategory if subcategory else ClothesSubcategories.common.value)
-
     extend_sq = (ClothesQuantitySize(size=el[0], quantity=el[1],
                                      size_type=el[2] if el[0] not in settings.Clothes.UNITE_SIZE_VALUES
                                      else settings.Clothes.DEFAULT_SIZE_TYPE) for el in sizes_quantities)
@@ -85,7 +83,7 @@ def save_socks(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
                               rd_date=rd_date)
     extend_sq = (SocksQuantitySize(size=el[0], quantity=el[1],
                                    size_type=el[2] if el[0] not in settings.Socks.UNITE_SIZE_VALUES
-                                   else settings.Socks.DEFAULT_SIZE_TYPE) for el in sizes_quantities)
+                                     else settings.Socks.DEFAULT_SIZE_TYPE) for el in sizes_quantities)
     new_socks_order.sizes_quantities.extend(extend_sq)
     order.socks.append(new_socks_order)
     return order
@@ -169,15 +167,17 @@ def common_save_copy_order(u_id: int, user: User, category: str, order: Order) -
         new_order = Order(company_type=order.company_type, company_name=order.company_name,
                           edo_type=order.edo_type, edo_id=order.edo_id,
                           company_idn=order.company_idn, mark_type=order.mark_type,
-                          category=order.category, processed=False)
+                          category=order.category, processed=False, has_aggr=order.has_aggr)
 
         match category:
             case settings.Shoes.CATEGORY:
                 new_order = save_copy_order_shoes(order_category_list=order.shoes, new_order=new_order)
             case settings.Clothes.CATEGORY:
-                new_order = save_copy_order_clothes(order_category_list=order.clothes, new_order=new_order)
+                new_order = save_copy_order_clothes(order_category_list=order.clothes, new_order=new_order,
+                                                    old_aggrs=order.aggr_orders)
             case settings.Socks.CATEGORY:
-                new_order = save_copy_order_socks(order_category_list=order.socks, new_order=new_order)
+                new_order = save_copy_order_socks(order_category_list=order.socks, new_order=new_order,
+                                                  old_aggrs=order.aggr_orders)
             case settings.Linen.CATEGORY:
                 new_order = save_copy_order_linen(order_category_list=order.linen, new_order=new_order)
             case settings.Parfum.CATEGORY:
@@ -206,42 +206,77 @@ def save_copy_order_shoes(order_category_list: list[Shoe], new_order: Order) -> 
                                 gender=shoe.gender, country=shoe.country,
                                 with_packages=shoe.with_packages,
                                 tnved_code=shoe.tnved_code, article_price=shoe.article_price,
-                                tax=shoe.tax, rd_type=shoe.rd_type, rd_name=shoe.rd_name.replace('№', ''),
-                                rd_date=shoe.rd_date,
+                                tax=shoe.tax, rd_type=shoe.rd_type, rd_name=shoe.rd_name.replace('№', ''), rd_date=shoe.rd_date,
                                 sizes_quantities=list((ShoeQuantitySize(size=sq.size, quantity=sq.quantity)
                                                                     for sq in shoe.sizes_quantities)))
                            for shoe in order_category_list)
     return new_order
 
 
-def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order) -> Order:
-    new_order.clothes.extend(Clothes(trademark=clothes.trademark,
-                                     article=clothes.article, type=clothes.type,
-                                     color=clothes.color, content=clothes.content,
-                                     box_quantity=clothes.box_quantity,
-                                     gender=clothes.gender, country=clothes.country,
-                                     tnved_code=clothes.tnved_code, article_price=clothes.article_price,
-                                     tax=clothes.tax, rd_type=clothes.rd_type, rd_name=clothes.rd_name.replace('№', ''),
-                                     rd_date=clothes.rd_date, subcategory=clothes.subcategory,
-                                     sizes_quantities=list((ClothesQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
-                                                            for sq in clothes.sizes_quantities)))
-                             for clothes in order_category_list)
+def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order,
+                                old_aggrs: list[AggrOrder] = None) -> Order:
+    old_sq_map = {}  # {old_id: new_sq_instance}
+
+    for clothes in order_category_list:
+        new_sizes = []
+        for sq in clothes.sizes_quantities:
+            new_sq = ClothesQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
+            old_sq_map[sq.id] = new_sq
+            new_sizes.append(new_sq)
+
+        new_order.clothes.append(Clothes(
+            trademark=clothes.trademark, article=clothes.article, type=clothes.type,
+            color=clothes.color, content=clothes.content, box_quantity=clothes.box_quantity,
+            gender=clothes.gender, country=clothes.country, tnved_code=clothes.tnved_code,
+            article_price=clothes.article_price, tax=clothes.tax,
+            rd_type=clothes.rd_type, rd_name=clothes.rd_name.replace('№', ''),
+            rd_date=clothes.rd_date, subcategory=clothes.subcategory,
+            sizes_quantities=new_sizes
+        ))
+
+    if old_aggrs:
+        for aggr in old_aggrs:
+            new_aggr = AggrOrder(name=aggr.name, note=aggr.note, category=aggr.category, quantity=aggr.quantity)
+            for aggr_size in aggr.aggr_clothes_sizes:
+                new_sq = old_sq_map.get(aggr_size.cqs_id)
+                if new_sq:
+                    new_aggr.aggr_clothes_sizes.append(
+                        AggrClothesSize(cqs=new_sq, total_quantity=aggr_size.total_quantity))
+            new_order.aggr_orders.append(new_aggr)
+
     return new_order
 
 
-def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) -> Order:
-    new_order.socks.extend(Socks(trademark=sock.trademark,
-                                     article=sock.article, type=sock.type,
-                                     color=sock.color, content=sock.content,
-                                     box_quantity=sock.box_quantity,
-                                     gender=sock.gender, country=sock.country,
-                                     tnved_code=sock.tnved_code, article_price=sock.article_price,
-                                     tax=sock.tax, rd_type=sock.rd_type, rd_name=sock.rd_name.replace('№', ''),
-                                     rd_date=sock.rd_date,
-                                 sizes_quantities=list(
-                                     (SocksQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
-                                      for sq in sock.sizes_quantities)))
-                             for sock in order_category_list)
+def save_copy_order_socks(order_category_list: list[Socks], new_order: Order, old_aggrs: list[AggrOrder] = None) -> Order:
+    old_sq_map = {}  # {old_id: new_sq_instance}
+
+    for sock in order_category_list:
+        new_sizes = []
+        for sq in sock.sizes_quantities:
+            new_sq = SocksQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
+            old_sq_map[sq.id] = new_sq
+            new_sizes.append(new_sq)
+
+        new_order.socks.append(Socks(
+            trademark=sock.trademark, article=sock.article, type=sock.type,
+            color=sock.color, content=sock.content, box_quantity=sock.box_quantity,
+            gender=sock.gender, country=sock.country, tnved_code=sock.tnved_code,
+            article_price=sock.article_price, tax=sock.tax,
+            rd_type=sock.rd_type, rd_name=sock.rd_name.replace('№', ''),
+            rd_date=sock.rd_date,
+            sizes_quantities=new_sizes
+        ))
+
+    # Копируем агрегаты (наборы)
+    if old_aggrs:
+        for aggr in old_aggrs:
+            new_aggr = AggrOrder(name=aggr.name, note=aggr.note, category=aggr.category, quantity=aggr.quantity)
+            for aggr_size in aggr.aggr_socks_sizes:
+                new_sq = old_sq_map.get(aggr_size.sqs_id)
+                if new_sq:
+                    new_aggr.aggr_socks_sizes.append(AggrSocksSize(sqs=new_sq, total_quantity=aggr_size.total_quantity))
+            new_order.aggr_orders.append(new_aggr)
+
     return new_order
 
 
@@ -273,7 +308,8 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
                             quantity=parfum.quantity,
                             country=parfum.country,
                             tnved_code=parfum.tnved_code, article_price=parfum.article_price,
-                            tax=parfum.tax, rd_type=parfum.rd_type, rd_name=parfum.rd_name.replace('№', ''), rd_date=parfum.rd_date)
+                            tax=parfum.tax, rd_type=parfum.rd_type, rd_name=parfum.rd_name.replace('№', ''),
+                                    rd_date=parfum.rd_date)
                              for parfum in order_category_list))
     return new_order
 
@@ -287,51 +323,51 @@ def get_rows_marks(o_id: int, category: str) -> tuple[int, int]:
                        FROM public.orders 
                            JOIN public.shoes ON public.orders.id = public.shoes.order_id
                            JOIN  public.shoes_quantity_sizes ON public.shoes.id= public.shoes_quantity_sizes.shoe_id
-                       WHERE public.orders.category=:category AND public.orders.id=:o_id
+                       WHERE public.orders.category='{settings.Shoes.CATEGORY}' AND public.orders.id={o_id}
                        GROUP BY public.orders.id
-                       """).bindparams(category=settings.Shoes.CATEGORY, o_id=o_id))
+                       """))
             row_count, mark_count = res.fetchall()[0]
         case settings.Clothes.CATEGORY:
-            res = db.session.execute(text("""
+            res = db.session.execute(text(f"""
                 SELECT COUNT(cl_quantity_sizes.quantity),
                  SUM(public.clothes.box_quantity*public.cl_quantity_sizes.quantity)
                    FROM public.orders 
                        JOIN public.clothes ON public.orders.id = public.clothes.order_id
                        JOIN  public.cl_quantity_sizes ON public.clothes.id=public.cl_quantity_sizes.cl_id
-                   WHERE public.orders.category=:category AND public.orders.id=:o_id
+                   WHERE public.orders.category='{settings.Clothes.CATEGORY}' AND public.orders.id={o_id}
                    GROUP BY public.orders.id
-                   """).bindparams(category=settings.Clothes.CATEGORY, o_id=o_id))
+                   """))
             row_count, mark_count = res.fetchall()[0]
         case settings.Socks.CATEGORY:
             res = db.session.execute(text(f"""
-                        SELECT COUNT(public.socks_quantity_sizes.quantity),
-                         SUM(public.socks.box_quantity*public.socks_quantity_sizes.quantity)
-                           FROM public.orders 
-                               JOIN public.socks ON public.orders.id = public.socks.order_id
-                               JOIN  public.socks_quantity_sizes ON public.socks.id=public.socks_quantity_sizes.socks_id
-                           WHERE public.orders.category='{settings.Socks.CATEGORY}' AND public.orders.id={o_id}
-                           GROUP BY public.orders.id
-                           """))
+                SELECT COUNT(public.socks_quantity_sizes.quantity),
+                 SUM(public.socks.box_quantity*public.socks_quantity_sizes.quantity)
+                   FROM public.orders 
+                       JOIN public.socks ON public.orders.id = public.socks.order_id
+                       JOIN  public.socks_quantity_sizes ON public.socks.id=public.socks_quantity_sizes.socks_id
+                   WHERE public.orders.category='{settings.Socks.CATEGORY}' AND public.orders.id={o_id}
+                   GROUP BY public.orders.id
+                   """))
             row_count, mark_count = res.fetchall()[0]
         case settings.Linen.CATEGORY:
-            res = db.session.execute(text("""
+            res = db.session.execute(text(f"""
                 SELECT COUNT(linen_quantity_sizes.quantity),
                     SUM(public.linen.box_quantity*public.linen_quantity_sizes.quantity)
                     FROM public.orders 
                       JOIN public.linen ON public.orders.id = public.linen.order_id
                       JOIN  public.linen_quantity_sizes ON public.linen.id=public.linen_quantity_sizes.lin_id
-                    WHERE public.orders.category=:category AND public.orders.id=:o_id
+                    WHERE public.orders.category='{settings.Linen.CATEGORY}' AND public.orders.id={o_id}
                     GROUP BY public.orders.id
-                    """).bindparams(category=settings.Linen.CATEGORY, o_id=o_id))
+                    """))
             row_count, mark_count = res.fetchall()[0]
         case settings.Parfum.CATEGORY:
-            res = db.session.execute(text("""
+            res = db.session.execute(text(f"""
                 SELECT COUNT(parfum.quantity), SUM(parfum.quantity)
                     FROM public.orders 
                         JOIN public.parfum ON public.orders.id = public.parfum.order_id
-                    WHERE public.orders.category=:category AND public.orders.id=:o_id
+                    WHERE public.orders.category='{settings.Parfum.CATEGORY}' AND public.orders.id={o_id}
                     GROUP BY public.orders.id
-                    """).bindparams(category=settings.Parfum.CATEGORY, o_id=o_id))
+                    """))
             row_count, mark_count = res.fetchall()[0]
 
         case _:
@@ -368,13 +404,13 @@ def get_delete_stmts(category: str, o_id: int) -> list:
             stmts.extend((stmt1, stmt2, stmt3))
         case settings.Socks.CATEGORY:
             stmt1 = f"""DELETE FROM public.socks_quantity_sizes AS sqs
-                                                        USING public.socks AS sk, public.orders AS o
-                                                        WHERE sqs.socks_id = sk.id AND sk.order_id={o_id}
-                                                    """
+                                                USING public.socks AS sk, public.orders AS o
+                                                WHERE sqs.socks_id = sk.id AND sk.order_id={o_id}
+                                            """
             stmt2 = f"""DELETE FROM public.socks AS sk
-                                                        USING public.orders AS o
-                                                        WHERE sk.order_id={o_id}
-                                                        """
+                                                USING public.orders AS o
+                                                WHERE sk.order_id={o_id}
+                                                """
             stmt3 = f"""DELETE FROM public.orders AS o WHERE o.id = {o_id}"""
             stmts.extend((stmt1, stmt2, stmt3))
         case settings.Linen.CATEGORY:
@@ -408,12 +444,12 @@ def get_delete_pos_stmts(category: str, m_id: int) -> str:
             stmt = f"DELETE FROM public.shoes WHERE public.shoes.id={m_id}"
         case settings.Clothes.CATEGORY:
             stmt = f"DELETE FROM public.clothes WHERE public.clothes.id={m_id}"
-        case settings.Socks.CATEGORY:
-            stmt = f"DELETE FROM public.socks AS sm WHERE sm.id={m_id}"
         case settings.Linen.CATEGORY:
             stmt = f"DELETE FROM public.linen WHERE public.linen.id={m_id}"
         case settings.Parfum.CATEGORY:
             stmt = f"DELETE FROM public.parfum AS pm WHERE pm.id={m_id}"
+        case settings.Socks.CATEGORY:
+            stmt = f"DELETE FROM public.socks AS sm WHERE sm.id={m_id}"
         case _:
             flash(message=settings.Messages.ORDER_DELETE_ERROR)
             raise Exception
