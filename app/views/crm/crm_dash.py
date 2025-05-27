@@ -90,7 +90,7 @@ def update_agent_stage():
     if order_id:
         o_status, o_message = helper_change_agent_stage_bck(o_id=order_id, stage=stage, user=current_user)
         if not o_status:
-            return jsonify({'htmlresponse': None, 'status': o_status, 'message': o_message})
+            return jsonify({'htmlresponse': None, 'status': status, 'message': o_message})
     update_orders = helper_get_agent_stage_orders(stage=stage, category=category, user=current_user)
 
     status = settings.SUCCESS
