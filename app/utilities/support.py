@@ -89,7 +89,6 @@ def sql_count(func):
 
 
 def order_count(category: str, order_list) -> tuple:
-
     match category:
         case settings.Parfum.CATEGORY:
             quantity_list_raw = [el.box_quantity if el.with_packages == 'да' else el.quantity for el in order_list]
@@ -99,28 +98,43 @@ def order_count(category: str, order_list) -> tuple:
         case settings.Shoes.CATEGORY:
             quantity_list_raw = [[(e.quantity, el.article_price, el.box_quantity) for e in el.sizes_quantities]
                                  for el in order_list]
+        case settings.Socks.CATEGORY:
+            quantity_list_raw = [[(e.quantity, el.article_price, el.box_quantity) for e in el.sizes_quantities]
+                                 for el in order_list]
 
         case settings.Clothes.CATEGORY:
             quantity_list_raw = [[(e.quantity, el.article_price, el.box_quantity) for e in el.sizes_quantities]
                                  for el in order_list]
 
-        case settings.Socks.CATEGORY:
-            quantity_list_raw = [[(e.quantity, el.article_price, el.box_quantity) for e in el.sizes_quantities]
-                                 for el in order_list]
-
         case settings.Linen.CATEGORY:
-            quantity_list_raw = [[(e.quantity, el.article_price, el.box_quantity, el.with_packages) for e in el.sizes_quantities]
-                                 for el in order_list]
+            quantity_list_raw = [
+                [(e.quantity, el.article_price, el.box_quantity, el.with_packages) for e in el.sizes_quantities]
+                for el in order_list]
 
-            quantity_list = [item[2] if item[3] == 'да' else item[0] * item[2] for sublist in quantity_list_raw for item in sublist]
+            quantity_list = [item[2] if item[3] == 'да' else item[0] * item[2] for sublist in quantity_list_raw for item
+                             in sublist]
             rd_exist = True if [el.rd_type for el in order_list if el.rd_type] else False
             return rd_exist, quantity_list_raw, len(quantity_list), sum(quantity_list)
-    # for pep8
+        # for pep8
         case _:
-            return [], 0, 0
+            return [], 0, 0, 0
     quantity_list = [item[0] * item[2] for sublist in quantity_list_raw for item in sublist]
     rd_exist = True if [el.rd_type for el in order_list if el.rd_type] else False
-    return rd_exist, quantity_list_raw, len(quantity_list), sum(quantity_list)
+
+    # counting for aggregations
+    # Подсчёт количества позиций в случае агрегации
+    # print(f'{order_list[0]=}')
+    # print(f'{order_list[0].orders.aggr_orders=}')
+
+    if (category in [settings.Clothes.CATEGORY, settings.Socks.CATEGORY] and hasattr(order_list[0], 'orders') and order_list[0].orders.has_aggr):
+        order = order_list[0].orders
+        if category == settings.Clothes.CATEGORY:
+            orders_pos_count = sum(s.total_quantity for aggr in order.aggr_orders for s in aggr.aggr_clothes_sizes)
+        else:
+            orders_pos_count = sum(s.total_quantity for aggr in order.aggr_orders for s in aggr.aggr_socks_sizes)
+    else:
+        orders_pos_count = sum(quantity_list)
+    return rd_exist, quantity_list_raw, len(quantity_list), orders_pos_count
 
 
 def parfum_orders(user: User, stage: int = settings.OrderStage.CREATING, o_id: int = None, new: bool = False,) -> tuple:
@@ -237,7 +251,8 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
     #         ValidatorProcessor.socks_pre_validate_tnved(tnved_str=form_data_raw.get('tnved_code'))
     subcategory = request.args.get('subcategory', '')
     if not Category.check_subcategory(category=category, subcategory=subcategory):
-        return jsonify(dict(status='error', message=settings.Messages.STRANGE_REQUESTS + 'у одежды нет такой подкатегории'))
+        return jsonify(
+            dict(status='error', message=settings.Messages.STRANGE_REQUESTS + 'у одежды нет такой подкатегории'))
 
     check_tnved_condition = ValidatorProcessor.check_tnveds(category=category,
                                                             subcategory=subcategory,
@@ -266,7 +281,8 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
     if o_id and p_id and order_id:
         flash(message=settings.Messages.ORDER_EDIT_POS_SUCCESS)
     if not o_id and not p_id and order_id:
-        flash(message=f"{settings.Messages.ORDER_ADD_POS_SUCCESS} {form_data_raw.get('article') if category != settings.Parfum.CATEGORY else form_data_raw.get('trademark')}")
+        flash(
+            message=f"{settings.Messages.ORDER_ADD_POS_SUCCESS} {form_data_raw.get('article') if category != settings.Parfum.CATEGORY else form_data_raw.get('trademark')}")
 
     return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=order_id, subcategory=subcategory,
                             sort_type=sort_type, sort_order=sort_order))
@@ -294,12 +310,14 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
             process_delete_order_pos(o_id=o_id, m_id=p_id, category=category, edit=True)
 
     else:
+        # company_idn_absense
         company_idn = form_dict.get("company_idn")
         if company_idn in settings.ExceptionOrders.COMPANIES_IDNS:
             flash(message=settings.ExceptionOrders.COMPANY_IDN_ERROR.format(company_idn=company_idn), category='error')
             return (None,) * 3
+
         order = Order(company_type=form_dict.get("company_type"), company_name=form_dict.get("company_name"),
-                      edo_type=form_dict.get("edo_type"), edo_id=form_dict.get("edo_id"),
+                      edo_type=form_dict.get("edo_type"), edo_id=form_dict.get("edo_id"), has_aggr=bool(form_dict.get('has_aggr')),
                       company_idn=company_idn, mark_type=form_dict.get("mark_type_hidden", "МАРКИРОВКА НЕ УКАЗАНА"),
                       category=category, stage=settings.OrderStage.CREATING, processed=False, to_delete=False)
     try:
@@ -326,7 +344,6 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
             sizes_quantities = sorted(list(zip(sizes, sizes_units,  quantities)), key=lambda x: x[0])
         else:
             raise IntegrityError('Выбрана некорректная категория')
-
         updated_order = common_save_db(order=order, form_dict=form_dict,
                                        category=category, subcategory=subcategory, sizes_quantities=sizes_quantities)
 
@@ -337,11 +354,11 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
     except IntegrityError as e:
         logger.error(e)
         db.session.rollback()
-        return (None,)*3
+        return (None,) * 3
     sort_type, sort_order = helper_get_sort_order(sort_type_order=form_dict.get("sort_type_order"))
     o_id = updated_order.id
 
-    return o_id,  sort_type, sort_order
+    return o_id, sort_type, sort_order
 
 
 def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id: int = None) -> tuple:
