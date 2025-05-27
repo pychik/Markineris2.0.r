@@ -1,0 +1,104 @@
+{% if o_id %}
+<div class="col-md-12 mt-3">
+    <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+
+        <!-- Кол-во и кнопка "Создать набор" -->
+        <div class="d-flex align-items-center gap-2">
+            <label class="mb-0" for="aggr_count_input">Кол-во наборов:</label>
+            <input type="number"
+                   id="aggr_count_input"
+                   min="1"
+                   value="1"
+                   class="form-control form-control-sm"
+                   style="width: 80px;">
+
+            <button
+                id="create_aggr_btn"
+                class="btn btn-outline-secondary btn-sm"
+                disabled
+                data-create-url="{{ url_for('requests_common.create_aggr_order', order_id=o_id) }}"
+                data-update-url="{{ url_for(category_process_name + '.index', o_id=o_id, update_flag=1) }}"
+                data-category="{{ category_process_name }}"
+                data-csrf-token="{{ csrf_token() }}"
+                data-aggr-num="{{ order.aggr_orders|length + 1 }}"
+                data-order-id="{{ o_id }}"
+                onclick="createAggrSet()"
+            >
+                Создать набор {{ order.aggr_orders|length + 1 }}
+            </button>
+        </div>
+
+        <!-- Кнопка "Посмотреть наборы" -->
+        <button
+            class="btn btn-outline-primary btn-sm"
+            onclick="openAggrModal('{{ url_for('requests_common.get_all_aggr_orders', order_id=o_id) }}')"
+        >
+            Посмотреть наборы
+        </button>
+
+    </div>
+
+    <table class="table table-result table-borderless" id="orders_table_info">
+        <thead class="text-dark">
+            <tr>
+                <th>#</th>
+                <th>Артикул</th>
+                <th>Товарный знак</th>
+                <th>Инфо</th>
+                <th class="text-end">Действия</th>
+            </tr>
+        </thead>
+        <tbody id="order_table_body_info">
+        {% for t in order_list %}
+            <tr class="border-bottom">
+                <td>{{ offset + loop.index }}</td>
+                <td>{{ t.article }}
+                    <div class="text-muted small mt-1">
+                        {% for sq in t.sizes_quantities %}
+                            <div class="form-check my-1">
+                                <input class="form-check-input aggr-size-checkbox"
+                                   type="checkbox"
+                                   value="{{ sq.id }}"
+                                   id="sizeCheckbox_{{ sq.id }}"
+                                   data-parent-id="{{ t.id }}"
+                                   data-quantity="{{ sq.quantity }}"
+                                   {% if sq.aggr_order_size %} checked  disabled {% endif %}>
+                                <label class="form-check-label" for="sizeCheckbox_{{ sq.id }}">
+                                    {{ sq.size }} — {{ sq.quantity }} шт. {{ sq.size_type }}
+                                </label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </td>
+                <td>{{ t.trademark }}</td>
+
+                <td style="font-size: 13px;">
+                    <div><strong>Цвет:</strong> {{ t.color }}</div>
+                    <div><strong>Пол:</strong> {{ t.gender }}</div>
+                    <div><strong>Состав:</strong> {{ t.content }}</div>
+                </td>
+                <td class="text-end actions">
+                    {% include 'helpers/socks/tables/table_actions.html' %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="pagination-page-info text-center">
+        На этой странице <b>{{ offset + 1 }} - {{ offset + order_list|length }}</b>
+        Всего: <b>{{ pagination.total }}</b>
+    </div>
+
+    <div class="pagination_section my-1">
+        <div class="d-flex">
+            <div class="col-3"></div>
+            <div class="col-md-2"></div>
+            <div class="col-5" style="margin-left: 3%;">{{ pagination.links }}</div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<h3 class="text-center">Накладная не заполнялась</h3>
+{% endif %}

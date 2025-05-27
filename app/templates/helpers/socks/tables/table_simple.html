@@ -1,0 +1,80 @@
+{% if o_id %}
+    <div class="col-md-12 mt-3">
+
+        <div class="table-right mb-4 d-flex justify-content-end">
+            <form action="/" class="me-3 col-6">
+                <input type="text" class="form-control border-bottom" id="search_by_article_text"
+                    onkeyup="socks_make_research_by_article('{{ url_for('socks.search_by_article', o_id = o_id) }}', '{{ csrf_token() }}');" placeholder="Поиск по артикулу">
+            </form>
+            <div class="d-flex align-items-center">
+                <div class="table-quantity me-2">
+                    Добавлено {{pagination.total}} шт
+                </div>
+                <div class="table-add-item">
+                    <span style="cursor: pointer" onclick="make_2_step()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34"
+                            viewBox="0 0 34 34" fill="none">
+                            <rect width="34" height="34" rx="5" fill="#00A958" />
+                            <path d="M17 24.0833V9.91666" stroke="white" stroke-width="1.5"
+                                stroke-linecap="round" />
+                            <path d="M9.9165 17H24.0832" stroke="white" stroke-width="1.5"
+                                stroke-linecap="round" />
+                        </svg>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div id="search_article_info">
+        </div>
+        <table class="table mt-5 table-result tablesaw-stack"  id="orders_table_info" >
+            <thead class="text-dark">
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">
+                        <font size="2">Артикул</font>
+                    </th>
+                    <th scope="col">
+                        <font size="2">Товарный знак</font>
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody id="order_table_body_info">
+
+            {% for t in order_list %}
+                <tr>
+                    <td class="tablesaw-cell-content">{{ offset+loop.index }}</td>
+                    <td>
+                        {{ t.article}}
+                    </td>
+                    <td>
+                        {{t.trademark}}
+                    </td>
+                    <td class="text-end actions">
+                        {% include 'helpers/socks/tables/table_actions.html' %}
+
+                    </td>
+                </tr>
+
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="pagination-page-info text-center">На этой странице <b>{{ offset + 1 }} - {{ offset + order_list|length }}</b> Всего: <b>{{ pagination.total }}</b></div>
+
+    </div>
+<!--{{pagination.__dir__()}}-->
+
+    <div class="pagination_section my-1" >
+        <div class="d-flex">
+            <div class="col-3"></div>
+            <div class="col-md-2"></div>
+            <div class="col-5" style="margin-left: 3%;">{{ pagination.links }}</div>
+
+        </div>
+    </div>
+
+
+
+{% else %}
+<h3 class="text-center"> Накладная не заполнялась</h3>
+{% endif %}
