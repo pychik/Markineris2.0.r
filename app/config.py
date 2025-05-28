@@ -289,7 +289,7 @@ class Settings(BaseSettings):
             CANCELLED: M_ORDER_CANCELLED, MANAGER_START: M_ORDER_AGAIN_OPERATING
         }
         APCO_NOORDERS: str = "Нет заказов для отмены"  # AUTO PROBLEM TO CANCELL  ORDERS
-        APCO_MESSAGE: str = "Отменен автоматически по истечению срока решения вопроса"
+        APCO_MESSAGE: str = "Отменен автоматически по истечению срока"
         APCO_SUCCESS: str = "Перенос проблемных заказов в отмененные завершен успешно"
 
     class Sms:

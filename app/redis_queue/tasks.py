@@ -11,7 +11,7 @@ from logger import logger
 from models import db, RestoreLink, OrderFile, Order
 from utilities.admin.h_finance_control import h_su_wo_transactions
 from utilities.minio_service.services import get_s3_service
-from views.crm.helpers import helpers_move_orders_to_processed
+from views.crm.helpers import helpers_move_orders_to_processed, helper_auto_new_cancel_order
 
 
 def delete_restore_link_periodic_task() -> dict[str, int]:
@@ -72,8 +72,9 @@ def daily_tasks():
     # change maintenance mode to ON Hhere
     h_su_wo_transactions()
     helpers_move_orders_to_processed()
+    helper_auto_new_cancel_order()
     # change maintenance mode to OFF here
-    return {"status": "transactions performed; orders from sent moved to PROCESSED"}
+    return {"status": "transactions performed; orders stage changes performed"}
 
 
 def backup_database():
