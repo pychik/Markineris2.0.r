@@ -400,7 +400,7 @@ def helper_check_extension(filename: str) -> bool:
 
 def helper_create_filename(order_idn: int, manager_name: str, filename: str) -> tuple[Optional[str], Optional[str]]:
     try:
-        extension = filename.rsplit('.')[1]
+        extension = filename.rsplit('.')[-1]
     except Exception:
         return None, None
     origin = f"{manager_name}_order_{order_idn}.{extension}"
