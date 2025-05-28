@@ -1057,7 +1057,8 @@ def check_user_crm(user: User) -> bool:
 
 def get_category_orders(user: User, category: str, o_id: int, stage: int) -> tuple[Optional[Order],
                                                                                    Optional[list]]:
-    order = helper_get_order(user=user, category=category, o_id=o_id, stage=stage)
+    order = helper_get_order(user=user, category=category, o_id=o_id, stage=stage,
+                             full=True if category in [settings.Clothes.CATEGORY, settings.Socks.CATEGORY, ] else False)
 
     if not order:
         order_list = None
@@ -1069,15 +1070,15 @@ def get_category_orders(user: User, category: str, o_id: int, stage: int) -> tup
         case settings.Clothes.CATEGORY:
             sort_model = helper_get_sort_model(category=category)
             order_list = Clothes.query.filter_by(order_id=o_id).order_by(sort_model).all()
-        case settings.Socks.CATEGORY:
-            sort_model = helper_get_sort_model(category=category)
-            order_list = Socks.query.filter_by(order_id=o_id).order_by(sort_model).all()
         case settings.Linen.CATEGORY:
             sort_model = helper_get_sort_model(category=category)
             order_list = Linen.query.filter_by(order_id=o_id).order_by(sort_model).all()
         case settings.Parfum.CATEGORY:
             sort_model = helper_get_sort_model(category=category)
             order_list = Parfum.query.filter_by(order_id=o_id).order_by(sort_model).all()
+        case settings.Socks.CATEGORY:
+            sort_model = helper_get_sort_model(category=category)
+            order_list = Socks.query.filter_by(order_id=o_id).order_by(sort_model).all()
         case _:
             order, order_list = None, None
     return order, order_list
