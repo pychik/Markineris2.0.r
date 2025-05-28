@@ -41,7 +41,7 @@ from models import (
     users_promos,
     TransactionTypes,
     TransactionStatuses,
-    LinenSizesUnits,
+    LinenSizesUnits, AggrOrder,
 )
 from utilities.daily_price import get_cocmd
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
@@ -829,26 +829,31 @@ def process_complete_delete_order(order: Order) -> None:
         db.session.rollback()
 
 
-def common_process_delete_order(o_id: int, stage: int,) -> Optional[str]:
-
+def common_process_delete_order(o_id: int, stage: int, ) -> Optional[str]:
     order = current_user.orders.with_entities(Order.id, Order.category, Order.company_type,
-                                              Order.company_name, Order.created_at, Order.stage)\
-                        .filter(Order.id == o_id, Order.stage == stage, ~Order.to_delete).first()
+                                              Order.company_name, Order.created_at, Order.stage, Order.to_delete) \
+        .filter(Order.id == o_id, Order.stage == stage, ~Order.to_delete).first()
+
     if order:
         if order.stage not in (settings.OrderStage.CREATING, settings.OrderStage.NEW,
-                               settings.OrderStage.CANCELLED, settings.OrderStage.TELEGRAM_PROCESSED, settings.OrderStage.CRM_PROCESSED):
+                               settings.OrderStage.CANCELLED, settings.OrderStage.TELEGRAM_PROCESSED,
+                               settings.OrderStage.CRM_PROCESSED):
             flash(message=settings.Messages.ORDER_DELETE_STAGE, category='error')
             return settings.Messages.ORDER_DELETE_STAGE
 
         subcategory = ''
         if order.category == settings.Clothes.CATEGORY:
             subcategory = get_subcategory(order_id=o_id, category=settings.Clothes.CATEGORY)
-
         try:
+            if order.stage == settings.OrderStage.CREATING:
+                Order.query.filter_by(id=order.id).delete()
+                # AggrOrder.query.filter_by(order_id=order.id).delete()
+            else:
 
-            # db.session.execute(text(f"DELETE FROM public.orders AS o WHERE o.id={order.id}"))
-            db.session.execute(
-                text(f"UPDATE public.orders set to_delete = True  WHERE id=:o_id").bindparams(o_id=order.id))
+                # db.session.execute(text(f"DELETE FROM public.orders AS o WHERE o.id={order.id}"))
+                db.session.execute(
+                    text(f"UPDATE public.orders set to_delete = True  WHERE id=:o_id").bindparams(o_id=order.id))
+
             db.session.commit()
 
         except Exception as e:
@@ -895,19 +900,41 @@ def process_delete_order_pos(category: str, o_id: int, m_id: int, edit: bool = F
             return settings.Messages.ORDER_DELETE_ERROR
 
 
+def cleanup_aggr_orders(order_id: int, category: str):
+    match category:
+        case settings.Clothes.CATEGORY:
+            aggr_orders = AggrOrder.query.filter_by(order_id=order_id, category=settings.CATEGORIES_DICT.get(category)).all()
+            to_delete = [aggr for aggr in aggr_orders if not aggr.aggr_clothes_sizes]
+        case settings.Socks.CATEGORY:
+            aggr_orders = AggrOrder.query.filter_by(order_id=order_id, category=settings.CATEGORIES_DICT.get(category)).all()
+            to_delete = [aggr for aggr in aggr_orders if not aggr.aggr_socks_sizes]
+        case _:
+            return  # Do nothing for other categories
+
+    for aggr in to_delete:
+        db.session.delete(aggr)
+
+    if to_delete:
+        db.session.commit()
+
+
 def helper_delete_order_pos(o_id: int, m_id: int, category: str, model: db.Model,
                             async_type: int = None) -> Union[tuple, Response]:
     cat_list = model.query.with_entities(model.id).filter_by(order_id=o_id).all()
+
     subcategory = request.args.get('subcategory', '')
     if not Category.check_subcategory(category=category, subcategory=subcategory):
         return jsonify(
             dict(status='error', message=settings.Messages.STRANGE_REQUESTS + ' нет такой подкатегории'))
 
+    # subcategory = get_subcategory(order_id=o_id, category=category)
     if len(cat_list) > 1:
         if not async_type:
             process_delete_order_pos(category=category, o_id=o_id, m_id=m_id)
+            cleanup_aggr_orders(order_id=o_id, category=category)
         else:
             status = process_delete_order_pos(category=category, o_id=o_id, m_id=m_id, async_type=async_type)
+            cleanup_aggr_orders(order_id=o_id, category=category)
             content = dict(status=status, type='async')
             from utilities.helpers.h_categories import order_table_update
             content.update(order_table_update(user=current_user, o_id=o_id, category=category, jsonify_flag=False))
