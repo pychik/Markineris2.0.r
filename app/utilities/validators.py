@@ -9,27 +9,50 @@ from utilities.categories_data.underwear_data import UNDERWEAR_TNVEDS
 
 class ValidatorProcessor:
     @staticmethod
-    def sign_up(form_dict: dict) -> Optional[tuple]:
+    def sign_up(form_dict: dict) -> tuple:
         def check_email(email_str: str) -> Optional[str]:
             regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
-            if fullmatch(regex, email_str):
-                return email_str
+            if not email_str:
+                return None
+            return email_str if fullmatch(regex, email_str) else None
 
         sp_link = form_dict.get("p_link")
         login_name = form_dict.get('login_name')
         email = form_dict.get('email')
-
         full_phone = form_dict.get('full_phone')
         password = form_dict.get('password')
         partner_code_id = form_dict.get('partner_code_id')
         admin_id = form_dict.get('admin_id')
 
-        res_tuple = sp_link, login_name, check_email(email_str=email), full_phone, password, partner_code_id, admin_id
-        if not all(res_tuple) or email.lower().startswith('agent_'):
-            return None
-        else:
-            res_tuple = tuple(map(lambda x: x.replace('--', ''), res_tuple))
-            return res_tuple
+        if not sp_link:
+            return None, 'p_link', 'Ссылка не указана'
+
+        if not login_name:
+            return None, 'login_name', 'Логин не указан'
+
+        if not email:
+            return None, 'email', 'E-mail не указан'
+        if email.lower().startswith('agent_'):
+            return None, 'email', 'E-mail не должен начинаться с "agent_"'
+        if not check_email(email):
+            return None, 'email', 'Некорректный формат e-mail'
+
+        if not full_phone:
+            return None, 'full_phone', 'Телефон не указан'
+
+        if not password:
+            return None, 'password', 'Пароль не указан'
+
+        if not admin_id:
+            return None, 'admin_id', 'ID администратора не указан'
+
+        res_tuple = (
+            sp_link, login_name, email, full_phone, password, partner_code_id, admin_id
+        )
+
+        # sanitize
+        res_tuple = tuple(map(lambda x: x.replace('--', '') if isinstance(x, str) else x, res_tuple))
+        return res_tuple, None, None
 
     @staticmethod
     def common_pre_validate_tnved(tnved_str: str, category: str) -> bool:

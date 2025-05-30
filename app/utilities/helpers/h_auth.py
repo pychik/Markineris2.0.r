@@ -107,13 +107,12 @@ def h_sign_up_post() -> Union[Response, str]:
         return redirect(url_for('main.enter'))
 
     # getting redirect_link
-    data_tuple = ValidatorProcessor.sign_up(form_dict=request.form)
-    if not data_tuple:
-        flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
+    data_tuple, error_field, error_msg = ValidatorProcessor.sign_up(form_dict=request.form)
+    if error_field:
+        flash(message=f"Ошибка в поле '{error_field}': {error_msg}", category='error')
         return redirect(url_for('main.enter'))
-    else:
-        sp_link, login_name, email, phone, password, partner_code_id, admin_id = data_tuple
-    partner = None
+
+    sp_link, login_name, email, phone, password, partner_code_id, admin_id = data_tuple
 
     # check captcha
     c_hash = request.form.get('captcha-hash')
