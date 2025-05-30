@@ -150,9 +150,18 @@ def get_first_page_as_image(pdf_file_stream: bytes):
         raise GetFirstPageFromPDFError()
 
 
-def helper_check_attached_file(order_file: FileStorage) -> tuple[bool, str]:
+def helper_check_attached_file(order_file: FileStorage, order_idn: str) -> tuple[bool, str]:
+
     filename = order_file.filename.lower()
 
+    # проверка на пустой файл
+    if filename == '':
+        message = f'{settings.Messages.ORDER_MANAGER_FEXT} {filename}'
+        return False, message
+    # проверка на человеческий фактор
+    if order_idn not in filename:
+        message = f'{settings.Messages.ORDER_MANAGER_FON} {filename}'
+        return False, message
     # Проверка расширения файла
     if not (filename.endswith('.rar') or filename.endswith('.zip')):
         message = settings.Messages.ORDER_ATTACH_FILE_ERROR + ' Поддерживаются только архивы .zip и .rar!'

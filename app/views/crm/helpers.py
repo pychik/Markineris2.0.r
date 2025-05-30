@@ -690,7 +690,7 @@ def helper_attach_file(manager: str, manager_id: int, o_id: int) -> Response:
     message = ''
     htmlresponse_file = ''
     htmlresponse_footer = ''
-    order_stmt = text("""
+    order_stmt = text(f"""
                         SELECT o.id as id,
                             o.order_idn as order_idn,
                             o.stage as stage,
@@ -710,12 +710,7 @@ def helper_attach_file(manager: str, manager_id: int, o_id: int) -> Response:
 
     file = request.files.get('order_file', '')
 
-    if file.filename == '' or not helper_check_extension(filename=file.filename):
-        message = f'{settings.Messages.ORDER_MANAGER_FEXT} {file.filename}'
-        return jsonify({'htmlresponse_file': htmlresponse_file,
-                        'htmlresponse_footer': htmlresponse_footer,
-                        'status': status, 'message': message})
-    check, check_file_message = helper_check_attached_file(order_file=file)
+    check, check_file_message = helper_check_attached_file(order_file=file, order_idn=order_info.order_idn)
     if not check:
         message = check_file_message
         return jsonify({'htmlresponse_file': htmlresponse_file,
