@@ -244,7 +244,7 @@ function shoe_load_search_data(query, url, csrf_token)
 }
 
 async function async_shoe_delete_pos(url, csrf,block){
-    // loadingCircle();
+    loadingCircle();
     const settings = {
         method: 'POST',
         headers: {
@@ -296,7 +296,7 @@ async function async_shoe_delete_pos(url, csrf,block){
                     }, 5000);
         return false;
     }
-
+    close_Loading_circle();
 }
 
 

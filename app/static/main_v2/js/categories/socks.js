@@ -240,7 +240,7 @@ function socks_load_search_data(query, url, csrf_token) {
 }
 
 async function async_socks_delete_pos(url, csrf, block) {
-    // loadingCircle();
+    loadingCircle();
     const settings = {
         method: 'POST',
         headers: {
@@ -290,7 +290,7 @@ async function async_socks_delete_pos(url, csrf, block) {
         }, 5000);
         return false;
     }
-
+    close_Loading_circle();
 }
 
 function socks_load_upload_table(url) {
