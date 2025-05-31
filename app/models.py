@@ -378,7 +378,7 @@ class OrderStat(db.Model, UserMixin):
 
 class CommonMixin:
     id = db.Column(db.BigInteger, primary_key=True)
-    type = db.Column(db.String(50))
+    type = db.Column(db.String(100))
 
     article_price = db.Column(db.Float(), default=0)
     tnved_code = db.Column(db.String(50), default='')
