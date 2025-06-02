@@ -10,7 +10,10 @@
         {% for aggr in order.aggr_orders %}
         <tr>
             <td style="vertical-align: top;">
-                Набор&nbsp;{{ loop.index }}
+                Набор {{ loop.index }} <br>
+<!--                <span style="font-size:8px">-->
+<!--                    Сохранен под названием {{ aggr.name }}-->
+<!--                </span>-->
                 <div>
                     <small class="text-muted">Количество: {{ aggr.quantity }} шт.</small>
                 </div>
@@ -36,8 +39,7 @@
                     data-update-url="{{ url_for('requests_common.get_all_aggr_orders', order_id=order.id) }}"
                     data-update-main-url="{{ url_for(categories_dict.get(order.category) + '.index', o_id=order.id, update_flag=1) }}"
                     data-csrf-token="{{ csrf_token() }}"
-                    onclick="deleteAggrOrder(this)"
-                    data-aggr-name="{{ aggr.name }}">
+                    onclick="deleteAggrOrder(this)" data-aggr-name="Набор {{ loop.index }}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                           style="cursor:pointer" viewBox="0 0 24 24" fill="white">
                         <path

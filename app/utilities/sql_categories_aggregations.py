@@ -24,7 +24,26 @@ class SQLQueryCategoriesAll:
             "fields": {
                 "subcategory": "coalesce(max(cl.subcategory), 'common')",
                 "pos_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id))",
-                "marks_count": "SUM(COALESCE(sh.box_quantity * sh_qs.quantity, cl.box_quantity * cl_qs.quantity, sk.box_quantity * sk_qs.quantity, l.box_quantity * l_qs.quantity, p.quantity, 0))",
+                "marks_count": """
+                                SUM(
+                                    CASE 
+                                        WHEN o.has_aggr THEN 0
+                                        ELSE
+                                            COALESCE(sh.box_quantity * sh_qs.quantity, 0) + 
+                                            COALESCE(cl.box_quantity * cl_qs.quantity, 0) + 
+                                            COALESCE(sk.box_quantity * sk_qs.quantity, 0) + 
+                                            COALESCE(l.box_quantity * l_qs.quantity, 0) + 
+                                            COALESCE(p.quantity, 0)
+                                    END
+                                ) + 
+                                (SELECT COALESCE(SUM(ag_cl_qs.total_quantity), 0)
+                                 FROM aggr_orders ao
+                                 JOIN aggr_clothes_sizes ag_cl_qs ON ao.id = ag_cl_qs.aggr_order_id
+                                 WHERE ao.order_id = o.id) +
+                                (SELECT COALESCE(SUM(ag_sk_qs.total_quantity), 0)
+                                 FROM aggr_orders ao
+                                 JOIN aggr_socks_sizes ag_sk_qs ON ao.id = ag_sk_qs.aggr_order_id
+                                 WHERE ao.order_id = o.id)""",
                 "rows_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id))",
                 "category_pos_type_max": "MAX(COALESCE(sh.type, cl.type, sk.type, l.type, p.type))",
                 "category_pos_type": "COALESCE(sh.type, cl.type, sk.type, l.type, p.type)",

@@ -141,6 +141,9 @@ function refreshFullOrderBlock(updateUrl) {
                 const wrapper = document.getElementById('step-3_update');
                 if (wrapper) {
                     wrapper.innerHTML = data.htmlresponse;
+                    $('#orders_row_count').html(data.pos_count);
+                    $('#orders_pos_count').html(data.orders_pos_count);
+                    $('#modal_orders_pos_count').html(`<span>${data.orders_pos_count}</span>шт.`);
                 }
 
                 if (typeof initAggrCheckboxes === 'function') {
