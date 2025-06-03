@@ -854,27 +854,27 @@ def crm_orders_common_preload(category: str, company_idn: str, orders_list: list
         start_list = copy(settings.Shoes.START_PRELOAD)
         sp = ShoesProcessor(company_idn=company_idn, category=category, orders_list=orders_list, has_aggr=has_aggr)
         res_list_raw = sp.orders_list
-        res_list = list(map(lambda x: x[:12] + x[14:], res_list_raw))
+        res_list = list(map(lambda x: ['',] + x[1:11] + x[14:], res_list_raw))
     elif category == settings.Clothes.CATEGORY:
         start_list = copy(settings.Clothes.START_PRELOAD)
         cp = ClothesProcessor(company_idn=company_idn, category=category, orders_list=orders_list, has_aggr=has_aggr)
         res_list_raw = cp.orders_list
-        res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
+        res_list = list(map(lambda x: ['',] + x[1:11] + ['',] + x[15:18] + x[20:], res_list_raw))
     elif category == settings.Socks.CATEGORY:
         start_list = copy(settings.Socks.START_PRELOAD)
         cp = SocksProcessor(company_idn=company_idn, category=category, orders_list=orders_list, has_aggr=has_aggr)
         res_list_raw = cp.orders_list
-        res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
+        res_list = list(map(lambda x: ['',] + x[1:11] + ['',] + x[15:18] + x[20:], res_list_raw))
     elif category == settings.Linen.CATEGORY:
         start_list = copy(settings.Linen.START_PRELOAD)
         lp = LinenProcessor(company_idn=company_idn, category=category, orders_list=orders_list, has_aggr=has_aggr)
         res_list_raw = lp.orders_list
-        res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
+        res_list = list(map(lambda x: ['',] + x[1:11] + ['',] + x[15:18] + x[20:], res_list_raw))
     elif category == settings.Parfum.CATEGORY:
         start_list = copy(settings.Parfum.START_PRELOAD)
         p_proc = ParfumProcessor(company_idn=company_idn, category=category, orders_list=orders_list, has_aggr=has_aggr)
         res_list_raw = p_proc.orders_list
-        res_list = list(map(lambda x: x[:9] + x[12:15] + x[17:], res_list_raw))
+        res_list = list(map(lambda x: ['',] + x[1:8] + ['',] + x[12:15] + x[17:], res_list_raw))
     page, per_page, offset, pagination, order_list = helper_paginate_data(data=res_list,
                                                                           per_page=settings.PAGINATION_PER_PAGE_PRELOAD,
                                                                           css_framework='bootstrap4')
