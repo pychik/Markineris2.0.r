@@ -2161,7 +2161,8 @@ def helper_crm_preload(o_id: int):
 
     start_list, page, per_page, offset, pagination, order_list = crm_orders_common_preload(category=category,
                                                                                            company_idn=company_idn,
-                                                                                           orders_list=orders,)
+                                                                                           orders_list=orders,
+                                                                                           has_aggr=order.has_aggr)
 
     return render_template('crm_mod_v1/preload/crm_preload.html', **locals())
 

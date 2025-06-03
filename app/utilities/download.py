@@ -480,40 +480,42 @@ class ClothesProcessor(OrdersProcessor):
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
+
         actual_date = datetime.now().strftime('%d.%m.%Y')
+
         for el in orders_list:
-            #     if not el.tnved_code else el.tnved_code
             tnved = el.tnved_code
-            fc_tnved = tnved if (tnved not in settings.Clothes.TNVED_ALL or tnved == '4304000000'
-                                 or tnved[:4] in settings.Clothes.FULL_TNVED_4DIGIT_LIST) \
-                else tnved[:4]
-            # fc_tnved = tnved if tnved == '4304000000' else tnved[:4]
 
             declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" \
                 if all([el.rd_date, el.rd_type, el.rd_name]) else ''
+
             for sq in el.sizes_quantities:
+                gender_dec = ClothesProcessor.get_gender_dec(el.type, el.gender, el.subcategory)
+                gender = ClothesProcessor.get_gender(el.gender) if not flag_046 else ClothesProcessor.get_gender_046(
+                    el.gender)
 
-                gender_dec = ClothesProcessor.get_gender_dec(clothes_type=el.type, gender=el.gender, subcategory=el.subcategory)
-                gender = ClothesProcessor.get_gender(gender=el.gender) if not flag_046 \
-                    else ClothesProcessor.get_gender_046(gender=el.gender)
                 full_name = f'{el.type} {gender_dec} ' \
-                            f'{OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color} р. {sq.size}'
+                            f'{OrdersProcessor.eatp(el.trademark, "trademark")} {OrdersProcessor.eatp(el.article, "article")} цвет {el.color} р. {sq.size}'
 
-                temp_list = [fc_tnved, full_name,
-                             el.trademark, 'Артикул', el.article, el.type, el.color, gender, sq.size_type, sq.size,
-                             el.content, tnved, settings.Clothes.NUMBER_STANDART,
-                             '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,
-                             declar_doc, ] if not flag_046 else \
-                            ['', '', el.article, actual_date, full_name, el.trademark, settings.COUNTRIES_CODES.get(el.country), '',
-                             '', settings.Clothes.TYPES_CODES.get(el.type), '', tnved,
-                             settings.Clothes.SYZE_TYPES_CODES.get(sq.size_type), sq.size, '', el.color, '', gender,
-                             el.content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
-                             sq.quantity * el.box_quantity, declar_doc, ]
-                res_list_common.append(temp_list)
-                if el.country.upper() in settings.COUNTRIES_INNER:
-                    res_list_inner.append(temp_list)
+                if has_aggr and sq.aggr_order_size:
+                    quantity = sq.quantity * el.box_quantity * sq.aggr_order_size.aggr_order.quantity
                 else:
-                    res_list_outer.append(temp_list)
+                    quantity = sq.quantity * el.box_quantity
+
+                temp_list = (
+                    [tnved, full_name, el.trademark, 'Артикул', el.article, el.type, el.color, gender,
+                     sq.size_type, sq.size, el.content, tnved, settings.Clothes.NUMBER_STANDART,
+                     '', '', el.article_price, el.tax, quantity, '', '', el.country, declar_doc]
+                    if not flag_046 else
+                    ['', '', el.article, actual_date, full_name, el.trademark, settings.COUNTRIES_CODES.get(el.country),
+                     '',
+                     '', settings.Clothes.TYPES_CODES.get(el.type), '', tnved,
+                     settings.Clothes.SYZE_TYPES_CODES.get(sq.size_type), sq.size, '', el.color, '', gender,
+                     el.content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '', quantity, declar_doc]
+                )
+
+                res_list_common.append(temp_list)
+                (res_list_inner if el.country.upper() in settings.COUNTRIES_INNER else res_list_outer).append(temp_list)
 
         return res_list_common, res_list_outer, res_list_inner
 
@@ -569,10 +571,7 @@ class SocksProcessor(OrdersProcessor):
 
         actual_date = datetime.now().strftime('%d.%m.%Y')
         for el in orders_list:
-            #     if not el.tnved_code else el.tnved_code
             tnved = el.tnved_code
-
-            # fc_tnved = tnved if tnved == '4304000000' else tnved[:4]
 
             declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" \
                 if all([el.rd_date, el.rd_type, el.rd_name]) else ''
@@ -584,16 +583,23 @@ class SocksProcessor(OrdersProcessor):
                 full_name = f'{el.type} {gender_dec} ' \
                             f'{OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color} р. {sq.size}'
 
+                # ✅ Подсчёт количества с учётом агрегации
+                if has_aggr and sq.aggr_order_size:
+                    quantity = sq.quantity * el.box_quantity * sq.aggr_order_size.aggr_order.quantity
+                else:
+                    quantity = sq.quantity * el.box_quantity
+
                 temp_list = [tnved, full_name,
                              el.trademark, 'Артикул', el.article, el.type, el.color, gender, sq.size_type, sq.size,
-                             el.content, tnved, settings.Clothes.NUMBER_STANDART,
-                             '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,
+                             el.content, tnved, settings.Socks.NUMBER_STANDART,
+                             '', '', el.article_price, el.tax, quantity, '', '', el.country,
                              declar_doc, ] if not flag_046 else \
-                            ['', '', el.article, actual_date, full_name, el.trademark, settings.COUNTRIES_CODES.get(el.country), '',
-                             '', settings.Socks.TYPES_CODES.get(el.type), '', tnved,
-                             settings.Socks.SYZE_TYPES_CODES.get(sq.size_type), sq.size, '', el.color, '', gender,
-                             el.content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
-                             sq.quantity * el.box_quantity, declar_doc, ]
+                    ['', '', el.article, actual_date, full_name, el.trademark, settings.COUNTRIES_CODES.get(el.country),
+                     '',
+                     '', settings.Socks.TYPES_CODES.get(el.type), '', tnved,
+                     settings.Socks.SYZE_TYPES_CODES.get(sq.size_type), sq.size, '', el.color, '', gender,
+                     el.content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
+                     quantity, declar_doc, ]
                 res_list_common.append(temp_list)
                 if el.country.upper() in settings.COUNTRIES_INNER:
                     res_list_inner.append(temp_list)
@@ -677,13 +683,12 @@ def get_download_info(o_id, user: User, flag_046: bool = False) -> Union[Respons
         category = settings.Clothes.CATEGORY
         rd_exist, quantity_list_raw, pos_count, orders_pos_count = order_count(category=category, order_list=order_list)
 
-        from utilities.support import get_subcategory
         subcategory = get_subcategory(order_id=o_id, category=settings.Clothes.CATEGORY)
+        category_name_excel = settings.SUB_CATEGORIES_DICT.get(subcategory) if Category.check_subcategory(
+            settings.Clothes.CATEGORY, subcategory=subcategory) else category
 
-        category_name_excel = settings.SUB_CATEGORIES_DICT.get(subcategory) if subcategory in ClothesSubcategories.__members__  and subcategory != ClothesSubcategories.common.value else category
-
-        op = ClothesProcessor(category=category, company_idn=company_idn, orders_list=order_list, flag_046=flag_046)
-
+        op = ClothesProcessor(category=category, company_idn=company_idn, orders_list=order_list, flag_046=flag_046,
+                              has_aggr=order.has_aggr)
     elif order.category == settings.Socks.CATEGORY:
         # order_list, old_tnved, new_tnved = helper_get_clothes_divided_list(order_id=o_id,)
         order_list = order.socks
@@ -695,7 +700,8 @@ def get_download_info(o_id, user: User, flag_046: bool = False) -> Union[Respons
         category = settings.Socks.CATEGORY
         rd_exist, quantity_list_raw, pos_count, orders_pos_count = order_count(category=category, order_list=order_list)
 
-        op = SocksProcessor(category=category, company_idn=company_idn, orders_list=order_list, flag_046=flag_046)
+        op = SocksProcessor(category=category, company_idn=company_idn, orders_list=order_list, flag_046=flag_046,
+                            has_aggr=order.has_aggr)
 
     elif order.category == settings.Linen.CATEGORY:
         order_list = order.linen
@@ -727,7 +733,7 @@ def get_download_info(o_id, user: User, flag_046: bool = False) -> Union[Respons
         return (None,) * 12
 
     category_name_excel = category if not category_name_excel else category_name_excel
-    files_list = op.make_file(order_num=order_num, category=category_name_excel, pos_count=pos_count, orders_pos_count=orders_pos_count,
+    files_list = op.make_file(order=order, order_num=order_num, category=category_name_excel, pos_count=pos_count, orders_pos_count=orders_pos_count,
                               c_partner_code=c_partner_code, company_type=company_type, company_name=company_name,
                               company_idn=company_idn, edo_type=edo_type, edo_id=edo_id, mark_type=mark_type,
                               c_name=c_name, c_phone=c_phone, c_email=c_email)
@@ -810,40 +816,31 @@ def upload_errors_file(error_list: list) -> BytesIO:
 
 def orders_common_preload(category: str, company_idn: str, orders_list: list, has_aggr: bool = False) -> tuple:
     start_list, res_list = [], []
-
     if category == settings.Shoes.CATEGORY:
-        # start_list = copy(settings.Shoes.START_RELOAD)
-        start_list = copy(settings.Shoes.START_CRM_PRELOAD)
-        sp = ShoesProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
+        start_list = copy(settings.Shoes.START_PRELOAD)
+        sp = ShoesProcessor(company_idn=company_idn, category=category, orders_list=orders_list, has_aggr=has_aggr)
         res_list_raw = sp.orders_list
-        # res_list = list(map(lambda x: x[:12] + x[14:], res_list_raw))
-        res_list = list(map(lambda x: x[1:11] + x[14:], res_list_raw))
+        res_list = list(map(lambda x: x[:12] + x[14:], res_list_raw))
     elif category == settings.Clothes.CATEGORY:
-        # start_list = copy(settings.Clothes.START_PRELOAD)
-        start_list = copy(settings.Clothes.START_CRM_PRELOAD)
-        cp = ClothesProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
+        start_list = copy(settings.Clothes.START_PRELOAD)
+        cp = ClothesProcessor(company_idn=company_idn, category=category, orders_list=orders_list, has_aggr=has_aggr)
         res_list_raw = cp.orders_list
-        # res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
-        res_list = list(map(lambda x: x[1:11] + x[15:18] + x[20:], res_list_raw))
+        res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
     elif category == settings.Socks.CATEGORY:
         start_list = copy(settings.Socks.START_PRELOAD)
-        cp = SocksProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
+        cp = SocksProcessor(company_idn=company_idn, category=category, orders_list=orders_list, has_aggr=has_aggr)
         res_list_raw = cp.orders_list
         res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
     elif category == settings.Linen.CATEGORY:
-        # start_list = copy(settings.Linen.START_PRELOAD)
-        start_list = copy(settings.Linen.START_CRM_PRELOAD)
-        lp = LinenProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
+        start_list = copy(settings.Linen.START_PRELOAD)
+        lp = LinenProcessor(company_idn=company_idn, category=category, orders_list=orders_list, has_aggr=has_aggr)
         res_list_raw = lp.orders_list
-        # res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
-        res_list = list(map(lambda x: x[1:11] + x[15:18] + x[20:], res_list_raw))
+        res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
     elif category == settings.Parfum.CATEGORY:
-        # start_list = copy(settings.Parfum.START_PRELOAD)
-        start_list = copy(settings.Parfum.START_CRM_PRELOAD)
-        p_proc = ParfumProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
+        start_list = copy(settings.Parfum.START_PRELOAD)
+        p_proc = ParfumProcessor(company_idn=company_idn, category=category, orders_list=orders_list, has_aggr=has_aggr)
         res_list_raw = p_proc.orders_list
-        # res_list = list(map(lambda x: x[:9] + x[12:15] + x[17:], res_list_raw))
-        res_list = list(map(lambda x: x[1:8] + x[12:15] + x[17:], res_list_raw))
+        res_list = list(map(lambda x: x[:9] + x[12:15] + x[17:], res_list_raw))
 
     page, per_page, offset, pagination, order_list = helper_paginate_data(data=res_list,
                                                                           per_page=settings.PAGINATION_PER_PAGE_PRELOAD)
@@ -851,31 +848,33 @@ def orders_common_preload(category: str, company_idn: str, orders_list: list, ha
 
 
 # temoporary double code for preload because of table specifics
-def crm_orders_common_preload(category: str, company_idn: str, orders_list: list) -> tuple:
+def crm_orders_common_preload(category: str, company_idn: str, orders_list: list, has_aggr: bool = False) -> tuple:
     start_list, res_list = [], []
-
     if category == settings.Shoes.CATEGORY:
-        start_list = copy(settings.Shoes.START_CRM_PRELOAD)
-        sp = ShoesProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
+        start_list = copy(settings.Shoes.START_PRELOAD)
+        sp = ShoesProcessor(company_idn=company_idn, category=category, orders_list=orders_list, has_aggr=has_aggr)
         res_list_raw = sp.orders_list
-        res_list = list(map(lambda x: x[1:11] + x[14:], res_list_raw))
-        # res_list = list(map(lambda x: x[:12] + x[14:], res_list_raw))
+        res_list = list(map(lambda x: x[:12] + x[14:], res_list_raw))
     elif category == settings.Clothes.CATEGORY:
-        start_list = copy(settings.Clothes.START_CRM_PRELOAD)
-        cp = ClothesProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
+        start_list = copy(settings.Clothes.START_PRELOAD)
+        cp = ClothesProcessor(company_idn=company_idn, category=category, orders_list=orders_list, has_aggr=has_aggr)
         res_list_raw = cp.orders_list
-        res_list = list(map(lambda x: x[1:11] + x[15:18] + x[20:], res_list_raw))
+        res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
+    elif category == settings.Socks.CATEGORY:
+        start_list = copy(settings.Socks.START_PRELOAD)
+        cp = SocksProcessor(company_idn=company_idn, category=category, orders_list=orders_list, has_aggr=has_aggr)
+        res_list_raw = cp.orders_list
+        res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
     elif category == settings.Linen.CATEGORY:
-        start_list = copy(settings.Linen.START_CRM_PRELOAD)
-        lp = LinenProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
+        start_list = copy(settings.Linen.START_PRELOAD)
+        lp = LinenProcessor(company_idn=company_idn, category=category, orders_list=orders_list, has_aggr=has_aggr)
         res_list_raw = lp.orders_list
-        res_list = list(map(lambda x: x[1:11] + x[15:18] + x[20:], res_list_raw))
+        res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
     elif category == settings.Parfum.CATEGORY:
-        start_list = copy(settings.Parfum.START_CRM_PRELOAD)
-        p_proc = ParfumProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
+        start_list = copy(settings.Parfum.START_PRELOAD)
+        p_proc = ParfumProcessor(company_idn=company_idn, category=category, orders_list=orders_list, has_aggr=has_aggr)
         res_list_raw = p_proc.orders_list
-        res_list = list(map(lambda x: x[1:8] + x[12:15] + x[17:], res_list_raw))
-
+        res_list = list(map(lambda x: x[:9] + x[12:15] + x[17:], res_list_raw))
     page, per_page, offset, pagination, order_list = helper_paginate_data(data=res_list,
                                                                           per_page=settings.PAGINATION_PER_PAGE_PRELOAD,
                                                                           css_framework='bootstrap4')
