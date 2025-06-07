@@ -430,7 +430,7 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
         if not orders:
             flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
             return redirect(url_for(f'{category_process_name}.index'))
-        has_aggr = order.has_aggr
+        has_aggr = order.has_aggr if order else None
 
         if update_flag:
             return order_table_update(user=current_user, o_id=o_id, category=category, has_aggr=has_aggr)
