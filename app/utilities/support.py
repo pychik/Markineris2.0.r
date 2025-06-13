@@ -1378,6 +1378,7 @@ class TransactionFilters:
     date_from: datetime
     date_to: datetime
     operation_type: int | None = None
+    amount: int | None = None
     service_account: int | None = None
     transaction_type: str | None = None
     model_conditions: tuple | None = None
@@ -1409,7 +1410,7 @@ def helper_get_filters_transactions(
         operation_type = request.form.get('operation_type', None, type=int) if not operation_type else operation_type
         service_account = request.form.get('service_account', None, type=int)
         sort_type = request.form.get('sort_type', 0, type=int)
-        amount = request.form.get('amount', 0, type=int)
+        amount = request.form.get('amount', None, type=int)
         agent_id = request.form.get('agent_id', None, type=int)
     else:
         date_from_raw = request.args.get('date_from', '', type=str)
@@ -1419,7 +1420,7 @@ def helper_get_filters_transactions(
         operation_type = request.args.get('operation_type', None, type=int) if not operation_type else operation_type
         service_account = request.args.get('service_account', None, type=int)
         sort_type = request.args.get('sort_type', 0, type=int)
-        amount = request.args.get('amount', 0, type=int)
+        amount = request.args.get('amount', None, type=int)
         agent_id = request.args.get('agent_id', None, type=int)
 
     if current_user_id:
@@ -1429,6 +1430,7 @@ def helper_get_filters_transactions(
         f'&tr_status={tr_status}'
         f'&transaction_type={transaction_type}'
         f'&operation_type={operation_type}'
+        f'&amount={amount}'
         f'&service_account={service_account}'
         f'&date_from={date_from_raw}'
         f'&date_to={date_to_raw}'
@@ -1469,6 +1471,7 @@ def helper_get_filters_transactions(
         status=tr_status,
         transaction_type=transaction_type,
         operation_type=operation_type,
+        amount=amount,
         service_account=service_account,
         date_from=date_from,
         date_to=date_to,
