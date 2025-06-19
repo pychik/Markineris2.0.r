@@ -3,7 +3,7 @@
     <div><b>Дата формирования:</b> {{ transaction.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</div>
     <div><b>Статус:</b> <span class="badge bg-warning text-black">{{ transaction_statuses[transaction.status] }}</span></div>
     <div><b>Тип:</b> {% if transaction.type %}Пополнение {% else %}Списание{%endif%}</div>
-
+    {% if transaction.cancel_comment%}<div><b>Описание:</b> {{ transaction.cancel_comment}}</div>{% endif %}
 <!--    <div><b>Тип транзакции:</b> Списание с лицевого счета</div>-->
 
         {%if order_prices_marks%}

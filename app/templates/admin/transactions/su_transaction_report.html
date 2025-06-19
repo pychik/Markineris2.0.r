@@ -34,6 +34,7 @@
         {% endif %}
     {% else %}
         {% if transaction.wo_account_info%}<div><b>Реквизиты счета:</b> {{ transaction.wo_account_info | safe }}</div>{% endif %}
+        {% if transaction.cancel_comment%}<div><b>Описание:</b> {{ transaction.cancel_comment}}</div>{% endif %}
         {%if order_prices_marks%}
             <div class="my-1"><b>Заказы</b>: <!--<a href="{{url_for('orders_archive.index')}}" target="_blank" style="text-decoration: none">-->
 

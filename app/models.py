@@ -239,6 +239,8 @@ class UserTransaction(db.Model, UserMixin):
     bill_path = db.Column(db.String(150), unique=True)
     created_at = db.Column(db.DateTime(), default=datetime.now)
 
+    cancel_comment = db.Column(db.Text(), default='')
+
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), index=True)
     sa_id = db.Column(db.Integer, db.ForeignKey('service_accounts.id'), index=True)
     promo_info = db.Column(db.String(100), default='')
