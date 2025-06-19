@@ -399,6 +399,7 @@ class Settings(BaseSettings):
             'refill_balance': 'Пополнение',
             'agent_withdrawal': 'Вывод средств со счета',
             'agent_commission': 'Агентская комиссия',
+            'agent_commission_cancel': 'Возврат комиссии при отмене заказа',
             'order_payment': 'Оплата заказа',
             'users_order_payment': 'Оплата заказа пользователя агента',
             'technical': 'Техническая',

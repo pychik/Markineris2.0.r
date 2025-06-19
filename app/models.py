@@ -200,6 +200,7 @@ class TransactionTypes(PyEnum):
     refill_balance: str = "refill_balance"
     agent_withdrawal: str = "agent_withdrawal"
     agent_commission: str = "agent_commission"
+    agent_commission_cancel: str = "agent_commission_cancel"
     order_payment: str = "order_payment"
     users_order_payment: str = "users_order_payment"
     technical: str = "technical"

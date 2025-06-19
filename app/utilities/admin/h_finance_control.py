@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from decimal import Decimal, InvalidOperation
 from flask import flash, redirect, render_template, url_for, request, Response, jsonify, make_response
 from flask_login import current_user
-from sqlalchemy import desc, text, create_engine, null, select, or_, not_, exists
+from sqlalchemy import case, desc, text, create_engine, null, select, or_, not_, exists
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -782,7 +782,10 @@ def h_au_bck_control_ut():
     transactions = UserTransaction.query.with_entities(
         UserTransaction.id,
         UserTransaction.amount,
-        UserTransaction.agent_fee,
+        case(
+            (UserTransaction.transaction_type == TransactionTypes.agent_commission_cancel.value, 0),
+            else_=UserTransaction.agent_fee
+        ).label("agent_fee"),
         UserTransaction.promo_info,
         UserTransaction.type,
         UserTransaction.status,
@@ -797,6 +800,7 @@ def h_au_bck_control_ut():
         UserTransaction.transaction_type.in_([
                 TransactionTypes.order_payment.value,
                 TransactionTypes.users_order_payment.value,
+                TransactionTypes.agent_commission_cancel.value,
         ]),
         User.id.in_(user_ids),
         UserTransaction.agent_fee.is_not(None),
