@@ -12,6 +12,7 @@ from utilities.upload_order.upload_linen import UploadLinen
 from utilities.upload_order.upload_parfum import UploadParfum
 from utilities.upload_order.upload_saving_uts import upload_table_common
 from utilities.upload_order.upload_shoes import UploadShoes
+from utilities.upload_order.upload_socks import UploadSocks
 
 
 def helper_upload_common_get(category: str, category_process_name: str) -> Union[Response, str]:
@@ -25,7 +26,7 @@ def helper_upload_common_get(category: str, category_process_name: str) -> Union
     order_notification, admin_name, crm = helper_get_order_notification(admin_id=admin_id if admin_id else user.id)
 
     subcategory = request.args.get('subcategory')
-    if subcategory:
+    if subcategory and subcategory not in settings.SUB_CATEGORIES_DICT:
         flash(message=settings.Messages.STRANGE_REQUESTS + f'подкатегория неизвестна сервису', category='error')
         return redirect(url_for(f'main.enter'))
 
@@ -42,13 +43,13 @@ def helper_upload_common_get(category: str, category_process_name: str) -> Union
     edo_type = request.args.get("edo_type")
     edo_id = request.args.get("edo_id")
     mark_type = request.args.get("mark_type")
-    templates = settings.TEMPLATES_DICT.get(category)
+    templates = settings.TEMPLATES_DICT.get(settings.SUB_CATEGORIES_DICT.get(subcategory)) if subcategory in settings.CATEGORIES_DICT else settings.TEMPLATES_DICT.get(category)
     # download_instruction = settings.UPLOAD_ORDER_EXCEL_INSTRUCTION
     return render_template(f'upload/{category_process_name}_upload_footer_v2.html', **locals())
 
 
 def helper_upload_common_post(category: str, category_process_name: str,
-                              upload_model: type[UploadShoes | UploadLinen | UploadParfum | UploadClothes]):
+                              upload_model: type[UploadShoes | UploadLinen | UploadParfum | UploadClothes | UploadSocks],):
     form_data_raw = request.form
     form_dict = form_data_raw.to_dict()
     table_type = form_dict.get("table_type")
@@ -58,36 +59,48 @@ def helper_upload_common_post(category: str, category_process_name: str,
     edo_type = form_dict.get("edo_type")
     edo_id = form_dict.get("edo_id")
     mark_type = form_dict.get("mark_type")
+    subcategory = form_dict.get("subcategory")
 
     table_file = request.files.get('table_upload')
+
+    params = {
+        'company_type': company_type,
+        'company_name': company_name,
+        'company_idn': company_idn,
+        'edo_type': edo_type,
+        'edo_id': edo_id,
+        'mark_type': mark_type
+    }
+
+    # Добавляем subcategory только если она есть
+    if subcategory:
+        params['subcategory'] = subcategory
+
     if not mark_type:
         flash(message=settings.Messages.UPLOAD_MARK_TYPE_ERROR, category='error')
-        return redirect(url_for(f'{category_process_name}.upload', company_type=company_type, company_name=company_name,
-                                company_idn=company_idn, edo_type=edo_type, edo_id=edo_id, mark_type=mark_type))
+        return redirect(url_for(f'{category_process_name}.upload', **params))
+
     if table_file is None or table_file is False or check_file_extension(filename=table_file.filename) is False:
-        flash(message=settings.Messages.UPLOAD_FILE_EXTEXSION_ERROR, category='error')
-        return redirect(url_for(f'{category_process_name}.upload', company_type=company_type, company_name=company_name,
-                                company_idn=company_idn, edo_type=edo_type, edo_id=edo_id, mark_type=mark_type))
+        flash(message=settings.Messages.UPLOAD_FILE_EXTENSION_ERROR, category='error')
+        return redirect(url_for(f'{category_process_name}.upload', **params))
 
     try:
-        us = upload_model(table_obj=table_file, type_upload=table_type)
+        us = upload_model(table_obj=table_file, type_upload=table_type, subcategory=params.get('subcategory'))
         order_list, error_list = us.get_article_info()
 
         if not order_list:
-            flash(message=settings.Messages.UPLOAD_FILE_EXTEXSION_ERROR, category='error')
-            return redirect(url_for(f'{category_process_name}.upload', company_type=company_type, company_name=company_name,
-                                    company_idn=company_idn, edo_type=edo_type, edo_id=edo_id, mark_type=mark_type))
+            flash(message=settings.Messages.UPLOAD_FILE_POS_ERROR, category='error')
+            return redirect(url_for(f'{category_process_name}.upload', **params))
         # process limit pos error
         if order_list[0] == settings.ORDER_LIMIT_ARTICLES:
             flash(message=f"{settings.Messages.ORDER_UPLOAD_POS_LIMIT} {order_list[1]}", category='error')
-            return redirect(url_for(f'{category_process_name}.upload', company_type=company_type, company_name=company_name,
-                                    company_idn=company_idn, edo_type=edo_type, edo_id=edo_id, mark_type=mark_type))
+            return redirect(url_for(f'{category_process_name}.upload', **params))
         if not error_list:
             order_id = upload_table_common(user=current_user, company_type=company_type, company_name=company_name,
                                            company_idn=company_idn, edo_type=edo_type, edo_id=edo_id,
                                            mark_type=mark_type,
                                            order_list=order_list, category=category,
-                                           type_upload=table_type)
+                                           type_upload=table_type, subcategory=params.get('subcategory'))
             match order_id:
                 case None:
                     flash(message=f"{settings.Messages.ORDER_UPLOAD_CONFLICT}", category='error')
@@ -108,7 +121,7 @@ def helper_upload_common_post(category: str, category_process_name: str,
         flash(message=settings.Messages.UPLOAD_FILE_TYPE_ERROR, category='error')
     except ValueError as ve:
         logger.error(str(ve))
-        flash(message=settings.Messages.UPLOAD_FILE_EXTEXSION_ERROR, category='error')
+        flash(message=settings.Messages.UPLOAD_FILE_VALIDATION_ERROR, category='error')
 
     except Exception as exception:
         message = settings.Messages.UPLOAD_CATEGORY_TEMPLATE_TYPE_ERROR \
@@ -117,5 +130,4 @@ def helper_upload_common_post(category: str, category_process_name: str,
         flash(message=message, category='error')
         logger.error(message)
 
-    return redirect(url_for(f'{category_process_name}.upload', company_type=company_type, company_name=company_name,
-                            company_idn=company_idn, edo_type=edo_type, edo_id=edo_id, mark_type=mark_type))
+    return redirect(url_for(f'{category_process_name}.upload', **params))

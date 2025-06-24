@@ -841,6 +841,14 @@ TEMPLATE_TABLES_DICT: dict = {"обувь": (
                                         ("одежда_по каждому размеру.xlsx",
                                          "Таблица для одежды - данные по каждому размеру", ),
                                         ),
+                              "нижнее белье": (
+                                        ("нижнее белье_по каждому размеру.xlsx",
+                                         "Таблица для нижнего белья - данные по каждому размеру", ),
+                                        ),
+                              "носки и прочее": (
+                                        ("носки_по каждому размеру.xlsx",
+                                         "Таблица для чулочно-носочных изделий - данные по каждому размеру", ),
+                                        ),
                               "парфюм": (
                                         ("парфюм_по каждой позиции.xlsx",
                                          "Таблица для парфюма - данные по каждой позиции", ),
@@ -863,7 +871,7 @@ CATEGORIES_DICT: dict = {"обувь": "shoes",
 SUB_CATEGORIES_DICT: dict = {"underwear": "нижнее белье",
                              "common": "общее"}
 
-BIG_TNVED_LIST: tuple = SHOE_TNVED + ALL_CLOTHES_TNVED + (LINEN_TNVED, '', ) + PARFUM_TNVED
+BIG_TNVED_LIST: tuple = SHOE_TNVED + ALL_CLOTHES_TNVED + (LINEN_TNVED, '', ) + PARFUM_TNVED + ALL_SOCKS_TNVEDS
 
 BIG_TNVED_DICT: dict = {'shoes': ('обувь', BIG_SHOE_TNVED, BIG_SHOE_TNVED_4DIGIT),
                         'clothes': ('одежда', ALL_CLOTHES_TNVED, BIG_CLOTHES_TNVED_4DIGIT),

@@ -1,6 +1,8 @@
 from typing import Optional
 
 from config import settings
+from utilities.categories_data.subcategories_data import ClothesSubcategories
+from utilities.categories_data.underwear_data import UNDERWEAR_TNVED_DICT
 
 
 class TnvedChecker:
@@ -30,7 +32,7 @@ class TnvedChecker:
         return result_status, answer
 
     @staticmethod
-    def tnved_clothes_parse(cloth_type: str, tnved_code) -> tuple[int, Optional[str]]:
+    def tnved_clothes_parse(cloth_type: str, tnved_code, subcategory: str = None) -> tuple[int, Optional[str]]:
         result_status = 1
         # simple checks
         if len(tnved_code) != 10:
@@ -40,14 +42,43 @@ class TnvedChecker:
             answer = f"{tnved_code}{settings.Messages.TNVED_INPUT_ERROR_DIGITS}"
             return result_status, answer
         # good checks
-        if cloth_type.upper() not in settings.Clothes.CLOTHES_TNVED_DICT.keys():
-            answer = f"{tnved_code}{settings.Messages.TNVED_INPUT_ERROR_CT}"
+        if subcategory == ClothesSubcategories.underwear.value:
+            tnved_dict = UNDERWEAR_TNVED_DICT
+        else:
+            tnved_dict = settings.Clothes.CLOTHES_TNVED_DICT
+
+        if cloth_type.upper() not in tnved_dict.keys():
+            answer = f"{tnved_code}{settings.Messages.TNVED_INPUT_ERROR_CT.format(category='одежды')}"
             return result_status, answer
-        big_tnved_tuple = settings.Clothes.CLOTHES_TNVED_DICT.get(cloth_type)[0]
+
+        big_tnved_tuple = tnved_dict.get(cloth_type)[0]
         if tnved_code in big_tnved_tuple or tnved_code in settings.Tnved.BIG_TNVED_LIST:
             result_status = 5
             answer = f"{settings.Messages.TNVED_INPUT_SUCCESS}"
         else:
-            answer = f"Введенный код {tnved_code}:{settings.Messages.TNVED_CLOTHES_INPUT_ERROR_NF}"
+            answer = f"Введенный код {tnved_code}:{settings.Messages.TNVED_CLOTHES_INPUT_ERROR_NF.format(category='одежды')}"
+
+        return result_status, answer
+
+    @staticmethod
+    def tnved_socks_parse(socks_type: str, tnved_code) -> tuple[int, Optional[str]]:
+        result_status = 1
+        # simple checks
+        if len(tnved_code) != 10:
+            answer = f"{tnved_code}{settings.Messages.TNVED_INPUT_ERROR_10}"
+            return result_status, answer
+        elif not tnved_code.isdigit():
+            answer = f"{tnved_code}{settings.Messages.TNVED_INPUT_ERROR_DIGITS}"
+            return result_status, answer
+        # good checks
+        if socks_type.upper() not in settings.Socks.SOCKS_TNVED_DICT.keys():
+            answer = f"{tnved_code}{settings.Messages.TNVED_INPUT_ERROR_CT.format(category='чулочно-носочных изделий')}"
+            return result_status, answer
+        big_tnved_tuple = settings.Socks.SOCKS_TNVED_DICT.get(socks_type)[0]
+        if tnved_code in big_tnved_tuple or tnved_code in settings.Tnved.BIG_TNVED_LIST:
+            result_status = 5
+            answer = f"{settings.Messages.TNVED_INPUT_SUCCESS}"
+        else:
+            answer = f"Введенный код {tnved_code}:{settings.Messages.TNVED_CLOTHES_INPUT_ERROR_NF.format(category='чулочно-носочных изделий')}"
 
         return result_status, answer

@@ -1,17 +1,16 @@
 from copy import copy
 from datetime import datetime
 from flask_login import current_user
-from typing import Optional, Union
-
 from numpy import nan
 from pandas import isna
+from typing import Optional, Union
 
 from config import settings
 from logger import logger
 from utilities.check_tnved import TnvedChecker
 from utilities.download import ShoesProcessor
 from utilities.support import upload_divide_sizes_quantities
-from utilities.upload_order.upload_common import empty_value, val_error_start, UploadCategory
+from utilities.upload_order.upload_common import empty_value, val_error_start, UploadCategory, handle_upload_exceptions
 
 
 class ValidateShoesMixin:
@@ -185,12 +184,11 @@ class ValidateShoesMixin:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Messages.UPLOAD_RD_DATE_ERROR}"
 
     @staticmethod
-    def _rd_general(list_values: list, rz_gender_condition: bool, gender: str, row_num: int,
-                    order_list: list, cols: tuple) -> Optional[tuple]:
+    def _rd_general(list_values: list, rz_gender_condition: bool, gender: str, row_num: int, order_list: list, cols: tuple) -> Optional[tuple]:
         res = len(list(filter(lambda x: x is None or x == 'nan' or len(x) == 0, list_values)))
         for i in range(12, 15):
-            order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][i] = \
-                order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][i].replace('nan', '')
+            order_list[row_num - settings.Shoes.UPLOAD_STANDART_ROW][i] = \
+                order_list[row_num - settings.Shoes.UPLOAD_STANDART_ROW][i].replace('nan', '')
         if res != 0 and rz_gender_condition:
             return (val_error_start(row_num=row_num) + ' ' +
                     settings.Messages.UPLOAD_RD_GENERAL_REQUIRED_ERROR.format(gender=gender),
@@ -206,24 +204,6 @@ class ValidateShoesMixin:
         else:
             return (None,) * 4
 
-    # @staticmethod
-    # def _rd_general(list_values: list, row_num: int, order_list: list, cols: tuple) -> Optional[tuple]:
-    #     res = len(list(filter(lambda x: x is None or x == 'nan' or len(x) == 0, list_values)))
-    #     for i in range(12, 15):
-    #         order_list[row_num - settings.Shoes.UPLOAD_STANDART_ROW][i] = \
-    #             order_list[row_num - settings.Shoes.UPLOAD_STANDART_ROW][i].replace('nan', '')
-    #
-    #     if res == 0:
-    #         rd_type_error = ValidateShoesMixin._rd_type(value=list_values[0].strip(), row_num=row_num, col=cols[0],
-    #                                                     pos=12, order_list=order_list)
-    #         rd_name_error = ValidateShoesMixin._rd_name(value=list_values[1].strip(), row_num=row_num, col=cols[1])
-    #         rd_date_error = ValidateShoesMixin._rd_date(value=list_values[2].strip(), row_num=row_num, col=cols[2])
-    #         return None, rd_type_error, rd_name_error, rd_date_error
-    #     elif 0 < res < 3:
-    #         return f"{val_error_start(row_num=row_num)} {settings.Messages.UPLOAD_RD_GENERAL_ERROR}", None, None, None
-    #     else:
-    #         return (None,) * 4
-
 
 class UploadShoes(UploadCategory):
 
@@ -233,44 +213,39 @@ class UploadShoes(UploadCategory):
         if self.type_upload == settings.Upload.EXTENDED:
             return self.get_article_info_extended()
 
+    @handle_upload_exceptions
     def get_article_info_standart(self) -> tuple:
         # import all in df with clearing empty rows
-        try:
-            if self.df.iloc[4, 5] != 'выберите ВИД ОБУВИ из выпадающего списка или со второго листа (справочник)':
-                raise IndexError
-            process_df = self.df.iloc[5:settings.ORDER_LIMIT_UPLOAD_ARTICLES, [2, 4, 5, 6, 7, 8, 9, 10, 11, 14, 16, 19, 20, 21, 22]]\
-                .dropna(how='all').astype(str)
 
-            res_list = list(process_df.values.tolist())
-            if len(res_list) > settings.ORDER_LIMIT_ARTICLES:
-                return (settings.ORDER_LIMIT_ARTICLES, len(res_list),), None
+        if self.df.iloc[4, 5] != 'выберите ВИД ОБУВИ из выпадающего списка или со второго листа (справочник)':
+            raise IndexError
+        process_df = self.df.iloc[5:settings.ORDER_LIMIT_UPLOAD_ARTICLES, [2, 4, 5, 6, 7, 8, 9, 10, 11, 14, 16, 19, 20, 21, 22]]\
+            .dropna(how='all').astype(str)
 
-            vs = UploadShoes.ValidateStandart()
-            return vs.full_validate_standart(order_list=res_list)
-        except IndexError as e:
-            logger.error(e)
-            return None, None
+        res_list = list(process_df.values.tolist())
+        if len(res_list) > settings.ORDER_LIMIT_ARTICLES:
+            return (settings.ORDER_LIMIT_ARTICLES, len(res_list),), None
 
+        vs = UploadShoes.ValidateStandart()
+        return vs.full_validate_standart(order_list=res_list)
+
+    @handle_upload_exceptions
     def get_article_info_extended(self) -> tuple:
         # import all in df with clearing empty rows
-        try:
-            if self.df.iloc[4, 0] != 'Указывайте конкретный артикул вашего Изделия. Заполнять обязательно. Если артикула на изделии нет то укажите любой произвольный':
-                raise IndexError
-            df_raw = self.df.iloc[5:settings.ORDER_LIMIT_UPLOAD_ARTICLES, [0, 2, 3, 4, 5, 6, 7, 9, 11, 12, 15, 16, 17, 18, 19]]  # .replace('0', nan, inplace=True)
-            df_raw.replace('0', nan, inplace=True)
-            df_raw.replace(0, nan, inplace=True)
 
-            process_df = df_raw.dropna(how='all').astype(str)
+        if self.df.iloc[4, 0] != 'Указывайте конкретный артикул вашего Изделия. Заполнять обязательно. Если артикула на изделии нет то укажите любой произвольный':
+            raise IndexError
+        df_raw = self.df.iloc[5:settings.ORDER_LIMIT_UPLOAD_ARTICLES, [0, 2, 3, 4, 5, 6, 7, 9, 11, 12, 15, 16, 17, 18, 19]]  # .replace('0', nan, inplace=True)
+        df_raw.replace('0', nan, inplace=True)
+        df_raw.replace(0, nan, inplace=True)
 
-            res_list = list(process_df.values.tolist())
+        process_df = df_raw.dropna(how='all').astype(str)
 
-            ve = UploadShoes.ValidateExtended()
+        res_list = list(process_df.values.tolist())
 
-            return ve.full_validate_extended(order_list=res_list)
+        ve = UploadShoes.ValidateExtended()
 
-        except IndexError as e:
-            logger.error(e)
-            return None, None
+        return ve.full_validate_extended(order_list=res_list)
 
     class ValidateStandart(ValidateShoesMixin):
 
@@ -287,7 +262,6 @@ class UploadShoes(UploadCategory):
 
                 gender_condition = gender not in settings.RZ_GENDERS_RD_LIST
                 rz_gender_condition = rz_condition and gender_condition
-
                 trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C', pos=0,
                                                   order_list=order_list)
                 article_error = self._article(value=data_group[1].strip(), row_num=row_num, col='E', pos=1,
@@ -314,7 +288,7 @@ class UploadShoes(UploadCategory):
                 country_error = self._country(value=data_group[11].strip(), row_num=row_num, col='T',
                                               pos=11, order_list=order_list)
 
-                rd_general_error, rd_type_error, \
+                rd_general_error, rd_type_error,\
                     rd_name_error, rd_date_error = self._rd_general(list_values=data_group[12:15],
                                                                     rz_gender_condition=rz_gender_condition,
                                                                     gender=gender,
@@ -350,7 +324,6 @@ class UploadShoes(UploadCategory):
                                               order_list=order_list)
                 trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C', pos=1,
                                                   order_list=order_list)
-
                 type_error = self._shoe_type(value=data_group[2].strip(), row_num=row_num, col='D',
                                              pos=2, order_list=order_list)
 

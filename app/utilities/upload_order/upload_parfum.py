@@ -1,14 +1,15 @@
 from copy import copy
 from datetime import datetime
-from typing import Optional, Union
 
 from pandas import isna
+
+from typing import Optional, Union
 
 from config import settings
 from logger import logger
 from utilities.check_tnved import TnvedChecker
 from utilities.download import ParfumProcessor
-from utilities.upload_order.upload_common import empty_value, val_error_start, UploadCategory
+from utilities.upload_order.upload_common import empty_value, val_error_start, UploadCategory, handle_upload_exceptions
 
 
 class ValidateParfumMixin:
@@ -159,42 +160,35 @@ class UploadParfum(UploadCategory):
         if self.type_upload == settings.Upload.EXTENDED:
             return self.get_article_info_extended()
 
+    @handle_upload_exceptions
     def get_article_info_standart(self) -> tuple:
-        # import all in df with clearing empty rows
-        try:
-            if self.df.iloc[4, 9] != 'Укажите кол-во позиций':
-                raise IndexError
-            process_df = self.df.iloc[5:settings.ORDER_LIMIT_UPLOAD_ARTICLES, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]]\
-                .dropna(how='all').astype(str)
 
-            res_list = list(process_df.values.tolist())
-            if len(res_list) > settings.ORDER_LIMIT_ARTICLES:
-                return (settings.ORDER_LIMIT_ARTICLES, len(res_list),), None
+        if self.df.iloc[4, 9] != 'Укажите кол-во позиций':
+            raise IndexError
+        process_df = self.df.iloc[5:settings.ORDER_LIMIT_UPLOAD_ARTICLES, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]]\
+            .dropna(how='all').astype(str)
 
-            vp = UploadParfum.ValidateParfum()
-            return vp.full_validate_standart(order_list=res_list)
-        except IndexError as e:
-            logger.error(e)
-            return None, None
+        res_list = list(process_df.values.tolist())
+        if len(res_list) > settings.ORDER_LIMIT_ARTICLES:
+            return (settings.ORDER_LIMIT_ARTICLES, len(res_list),), None
 
+        vp = UploadParfum.ValidateParfum()
+        return vp.full_validate_standart(order_list=res_list)
+
+    @handle_upload_exceptions
     def get_article_info_extended(self) -> tuple:
-        # import all in df with clearing empty rows
-        try:
-            if self.df.iloc[4, 9] != 'Введите количество наборов':
-                raise IndexError
-            process_df = self.df.iloc[5:settings.ORDER_LIMIT_UPLOAD_ARTICLES, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]] \
-                             .dropna(how='all').astype(str)
 
-            res_list = list(process_df.values.tolist())
-            if len(res_list) > settings.ORDER_LIMIT_ARTICLES:
-                return (settings.ORDER_LIMIT_ARTICLES, len(res_list),), None
+        if self.df.iloc[4, 9] != 'Введите количество наборов':
+            raise IndexError
+        process_df = self.df.iloc[5:settings.ORDER_LIMIT_UPLOAD_ARTICLES, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]] \
+                         .dropna(how='all').astype(str)
 
-            vp = UploadParfum.ValidateParfum()
-            return vp.full_validate_extended(order_list=res_list)
+        res_list = list(process_df.values.tolist())
+        if len(res_list) > settings.ORDER_LIMIT_ARTICLES:
+            return (settings.ORDER_LIMIT_ARTICLES, len(res_list),), None
 
-        except IndexError as e:
-            logger.error(e)
-            return None, None
+        vp = UploadParfum.ValidateParfum()
+        return vp.full_validate_extended(order_list=res_list)
 
     class ValidateParfum(ValidateParfumMixin):
 
@@ -205,9 +199,9 @@ class UploadParfum(UploadCategory):
             row_num = copy(settings.Shoes.UPLOAD_STANDART_ROW)
 
             for data_group in order_list:
-
                 trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C', pos=0,
                                                   order_list=order_list)
+                # trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C')
                 volume_type_error = self._volume_type(value=data_group[1].strip(), row_num=row_num, col='D')
                 volume_error = self._volume(value=data_group[2].strip(), row_num=row_num, col='E')
                 package_type_error = self._package_type(value=data_group[3].strip(), row_num=row_num, col='F',
@@ -246,6 +240,7 @@ class UploadParfum(UploadCategory):
 
             for data_group in order_list:
 
+                # trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C')
                 trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C', pos=0,
                                                   order_list=order_list)
                 volume_type_error = self._volume_type(value=data_group[1].strip(), row_num=row_num, col='D')
