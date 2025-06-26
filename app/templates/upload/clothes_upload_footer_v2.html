@@ -1,13 +1,18 @@
 {% extends "upload/category_upload_excel_common.html" %}
 {% block content %}
+
+{% set category_name = category.capitalize() if category != 'одежда' or( category == 'одежда' and (not subcategory or subcategory == 'common')) else subcategories_dict[subcategory].capitalize() %}
+
     <div class="row">
         <div class="col-12 text-center">
             <button class="btn btn-primary btn-lg btn-accent border-0 text-dark order-0 order-sm-1 mb-3 mb-sm-0"
                 id="btn_upload_1" type="button" style="font-size:14px" onclick="upload_type_process('standart')">
-                +Загрузить Excel накладную. <b>(Одежда, Данные по каждому размеру)</b>
+                +Загрузить Excel накладную. <b>({{category_name}}, Данные по каждому размеру)</b>
+            </button>
+            <button
+                id="btn_upload_2" style="display:none" disabled>
             </button>
         </div>
-
     </div>
 
 {% endblock %}

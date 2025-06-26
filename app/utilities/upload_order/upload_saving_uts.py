@@ -6,7 +6,8 @@ from flask import flash
 from config import settings
 from logger import logger
 from models import User, Order, Shoe, ShoeQuantitySize, Clothes, ClothesQuantitySize, Parfum, Linen, LinenQuantitySize, \
-    db
+    db, Socks, SocksQuantitySize
+from utilities.categories_data.subcategories_data import ClothesSubcategories
 
 
 def upload_shoe_st(order_list: list, order: Order) -> Order:
@@ -20,7 +21,7 @@ def upload_shoe_st(order_list: list, order: Order) -> Order:
                               material_bottom=el[7].strip(),
                               tnved_code=el[8].strip(),
                               gender=el[9].strip(), country=el[11].strip(),
-                              rd_type=el[12].strip(), rd_name=el[13].strip().replace('№', ''), rd_date=rd_date,
+                              rd_type=el[12].strip(), rd_name=el[13].strip(), rd_date=rd_date,
                               article_price=0, tax=0)
 
         new_size_quantity = ShoeQuantitySize(size=el[4].strip(), quantity=el[10].strip())
@@ -53,7 +54,7 @@ def upload_shoe_ext(order_list: list, order: Order) -> Order:
     return order
 
 
-def upload_clothes_st(order_list: list, order: Order) -> Order:
+def upload_clothes_st(order_list: list, order: Order, subcategory: str = None) -> Order:
     for el in order_list:
         rd_date = datetime.strptime(el[13].strip(), '%d.%m.%Y').date() if (el[13].strip() and el[13] != 'nan') else None
         new_clothes_order = Clothes(trademark=el[0].strip(),
@@ -65,11 +66,33 @@ def upload_clothes_st(order_list: list, order: Order) -> Order:
                                     country=el[10].strip(),
                                     rd_type=el[11].strip(), rd_name=el[12].strip().replace('№', ''), rd_date=rd_date,
                                     article_price=0, tax=0)
+        if subcategory == ClothesSubcategories.underwear.value:
+            new_clothes_order.subcategory = subcategory
 
-        new_size_quantity = ClothesQuantitySize(size=el[6].strip(), quantity=el[9].strip(), size_type=el[5].strip(), )
+        new_size_quantity = ClothesQuantitySize(size=el[6].strip(), quantity=el[9].strip(), size_type=el[5].strip())
         new_clothes_order.sizes_quantities.append(new_size_quantity)
 
         order.clothes.append(new_clothes_order)
+    return order
+
+
+def upload_socks_st(order_list: list, order: Order) -> Order:
+    for el in order_list:
+        rd_date = datetime.strptime(el[13].strip(), '%d.%m.%Y').date() if (el[13].strip() and el[13] != 'nan') else None
+        new_socks_order = Socks(trademark=el[0].strip(),
+                                article=el[1].strip(), type=el[2].strip(),
+                                color=el[3].strip(), box_quantity=1,
+                                gender=el[4].strip(),
+                                content=el[7].strip(),
+                                tnved_code=el[8].strip(),
+                                country=el[10].strip(),
+                                rd_type=el[11].strip(), rd_name=el[12].strip().replace('№', ''), rd_date=rd_date,
+                                article_price=0, tax=0)
+
+        new_size_quantity = SocksQuantitySize(size=el[6].strip(), quantity=el[9].strip(), size_type=el[5].strip())
+        new_socks_order.sizes_quantities.append(new_size_quantity)
+
+        order.socks.append(new_socks_order)
     return order
 
 
@@ -158,9 +181,24 @@ def upload_table_shoes(user: User, order: Order, order_list: list, type_upload: 
         return None
 
 
-def upload_table_clothes(user: User, order: Order, order_list: list, type_upload: str) -> Optional[int]:
+def upload_table_clothes(user: User, order: Order, order_list: list, type_upload: str, subcategory: str = None) -> Optional[int]:
     try:
-        n_order = upload_clothes_st(order_list=order_list, order=order)
+        n_order = upload_clothes_st(order_list=order_list, order=order, subcategory=subcategory)
+        user.orders.append(n_order)
+        db.session.commit()
+        no_id = n_order.id
+        return no_id
+    except Exception as e:
+        db.session.rollback()
+        message = f"{settings.Messages.ORDER_ADD_ERROR} {e}"
+        flash(message=message, category='error')
+        logger.error(message)
+        return None
+
+
+def upload_table_socks(user: User, order: Order, order_list: list, type_upload: str) -> Optional[int]:
+    try:
+        n_order = upload_socks_st(order_list=order_list, order=order)
         user.orders.append(n_order)
         db.session.commit()
         no_id = n_order.id
@@ -212,7 +250,7 @@ def upload_table_linen(user: User, order: Order, order_list: list, type_upload: 
 
 def upload_table_common(user: User, company_type: str, company_name: str,
                         company_idn: str, edo_type: str, edo_id: str, mark_type: str,
-                        order_list: list, category: str, type_upload: str) -> Optional[int]:
+                        order_list: list, category: str, type_upload: str, subcategory: str = None) -> Optional[int]:
     order = Order(company_type=company_type, company_name=company_name,
                   edo_type=edo_type, edo_id=edo_id,
                   company_idn=company_idn, mark_type=mark_type,
@@ -222,7 +260,10 @@ def upload_table_common(user: User, company_type: str, company_name: str,
             return upload_table_shoes(user=user, order=order, order_list=order_list, type_upload=type_upload)
 
         case settings.Clothes.CATEGORY:
-            return upload_table_clothes(user=user, order=order, order_list=order_list, type_upload=type_upload)
+            return upload_table_clothes(user=user, order=order, order_list=order_list, type_upload=type_upload,
+                                        subcategory=subcategory)
+        case settings.Socks.CATEGORY:
+            return upload_table_socks(user=user, order=order, order_list=order_list, type_upload=type_upload)
 
         case settings.Parfum.CATEGORY:
             return upload_table_parfum(user=user, order=order, order_list=order_list, type_upload=type_upload)

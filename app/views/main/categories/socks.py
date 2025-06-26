@@ -4,6 +4,8 @@ from flask_login import current_user, login_required
 from config import settings
 from models import Socks, Order
 from utilities.helpers.h_categories import h_category_sba
+from utilities.upload_order.upload_logic import helper_upload_common_get, helper_upload_common_post
+from utilities.upload_order.upload_socks import UploadSocks
 from views.main.categories.clothes.support import h_bck_socks_tnved
 from utilities.support import check_order_pos, preprocess_order_category, common_process_delete_order, \
     helper_delete_order_pos, user_activated, helper_process_category_order, \
@@ -96,3 +98,19 @@ def bck_socks_tnved():
         returns modal block with tnveds
     """
     return h_bck_socks_tnved()
+
+
+@socks.route('/upload', methods=['GET', ])
+@login_required
+@user_activated
+def upload():
+    return helper_upload_common_get(category=settings.Socks.CATEGORY,
+                                    category_process_name=settings.Socks.CATEGORY_PROCESS)
+
+
+@socks.route('/process_upload', methods=['POST', ])
+@login_required
+def process_upload():
+    return helper_upload_common_post(category=settings.Socks.CATEGORY,
+                                     category_process_name=settings.Socks.CATEGORY_PROCESS,
+                                     upload_model=UploadSocks)

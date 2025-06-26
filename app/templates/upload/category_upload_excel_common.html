@@ -2,7 +2,6 @@
 
 {% block categories_upper_part_upload %}
 
-
 <script>
     window.addEventListener("DOMContentLoaded", function () {
         document.getElementById("btn_upload_1").addEventListener("click", function () {
@@ -24,14 +23,14 @@
     });
 </script>
 
-
+{% set category_name = category.capitalize() if category != 'одежда' or( category == 'одежда' and (not subcategory or subcategory == 'common')) else subcategories_dict[subcategory].capitalize() %}
 <div class="container-fluid pb-4 content-main">
 
     <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
         <div class="breadcrumbs">
             <a href="{{url_for('main.enter')}}" class="">Категории </a>
             /
-            <span>{{category.capitalize()}}</span>
+            <span>{{category_name}}</span>
         </div>
         <div class="partner">
 
@@ -51,8 +50,7 @@
     <div class="table__descr mx-auto">
       <p class=" text-center  mb-3">Эта форма позволяет пользователям загружать заказы в базу сервиса с помощью корректно заполненных шаблонов таблиц ехсеl. Пользователь скачивает шаблон необходимого типа из поля ниже, далее заполняет эту таблицу, с помощью формы загружает таблицу и, если все заполнено корректно, отправляет заказ.</p>
 
-{#      <p class="text-center"><a href="' url_for('requests_common.download_file',#}
-{#                                                         filename=download_instruction) '" class=" download-link">Скачать инструкцию</a></p>#}
+
     </div>
     <div class="template-select mt-5 mb-5">
 
@@ -89,6 +87,9 @@
 {% include 'helpers/modal_questions_org.html' %}
 
 <script>
+const subcategories_dict = {{ (subcategories_dict.keys() | list)[: -1] | tojson }};
+const urlParams = new URLSearchParams(window.location.search);
+const subcategory = urlParams.get('subcategory');
 
 function upload_type_process(type_process){
     document.getElementById('table_type').value = type_process;
@@ -96,45 +97,62 @@ function upload_type_process(type_process){
 
 }
 
-function reload_upload_page_with_params(){
-    var company_type = document.getElementById('company_type').value;
-    var company_name = document.getElementById('company_name').value;
-    var company_idn = document.getElementById('company_idn').value;
-    var edo_type = document.getElementById('edo_type').value;
-    // var edo_id = document.getElementById('edo_id').value;
-    var mark_type = document.getElementById('mark_type').value;
-    // window.location = "{{ request.path }}?company_type="+company_type +
-    //     "&company_name=" + company_name + "&company_idn=" + company_idn + "&edo_type=" + edo_type +
-    //     "&edo_id=" + edo_id + "&mark_type=" + mark_type;
-    window.location = "{{ request.path }}?company_type="+company_type +
-        "&company_name=" + company_name + "&company_idn=" + company_idn + "&edo_type=" + edo_type +
-        "&mark_type=" + mark_type;
+function reload_upload_page_with_params() {
+    const company_type = document.getElementById('company_type').value;
+    const company_name = document.getElementById('company_name').value;
+    const company_idn = document.getElementById('company_idn').value;
+    const edo_type = document.getElementById('edo_type').value;
+    const mark_type = document.getElementById('mark_type').value;
+
+    const urlParams = new URLSearchParams();
+    urlParams.set('company_type', company_type);
+    urlParams.set('company_name', company_name);
+    urlParams.set('company_idn', company_idn);
+    urlParams.set('edo_type', edo_type);
+    urlParams.set('mark_type', mark_type);
+
+    // Добавим subcategory, если она определена и не пустая
+    if (typeof subcategory !== 'undefined' && subcategory ) {
+        urlParams.set('subcategory', subcategory);
+    }
+
+    window.location = "{{ request.path }}?" + urlParams.toString();
 }
 
-function check_upload_form(){
+function check_upload_form() {
     var upload_form = document.getElementById('uploadForm');
 
     if ((!upload_form.checkValidity || upload_form.checkValidity())) {
-        // console.log("good valid form")
+        // Получаем параметр subcategory из URL
 
-            upload_form.submit();
-    }
-    else{
-        var allInputs = $('#uploadForm input, #uploadForm select ');
+
+        // Проверка: если subcategory есть и входит в subcategories_dict (кроме последнего)
+        if (subcategory && subcategories_dict.includes(subcategory)) {
+            // Добавим скрытое поле в форму с этим параметром
+            let hiddenInput = document.createElement("input");
+            hiddenInput.type = "hidden";
+            hiddenInput.name = "subcategory";
+            hiddenInput.value = subcategory;
+            upload_form.appendChild(hiddenInput);
+            // console.log(subcategory, hiddenInput);
+        }
+
+        // Отправляем форму
+        upload_form.submit();
+    } else {
+        var allInputs = $('#uploadForm input, #uploadForm select');
         var errors_list = [];
 
-        allInputs.each(function( index ) {
-            // console.log(allInputs[index]);
+        allInputs.each(function(index) {
             let error_field_id = check_valid(allInputs[index]);
-            if (error_field_id !== true){
+            if (error_field_id !== true) {
                 let label_text = jQuery(`#${error_field_id}`).closest(".form-group").find("label").text();
-                // document.getElementById().parent().label.innerText
-                // errors_list.push(error_field_name);
-                if (label_text){
+                if (label_text) {
                     errors_list.push(label_text);
                 }
             }
-        })
+        });
+
         show_form_errors(errors_list);
         $('#form_errorModal').modal('show');
     }

@@ -1,14 +1,13 @@
 from copy import copy
 from datetime import datetime
-from typing import Optional, Union
-
 from numpy import nan
 from pandas import isna
+from typing import Optional, Union
 
 from config import settings
 from logger import logger
 from utilities.check_tnved import TnvedChecker
-from utilities.upload_order.upload_common import empty_value, val_error_start, UploadCategory
+from utilities.upload_order.upload_common import empty_value, val_error_start, UploadCategory, handle_upload_exceptions
 
 
 class ValidateLinenMixin:
@@ -175,46 +174,38 @@ class UploadLinen(UploadCategory):
         if self.type_upload == settings.Upload.EXTENDED:
             return self.get_article_info_extended()
 
+    @handle_upload_exceptions
     def get_article_info_standart(self) -> tuple:
-        # import all in df with clearing empty rows
-        try:
-            # this check is for checking table upload types
-            if self.df.iloc[4, 10] != 'Укажите конкретный размер изделия X! ':
-                raise IndexError
-            process_df = self.df.iloc[5:settings.ORDER_LIMIT_UPLOAD_ARTICLES, [2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]]\
-                .dropna(how='all').astype(str)
 
-            res_list = list(process_df.values.tolist())
+        if self.df.iloc[4, 10] != 'Укажите конкретный размер изделия X! ':
+            raise IndexError
+        process_df = self.df.iloc[5:settings.ORDER_LIMIT_UPLOAD_ARTICLES, [2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]]\
+            .dropna(how='all').astype(str)
 
-            if len(res_list) > settings.ORDER_LIMIT_ARTICLES:
-                return (settings.ORDER_LIMIT_ARTICLES, len(res_list),), None
+        res_list = list(process_df.values.tolist())
 
-            vs = UploadLinen.ValidateStandart()
-            return vs.full_validate_standart(order_list=res_list)
-        except IndexError as e:
-            logger.error(e)
-            return None, None
+        if len(res_list) > settings.ORDER_LIMIT_ARTICLES:
+            return (settings.ORDER_LIMIT_ARTICLES, len(res_list),), None
 
+        vs = UploadLinen.ValidateStandart()
+        return vs.full_validate_standart(order_list=res_list)
+
+    @handle_upload_exceptions
     def get_article_info_extended(self) -> tuple:
-        # import all in df with clearing empty rows
-        try:
-            if self.df.iloc[4, 10] != 'Укажите самый большой размер изделия в комплетке X! ':
-                raise IndexError
-            df_raw = self.df.iloc[5:settings.ORDER_LIMIT_UPLOAD_ARTICLES, [2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]]  # .replace('0', nan, inplace=True)
-            df_raw.replace('0', nan, inplace=True)
-            df_raw.replace(0, nan, inplace=True)
 
-            process_df = df_raw.dropna(how='all').astype(str)
+        if self.df.iloc[4, 10] != 'Укажите самый большой размер изделия в комплетке X! ':
+            raise IndexError
+        df_raw = self.df.iloc[5:settings.ORDER_LIMIT_UPLOAD_ARTICLES, [2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]]  # .replace('0', nan, inplace=True)
+        df_raw.replace('0', nan, inplace=True)
+        df_raw.replace(0, nan, inplace=True)
 
-            res_list = list(process_df.values.tolist())
+        process_df = df_raw.dropna(how='all').astype(str)
 
-            ve = UploadLinen.ValidateExtended()
+        res_list = list(process_df.values.tolist())
 
-            return ve.full_validate_extended(order_list=res_list)
+        ve = UploadLinen.ValidateExtended()
 
-        except IndexError as e:
-            logger.error(e)
-            return None, None
+        return ve.full_validate_extended(order_list=res_list)
 
     class ValidateStandart(ValidateLinenMixin):
 
@@ -225,7 +216,6 @@ class UploadLinen(UploadCategory):
             row_num = copy(settings.Linen.UPLOAD_STANDART_ROW)
 
             for data_group in order_list:
-
                 trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C', pos=0,
                                                   order_list=order_list)
                 article_error = self._article(value=data_group[1].strip(), row_num=row_num, col='E', pos=1,

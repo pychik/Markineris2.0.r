@@ -1,7 +1,8 @@
+from flask import flash
 from functools import wraps
-
 from pandas import read_excel, isna
 
+from logger import logger
 from config import settings
 
 
@@ -24,12 +25,27 @@ def empty_value(func):
     return wrapper
 
 
+def handle_upload_exceptions(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except IndexError as e:
+            logger.error(str(e))
+            flash(message=settings.Messages.UPLOAD_FILE_EXTENSION_ERROR, category='error')
+            return None, None
+        except Exception:
+            logger.exception('Исключение обработки загрузки заказа через таблицы')
+            return None, None
+    return wrapper
+
+
 class UploadCategory:
-    def __init__(self, table_obj, type_upload: str) -> None:
+    def __init__(self, table_obj, type_upload: str, subcategory: str = None) -> None:
         self.type_upload = type_upload
         self.table_obj = table_obj
+        self.subcategory = subcategory
         self.df = self.process_df(table_obj=table_obj, sheet_name=settings.Upload.SHEET_NAME)
 
     @staticmethod
-    def process_df(table_obj, sheet_name: str):
-        return read_excel(table_obj, sheet_name=settings.Upload.SHEET_NAME, engine='openpyxl')
+    def process_df(table_obj, sheet_name: str = settings.Upload.SHEET_NAME):
+        return read_excel(table_obj, sheet_name=sheet_name, engine='openpyxl')

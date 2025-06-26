@@ -100,7 +100,7 @@ def h_send_table_order() -> Response:
 
     # print(not table_file, check_file_extension(filename=table_file.filename))
     if table_file is False or check_file_extension(filename=table_file.filename) is False:
-        flash(message=settings.Messages.UPLOAD_FILE_EXTEXSION_ERROR, category='error')
+        flash(message=settings.Messages.UPLOAD_FILE_EXTENSION_ERROR, category='error')
         return redirect(url_for('requests_common.send_table', company_type=company_type, company_name=company_name,
                                     company_idn=company_idn, edo_type=edo_type, edo_id=edo_id, mark_type=mark_type))
 

@@ -3,64 +3,89 @@
 {% extends "main/base_v2.html" %}
 
 {% block preload %}
-<div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
-    <div class="breadcrumbs">
-       <a href="{{url_for('main.enter')}}" class="">Категории </a>
-        /
-        {% if stage == order_stages.CREATING %}
-            <a href="{{ url_for(category_process_name + '.index', o_id=o_id, subcategory=subcategory) }}"> {% if subcategory in subcategories_dict.keys() %}{{ subcategories_dict[subcategory].capitalize() }}{% else %}{{category.capitalize()}}{% endif %} активный заказ</a>
+<div class="no-selection">
+    <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
+        <div class="breadcrumbs">
+           <a href="{{url_for('main.enter')}}" class="">Категории </a>
             /
-        {% elif  stage >= order_stages.TELEGRAM_PROCESSED%}
-            <a href="{{ url_for('orders_archive.index', category=category, subcategory=subcategory)}}">История заказов</a>/
-        {% endif %}
+            {% if stage == order_stages.CREATING %}
+                <a href="{{ url_for(category_process_name + '.index', o_id=o_id, subcategory=subcategory) }}"> {% if subcategory in subcategories_dict.keys() %}{{ subcategories_dict[subcategory].capitalize() }}{% else %}{{category.capitalize()}}{% endif %} активный заказ</a>
+                /
+            {% elif  stage >= order_stages.TELEGRAM_PROCESSED%}
+                <a href="{{ url_for('orders_archive.index', category=category, subcategory=subcategory)}}">История заказов</a>/
+            {% endif %}
 
-        <span>Предпросмотр</span>
-    </div>
-
-</div>
-<div class="mt-1 col-12 text-center">
-    {%if start_list%}
-        <div class="mb-4" id="orders_table">
-            <h3>
-                Предпросмотр
-
-            </h3>
+            <span>Предпросмотр</span>
         </div>
-        <div class="col no-select" oncontextmenu="return false" oncopy="return false" align="left">
-        {{ pagination.links }}
-            <table class="table mt-3 table-result tablesaw-stack">
-              <thead class="text-dark">
-                <tr>
-                  <th scope="col">#</th>
-                  {% for el in start_list %}
-                      <th scope="col" style="font-size:14px">{{ el }}</th>
-                  {% endfor %}
-                </tr>
-              </thead>
 
+    </div>
+    <div class="mt-1 col-12 text-center">
+        {%if start_list%}
+            <div class="mb-4" id="orders_table">
+                <h3>
+                    Предпросмотр
 
-              {% if order_list %}
-                <tbody>
-                  {% for list_el in order_list %}
+                </h3>
+            </div>
+            <div class="col" align="left">
+            {{ pagination.links }}
+                <table class="table mt-3 table-result">
+                  <thead class="text-dark">
                     <tr>
-                      <th scope="row">{{offset + loop.index}}</th>
-                      {% for el in list_el %}
-                        <td>
-                            {{ el }}
-                        </td>
+                      <th scope="col">#</th>
+                      {% for el in start_list %}
+                          <th scope="col" style="font-size:14px">{{ el }}</th>
                       {% endfor %}
                     </tr>
-                  {% endfor %}
-                {% include 'helpers/order_pos_count_box.html' %}
-                </tbody>
-              {% endif %}
-            </table>
-        {{ pagination.links }}
-        </div>
+                  </thead>
 
 
-    {%endif%}
+                  {% if order_list %}
+                    <tbody>
+                      {% for list_el in order_list %}
+                        <tr>
+                          <th scope="row">{{offset + loop.index}}</th>
+                          {% for el in list_el %}
+                            <td>
+                                {{ el }}
+                            </td>
+                          {% endfor %}
+                        </tr>
+                      {% endfor %}
+                    {% include 'helpers/order_pos_count_box.html' %}
+                    </tbody>
+                  {% endif %}
+                </table>
+            {{ pagination.links }}
+            </div>
 
+
+        {%endif%}
+
+    </div>
 </div>
 
+<style>
+  .no-selection {
+    /* Блокировка выделения */
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+</style>
+<script>
+document.querySelectorAll('.no-selection').forEach(element => {
+  element.addEventListener('selectstart', (e) => e.preventDefault());
+
+  element.addEventListener('contextmenu', (e) => e.preventDefault());
+});
+
+document.addEventListener('keydown', (e) => {
+  const isInsideProtectedBlock = e.target.closest('.no-selection');
+  if (isInsideProtectedBlock && (e.ctrlKey || e.metaKey) && e.key === 'a') {
+    e.preventDefault();
+  }
+});
+</script>
 {% endblock %}
