@@ -1306,10 +1306,12 @@ def h_aus_transaction_detail(u_id: int, t_id: int):
         UserTransaction.transaction_type,
         UserTransaction.sa_id,
         UserTransaction.created_at,
+        UserTransaction.is_bonus,
+        User.login_name,
         User.email,
         User.phone,
-        User.login_name,
-        UserTransaction.is_bonus,
+    ).join(
+        User, User.id == UserTransaction.user_id,
     ).filter(
         UserTransaction.user_id == u_id,
         UserTransaction.id == t_id,
