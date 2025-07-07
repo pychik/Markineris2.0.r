@@ -16,6 +16,7 @@
                                 <th scope="col" class="font-12">ИНН</th>
                                 <th scope="col" class="font-12">Комментарий к заказу</th>
                                 <th scope="col" class="font-12">Время оформления заказа</th>
+                                <th scope="col" class="font-12">Организация и УПД</th>
                                 <th scope="col" class="font-12">Статус заказа</th>
 {#                                {% if not user.is_at2 %}<th scope="col" class="font-12">Оплата</th>{% endif %}#}
                                 <th></th>
@@ -46,7 +47,13 @@
                                     <td>
                                         {{s.crm_created_at.strftime('%d.%m.%Y %H:%M:%S')}}
                                     </td>
-
+                                    <td>
+                                        {% if s.processing_info %}
+                                            <div class="badge-warning-custom" style="font-size: 14px">
+                                                {{ s.processing_info | safe }}
+                                            </div>
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         <div class="d-flex">
                                             <div>{{stages_description[s.stage][1]}}</div>

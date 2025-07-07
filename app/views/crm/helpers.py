@@ -26,6 +26,7 @@ from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.support import (helper_get_at2_pending_balance, helper_get_limits, orders_list_common)
 from utilities.telegram import MarkinerisInform
 from .crm_support import h_cancel_order_process_payment
+from .schema import CompaniesOperators
 
 
 def helper_get_agent_orders(user: User, category: str | None = None) -> list:
@@ -77,6 +78,7 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   o.manager_id as manager_id,
                                   o.to_delete as to_delete,
                                   o.crm_created_at as crm_created_at,
+                                  o.processing_info as processing_info,
                                   MAX(orf.origin_name) as order_file,
                                   MAX(orf.file_link) as order_file_link,
                                   MAX(managers.login_name) as manager,
@@ -121,6 +123,7 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   o.manager_id as manager_id,
                                   o.to_delete as to_delete,
                                   o.crm_created_at as crm_created_at,
+                                  o.processing_info as processing_info,
                                   MAX(orf.origin_name) as order_file,
                                   MAX(orf.file_link) as order_file_link,
                                   MAX(managers.login_name) as manager,
@@ -190,6 +193,7 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                           o.manager_id as manager_id,
                                           o.to_delete as to_delete,
                                           o.crm_created_at as crm_created_at,
+                                          o.processing_info as processing_info,
                                           MAX(orf.origin_name) as order_file,
                                           MAX(orf.file_link) as order_file_link,
                                           MAX(managers.login_name) as manager,
@@ -244,6 +248,7 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                   o.manager_id as manager_id,
                                   o.to_delete as to_delete,
                                   o.crm_created_at as crm_created_at,
+                                  o.processing_info as processing_info,
                                   MAX(orf.origin_name) as order_file,
                                   MAX(orf.file_link) as order_file_link,
                                   MAX(managers.login_name) as manager,
@@ -322,6 +327,7 @@ def helper_get_manager_orders(
                                  o.user_comment as user_comment,
                                  o.has_new_tnveds as has_new_tnveds,
                                  o.to_delete as to_delete,
+                                 o.processing_info as processing_info,
                                  MAX(orf.origin_name) as order_file,
                                  MAX(orf.file_link) as order_file_link,
                                  o.manager_id as manager_id,
@@ -367,6 +373,7 @@ def helper_get_manager_orders(
                                   o.user_comment as user_comment,
                                   o.has_new_tnveds as has_new_tnveds,
                                   o.to_delete as to_delete,
+                                  o.processing_info as processing_info,
                                   MAX(orf.origin_name) as order_file,
                                   MAX(orf.file_link) as order_file_link,
                                   o.manager_id as manager_id,
@@ -430,6 +437,7 @@ def helper_m_order_processed(user: User, o_id: int, manager_id: int, f_manager_i
     order_stmt = text("""
                     SELECT o.id as id,
                         o.order_idn as order_idn,
+                        o.processing_info as processing_info,
                         o.stage as stage,
                         orf.id as of_id,
                         orf.file_system_name as file_system_name,
@@ -451,7 +459,9 @@ def helper_m_order_processed(user: User, o_id: int, manager_id: int, f_manager_i
         check_of_status, check_of_message = check_order_file(order_file_name=order_info.file_system_name, o_id=o_id)
         if order_info.file_system_name and not check_of_status:
             return jsonify({'htmlresponse': None, 'status': status, 'message': check_of_message})
-
+    if not order_info.processing_info:
+        message = settings.Messages.ORDER_MANAGER_PROCESSED_ABS_PROCESSING_INFO
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
     if user.id != manager_id and user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MARKINERIS_ADMIN_USER]:
         message = settings.Messages.STRANGE_REQUESTS
         return jsonify({'htmlresponse': None, 'status': status, 'message': message})
@@ -503,6 +513,7 @@ def helper_m_order_ps(user: User, o_id: int, manager_id: int) -> Response:
                         o.stage as stage,
                         o.user_id as user_id,
                         o.order_idn as order_idn,
+                        o.processing_info as processing_info,
                         orf.id as of_id,
                         orf.file_system_name as file_system_name,
                         orf.file_link as file_link
@@ -523,7 +534,9 @@ def helper_m_order_ps(user: User, o_id: int, manager_id: int) -> Response:
         check_of_status, check_of_message = check_order_file(order_file_name=order_info.file_system_name, o_id=o_id)
         if order_info.file_system_name and not check_of_status:
             return jsonify({'htmlresponse': None, 'status': status, 'message': check_of_message})
-
+    if not order_info.processing_info:
+        message = settings.Messages.ORDER_MANAGER_PROCESSED_ABS_PROCESSING_INFO
+        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
     if user.id != manager_id and user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MARKINERIS_ADMIN_USER]:
         message = settings.Messages.STRANGE_REQUESTS
         return jsonify({'htmlresponse': None, 'status': status, 'message': message})
@@ -1098,6 +1111,7 @@ def helper_change_agent_stage(o_id: int, stage: int, user: User):
                             o.stage_setter_name as stage_setter_name,
                             o.payment as payment,
                             o.to_delete as to_delete,
+                            o.processing_info as processing_info,
                             ({stmt_get_agent}) as agent_id,
                             orf.id as of_id,
                             orf.file_system_name as file_system_name
@@ -1197,6 +1211,7 @@ def helper_change_agent_stage_bck(o_id: int, stage: int, user: User) -> tuple[bo
                             o.stage_setter_name as stage_setter_name,
                             o.payment as payment,
                             o.to_delete as to_delete,
+                            o.processing_info as processing_info,
                             ({stmt_get_agent}) as agent_id,
                             orf.id as of_id,
                             orf.file_system_name as file_system_name
@@ -1754,6 +1769,7 @@ def h_get_agent_order_info(search_order_idn):
                                       o.manager_id as manager_id,
                                       o.crm_created_at as crm_created_at,
                                       o.to_delete as to_delete,
+                                      o.processing_info as processing_info,
                                       MAX(orf.origin_name) as order_file,
                                       MAX(orf.file_link) as order_file_link,
                                       {stmt_get_manager} as manager,
@@ -1817,6 +1833,7 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                      o.user_comment as user_comment,
                                      o.has_new_tnveds as has_new_tnveds,
                                      o.to_delete as to_delete,
+                                     o.processing_info as processing_info,
                                      MAX(orf.origin_name) as order_file,
                                      MAX(orf.file_link) as order_file_link,
                                      o.manager_id as manager_id,
@@ -1863,6 +1880,7 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                       o.user_comment as user_comment,
                                       o.has_new_tnveds as has_new_tnveds,
                                       o.to_delete as to_delete,
+                                      o.processing_info as processing_info,
                                       MAX(orf.origin_name) as order_file,
                                       MAX(orf.file_link) as order_file_link,
                                       o.manager_id as manager_id,
@@ -1966,6 +1984,77 @@ def helper_search_crmm_order() -> Response:
             htmlresponse = render_template(f'crm_mod_v1/crmm/updated_stages/crmm_search_7.html', **locals())
 
     return jsonify({'htmlresponse': htmlresponse, 'status': status})
+
+
+def helper_get_processing_order_info() -> Response:
+    status = 'danger'
+
+    order_id = request.args.get("order_id", type=int)
+    if not order_id:
+        message = 'Ошибка- не указан номер заказа!'
+        return jsonify({'status': status, 'message': message})
+
+    order_info = Order.query.with_entities(Order.processing_info, Order.order_idn).filter(Order.id == order_id).first()
+    if not order_info:
+        message = 'Ошибка- заказ не найден, обратитесь к администратору.'
+        return jsonify({'status': status, 'message': message})
+
+    status = 'success'
+    companies_operators = [c.as_option() for c in CompaniesOperators]
+
+    if order_info:
+        status = "success"
+    else:
+        message = "Данные по организации не установлены"
+
+    htmlresponse = render_template(f'crm_mod_v1/helpers/modals/modal_order_process_info.html', **locals())
+
+    return jsonify({'status': status, 'htmlresponse': htmlresponse})
+
+
+def helper_update_processing_order_info() -> tuple[Response, int]:
+    data = request.get_json()
+
+    order_id = data.get("order_id")
+    company = data.get("company")
+    upd_number = data.get("upd_number")
+    if not all([order_id, company, upd_number]):
+        return jsonify({
+            "status": "error",
+            "message": "Все поля обязательны к заполнению"
+        }), 400
+
+    order = Order.query.get(order_id)
+    if current_user.role == settings.MANAGER_USER and order.manager_id != current_user.id:
+        return jsonify({
+            "status": "error",
+            "message": "Этот заказ закреплен за другим оператором"
+        }), 404
+    if not order:
+        return jsonify({
+            "status": "error",
+            "message": "Заказ не найден"
+        }), 404
+
+    try:
+
+        order.processing_info = f"{company} <br> УПД: {upd_number}"
+        db.session.commit()
+
+        return jsonify({
+            "status": "success",
+            "message": f"Информация по заказу № {order.order_idn} обновлена",
+            "order_idn": order.order_idn,
+            "processing_info": order.processing_info
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        logger.exception('Ошибка обновления информации по организации проводящей заказ: ')
+        return jsonify({
+            "status": "error",
+            "message": f"Ошибка при обновлении: {str(e)}"
+        }), 500
 
 
 def h_set_dynamic_jobs(minutes: int) -> bool:

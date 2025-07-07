@@ -27,5 +27,27 @@
 {%else%}
     <img class="icons__item" src="{{url_for('static', filename='crm_mod/img/icons/r.svg')}}" width="24" height="24">
 {% endif %}
+{% if n.stage > 2 %}
+    {% if n.processing_info %}
+        <div class="icons__item active"
+            data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+            data-bs-title="{{n.processing_info | safe}}">
+            <svg width="24" height="24" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-label="УПД">
+              <circle cx="20" cy="20" r="18" fill="#087990" />
+              <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-size="14" fill="white">УПД</text>
+            </svg>
+        </div>
+    {%else%}
+        <div class="icons__item mred"
+            data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+            data-bs-title="Организация и УПД заказа не закреплены">
+            <svg width="24" height="24" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-label="УПД">
+              <circle cx="20" cy="20" r="18" fill="#087990" />
+              <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-size="14" fill="white">УПД</text>
+            </svg>
+
+        </div>
+    {% endif %}
+{% endif %}
 
 

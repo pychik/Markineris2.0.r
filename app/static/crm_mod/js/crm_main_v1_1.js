@@ -985,3 +985,120 @@ function get_avg_order_processing_time_rpt_excel(url, csrf) {
     });
 
 }
+
+function loadOrderCompanyOperatorModal(order_id) {
+  const url = LOAD_ORDER_PROCESS_INFO_URL + '?order_id=' + order_id;
+
+  fetch(url, {
+    method: "GET",
+    headers: {
+      "Accept": "application/json"
+    }
+  })
+  .then(res => {
+    if (res.status === 403) throw new Error("csrf");
+    if (!res.ok) throw new Error("general");
+    return res.json();
+  })
+  .then(data => {
+    if (data.status === "success") {
+      // Удаляем старую модалку (если вдруг осталась)
+      const existing = document.getElementById("modal-process-order");
+      if (existing) {existing.remove();}
+
+      // Вставляем HTML модалки в DOM
+      document.body.insertAdjacentHTML("beforeend", data.htmlresponse);
+
+      // Инициализируем и показываем модалку через Bootstrap 5 API
+      const modalEl = document.getElementById("modal-process-order");
+      const modal = new bootstrap.Modal(modalEl);
+
+      modal.show()    ;
+
+      console.log("Модалка успешно загружена для заказа", order_id);
+    } else {
+      make_message(data.message || "Не удалось получить данные.", "warning");
+    }
+  })
+  .catch(err => {
+    if (err.message === "csrf") {
+      make_message("Обновите страницу", "danger");
+    } else {
+      make_message("Проверьте подключение к интернету или обратитесь к администратору", "warning");
+    }
+  });
+}
+
+function closeOrderCompanyOperatorModal() {
+  const modalEl = document.getElementById('modal-process-order');
+  if (!modalEl) return;
+
+  // Снять фокус с активного элемента — это устраняет warning
+  if (document.activeElement && modalEl.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
+
+  const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+  modal.hide();
+}
+
+function submitOrderCompanyOperatorForm() {
+  const modalEl = document.getElementById("modal-process-order");
+  if (!modalEl) return;
+
+  const orderId = modalEl.dataset.orderId; // важно: data-order-id должен быть задан
+  const company = document.getElementById("companySelect")?.value;
+  const updNumber = document.getElementById("updInput")?.value;
+  const csrfToken = document.getElementById("csrf_token")?.value;
+  if (!company || !updNumber) {
+    make_message("Заполните все поля", "warning");
+    return;
+  }
+
+  fetch( UPDATE_ORDER_PROCESS_INFO_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrfToken
+    },
+    body: JSON.stringify({
+      order_id: orderId,
+      company: company,
+      upd_number: updNumber
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === "success") {
+      make_message(data.message, "success");
+      closeOrderCompanyOperatorModal();
+      const iconSelector = `#cardCommonBlock_${orderId} [data-role="upd-icon"]`;
+      const iconEl = document.querySelector(iconSelector);
+
+      if (iconEl) {
+          iconEl.classList.remove("mred");
+          iconEl.classList.add("active");
+
+          if (data.processing_info) {
+            iconEl.setAttribute("data-bs-title", data.processing_info);
+            iconEl.setAttribute("title", data.processing_info);
+          }
+
+          // Обновим tooltip (если Bootstrap 5)
+          const tooltipInstance = bootstrap.Tooltip.getInstance(iconEl);
+          if (tooltipInstance) {
+            tooltipInstance.setContent({ '.tooltip-inner': data.processing_info });
+          } else {
+            new bootstrap.Tooltip(iconEl);
+          }
+      }
+
+    } else {
+      make_message(data.message || "Ошибка при сохранении", "danger");
+    }
+  })
+  .catch(err => {
+    make_message("Сервер не отвечает. Повторите позже.", "danger");
+    console.error(err);
+  });
+}

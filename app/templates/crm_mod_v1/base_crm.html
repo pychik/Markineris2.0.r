@@ -12,7 +12,7 @@
     <link rel="preconnect" href="{{url_for('static',filename='main_v2/css/service/g_fonts.css')}}" crossorigin>
     <link href="{{url_for('static',filename='main_v2/css/service/g_fonts.css')}}" rel="stylesheet">
     <link rel="stylesheet" href="{{url_for('static', filename='crm_mod/libs/bootstrap/css/bootstrap.min.css')}}">
-    <link rel="stylesheet" href="{{url_for('static', filename='crm_mod/css/main.css')}}?v=2">
+    <link rel="stylesheet" href="{{url_for('static', filename='crm_mod/css/main.css')}}?v=3">
     <link rel="stylesheet" href="{{ url_for('static', filename='crm_mod/css/special_crm_effects_v2.css') }}?v=1">
 
     <script src="{{url_for('static',filename='main_v2/js/assets/jquery.min.js')}}"></script>
@@ -145,7 +145,7 @@
 
     <script src="{{url_for('static',filename='main_v2/js/assets/popper.min.js')}}"></script>
     <script src="{{url_for('static', filename='crm_mod/libs/bootstrap/js/bootstrap.bundle.min.js')}}"></script>
-    <script src="{{url_for('static', filename='crm_mod/js/crm_main_v1_1.js')}}?v=2"></script>
+    <script src="{{url_for('static', filename='crm_mod/js/crm_main_v1_1.js')}}?v=3"></script>
     <script src="{{url_for('static', filename='crm_mod/libs/scrollbooster/scrollbooster.min.js')}}" defer></script>
     <script src="{{url_for('static',filename='main_v2/js/new_messages.js')}}?v=1"></script>
 
@@ -154,6 +154,9 @@
         const message_icon_error = `{{url_for('static',filename='main_v2/img/icons/error.svg')}}`;
         const message_icon_warning = `{{url_for('static',filename='main_v2/img/icons/warning.svg')}}`;
         const message_icon_success = `{{url_for('static',filename='main_v2/img/icons/success.svg')}}`;
+        const LOAD_ORDER_PROCESS_INFO_URL = `{{ url_for('crm_d.get_processing_order_info')}}`;
+        const UPDATE_ORDER_PROCESS_INFO_URL = `{{ url_for('crm_d.update_processing_order_info')}}`;
+
          $(document).ready(function() {
          // сообщение будет закрыто через 10 секунд после загрузки страницы
              show_user_messages();

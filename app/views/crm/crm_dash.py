@@ -7,7 +7,7 @@ from flask_login import current_user, login_required
 from config import settings
 from models import User, Order, ServerParam
 from utilities.download import orders_download_common
-from utilities.support import (user_activated, sumausmumu_required, susmumu_required, susmu_required,
+from utilities.support import (bck_sumausmumu_required, user_activated, sumausmumu_required, susmumu_required, susmu_required,
                                aus_required, ausumsuu_required, suausmumu_required)
 
 from .helpers import (helper_get_agent_orders, helper_get_manager_orders, helper_m_order_processed, helper_m_order_ps,
@@ -17,7 +17,8 @@ from .helpers import (helper_get_agent_orders, helper_get_manager_orders, helper
                       helper_search_crma_order, helper_search_crmm_order, helpers_ceps_order, helper_crm_preload,
                       helper_get_agent_stage_orders, helper_categories_counter,
                       helper_change_agent_stage_bck, helper_a_order_bp, helper_m_order_bp,
-                      helpers_problem_order_response)
+                      helpers_problem_order_response,
+                      helper_get_processing_order_info, helper_update_processing_order_info,)
 from .helpers_mo import h_all_new_multi_pool
 crm_d = Blueprint('crm_d', __name__)
 
@@ -359,3 +360,19 @@ def search_crma_order():
 def search_crmm_order():
 
     return helper_search_crmm_order()
+
+
+@crm_d.route('/get_processing_order_info', methods=['GET'])
+@login_required
+@user_activated
+@bck_sumausmumu_required
+def get_processing_order_info():
+    return helper_get_processing_order_info()
+
+
+@crm_d.route('/update_processing_order_info', methods=['POST'])
+@login_required
+@user_activated
+@bck_sumausmumu_required
+def update_processing_order_info():
+    return helper_update_processing_order_info()

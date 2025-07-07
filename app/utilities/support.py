@@ -2845,6 +2845,17 @@ def suausmumu_required(func):
     return wrapper
 
 
+def bck_sumausmumu_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.status is True and current_user.role in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER,
+                                                                 settings.SUPER_MANAGER,
+                                                                 settings.MANAGER_USER]:
+            return func(*args, **kwargs)
+        else:
+            return jsonify(dict(status='danger', message='Недостаточно прав для этого запроса'))
+
+    return wrapper
 # admin user required with id checks
 def au_required(func):
     @wraps(func)
