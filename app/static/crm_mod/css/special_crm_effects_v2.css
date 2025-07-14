@@ -212,3 +212,13 @@ border-style:solid;
     opacity: 0.5;
     pointer-events: none; /* Prevents any interaction with the element */
 }
+
+.operators-orders-info {
+  /*display: inline-block;*/
+  border: 1px solid #ffc107; /* Цвет warning */
+  padding: 4px 8px;
+  border-radius: 8px; /* Закругленные края */
+  background-color: rgba(255, 193, 7, 0.1); /* Легкий фон */
+  font-size: 14px;
+  color: #856404; /* Цвет текста warning */
+}

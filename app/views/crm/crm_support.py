@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from math import floor as m_floor
 from sqlalchemy import text
 from uuid import uuid4
@@ -157,3 +157,25 @@ def h_cancel_order_process_payment(order_idn: str, user_id: int) -> None:
     # Выполнение
     db.session.execute(text(refund_sql))
 
+
+def get_weekly_order_summary(user_id: int) -> str:
+    today = datetime.today().date()
+    monday = today - timedelta(days=today.weekday())
+
+    sql_query = text("""
+            SELECT COUNT(*) 
+            FROM public.orders 
+            WHERE manager_id = :manager_id AND stage > 7
+              AND created_at::date BETWEEN :start_date AND :end_date
+        """).bindparams(
+        manager_id=user_id,
+        start_date=monday,
+        end_date=today
+    )
+
+    result = db.session.execute(sql_query).fetchone()
+    order_count = result[0] if result else 0
+
+    summary_str = f"{monday.strftime('%d.%m.%Y')}-{today.strftime('%d.%m.%Y')} - {order_count} шт."
+
+    return summary_str

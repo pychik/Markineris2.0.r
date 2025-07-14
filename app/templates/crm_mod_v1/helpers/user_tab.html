@@ -95,5 +95,10 @@
 
         </div>
     {% endif %}
+    {% if current_user.role in 'supermanager','manager' %}
+        <div class="operators-orders-info" title="Выполнено заказов за текущую неделю">
+             {{ oper_orders_string }}
+        </div>
+    {% endif %}
 
 </div>
