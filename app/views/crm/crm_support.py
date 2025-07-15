@@ -166,7 +166,7 @@ def get_weekly_order_summary(user_id: int) -> str:
             SELECT COUNT(*) 
             FROM public.orders 
             WHERE manager_id = :manager_id AND stage > 7 AND stage != 9
-              AND created_at::date BETWEEN :start_date AND :end_date
+              AND sent_at::date BETWEEN :start_date AND :end_date
         """).bindparams(
         manager_id=user_id,
         start_date=monday,
