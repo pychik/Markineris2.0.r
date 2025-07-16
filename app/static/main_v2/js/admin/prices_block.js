@@ -55,20 +55,25 @@ function perform_modal_prices(u_id, u_name, p_code, p1, p2, p3, p4, p5, p6, p7, 
                               </tbody>
                         </table>`
     var option_prices = '<option value="">BASIC</option>'
+    let service_price_form
 
     prices_array.forEach((element) => {option_prices += `${check_price_at2_text(element)}`});
-
-    let service_price_form = `<form id="user_price_plug_form" action="${url}" class="text-center">
-                            <input type="hidden" name="csrf_token" value="${csrf}">
-                            <label for="price_id">Выберите ценовой пакет</label>
-                            <select class="form-select my-1" id="price_id" name="price_id">
-                                ${option_prices}
-                            </select>
-                            <button type="button" class="btn btn-sm btn-accent" style="width: 100%" data-bs-dismiss="modal" onclick="bck_edit_user_price('${url}', 'user_price${u_id}'); clear_modal_prices();">Обновить</button>
+    if (currentUserRole === "superuser") {
+        service_price_form = `<form id="user_price_plug_form" action="${url}" class="text-center">
+                                <input type="hidden" name="csrf_token" value="${csrf}">
+                                <label for="price_id">Выберите ценовой пакет</label>
+                                <select class="form-select my-1" id="price_id" name="price_id">
+                                    ${option_prices}
+                                </select>
+                                <button type="button" class="btn btn-sm btn-accent" style="width: 100%" data-bs-dismiss="modal" onclick="bck_edit_user_price('${url}', 'user_price${u_id}'); clear_modal_prices();">Обновить</button>
                         </form>`
+    }
+    else {
+        service_price_form = ''
+    }
 
     modal_block.innerHTML = `<div class="modal fade" id="user_priceModal" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-labelledby="user_priceModalLabel" aria-hidden="true">
-          <div class="modal-dialog modal-xl" data-backdrop="static" role="document">
+          <div class="modal-dialog" data-backdrop="static" role="document">
             <div class="modal-content">
               <div class="modal-header">
                 <h5 class="modal-title" id="user_priceModalLabel">Форма привязки ценового пакета для пользователя ${u_name}.</h5>
@@ -85,9 +90,11 @@ function perform_modal_prices(u_id, u_name, p_code, p1, p2, p3, p4, p5, p6, p7, 
                       </div>
                   </div>
                   <div class="col text-justify">
+                     ${currentUserRole !== "markineris_admin" ? `
                         <small class="text-secondary small">Вы можете выбрать новый ценовой пакет,
-                                после этого <b>Нажмите обновить</b>. Либо нажмите Закрыть.
+                            после этого <b>Нажмите обновить</b>. Либо нажмите Закрыть.
                         </small>
+                    ` : ''}
                   </div>
               </div>
               

@@ -397,13 +397,15 @@
 
 
 </div>
-
+<script>
+const currentUserRole = `{{current_user.role}}`;
+</script>
 
 <script src="{{url_for('static',filename='main_v2/js/admin/admin_user_control.js')}}?v=1"></script>
 <script src="{{url_for('static',filename='main_v2/js/admin/admin_main.js')}}?v=2"></script>
 <script src="{{url_for('static',filename='main_v2/js/admin/admin_uc.js')}}?v=22"></script>
 <script src="{{url_for('static',filename='main_v2/js/admin/admin_common.js')}}"></script>
-<script src="{{url_for('static',filename='main_v2/js/admin/prices_block.js')}}"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/prices_block.js')}}?v=2"></script>
 
 
 {% include 'admin/a_user_control/new_registration_link_modal.html' %}
