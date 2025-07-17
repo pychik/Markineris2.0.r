@@ -1802,11 +1802,23 @@ def helper_process_sa(sa_id: int) -> bool:
                                                     AND sa.is_active=True
                                                   ORDER BY sa.id;""")).fetchall()]
 
+        # Отдельно получаем текущий аккаунт по sa_id (включая неактивные) потому что нужно иметь возможность провести транзакцию и для неактивного счета
+        current_account = db.session.execute(text(f"""
+                    SELECT sa.id, sa.capacity_type, sa.sa_type, sa.summ_transfer, sa.is_active
+                    FROM public.service_accounts sa
+                    WHERE sa.id = :sa_id AND (sa.is_archived IS NULL OR sa.is_archived = FALSE)
+                """).bindparams(sa_id=sa_id)).fetchone()
+
+        if not current_account:
+            message = "Текущий аккаунт не найден"
+            logger.error(message)
+            return False
+
         if cur_accounts:
             cur_accounts_ids = list(map(lambda x: x.id, cur_accounts))
-            if sa_id not in cur_accounts_ids:
-                logger.error('Странные запросы. Такого аккаунта нет')
-                return False
+            # if sa_id not in cur_accounts_ids:
+            #     logger.error('Странные запросы. Такого аккаунта нет')
+            #     return False
             if len(cur_accounts) > 1:
                 current_processing_sa = list(filter(lambda x: x.current_use == True, cur_accounts))[0]
                 if current_processing_sa.summ_transfer > settings.ServiceAccounts.SUMM_LIMIT:
