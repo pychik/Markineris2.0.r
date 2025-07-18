@@ -1015,7 +1015,7 @@ function loadOrderCompanyOperatorModal(order_id) {
 
       modal.show()    ;
 
-      console.log("Модалка успешно загружена для заказа", order_id);
+      // console.log("Модалка успешно загружена для заказа", order_id);
     } else {
       make_message(data.message || "Не удалось получить данные.", "warning");
     }
@@ -1081,7 +1081,6 @@ function submitOrderCompanyOperatorForm() {
 
           if (data.processing_info) {
             iconEl.setAttribute("data-bs-title", data.processing_info);
-            iconEl.setAttribute("title", data.processing_info);
           }
 
           // Обновим tooltip (если Bootstrap 5)
