@@ -58,6 +58,8 @@ def h_login_post() -> Response:
         flash(message=message, category='warning')
         return redirect(url_for('auth.login'))
     login_user(user=user, remember=remember)
+    session.permanent = True
+
     if current_user.role in [settings.MANAGER_USER, settings.SUPER_MANAGER]:
         return redirect(url_for('crm_d.managers'))
 
@@ -173,6 +175,8 @@ def h_sign_up_post() -> Union[Response, str]:
         flash(message=settings.Messages.USER_SIGHNUP_SUCCESS_PARTNER, category='success')
 
         login_user(new_user)
+        session.permanent = True
+
         return redirect(url_for('main.enter'))
 
     except IntegrityError as e:

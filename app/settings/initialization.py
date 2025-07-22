@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import urllib3
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -27,6 +29,9 @@ def create_app() -> tuple[Flask, SQLAlchemy]:
                 template_folder="../templates/")
     app.config['SECRET_KEY'] = settings.SECRET_KEY
     app.config['MAINTENANCE_MODE'] = False
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=5)
+    app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=7)
+
     app.config['SQLALCHEMY_DATABASE_URI'] = settings.SQL_DATABASE_URL
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
