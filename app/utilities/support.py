@@ -990,6 +990,7 @@ def user_activated(func):
                 flash(message=Markup(f"{settings.Messages.USER_NOT_ACTIVATED_1}"
                                      f"\"<span class=\"text-danger\"><b>{name}</b></span>\"."
                                      f"{settings.Messages.USER_NOT_ACTIVATED_2}"), category='error')
+                logout_user()
                 return redirect(url_for('auth.login'))
         else:
             flash(message=settings.Messages.AUTH_OR_SIGNUP, category='error')
