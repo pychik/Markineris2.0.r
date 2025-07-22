@@ -9,7 +9,7 @@ from typing import Optional, Union
 from uuid import uuid4
 
 from flask import flash, jsonify, Markup, redirect, url_for, request, Response, render_template
-from flask_login import current_user
+from flask_login import current_user, logout_user
 from flask_paginate import Pagination
 from flask_sqlalchemy.pagination import QueryPagination
 from sqlalchemy import asc, create_engine, desc, text, or_, not_, UnaryExpression, func
