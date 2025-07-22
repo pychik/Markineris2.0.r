@@ -922,7 +922,7 @@ class Settings(BaseSettings):
         TYPE_UPLOADS: list = ['standart', 'extended']
 
     class ExceptionOrders:
-        COMPANIES_IDNS: tuple = ('7703381056', '860235949238', '110374099900', '772307796929')
+        COMPANIES_IDNS: tuple = ('7703381056', '860235949238', '110374099900', '772307796929', )
         COMPANY_IDN_ERROR: str = "Невозможно оформить заказ по указанному ИНН {company_idn}"
 
     class Shoes:
