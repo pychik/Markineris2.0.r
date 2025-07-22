@@ -976,7 +976,7 @@ def check_custom_tnved(order_list: list) -> bool:
 def user_activated(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if current_user.is_authenticated :
+        if current_user.is_authenticated:
             if current_user.status is True:
                 if func.__name__ == 'send_table':
                     if current_user.is_send_excel:
@@ -988,12 +988,14 @@ def user_activated(func):
             else:
                 name = current_user.login_name
                 flash(message=Markup(f"{settings.Messages.USER_NOT_ACTIVATED_1}"
-                                 f"\"<span class=\"text-danger\"><b>{name}</b></span>\"."
-                                 f"{settings.Messages.USER_NOT_ACTIVATED_2}"), category='error')
+                                     f"\"<span class=\"text-danger\"><b>{name}</b></span>\"."
+                                     f"{settings.Messages.USER_NOT_ACTIVATED_2}"), category='error')
+                return redirect(url_for('auth.login'))
         else:
             flash(message=settings.Messages.AUTH_OR_SIGNUP, category='error')
 
             return redirect(url_for('auth.login'))
+
     return wrapper
 
 
