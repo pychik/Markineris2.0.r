@@ -4,6 +4,7 @@ from typing import Optional
 
 from config import settings
 from utilities.categories_data.subcategories_data import ClothesSubcategories
+from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVEDS
 from utilities.categories_data.underwear_data import UNDERWEAR_TNVEDS
 
 
@@ -118,6 +119,13 @@ class ValidatorProcessor:
             return False
 
     @staticmethod
+    def swimming_accessories_pre_validate_tnved(tnved_str: str) -> bool:
+        if not tnved_str or tnved_str not in SWIMMING_ACCESSORIES_TNVEDS:
+            return True
+        else:
+            return False
+
+    @staticmethod
     def check_tnveds(category: str, subcategory: str, tnved_str: str) -> bool:
         if category == settings.Socks.CATEGORY:
             return ValidatorProcessor.socks_pre_validate_tnved(tnved_str=tnved_str)
@@ -131,5 +139,7 @@ class ValidatorProcessor:
             match subcategory:
                 case ClothesSubcategories.underwear.value:
                     return ValidatorProcessor.underwear_pre_validate_tnved(tnved_str=tnved_str)
+                case ClothesSubcategories.swimming_accessories.value:
+                    return ValidatorProcessor.swimming_accessories_pre_validate_tnved(tnved_str=tnved_str)
                 case _:
                     return ValidatorProcessor.clothes_pre_validate_tnved(tnved_str=tnved_str)

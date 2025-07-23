@@ -7,6 +7,7 @@ from typing import Optional, Union
 from config import settings
 from logger import logger
 from utilities.categories_data.subcategories_data import ClothesSubcategories
+from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TYPES
 from utilities.categories_data.underwear_data import UNDERWEAR_TYPES
 from utilities.check_tnved import TnvedChecker
 from utilities.upload_order.upload_common import empty_value, val_error_start, UploadCategory, handle_upload_exceptions
@@ -38,15 +39,24 @@ class ValidateClothesMixin:
 
     @staticmethod
     @empty_value
-    def _type(value: str, row_num: int, col: str, pos: int, order_list: list, subcategory: str = None) -> Optional[Union[list, str]]:
-        # value is shoe_type
+    def _type(value: str, row_num: int, col: str, pos: int, order_list: list, subcategory: str = None) -> Optional[
+        Union[list, str]]:
+
         type_value = value.upper()
-        types_list = settings.Clothes.TYPES
         message_ending = ''
-        if subcategory == ClothesSubcategories.underwear.value:
-            types_list = UNDERWEAR_TYPES
+
+        subcategory_types_map = {
+            ClothesSubcategories.underwear.value: UNDERWEAR_TYPES,
+            ClothesSubcategories.swimming_accessories.value: SWIMMING_ACCESSORIES_TYPES,
+        }
+
+        types_list = subcategory_types_map.get(subcategory, settings.Clothes.TYPES)
+
+        if subcategory in subcategory_types_map:
             message_ending = f', подкатегория {subcategory}'
+
         order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = type_value
+
         if type_value not in types_list:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_TYPE_ERROR} {message_ending}"
 

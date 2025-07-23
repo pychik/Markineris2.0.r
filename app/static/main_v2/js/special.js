@@ -743,36 +743,31 @@ function delete_archive_order(ao_id, user_order_idn){
 }
 
 
-function update_category(category_p){
+function update_category(category_p) {
+    const tabIds = [
+        'shoes',
+        'clothes',
+        'linen',
+        'parfum',
+        'socks',
+        'underwear',
+        'swimming_accessories'
+    ];
 
-    // if(document.getElementById(`pills-${category_p}`).classList.contains('show')=== false) {
-    //     console.log('contains');
-    //     $(`#${category_p}_button`).click();
-    //     document.getElementById(`pills-${category_p}-tab`).classList.remove('active');
-    //     document.getElementById(`pills-${category_p}-tab`).classList.add('active');
-    if(document.getElementById(`pills-shoes-tab`)){
-        document.getElementById(`pills-shoes-tab`).classList.remove('active');
-    }
-    if(document.getElementById(`pills-clothes-tab`)) {
-        document.getElementById(`pills-clothes-tab`).classList.remove('active');
-    }
-    if(document.getElementById(`pills-linen-tab`)) {
-        document.getElementById(`pills-linen-tab`).classList.remove('active');
-    }
-    if(document.getElementById(`pills-parfum-tab`)) {
-        document.getElementById(`pills-parfum-tab`).classList.remove('active');
-    }
-    if(document.getElementById(`pills-socks-tab`)) {
-        document.getElementById(`pills-socks-tab`).classList.remove('active');
-    }
-    if (document.getElementById(`pills-underwear-tab`)) {
-        document.getElementById(`pills-underwear-tab`).classList.remove('active');
-    }
+    tabIds.forEach(id => {
+        const tab = document.getElementById(`pills-${id}-tab`);
+        if (tab) {
+            tab.classList.remove('active');
+        }
+    });
 
-    document.getElementById(`pills-${category_p}-tab`).classList.add('active');
+    const activeTab = document.getElementById(`pills-${category_p}-tab`);
+    if (activeTab) {
+        activeTab.classList.add('active');
+    }
 
     init_tooltip(document.getElementById('pills-tabContent'));
-    }
+}
 
 
 function download_with_js_order_pdf(url, csrf) {

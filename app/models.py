@@ -491,11 +491,6 @@ class CQSMixin(db.Model, UserMixin):
     # cl_id = db.Column(db.Integer, db.ForeignKey('clothes.id', ondelete='CASCADE'), index=True)
 
 
-# class ClothesSubcategories(PyEnum):
-#     common: str = "common"
-#     underwear: str = "underwear"
-
-
 class Clothes(ClothesMixin):
     __tablename__ = "clothes"
 

@@ -16,6 +16,7 @@ from .categories_data.subcategories_data import ClothesSubcategories, Category
 from .abstract import ProcessorInterface
 from .support import order_count, helper_paginate_data, check_leather
 from .categories_data.underwear_data import UNDERWEAR_DEC_DICT, UNDERWEAR_TNVEDS
+from .categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_DEC_DICT
 from .categories_data.subcategories_logic import get_subcategory
 from .telegram import TelegramProcessor
 
@@ -433,6 +434,8 @@ class ClothesProcessor(OrdersProcessor):
         match subcategory:
             case ClothesSubcategories.underwear.value:
                 declination_dict = UNDERWEAR_DEC_DICT
+            case ClothesSubcategories.swimming_accessories.value:
+                declination_dict = SWIMMING_ACCESSORIES_DEC_DICT
             case _:
                 declination_dict = settings.Clothes.DEC
 

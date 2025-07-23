@@ -2,6 +2,7 @@ from typing import Optional
 
 from config import settings
 from utilities.categories_data.subcategories_data import ClothesSubcategories
+from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVED_DICT
 from utilities.categories_data.underwear_data import UNDERWEAR_TNVED_DICT
 
 
@@ -42,10 +43,13 @@ class TnvedChecker:
             answer = f"{tnved_code}{settings.Messages.TNVED_INPUT_ERROR_DIGITS}"
             return result_status, answer
         # good checks
-        if subcategory == ClothesSubcategories.underwear.value:
-            tnved_dict = UNDERWEAR_TNVED_DICT
-        else:
-            tnved_dict = settings.Clothes.CLOTHES_TNVED_DICT
+        match subcategory:
+            case ClothesSubcategories.underwear.value:
+                tnved_dict = UNDERWEAR_TNVED_DICT
+            case ClothesSubcategories.swimming_accessories.value:
+                tnved_dict = SWIMMING_ACCESSORIES_TNVED_DICT
+            case _:
+                tnved_dict = settings.Clothes.CLOTHES_TNVED_DICT
 
         if cloth_type.upper() not in tnved_dict.keys():
             answer = f"{tnved_code}{settings.Messages.TNVED_INPUT_ERROR_CT.format(category='одежды')}"
