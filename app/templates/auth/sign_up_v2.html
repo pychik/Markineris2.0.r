@@ -177,6 +177,8 @@
   const tele2Codes = ["900", "901", "902", "904", "908", "950", "951", "952", "953", "958",
                                 "977", "991", "992", "993", "994", "995", "996", "999" ];
 
+  const exceptedPhones = {{ excepted_phone_numbers | tojson | safe }};
+
   var tel_input = document.querySelector("#phone");
 
   const iti = intlTelInput(tel_input, {
@@ -205,6 +207,15 @@
 
   iti.promise.then(function() {
     $(tel_input).trigger("countrychange");
+  });
+  // Проверка номера при уходе из поля
+  $(tel_input).on("blur", function () {
+    const enteredNumber = iti.getNumber(); // Полный международный формат
+
+    if (exceptedPhones.includes(enteredNumber)) {
+      alert("Этот номер запрещен для использования.");
+      iti.setNumber(""); // Очищаем поле
+    }
   });
   {% if admin_info.admin_is_at2 %}
       iti.promise.then(function() {

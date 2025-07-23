@@ -39,6 +39,8 @@ class ValidatorProcessor:
 
         if not full_phone:
             return None, 'full_phone', 'Телефон не указан'
+        if full_phone in settings.ExceptionOrders.PHONE_NUMBERS:
+            raise ValidationError('full_phone', 'Этот номер телефона запрещён для регистрации')
 
         if not password:
             return None, 'password', 'Пароль не указан'

@@ -924,6 +924,7 @@ class Settings(BaseSettings):
     class ExceptionOrders:
         COMPANIES_IDNS: tuple = ('7703381056', '860235949238', '110374099900', '772307796929', )
         COMPANY_IDN_ERROR: str = "Невозможно оформить заказ по указанному ИНН {company_idn}"
+        PHONE_NUMBERS: tuple = ('+79776828273',)
 
     class Shoes:
         CATEGORY: str = 'обувь'

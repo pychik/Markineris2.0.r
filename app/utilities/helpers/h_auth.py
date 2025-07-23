@@ -99,6 +99,7 @@ def h_sign_up(p_link: str) -> Union[Response, str]:
     full_captcha = SIMPLE_CAPTCHA.create()
     captcha_img = full_captcha.get('img')
     captcha_hash = full_captcha.get('hash')
+    excepted_phone_numbers = settings.ExceptionOrders.PHONE_NUMBERS
 
     return render_template('auth/sign_up_v2.html', **locals())
 
