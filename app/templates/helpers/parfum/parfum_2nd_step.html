@@ -40,7 +40,7 @@
 
                         <!-- Скрываемое поле, которое отправляется -->
                         <input type="text" name="trademark" id="trademark" class="form-control"
-                            onchange="check_valid(this);" minlength="1" maxlength="50" required
+                            onchange="check_article_word(this);check_valid(this);" minlength="1" maxlength="50" required
                             title="Вводимое значение не должно превышать 50 знаков"
                             {% if copied_order %} value="{{ copied_order.trademark }}" {% endif %}>
 

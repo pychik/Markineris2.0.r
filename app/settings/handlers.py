@@ -22,7 +22,8 @@ def register_handlers(app: Flask) -> None:
         return dict(categories_dict=settings.CATEGORIES_DICT, categories_upload=settings.CATEGORIES_UPLOAD,
                     subcategories_dict=settings.SUB_CATEGORIES_DICT,
                     user_translate_dict=settings.USER_TRANSLATE,
-                    order_stages=settings.OrderStage, contacts=contacts)
+                    order_stages=settings.OrderStage, contacts=contacts,
+                    excepted_articles=settings.ExceptionOrders.EXCEPTED_ARTICLES)
 
     @app.errorhandler(CSRFError)
     def handle_csrf_error(error: str) -> tuple:

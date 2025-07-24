@@ -1408,3 +1408,17 @@ function hideAllOpenTooltips() {
         tooltipInstance.hide();
     });
 }
+
+function check_article_word(inputElement) {
+    let word = inputElement.value.toLowerCase();
+
+    let found = excepted_articles.some(article =>
+        word.includes(article.toLowerCase())
+    );
+
+    if (found) {
+        inputElement.value = '';
+        make_message(`Обнаружена подозрительная активность с артикулами, вы ввели "${word}", не имеет отношения к выбранной категории. Обратитесь к администратору.`, 'danger');
+    }
+    // console.log(word);
+}

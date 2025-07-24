@@ -9,7 +9,8 @@ from typing import Optional, Union
 from config import settings
 from logger import logger
 from utilities.check_tnved import TnvedChecker
-from utilities.upload_order.upload_common import empty_value, val_error_start, UploadCategory, handle_upload_exceptions
+from utilities.upload_order.upload_common import empty_value, val_error_start, UploadCategory, handle_upload_exceptions, \
+    check_article_value
 
 
 class ValidateSocksMixin:
@@ -23,6 +24,7 @@ class ValidateSocksMixin:
         return row_error
 
     @staticmethod
+    @check_article_value
     def _trademark(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
         if not value or value == 'nan' or isna(value) \
                 or len(value) < 1:
@@ -30,6 +32,7 @@ class ValidateSocksMixin:
         return
 
     @staticmethod
+    @check_article_value
     def _article(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
         if not value or value == 'nan' or isna(value) \
                 or len(value) < 1:

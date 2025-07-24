@@ -16,3 +16,6 @@ class EmptyFileToUploadError(Exception):
 
 class GetFirstPageFromPDFError(Exception):
     """Ошибка при получении первой страницы из файла PDF."""
+
+class ArticlesException(Exception):
+    """Исключение вводом запрещеного сочетания букв в товарном знаке или артикуле"""

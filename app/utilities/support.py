@@ -53,7 +53,7 @@ from views.main.categories.clothes.subcategories import ClothesSubcategoryProces
 from .categories_data.subcategories_data import ClothesSubcategories, Category
 from .categories_data.subcategories_logic import get_subcategory
 from .cipher.instance import encryptor
-from .exceptions import GetFirstPageFromPDFError
+from .exceptions import GetFirstPageFromPDFError, ArticlesException
 from .helpers.h_categories import order_table_update
 from .http_client import Requester
 from .minio_service.services import get_s3_service
@@ -300,6 +300,8 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
                       company_idn=company_idn, mark_type=form_dict.get("mark_type_hidden", "МАРКИРОВКА НЕ УКАЗАНА"),
                       category=category, stage=settings.OrderStage.CREATING, processed=False, to_delete=False)
     try:
+        check_forbidden_words(form_dict.get("article", "").strip(), "article")
+        check_forbidden_words(form_dict.get("trademark", "").strip(), "trademark")
         if category == settings.Clothes.CATEGORY:
             sizes = form_data_raw.getlist("size")
             quantities = form_data_raw.getlist("quantity")
@@ -330,7 +332,11 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
         user.orders.append(updated_order)
 
         db.session.commit()
-
+    except ArticlesException as ae:
+        logger.error(ae)
+        flash(message=str(ae), category='error')
+        db.session.rollback()
+        return (None,) * 3
     except IntegrityError as e:
         logger.error(e)
         db.session.rollback()
@@ -345,6 +351,7 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
 
     if not o_id:
         try:
+            check_forbidden_words(form_dict.get("trademark", "").strip(), "trademark")
             order = Order(company_type=form_dict.get("company_type"), company_name=form_dict.get("company_name"),
                           edo_type=form_dict.get("edo_type"), edo_id=form_dict.get("edo_id"),
                           company_idn=form_dict.get("company_idn"), mark_type=form_dict.get("mark_type_hidden", "МАРКИРОВКА НЕ УКАЗАНА"),
@@ -353,8 +360,13 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
             updated_order = common_save_db(order=order, form_dict=form_dict,
                                            category=settings.Parfum.CATEGORY)
             user.orders.append(updated_order)
-
             db.session.commit()
+
+        except ArticlesException as ae:
+            logger.error(ae)
+            flash(message=str(ae), category='error')
+            db.session.rollback()
+            return (None,) * 3
         except IntegrityError as e:
             logger.error(e)
             db.session.rollback()
@@ -3186,6 +3198,7 @@ def ausumsuu_required(func):
                 return jsonify(dict(status='danger', message=settings.Messages.CRM_MANAGER_AGENT_USER_REQUIRED))
     return wrapper
 
+
 def sumsuu_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -3200,3 +3213,15 @@ def sumsuu_required(func):
 
 def create_bill_path(filename: str) -> str:
     return f'{str(uuid4())[:8]}_{current_user.login_name}.{filename}'
+
+
+def check_forbidden_words(field_value: str, field_name: str):
+    """Проверка строки на наличие запрещённых сочетаний."""
+    if not field_value:
+        return
+    lowered = field_value.lower()
+    for bad_word in settings.ExceptionOrders.EXCEPTED_ARTICLES:
+        if bad_word in lowered:
+            raise ArticlesException(
+                f"Поле '{field_name}' содержит запрещённое сочетание: '{field_value}'"
+            )
