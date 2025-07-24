@@ -2655,7 +2655,7 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
                 relevant_user_id = u_id
 
                 uuid_postfix = str(uuid4())
-                bill_path = f'patch_{login_name}{uuid_postfix}'
+                bill_path = f'patch_{login_name}{uuid_postfix}'.replace("'", "''")
 
                 if is_at2:
                     relevant_user_id = admin_id
