@@ -1321,7 +1321,10 @@ def helper_process_category_order(user: User, order: Order, category: str, order
 
         # notify markineris common group
         MarkinerisInform.send_message_tg.delay(order_idn=order_idn)
-    return redirect(url_for(f'{_category_name}.index'))
+
+    subcategory = get_subcategory(order_id=o_id, category=category)
+
+    return redirect(url_for(f'{_category_name}.index', subcategory=subcategory))
 
 
 def helper_get_order_notification(admin_id: int) -> tuple:
