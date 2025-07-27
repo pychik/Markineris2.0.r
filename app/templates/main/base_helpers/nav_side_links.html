@@ -32,10 +32,13 @@
         <a href="{{url_for('clothes.index')}}" class="nav-link text-light" aria-current="page">Одежда</a>
     </li>
     <li class="nav-item nav-item--sub {% if 'socks' in request.path %}active{%endif%} ps-5">
-        <a href="{{url_for('socks.index')}}" class="nav-link text-light" aria-current="page">Носки и прочее <span class="badge bg-success">new</span></a>
+        <a href="{{url_for('socks.index')}}" class="nav-link text-light" aria-current="page">Носки и прочее</a>
     </li>
     <li class="nav-item nav-item--sub {% if subcategory == 'underwear'  %}active{%endif%} ps-5">
-        <a href="{{url_for('clothes.index', subcategory='underwear')}}" class="nav-link text-light" aria-current="page">Нижнее белье <span class="badge bg-success">new</span></a>
+        <a href="{{url_for('clothes.index', subcategory='underwear')}}" class="nav-link text-light" aria-current="page">Нижнее белье</a>
+    </li>
+    <li class="nav-item nav-item--sub {% if subcategory == 'swimming_accessories'  %}active{%endif%} ps-5">
+        <a href="{{url_for('clothes.index', subcategory='swimming_accessories')}}" class="nav-link text-light" aria-current="page">Купальные пр-ти <span class="badge bg-success" style="font-size: 10px">new</span></a>
     </li>
     <li class="nav-item nav-item--sub {% if 'linen' in request.path %}active{%endif%} ps-5">
         <a href="{{url_for('linen.index')}}" class="nav-link text-light" aria-current="page">Белье</a>

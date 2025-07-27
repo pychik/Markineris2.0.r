@@ -63,7 +63,7 @@ def h_bck_clothes_tnved() -> Response:
     message = settings.Messages.MANUAL_TNVED_ERROR
     cl_type = request.form.get('cl_type', '').replace('--', '')
 
-    if not cl_type or cl_type not in settings.Clothes.TYPES + UNDERWEAR_TYPES:
+    if not cl_type or cl_type not in settings.Clothes.ALL_TYPES_WITH_SUBCATEGORIES:
         return jsonify(dict(status=status, message=message + settings.Messages.STRANGE_REQUESTS))
 
     subcategory = request.args.get('subcategory', ClothesSubcategories.common.value)
@@ -71,7 +71,7 @@ def h_bck_clothes_tnved() -> Response:
 
     tnved_list = ClothesSubcategoryProcessor.get_tnveds(subcategory=subcategory, cl_type=cl_type)
     if not tnved_list:
-        return jsonify(dict(status=status, message=message + f"{subcategory=}, {cl_type=}"))
+        return jsonify(dict(status=status, message=message + f" {subcategory=}, {cl_type=}"))
     status = settings.SUCCESS
     message = settings.Messages.MANUAL_TNVED_SUCCESS
     return jsonify(dict(status=status, message=message,

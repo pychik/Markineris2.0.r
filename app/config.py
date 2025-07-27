@@ -8,6 +8,8 @@ from pydantic import SecretStr
 from utilities.categories_data.clothes_tnveds import CLOTHES_TNVED_DICT
 from utilities.categories_data.socks_data import (SOCKS_DEC_DICT, SOCKS_TYPES,SOCKS_TNVED_DICT,
                                                   SOCKS_TYPE_NUMBER_DICT)
+from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TYPES
+from utilities.categories_data.underwear_data import UNDERWEAR_TYPES
 from utilities.param_lists import (SHOE_GENDERS, SHOE_MATERIALS_UP_LINEN, SHOE_MATERIALS_BOTTOM,
     SHOE_MATERIALS_CORRECT, SHOE_PRELOAD_START, SHOE_SIZES, SHOES_SIZES_DESCRIPTION,
     SHOE_AL, SHOE_OT, SHOE_NL, SHOE_START, SHOE_TNVED, SHOE_TYPES, SHOE_SIZES_FULL,
@@ -1049,6 +1051,7 @@ class Settings(BaseSettings):
         CATEGORY: str = 'одежда'
         CATEGORY_PROCESS: str = 'clothes'
         TYPES: list = CLOTHES_TYPES
+        ALL_TYPES_WITH_SUBCATEGORIES: list = CLOTHES_TYPES + UNDERWEAR_TYPES + SWIMMING_ACCESSORIES_TYPES
         TYPES_CODES: dict = CLOTHES_TYPES_CODES
         UPPER_TYPES: list = CLOTHES_UPPER
         COLORS: tuple = COMMON_COLORS
