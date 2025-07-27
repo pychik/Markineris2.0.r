@@ -2938,6 +2938,18 @@ def aus_required(func):
     return wrapper
 
 
+def aus_mod_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.status is True and current_user.role in [settings.ADMIN_USER, settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]:
+            return func(*args, **kwargs)
+        else:
+            flash(message=settings.Messages.SUPER_MOD_REQUIRED, category='error')
+            return redirect(url_for('main.index'))
+
+    return wrapper
+
+
 def bck_aus_required(func):
     """
         Checks if user is ADMIN or SUPERUSER and returns dict with message if not
@@ -2979,6 +2991,27 @@ def bck_su_required(func):
             else:
                 flash(message=settings.Messages.SUPERADMINUSER_REQUIRED, category='error')
                 return redirect(url_for('main.index'))
+    return wrapper
+
+
+def reanimate_user_required(func):
+    """
+    check user role for reanimate client. Only ADMIN_CALLER, ADMIN_USER, SUPER_USER and MARKINERIS_ADMIN_USER
+    can reanimate
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.status is True and current_user.role in [settings.ADMIN_CALLER, settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]:
+            return func(*args, **kwargs)
+        else:
+            # check if its bck request error
+            bck = request.args.get('bck', 0, type=int)
+            if bck:
+                return jsonify(dict(status='danger', message=settings.Messages.SUPERADMINUSER_REQUIRED))
+            else:
+                flash(message=settings.Messages.SUPERADMINUSER_REQUIRED, category='error')
+                return redirect(url_for('main.index'))
+
     return wrapper
 
 

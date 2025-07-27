@@ -105,6 +105,7 @@ class Settings(BaseSettings):
     SUPER_USER: str = 'superuser'
     SUPER_MANAGER: str = 'supermanager'
     ADMIN_USER: str = 'admin'
+    ADMIN_CALLER: str = 'admin_caller'
     MARKINERIS_ADMIN_USER: str = 'm2r_admin'
     MANAGER_USER: str = 'manager'
     ORD_USER: str = 'ordinary_user'
