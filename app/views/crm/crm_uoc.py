@@ -14,7 +14,7 @@ from utilities.admin.excel_report import ExcelReport
 from utilities.support import (user_activated, su_required, susmu_required, susmumu_required, manager_exist_check,
                                helper_get_filter_avg_order_time_processing_report,
                                helper_get_stmt_avg_order_time_processing_report,
-                               helper_paginate_data, sumsuu_required)
+                               helper_paginate_data, sumsuu_required, moderator_exist_check, sql_count)
 from views.crm.helpers import (helper_clean_oco, check_manager_orders, helper_change_manager_limit, helper_get_limits,
                                helper_change_auto_order_pool, helper_change_auto_order_sent)
 
@@ -27,18 +27,27 @@ crm_uoc = Blueprint('crm_uoc', __name__)
 @user_activated
 @susmumu_required
 def index():
-
     user = current_user
-    managers_list = User.query.filter(User.role.in_([settings.SUPER_MANAGER, settings.MANAGER_USER])) \
-        .with_entities(User.id, User.status, User.role, User.login_name, User.email ).order_by(User.id).all()
+    workers_list = [w for w in User.query.filter(User.role.in_([settings.SUPER_MANAGER, settings.MANAGER_USER,
+                                                                settings.MARKINERIS_ADMIN_USER]))
+    .with_entities(User.id, User.status, User.role, User.login_name, User.email).order_by(User.id).all()]
+
+    managers_list = list(filter(lambda x: x.role in [settings.SUPER_MANAGER, settings.MANAGER_USER], workers_list))
+    moderators_list = list(filter(lambda x: x.role in [settings.MARKINERIS_ADMIN_USER], workers_list))
 
     dt_co = date.today() - timedelta(days=settings.OrderStage.DAYS_CONTENT)
     cancelled_orders = Order.query.with_entities(Order.id) \
         .filter(Order.stage == settings.OrderStage.CANCELLED, Order.cc_created < dt_co).count()
 
+    # if managers_list:
+    #     new_manager_name = managers_list[-1].login_name.split('_')[0] + '_' + str(
+    #         int(managers_list[-1].login_name.split('_')[1]) + 1)
+    if moderators_list:
+        new_moderator_name = moderators_list[-1].login_name.split('_')[0] + '_' + str(
+            int(moderators_list[-1].login_name.split('_')[1]) + 1)
+
     crm_defaults = helper_get_limits()
     limits_defaults = settings.OrderStage.PS_DICT
-
     return render_template('crm_mod_v1/crm_uoc.html', **locals())
 
 
@@ -295,3 +304,101 @@ def avg_order_processing_time_rpt_excel():
     response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     response.headers['data_status'] = 'success'
     return response
+
+
+@crm_uoc.route('/create_moderator/', methods=['POST'])
+@login_required
+@user_activated
+@su_required
+def create_moderator():
+
+    form_dict = request.form.to_dict()
+    login_name = form_dict.get("moderator_login_name")
+    password = form_dict.get("moderator_password")
+    if not login_name or not login_name.startswith('moderator_') or not password or len(password) < 6:
+        flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
+        return redirect(url_for('crm_uoc.index'))
+
+    try:
+        new_moderator = User(admin_order_num=0, login_name=login_name, phone=settings.SU_PHONE,
+                             email=login_name + settings.MANAGER_EMAIL_POSTFIX,
+                             is_crm=False, is_send_excel=False, is_at2=False,
+                             password=generate_password_hash(password, method='sha256'),
+                             role=settings.MARKINERIS_ADMIN_USER, client_code=settings.MM_PARTNER, status=True)
+
+        db.session.add(new_moderator)
+        db.session.commit()
+        flash(message=f"{settings.Messages.MODERATOR_CREATE_SUCCESS} {login_name + settings.MANAGER_EMAIL_POSTFIX}")
+    except IntegrityError as e:
+        db.session.rollback()
+        message = f"{settings.Messages.MODERATOR_CREATE_ERROR} {e}"
+        flash(message=message, category='error')
+        logger.error(message)
+
+        return redirect(url_for('crm_uoc.index'))
+
+    return redirect(url_for('crm_uoc.index'))
+
+
+@crm_uoc.route('/delete_moderator/<int:u_id>', methods=['POST'])
+@login_required
+@su_required
+@moderator_exist_check
+def delete_moderator(u_id: int):
+    # user = User.query.filter_by(id=u_id).first()
+
+    try:
+        removed_user = db.session.execute(text("DELETE FROM public.users WHERE id=:u_id returning public.users.login_name").bindparams(u_id=u_id)).fetchone().login_name
+        # user.telegram = []
+        # db.session.delete(user)
+        db.session.commit()
+        flash(message=f"{settings.Messages.DELETE_USER} {removed_user}")
+    except Exception as e:
+        db.session.rollback()
+        message = f"{settings.Messages.DELETE_USER_ERROR} {e}"
+        flash(message=message, category='error')
+        logger.error(message)
+
+    return redirect(url_for('crm_uoc.index'))
+
+
+@crm_uoc.route('/activate_moderator/<int:u_id>', methods=['POST'])
+@login_required
+@su_required
+@moderator_exist_check
+def activate_moderator(u_id: int):
+    user = User.query.filter_by(id=u_id).first()
+
+    try:
+        user.status = True
+        db.session.commit()
+
+        flash(message=f"{settings.Messages.ACTIVATED_USER} {user.login_name}")
+    except Exception as e:
+        db.session.rollback()
+        message = f"{settings.Messages.ACTIVATED_USER_ERROR} {e}"
+        flash(message=message, category='error')
+        logger.error(message)
+
+    return redirect(url_for('crm_uoc.index'))
+
+
+@crm_uoc.route('/deactivate_moderator/<int:u_id>', methods=['POST'])
+@login_required
+@su_required
+@moderator_exist_check
+def deactivate_moderator(u_id: int):
+
+    user = User.query.filter_by(id=u_id).first()
+    try:
+        user.status = False
+        db.session.commit()
+        flash(message=f"{settings.Messages.DEACTIVATED_USER} {user.login_name}")
+
+    except Exception as e:
+        db.session.rollback()
+        message = f"{settings.Messages.DEACTIVATED_USER_ERROR} {e}"
+        flash(message=message, category='error')
+        logger.error(message)
+
+    return redirect(url_for('crm_uoc.index'))

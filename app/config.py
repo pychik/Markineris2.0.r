@@ -111,7 +111,7 @@ class Settings(BaseSettings):
     USER_TRANSLATE: dict = USER_TRANSLATE_DICT
     USER_ROLES: list = [ORD_USER, MANAGER_USER, SUPER_MANAGER, ADMIN_USER, MARKINERIS_ADMIN_USER, SUPER_USER]
     ADMIN_USER_POSTFIX: str = "@agentsm2r.com"
-
+    MM_PARTNER: str = "IAMMODERATOR"
     SQ_CATEGORIES: list = ['обувь', 'одежда', 'белье']
     CATEGORIES_PROCESS_NAMES: list = ['shoes', 'clothes', 'linen', 'parfum', 'send_table']
     CATEGORIES_UPLOAD: tuple = ('обувь', 'одежда', 'парфюм', 'белье', 'носки и прочее')
@@ -689,6 +689,8 @@ class Settings(BaseSettings):
         ADMIN_CREATE_ERROR: str = "Во время создания агента произошла ошибка: "
         MANAGER_CREATE_SUCCESS: str = "Успешно создан новый пользователь с ролью менеджер "
         MANAGER_CREATE_ERROR: str = "Во время создания пользователя с ролью менеджер произошла ошибка "
+        MODERATOR_CREATE_SUCCESS: str = "Успешно создан новый пользователь с ролью модератор "
+        MODERATOR_CREATE_ERROR: str = "Во время создания пользователя с ролью модератор произошла ошибка "
         SUPERMANAGER_SET: str = "Успешна поменяна роль пользователя на супер менеджер"
         SUPERMANAGER_SET_ERROR: str = "Во время смены роли на супер менеджера произошла ошибка"
         MANAGER_SET: str = "Успешна поменяна роль пользователя на менеджер"

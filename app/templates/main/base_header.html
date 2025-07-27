@@ -72,7 +72,7 @@
                                 src="{{url_for('static', filename='main_v2/img/icons/exit.svg')}}" class="me-2" width="24"
                                 height="24">Выход</a>
                     </li>
-                    {% if current_user.role == 'superuser' or current_user.role=='admin'%}
+                    {% if current_user.role in ['superuser', 'm2r_admin', 'admin']%}
                         <li>
                             <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_d.agents') }}"
                                title="Перейти в CRM">
@@ -86,16 +86,16 @@
                                     title="Панель управления пользователями">Заказы клиентов</a>
                             </li>
                     {% endif %}
-                    {% if current_user.role == 'superuser' or current_user.role == 'admin'%}
+                    {% if current_user.role in ['superuser', 'admin', 'm2r_admin']%}
                         <li>
                             <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.index') }}"
                                 title="Панель управления пользователями">Управление пользователями</a>
                         </li>
                     {% endif %}
-                    {% if current_user.role == 'superuser' %}
+                    {% if current_user.role in ['superuser', 'm2r_admin'] %}
                         <li>
                             <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.su_control_finance') }}"
-                                title="Панель управления пользователями">Финансы</a>
+                                title="Панель управления финансами">Финансы</a>
                         </li>
                     {% elif current_user.role == 'admin' %}
                         <li>

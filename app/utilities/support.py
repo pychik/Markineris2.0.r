@@ -3067,6 +3067,24 @@ def manager_exist_check(func):
     return wrapper
 
 
+def moderator_exist_check(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        user = User.query.filter_by(id=kwargs.get("u_id"), role=settings.MARKINERIS_ADMIN_USER).first()
+
+        if user:
+            if user.role != settings.SUPER_USER:
+                return func(*args, **kwargs)
+            else:
+                flash(message=f"{settings.Messages.SUPERUSER_NOT_EDIT}", category='error')
+                return redirect(url_for('crm_uc.index'))
+        else:
+            flash(message=f"{settings.Messages.NO_SUCH_USER}", category='error')
+            return redirect(url_for('crm_uc.index'))
+
+    return wrapper
+
+
 def helper_strange_response(redir_url: str = None, message: str = settings.Messages.STRANGE_REQUESTS):
     if not redir_url:
         redir_url = url_for('main.enter')

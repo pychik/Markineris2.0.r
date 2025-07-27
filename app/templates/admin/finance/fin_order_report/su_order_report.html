@@ -9,7 +9,7 @@
 
 
 <div class="container">
-    {% if current_user.role != 'markineris_admin' %}
+    {% if current_user.role != 'm2r_admin' %}
         <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
             <div class="breadcrumbs">
                 <a href="{{url_for('admin_control.su_control_finance')}}">Контроль финансов </a>

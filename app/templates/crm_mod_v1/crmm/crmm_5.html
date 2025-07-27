@@ -29,7 +29,7 @@
                         </div>
                         <div class="order__all">
                             <div class="manager" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="top"
-                                 {% if current_user.role in['superuser', 'supermanager', 'markineris_admin'] %}
+                                 {% if current_user.role in['superuser', 'supermanager', 'm2r_admin'] %}
                                  data-bs-title="Оператор заказа. Нажмите, чтобы изменить."
                                  onclick="change_operator('{{ n.id }}', '{{n.order_idn}}', `{{ url_for('crm_d.change_order_manager', manager_id=n.manager_id, o_id= n.id) }}`, '{{ csrf_token() }}')"
                                  {% else %} data-bs-title="Оператор заказа"
@@ -62,7 +62,7 @@
 
                                 </div>
                                 <div class="steps">
-                                      {% if user.role in ['superuser', 'supermanager', 'markineris_admin'] %}
+                                      {% if user.role in ['superuser', 'supermanager', 'm2r_admin'] %}
                                         <img src="{{url_for('static', filename='crm_mod/img/icons/arrow-left-circle-fill.svg')}}" alt="Переместить заказ в статус В ОБРАБОТКЕ У МЕНЕДЖЕРА"
                                         class="icons__item" width="24" height="24" data-bs-toggle="tooltip"
                                         data-bs-placement="top" data-bs-title="Переместить заказ в статус В ОБРАБОТКЕ У МЕНЕДЖЕРА"

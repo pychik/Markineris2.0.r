@@ -6,7 +6,7 @@
 <div>
     <div class="top-content d-flex  mb-5">
         <div class="breadcrumbs">
-            {% if current_user.role != 'markineris_admin' %}
+            {% if current_user.role != 'm2r_admin' %}
             <a href="{{url_for('admin_control.index')}}">Панель управления </a>
             /
             {% endif %}

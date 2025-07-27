@@ -25,7 +25,7 @@
 <!--                {% endif %}-->
 <!--          {% endif %}  -->
 
-    <div class="top__filter" {% if 'manager' in request.path and user.role in ['superuser', 'supermanager', 'markineris_admin'] %} {%else%}style="display:none"{%endif%}>
+    <div class="top__filter" {% if 'manager' in request.path and user.role in ['superuser', 'supermanager', 'm2r_admin'] %} {%else%}style="display:none"{%endif%}>
         <div class="filter filter-manager">
           <select class="form-select filter__select" id="selectManager" onchange="filter_category_manager('{{url_for('crm_d.managers')}}?bck=1');"
               aria-label="Выберите менеджера" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Фильтр по менеджерам"

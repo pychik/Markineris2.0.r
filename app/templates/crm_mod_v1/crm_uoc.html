@@ -3,6 +3,8 @@
 {% block crm_uoc %}
 
 <div class="mx-3">
+    {% if user.role == 'superuser' %} {% include 'crm_mod_v1/helpers/moderators.html'%} {%endif%}
+
     {% include 'crm_mod_v1/helpers/managers.html'%}
 
     <div class="container">

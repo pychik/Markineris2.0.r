@@ -28,7 +28,7 @@
             Список заказов клиентов
           </a>
     </div>
-    {% if current_user.role in ['superuser', 'markineris_admin'] or (current_user.role == 'admin' and current_user.is_at2 )%}
+    {% if current_user.role in ['superuser', 'm2r_admin'] or (current_user.role == 'admin' and current_user.is_at2 )%}
           <div class="d-flex justify-content-center">
             <a href="{{ url_for('admin_control.bck_agent_control_reanimate', u_id=admin_info.id) }}"
                class="col-md-5 text-center btn btn-sm btn-outline-warning btn-outline">
@@ -334,7 +334,7 @@
               </td>
 
               <td>
-                  {% if current_user.role in ['superuser', 'markineris_admin'] %}
+                  {% if current_user.role in ['superuser', 'm2r_admin'] %}
                     <form method="post"
                           action="{{ url_for('admin_control.delete_partner_code', u_id=admin_info.id, p_id=pc.id) }}">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -459,7 +459,7 @@
                       </a>
                     </div>
                     <div class="mt-2 ms-3">
-                      {%if current_user.role in ['superuser', 'markineris_admin']%}
+                      {%if current_user.role in ['superuser', 'm2r_admin']%}
                         <a class="badge bg-secondary" href="{{ url_for('admin_control.su_control_specific_ut', u_id=u.id) }}"
                          title="Посмотреть историю транзакций клиента">
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-database" viewBox="0 0 16 16">
