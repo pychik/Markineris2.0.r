@@ -36,7 +36,7 @@ class ValidateSocksMixin:
     def _article(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
         if not value or value == 'nan' or isna(value) \
                 or len(value) < 1:
-            order_list[row_num - settings.Socks.UPLOAD_STANDART_ROW][pos] = 'БЕЗ АРТИКУЛА'
+            order_list[row_num - settings.Socks.UPLOAD_STANDART_ROW][pos] = 'ОТСУТСТВУЕТ'
         return
 
     @staticmethod

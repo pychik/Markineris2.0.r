@@ -660,7 +660,7 @@ function toggleArticleTrademarkField(checkbox, fieldId) {
         if (fieldId === 'trademark') {
             inputField.value = "БЕЗ ТОВАРНОГО ЗНАКА";
         } else if (fieldId === 'article') {
-            inputField.value = "БЕЗ АРТИКУЛА";
+            inputField.value = "ОТСУТСТВУЕТ";
         } else {
             inputField.value = "БЕЗ ДАННЫХ";
         }
