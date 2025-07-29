@@ -36,7 +36,7 @@ class ValidateClothesMixin:
     @check_article_value
     def _article(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
         if not value or value == 'nan' or isna(value) \
-                or len(value) < 1:
+                or len(value) < 1 or value.upper() == 'БЕЗ АРТИКУЛА':
             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = 'ОТСУТСТВУЕТ'
         return
 
@@ -87,7 +87,7 @@ class ValidateClothesMixin:
         # corrected_value = value.strip().replace(' ', '')
         # size_value.replace not making because of spaces in sizes
         if size_value in settings.Clothes.UNITE_SIZE_VALUES:
-            order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = settings.Clothes.DEFAULT_SIZE_TYPE
+            order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = settings.Clothes.INTERNATIONAL_SIZE_TYPE
             return
         for el in settings.Clothes.SIZE_TYPES_ALL:
             if size_value in settings.Clothes.SIZE_ALL_DICT.get(el):
@@ -99,7 +99,10 @@ class ValidateClothesMixin:
     @staticmethod
     @empty_value
     def _size(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
-        order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = value
+        if value.upper() in settings.Clothes.UNITE_SIZE_VALUES:
+            order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = settings.Clothes.UNITE_SIZE_VALUE
+        else:
+            order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = value
 
         # if value not in settings.Clothes.SIZES_ALL:
         #     return f"{val_error_start(row_num=row_n

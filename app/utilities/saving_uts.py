@@ -30,8 +30,11 @@ def process_input_str(value: str) -> str:
 
 def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
+    article = process_input_str(form_dict.get("article"))
+    article = article if article.upper() != 'БЕЗ АРТИКУЛА' else 'ОТСУТСТВУЕТ'
+
     new_shoe_order = Shoe(trademark=process_input_str(form_dict.get("trademark")),
-                          article=process_input_str(form_dict.get("article")), type=form_dict.get("type"),
+                          article=article, type=form_dict.get("type"),
                           color=form_dict.get("color"), box_quantity=form_dict.get("box_quantity"),
                           material_top=form_dict.get("material_top"),
                           material_lining=form_dict.get("material_lining"),
@@ -52,8 +55,11 @@ def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
 
 def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcategory: str = None) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
+    article = process_input_str(form_dict.get("article"))
+    article = article if article.upper() != 'БЕЗ АРТИКУЛА' else 'ОТСУТСТВУЕТ'
+
     new_clothes_order = Clothes(trademark=process_input_str(form_dict.get("trademark")),
-                                article=process_input_str(form_dict.get("article")),
+                                article=article,
                                 type=form_dict.get("type"),
                                 color=form_dict.get("color"),
                                 content=form_dict.get("content")[:101], box_quantity=form_dict.get("box_quantity"),
@@ -65,7 +71,7 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcateg
 
     extend_sq = (ClothesQuantitySize(size=el[0], quantity=el[1],
                                      size_type=el[2] if el[0] not in settings.Clothes.UNITE_SIZE_VALUES
-                                     else settings.Clothes.DEFAULT_SIZE_TYPE) for el in sizes_quantities)
+                                     else settings.Clothes.INTERNATIONAL_SIZE_TYPE) for el in sizes_quantities)
     new_clothes_order.sizes_quantities.extend(extend_sq)
     order.clothes.append(new_clothes_order)
     return order
@@ -73,8 +79,11 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcateg
 
 def save_socks(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
+    article = process_input_str(form_dict.get("article"))
+    article = article if article.upper() != 'БЕЗ АРТИКУЛА' else 'ОТСУТСТВУЕТ'
+
     new_socks_order = Socks(trademark=process_input_str(form_dict.get("trademark")),
-                              article=process_input_str(form_dict.get("article")),
+                              article=article,
                               type=form_dict.get("type"),
                               color=form_dict.get("color"),
                               content=form_dict.get("content")[:101], box_quantity=form_dict.get("box_quantity"),
@@ -95,8 +104,11 @@ def save_linen(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     # with_p = form_dict.get("with_packages")
     with_p = "False"
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
+    article = process_input_str(form_dict.get("article"))
+    article = article if article.upper() != 'БЕЗ АРТИКУЛА' else 'ОТСУТСТВУЕТ'
+
     new_linen_order = Linen(trademark=process_input_str(form_dict.get("trademark")),
-                            article=process_input_str(form_dict.get("article")),
+                            article=article,
                             type=form_dict.get("type"),
                             color=form_dict.get("color"),
                             with_packages='да' if form_dict.get("with_packages") == "True" else 'нет',
