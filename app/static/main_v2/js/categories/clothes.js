@@ -741,7 +741,7 @@ function updateSizesQuantityBlock() {
 
         if (size.startsWith('subcategorySize')) return;
         if (special_clothes_sizes.includes(size)) {
-            sizeType = 'РОССИЯ';
+            sizeType = 'МЕЖДУНАРОДНЫЙ';
         }
 
         newSizes[size] = { quantity, sizeType };
@@ -908,7 +908,7 @@ function create_size_blocks(sizes, clothingType) {
         let quantity = parseInt(item.querySelector('#quantity_info').textContent);
 
         // Если это специальный размер, добавляем его в карту (объект)
-        if (clothingType === 'ОСОБЫЕ_РАЗМЕРЫ' && sizeTypeInCard === 'РОССИЯ' && special_clothes_sizes.includes(sizeInCard)) {
+        if (clothingType === 'ОСОБЫЕ_РАЗМЕРЫ' && sizeTypeInCard === 'МЕЖДУНАРОДНЫЙ' && special_clothes_sizes.includes(sizeInCard)) {
             quantityMap[sizeInCard] = quantity; // Запоминаем количество каждого уникального размера
         } else if (sizeTypeInCard === clothingType) {
             quantityMap[sizeInCard] = quantity;

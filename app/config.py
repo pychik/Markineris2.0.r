@@ -1066,7 +1066,8 @@ class Settings(BaseSettings):
 
         SIZE_ALL_DICT: dict = CLOTHES_TYPES_SIZES_DICT
         DEFAULT_SIZE_TYPE: str = "РОССИЯ"
-        UNITE_SIZE_VALUE: str = "ЕДИНЫЙ РАЗМЕР"
+        INTERNATIONAL_SIZE_TYPE: str = "МЕЖДУНАРОДНЫЙ"
+        UNITE_SIZE_VALUE: str = "ONE SIZE"
         UNITE_SIZE_VALUES: tuple = ("ЕДИНЫЙ РАЗМЕР", "ONE SIZE", )
         SYZE_TYPES_CODES: dict = CLOTHES_ST_DICT
         SIZE_TYPES_ALL: list = CLOTHES_TYPES_SIZES_DICT.keys()  # temporary before all types are ok to use
