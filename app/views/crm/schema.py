@@ -7,6 +7,7 @@ CrmDefaults = namedtuple('CrmDefaults', 'ps_limit, mo_limit, po_limit, ap_rows, 
 class CompaniesOperators(Enum):
     GRENADA = ("Гренада", "4400023137")
     AVRORA = ("Аврора", "4400023120")
+    BEROT = ("Берот", "9713027393")
     NOVASTOR = ("Новастор", "4400024187")
     STARMARKET = ("Стармаркет", "4400024211")
     EVRIKA = ("Эврика", "4400024243")
