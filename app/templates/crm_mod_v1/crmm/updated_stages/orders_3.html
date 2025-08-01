@@ -24,7 +24,7 @@
             <div class="order__all">
                 <div id="managerNameBlock_{{n.id}}">
                     <div class="manager" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="top"
-                         {% if current_user.role in['superuser', 'supermanager', 'markineris_admin'] %}
+                         {% if current_user.role in['superuser', 'supermanager', 'm2r_admin'] %}
                          data-bs-title="Оператор заказа. Нажмите, чтобы изменить."
                         onclick="change_operator('{{ n.id }}', '{{n.order_idn}}', `{{ url_for('crm_d.change_order_manager', manager_id=n.manager_id, o_id= n.id) }}`, '{{ csrf_token() }}')"
                         {% else %} data-bs-title="Оператор заказа"

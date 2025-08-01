@@ -54,7 +54,7 @@
                               </a>
                             </div>
                             <div class="mt-2 ms-3">
-                              {%if current_user.role in ['superuser', 'markineris_admin']%}
+                              {%if current_user.role in ['superuser', 'm2r_admin']%}
                                 <a class="badge bg-secondary" href="{{ url_for('admin_control.su_control_specific_ut', u_id=u.id) }}"
                                  title="Посмотреть историю транзакций клиента">
                                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-database" viewBox="0 0 16 16">

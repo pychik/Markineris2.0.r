@@ -104,7 +104,7 @@ from utilities.support import (
     user_exist_check,
     su_mod_required,
     bck_at2_required,
-    bck_su_mod_required,
+    bck_su_mod_required, reanimate_user_required,
 )
 from validators.admin_control import UpdateBalanceSchema
 
@@ -324,7 +324,7 @@ def change_trust_limit(u_id: int):
 
 @admin_control.route('/su_user_search', methods=["POST"])
 @login_required
-@su_required
+@su_mod_required
 def su_user_search():
     return h_su_user_search()
 
@@ -345,35 +345,35 @@ def user_search_idn(user_admin_id: int):
 
 @admin_control.route('/cross_user_search/', methods=["POST"])
 @login_required
-@su_required
+@su_mod_required
 def cross_user_search():
     return h_cross_user_search()
 
 
 @admin_control.route('/su_control_finance', methods=['GET', ])
 @login_required
-@su_required
+@su_mod_required
 def su_control_finance():
     return h_su_control_finance()
 
 
 @admin_control.route('/su_bck_promo', methods=['GET', ])
 @login_required
-@su_required
+@su_mod_required
 def su_bck_promo():
     return h_su_bck_promo()
 
 
 @admin_control.route('/su_add_promo', methods=['POST', ])
 @login_required
-@su_required
+@su_mod_required
 def su_add_promo():
     return h_su_add_promo()
 
 
 @admin_control.route('/su_delete_promo/<int:p_id>', methods=['POST', ])
 @login_required
-@su_required
+@su_mod_required
 def su_delete_promo(p_id: int):
     return h_su_delete_promo(p_id=p_id)
 
@@ -496,7 +496,7 @@ def su_bck_change_sa_type(sa_type: str):
 
 @admin_control.route('/su_control_ut', methods=['GET', ])
 @login_required
-@su_required
+@su_mod_required
 def su_control_ut():
     """
         page of all user transactions to control
@@ -507,7 +507,7 @@ def su_control_ut():
 
 @admin_control.route('/su_bck_control_ut', methods=['GET', ])
 @login_required
-@bck_su_required
+@bck_su_mod_required
 def su_bck_control_ut():
     """
         background update filtered user transactions to control
@@ -649,7 +649,7 @@ def su_bck_fin_bonus_history_excel():
 
 @admin_control.route('/su_bck_ut_report', methods=['POST', ])
 @login_required
-@bck_su_required
+@bck_su_mod_required
 def su_bck_ut_report():
     """
         background update filtered user transactions to control
@@ -671,7 +671,7 @@ def au_bck_control_ut():
 
 @admin_control.route('su_transaction_detail/<int:u_id>/<int:t_id>', methods=['GET', ])
 @login_required
-@su_required
+@su_mod_required
 def bck_su_transaction_detail(u_id: int, t_id: int):
     """
         transaction info for modal window
@@ -697,7 +697,7 @@ def bck_aus_transaction_detail(u_id: int, t_id: int):
 
 @admin_control.route('su_pending_transaction_update/<int:u_id>/<int:t_id>', methods=['POST', ])
 @login_required
-@su_required
+@su_mod_required
 def bck_su_pending_transaction_update(u_id: int, t_id: int):
     """
         super user background update pending transactions
@@ -808,7 +808,7 @@ def users_activate_list():
 
 @admin_control.route('/bck_control_reanimate', methods=['GET', ])
 @login_required
-@bck_su_required
+@reanimate_user_required
 def bck_control_reanimate():
     """
         background update filtered users not active for specified conditions to control
@@ -819,7 +819,7 @@ def bck_control_reanimate():
 
 @admin_control.route('/bck_reanimate_save_call', methods=['POST'])
 @login_required
-@bck_su_required
+@reanimate_user_required
 def bck_reanimate_save_call_result():
     """
         save call result for user in reanimate interface
@@ -829,7 +829,7 @@ def bck_reanimate_save_call_result():
 
 @admin_control.route('/bck_su_control_reanimate_excel', methods=['POST'])
 @login_required
-@bck_su_required
+@bck_su_mod_required
 def bck_su_control_reanimate_excel():
     """
     load excel with user reanimate report
@@ -864,7 +864,7 @@ def bck_user_activate(u_id: int):
 
 @admin_control.route('/bck_change_user_password/<int:u_id>', methods=['POST'])
 @login_required
-@bck_su_required
+@bck_su_mod_required
 def bck_change_user_password(u_id: int):
     return h_bck_change_user_password(u_id=u_id)
 

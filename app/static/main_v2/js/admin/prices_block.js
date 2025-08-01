@@ -90,7 +90,7 @@ function perform_modal_prices(u_id, u_name, p_code, p1, p2, p3, p4, p5, p6, p7, 
                       </div>
                   </div>
                   <div class="col text-justify">
-                     ${currentUserRole !== "markineris_admin" ? `
+                     ${currentUserRole !== "m2r_admin" ? `
                         <small class="text-secondary small">Вы можете выбрать новый ценовой пакет,
                             после этого <b>Нажмите обновить</b>. Либо нажмите Закрыть.
                         </small>

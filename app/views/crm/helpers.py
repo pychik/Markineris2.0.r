@@ -47,7 +47,7 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                               """
     stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
 
-    if user.role != settings.SUPER_USER:
+    if user.role not in [settings.SUPER_USER,  settings.MARKINERIS_ADMIN_USER]:
         admin_id = user.id
 
         stmt_users = f"""SELECT users.id AS users_id
@@ -162,7 +162,7 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
         if stage in [settings.OrderStage.SENT, settings.OrderStage.CANCELLED, settings.OrderStage.CRM_PROCESSED] else ""
 
     category_stmt = f"AND o.category='{category}'" if category in settings.CATEGORIES_UPLOAD else ""
-    if user.role != settings.SUPER_USER:
+    if user.role not in [settings.SUPER_USER,  settings.MARKINERIS_ADMIN_USER]:
         admin_id = user.id
 
         stmt_users = f"""SELECT users.id AS users_id
@@ -1042,7 +1042,7 @@ def helper_cancel_order(user: User, o_id: int, cancel_comment: str):
                   """).bindparams(o_id=o_id)
     order_info = db.session.execute(order_stmt).fetchone()
     # check for order exist and admin correct
-    if not order_info or ((user.id != order_info.agent_id and user.id != order_info.user_id) and user.role != settings.SUPER_USER):
+    if not order_info or ((user.id != order_info.agent_id and user.id != order_info.user_id) and user.role not in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]):
         flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
         message = settings.Messages.STRANGE_REQUESTS
         return jsonify({'status': status, 'message': message})
@@ -1132,7 +1132,7 @@ def helper_change_agent_stage(o_id: int, stage: int, user: User):
     agent_order_agent_check = (not order_info.agent_id and user.id != order_info.user_id)
 
     if stage not in settings.OrderStage.CHECK_TUPLE or \
-            ((user_order_agent_check or agent_order_agent_check) and user.role != settings.SUPER_USER):
+            ((user_order_agent_check or agent_order_agent_check) and user.role not in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]):
         flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
         return redirect(url_for('crm_d.agents'))
     # update order stage
@@ -1230,7 +1230,7 @@ def helper_change_agent_stage_bck(o_id: int, stage: int, user: User) -> tuple[bo
     agent_order_agent_check = (not order_info.agent_id and user.id != order_info.user_id)
 
     if stage not in settings.OrderStage.CHECK_TUPLE  or \
-            ((user_order_agent_check or agent_order_agent_check) and user.role != settings.SUPER_USER):
+            ((user_order_agent_check or agent_order_agent_check) and user.role not in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]):
         return False, settings.Messages.STRANGE_REQUESTS
     # update order stage
     dt_agent = datetime.now()
@@ -1739,7 +1739,7 @@ def h_get_agent_order_info(search_order_idn):
                                       """
     stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
     agent_condition = ''
-    if current_user.role != settings.SUPER_USER:
+    if current_user.role not in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]:
         admin_id = current_user.id
         stmt_users = f"""SELECT users.id AS users_id
                          FROM users

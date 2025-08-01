@@ -11,7 +11,7 @@
             <div class="breadcrumbs">
                 <a href="{{url_for('admin_control.admin', u_id=u_id)}}">Управление пользователями </a>
                 /
-                <span>Отчеты по заказам (категории и типы) <b>{% if current_user.role in['superuser', markineris_admin] %} {{ admin.login_name }}{% endif %}</b></span>
+                <span>Отчеты по заказам (категории и типы) <b>{% if current_user.role in['superuser', m2r_admin] %} {{ admin.login_name }}{% endif %}</b></span>
 
             </div>
         </div>

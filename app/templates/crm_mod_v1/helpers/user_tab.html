@@ -35,7 +35,7 @@
                 <img src="{{url_for('static', filename='main_v2/img/icons/home.svg')}}" class="me-2" width="32"
                         height="32">Платформа</a>
             </li>
-        {% elif current_user.role == 'markineris_admin' %}
+        {% elif current_user.role == 'm2r_admin' %}
                         <li>
                             <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_d.agents') }}"
                                title="Перейти в CRM">
@@ -78,7 +78,7 @@
     {% endif %}
 
     </ul>
-    {% if current_user.role in ['superuser', 'markineris_admin'] %}
+    {% if current_user.role in ['superuser', 'm2r_admin'] %}
         <div class="mt-2 d-flex flex-column align-items-end text-reset g-2">
             {% if 'agents' in request.path %}
                 <a href="{{url_for('crm_d.managers')}}" class="user__type" data-bs-toggle="tooltip" data-bs-placement="top"

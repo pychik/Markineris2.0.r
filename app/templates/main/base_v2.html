@@ -65,16 +65,17 @@
                     </a>
                 </div>
                 {% if current_user.is_authenticated %}
-
-                    <div class="mt-4 mb-3">
-                        <div class="contact-links mt-4">
+                    {% if current_user.role not in ['m2r_admin', 'admin_caller'] %}
+                        <div class="mt-5 mb-1">
                             {% include 'main/base_helpers/nav_side_links.html' %}
                         </div>
-                    </div>
+                        <hr>
+
+                    {% endif %}
                 {% else %}
 
-                    <div class="mt-4 mb-3">
-                        <div class="contact-links mt-4">
+                    <div class="mt-5 mb-1">
+                        <div class="contact-links">
                             {% if 'login' in  request.path or 'sign_up' in request.path or 'restore_page' in request.path %}
                             <div class="mb-3 text-center" style="font-weight: bold">
                                 <a href="{{url_for('auth.login')}}" class="text-white" style="text-decoration:none">Вход</a>

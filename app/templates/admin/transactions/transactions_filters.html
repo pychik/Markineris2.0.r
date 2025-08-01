@@ -76,7 +76,7 @@
             <span class="badge bg-light text-secondary" style="cursor:pointer" onclick="set_current_date_su_filters();"> За сегодня</span>
         </div>
         <div class="row">
-            {% if current_user.role == 'markineris_admin' %}
+            {% if current_user.role == 'm2r_admin' %}
                 <input type="hidden" id="operation_type" name="operation_type" value="1">
             {% else %}
                 <div class="col-md-2">
