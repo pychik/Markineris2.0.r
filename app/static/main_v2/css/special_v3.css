@@ -266,3 +266,24 @@
     font-size: 14px;
     color: #856404; /* Цвет текста warning */
 }
+
+.alert-container {
+  background-color: #fff;
+  border: 2px solid #ffd700;
+  padding: 12px 16px;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  max-width: 700px;
+  width: 100%;
+  font-size: 14px;
+  line-height: 1.4;
+  margin-bottom: 24px;
+}
+.section-title {
+      font-weight: bold;
+      font-size: 20px;
+       color: #616060;
+      margin-bottom: 10px;
+      border-left: 4px solid #ffd700;
+      padding-left: 10px;
+}

@@ -2,12 +2,14 @@
 <div class="container mt-5 faded" id="fill_block">
     {% if not agent_info.is_at2 %}
         <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-3">
-            <div class="breadcrumbs">
-                <span style="cursor:pointer"><u>Пополнение счета</u></span>
-            </div>
+            <div class="section-title">Пополнение счета</div>
         </div>
-        <p>❌ В случае проблем с оплатой через Сбербанк, используйте другой банк.</p>
-
+       <div class="alert-container">
+          <div class="lh-1 text-wrap">
+            <p>❗❗❗ В случае проблем с оплатой через Сбербанк, используйте другой банк.</p>
+            <p>🕒 Одобрение баланса происходит ручной проверкой в период 10:00 - 21:00</p>
+          </div>
+        </div>
         {% if cur_sa %}
             <form method="POST" action="{{ url_for('user_cp.pa_refill', u_id=u_id, sa_id=cur_sa.id) }}"
                   onsubmit="return check_pa_refill_form();" id="pa_refill_form">
