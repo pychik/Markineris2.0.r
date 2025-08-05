@@ -66,7 +66,7 @@ def upload_clothes_st(order_list: list, order: Order, subcategory: str = None) -
                                     country=el[10].strip(),
                                     rd_type=el[11].strip(), rd_name=el[12].strip().replace('№', ''), rd_date=rd_date,
                                     article_price=0, tax=0)
-        if subcategory == ClothesSubcategories.underwear.value:
+        if subcategory in [ClothesSubcategories.underwear.value, ClothesSubcategories.swimming_accessories.value, ]:
             new_clothes_order.subcategory = subcategory
 
         new_size_quantity = ClothesQuantitySize(size=el[6].strip(), quantity=el[9].strip(), size_type=el[5].strip())
