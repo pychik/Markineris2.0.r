@@ -2866,7 +2866,8 @@ def sumausmumu_required(func):
 def suausmumu_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if current_user.status is True and current_user.role in [settings.SUPER_USER, settings.ADMIN_USER, settings.SUPER_MANAGER,
+        if current_user.status is True and current_user.role in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER,
+                                                                 settings.ADMIN_USER, settings.SUPER_MANAGER,
                                                                  settings.MANAGER_USER]:
             return func(*args, **kwargs)
         else:

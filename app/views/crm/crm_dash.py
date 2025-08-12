@@ -215,6 +215,7 @@ def managers(filtered_manager_id: int = None):
         else jsonify({'htmlresponse': render_template(f'crm_mod_v1/crmm/crmm_main_block.html', **locals()),
                       'status': 'success' if all_orders_raw else ''})
 
+
 @crm_d.route('/m_take_order/<int:o_id>', methods=["POST"])
 @login_required
 @user_activated

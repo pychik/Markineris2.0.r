@@ -1,4 +1,4 @@
-{% if current_user.role in ['superuser', 'manager', 'supermanager'] %}
+{% if current_user.role in ['superuser', 'manager', 'supermanager', 'm2r_admin'] %}
     <form method="post" action="{{ url_for('crm_d.download_order', o_id=n.id) }}" style="cursor: pointer;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <img class="icons__item" src="{{url_for('static', filename='crm_mod/img/icons/table.svg')}}"
