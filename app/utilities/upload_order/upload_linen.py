@@ -180,7 +180,7 @@ class UploadLinen(UploadCategory):
     @handle_upload_exceptions
     def get_article_info_standart(self) -> tuple:
 
-        if self.df.iloc[4, 10] != 'Укажите конкретный размер изделия X! ':
+        if not self.df.iloc[4, 10].startswith('Укажите конкретный размер изделия X'):
             raise IndexError
         process_df = self.df.iloc[5:settings.ORDER_LIMIT_UPLOAD_ARTICLES, [2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]]\
             .dropna(how='all').astype(str)
@@ -196,7 +196,7 @@ class UploadLinen(UploadCategory):
     @handle_upload_exceptions
     def get_article_info_extended(self) -> tuple:
 
-        if self.df.iloc[4, 10] != 'Укажите самый большой размер изделия в комплетке X! ':
+        if not self.df.iloc[4, 10].startswith('Укажите самый большой размер изделия в комплетке X'):
             raise IndexError
         df_raw = self.df.iloc[5:settings.ORDER_LIMIT_UPLOAD_ARTICLES, [2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]]  # .replace('0', nan, inplace=True)
         df_raw.replace('0', nan, inplace=True)
