@@ -1180,7 +1180,7 @@ def h_client_orders_stats(admin_id: int, client_id: int) -> Response:
     if current_user.role == settings.SUPER_USER or (current_user.role == settings.ADMIN_USER and current_user.id == admin_id):
         client = (User.query.with_entities(User.id, User.login_name, User.admin_parent_id)
                   .filter(User.id == client_id).first())
-        if not client or client.admin_parent_id != admin_id:
+        if not client or (client.admin_parent_id and client.admin_parent_id != admin_id):
             return helper_strange_response()
         return helper_get_clients_os(admin_id=admin_id, client=client)
 
