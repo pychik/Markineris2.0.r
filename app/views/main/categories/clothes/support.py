@@ -5,7 +5,6 @@ from flask_login import current_user
 from config import settings
 from settings.start import db
 from utilities.categories_data.subcategories_data import ClothesSubcategories, Category
-from utilities.categories_data.underwear_data import UNDERWEAR_TYPES
 from utilities.support import helper_get_order_notification, helper_category_common_index
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
 

@@ -751,7 +751,10 @@ function update_category(category_p) {
         'parfum',
         'socks',
         'underwear',
-        'swimming_accessories'
+        'swimming_accessories',
+        'hats',
+        'gloves',
+        'shawls'
     ];
 
     tabIds.forEach(id => {

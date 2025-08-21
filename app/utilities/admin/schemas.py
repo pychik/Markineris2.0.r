@@ -2,10 +2,12 @@ from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 from datetime import datetime, timedelta
 from config import settings
+from utilities.categories_data.accessories_data import HATS_TYPES, GLOVES_TYPES, SHAWLS_TYPES
+from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TYPES
 from utilities.categories_data.underwear_data import UNDERWEAR_TYPES
 
 
-ar_categories_types: dict = {settings.Clothes.CATEGORY: settings.Clothes.TYPES + UNDERWEAR_TYPES,
+ar_categories_types: dict = {settings.Clothes.CATEGORY: settings.Clothes.TYPES + UNDERWEAR_TYPES + SWIMMING_ACCESSORIES_TYPES + HATS_TYPES + GLOVES_TYPES + SHAWLS_TYPES,
                              settings.Shoes.CATEGORY: settings.Shoes.TYPES,
                              settings.Linen.CATEGORY: settings.Linen.TYPES,
                              settings.Parfum.CATEGORY: settings.Parfum.TYPES,

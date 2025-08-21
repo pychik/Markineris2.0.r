@@ -3,9 +3,17 @@ from re import fullmatch
 from typing import Optional
 
 from config import settings
+from utilities.categories_data.accessories_data import HATS_TNVEDS, GLOVES_TNVEDS, SHAWLS_TNVEDS
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVEDS
 from utilities.categories_data.underwear_data import UNDERWEAR_TNVEDS
+
+
+class ValidationError(Exception):
+    def __init__(self, field: str, message: str):
+        self.field = field
+        self.message = message
+        super().__init__(f"{field}: {message}")
 
 
 class ValidatorProcessor:
@@ -128,6 +136,27 @@ class ValidatorProcessor:
             return False
 
     @staticmethod
+    def hats_pre_validate_tnved(tnved_str: str) -> bool:
+        if not tnved_str or tnved_str not in HATS_TNVEDS:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def gloves_pre_validate_tnved(tnved_str: str) -> bool:
+        if not tnved_str or tnved_str not in GLOVES_TNVEDS:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def shawls_pre_validate_tnved(tnved_str: str) -> bool:
+        if not tnved_str or tnved_str not in SHAWLS_TNVEDS:
+            return True
+        else:
+            return False
+
+    @staticmethod
     def check_tnveds(category: str, subcategory: str, tnved_str: str) -> bool:
         if category == settings.Socks.CATEGORY:
             return ValidatorProcessor.socks_pre_validate_tnved(tnved_str=tnved_str)
@@ -143,5 +172,11 @@ class ValidatorProcessor:
                     return ValidatorProcessor.underwear_pre_validate_tnved(tnved_str=tnved_str)
                 case ClothesSubcategories.swimming_accessories.value:
                     return ValidatorProcessor.swimming_accessories_pre_validate_tnved(tnved_str=tnved_str)
+                case ClothesSubcategories.hats.value:
+                    return ValidatorProcessor.hats_pre_validate_tnved(tnved_str=tnved_str)
+                case ClothesSubcategories.gloves.value:
+                    return ValidatorProcessor.gloves_pre_validate_tnved(tnved_str=tnved_str)
+                case ClothesSubcategories.shawls.value:
+                    return ValidatorProcessor.shawls_pre_validate_tnved(tnved_str=tnved_str)
                 case _:
                     return ValidatorProcessor.clothes_pre_validate_tnved(tnved_str=tnved_str)

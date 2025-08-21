@@ -25,20 +25,50 @@
             Новая накладная
         </a>
     </li>
+    <li class="nav-item dropdown ps-5">
+        <a class="nav-link dropdown-toggle text-light {% if subcategory in ['underwear', 'swimming_accessories', 'hats', 'gloves', 'shawls']  %}active{%endif%}"
+           href="#" id="accessoriesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Одежда
+        </a>
+        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="accessoriesDropdown"
+            style="background-color: #3a3a3a; border: none; padding: 0; margin: 0; box-shadow: none;">
+            <li>
+                <a href="{{url_for('clothes.index', subcategory='common')}}" class="dropdown-item text-light {% if 'clothes' in request.path and (not subcategory or subcategory=='common') %}active{%endif%}" aria-current="page">Одежда</a>
+            </li>
+            <li>
+                <a href="{{url_for('socks.index')}}" class="dropdown-item text-light {% if 'socks' in request.path %}active{%endif%}" aria-current="page">Носки и прочее</a>
+            </li>
+            <li>
+                <a href="{{url_for('clothes.index', subcategory='underwear')}}" class="dropdown-item text-light {% if subcategory == 'underwear'  %}active{%endif%}" aria-current="page">Нижнее белье</a>
+            </li>
+            <li>
+                <a href="{{url_for('clothes.index', subcategory='swimming_accessories')}}" class="dropdown-item text-light {% if subcategory == 'swimming_accessories'  %}active{%endif%}" aria-current="page">Купальные пр-ти <span class="badge bg-success" style="font-size: 10px">new</span></a>
+            </li>
+            <li>
+                <a class="dropdown-item text-light {% if subcategory == 'hats'  %}active{%endif%}"
+                   style="padding: 8px 20px;"
+                   href="{{url_for('clothes.index', subcategory='hats')}}">
+                   Шляпы <span class="badge bg-success" style="font-size: 10px">new</span>
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item text-light {% if subcategory == 'gloves'  %}active{%endif%}"
+                   style="padding: 8px 20px;"
+                   href="{{url_for('clothes.index', subcategory='gloves')}}">
+                   Перчатки <span class="badge bg-success" style="font-size: 10px">new</span>
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item text-light {% if subcategory == 'shawls'  %}active{%endif%}"
+                   style="padding: 8px 20px;"
+                   href="{{url_for('clothes.index', subcategory='shawls')}}">
+                   Шали <span class="badge bg-success" style="font-size: 10px">new</span>
+                </a>
+            </li>
+        </ul>
+    </li>
     <li class="nav-item nav-item--sub {% if 'shoes' in request.path %}active{%endif%} ps-5">
         <a href="{{url_for('shoes.index')}}" class="nav-link text-light" aria-current="page">Обувь</a>
-    </li>
-    <li class="nav-item nav-item--sub {% if 'clothes' in request.path and (not subcategory or subcategory=='common') %}active{%endif%} ps-5">
-        <a href="{{url_for('clothes.index')}}" class="nav-link text-light" aria-current="page">Одежда</a>
-    </li>
-    <li class="nav-item nav-item--sub {% if 'socks' in request.path %}active{%endif%} ps-5">
-        <a href="{{url_for('socks.index')}}" class="nav-link text-light" aria-current="page">Носки и прочее</a>
-    </li>
-    <li class="nav-item nav-item--sub {% if subcategory == 'underwear'  %}active{%endif%} ps-5">
-        <a href="{{url_for('clothes.index', subcategory='underwear')}}" class="nav-link text-light" aria-current="page">Нижнее белье</a>
-    </li>
-    <li class="nav-item nav-item--sub {% if subcategory == 'swimming_accessories'  %}active{%endif%} ps-5">
-        <a href="{{url_for('clothes.index', subcategory='swimming_accessories')}}" class="nav-link text-light" aria-current="page">Купальные пр-ти <span class="badge bg-success" style="font-size: 10px">new</span></a>
     </li>
     <li class="nav-item nav-item--sub {% if 'linen' in request.path %}active{%endif%} ps-5">
         <a href="{{url_for('linen.index')}}" class="nav-link text-light" aria-current="page">Белье</a>

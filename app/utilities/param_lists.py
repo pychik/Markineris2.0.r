@@ -849,6 +849,18 @@ TEMPLATE_TABLES_DICT: dict = {"обувь": (
                                         ("купальные принадлежности_по каждому размеру.xlsx",
                                          "Таблица для купальных принадлежностей - данные по каждому размеру", ),
                                         ),
+                              "шляпы": (
+                                        ("шляпы_по каждому размеру.xlsx",
+                                         "Таблица для шляп - данные по каждому размеру", ),
+                                        ),
+                              "перчатки": (
+                                        ("перчатки_по каждому размеру.xlsx",
+                                         "Таблица для перчаток - данные по каждому размеру", ),
+                                        ),
+                              "шали": (
+                                        ("шали_по каждому размеру.xlsx",
+                                         "Таблица для шали - данные по каждому размеру", ),
+                                        ),
                               "носки и прочее": (
                                         ("носки_по каждому размеру.xlsx",
                                          "Таблица для чулочно-носочных изделий - данные по каждому размеру", ),
@@ -871,10 +883,16 @@ CATEGORIES_DICT: dict = {"обувь": "shoes",
                          "парфюм": "parfum",
                          "носки и прочее": "socks",
                          "underwear": "underwear",
-                         "swimming_accessories": "swimming_accessories"}
+                         "swimming_accessories": "swimming_accessories",
+                         "hats": "hats",
+                         "gloves": "gloves",
+                         "shawls": "shawls"}
 
 SUB_CATEGORIES_DICT: dict = {"underwear": "нижнее белье",
                              "swimming_accessories": "купальные принадлежности",
+                             "hats": "шляпы",
+                             "gloves": "перчатки",
+                             "shawls": "шали",
                              "common": "общее"}
 
 BIG_TNVED_LIST: tuple = SHOE_TNVED + ALL_CLOTHES_TNVED + (LINEN_TNVED, '', ) + PARFUM_TNVED + ALL_SOCKS_TNVEDS

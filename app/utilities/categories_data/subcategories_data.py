@@ -26,6 +26,9 @@ class ClothesSubcategories(Category, Enum):
     common: str = "common"
     underwear: str = "underwear"
     swimming_accessories: str = "swimming_accessories"
+    hats: str = "hats"
+    gloves: str = "gloves"
+    shawls: str = "shawls"
 
     @classmethod
     def get_category_name(cls):

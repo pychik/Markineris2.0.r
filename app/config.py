@@ -5,6 +5,7 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import SecretStr
 
+from utilities.categories_data.accessories_data import HATS_TYPES, GLOVES_TYPES, SHAWLS_TYPES
 from utilities.categories_data.clothes_tnveds import CLOTHES_TNVED_DICT
 from utilities.categories_data.socks_data import (SOCKS_DEC_DICT, SOCKS_TYPES,SOCKS_TNVED_DICT,
                                                   SOCKS_TYPE_NUMBER_DICT)
@@ -1054,7 +1055,7 @@ class Settings(BaseSettings):
         CATEGORY: str = 'одежда'
         CATEGORY_PROCESS: str = 'clothes'
         TYPES: list = CLOTHES_TYPES
-        ALL_TYPES_WITH_SUBCATEGORIES: list = CLOTHES_TYPES + UNDERWEAR_TYPES + SWIMMING_ACCESSORIES_TYPES
+        ALL_TYPES_WITH_SUBCATEGORIES: list = CLOTHES_TYPES + UNDERWEAR_TYPES + SWIMMING_ACCESSORIES_TYPES + HATS_TYPES + GLOVES_TYPES + SHAWLS_TYPES
         TYPES_CODES: dict = CLOTHES_TYPES_CODES
         UPPER_TYPES: list = CLOTHES_UPPER
         COLORS: tuple = COMMON_COLORS
