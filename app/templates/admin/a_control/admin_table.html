@@ -55,6 +55,7 @@
                                 </svg>
                               </a>
                             </div>
+
                             <div class="mt-2 ms-3">
                               {%if current_user.role in ['superuser', 'm2r_admin']%}
                                 <a class="badge bg-secondary" href="{{ url_for('admin_control.su_control_specific_ut', u_id=u.id) }}"
