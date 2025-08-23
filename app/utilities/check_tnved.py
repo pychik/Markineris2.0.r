@@ -1,6 +1,7 @@
 from typing import Optional
 
 from config import settings
+from utilities.categories_data.accessories_data import HATS_TNVED_DICT, SHAWLS_TNVED_DICT, GLOVES_TNVED_DICT
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVED_DICT
 from utilities.categories_data.underwear_data import UNDERWEAR_TNVED_DICT
@@ -48,6 +49,12 @@ class TnvedChecker:
                 tnved_dict = UNDERWEAR_TNVED_DICT
             case ClothesSubcategories.swimming_accessories.value:
                 tnved_dict = SWIMMING_ACCESSORIES_TNVED_DICT
+            case ClothesSubcategories.hats.value:
+                tnved_dict = HATS_TNVED_DICT
+            case ClothesSubcategories.gloves.value:
+                tnved_dict = GLOVES_TNVED_DICT
+            case ClothesSubcategories.shawls.value:
+                tnved_dict = SHAWLS_TNVED_DICT
             case _:
                 tnved_dict = settings.Clothes.CLOTHES_TNVED_DICT
 

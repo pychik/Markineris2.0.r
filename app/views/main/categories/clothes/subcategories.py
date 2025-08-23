@@ -1,5 +1,7 @@
 from config import settings
 from models import ClothesSubcategories
+from utilities.categories_data.accessories_data import HATS_TNVED_DICT, HATS_TYPES, HATS_NAME, GLOVES_TNVED_DICT, \
+    GLOVES_TYPES, GLOVES_NAME, SHAWLS_TNVED_DICT, SHAWLS_TYPES, SHAWLS_NAME
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVED_DICT, \
     SWIMMING_ACCESSORIES_TYPES, SWIMMING_ACCESSORIES_NAME
 from views.main.categories.clothes.schemas import SubCategoriesCreds
@@ -37,6 +39,24 @@ class ClothesSubcategoryProcessor:
                                          clothes_types_sizes_dict=settings.Clothes.SIZE_ALL_DICT,
                                          types=SWIMMING_ACCESSORIES_TYPES,
                                          subcategory_name=SWIMMING_ACCESSORIES_NAME)
+            case ClothesSubcategories.hats.value:
+                scc = SubCategoriesCreds(clothes_all_tnved=HATS_TNVED_DICT,
+                                         clothes_sizes=settings.Clothes.SIZES_ALL,
+                                         clothes_types_sizes_dict=settings.Clothes.SIZE_ALL_DICT,
+                                         types=HATS_TYPES,
+                                         subcategory_name=HATS_NAME)
+            case ClothesSubcategories.gloves.value:
+                scc = SubCategoriesCreds(clothes_all_tnved=GLOVES_TNVED_DICT,
+                                         clothes_sizes=settings.Clothes.SIZES_ALL,
+                                         clothes_types_sizes_dict=settings.Clothes.SIZE_ALL_DICT,
+                                         types=GLOVES_TYPES,
+                                         subcategory_name=GLOVES_NAME)
+            case ClothesSubcategories.shawls.value:
+                scc = SubCategoriesCreds(clothes_all_tnved=SHAWLS_TNVED_DICT,
+                                         clothes_sizes=settings.Clothes.SIZES_ALL,
+                                         clothes_types_sizes_dict=settings.Clothes.SIZE_ALL_DICT,
+                                         types=SHAWLS_TYPES,
+                                         subcategory_name=SHAWLS_NAME)
             case _:  # case ClothesSubcategories.common.value:
                 scc = SubCategoriesCreds(clothes_all_tnved=settings.Clothes.TNVED_ALL,
                                          clothes_sizes=settings.Clothes.SIZES_ALL,
@@ -53,6 +73,12 @@ class ClothesSubcategoryProcessor:
                 tnved_dict = UNDERWEAR_TNVED_DICT
             case ClothesSubcategories.swimming_accessories.value:
                 tnved_dict = SWIMMING_ACCESSORIES_TNVED_DICT
+            case ClothesSubcategories.hats.value:
+                tnved_dict = HATS_TNVED_DICT
+            case ClothesSubcategories.gloves.value:
+                tnved_dict = GLOVES_TNVED_DICT
+            case ClothesSubcategories.shawls.value:
+                tnved_dict = SHAWLS_TNVED_DICT
             case _:  # case ClothesSubcategories.common.value:
                 if cl_type in settings.Clothes.TYPES:
                     tnved_dict = settings.Clothes.CLOTHES_TNVED_DICT

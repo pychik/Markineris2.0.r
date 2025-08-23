@@ -6,6 +6,7 @@ from typing import Optional, Union
 
 from config import settings
 from logger import logger
+from utilities.categories_data.accessories_data import HATS_TYPES, GLOVES_TYPES, SHAWLS_TYPES
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TYPES
 from utilities.categories_data.underwear_data import UNDERWEAR_TYPES
@@ -51,6 +52,9 @@ class ValidateClothesMixin:
         subcategory_types_map = {
             ClothesSubcategories.underwear.value: UNDERWEAR_TYPES,
             ClothesSubcategories.swimming_accessories.value: SWIMMING_ACCESSORIES_TYPES,
+            ClothesSubcategories.hats.value: HATS_TYPES,
+            ClothesSubcategories.gloves.value: GLOVES_TYPES,
+            ClothesSubcategories.shawls.value: SHAWLS_TYPES,
         }
 
         types_list = subcategory_types_map.get(subcategory, settings.Clothes.TYPES)

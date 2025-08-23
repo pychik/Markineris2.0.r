@@ -12,6 +12,7 @@ from xlsxwriter.worksheet import Worksheet
 
 from config import settings
 from models import Order, db, User
+from .categories_data.accessories_data import HATS_DEC_DICT, GLOVES_DEC_DICT, SHAWLS_DEC_DICT
 from .categories_data.subcategories_data import ClothesSubcategories, Category
 from .abstract import ProcessorInterface
 from .support import order_count, helper_paginate_data, check_leather
@@ -436,6 +437,12 @@ class ClothesProcessor(OrdersProcessor):
                 declination_dict = UNDERWEAR_DEC_DICT
             case ClothesSubcategories.swimming_accessories.value:
                 declination_dict = SWIMMING_ACCESSORIES_DEC_DICT
+            case ClothesSubcategories.hats.value:
+                declination_dict = HATS_DEC_DICT
+            case ClothesSubcategories.gloves.value:
+                declination_dict = GLOVES_DEC_DICT
+            case ClothesSubcategories.shawls.value:
+                declination_dict = SHAWLS_DEC_DICT
             case _:
                 declination_dict = settings.Clothes.DEC
 
