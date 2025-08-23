@@ -358,7 +358,7 @@ def h_pa_refill(u_id: int, sa_id: int):
             bill_extension = 'only_promo'
             uuid_prefix = str(uuid4())[:8]
             bill_path = f'{uuid_prefix}_{current_user.login_name}.{bill_extension}'
-            transaction_status = TransactionStatuses.pending.value
+            transaction_status = TransactionStatuses.success.value
             transaction_type = TransactionTypes.promo.value
 
         # make this variables to avoid current_user reload after update sessions
