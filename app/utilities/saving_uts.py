@@ -11,6 +11,7 @@ from logger import logger
 from models import User, Order, Shoe, ShoeQuantitySize, Linen, LinenQuantitySize, Parfum, \
     Clothes, ClothesQuantitySize, Socks, SocksQuantitySize, db, AggrOrder, AggrClothesSize, AggrSocksSize
 from utilities.categories_data.subcategories_data import ClothesSubcategories
+from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 
 
 def time_count(func):
@@ -315,64 +316,35 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
 
 
 def get_rows_marks(o_id: int, category: str) -> tuple[int, int]:
-    match category:
-        case settings.Shoes.CATEGORY:
-            res = db.session.execute(text(f"""
-                SELECT COUNT(shoes_quantity_sizes.quantity),
-                 SUM(public.shoes.box_quantity*public.shoes_quantity_sizes.quantity)
-                       FROM public.orders 
-                           JOIN public.shoes ON public.orders.id = public.shoes.order_id
-                           JOIN  public.shoes_quantity_sizes ON public.shoes.id= public.shoes_quantity_sizes.shoe_id
-                       WHERE public.orders.category='{settings.Shoes.CATEGORY}' AND public.orders.id={o_id}
-                       GROUP BY public.orders.id
-                       """))
-            row_count, mark_count = res.fetchall()[0]
-        case settings.Clothes.CATEGORY:
-            res = db.session.execute(text(f"""
-                SELECT COUNT(cl_quantity_sizes.quantity),
-                 SUM(public.clothes.box_quantity*public.cl_quantity_sizes.quantity)
-                   FROM public.orders 
-                       JOIN public.clothes ON public.orders.id = public.clothes.order_id
-                       JOIN  public.cl_quantity_sizes ON public.clothes.id=public.cl_quantity_sizes.cl_id
-                   WHERE public.orders.category='{settings.Clothes.CATEGORY}' AND public.orders.id={o_id}
-                   GROUP BY public.orders.id
-                   """))
-            row_count, mark_count = res.fetchall()[0]
-        case settings.Socks.CATEGORY:
-            res = db.session.execute(text(f"""
-                SELECT COUNT(public.socks_quantity_sizes.quantity),
-                 SUM(public.socks.box_quantity*public.socks_quantity_sizes.quantity)
-                   FROM public.orders 
-                       JOIN public.socks ON public.orders.id = public.socks.order_id
-                       JOIN  public.socks_quantity_sizes ON public.socks.id=public.socks_quantity_sizes.socks_id
-                   WHERE public.orders.category='{settings.Socks.CATEGORY}' AND public.orders.id={o_id}
-                   GROUP BY public.orders.id
-                   """))
-            row_count, mark_count = res.fetchall()[0]
-        case settings.Linen.CATEGORY:
-            res = db.session.execute(text(f"""
-                SELECT COUNT(linen_quantity_sizes.quantity),
-                    SUM(public.linen.box_quantity*public.linen_quantity_sizes.quantity)
-                    FROM public.orders 
-                      JOIN public.linen ON public.orders.id = public.linen.order_id
-                      JOIN  public.linen_quantity_sizes ON public.linen.id=public.linen_quantity_sizes.lin_id
-                    WHERE public.orders.category='{settings.Linen.CATEGORY}' AND public.orders.id={o_id}
-                    GROUP BY public.orders.id
-                    """))
-            row_count, mark_count = res.fetchall()[0]
-        case settings.Parfum.CATEGORY:
-            res = db.session.execute(text(f"""
-                SELECT COUNT(parfum.quantity), SUM(parfum.quantity)
-                    FROM public.orders 
-                        JOIN public.parfum ON public.orders.id = public.parfum.order_id
-                    WHERE public.orders.category='{settings.Parfum.CATEGORY}' AND public.orders.id={o_id}
-                    GROUP BY public.orders.id
-                    """))
-            row_count, mark_count = res.fetchall()[0]
+    def _to_int(x):
+        if x is None:
+            return 0
+        return int(x)
 
-        case _:
-            row_count, mark_count = 0, 0
-    return row_count, mark_count
+    sql = text(f"""
+        SELECT
+            COALESCE( {SQLQueryCategoriesAll.get_stmt('rows_count')} , 0)  AS rows_count,
+            COALESCE( {SQLQueryCategoriesAll.get_stmt('marks_count')} , 0) AS marks_count
+        FROM public.orders o
+        {SQLQueryCategoriesAll.get_joins()}
+        WHERE o.category = :category AND o.id = :o_id
+        GROUP BY o.id
+        LIMIT 1
+    """)
+
+    row = db.session.execute(sql, {"category": category, "o_id": o_id}).fetchone()
+    if not row:
+        return 0, 0
+
+    # доступ по именам (SQLAlchemy Row) + запасной вариант по индексам
+    try:
+        rows_count = _to_int(getattr(row, "rows_count"))
+        marks_count = _to_int(getattr(row, "marks_count"))
+    except Exception:
+        rows_count = _to_int(row[0])
+        marks_count = _to_int(row[1])
+
+    return rows_count, marks_count
 
 
 def get_delete_stmts(category: str, o_id: int) -> list:
