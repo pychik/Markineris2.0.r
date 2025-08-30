@@ -43,6 +43,13 @@
     const RZ_CONDITION = '{{ rz_condition }}';
     const CHILDREN_GENDER_LIST = ["Детские", "Мальчик", "Девочка", "Детск."];
     const excepted_articles = {{excepted_articles | tojson | safe}};
+
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' && e.target.tagName.toLowerCase() === 'input'){
+        e.preventDefault();   // блокируем действие Enter
+        return false;
+      }
+    });
 </script>
 
 {% endblock %}
