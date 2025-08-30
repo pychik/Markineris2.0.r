@@ -218,27 +218,38 @@ class OrdersProcessor(ProcessorInterface, ABC):
 
     def make_aggr_excel_table(self, order) -> tuple[BytesIO, str]:
         """
-        Генерация Excel-файла с таблицей наборов по структуре шаблона.
+        Генерация Excel-файла с таблицей наборов по НОВОМУ шаблону.
+        - Шапка: 3 строки (0..2)
+        - Данные: с 4-й строки (row = 3)
+        - Количество наборов: колонка O (index 14)
+        - 'Состав набора' (F): ТИП+ПОЛ+ТОВАРНЫЙ ЗНАК+ арт. + АРТИКУЛ+ ЦВЕТ+РАЗМЕР / ...
         """
         output = BytesIO()
         workbook = Workbook(output)
         worksheet = workbook.add_worksheet('Наборы')
 
-        # Шапка
+        # --- ШАПКА (3 строки) ---
         headers = [
-            ['Код товара', 'Код ТНВЭД', 'Это набор', 'Полное наименование набора', 'Товарный знак',
-             'Описание состава набора', '', '', 'Общее количество'],
-            ['GTIN', 'Tnved', 'ISSET', '2478', '2504', '16271', '', '', ''],
-            ['value', 'value', 'value', 'value', 'value', 'value', '', '', ''],
-            ['Не обязательно', 'Код группы', 'Только ДА', 'Текстовое значение',
-             'Значение из справочника, Текстовое значение', 'Произвольный текст, не обязательно', '', '', '']
+            ['Код товара', 'ТНВЭД', 'Наименование набора', 'Товарный знак', 'Товарная группа', 'Состав набора',
+             'Количество маркированных товаров в наборе', 'Код товара для набора', 'Количество в наборе',
+             'Статус карточки товара в Каталоге', 'Результат обработки данных в Каталоге', '', '', '', 'количество'],
+            ['gtin', 'tnved', '2478', '2504', '23768', '16271', '23821', 'set-gtins', 'gtins-quantity', 'status',
+             'result', '', '', '', ''],
+            ['GTIN товара', 'Группа/код ТНВЭД (обязательно)', 'Текстовое наименование набора (обязательно)',
+             'Наименование товарного знака (обязательно)',
+             'Наименование товарной группы, значение из справочника (обязательно)',
+             'Текстовое описание всех компонентов набора', 'Число маркированных товаров, входящих в набор',
+             'Несколько значений заполняются с помощью разделителя "|||"',
+             'Количество каждого товара, входящего в набор. Несколько значений заполняются с помощью разделителя "|||"',
+             'Текстовое поле (Черновик или На модерации)', 'Заполняется автоматически при загрузке в систему', '', '',
+             '', '']
         ]
-
-        for r_idx, row in enumerate(headers):
-            for c_idx, cell in enumerate(row):
+        for r_idx, row_vals in enumerate(headers):
+            for c_idx, cell in enumerate(row_vals):
                 worksheet.write(r_idx, c_idx, cell)
 
-        row = 4  # Запись с 5-й строки
+        # --- ДАННЫЕ С 4-Й СТРОКИ ---
+        row = 3
         data_rows = []
 
         for aggr in order.aggr_orders:
@@ -246,39 +257,77 @@ class OrdersProcessor(ProcessorInterface, ABC):
             if not sizes:
                 continue
 
-            # Группируем по типу
-            grouped = {}
             tnved = None
-            for s in sizes:
-                size = s.cqs if aggr.category == 'clothes' else s.sqs
-                item = size.clothes if aggr.category == 'clothes' else size.socks
+            composition_chunks = []  # для F
+            qty_chunks = []  # для I
+            name_parts = []  # для C
+            grouped = {}
 
-                key = item.type
-                if key not in grouped:
-                    grouped[key] = []
-                grouped[key].append((size.size, size.quantity, item.color))
+            for s in sizes:
+                size_obj = s.cqs if aggr.category == 'clothes' else s.sqs
+                item = size_obj.clothes if aggr.category == 'clothes' else size_obj.socks
 
                 if tnved is None:
                     tnved = getattr(item, 'tnved_code', '') or ''
 
-            full_names = []
+                type_ = getattr(item, 'type', '') or ''
+                gender = getattr(item, 'gender', '') or ''  # ПОЛ
+                trademark = getattr(item, 'trademark', '') or ''  # ТОВАРНЫЙ ЗНАК
+                article = getattr(item, 'article', '') or ''  # АРТИКУЛ
+                color = getattr(item, 'color', '') or ''
+                size_val = getattr(size_obj, 'size', '') or ''
+                qty_val = getattr(s, 'quantity', None) or getattr(size_obj, 'quantity', '')
+
+                # Группировка по типу — для человекочитаемого имени набора
+                grouped.setdefault(type_, []).append((size_val, qty_val, color))
+
+                # Состав (строго по формуле)
+                chunk = f"{type_} {gender} {trademark} арт.  {article} {color} {size_val}"
+                composition_chunks.append(chunk)
+
+                # количества в наборе
+                qty_chunks.append(str(qty_val))
+
+            # Наименование набора — «Набор {тип (qty шт, р. size color; ...)} и {тип ...}»
             for type_, entries in grouped.items():
-                size_color_strs = [f"{quantity} шт, р. {sz} {col}" for sz, quantity, col in entries]
-                part = f"{type_} ({'; '.join(size_color_strs)})"
-                full_names.append(part)
+                parts = []
+                for size_val, qty_val, color in entries:
+                    parts.append(f"{qty_val} шт, р. {size_val} {color}".strip())
+                name_parts.append(f"{type_} ({'; '.join(parts)})")
+            full_name = "Набор " + " и ".join(name_parts)
 
-            full_name = "Набор " + "и ".join(full_names)
+            # Кол-во маркированных товаров в наборе (G)
+            marked_items_count = sum(
+                q if isinstance(q, int) else 0
+                for entries in grouped.values()
+                for (_, q, __) in entries
+            ) or ''
 
-            values = [
-                '',  # GTIN
-                tnved,  # Код ТНВЭД
-                'ДА',  # Это набор
-                full_name,  # Полное наименование
-                '',  # Товарный знак — исключено
-                full_name,  # Описание состава
-                '', '',  # пусто
-                aggr.quantity  # Общее количество наборов
-            ]
+            # Возьмём товарный знак из первого встреченного элемента (для колонки D — обязательно)
+            first_trademark = ''
+            # Попытаемся найти не-пустой trademark из первого размера
+            for s in sizes:
+                size_obj = s.cqs if aggr.category == 'clothes' else s.sqs
+                item = size_obj.clothes if aggr.category == 'clothes' else size_obj.socks
+                first_trademark = getattr(item, 'trademark', '') or ''
+                if first_trademark:
+                    break
+
+            # Заполняем A..O (индексы 0..14)
+            values = [''] * 15
+            values[0] = ''  # A: GTIN
+            values[1] = tnved or ''  # B: ТНВЭД
+            values[2] = full_name  # C: Наименование набора
+            values[3] = first_trademark  # D: Товарный знак (обязательно)
+            values[4] = 'Предметы одежды, белье постельное, столовое, туалетное и кухонное'  # E: Товарная группа
+            values[5] = " / ".join([p for p in composition_chunks if p])  # F: Состав набора
+            values[6] = marked_items_count  # G: Кол-во маркированных товаров в наборе
+            values[7] = ''  # H: set-gtins
+            values[8] = "|".join(qty_chunks)  # I: количество в наборе
+            values[9] = ''  # J: Статус карточки
+            values[10] = ''  # K: Результат обработки
+            # L, M, N — пустые
+            values[14] = aggr.quantity or 0  # O: КОЛ-ВО НАБОРОВ (строго колонка O)
 
             worksheet.write_row(row, 0, values)
             data_rows.append(values)
