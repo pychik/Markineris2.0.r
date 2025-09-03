@@ -1009,9 +1009,185 @@ function check_add_same_size(size, quantity){
     return false
 }
 
+function isTenDigits(code){ return /^\d{10}$/.test(code); }
+
+// проверка по префиксам, если включён режим агрегирования
+function isAllowedTnved(code){
+  if (!window.HAS_AGGR) return isTenDigits(code); // без агрегатора — лишь формат
+  return isTenDigits(code) && (window.HAS_AGGR_LIST || []).some(prefix => code.startsWith(prefix));
+}
+
+function check_tnved(submit){
+  if (submit !== 'submit') return true;
+
+  const code = (document.getElementById('tnved_code').value || '').trim();
+
+  if (!isTenDigits(code)){
+    show_form_errors(['Заполните ТНВЭД: 10 цифр']);
+    $('#form_errorModal').modal('show');
+    return false;
+  }
+
+  if (!isAllowedTnved(code)){
+    // сообщение в общий модал ошибок
+    show_form_errors(['Код ТНВЭД не разрешён для текущего режима заказа. Проверьте ваш тнвэд во втором окне или обратитесь к модератору']);
+    $('#form_errorModal').modal('show');
+
+    // и показываем модалку со списком разрешённых (таблица)
+    if (typeof showNotAllowedModal === 'function') {
+      showNotAllowedModal(code);
+
+    }
+    return false;
+  }
+
+  return true; // всё ок — отправляем форму
+}
+
+// function make_message(message, type) {
+//     var block_messages = document.getElementById('all_messages');
+//     block_messages.insertAdjacentHTML('beforeend', `<div class="alert alert-${type} alert-dismissible fade show" id="alert-message-error"
+//                                         role="alert">
+//                                        <button type="button"  class="btn-close" data-dismiss="alert" aria-label="Close">
+//                                        </button>
+//                                        ${message}
+//                                    </div>`);
+// }
+//
+//
+// function show_form_errors(errors){
+//     let errors_block = document.getElementById('form_errormodaldiv');
+//     errors.forEach(function (el, index) {
+//                 errors_block.innerHTML += `${index+1}. <u>${el}</u><br>`;
+//                 }
+//             )
+// }
+//
+// function clear_errorform(){
+//     document.getElementById('form_errormodaldiv').innerHTML='';
+// }
+
+function get_tnveds(url, csrf){
+    let socks_type = document.getElementById('type').value;
+    if(!socks_type){
+
+        show_form_errors(['Выберите тип одежды до выбора ТНВЕД',]);
+        $('#form_errorModal').modal('show');
+        return
+    }
+    $.ajax({
+        url: url,
+        headers:{"X-CSRFToken": csrf},
+        method:"POST",
+        data: {'socks_type': socks_type},
+
+        success:function(data)
+        {
+            if(data.status == 'danger' || data.status == 'error'){
+                 show_form_errors([data.message,]);
+                 $('#form_errorModal').modal('show');
+
+            }
+            else if( data.status == 'success'){
+                $('#manual_tnved_insert').html(data);
+                $("#manual_tnved_insert").append(data.tnved_report);
+                $('#manualTnvedModal').modal('show')
+
+            }
+            else{
+                 show_form_errors(['Обновите страницу...',]);
+                 $('#form_errorModal').modal('show');
+
+            }
+        },
+        error: function() {
+         show_form_errors(['Ошибка CSRF. Обновите страницу и попробуйте снова',]);
+         $('#form_errorModal').modal('show');
+     }
+   });
+  }
+
+function socks_manual_tnved(){
+    const m_tnved = (document.getElementById("manual_tnved_input").value || "").trim();
+
+    // 1. Базовая валидация: должно быть 10 цифр
+    if (m_tnved && !/^\d{10}$/.test(m_tnved)){
+        document.getElementById('manual_tnved_message').textContent =
+            'Введите 10-значный код или оставьте пустым';
+        setTimeout(clear_socks_tnved_m, 5000);
+        return;
+    }
+
+    // 2. Проверка: код есть в глобальном списке all_tnved (тот что бэкенд передаёт для выбранного типа одежды)
+    if (m_tnved && !all_tnved.includes(m_tnved)){
+        document.getElementById('manual_tnved_message').textContent =
+            'Некорректный ТНВЭД, попробуйте другой или обратитесь к вашему менеджеру';
+        setTimeout(clear_socks_tnved_m, 5000);
+        return;
+    }
+
+    // // 3. Проверка на режим "аггрегатор"
+    // if (window.HAS_AGGR && m_tnved){
+    //     const ok = (window.HAS_AGGR_LIST || []).some(prefix => m_tnved.startsWith(prefix));
+    //     if (!ok){
+    //         document.getElementById('manual_tnved_message').textContent = 'Код не разрешён.';
+    //         showNotAllowedModal(m_tnved);
+    //         return;
+    //     }
+    // }
+
+    // 4. Всё прошло → пишем в поле формы и закрываем
+    document.getElementById('tnved_code').value = m_tnved;
+    clear_manual_tnved();
+    $('#manualTnvedModal').modal('hide');
+}
+
+function clear_manual_tnved(){
+    document.getElementById('manual_tnved_insert').innerHTML='';
+    $('#manual_tnved_input').val('');
+
+}
+
+function clear_socks_tnved_m(){
+    document.getElementById('manual_tnved_message').innerHTML='';
+}
+
+
+function renderAllowedTable(){
+  const body = document.getElementById('tnvedAllowedBody');
+  if (!body) return;
+  const rows = (window.HAS_AGGR_LIST || []).map(code => {
+    const desc = (window.HAS_AGGR_DICT && window.HAS_AGGR_DICT[code]) ? window.HAS_AGGR_DICT[code] : '';
+    return `<tr><td><code>${code}</code></td><td>${desc}</td></tr>`;
+  }).join('');
+  body.innerHTML = rows || '<tr><td colspan="2" class="text-muted">Список пуст</td></tr>';
+}
+
+function showNotAllowedModal(){
+  renderAllowedTable();
+  const el = document.getElementById('tnvedDeniedModal');
+  const modal = bootstrap.Modal.getOrCreateInstance(el);
+  modal.show();
+}
+
+function selectTnved(code){
+    // если включён аггрегатор — проверим по префиксам
+    // if (window.HAS_AGGR) {
+    //     const ok = window.HAS_AGGR_LIST.some(prefix => code.startsWith(prefix));
+    //     if (!ok) {
+    //         showNotAllowedModal();
+    //         return;
+    //     }
+    // }
+
+    // иначе принимаем
+    document.getElementById('tnved_code').value = code;
+    clear_manual_tnved();
+    $('#manualTnvedModal').modal('hide');
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const switchInput = document.getElementById('aggrModeSwitch');
-    const switchLabel = document.getElementById('aggrModeSwitchLabel');
 
     function updateSwitchStyle() {
         const label = document.getElementById('aggrModeLabel');
@@ -1022,10 +1198,12 @@ document.addEventListener('DOMContentLoaded', function () {
             label.textContent = 'Режим заказа по наборам';
             // label.classList.add('text-warning');
             switchInput.classList.add('bg-warning', 'border-warning');
+            window.HAS_AGGR = true;
         } else {
             label.textContent = 'Режим заказа по позициям';
             // label.classList.remove('text-warning');
             switchInput.classList.remove('bg-warning', 'border-warning');
+            window.HAS_AGGR = false;
         }
     }
 

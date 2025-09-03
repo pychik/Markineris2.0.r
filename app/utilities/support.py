@@ -302,6 +302,13 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
     #     flash(message=settings.Messages.TNVED_ABSENCE_ERROR, category='error')
     #     return o_id, None, None
 
+    # check if aggr
+    has_aggr = bool(form_dict.get("has_aggr"))
+    tnved_code = (form_dict.get("tnved_code") or "").strip()
+
+    if not validate_tnved_for_aggr(tnved_code, has_aggr):
+        flash(message=f"Указанный ТНВЭД {tnved_code} не разрешён для агрегированного заказа", category='error')
+        return o_id, None, None
     if o_id:
         order = user.orders.filter_by(category=category, processed=False, id=o_id).filter(~Order.to_delete).first()
         if not check_order_pos(category=category, order=order):
@@ -317,7 +324,7 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
             return (None,) * 3
 
         order = Order(company_type=form_dict.get("company_type"), company_name=form_dict.get("company_name"),
-                      edo_type=form_dict.get("edo_type"), edo_id=form_dict.get("edo_id"), has_aggr=bool(form_dict.get('has_aggr')),
+                      edo_type=form_dict.get("edo_type"), edo_id=form_dict.get("edo_id"), has_aggr=has_aggr,
                       company_idn=company_idn, mark_type=form_dict.get("mark_type_hidden", "МАРКИРОВКА НЕ УКАЗАНА"),
                       category=category, stage=settings.OrderStage.CREATING, processed=False, to_delete=False)
     try:
@@ -359,6 +366,22 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
     o_id = updated_order.id
 
     return o_id, sort_type, sort_order
+
+
+def validate_tnved_for_aggr(tnved_code: str, has_aggr: bool) -> bool:
+    """
+    Проверка кода ТНВЭД для агрегированного заказа.
+    Возвращает True, если код допустим.
+    """
+    if not has_aggr:
+        return True  # в режиме "позиции" ограничений нет
+
+    tnved_code = (tnved_code or "").strip()
+    if not tnved_code:
+        return True  # пустой код разрешаем
+
+    allowed_prefixes = settings.ORDER_AGGREGATION_TNVEDS_LIST
+    return any(tnved_code.startswith(prefix) for prefix in allowed_prefixes)
 
 
 def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id: int = None) -> tuple:
@@ -430,6 +453,8 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
         if not orders:
             flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
             return redirect(url_for(f'{category_process_name}.index'))
+
+        # aggregation part
         has_aggr = order.has_aggr if order else None
 
         if update_flag:
@@ -447,6 +472,9 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
         (clothes_all_tnved, clothes_sizes,
          clothes_types_sizes_dict, types, subcategory_name) = ClothesSubcategoryProcessor(
             subcategory=subcategory).get_creds()
+
+    order_aggregation_tnveds_list = settings.ORDER_AGGREGATION_TNVEDS_LIST
+    order_aggregation_tnveds_dict = settings.ORDER_AGGREGATION_TNVEDS_DICT
 
     return render_template(f'categories/category_v2.html', **locals(), **kwargs)
 

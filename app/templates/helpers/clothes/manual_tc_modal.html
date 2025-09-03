@@ -25,3 +25,49 @@
     </div>
   </div>
 </div>
+
+
+<div class="modal fade" id="tnvedDeniedModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Разрешённые ТНВЭД для заказов с наборами</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning">
+          Введённый код <span id="tnvedCodeOrderAggrModalValue"></span> отсутствует в списке. Используйте один из разрешённых.
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr><th style="width:1%">Код</th><th>Описание</th></tr>
+            </thead>
+            <tbody id="tnvedAllowedBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.HAS_AGGR = {{ has_aggr|default(false)|tojson }};
+  window.HAS_AGGR_LIST = {{ order_aggregation_tnveds_list|default([])|tojson }};
+  window.HAS_AGGR_DICT = {{ order_aggregation_tnveds_dict|default({})|tojson }};
+
+  document.addEventListener('DOMContentLoaded', function () {
+  const manualInput = document.getElementById('manual_tnved_input');
+  if (manualInput){
+    manualInput.addEventListener('keydown', function(e){
+      if (e.key === 'Enter'){
+        e.preventDefault(); // запретить сабмит
+        clothes_manual_tnved(); // вместо сабмита вызываем подтверждение
+      }
+    });
+  }
+});
+</script>
