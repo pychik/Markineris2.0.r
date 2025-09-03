@@ -982,3 +982,85 @@ function check_add_same_size(size, quantity){
     }
     return false
 }
+
+function check_tnved(submit){
+
+    if (submit === 'submit'){
+        if (document.getElementById('tnved_code').value.length < 10){
+            show_form_errors(['Заполните тнвэд',]);
+            $('#form_errorModal').modal('show');
+            return false
+        }
+        else{
+
+            return true
+        }
+    }
+}
+
+function get_tnveds(url, csrf){
+    let socks_type = document.getElementById('type').value;
+    if(!socks_type){
+
+        show_form_errors(['Выберите тип одежды до выбора ТНВЕД',]);
+        $('#form_errorModal').modal('show');
+        return
+    }
+    $.ajax({
+        url: url,
+        headers:{"X-CSRFToken": csrf},
+        method:"POST",
+        data: {'socks_type': socks_type},
+
+        success:function(data)
+        {
+            if(data.status == 'danger' || data.status == 'error'){
+                 show_form_errors([data.message,]);
+                 $('#form_errorModal').modal('show');
+
+            }
+            else if( data.status == 'success'){
+                $('#manual_tnved_insert').html(data);
+                $("#manual_tnved_insert").append(data.tnved_report);
+                $('#manualTnvedModal').modal('show')
+
+            }
+            else{
+                 show_form_errors(['Обновите страницу...',]);
+                 $('#form_errorModal').modal('show');
+
+            }
+        },
+        error: function() {
+         show_form_errors(['Ошибка CSRF. Обновите страницу и попробуйте снова',]);
+         $('#form_errorModal').modal('show');
+     }
+   });
+  }
+
+function socks_manual_tnved(){
+    let m_tnved = document.getElementById("manual_tnved_input").value;
+    console.log(all_tnved);
+    if (all_tnved.includes(m_tnved)){
+        document.getElementById('tnved_code').value = m_tnved;
+        clear_manual_tnved();
+        $('#manualTnvedModal').modal('hide');
+
+    }
+    else{
+        document.getElementById('manual_tnved_message').innerHTML='Некорректный тнвэд, попробуйте другой' +
+            ' или обратитесь к вашему менеджеру';
+        setTimeout(clear_clothes_tnved_m, 5000);
+    }
+    // console.log(m_tnved);
+}
+
+function clear_manual_tnved(){
+    document.getElementById('manual_tnved_insert').innerHTML='';
+    $('#manual_tnved_input').val('');
+
+}
+
+function clear_clothes_tnved_m(){
+    document.getElementById('manual_tnved_message').innerHTML='';
+}
