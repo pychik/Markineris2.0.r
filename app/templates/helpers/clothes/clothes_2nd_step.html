@@ -99,7 +99,7 @@
                           </div>
                       </div>
                       <textarea type="text" rows="3" title="Итоговый состав позиции"
-                                oninput="this.value = this.value.toUpperCase();this.value = this.value.replace(/[^А-ЯЁа-яё,\s]/g, '');" onchange="check_content()"
+                                oninput="this.value = this.value.toUpperCase(); this.value = this.value.replace(/[^А-ЯЁа-яё0-9%,\s]/g, '');" onchange="check_content()"
                                 name="content" id="content" class="form-control bg-light"
                                 style="margin-top: 10px;" readonly minlength="3" maxlength="100"
                                 required >{% if copied_order %}{{ copied_order.content }}{% endif %}</textarea>
