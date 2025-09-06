@@ -928,7 +928,8 @@ class Settings(BaseSettings):
         TYPE_UPLOADS: list = ['standart', 'extended']
 
     class ExceptionOrders:
-        COMPANIES_IDNS: tuple = ('7703381056', '860235949238', '110374099900', '772307796929', '026616906460',)
+        COMPANIES_IDNS: tuple = ('7703381056', '860235949238', '110374099900', '772307796929', '026616906460',
+                                 '200414749336', '200408124103', )
         EXCEPTED_ARTICLES: tuple = ('сигар',)
         COMPANY_IDN_ERROR: str = "Невозможно оформить заказ по указанному ИНН {company_idn}"
         PHONE_NUMBERS: tuple = ('+79776828273', '+79362566595', )
