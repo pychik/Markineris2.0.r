@@ -61,16 +61,18 @@
                     {% endif %}
                 </td>
                 <td>
-                    <div class="form-check form-switch">
+                    {% if not t.is_archived %}
+                        <div class="form-check form-switch">
 
-                        <input {% if t.is_active %}
-                            class="form-check-input bg-warning border border-warning"  checked
-                        {% else %}
-                            class="form-check-input border border-warning"
-                        {% endif %}
-                            type="checkbox" role="switch" name="account_type_switch" id="sa_activity_{{ t.id }}"
-                            onclick="bck_change_sa_activity(`{{ url_for('admin_control.su_change_activity', sa_id=t.id) }}`, `{{ csrf_token() }}`, `{{ url_for('admin_control.su_bck_sa') }}`, `sa_activity_{{ t.id }}`);">
-                    </div>
+                            <input {% if t.is_active %}
+                                class="form-check-input bg-warning border border-warning"  checked
+                            {% else %}
+                                class="form-check-input border border-warning"
+                            {% endif %}
+                                type="checkbox" role="switch" name="account_type_switch" id="sa_activity_{{ t.id }}"
+                                onclick="bck_change_sa_activity(`{{ url_for('admin_control.su_change_activity', sa_id=t.id) }}`, `{{ csrf_token() }}`, `{{ url_for('admin_control.su_bck_sa') }}`, `sa_activity_{{ t.id }}`);">
+                        </div>
+                    {% endif %}
 
                 </td>
                 <td>
