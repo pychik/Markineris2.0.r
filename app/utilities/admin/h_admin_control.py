@@ -33,7 +33,7 @@ from utilities.admin.excel_report import ExcelReport
 
 
 def h_index():
-    if current_user.role != settings.SUPER_USER:
+    if current_user.role not in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER, ]:
         return redirect(url_for('admin_control.admin', u_id=current_user.id))
 
     users_stmt = text(f"""SELECT au.id as id,
@@ -80,7 +80,7 @@ def h_index():
         .order_by(User.id).count()
 
     telegram_list = Telegram.query.all()
-    if current_user.role == settings.SUPER_USER:
+    if current_user.role in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]:
         tg_group_list = Telegram.query.filter_by(status=False).all()
         prev_day_orders_marks = helper_prev_day_orders_marks()
     markineris_url_coi = settings.MARKINERIS_CHECK_CROSS_OI_LINK

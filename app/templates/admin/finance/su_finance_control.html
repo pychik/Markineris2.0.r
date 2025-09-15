@@ -126,36 +126,38 @@
             </a>
 
     </div>
-    <div class="btn-md-group mt-4" role="group" aria-label="secondaryFinBtn">
+    {% if current_user.role in ['superuser', ] %}
+        <div class="btn-md-group mt-4" role="group" aria-label="secondaryFinBtn">
 
-        <a href="{{ url_for('admin_control.su_fin_order_report') }}" class="btn btn-outline-secondary btn-block"
-           data-bs-toggle="tooltip" data-bs-placement="top" title="Отчеты по заказам"
-            style="padding: 5px;!important;max-width: 240px; height: 45px">
+            <a href="{{ url_for('admin_control.su_fin_order_report') }}" class="btn btn-outline-secondary btn-block"
+               data-bs-toggle="tooltip" data-bs-placement="top" title="Отчеты по заказам"
+                style="padding: 5px;!important;max-width: 240px; height: 45px">
 
-            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Uploaded to svgrepo.com" width="30" height="30" viewBox="0 0 32 32" xml:space="preserve">
-                <style type="text/css">
-                    .blueprint_een{fill: #555958;}
-                </style>
-                <path class="blueprint_een" d="M5,9h18v1H5V9z M5,13h8v9H5V13z M6,21h6v-7H6V21z M16,14h7v-1h-7V14z M16,16h7v-1h-7V16z M16,20h7v-1  h-7V20z M16,18h7v-1h-7V18z M16,22h7v-1h-7V22z M32,7v17c0,2.206-1.794,4-4,4H4c-2.206,0-4-1.794-4-4V5c0-0.552,0.448-1,1-1h26  c0.552,0,1,0.448,1,1v1h3C31.552,6,32,6.448,32,7z M30,8h-3v14h-1V7V6H2v18c0,1.103,0.897,2,2,2h24c1.103,0,2-0.897,2-2V8z"/>
-            </svg>
-          Заказы
-        </a>
+                <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Uploaded to svgrepo.com" width="30" height="30" viewBox="0 0 32 32" xml:space="preserve">
+                    <style type="text/css">
+                        .blueprint_een{fill: #555958;}
+                    </style>
+                    <path class="blueprint_een" d="M5,9h18v1H5V9z M5,13h8v9H5V13z M6,21h6v-7H6V21z M16,14h7v-1h-7V14z M16,16h7v-1h-7V16z M16,20h7v-1  h-7V20z M16,18h7v-1h-7V18z M16,22h7v-1h-7V22z M32,7v17c0,2.206-1.794,4-4,4H4c-2.206,0-4-1.794-4-4V5c0-0.552,0.448-1,1-1h26  c0.552,0,1,0.448,1,1v1h3C31.552,6,32,6.448,32,7z M30,8h-3v14h-1V7V6H2v18c0,1.103,0.897,2,2,2h24c1.103,0,2-0.897,2-2V8z"/>
+                </svg>
+              Заказы
+            </a>
 
-        <div onclick="get_marks_count_report(`{{ url_for('admin_control.su_fin_marks_count_report') }}`, '{{ csrf_token() }}', this)"
-              class="btn btn-outline-secondary btn-block"
-           data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Статистика пользователей по количеству заказанных марок"
-           style="padding: 0px; !important; max-width: 240px; font-size: 14px; height: 45px">
+            <div onclick="get_marks_count_report(`{{ url_for('admin_control.su_fin_marks_count_report') }}`, '{{ csrf_token() }}', this)"
+                  class="btn btn-outline-secondary btn-block"
+               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Статистика пользователей по количеству заказанных марок"
+               style="padding: 0px; !important; max-width: 240px; font-size: 14px; height: 45px">
 
-            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Uploaded to svgrepo.com" width="22" height="22" viewBox="0 0 32 32" xml:space="preserve">
-                <style type="text/css">
-                    .blueprint_een { fill: #555958; }
-                </style>
-                <path class="blueprint_een" d="M5,9h18v1H5V9z M5,13h8v9H5V13z M6,21h6v-7H6V21z M16,14h7v-1h-7V14z M16,16h7v-1h-7V16z M16,20h7v-1  h-7V20z M16,18h7v-1h-7V18z M16,22h7v-1h-7V22z M32,7v17c0,2.206-1.794,4-4,4H4c-2.206,0-4-1.794-4-4V5c0-0.552,0.448-1,1-1h26  c0.552,0,1,0.448,1,1v1h3C31.552,6,32,6.448,32,7z M30,8h-3v14h-1V7V6H2v18c0,1.103,0.897,2,2,2h24c1.103,0,2-0.897,2-2V8z"/>
-            </svg>
-            Статистика по количеству заказанных марок
+                <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Uploaded to svgrepo.com" width="22" height="22" viewBox="0 0 32 32" xml:space="preserve">
+                    <style type="text/css">
+                        .blueprint_een { fill: #555958; }
+                    </style>
+                    <path class="blueprint_een" d="M5,9h18v1H5V9z M5,13h8v9H5V13z M6,21h6v-7H6V21z M16,14h7v-1h-7V14z M16,16h7v-1h-7V16z M16,20h7v-1  h-7V20z M16,18h7v-1h-7V18z M16,22h7v-1h-7V22z M32,7v17c0,2.206-1.794,4-4,4H4c-2.206,0-4-1.794-4-4V5c0-0.552,0.448-1,1-1h26  c0.552,0,1,0.448,1,1v1h3C31.552,6,32,6.448,32,7z M30,8h-3v14h-1V7V6H2v18c0,1.103,0.897,2,2,2h24c1.103,0,2-0.897,2-2V8z"/>
+                </svg>
+                Статистика по количеству заказанных марок
+            </div>
+
         </div>
-
-    </div>
+    {% endif %}
 </div>
 
 <div id="finance_control_stages">
@@ -173,5 +175,5 @@
 
 {% include 'helpers/error_modal.html' %}
 
-<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc.js')}}?v=22"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc.js')}}?v=23"></script>
 {% endblock %}

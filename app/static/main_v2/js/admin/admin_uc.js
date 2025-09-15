@@ -35,32 +35,56 @@ function wait(ms) {
 
 //     #### finance_control ####
 function update_finance_control(category_p, btn) {
+    // Скрываем tooltip кнопки
     var tooltipInstance = bootstrap.Tooltip.getInstance(btn);
     if (tooltipInstance) {
-    tooltipInstance.hide();
+        tooltipInstance.hide();
     }
 
-    if (document.getElementById(`pills-service_accounts`)) {
-        document.getElementById(`pills-service_accounts`).classList.remove('active');
-    }
-    if (document.getElementById(`pills-promos`)) {
-        document.getElementById(`pills-promos`).classList.remove('active');
-    }
-    if (document.getElementById(`pills-bonuses`)) {
-        document.getElementById(`pills-bonuses`).classList.remove('active');
-    }
-    if (document.getElementById(`pills-prices`)) {
-        document.getElementById(`pills-prices`).classList.remove('active');
-    }
-    document.getElementById('service_accounts_block').style.display = 'none';
-    document.getElementById('promos_block').style.display = 'none';
-    document.getElementById('bonuses_block').style.display = 'none';
-    document.getElementById('prices_block').style.display = 'none';
+    // Удаляем класс active у всех кнопок, если они существуют
+    const buttons = [
+        'pills-service_accounts',
+        'pills-promos',
+        'pills-bonuses',
+        'pills-prices'
+    ];
+    buttons.forEach(id => {
+        const btnElement = document.getElementById(id);
+        if (btnElement) {
+            btnElement.classList.remove('active');
+        }
+    });
 
+    // Скрываем все блоки, если они существуют
+    const blocks = [
+        'service_accounts_block',
+        'promos_block',
+        'bonuses_block',
+        'prices_block'
+    ];
+    blocks.forEach(id => {
+        const blockElement = document.getElementById(id);
+        if (blockElement) {
+            blockElement.style.display = 'none';
+        }
+    });
 
-    document.getElementById(`pills-${category_p}`).classList.add('active');
-    document.getElementById(`${category_p}_block`).style.removeProperty('display')
+    // Активируем выбранную кнопку и показываем соответствующий блок
+    const activeButton = document.getElementById(`pills-${category_p}`);
+    if (activeButton) {
+        activeButton.classList.add('active');
+    } else {
+        console.warn(`Кнопка с ID "pills-${category_p}" не найдена`);
+    }
+
+    const activeBlock = document.getElementById(`${category_p}_block`);
+    if (activeBlock) {
+        activeBlock.style.removeProperty('display');
+    } else {
+        console.warn(`Блок с ID "${category_p}_block" не найден`);
+    }
 }
+
 
 
 function get_promos_history(url) {

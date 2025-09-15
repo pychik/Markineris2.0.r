@@ -125,6 +125,7 @@ def index(expanded: str = None):
 def su_get_telegram():
     return h_su_get_telegram()
 
+
 @admin_control.route('/admin/<int:u_id>/', methods=["GET", ])
 @login_required
 @au_required

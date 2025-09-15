@@ -43,16 +43,12 @@
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.su_control_ut') }}"
-                               title="Перейти в CRM">
-                                Контроль транзакций
-                            </a>
+                            <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.index') }}"
+                                title="Панель управления пользователями">Управление пользователями</a>
                         </li>
                         <li>
-                            <a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('admin_control.bck_control_reanimate')}}"
-                               title="Перейти в CRM">
-                                Реанимация клиентов
-                            </a>
+                            <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.su_control_finance') }}"
+                                title="Панель управления финансами">Финансы</a>
                         </li>
 
         {% elif current_user.role == 'supermanager' %}

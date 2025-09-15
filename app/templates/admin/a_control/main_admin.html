@@ -35,12 +35,14 @@
         </div>
 
     </div>
-
-    <div class="d-flex justify-content-center mt-4 mb-5">
-        <a href="{{url_for('admin_control.users_orders_stats')}}">Перейти в общую статистику заказов</a>
-    </div>
+    {% if current_user.role == "superuser" %}
+        <div class="d-flex justify-content-center mt-4 mb-5">
+            <a href="{{url_for('admin_control.users_orders_stats')}}">Перейти в общую статистику заказов</a>
+        </div>
+    {% endif %}
 
     <div class="row g-3">
+        {% if current_user.role == "superuser" %}
             <div class="col-lg-3">
                 <div class="fw-bold mb-3">Управление админами</div>
                 <div class="d-flex flex-column ">
@@ -50,17 +52,19 @@
                     <a class="btn btn-secondary" onclick="$('#ac_listModal').modal('show')">Показать модераторов</a>
                 </div>
             </div>
+        {% endif %}
             <div class="col-lg-3">
                 <div class="fw-bold mb-3">Управление клиентами</div>
                 <div class="d-flex flex-column ">
                     <a href="{{url_for('admin_control.bck_control_reanimate')}}"
                        class="btn btn-primary btn-accent border-0 text-dark mb-2" type="button">Реанимация
                         клиентов</a>
-
+                    {% if current_user.role == "superuser" %}
                     <a href="{{url_for('admin_control.users_activate_list')}}" class="btn btn-secondary">Неактивированные клиенты</a>
-
+                    {% endif %}
                 </div>
             </div>
+        {% if current_user.role == "superuser" %}
             <div class="col-lg-3">
                 <div class="fw-bold mb-3">Разное</div>
                 <div class="d-flex flex-column ">
@@ -71,6 +75,7 @@
 {#                    <a href="{{url_for('admin_control.data_migrations')}}" class="btn btn-secondary">Миграция данных</a>#}
                 </div>
             </div>
+    {% endif %}
             <div class="col-lg-3">
                 <div class="search-form">
                     <div class="fw-bold mb-3">Поиск</div>

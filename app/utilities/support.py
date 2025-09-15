@@ -2930,7 +2930,7 @@ def bck_at2_required(func):
 def aus_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if current_user.status is True and (current_user.role in [settings.ADMIN_USER, settings.SUPER_USER, ]):
+        if current_user.status is True and (current_user.role in [settings.ADMIN_USER, settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]):
             return func(*args, **kwargs)
         else:
             flash(message=settings.Messages.SUPERADMINUSER_REQUIRED, category='error')
