@@ -21,6 +21,7 @@ from models import (
     Bonus,
     TransactionStatuses,
     TransactionTypes,
+    TransactionOperations
 )
 from utilities.admin.excel_report import ExcelReportProcessor, ExcelReport, ExcelReportWithSheets
 from utilities.exceptions import UserNotFoundError, NegativeBalanceError, BalanceUpdateError
@@ -641,18 +642,22 @@ def h_su_bck_change_sa_type(sa_type: str = 'qr_code') -> Response:
 
 def h_su_control_ut(user_ids: list = None):
     date_to = datetime.now()
-
+    transaction_filters = helper_get_filters_transactions(transaction_type=TransactionTypes.refill_balance.value,
+                                                          tr_status=TransactionStatuses.success.value
+                                                          if request.args.get("service_account")
+                                                          else TransactionStatuses.pending.value,
+                                                          operation_type=TransactionOperations.refill.value)
     roles = (settings.SUPER_USER, settings.ADMIN_USER)
     transaction_types = settings.Transactions.TRANSACTION_TYPES
     operation_types = settings.Transactions.TRANSACTION_OPERATION_TYPES
     transaction_statuses = settings.Transactions.TRANSACTIONS
-    transaction_filters = TransactionFilters(
-        status=TransactionStatuses.pending.value,
-        transaction_type=TransactionTypes.refill_balance.value,
-        operation_type=settings.Transactions.TRANSACTION_REFILL,
-        date_from=date_to - timedelta(days=settings.Transactions.DEFAULT_DAYS_RANGE),
-        date_to=date_to,
-    )
+    # transaction_filters = TransactionFilters(
+    #     status=TransactionStatuses.pending.value,
+    #     transaction_type=TransactionTypes.refill_balance.value,
+    #     operation_type=settings.Transactions.TRANSACTION_REFILL,
+    #     date_from=date_to - timedelta(days=settings.Transactions.DEFAULT_DAYS_RANGE),
+    #     date_to=date_to,
+    # )
 
     users_filter = User.query.with_entities(User.id, User.login_name).filter(User.role.in_(roles)).all()
     transactions = UserTransaction.query.with_entities(
@@ -674,10 +679,11 @@ def h_su_control_ut(user_ids: list = None):
     ).outerjoin(
         ServiceAccount, ServiceAccount.id == UserTransaction.sa_id,
     ).filter(
-        UserTransaction.status == TransactionStatuses.pending.value,
+        UserTransaction.status == transaction_filters.status,
         UserTransaction.transaction_type == TransactionTypes.refill_balance.value,
         UserTransaction.type == bool(settings.Transactions.TRANSACTION_REFILL),
         UserTransaction.created_at >= transaction_filters.date_from,
+        ServiceAccount.id == transaction_filters.service_account if transaction_filters.service_account else True,
     ).order_by(
         desc(UserTransaction.created_at),
     ).all()
@@ -692,7 +698,7 @@ def h_su_control_ut(user_ids: list = None):
         ServiceAccount.is_archived.isnot(True),
     ).all()
 
-    link_filters = f'operation_type=1&tr_status={TransactionStatuses.pending.value}&'
+    link_filters = transaction_filters.link_filters
     link = f'javascript:bck_get_transactions(\'' + url_for(
         'admin_control.su_bck_control_ut') + f'?bck=1&{link_filters}' + 'page={0}\');'
 

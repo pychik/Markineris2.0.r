@@ -106,7 +106,7 @@
                 <label class="col-form-label" for="transaction_status">Статус</label><br>
                 <select class="form-select" id="transaction_status" name="transaction_status" required>
                     {% for k,v in transaction_statuses.items() %}
-                        <option value="{{ k }}">{{ v }}</option>
+                        <option value="{{ k }}"{% if k == transaction_filters.status %} selected {% endif %}>{{ v }}</option>
                     {% endfor %}
                 </select>
             </div>

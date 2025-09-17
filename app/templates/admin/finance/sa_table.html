@@ -33,7 +33,7 @@
             <tr>
                 <td>{{ loop.index }}</td>
                 <td>
-                    {{ t.sa_name }}
+                    <a title="Посмотреть историю транзакций счета {{t.sa_name}}" href="{{url_for('admin_control.su_control_ut', service_account=t.id)}}">{{ t.sa_name }}</a>
                 </td>
                 <td>
                     {{ sa_types[t.sa_type] }}
