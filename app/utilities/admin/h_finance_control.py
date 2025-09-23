@@ -46,7 +46,7 @@ from utilities.support import (
     helper_get_user_at2_opt2,
     helper_get_promo_on_cancel_transaction,
     TransactionFilters,
-    create_bill_path,
+    create_bill_path, helper_paginate_sql_with_window,
 )
 from utilities.tg_verify.service import send_tg_message_with_transaction_updated_status
 from validators.admin_control import UpdateBalanceSchema
@@ -1093,12 +1093,14 @@ def h_su_fin_order_report():
     date_from = datetime.now() - timedelta(settings.ORDERS_REPORT_TIMEDELTA)
     date_to = datetime.now()
     stmt = helper_get_stmt_for_fin_order_report()
-    orders = db.session.execute(stmt, ).fetchall()
+
     link = f'javascript:bck_get_fin_order_report(\'' + url_for(
         'admin_control.su_bck_fin_order_report') + f'?bck=1' + '&page={0}\');'
-    page, per_page, \
-        offset, pagination, \
-        orders_list = helper_paginate_data(data=orders, per_page=settings.PAGINATION_PER_PAGE, href=link)
+    page, per_page, offset, pagination, orders_list = helper_paginate_sql_with_window(
+        stmt,
+        per_page=settings.PAGINATION_PER_PAGE,
+        href=link,
+    )
     return render_template('admin/finance/fin_order_report/su_order_report.html', **locals())
 
 
@@ -1111,12 +1113,14 @@ def h_bck_fin_order_report():
         order_type=order_type,
         payment_status=payment_status,
     )
-    orders = db.session.execute(stmt,).fetchall()
+
     link = f'javascript:bck_get_fin_order_report(\'' + url_for(
         'admin_control.su_bck_fin_order_report') + f'?bck=1' + '&page={0}\');'
-    page, per_page, \
-        offset, pagination, \
-        orders_list = helper_paginate_data(data=orders, per_page=settings.PAGINATION_PER_PAGE, href=link)
+    page, per_page, offset, pagination, orders_list = helper_paginate_sql_with_window(
+        stmt,
+        per_page=settings.PAGINATION_PER_PAGE,
+        href=link,
+    )
     return jsonify({'htmlresponse': render_template(f'admin/finance/fin_order_report/su_order_table.html', **locals())})
 
 

@@ -5,14 +5,14 @@ from datetime import datetime, timedelta
 from functools import wraps
 from math import floor as m_floor
 from time import time
-from typing import Optional, Union
+from typing import Any, Optional, Union, Mapping, Tuple, List
 from uuid import uuid4
 
 from flask import flash, jsonify, Markup, redirect, url_for, request, Response, render_template
 from flask_login import current_user, logout_user
 from flask_paginate import Pagination
 from flask_sqlalchemy.pagination import QueryPagination
-from sqlalchemy import asc, create_engine, desc, text, or_, not_, UnaryExpression, func
+from sqlalchemy import asc, create_engine, desc, text, or_, not_, select, UnaryExpression, func
 from sqlalchemy.engine.row import Row
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, aliased
@@ -1107,6 +1107,121 @@ def helper_paginate_data(data: list, key_page: str = 'page', href: str = None,
     order_list = data[offset:offset + per_page]
 
     return page, per_page, offset, pagination, order_list
+
+
+def helper_paginate_query(
+    query,
+    *,
+    key_page: str = "page",
+    page: int | None = None,
+    per_page: int,
+    href: str | None = None,
+    anchor: str = "orders_table",
+    css_framework: str = "semantic",
+    record_name: str = "items",
+) -> Tuple[int, int, int, Pagination, List]:
+    """
+    Универсальная пагинация для SQLAlchemy Query.
+    Возвращает: (page, per_page, offset, pagination, items_on_page)
+    """
+    #  текущая страница
+    if page is None:
+        page = request.args.get(key_page, 1, type=int)
+    page = max(1, int(page))
+
+    #  смещение/лимит
+    offset = per_page * (page - 1)
+
+    # total без ORDER BY (быстреxе на COUNT)
+    total_query = query.order_by(None)
+    try:
+        total = total_query.count()
+    except Exception:
+        total = query.session.execute(
+            select(func.count()).select_from(total_query.subquery())
+        ).scalar_one()
+
+    items = query.offset(offset).limit(per_page).all()
+
+    pagination = Pagination(
+        page=page,
+        page_parameter=key_page,
+        per_page=per_page,
+        offset=offset,
+        total=total,
+        search=False,
+        href=href,
+        record_name=record_name,
+        anchor=anchor,
+        alignment="right",
+        css_framework=css_framework,
+    )
+
+    return page, per_page, offset, pagination, items
+
+
+def helper_paginate_sql_with_window(
+    stmt: TextClause,
+    *,
+    per_page: int,
+    page: int | None = None,
+    key_page: str = "page",
+    href: str | None = None,
+    anchor: str = "orders_table",
+    css_framework: str = "semantic",
+    record_name: str = "items",
+    extra_params: Mapping[str, Any] | None = None,  # если захотите что-то докинуть вручную
+) -> Tuple[int, int, int, Pagination, List]:
+    """
+    Пагинация сырых SQL за 1 поездку: SELECT sub.*, COUNT(*) OVER() AS __total FROM (<stmt>) sub LIMIT/OFFSET.
+    Все bind-параметры исходного stmt автоматически прокидываются внутрь.
+    """
+
+    def _extract_bound_params(stmt: TextClause) -> dict:
+        """Достаём значения, которые были переданы в .bindparams(...) у исходного stmt."""
+        try:
+            # _bindparams — приватный, но стабильно работает в 1.4/2.0
+            return {k: v.value for k, v in getattr(stmt, "_bindparams", {}).items()}
+        except Exception:
+            return {}
+    # 1) текущая страница / смещение
+    if page is None:
+        page = request.args.get(key_page, 1, type=int)
+    page = max(1, int(page))
+    offset = per_page * (page - 1)
+
+    # 2) собираем параметры
+    bound = _extract_bound_params(stmt)        # то, что было в .bindparams(...) у stmt
+    exec_params = {**bound, **(extra_params or {}), "limit": per_page, "offset": offset}
+
+    # 3) сам запрос
+    inner_sql = str(stmt).rstrip().rstrip(";")
+    paged_sql = text(f"""
+        SELECT sub.*, COUNT(*) OVER() AS __total
+        FROM (
+            {inner_sql}
+        ) AS sub
+        LIMIT :limit OFFSET :offset
+    """)
+
+    # 4) выполняем и строим пагинацию
+    rows = db.session.execute(paged_sql, exec_params).fetchall()
+    total = int(rows[0].__total) if rows else 0
+
+    pagination = Pagination(
+        page=page,
+        page_parameter=key_page,
+        per_page=per_page,
+        offset=offset,
+        total=total,
+        search=False,
+        href=href,
+        record_name=record_name,
+        anchor=anchor,
+        alignment="right",
+        css_framework=css_framework,
+    )
+    return page, per_page, offset, pagination, rows
 
 
 def helper_get_order(user: User, category: str, o_id: int, stage: int) -> Optional[Order]:
