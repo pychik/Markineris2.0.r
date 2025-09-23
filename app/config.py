@@ -930,10 +930,10 @@ class Settings(BaseSettings):
     class ExceptionOrders:
         COMPANIES_IDNS: tuple = ('7703381056', '860235949238', '110374099900', '772307796929', '026616906460',
                                  '200414749336', '200408124103', '772312545141', '330410624666', '212913693488',
-                                 '532107298876')
-        EXCEPTED_ARTICLES: tuple = ('сигар', )
+                                 '532107298876', '770478574150',)
+        EXCEPTED_ARTICLES: tuple = ('сигар',)
         COMPANY_IDN_ERROR: str = "Невозможно оформить заказ по указанному ИНН {company_idn}"
-        PHONE_NUMBERS: tuple = ('+79776828273', '+79362566595', '+994504758822', )
+        PHONE_NUMBERS: tuple = ('+79776828273', '+79362566595', '+994504758822', '+79689540556')
 
     class Shoes:
         CATEGORY: str = 'обувь'
