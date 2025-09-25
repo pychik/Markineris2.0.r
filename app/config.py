@@ -933,7 +933,7 @@ class Settings(BaseSettings):
                                  '532107298876', '770478574150',)
         EXCEPTED_ARTICLES: tuple = ('сигар',)
         COMPANY_IDN_ERROR: str = "Невозможно оформить заказ по указанному ИНН {company_idn}"
-        PHONE_NUMBERS: tuple = ('+79776828273', '+79362566595', '+994504758822', '+79689540556')
+        PHONE_NUMBERS: tuple = ('+79776828273', '+79362566595', '+994504758822', '+79689540556', '+79875372621', )
 
     class Shoes:
         CATEGORY: str = 'обувь'
