@@ -1,16 +1,17 @@
 <div class="d-flex flex-column ">
     <div class="header__form mb-2">
         <div class="input-group" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Введите номер заказа и нажмите кнопку поиск. Для очистки результата, нажмите Очистить">
-           <input type="text" id="searchOrdertext" name="search_order_idn" class="form-control" placeholder="Введите номер заказа" >
-           <div class="input-group-append no-user-activity-block" >
-             <span class="input-group-text bg-warning" id="searchOrderButton" style="cursor:pointer" onclick="search_crm_order(`${SEARCH_ORDER_URL}`,`{{csrf_token()}}`);">Поиск</span>
-           </div>
+            <input type="text" id="searchOrdertext" name="search_order_idn" class="form-control" placeholder="Введите номер заказа">
             <div class="input-group-append no-user-activity-block">
-             <span class="input-group-text bg-secondary text-white" id="clearSearchOrder" style="cursor:pointer" onclick="clear_search_order_res();">Очистить</span>
-           </div>
+                <span class="input-group-text bg-warning" id="searchOrderButton" style="cursor:pointer" onclick="search_crm_order(`${SEARCH_ORDER_URL}`,`{{csrf_token()}}`);">Поиск</span>
+            </div>
+            <div class="input-group-append no-user-activity-block">
+                <span class="input-group-text bg-secondary text-white" id="clearSearchOrder" style="cursor:pointer" onclick="clear_search_order_res();">Очистить</span>
+            </div>
         </div>
         <div id="OrderSearchResult"></div>
     </div>
+
 
 <!--  {% if current_user.role == 'superuser' %}-->
 <!--                {% if 'manager' in request.path %}-->
