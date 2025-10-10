@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     SALT: SecretStr
 
     MARKINERS_V2_TOKEN: str
+    SESSION_COOKIE_NAME: str
+    REMEMBER_COOKIE_NAME: str
     SECRET_KEY: str
     ENCRYPT_KEY: str
 
