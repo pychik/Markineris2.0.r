@@ -31,7 +31,8 @@ def helper_clothes_index(o_id: int, p_id: int = None, update_flag: int = None,
     countries = settings.COUNTRIES_LIST
     clothes_content = settings.Clothes.CLOTHES_CONTENT
     clothes_nat_content = settings.Clothes.CLOTHES_NAT_CONTENT
-    colors = settings.Clothes.COLORS
+    # colors = settings.Clothes.COLORS
+    colors = settings.ALL_COLORS
     genders = settings.Clothes.GENDERS
 
     clothes_size_description = settings.Clothes.CLOTHES_SIZE_DESC

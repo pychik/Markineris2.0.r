@@ -236,6 +236,20 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
     if not Category.check_subcategory(category=category, subcategory=subcategory):
         return jsonify(dict(status='error', message=settings.Messages.STRANGE_REQUESTS + 'у одежды нет такой подкатегории'))
 
+    # optimise it
+    color = form_data_raw.get('color')
+    check_color = (category != settings.Parfum.CATEGORY_PROCESS
+                   and ValidatorProcessor.check_colors(color=color))
+    if check_color:
+        message = settings.Messages.COLOR_INPUT_ERROR.format(color=color)
+        if o_id and not p_id:
+            return jsonify(dict(status='error', message=message))
+
+        else:
+            flash(message=message, category='error')
+            return redirect(
+                url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=o_id, subcategory=subcategory))
+
     check_tnved_condition = ValidatorProcessor.check_tnveds(category=category,
                                                             subcategory=subcategory,
                                                             tnved_str=form_data_raw.get('tnved_code'))
@@ -468,7 +482,8 @@ def helper_shoes_index(o_id: int, p_id: int = None, update_flag: int = None,
     shoe_sizes = settings.Shoes.SIZES_ALL
     shoe_size_description = settings.Shoes.SHOE_SIZE_DESC
 
-    colors = settings.Shoes.COLORS
+    # colors = settings.Shoes.COLORS
+    colors = settings.ALL_COLORS
     genders = settings.Shoes.GENDERS
     materials_up_linen = settings.Shoes.MATERIALS_UP_LINEN
     materials_bottom = settings.Shoes.MATERIALS_BOTTOM
@@ -507,7 +522,8 @@ def helper_socks_index(o_id: int, p_id: int = None, update_flag: int = None,
     category_process_name = settings.Socks.CATEGORY_PROCESS
 
     types = settings.Socks.TYPES
-    colors = settings.Clothes.COLORS
+    # colors = settings.Clothes.COLORS
+    colors = settings.ALL_COLORS
     genders = settings.Socks.GENDERS
 
     subcategory = request.args.get('subcategory', '')
@@ -542,7 +558,8 @@ def helper_linen_index(o_id: int, p_id: int = None, update_flag: int = None,
     countries = settings.COUNTRIES_LIST
 
     types = settings.Linen.TYPES
-    colors = settings.Linen.COLORS
+    # colors = settings.Linen.COLORS
+    colors = settings.ALL_COLORS
     textile_types = settings.Linen.TEXTILE_TYPES
     customer_ages = settings.Linen.CUSTOMER_AGES
     size_units = LinenSizesUnits.choices()

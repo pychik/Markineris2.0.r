@@ -73,7 +73,7 @@ class ValidateClothesMixin:
         color_value = value.upper()
         order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = color_value
         # value is shoe_color
-        if len(value) > 100:
+        if color_value not in settings.ALL_COLORS:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_COLOR_ERROR}"
 
     @staticmethod

@@ -180,3 +180,7 @@ class ValidatorProcessor:
                     return ValidatorProcessor.shawls_pre_validate_tnved(tnved_str=tnved_str)
                 case _:
                     return ValidatorProcessor.clothes_pre_validate_tnved(tnved_str=tnved_str)
+
+    @staticmethod
+    def check_colors(color: str) -> bool:
+        return color not in settings.ALL_COLORS
