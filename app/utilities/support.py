@@ -238,7 +238,7 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
 
     # optimise it
     color = form_data_raw.get('color')
-    check_color = (category != settings.Parfum.CATEGORY_PROCESS
+    check_color = (category != settings.Parfum.CATEGORY
                    and ValidatorProcessor.check_colors(color=color))
     if check_color:
         message = settings.Messages.COLOR_INPUT_ERROR.format(color=color)
