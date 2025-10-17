@@ -1,5 +1,5 @@
 <div class="row setup-content faded" id="step-2" {% if not o_id or 'page' in request.url %}style="display:none"{% endif %}>
-    <div class="col-md-6">
+    <div class="col-md-2">
         <div class="return mb-2">
             <div class="prevBtn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                     viewBox="0 0 24 24" fill="none">
@@ -9,7 +9,7 @@
                 </svg> Вернуться назад</div>
         </div>
     </div>
-    <div class="col-md-2"></div>
+    <div class="col-md-6"></div>
     <div class="col-md-4">
         {% if category in categories_upload and (not subcategory or subcategory == 'common')%}
             <div class="text-right">
