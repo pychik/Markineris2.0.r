@@ -65,7 +65,7 @@
             <input type="text" id="rd_name" name="rd_name"
                    class="form-control col-sm-6"
                    {%if copied_order %}{% if not copied_order.rd_name%}{% else %} required{% endif %}{% else %} required{% endif %}
-                   placeholder="Введите код/название документа" oninput="oiremoveSymbol('rd_name', '№')"
+                   placeholder="Введите код/название документа" oninput="filter_symbols_rd()"
                    value="{% if copied_order %}{% if copied_order.rd_name %}{{ copied_order.rd_name }}{% endif %}{% endif %}">
 {#            <small class="form-text text-muted" style="font-size: 10px;">Значок <b><u>№</u></b> не указывается</small>#}
         </div>

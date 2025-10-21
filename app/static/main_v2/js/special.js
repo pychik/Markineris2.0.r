@@ -1343,6 +1343,26 @@ function oiremoveSymbol(inputId, symbol) {
         inputField.value = inputField.value.replace(symbolRegex, '');
 }
 
+function filter_symbols_rd() {
+    const input = document.getElementById('rd_name');
+    let value = input.value;
+
+    // 1. Удаляем символ "№" в любом месте
+    value = value.replace(/№/g, '');
+
+    // 2. Удаляем отдельно стоящее слово TEST (в любом регистре)
+    // допускаются между буквами пробелы, -, _, ', ` и т.п.
+    const testRegex = /(^|[^a-zа-яё])t[\s_\-'"`]*e[\s_\-'"`]*s[\s_\-'"`]*t([^a-zа-яё]|$)/gi;
+    value = value.replace(testRegex, (m, p1, p2) => (p1 && p2 ? p1 + p2 : ''));
+
+    // 3. То же самое — для русского слова ТЕСТ
+    const testRusRegex = /(^|[^a-zа-яё])т[\s_\-'"`]*е[\s_\-'"`]*с[\s_\-'"`]*т([^a-zа-яё]|$)/gi;
+    value = value.replace(testRusRegex, (m, p1, p2) => (p1 && p2 ? p1 + p2 : ''));
+
+    // 4. Обновляем поле
+    input.value = value;
+}
+
 function rd_required_process(switchbox){
     if (document.getElementById('rd_name').required === false){
         document.getElementById('rd_name').required = true;
