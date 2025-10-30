@@ -115,10 +115,10 @@ class ValidateClothesMixin:
 
     @staticmethod
     @empty_value
-    def _content(order_list: list, cloth_material: str, row_num: int, col: str, pos: int,
+    def _content(order_list: list, value: str, row_num: int, col: str, pos: int,
                  ) -> Optional[str]:
         # cols I J
-        order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = cloth_material.capitalize().replace('\n', ' ')
+        order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = value.capitalize().replace('\n', ' ')
         return
 
     @staticmethod
@@ -263,7 +263,7 @@ class UploadClothes(UploadCategory):
                 size_error = self._size(value=data_group[6].strip(), row_num=row_num, col='J', pos=6,
                                         order_list=order_list)
                 # print(size_error)
-                content_error = self._content(order_list=order_list, cloth_material=data_group[7].strip(),
+                content_error = self._content(order_list=order_list, value=data_group[7].strip(),
                                               row_num=row_num, col='K', pos=7)
                 # print(content_error)
                 tnved_error = self._tnved(order_list=order_list, clothes_type=data_group[2].strip(),
