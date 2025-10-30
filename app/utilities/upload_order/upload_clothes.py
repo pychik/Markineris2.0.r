@@ -114,16 +114,10 @@ class ValidateClothesMixin:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_SIZE_ERROR}"
 
     @staticmethod
+    @empty_value
     def _content(order_list: list, cloth_material: str, row_num: int, col: str, pos: int,
                  ) -> Optional[str]:
         # cols I J
-        if not cloth_material or not isinstance(cloth_material, str):
-            return f"{val_error_start(row_num=row_num, col=col)} " \
-                   f"{settings.Messages.UPLOAD_NOT_STR_VALUE_ERROR}"
-        if len(cloth_material) <= 1:
-            return f"{val_error_start(row_num=row_num, col=col)} " \
-                   f"{settings.Messages.UPLOAD_EMPTY_VALUE_ERROR}"
-
         order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = cloth_material.capitalize().replace('\n', ' ')
         return
 
