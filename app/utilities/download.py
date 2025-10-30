@@ -447,7 +447,7 @@ class ClothesProcessor(OrdersProcessor):
                 declination_dict = settings.Clothes.DEC
 
         if declination_dict.get(clothes_type):
-            return declination_dict.get(clothes_type).get(gender)
+            return declination_dict.get(clothes_type).get(gender, '')
         else:
             return ''
 

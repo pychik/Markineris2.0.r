@@ -517,10 +517,12 @@ CLOTHES_CONTENT: list = ['АКРИЛ', 'БОЛОНЬЯ', 'БАМБУК', 'ВИС
 
 CLOTHES_NAT_CONTENT: tuple = ('НАТУРАЛЬНАЯ КОЖА', 'КОМПОЗИЦИОННАЯ КОЖА', 'ЗАМША')
 
-CLOTHES_GENDERS: list = ["Жен.", "Муж.", "Унисекс", "Детск."]
-CLOTHES_GENDER_046: list = ["<1200000002> ЖЕНСКИЙ", "<1200000001> МУЖСКОЙ", "<1200000008> УНИСЕКС", "<1200000004> БЕЗ УКАЗАНИЯ ПОЛА", ]
+CLOTHES_GENDERS: list = ["Жен.", "Муж.", "Унисекс", "Детск.", "Без указания пола"]
+CLOTHES_GENDER_046: list = ["<1200000002> ЖЕНСКИЙ", "<1200000001> МУЖСКОЙ", "<1200000008> УНИСЕКС",
+                            "<1200000004> БЕЗ УКАЗАНИЯ ПОЛА", ]
 
-CLOTHES_GENDERS_ORDER_RAW: list = ["ЖЕНСКИЙ", "МУЖСКОЙ", "УНИВЕРСАЛЬНЫЙ (УНИСЕКС)", "БЕЗ УКАЗАНИЯ ПОЛА", ]
+CLOTHES_GENDERS_ORDER_RAW: list = ["ЖЕНСКИЙ", "МУЖСКОЙ", "УНИВЕРСАЛЬНЫЙ (УНИСЕКС)", "БЕЗ УКАЗАНИЯ ПОЛА",
+                                   "БЕЗ УКАЗАНИЯ ПОЛА", ]
 
 CLOTHES_GENDERS_ORDER: dict = dict(zip(CLOTHES_GENDERS, CLOTHES_GENDERS_ORDER_RAW))
 CLOTHES_GENDERS_ORDER_046: dict = dict(zip(CLOTHES_GENDERS, CLOTHES_GENDER_046))
