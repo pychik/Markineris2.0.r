@@ -56,13 +56,13 @@ scheduler.cron(
     queue_name=settings.RQ_SCHEDULER_QUEUE_NAME
 )
 
-scheduler.cron(
-    "0 * * * *",
-    func=helper_auto_problem_cancel_order,
-    on_success=on_success_periodic_task,
-    on_failure=on_failure_periodic_task,
-    queue_name=settings.RQ_SCHEDULER_QUEUE_NAME
-)
+# scheduler.cron(
+#     "0 * * * *",
+#     func=helper_auto_problem_cancel_order,
+#     on_success=on_success_periodic_task,
+#     on_failure=on_failure_periodic_task,
+#     queue_name=settings.RQ_SCHEDULER_QUEUE_NAME
+# )
 
 scheduler.cron(
     "0 0 */3 * *",
