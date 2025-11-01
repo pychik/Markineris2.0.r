@@ -357,3 +357,22 @@
     width: 100px; /* можно уменьшить размер */
     height: 100px;
 }
+
+.sidebar-logo {
+    text-decoration: none;
+    display: inline-block;
+}
+
+.logo-text-sidebar {
+    font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+    font-size: 32px;
+    font-weight: 500;
+    color: #767b80; /* серый, как в заголовке на скрине */
+    letter-spacing: 0.5px;
+    text-decoration: none;
+}
+
+.logo-text-sidebar .highlight-sidebar {
+    font-weight: 700;
+    color: #a6aaae;
+}

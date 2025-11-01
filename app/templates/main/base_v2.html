@@ -22,7 +22,7 @@
     <link rel="stylesheet" href="{{url_for('static',filename='main_v2/css/style.css')}}?v=1">
     <link rel="stylesheet" href="{{url_for('static',filename='main_v2/css/style-08.css')}}">
     <link rel="stylesheet" href="{{url_for('static',filename='main_v2/css/update_1.css')}}?v=1">
-    <link rel="stylesheet" href="{{url_for('static',filename='main_v2/css/special_v3.css')}}?v=3">
+    <link rel="stylesheet" href="{{url_for('static',filename='main_v2/css/special_v3.css')}}?v=4">
     <link rel="stylesheet" href="{{url_for('static',filename='main_v2/assets/lib/tablestack/tablesaw.stackonly.css')}}">
     <link rel="stylesheet" href="{{url_for('static',filename='main_v2/video/css/video.css')}}?v=2">
 
@@ -53,7 +53,9 @@
 {#                    {% if not ('login' in  request.path or 'sign_up' in request.path or 'restore_page' in request.path) %}#}
 {#                        {% include 'main/base_helpers/branding_1.html' %}#}
 {#                    {% endif %}#}
-
+                    <a href="{{url_for('main.enter')}}" class="sidebar-logo">
+                        <span class="logo-text-sidebar">Marka Service</span>
+                    </a>
                     <a href="" data-bs-dismiss="sidebar" aria-label="Close">
                         <svg class="d-block d-md-none" xmlns="http://www.w3.org/2000/svg" width="61" height="61"
                             viewBox="0 0 61 61" fill="none">
