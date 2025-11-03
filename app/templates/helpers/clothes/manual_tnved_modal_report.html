@@ -1,17 +1,20 @@
 <div class="container-fluid">
-    <div class="card text-center p-3 mt-3">
-        <div class="input-group">
+    {% if subcategory not in ['common', '']%}
+        <div class="card text-center p-3 mt-3">
+            <div class="input-group">
 
-          <input type="text" class="form-control" placeholder="Введите ваш ТНВЭД" minlength="10" maxlength="10" id="manual_tnved_input" value="">
+              <input type="text" class="form-control" placeholder="Введите ваш ТНВЭД" minlength="10" maxlength="10" id="manual_tnved_input" value="">
 
-            <div class="input-group-postend" style="cursor:pointer">
-                <span class="input-group-text btn-accent" onclick="clothes_manual_tnved()">Подтвердить</span>
+                <div class="input-group-postend" style="cursor:pointer">
+                    <span class="input-group-text btn-accent" onclick="clothes_manual_tnved()">Подтвердить</span>
+                </div>
             </div>
-        </div>
-        <span class="small text-muted">Ввод собственного ТНВЭД</span>
-        <div id="manual_tnved_message" class="text-danger"></div>
+            <span class="small text-muted">Ввод собственного ТНВЭД</span>
+            <div id="manual_tnved_message" class="text-danger"></div>
 
-    </div>
+
+        </div>
+    {% endif %}
     <div id="accordionBlockies">
     {% for tnved in tnved_list %}
 

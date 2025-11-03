@@ -123,12 +123,14 @@ class ValidateClothesMixin:
 
     @staticmethod
     @empty_value
-    def _tnved(order_list: list, clothes_type: str, value: str, row_num: int, col: str, pos: int = 8, subcategory: str = None) -> Optional[str]:
+    def _tnved(order_list: list, clothes_type: str, value: str, row_num: int, col: str, pos: int = 8,
+               subcategory: str = None,
+               gender: str = None) -> Optional[str]:
         # value is tnved
         value = value.replace('.0', '').strip()
 
         result_status, answer = TnvedChecker.tnved_clothes_parse(cloth_type=clothes_type, tnved_code=value,
-                                                                 subcategory=subcategory)
+                                                                 subcategory=subcategory, gender=gender)
 
         if result_status != 5:
             return f"{val_error_start(row_num=row_num, col=col)} {answer}." \
@@ -138,9 +140,12 @@ class ValidateClothesMixin:
 
     @staticmethod
     @empty_value
-    def _gender(value: str, row_num: int, col: str) -> Optional[str]:
+    def _gender(value: str, row_num: int, col: str, subcategory: str = None, cl_type: str = None, ) -> Optional[str]:
         # value is gender
-
+        if subcategory in ['common', '', None]:
+            correct_genders = settings.Clothes.CLOTHES_TYPE_GENDERS.get(cl_type.upper(), [])
+            if value not in correct_genders:
+                return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_GENDER_ERROR} Для {cl_type} есть только {correct_genders}"
         if value not in settings.Clothes.GENDERS:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_GENDER_ERROR}"
 
@@ -239,6 +244,7 @@ class UploadClothes(UploadCategory):
             rz_condition = ((current_user.role == 'ordinary_user' and current_user.admin_parent_id == 2)
                             or current_user.id == 2)
             for data_group in order_list:
+                cl_type = data_group[2].strip()
                 gender = data_group[4].strip()
 
                 gender_condition = gender not in settings.RZ_GENDERS_RD_LIST
@@ -248,14 +254,15 @@ class UploadClothes(UploadCategory):
                                                   order_list=order_list)
                 article_error = self._article(value=data_group[1].strip(), row_num=row_num, col='E', pos=1,
                                               order_list=order_list)
-                type_error = self._type(value=data_group[2].strip(), row_num=row_num, col='F',
+                type_error = self._type(value=cl_type, row_num=row_num, col='F',
                                         pos=2, order_list=order_list, subcategory=subcategory)
                 # print(type_error)
 
                 color_error = self._color(value=data_group[3].strip(), row_num=row_num, col='G', pos=3,
                                           order_list=order_list)
                 # print(color_error)
-                gender_error = self._gender(value=gender, row_num=row_num, col='H')
+                gender_error = self._gender(value=gender, row_num=row_num, col='H', subcategory=subcategory,
+                                            cl_type=cl_type)
                 # print(gender_error)
                 size_type_error = self._size_type(size_value=data_group[6].strip(),
                                                   row_num=row_num, size_col='J', pos=5, order_list=order_list)
@@ -266,8 +273,9 @@ class UploadClothes(UploadCategory):
                 content_error = self._content(order_list=order_list, value=data_group[7].strip(),
                                               row_num=row_num, col='K', pos=7)
                 # print(content_error)
-                tnved_error = self._tnved(order_list=order_list, clothes_type=data_group[2].strip(),
-                                          value=data_group[8].strip(), row_num=row_num, col='L', pos=8, subcategory=subcategory)
+                tnved_error = self._tnved(order_list=order_list, clothes_type=cl_type,
+                                          value=data_group[8].strip(), row_num=row_num, col='L', pos=8,
+                                          subcategory=subcategory, gender=gender)
                 # print(tnved_error)
                 quantity_error = self._quantity(value=data_group[9].strip(), row_num=row_num, col='M')
                 # print(quantity_error)

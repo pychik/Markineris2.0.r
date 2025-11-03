@@ -131,3 +131,13 @@ def bck_clothes_tnved():
         returns modal block with tnveds
     """
     return h_bck_clothes_tnved()
+
+
+@clothes.route('/bck_clothes_genders', methods=['POST', ])
+@user_activated
+@login_required
+def bck_clothes_genders():
+    """
+        returns modal block with tnveds
+    """
+    return h_bck_clothes_genders()

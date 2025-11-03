@@ -10,6 +10,7 @@ from config import settings
 from logger import logger
 from models import User, Order, Shoe, ShoeQuantitySize, Socks, SocksQuantitySize, Linen, LinenQuantitySize, Parfum, \
     Clothes, ClothesQuantitySize, db
+from utilities.categories_data.clothes_common.tnved_processor import get_tnved_codes_for_gender
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 
 
@@ -225,19 +226,85 @@ def save_copy_order_shoes(order_category_list: list[Shoe], new_order: Order) -> 
                            for shoe in order_category_list)
     return new_order
 
+def _check_clothes_compatibility(clothes) -> str | bool:
+    """
+    Проверяет, сочетаются ли type/gender/tnved у одной позиции.
+    Возвращает:
+      - False, если позиция корректна
+      - str (например "[Тип Пол, ТНВЭД]"), если несовместима
+    """
+    def _needs_gender(subcat) -> bool:
+        return subcat in ('', 'common', None, 'None')
+
+    def _norm_tnved(s: str) -> str:
+        return (s or '').replace(' ', '').replace('-', '').strip()
+
+    cl_type   = (clothes.type or '').strip()
+    cl_gender = (clothes.gender or '').strip()
+    cl_tnved  = (clothes.tnved_code or '').strip()
+    cl_subcat = getattr(clothes, 'subcategory', None)
+
+    # --- Проверка пола ---
+
+    need_gender = _needs_gender(cl_subcat)
+
+    if need_gender:
+        correct_genders = settings.Clothes.CLOTHES_TYPE_GENDERS.get(cl_type.upper(), [])
+        gender_ok = bool(cl_gender) and (cl_gender in correct_genders)
+    else:
+        return False
+
+    # --- Проверка ТНВЭД ---
+    tnved_ok = True
+    if cl_tnved:
+        try:
+            allowed_tnveds = get_tnved_codes_for_gender(type_name=cl_type, gender=cl_gender) or ()
+        except Exception:
+            allowed_tnveds = ()
+        allowed_tnveds = {_norm_tnved(x) for x in allowed_tnveds}
+        tnved_ok = _norm_tnved(cl_tnved) in allowed_tnveds
+
+    # --- Итог ---
+    if gender_ok and tnved_ok:
+        return False  # позиция корректна
+
+    # Формируем короткое описание для отчёта
+    t = cl_type or '—'
+    g = cl_gender or '—'
+    n = cl_tnved or '—'
+    return f"[{t} {g}, {n}]"
+
 
 def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order) -> Order:
-    new_order.clothes.extend(Clothes(trademark=clothes.trademark,
-                                     article=clothes.article, type=clothes.type,
-                                     color=clothes.color, content=clothes.content,
-                                     box_quantity=clothes.box_quantity,
-                                     gender=clothes.gender, country=clothes.country,
-                                     tnved_code=clothes.tnved_code, article_price=clothes.article_price,
-                                     tax=clothes.tax, rd_type=clothes.rd_type, rd_name=clothes.rd_name.replace('№', ''),
-                                     rd_date=clothes.rd_date, subcategory=clothes.subcategory,
-                                     sizes_quantities=list((ClothesQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
-                                                            for sq in clothes.sizes_quantities)))
-                             for clothes in order_category_list)
+    old_sq_map = {}  # {old_id: new_sq_instance}
+    incompatible_items = []
+    kept_clothes_count = 0
+    for clothes in order_category_list:
+        # Проверяем на совместимость типов полов тнвэдов
+        result = _check_clothes_compatibility(clothes)
+        if result:  # несовместима — сохраняем сообщение
+            incompatible_items.append(result)
+            continue
+
+        new_sizes = []
+        for sq in clothes.sizes_quantities:
+            new_sq = ClothesQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
+            old_sq_map[sq.id] = new_sq
+            new_sizes.append(new_sq)
+
+        new_order.clothes.append(Clothes(
+            trademark=clothes.trademark, article=clothes.article, type=clothes.type,
+            color=clothes.color, content=clothes.content, box_quantity=clothes.box_quantity,
+            gender=clothes.gender, country=clothes.country, tnved_code=clothes.tnved_code,
+            article_price=clothes.article_price, tax=clothes.tax,
+            rd_type=clothes.rd_type, rd_name=clothes.rd_name.replace('№', ''),
+            rd_date=clothes.rd_date, subcategory=clothes.subcategory,
+            sizes_quantities=new_sizes
+        ))
+        kept_clothes_count += 1
+    if kept_clothes_count == 0:
+        raise Exception("Не удалось скопировать ни одной позиции: все позиции не проходят новые правила ЧЗ."
+                        + (" Подробности: " + ", ".join(incompatible_items) if incompatible_items else ""))
     return new_order
 
 

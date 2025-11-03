@@ -362,6 +362,7 @@ async function clothes_update_table(page) {
 
 
 function clothes_clear_pos() {
+    window.__silenceReset = true;
     $('#article').val("");
     $('#trademark').val("");
 
@@ -383,6 +384,7 @@ function clothes_clear_pos() {
     $('#sizes_quantity').empty();
     check_valid(document.getElementById('tax'));
     check_valid(document.getElementById('article_price'));
+    window.__silenceReset = false;
     // check_valid(document.getElementById('trademark'));
     // check_valid(document.getElementById('article'));
 }
@@ -467,74 +469,6 @@ function setClothes() {
     document.getElementById('clothes_in_box_info').innerText = total;
 }
 
-//
-// function addClothesCell() {
-//     var size = document.getElementById('size_order').value;
-//     var quantity_val = document.getElementById('quantity_order').value;
-//     if (size.length < 1) {
-//         // console.log(size.length);
-//         return false
-//     }
-//     if (check_clothes_size_on_add(size) !== true) {
-//         return false
-//     }
-//     var quantity = parseInt(quantity_val, 10);
-//     if (isNaN(quantity)) {
-//         // alert('некорректное количество');
-//         show_form_errors(['некорректное количество размеров обуви',]);
-//         $('#form_errorModal').modal('show');
-//         return false
-//     }
-//     if (check_add_same_size(size, quantity)) {
-//         return false
-//     }
-//     // if (size_val === '56.5' || size_val === '56' || size > 56){
-//     //     size = '56.5';
-//     // }
-//     // else if(isNaN(size)){
-//     //     size = '';
-//
-//     var f = document.getElementById('sizes_quantity');
-//     var wp = document.getElementById('with_packages');
-//     var max_param = '';
-//     var placeholder_param = '';
-//
-//     if (wp.value === "True") {
-//         max_param = "12";
-//         placeholder_param = 'Max. 12';
-//
-//     }
-//
-//
-//     f.insertAdjacentHTML('beforeend', `<div class="important-card__item important-card__size ms-2"><div class="d-flex align-items-center g-3"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" onclick="$(this).closest('div').parent().remove();setClothes();" viewBox="0 0 20 20" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M4.34074 0.312213C8.07158 -0.104071 11.9285 -0.104071 15.6593 0.312213C17.7413 0.544517 19.4209 2.18214 19.6655 4.26889C20.1115 8.07671 20.1115 11.9234 19.6655 15.7312C19.4209 17.8179 17.7413 19.4555 15.6593 19.6878C11.9285 20.1041 8.07158 20.1041 4.34074 19.6878C2.25873 19.4555 0.579043 17.8179 0.33457 15.7312C-0.111523 11.9234 -0.111523 8.07671 0.33457 4.26889C0.579043 2.18214 2.25873 0.544517 4.34074 0.312213ZM10 9.08981H10.9117H15.1575C15.661 9.08981 16.0692 9.49734 16.0692 10C16.0692 10.5027 15.661 10.9102 15.1575 10.9102H10.9117C10.9117 10.9102 10.2506 10.9102 10 10.9102C9.74947 10.9102 9.46208 10.9102 9.46208 10.9102H9.08832H4.84265C4.33912 10.9102 3.93094 10.5027 3.93094 10C3.93094 9.49734 4.33912 9.08981 4.84265 9.08981H9.08832H10Z" fill="white" /></svg>
-//
-//                             <div class="ms-2"><span id="size_info">${size}</span> размер</div>
-//                         </div>
-//                         <div class="important-card__val"><span id="quantity_info">${quantity}</span> <span>шт.</span></div>
-//                         <input type="hidden" id="size" name="size" value="${size}"><input type="hidden" id="quantity" name="quantity" value="${quantity}">
-//                     </div>`);
-//     // `<div class="row mb-3" id="container_element"><div class="col-md-6 col-xs-12 mt-1"><input type="text" name="size" id="size" minlength="2" maxlength="5" class="form-control mb-1" placeholder="Размер 16 - 56.5" autocomplete="off" oninput="check_shoes_size(value)||(value='');" value="${size}" required></div><div class="col-md-6 col-xs-12 mt-1"><input type="number" name="quantity" id="quantity" class="form-control ms-1" value="1" min="1"  oninput="validity.valid||(value='');javascript:setShoes();" max="${max_param}" placeholder="${placeholder_param}" required></div></div>`);
-//
-//     var total = countClothes();
-//     document.getElementById('clothes_in_box_info').innerHTML = '';
-//     document.getElementById('clothes_in_box_info').innerText = total;
-//     // $('#size_order').val('').trigger("change");
-//     document.getElementById('size_order').value = '';
-//     document.getElementById('quantity_order').value = '1';
-//
-//
-// }
-//
-// function clothes_edit_size(parent_block) {
-//     let size = parent_block.find('#size_info').html();
-//     let quantity = parent_block.parent().find('#quantity_info').html();
-//     // console.log(size, quantity);
-//     $('#size_order').val(size);
-//     $('#quantity_order').val(quantity);
-//
-//     parent_block.parent().remove();
-//     setClothes();
-// }
 
 function check_add_same_size(size, quantity) {
     var sizes = document.querySelectorAll('[id=size_info]');
@@ -995,65 +929,239 @@ function check_tnved(submit){
 }
 
 
-function get_tnveds(url, csrf){
-    let cl_type = document.getElementById('type').value;
-    if(!cl_type){
+function get_tnveds(url, csrf, subcategory) {
+    const typeEl   = document.getElementById('type');
+    const genderEl = document.getElementById('gender');
 
-        show_form_errors(['Выберите тип одежды до выбора ТНВЕД',]);
+    const cl_type = typeEl ? (typeEl.value || '') : '';
+    const gender  = genderEl ? (genderEl.value || '') : '';
+
+    // Проверяем, если subcategory пустая, 'common' или None
+    const needsGenderCheck =
+        subcategory === '' ||
+        subcategory === 'common' ||
+        subcategory === null ||
+        subcategory === 'None'; // Jinja может отрендерить None как строку
+
+    if (!cl_type || (needsGenderCheck && !gender)) {
+        const msg =
+            !cl_type && (needsGenderCheck && !gender)
+                ? 'Выберите тип одежды и пол до выбора ТНВЭД'
+                : !cl_type
+                    ? 'Выберите тип одежды до выбора ТНВЭД'
+                    : 'Выберите пол до выбора ТНВЭД';
+
+        show_form_errors([msg]);
         $('#form_errorModal').modal('show');
-        return
+        return;
     }
+
     $.ajax({
         url: url,
-        headers:{"X-CSRFToken": csrf},
-        method:"POST",
-        data: {'cl_type': cl_type},
-
-        success:function(data)
-        {
-            if(data.status == 'danger' || data.status == 'error'){
-                 show_form_errors([data.message,]);
-                 $('#form_errorModal').modal('show');
-
-            }
-            else if( data.status == 'success'){
+        headers: { "X-CSRFToken": csrf },
+        method: "POST",
+        data: Object.assign(
+            { cl_type: cl_type, subcategory: subcategory },
+            needsGenderCheck ? { gender: gender } : {}
+        ),
+        success: function (data) {
+            if (data.status === 'danger' || data.status === 'error') {
+                show_form_errors([data.message]);
+                $('#form_errorModal').modal('show');
+            } else if (data.status === 'success') {
                 $('#manual_tnved_insert').html(data);
                 $("#manual_tnved_insert").append(data.tnved_report);
-                $('#manualTnvedModal').modal('show')
-
-            }
-            else{
-                 show_form_errors(['Обновите страницу...',]);
-                 $('#form_errorModal').modal('show');
-
+                $('#manualTnvedModal').modal('show');
+            } else {
+                show_form_errors(['Обновите страницу...']);
+                $('#form_errorModal').modal('show');
             }
         },
-        error: function() {
-         show_form_errors(['Ошибка CSRF. Обновите страницу и попробуйте снова',]);
-         $('#form_errorModal').modal('show');
-     }
-   });
+        error: function () {
+            show_form_errors(['Ошибка CSRF. Обновите страницу и попробуйте снова']);
+            $('#form_errorModal').modal('show');
+        }
+    });
+}
+
+function getTypeValue() {
+    const el = document.getElementById('type');
+    return el ? (el.value || '').trim() : '';
   }
 
-function clothes_manual_tnved(){
-    let m_tnved = document.getElementById("manual_tnved_input").value;
-    if (all_tnved.includes(m_tnved)){
-        document.getElementById('tnved_code').value = m_tnved;
-        clear_manual_tnved();
-        $('#manualTnvedModal').modal('hide');
+  // простой гард только для gender и только на onclick
+  function genderClickGuard(e) {
+    if (getTypeValue()) return true; // тип выбран — всё ок
 
+    // тип не выбран — блокируем и показываем ошибку
+    if (e && e.preventDefault) e.preventDefault();
+    show_form_errors(['Сначала выберите вид одежды']);
+    $('#form_errorModal').modal('show');
+
+    // если это select2 — закрыть выпадашку на всякий случай
+    var $g = $('#gender');
+    if ($.fn.select2 && $g.data('select2')) {
+      $g.select2('close');
     }
-    else{
-        document.getElementById('manual_tnved_message').innerHTML='Некорректный тнвэд, попробуйте другой' +
-            ' или обратитесь к вашему менеджеру';
+
+
+    return false;
+  }
+
+
+function get_genders(url, csrf, subcategory) {
+    const typeEl   = document.getElementById('type');
+    const genderEl = document.getElementById('gender');
+    if (!typeEl || !genderEl) return;
+
+    const cl_type = (typeEl.value || '').trim();
+
+    // если подкатегория не требует пола — сразу выключаем селект и выходим
+    if (!['', 'common', null, 'None'].includes(subcategory)) {
+        return;
+    }
+
+    // тип не выбран — ошибка
+    if (!cl_type) {
+
+        show_form_errors(['Выберите тип одежды до выбора пола']);
+        $('#form_errorModal').modal('show');
+        // лёгкая подсветка и фокус на тип
+        try { typeEl.classList.add('is-invalid'); typeEl.focus(); } catch(e){}
+        return;
+    }
+
+    // избегаем лишних запросов: если уже подгружали для этого типа — не грузим повторно
+    const loadedFor = genderEl.getAttribute('data-loaded-for-type');
+    if (loadedFor === cl_type && genderEl.options.length > 1 && !genderEl.disabled) {
+        return; // уже актуально
+    }
+
+    // UI: прелоадер
+    fillGenderSelect([], { keepValue:false, enabled:false, placeholder:'Загрузка…' });
+
+    $.ajax({
+        url: url,
+        headers: { "X-CSRFToken": csrf },
+        method: "POST",
+        data: { cl_type: cl_type, subcategory: subcategory },
+        success: function (data) {
+            if (data.status === 'danger' || data.status === 'error') {
+                fillGenderSelect([], { keepValue:false, enabled:false, placeholder:'Ошибка загрузки' });
+                show_form_errors([data.message || 'Ошибка при получении полов']);
+                $('#form_errorModal').modal('show');
+                return;
+            }
+
+            const options = Array.isArray(data.genders) ? data.genders : [];
+
+            if (!options.length) {
+                fillGenderSelect([], { keepValue:false, enabled:false, placeholder:'Список полов не найден' });
+                show_form_errors(['Для выбранного типа не найден список полов']);
+                $('#form_errorModal').modal('show');
+                return;
+            }
+
+            // успех — наполняем и включаем
+            fillGenderSelect(options, { keepValue:true, enabled:true, placeholder:'Выберите пол...' });
+            $('#gender').attr('required', true);
+            genderEl.setAttribute('data-loaded-for-type', cl_type);
+
+            // если используете select2 — открыть дропдаун
+            if ($ && $.fn && $.fn.select2) {
+                $('#gender').select2('open');
+            } else {
+                genderEl.focus();
+            }
+        },
+        error: function () {
+            fillGenderSelect([], { keepValue:false, enabled:false, placeholder:'Ошибка сети/CSRF' });
+            show_form_errors(['Ошибка CSRF. Обновите страницу и попробуйте снова']);
+            $('#form_errorModal').modal('show');
+        }
+    });
+}
+
+function fillGenderSelect(genders, { keepValue = true, enabled = true, placeholder = 'Выберите пол...' } = {}) {
+    const select = document.getElementById('gender');
+    if (!select) return;
+
+    const prev = select.value;
+
+    // очистка
+    select.innerHTML = '';
+
+    // плейсхолдер
+    const ph = document.createElement('option');
+    ph.disabled = true;
+    ph.selected = true;
+    ph.value = '';
+    ph.textContent = placeholder;
+    select.appendChild(ph);
+
+    // опции
+    (genders || []).forEach(el => {
+        const opt = document.createElement('option');
+        opt.value = el;
+        opt.textContent = el;
+        select.appendChild(opt);
+    });
+
+    // восстановление выбранного значения
+    if (keepValue && prev && genders && genders.includes(prev)) {
+        select.value = prev;
+        ph.selected = false;
+    }
+
+    // (де)активируем
+    select.disabled = !enabled;
+
+    // если есть UI-плагины
+    if (window.$) {
+        $('#gender').trigger('change.select2');
+        $('#gender').trigger('change');
+    }
+}
+
+
+function clothes_manual_tnved(){
+    const m_tnved = (document.getElementById("manual_tnved_input").value || "").trim();
+
+    // 1. Базовая валидация: должно быть 10 цифр
+    if (m_tnved && !/^\d{10}$/.test(m_tnved)){
+        document.getElementById('manual_tnved_message').textContent =
+            'Введите 10-значный код или оставьте пустым';
         setTimeout(clear_clothes_tnved_m, 5000);
+        return;
     }
-    // console.log(m_tnved);
+
+    // 2. Проверка: код есть в глобальном списке all_tnved (тот что бэкенд передаёт для выбранного типа одежды)
+    if (m_tnved && !all_tnved.includes(m_tnved)){
+        document.getElementById('manual_tnved_message').textContent =
+            'Некорректный ТНВЭД, попробуйте другой или обратитесь к вашему менеджеру';
+        setTimeout(clear_clothes_tnved_m, 5000);
+        return;
+    }
+
+    // // 3. Проверка на режим "аггрегатор"
+    // if (window.HAS_AGGR && m_tnved){
+    //     const ok = (window.HAS_AGGR_LIST || []).some(prefix => m_tnved.startsWith(prefix));
+    //     if (!ok){
+    //         document.getElementById('manual_tnved_message').textContent = 'Код не разрешён.';
+    //         showNotAllowedModal(m_tnved);
+    //         return;
+    //     }
+    // }
+
+    // 4. Всё прошло → пишем в поле формы и закрываем
+    document.getElementById('tnved_code').value = m_tnved;
+    clear_manual_tnved();
+    $('#manualTnvedModal').modal('hide');
 }
 
 function clear_manual_tnved(){
     document.getElementById('manual_tnved_insert').innerHTML='';
-    $('#manual_tnved_input').val('');
+    // $('#manual_tnved_input').val('');
 
 }
 
@@ -1061,6 +1169,37 @@ function clear_clothes_tnved_m(){
     document.getElementById('manual_tnved_message').innerHTML='';
 }
 
+
+function clear_gender_select(){
+    $('#gender').val('').trigger("change");
+}
+
+function clear_tnved_input(){
+    document.getElementById('tnved_code').value='';
+}
+
+function renderAllowedTable(){
+  const body = document.getElementById('tnvedAllowedBody');
+  if (!body) return;
+  const rows = (window.HAS_AGGR_LIST || []).map(code => {
+    const desc = (window.HAS_AGGR_DICT && window.HAS_AGGR_DICT[code]) ? window.HAS_AGGR_DICT[code] : '';
+    return `<tr><td><code>${code}</code></td><td>${desc}</td></tr>`;
+  }).join('');
+  body.innerHTML = rows || '<tr><td colspan="2" class="text-muted">Список пуст</td></tr>';
+}
+
+function showNotAllowedModal(code){
+    // вставляем введённый код внутрь <span id="tnvedCodeOrderAggrModalValue">
+  const span = document.getElementById('tnvedCodeOrderAggrModalValue');
+  if (span) {
+    span.textContent = code || '';
+  }
+
+  renderAllowedTable();
+  const el = document.getElementById('tnvedDeniedModal');
+  const modal = bootstrap.Modal.getOrCreateInstance(el);
+  modal.show();
+}
 
 function selectTnved(code){
     // если включён аггрегатор — проверим по префиксам

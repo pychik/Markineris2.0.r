@@ -1,0 +1,13 @@
+<div class="form-group" onclick="genderClickGuard(event)" onfocus="genderClickGuard(event)" onchange="clear_tnved_input();">
+  <label class="control-label">Пол</label>
+  <select class="form-control search-select" id="gender" name="gender"
+          required>
+    <option disabled selected value="">Выберите пол...</option>
+    {% for el in genders %}
+      <option value="{{ el }}"
+        {% if copied_order and copied_order.gender == el %}selected{% endif %}>
+        {{ el }}
+      </option>
+    {% endfor %}
+  </select>
+</div>
