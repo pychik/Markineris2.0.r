@@ -4,7 +4,7 @@ from flask_login import current_user, login_required
 from config import settings
 from models import Clothes, Order
 from utilities.helpers.h_categories import h_category_sba
-from views.main.categories.clothes.support import h_bck_clothes_tnved
+from views.main.categories.clothes.support import h_bck_clothes_tnved, h_bck_clothes_genders
 from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.support import (check_order_pos, preprocess_order_category, common_process_delete_order,
     helper_delete_order_pos, user_activated, helper_process_category_order,
@@ -131,3 +131,13 @@ def bck_clothes_tnved():
         returns modal block with tnveds
     """
     return h_bck_clothes_tnved()
+
+
+@clothes.route('/bck_clothes_genders', methods=['POST', ])
+@user_activated
+@login_required
+def bck_clothes_genders():
+    """
+        returns modal block with tnveds
+    """
+    return h_bck_clothes_genders()

@@ -1,7 +1,8 @@
 from config import settings
 from models import ClothesSubcategories
 from utilities.categories_data.accessories_data import HATS_TNVED_DICT, HATS_TYPES, HATS_NAME, GLOVES_TNVED_DICT, \
-    GLOVES_TYPES, GLOVES_NAME, SHAWLS_TNVED_DICT, SHAWLS_TYPES, SHAWLS_NAME, SHAWLS_TNVEDS, GLOVES_TNVEDS, HATS_TNVEDS
+    GLOVES_TYPES, GLOVES_NAME, SHAWLS_TNVED_DICT, SHAWLS_TYPES, SHAWLS_NAME, HATS_TNVEDS, GLOVES_TNVEDS, SHAWLS_TNVEDS
+from utilities.categories_data.clothes_common.tnved_processor import get_tnved_gender_clothes_common
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVED_DICT, \
     SWIMMING_ACCESSORIES_TYPES, SWIMMING_ACCESSORIES_NAME, SWIMMING_ACCESSORIES_TNVEDS
 from views.main.categories.clothes.schemas import SubCategoriesCreds
@@ -66,7 +67,7 @@ class ClothesSubcategoryProcessor:
         return scc
 
     @staticmethod
-    def get_tnveds(subcategory: str = ClothesSubcategories.common.value, cl_type: str = '') -> tuple | None:
+    def get_tnveds(subcategory: str = ClothesSubcategories.common.value, cl_type: str = '', cl_gender: str = '') -> tuple | None:
         # print(f"{subcategory=}, {cl_type=}")
         match subcategory:
             case ClothesSubcategories.underwear.value:
@@ -81,7 +82,9 @@ class ClothesSubcategoryProcessor:
                 tnved_dict = SHAWLS_TNVED_DICT
             case _:  # case ClothesSubcategories.common.value:
                 if cl_type in settings.Clothes.TYPES:
-                    tnved_dict = settings.Clothes.CLOTHES_TNVED_DICT
+                    # tnved_dict = settings.Clothes.CLOTHES_TNVED_DICT
+                    # print(get_tnved_gender_clothes_common(type_name=cl_type, gender=cl_gender))
+                    return get_tnved_gender_clothes_common(type_name=cl_type, gender=cl_gender)
                 else:
                     return
         return tnved_dict.get(cl_type)[1]

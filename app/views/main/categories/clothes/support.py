@@ -62,6 +62,7 @@ def h_bck_clothes_tnved() -> Response:
     status = settings.ERROR
     message = settings.Messages.MANUAL_TNVED_ERROR
     cl_type = request.form.get('cl_type', '').replace('--', '')
+    cl_gender = request.form.get('gender', '').replace('--', '')
 
     if not cl_type or cl_type not in settings.Clothes.ALL_TYPES_WITH_SUBCATEGORIES:
         return jsonify(dict(status=status, message=message + settings.Messages.STRANGE_REQUESTS))
@@ -69,13 +70,43 @@ def h_bck_clothes_tnved() -> Response:
     subcategory = request.args.get('subcategory', ClothesSubcategories.common.value)
     # tnved_list: tuple = settings.Clothes.CLOTHES_TNVED_DICT.get(cl_type)[1]
 
-    tnved_list = ClothesSubcategoryProcessor.get_tnveds(subcategory=subcategory, cl_type=cl_type)
+    tnved_list = ClothesSubcategoryProcessor.get_tnveds(subcategory=subcategory, cl_type=cl_type, cl_gender=cl_gender)
     if not tnved_list:
         return jsonify(dict(status=status, message=message + f" {subcategory=}, {cl_type=}"))
     status = settings.SUCCESS
     message = settings.Messages.MANUAL_TNVED_SUCCESS
     return jsonify(dict(status=status, message=message,
                         tnved_report=render_template('helpers/clothes/manual_tnved_modal_report.html', **locals())))
+
+
+def h_bck_clothes_genders():
+    def _needs_gender(subcategory: str) -> bool:
+        # учитываем '', 'common', None и строковый 'None' из шаблона
+        return subcategory in ('', 'common', None, 'None')
+    status = settings.ERROR
+    message = 'Не удалось загрузить список полов.'
+    cl_type = (request.form.get('cl_type', '') or '').replace('--', '').strip()
+
+    # в GET, как в вашем примере
+    subcategory = request.args.get('subcategory', ClothesSubcategories.common.value)
+
+    # валидация типа
+    if not cl_type or cl_type not in settings.Clothes.ALL_TYPES_WITH_SUBCATEGORIES:
+        return jsonify(dict(
+            status=status,
+            message=message + settings.Messages.STRANGE_REQUESTS
+        ))
+
+    # если для подкатегории пол требуется — отдаём список, иначе — пустой список
+    if _needs_gender(subcategory):
+
+        genders = settings.Clothes.CLOTHES_TYPE_GENDERS.get(cl_type, [])
+
+        if not genders:
+            return jsonify(dict(status=settings.ERROR, message=f'Для типа {cl_type} не найден список полов.'))
+        return jsonify(dict(status=settings.SUCCESS, genders=genders, needs_gender=True))
+    else:
+        return jsonify(dict(status=settings.SUCCESS, genders=[], needs_gender=False))
 
 
 def h_bck_socks_tnved() -> Response:
@@ -92,5 +123,3 @@ def h_bck_socks_tnved() -> Response:
     message = settings.Messages.MANUAL_TNVED_SUCCESS
     return jsonify(dict(status=status, message=message,
                         tnved_report=render_template('helpers/socks/manual_tnved_modal_report.html', **locals())))
-
-

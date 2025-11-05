@@ -6,9 +6,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import SecretStr
 
 from utilities.categories_data.accessories_data import HATS_TYPES, GLOVES_TYPES, SHAWLS_TYPES
-from utilities.categories_data.clothes_tnveds import CLOTHES_TNVED_DICT
-from utilities.categories_data.socks_data import (SOCKS_DEC_DICT, SOCKS_TYPES,SOCKS_TNVED_DICT,
-                                                  SOCKS_TYPE_NUMBER_DICT)
+from utilities.categories_data.clothes_common.clothes_common_tnved_by_gender import CLOTHES_TNVED_DICT
+from utilities.categories_data.clothes_common.types_genders import CLOTHES_TYPE_GENDERS
+from utilities.categories_data.socks_data import (SOCKS_DEC_DICT, SOCKS_TYPES, SOCKS_TNVED_DICT,
+                                                  SOCKS_TYPE_NUMBER_DICT, )
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TYPES
 from utilities.categories_data.underwear_data import UNDERWEAR_TYPES
 from utilities.param_lists import (SHOE_GENDERS, SHOE_MATERIALS_UP_LINEN, SHOE_MATERIALS_BOTTOM,
@@ -786,6 +787,7 @@ class Settings(BaseSettings):
         TNVED_INPUT_ERROR_DIGITS: str = f" -некорректен. <br>ТНВЭД должен состоять из цифр"
         TNVED_INPUT_ERROR_4DIGITS: str = f" первые 4 цифры должны быть в списке: "
         TNVED_INPUT_ERROR_CT: str = f" -некорректен. <br>В списке ТНВЭД нет такого типа {{category}}"
+        TNVED_INPUT_ERROR_CG: str = f" -некорректен. <br>В списке ТНВЭД нет такого пола {{gender}}"
         TNVED_INPUT_SUCCESS: str = "Пользователь ввел корректный ТНВЭД который есть в базе"
         TNVED_INPUT_SUCCESS_4DIGIT: str = "Пользователь ввел корректный ТНВЭД которого нет в базе, но он подходит по" \
                                           " условиям"
@@ -1072,6 +1074,7 @@ class Settings(BaseSettings):
         CLOTHES_CONTENT: list = CLOTHES_CONTENT
         CLOTHES_NAT_CONTENT: list = CLOTHES_NAT_CONTENT
         GENDERS: list = CLOTHES_GENDERS
+        CLOTHES_TYPE_GENDERS: dict = CLOTHES_TYPE_GENDERS
         GENDERS_ORDER: list = CLOTHES_GENDERS_ORDER
         GENDERS_ORDER_046: dict = CLOTHES_GENDERS_ORDER_046
         DEC: dict = CLOTHES_DICT
