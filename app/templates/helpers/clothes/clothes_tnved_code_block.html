@@ -6,11 +6,11 @@
         name="tnved_code" id="tnved_code" class="form-control"
         autocomplete="off" onclick="get_tnveds(`{{url_for('clothes.bck_clothes_tnved', subcategory=subcategory)}}`,
             '{{csrf_token()}}', '{{subcategory}}');" readonly
-        {% if copied_order %}
+        {#{% if copied_order %}
            {% if copied_order.tnved_code %}
                 value="{{ copied_order.tnved_code }}"
            {% endif %}
-        {% endif %}>
+        {% endif %}#}>
     <div id="tnved_co_supressor" style="font-size: 12px;color: #ffffff">{% if copied_order %}&nbsp{% endif %}</div>
 
 </div>
