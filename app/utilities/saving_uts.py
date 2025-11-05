@@ -305,6 +305,9 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
     if kept_clothes_count == 0:
         raise Exception("Не удалось скопировать ни одной позиции: все позиции не проходят новые правила ЧЗ."
                         + (" Подробности: " + ", ".join(incompatible_items) if incompatible_items else ""))
+    if incompatible_items:
+        flash(message="Из скопированного заказа были удалены позиции согласно новым правилам ЧЗ."
+                      " Обратите внимание:" + ", ".join(incompatible_items), category="warning")
     return new_order
 
 
