@@ -313,13 +313,13 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
 
 def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) -> Order:
     new_order.socks.extend(Socks(trademark=sock.trademark,
-                                     article=sock.article, type=sock.type,
-                                     color=sock.color, content=sock.content,
-                                     box_quantity=sock.box_quantity,
-                                     gender=sock.gender, country=sock.country,
-                                     tnved_code=sock.tnved_code, article_price=sock.article_price,
-                                     tax=sock.tax, rd_type=sock.rd_type, rd_name=sock.rd_name.replace('№', ''),
-                                     rd_date=sock.rd_date,
+                                 article=sock.article, type=sock.type,
+                                 color=sock.color, content=sock.content,
+                                 box_quantity=sock.box_quantity,
+                                 gender=sock.gender, country=sock.country,
+                                 tnved_code=sock.tnved_code, article_price=sock.article_price,
+                                 tax=sock.tax, rd_type=sock.rd_type, rd_name=sock.rd_name.replace('№', ''),
+                                 rd_date=sock.rd_date,
                                  sizes_quantities=list(
                                      (SocksQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
                                       for sq in sock.sizes_quantities)))
