@@ -327,21 +327,58 @@ def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) ->
     return new_order
 
 
-def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) -> Order:
-    new_order.linen.extend(Linen(trademark=linen.trademark,
-                                 article=linen.article, type=linen.type,
-                                 color=linen.color, with_packages=linen.with_packages,
-                                 box_quantity=linen.box_quantity,
-                                 customer_age=linen.customer_age, textile_type=linen.textile_type,
-                                 content=linen.content,
-                                 country=linen.country,
-                                 tnved_code=linen.tnved_code, article_price=linen.article_price,
-                                 tax=linen.tax, rd_type=linen.rd_type, rd_name=linen.rd_name.replace('№', ''),
-                                 rd_date=linen.rd_date,
-                                 sizes_quantities=list((LinenQuantitySize(size=sq.size, unit=sq.unit, quantity=sq.quantity)
-                                                        for sq in linen.sizes_quantities)))
-                           for linen in order_category_list)
+def _check_linen_compatibility(linen) -> str | bool:
+    """
+    Проверяет, сочетаются ли type у одной позиции.
+    Возвращает:
+      - False, если позиция корректна
+      - str (например "[Тип Пол, ТНВЭД]"), если несовместима
+    """
 
+    l_type   = (linen.type or '').strip()
+
+
+    if l_type not in ['ПОКРЫВАЛО', ]:
+        return False
+    # Формируем короткое описание для отчёта
+    t = l_type or '—'
+
+    return f"[{t}]"
+
+
+def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) -> Order:
+    incompatible_items = []
+    kept_linen_count = 0
+    for linen in order_category_list:
+        # Проверяем на совместимость типов полов тнвэдов
+        result = _check_linen_compatibility(linen)
+        if result:  # несовместима — сохраняем сообщение
+            incompatible_items.append(result)
+            continue
+
+        new_linen = Linen(trademark=linen.trademark,
+                                     article=linen.article, type=linen.type,
+                                     color=linen.color, with_packages=linen.with_packages,
+                                     box_quantity=linen.box_quantity,
+                                     customer_age=linen.customer_age, textile_type=linen.textile_type,
+                                     content=linen.content,
+                                     country=linen.country,
+                                     tnved_code=linen.tnved_code, article_price=linen.article_price,
+                                     tax=linen.tax, rd_type=linen.rd_type, rd_name=linen.rd_name.replace('№', ''),
+                                     rd_date=linen.rd_date,
+                                     sizes_quantities=[
+                LinenQuantitySize(size=sq.size, unit=sq.unit, quantity=sq.quantity)
+                for sq in linen.sizes_quantities
+            ],
+        )
+        new_order.linen.append(new_linen)
+        kept_linen_count += 1
+    if kept_linen_count == 0:
+        raise Exception("Не удалось скопировать ни одной позиции: все позиции не проходят новые правила ЧЗ."
+                        + (" Подробности: " + ", ".join(incompatible_items) if incompatible_items else ""))
+    if incompatible_items:
+        flash(message="Из скопированного заказа были удалены позиции согласно новым правилам ЧЗ."
+                      " Обратите внимание:" + ", ".join(incompatible_items), category="warning")
     return new_order
 
 
