@@ -60,7 +60,8 @@
                        class="btn btn-primary btn-accent border-0 text-dark mb-2" type="button">Реанимация
                         клиентов</a>
                     {% if current_user.role == "superuser" %}
-                    <a href="{{url_for('admin_control.users_activate_list')}}" class="btn btn-secondary">Неактивированные клиенты</a>
+                    <a href="{{url_for('admin_control.users_activate_list')}}" class="btn btn-secondary mb-2">Неактивированные клиенты</a>
+                    <a href="{{url_for('admin_control.exception_user_data_main')}}" class="btn btn-secondary">Контроль исключений</a>
                     {% endif %}
                 </div>
             </div>

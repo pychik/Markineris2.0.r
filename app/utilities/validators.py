@@ -3,6 +3,7 @@ from re import fullmatch
 from typing import Optional
 
 from config import settings
+from models import ExceptionDataUsers
 from utilities.categories_data.accessories_data import HATS_TNVEDS, GLOVES_TNVEDS, SHAWLS_TNVEDS
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVEDS
@@ -48,7 +49,7 @@ class ValidatorProcessor:
 
         if not full_phone:
             return None, 'full_phone', 'Телефон не указан'
-        if full_phone in settings.ExceptionOrders.PHONE_NUMBERS:
+        if full_phone in ExceptionDataUsers.get_phones():
             raise ValidationError('full_phone', 'Этот номер телефона запрещён для регистрации')
 
         if not password:

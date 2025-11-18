@@ -11,6 +11,15 @@ from utilities.categories_data.subcategories_data import ClothesSubcategories
 db = SQLAlchemy()
 
 
+class ValidExceptionsUserDataKinds(PyEnum):
+    COMPANY_IDN = "company_idn"
+    PHONE = "phone"
+
+    @classmethod
+    def choices(cls):
+        return [member.value for member in cls]
+
+
 class User(db.Model, UserMixin):
     __tablename__ = "users"
 
@@ -562,6 +571,40 @@ class ReanimateStatus(db.Model):
     call_result = db.Column(db.String(36))
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), index=True)
     updated_at = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
+
+
+class ExceptionDataUsers(db.Model):
+    __tablename__ = 'exception_data_users'
+
+    id = db.Column(db.Integer, primary_key=True)
+    kind = db.Column(db.String(20), nullable=False, index=True)  # 'company_idn' | 'phone'
+    value = db.Column(db.String(128), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+    __table_args__ = (
+        db.UniqueConstraint('kind', 'value', name='uq_exceptions_kind_value'),
+        db.Index('ix_exceptions_kind_value', 'kind', 'value'),  # полезен для поиска по паре
+    )
+
+    def __repr__(self):
+        return f"<ExceptionDataUsers {self.kind}={self.value}>"
+
+    @classmethod
+    def get_list(cls, kind, values_only=False):
+        q = (cls.query.filter_by(kind=kind).order_by(cls.id.desc()))
+        if values_only:
+            return [r.value for r in q.with_entities(cls.value).all()]
+        return q.all()
+
+    @classmethod
+    def get_company_idns(cls):
+        """Вернуть список строк ИНН."""
+        return cls.get_list(ValidExceptionsUserDataKinds.COMPANY_IDN.value, values_only=True)
+
+    @classmethod
+    def get_phones(cls):
+        """Вернуть список строк телефонов."""
+        return cls.get_list(ValidExceptionsUserDataKinds.PHONE.value, values_only=True)
 
 
 ModelType = User | PartnerCode
