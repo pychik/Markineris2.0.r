@@ -41,7 +41,7 @@ from models import (
     users_promos,
     TransactionTypes,
     TransactionStatuses,
-    LinenSizesUnits,
+    LinenSizesUnits, ExceptionDataUsers,
 )
 from utilities.daily_price import get_cocmd
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
@@ -306,7 +306,7 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
 
     else:
         company_idn = form_dict.get("company_idn")
-        if company_idn in settings.ExceptionOrders.COMPANIES_IDNS:
+        if company_idn in ExceptionDataUsers.get_company_idns():
             flash(message=settings.ExceptionOrders.COMPANY_IDN_ERROR.format(company_idn=company_idn), category='error')
             return (None,) * 3
         order = Order(company_type=form_dict.get("company_type"), company_name=form_dict.get("company_name"),
@@ -364,6 +364,13 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
 def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id: int = None) -> tuple:
 
     if not o_id:
+        company_idn = form_dict.get("company_idn")
+        if company_idn in ExceptionDataUsers.get_company_idns():
+            flash(
+                message=settings.ExceptionOrders.COMPANY_IDN_ERROR.format(company_idn=company_idn),
+                category='error'
+            )
+            return (None,) * 3
         try:
             check_forbidden_words(form_dict.get("trademark", "").strip(), "trademark")
             order = Order(company_type=form_dict.get("company_type"), company_name=form_dict.get("company_name"),
@@ -1405,7 +1412,7 @@ def helper_process_category_order(user: User, order: Order, category: str, order
 
     # check for company_idn exception
     company_idn = order.company_idn
-    if company_idn in settings.ExceptionOrders.COMPANIES_IDNS:
+    if company_idn in ExceptionDataUsers.get_company_idns():
         flash(message=settings.ExceptionOrders.COMPANY_IDN_ERROR.format(company_idn=company_idn), category='error')
         return redirect(url_for(f'{_category_name}.index', o_id=o_id))
 

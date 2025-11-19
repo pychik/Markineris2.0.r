@@ -1,0 +1,38 @@
+{% extends "main/base_v2.html" %}
+
+{% block admin_control_panel_users %}
+<div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
+        <div class="breadcrumbs">
+            <a href="{{url_for('admin_control.index')}}">Управление пользователями </a>
+            /
+            <span>Контроль исключений</span>
+
+        </div>
+    </div>
+<div class="row text-center mt-5">
+
+    <div class="col-12">
+    <h3>
+        ИНН и телефоны пользователей
+    </h3>
+    <div class="row" id="exceptions-wrapper">
+    <!-- левая колонка: ИНН -->
+        <div class="col-md-6 mb-4" id="col-company-idns">
+            {% include "admin/exceptions_control/company_idns.html" %}
+        </div>
+
+        <!-- правая колонка: телефоны -->
+        <div class="col-md-6 mb-4" id="col-phones">
+            {% include "admin/exceptions_control/phones.html" %}
+        </div>
+    </div>
+
+
+
+  </div>
+</div>
+
+
+<script src="{{url_for('static',filename='main_v2/js/admin/exceptionsUserData.js')}}?v=1"></script>
+
+{% endblock %}

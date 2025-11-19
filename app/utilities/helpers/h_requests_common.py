@@ -5,7 +5,7 @@ from flask_login import current_user
 
 from config import settings
 from logger import logger
-from models import db, Telegram, Order
+from models import db, Telegram, Order, ExceptionDataUsers
 from utilities.check_idn import IdnGetter
 from utilities.check_tnved import TnvedChecker
 from utilities.support import check_file_extension, send_file_tg, \
@@ -153,30 +153,30 @@ def h_change_order_org_param_form(o_id: int) -> Response:
         flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
         return redirect(url_for('main.enter'))
 
-    company_idn = order.company_idn
-    if company_idn in settings.ExceptionOrders.COMPANIES_IDNS:
-        flash(message=settings.ExceptionOrders.COMPANY_IDN_ERROR.format(company_idn=company_idn), category='error')
+    form_dict = request.form.to_dict()
+    new_company_idn = form_dict.get("company_idn")
+    # check excepted idn's
+    if new_company_idn in ExceptionDataUsers.get_company_idns():
+        flash(message=settings.ExceptionOrders.COMPANY_IDN_ERROR.format(company_idn=new_company_idn), category='error')
         return redirect(url_for('main.enter'))
 
-    form_dict = request.form.to_dict()
+    # form_dict = request.form.to_dict()
     category = form_dict.get("category_hidden")
     try:
         order.company_type = form_dict.get("company_type")
         order.company_name = form_dict.get("company_name")
         order.edo_type = form_dict.get("edo_type")
         order.edo_id = form_dict.get("edo_id")
-        order.company_idn = form_dict.get("company_idn")
+        order.company_idn = new_company_idn
         order.mark_type = form_dict.get("mark_type_hidden"),
 
         db.session.commit()
         flash(message=settings.Messages.UPDATE_ORG_SUCCESS)
     except Exception as e:
-
         db.session.rollback()
         message = f"{settings.Messages.UPDATE_ORG_ERROR} {e}"
         flash(message=message, category='error')
         logger.error(message)
-
     return redirect(url_for(category + '.index', o_id=o_id))
 
 

@@ -376,3 +376,18 @@
     font-weight: 700;
     color: #a6aaae;
 }
+
+.exc-add-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-width: 32px;
+    border: 1px solid #c4c5c6;
+    color: #0e0e0e;
+    border-radius: 4px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0.65rem;
+}

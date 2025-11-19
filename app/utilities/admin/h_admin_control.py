@@ -18,7 +18,7 @@ from werkzeug.security import generate_password_hash
 from config import settings
 from logger import logger
 from models import db, Order, OrderStat, PartnerCode, RestoreLink, Telegram, TelegramMessage, User, users_partners, \
-    Price, TgUser, ReanimateStatus
+    Price, TgUser, ReanimateStatus, ExceptionDataUsers, ValidExceptionsUserDataKinds
 from utilities.download import orders_process_send_order
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll, SQLQueryFactory
 from utilities.support import (url_encrypt, helper_check_form, helper_update_order_note, helper_paginate_data,
@@ -1680,3 +1680,67 @@ def util_get_agent_passwords():
     for e in emails:
         print(f"{e.email}: {make_password(email=e.email, salt=salt)}")
 
+
+def h_exception_user_data_main():
+    idns = ExceptionDataUsers.get_list(kind=ValidExceptionsUserDataKinds.COMPANY_IDN.value)
+
+    phones = ExceptionDataUsers.get_list(kind=ValidExceptionsUserDataKinds.PHONE.value)
+    return render_template('admin/exceptions_control/main.html', **locals())
+
+
+def render_exceptions_block(kind: str) -> str:
+    """Вернуть html-кусок нужной таблицы (ИНН или телефоны)."""
+    items = ExceptionDataUsers.get_list(kind=kind)  # всё — без повторов
+
+    if kind == ValidExceptionsUserDataKinds.COMPANY_IDN.value:
+        return render_template('admin/exceptions_control/company_idns.html', idns=items)
+    elif kind == ValidExceptionsUserDataKinds.PHONE.value:
+        return render_template('admin/exceptions_control/phones.html', phones=items)
+    return ''
+
+
+def h_add_exception_user_data(kind):
+    """Добавить исключение (ИНН или телефон)."""
+    if kind not in ValidExceptionsUserDataKinds.choices():
+        return jsonify(status='error', message='Неизвестный тип'), 400
+
+    field_name = 'company_idn' if kind == 'company_idn' else 'phone'
+    value = request.form.get(field_name, '').strip()
+
+    if not value:
+        return jsonify(status='error', message='Поле не может быть пустым')
+
+    # простая валидация
+    if kind == 'company_idn' and not value.isdigit():
+        return jsonify(status='error', message='ИНН должен содержать только цифры')
+
+    exists = ExceptionDataUsers.query.filter_by(kind=kind, value=value).first()
+    if exists:
+        html = render_exceptions_block(kind)
+        return jsonify(status='error', message='Такое значение уже есть', html=html)
+
+    db.session.add(ExceptionDataUsers(kind=kind, value=value))
+    db.session.commit()
+
+    html = render_exceptions_block(kind)
+    msg = 'ИНН добавлен' if kind == 'company_idn' else 'Телефон добавлен'
+    return jsonify(status='success', message=msg, html=html)
+
+
+# === 4. Удаление исключения ===
+def h_delete_exception_user_data(kind, item_id):
+    """Удалить исключение по id и типу."""
+    if kind not in ValidExceptionsUserDataKinds.choices():
+        return jsonify(status='error', message='Неизвестный тип'), 400
+
+    obj = ExceptionDataUsers.query.filter_by(id=item_id, kind=kind).first()
+    if not obj:
+        html = render_exceptions_block(kind)
+        return jsonify(status='error', message='Запись не найдена', html=html)
+
+    db.session.delete(obj)
+    db.session.commit()
+
+    html = render_exceptions_block(kind)
+    msg = 'ИНН удалён' if kind == 'company_idn' else 'Телефон удалён'
+    return jsonify(status='success', message=msg, html=html)

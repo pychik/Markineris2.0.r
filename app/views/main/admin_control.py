@@ -7,7 +7,8 @@ from data_migrations.etl_service import ETLMigrateUserData, run_migration
 from data_migrations.instance import etl_service
 from data_migrations.utils import make_password
 from models import User, db
-from utilities.admin.h_admin_control import h_bck_agent_reanimate
+from utilities.admin.h_admin_control import h_bck_agent_reanimate, h_exception_user_data_main, \
+    h_add_exception_user_data, h_delete_exception_user_data
 from utilities.admin.h_admin_control import (
     h_index,
     h_admin,
@@ -948,3 +949,20 @@ def check_user_migration_status():
         flash(message=str(e), category='error')
 
     return redirect(url_for('admin_control.data_migrations'))
+
+
+@admin_control.route("/exception_user_data", methods=["GET"])
+@login_required
+@su_required
+def exception_user_data_main():
+    return h_exception_user_data_main()
+
+
+@admin_control.route('/add_exception_user_data/<kind>', methods=['POST'])
+def add_exception_user_data(kind):
+    return h_add_exception_user_data(kind)
+
+
+@admin_control.route('/delete_exception_user_data/<kind>/<int:item_id>', methods=['POST'])
+def delete_exception_user_data(kind, item_id):
+    return h_delete_exception_user_data(kind, item_id)

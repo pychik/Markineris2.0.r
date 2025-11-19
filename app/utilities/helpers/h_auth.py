@@ -8,7 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from config import settings
 from logger import logger
-from models import User, PartnerCode, db
+from models import User, PartnerCode, db, ExceptionDataUsers
 from settings.start import SIMPLE_CAPTCHA
 from utilities.sms.sms_service import SmsOTP
 from utilities.saving_uts import helper_check_partner_codes_admin
@@ -99,7 +99,7 @@ def h_sign_up(p_link: str) -> Union[Response, str]:
     full_captcha = SIMPLE_CAPTCHA.create()
     captcha_img = full_captcha.get('img')
     captcha_hash = full_captcha.get('hash')
-    excepted_phone_numbers = settings.ExceptionOrders.PHONE_NUMBERS
+    excepted_phone_numbers = ExceptionDataUsers.get_phones()
 
     return render_template('auth/sign_up_v2.html', **locals())
 

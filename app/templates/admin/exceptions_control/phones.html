@@ -1,0 +1,52 @@
+<div class="card h-100">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Исключения по телефонам</span>
+    </div>
+    <div class="card-body">
+
+        <!-- форма добавления телефона -->
+        <form id="form-add-phone"
+              method="post"
+              action="{{ url_for('admin_control.add_exception_user_data', kind='phone') }}"
+              class="d-flex gap-2 mb-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="text" name="phone" class="form-control" placeholder="Добавить телефон" required
+                   oninput="validatePhoneInput(this)">
+            <button type="submit" class="exc-add-btn btn-accent">+</button>
+        </form>
+
+        {% if phones and phones|length %}
+            <div class="table-responsive faded">
+                <table class="table table-sm table-bordered mb-0" id="table-phones">
+                    <thead class="table-light">
+                    <tr>
+                        <th style="width: 60px;">#</th>
+                        <th>Телефон</th>
+                        <th style="width: 80px;"></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in phones %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ item.value }}</td>
+                            <td class="text-center">
+                                <span class="btn-del-phone"
+                                        data-url="{{ url_for('admin_control.delete_exception_user_data', kind='phone', item_id=item.id) }}"
+                                        data-csrf="{{ csrf_token() }}"style="color: #dc3545; cursor: pointer;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+                                      <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                                      <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                                    </svg>
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-muted">Список пуст.</div>
+        {% endif %}
+    </div>
+</div>
