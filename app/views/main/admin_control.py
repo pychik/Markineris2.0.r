@@ -959,10 +959,14 @@ def exception_user_data_main():
 
 
 @admin_control.route('/add_exception_user_data/<kind>', methods=['POST'])
+@login_required
+@bck_su_required
 def add_exception_user_data(kind):
     return h_add_exception_user_data(kind)
 
 
 @admin_control.route('/delete_exception_user_data/<kind>/<int:item_id>', methods=['POST'])
+@login_required
+@bck_su_required
 def delete_exception_user_data(kind, item_id):
     return h_delete_exception_user_data(kind, item_id)
