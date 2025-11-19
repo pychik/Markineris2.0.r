@@ -8,12 +8,22 @@
         <form id="form-add-phone"
               method="post"
               action="{{ url_for('admin_control.add_exception_user_data', kind='phone') }}"
-              class="d-flex gap-2 mb-3">
+              class="d-flex flex-column gap-2 mb-3">
+
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="text" name="phone" class="form-control" placeholder="Добавить телефон" required
-                   oninput="validatePhoneInput(this)">
-            <button type="submit" class="exc-add-btn btn-accent">+</button>
+
+            <textarea name="phone"
+                      class="form-control"
+                      placeholder="Вставьте один или несколько телефонов (через Enter, запятую, ; )"
+                      required
+                      rows="4"
+                      maxlength="1500"
+                      oninput="validatePhoneTextarea(this)"></textarea>
+
+            <button type="submit" class="exc-add-btn btn-accent w-auto align-self-start">+</button>
         </form>
+
+
 
         {% if phones and phones|length %}
             <div class="table-responsive faded">

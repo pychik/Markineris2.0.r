@@ -89,30 +89,90 @@
         // то его можно будет дергать отсюда и обновлять часть страницы.
     }
 
-        // === Валидация телефона ===
-    function validatePhoneInput(input) {
-        // Разрешаем только цифры, тире, пробелы и скобки
-        let v = input.value.replace(/[^0-9()+\-\s]/g, '');
+     const TEXTAREA_LIMIT = 1500;
 
-        // Ограничиваем длину до 20 символов
-        if (v.length > 20) {
-            v = v.substring(0, 20);
-        }
+    // ================ Общие нормализаторы ================
 
-        input.value = v;
+    function normalizeIdnValue(v) {
+        v = v.replace(/\D/g, '');
+        if (v.length > 12) v = v.substring(0, 12);
+        return v;
     }
 
-    // === Валидация ИНН ===
+    function normalizePhoneValue(v) {
+        v = v.replace(/[^0-9()+\-\s]/g, '');
+        if (v.length > 20) v = v.substring(0, 20);
+        return v;
+    }
+
+    // ================ Single-line функции ================
+
+    function validatePhoneInput(input) {
+        input.value = normalizePhoneValue(input.value);
+    }
+
     function validateIdnInput(input) {
-        let v = input.value;
+        input.value = normalizeIdnValue(input.value);
+    }
 
-        // Только цифры
-        v = v.replace(/\D/g, '');
+    // ================ Новый функционал для textarea ================
 
-        // Ограничение длины (макс 12 цифр)
-        if (v.length > 12) {
-            v = v.substring(0, 12);
+    function enforceTextareaLimit(input) {
+        if (input.value.length > TEXTAREA_LIMIT) {
+            input.value = input.value.substring(0, TEXTAREA_LIMIT);
+        }
+    }
+
+    // ИНН textarea
+    function validateInnTextarea(input) {
+        enforceTextareaLimit(input);
+
+        let raw = input.value;
+        raw = raw.replace(/[^0-9,\n; ]/g, '');
+
+        const parts = raw.split(/[,;\n]+/);
+        const cleaned = [];
+
+        for (let p of parts) {
+            p = p.trim();
+            if (!p) continue;
+
+            p = normalizeIdnValue(p);
+            if (p) cleaned.push(p);
         }
 
-        input.value = v;
+        let result = cleaned.join('\n');
+
+        if (result.length > TEXTAREA_LIMIT) {
+            result = result.substring(0, TEXTAREA_LIMIT);
+        }
+
+        input.value = result;
+    }
+
+    // Телефоны textarea
+    function validatePhoneTextarea(input) {
+        enforceTextareaLimit(input);
+
+        let raw = input.value;
+        raw = raw.replace(/[^\d()+\-\s,;\n]/g, '');
+
+        const parts = raw.split(/[,;\n]+/);
+        const cleaned = [];
+
+        for (let p of parts) {
+            p = p.trim();
+            if (!p) continue;
+
+            p = normalizePhoneValue(p);
+            if (p) cleaned.push(p);
+        }
+
+        let result = cleaned.join('\n');
+
+        if (result.length > TEXTAREA_LIMIT) {
+            result = result.substring(0, TEXTAREA_LIMIT);
+        }
+
+        input.value = result;
     }

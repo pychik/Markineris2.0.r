@@ -1701,30 +1701,85 @@ def render_exceptions_block(kind: str) -> str:
 
 def h_add_exception_user_data(kind):
     """Добавить исключение (ИНН или телефон)."""
+    sep_re = re.compile(r'[;,|\n]+')  # запятая, ;, |, перевод строки
+
+
+    def _parse_multi_values(raw: str) -> list[str]:
+        """
+        Разбивает строку по , ; | или переносу строки.
+        Удаляет лишние пробелы, пустые значения и внутренние дубли.
+        """
+
+        parts = [p.strip() for p in sep_re.split(raw) if p.strip()]
+        seen = set()
+        result = []
+        for p in parts:
+            if p not in seen:
+                seen.add(p)
+                result.append(p)
+        return result
+
     if kind not in ValidExceptionsUserDataKinds.choices():
         return jsonify(status='error', message='Неизвестный тип'), 400
 
+        # из какой формы читаем
     field_name = 'company_idn' if kind == 'company_idn' else 'phone'
-    value = request.form.get(field_name, '').strip()
+    raw = (request.form.get(field_name) or '').strip()
 
-    if not value:
+    if not raw:
         return jsonify(status='error', message='Поле не может быть пустым')
 
-    # простая валидация
-    if kind == 'company_idn' and not value.isdigit():
-        return jsonify(status='error', message='ИНН должен содержать только цифры')
+    # парсим пачку значений
+    values = _parse_multi_values(raw)
 
-    exists = ExceptionDataUsers.query.filter_by(kind=kind, value=value).first()
-    if exists:
-        html = render_exceptions_block(kind)
-        return jsonify(status='error', message='Такое значение уже есть', html=html)
+    if not values:
+        return jsonify(status='error', message='Не найдено ни одного значения')
 
-    db.session.add(ExceptionDataUsers(kind=kind, value=value))
-    db.session.commit()
+    # смотрим, какие значения уже есть в БД
+    existing_rows = (
+        ExceptionDataUsers.query
+        .filter(
+            ExceptionDataUsers.kind == kind,
+            ExceptionDataUsers.value.in_(values)
+        )
+        .with_entities(ExceptionDataUsers.value)
+        .all()
+    )
+    existing = {row.value for row in existing_rows}
 
+    # выбираем только новые
+    to_insert = [v for v in values if v not in existing]
+
+    # сохраняем
+    if to_insert:
+        db.session.bulk_save_objects(
+            [ExceptionDataUsers(kind=kind, value=v) for v in to_insert]
+        )
+        db.session.commit()
+
+    # перерисовываем нужный блок
     html = render_exceptions_block(kind)
-    msg = 'ИНН добавлен' if kind == 'company_idn' else 'Телефон добавлен'
-    return jsonify(status='success', message=msg, html=html)
+
+    # строим сообщение
+    added_cnt = len(to_insert)
+    dup_cnt = len(values) - added_cnt
+
+    if kind == 'company_idn':
+        prefix = 'ИНН'
+    else:
+        prefix = 'Телефон(ы)'
+
+    if added_cnt == 0 and dup_cnt > 0:
+        message = f'{prefix}: все введённые значения уже есть в списке'
+        status = 'error'
+    else:
+        parts = [f'добавлено: {added_cnt}']
+        if dup_cnt:
+            parts.append(f'уже были: {dup_cnt}')
+        message = f'{prefix}: ' + '; '.join(parts)
+        status = 'success'
+
+    return jsonify(status=status, message=message, html=html)
 
 
 # === 4. Удаление исключения ===
