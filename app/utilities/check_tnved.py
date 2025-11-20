@@ -65,7 +65,7 @@ class TnvedChecker:
             case _:
                 tnved_dict = settings.Clothes.CLOTHES_TNVED_DICT
                 if gender not in settings.Clothes.GENDERS:
-                    answer = f"{settings.Messages.TNVED_INPUT_ERROR_GT.format(gender=gender)}"
+                    answer = f"{settings.Messages.TNVED_INPUT_ERROR_CG.format(gender=gender)}"
                     return result_status, answer
                 big_tnved_tuple = get_tnved_codes_for_gender(type_name=cloth_type, gender=gender)
 
