@@ -584,7 +584,7 @@ function chooseSizeClothes(subcategory) {
             let sizes = clothes_types_sizes_dict[clothingType];
             let sizesBlock = create_size_blocks(sizes, clothingType);
             let free_size_input = '';
-            if (clothingType !== 'ОСОБЫЕ_РАЗМЕРЫ'){
+            if (!['ОСОБЫЕ_РАЗМЕРЫ', 'РОССИЯ'].includes(clothingType)){
                 free_size_input = perform_free_size_input(clothingType);
                 }
 

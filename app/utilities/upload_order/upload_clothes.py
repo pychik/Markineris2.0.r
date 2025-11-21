@@ -103,7 +103,7 @@ class ValidateClothesMixin:
     @staticmethod
     @empty_value
     def _size(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
-        if value.upper() in settings.Clothes.UNITE_SIZE_VALUES:
+        if value in settings.Clothes.UNITE_SIZE_VALUES:
             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = settings.Clothes.UNITE_SIZE_VALUE
         else:
             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = value
@@ -246,6 +246,7 @@ class UploadClothes(UploadCategory):
             for data_group in order_list:
                 cl_type = data_group[2].strip()
                 gender = data_group[4].strip()
+                size_value = data_group[6].strip().upper()
 
                 gender_condition = gender not in settings.RZ_GENDERS_RD_LIST
                 rz_gender_condition = rz_condition and gender_condition
@@ -264,10 +265,10 @@ class UploadClothes(UploadCategory):
                 gender_error = self._gender(value=gender, row_num=row_num, col='H', subcategory=subcategory,
                                             cl_type=cl_type)
                 # print(gender_error)
-                size_type_error = self._size_type(size_value=data_group[6].strip(),
+                size_type_error = self._size_type(size_value=size_value,
                                                   row_num=row_num, size_col='J', pos=5, order_list=order_list)
                 # print(size_type_error)
-                size_error = self._size(value=data_group[6].strip(), row_num=row_num, col='J', pos=6,
+                size_error = self._size(value=size_value, row_num=row_num, col='J', pos=6,
                                         order_list=order_list)
                 # print(size_error)
                 content_error = self._content(order_list=order_list, value=data_group[7].strip(),
