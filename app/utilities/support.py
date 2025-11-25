@@ -53,7 +53,7 @@ from views.main.categories.clothes.subcategories import ClothesSubcategoryProces
 from .categories_data.subcategories_data import ClothesSubcategories, Category
 from .categories_data.subcategories_logic import get_subcategory
 from .cipher.instance import encryptor
-from .exceptions import GetFirstPageFromPDFError, ArticlesException
+from .exceptions import GetFirstPageFromPDFError, ArticlesException, SizeTypeException
 from .helpers.h_categories import order_table_update
 from .http_client import Requester
 from .minio_service.services import get_s3_service
@@ -346,6 +346,11 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
         user.orders.append(updated_order)
 
         db.session.commit()
+    except SizeTypeException as ste:
+        logger.error(ste)
+        # flash(message=str(ste), category='error')
+        db.session.rollback()
+        return (None,) * 3
     except ArticlesException as ae:
         logger.error(ae)
         flash(message=str(ae), category='error')
@@ -393,20 +398,29 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
             db.session.rollback()
             return (None, )*3
     else:
+        try:
+            order = user.orders.filter_by(category=settings.Parfum.CATEGORY, processed=False, id=o_id).first()
 
-        order = user.orders.filter_by(category=settings.Parfum.CATEGORY, processed=False, id=o_id).first()
+            if not check_order_pos(category=settings.Parfum.CATEGORY, order=order):
+                return (None, )*3
 
-        if not check_order_pos(category=settings.Parfum.CATEGORY, order=order):
+            if p_id:
+                process_delete_order_pos(o_id=o_id, m_id=p_id, category=settings.Parfum.CATEGORY, edit=True)
+
+            updated_order = common_save_db(order=order, form_dict=form_dict,
+                                           category=settings.Parfum.CATEGORY)
+            user.orders.append(updated_order)
+
+            db.session.commit()
+        except ArticlesException as ae:
+            logger.error(ae)
+            flash(message=str(ae), category='error')
+            db.session.rollback()
+            return (None,) * 3
+        except IntegrityError as e:
+            logger.error(e)
+            db.session.rollback()
             return (None, )*3
-
-        if p_id:
-            process_delete_order_pos(o_id=o_id, m_id=p_id, category=settings.Parfum.CATEGORY, edit=True)
-
-        updated_order = common_save_db(order=order, form_dict=form_dict,
-                                       category=settings.Parfum.CATEGORY)
-        user.orders.append(updated_order)
-
-        db.session.commit()
     sort_type, sort_order = helper_get_sort_order(sort_type_order=form_dict.get("sort_type_order"))
     o_id = updated_order.id
     return o_id, sort_type, sort_order

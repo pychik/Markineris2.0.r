@@ -12,6 +12,7 @@ from models import User, Order, Shoe, ShoeQuantitySize, Socks, SocksQuantitySize
     Clothes, ClothesQuantitySize, db
 from utilities.categories_data.clothes_common.tnved_processor import get_tnved_codes_for_gender
 from utilities.categories_data.subcategories_data import ClothesSubcategories
+from utilities.exceptions import SizeTypeException
 
 
 def time_count(func):
@@ -54,6 +55,41 @@ def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     return order
 
 
+def get_clothes_size_type(size: str, provided_type: str) -> str:
+    if not provided_type:
+        raise SizeTypeException("Тип размера не указан.")
+
+    provided_type = provided_type.strip()
+
+    valid_keys = settings.Clothes.SIZE_ALL_DICT.keys()
+    if provided_type not in valid_keys:
+        raise SizeTypeException(f"Неизвестный тип размера: '{provided_type}'.")
+
+    # 1. Проверка ТОЛЬКО для РОССИЯ
+    if provided_type == 'РОССИЯ':
+        valid_sizes = settings.Clothes.CLOTHES_ST_RUSSIA
+        if size not in valid_sizes:
+            raise SizeTypeException(
+                f"Размер '{size}' не соответствует типу 'РОССИЯ'."
+            )
+        return settings.Clothes.DEFAULT_SIZE_TYPE
+
+    # 2. МЕЖДУНАРОДНЫЙ → не проверяем список
+    if provided_type == 'МЕЖДУНАРОДНЫЙ':
+        return settings.Clothes.INTERNATIONAL_SIZE_TYPE
+
+    # 3. ОСОБЫЕ_РАЗМЕРЫ → всегда INTERNATIONAL_SIZE_TYPE, без проверок
+    if provided_type == 'ОСОБЫЕ_РАЗМЕРЫ':
+        return settings.Clothes.INTERNATIONAL_SIZE_TYPE
+
+    # 4. РОСТ → тоже без проверки
+    if provided_type == 'РОСТ':
+        return settings.Clothes.ROST_SIZE_TYPE
+
+    # fallback
+    raise SizeTypeException(f"Не удалось определить size_type для '{provided_type}'.")
+
+
 def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcategory: str = None) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
     article = process_input_str(form_dict.get("article"))
@@ -70,9 +106,14 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcateg
                                 rd_name=form_dict.get("rd_name").replace('№', ''),
                                 rd_date=rd_date, subcategory=subcategory if subcategory else ClothesSubcategories.common.value)
 
-    extend_sq = (ClothesQuantitySize(size=el[0], quantity=el[1],
-                                     size_type=el[2] if el[0] not in settings.Clothes.UNITE_SIZE_VALUES
-                                     else settings.Clothes.INTERNATIONAL_SIZE_TYPE) for el in sizes_quantities)
+    extend_sq = (
+        ClothesQuantitySize(
+            size=el[0],
+            quantity=el[1],
+            size_type=get_clothes_size_type(el[0], el[2])
+        )
+        for el in sizes_quantities
+    )
     new_clothes_order.sizes_quantities.extend(extend_sq)
     order.clothes.append(new_clothes_order)
     return order
@@ -226,12 +267,13 @@ def save_copy_order_shoes(order_category_list: list[Shoe], new_order: Order) -> 
                            for shoe in order_category_list)
     return new_order
 
+
 def _check_clothes_compatibility(clothes) -> str | bool:
     """
-    Проверяет, сочетаются ли type/gender/tnved у одной позиции.
+    Проверяет, сочетаются ли type/gender/tnved/size у одной позиции.
     Возвращает:
       - False, если позиция корректна
-      - str (например "[Тип Пол, ТНВЭД]"), если несовместима
+      - str "[Тип Пол, ТНВЭД] ..." — если есть ошибки
     """
     def _needs_gender(subcat) -> bool:
         return subcat in ('', 'common', None, 'None')
@@ -245,7 +287,6 @@ def _check_clothes_compatibility(clothes) -> str | bool:
     cl_subcat = getattr(clothes, 'subcategory', None)
 
     # --- Проверка пола ---
-
     need_gender = _needs_gender(cl_subcat)
 
     if need_gender:
@@ -264,15 +305,35 @@ def _check_clothes_compatibility(clothes) -> str | bool:
         allowed_tnveds = {_norm_tnved(x) for x in allowed_tnveds}
         tnved_ok = _norm_tnved(cl_tnved) in allowed_tnveds
 
+    # --- Проверка соответствия размеров типу (только для РОССИЯ) ---
+    size_errors = []  # ← собираем несоответствия
+
+    for sq in getattr(clothes, "sizes_quantities", []) or []:
+        sq_size = (getattr(sq, "size", "") or "").strip()
+        sq_size_type = (getattr(sq, "size_type", "") or "").strip()
+
+        if sq_size_type == settings.Clothes.DEFAULT_SIZE_TYPE and sq_size not in settings.Clothes.CLOTHES_ST_RUSSIA:
+            size_errors.append(sq_size)
+
+    sizes_ok = not size_errors
+
     # --- Итог ---
-    if gender_ok and tnved_ok:
+    if gender_ok and tnved_ok and sizes_ok:
         return False  # позиция корректна
 
     # Формируем короткое описание для отчёта
     t = cl_type or '—'
     g = cl_gender or '—'
     n = cl_tnved or '—'
-    return f"[{t} {g}, {n}]"
+
+    base = f"[{t} {g}, {n}]"
+
+    # если есть проблемы с размерами — добавляем
+    if size_errors:
+        bad = ", ".join(size_errors)
+        return f"{base} — несоответствующие размеры: {bad}"
+
+    return base
 
 
 def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order) -> Order:
