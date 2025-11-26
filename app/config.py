@@ -907,7 +907,7 @@ class Settings(BaseSettings):
         RESTORE_LINK_TEXT: str = "Не отвечайте на это письмо, оно создано автоматически! Пройдите по "
         SENDER_NAME = "MARKISERVICE"
         CLIENT_NAME = "Клиент сервиса маркировки"
-        SENDER_EMAIL = "markiservice@best.com"
+        SENDER_EMAIL = "marki@service.com"
         EXPIRATION_RESTORE_LINK: int = 10800
 
     class Pdf:
@@ -947,7 +947,7 @@ class Settings(BaseSettings):
         MATERIALS_BOTTOM: list = SHOE_MATERIALS_BOTTOM
         TNVEDS_ALL: tuple = BIG_SHOE_TNVED
         MATERIALS_CORRECT: dict = SHOE_MATERIALS_CORRECT
-
+        EXCEPTED_MATERIALS_TOP_LINING: tuple = ('Джинса', 'Сетчатое полотно', )
         SHOE_AL: tuple = SHOE_AL
         SHOE_OT: tuple = SHOE_OT
         SHOE_NL: tuple = SHOE_NL

@@ -250,8 +250,44 @@ def common_save_copy_order(u_id: int, user: User, category: str, order: Order) -
         return None
 
 
+def _check_shoes_compatibility(shoe: Shoe) -> str | bool:
+    """
+    Проверяет, сочетаются ли типы материалов у одной позиции обуви.
+    Возвращает:
+      - False, если позиция корректна
+      - str (например "[Материал верха Кожа, Материал подкладки Мех]"), если несовместима
+    """
+
+    s_material_top = (shoe.material_top or "").strip().capitalize()
+    s_material_lining = (shoe.material_lining or "").strip().capitalize()
+
+    excepted = settings.Shoes.EXCEPTED_MATERIALS_TOP_LINING
+
+    top_bad = s_material_top in excepted
+    lining_bad = s_material_lining in excepted
+
+    # Если всё нормально
+    if not top_bad and not lining_bad:
+        return False
+
+    # Формируем части сообщения
+    top = s_material_top if top_bad else "—"
+    linen = s_material_lining if lining_bad else "—"
+
+    return f"[Материал верха {top}, Материал подкладки {linen}]"
+
+
 def save_copy_order_shoes(order_category_list: list[Shoe], new_order: Order) -> Order:
-    new_order.shoes.extend(Shoe(trademark=shoe.trademark,
+    incompatible_items = []
+    kept_linen_count = 0
+    for shoe in order_category_list:
+        # Проверяем на совместимость типов полов тнвэдов
+        result = _check_shoes_compatibility(shoe)
+        if result:  # несовместима — сохраняем сообщение
+            incompatible_items.append(result)
+            continue
+
+        new_shoes = Shoe(trademark=shoe.trademark,
                                 article=shoe.article, type=shoe.type,
                                 color=shoe.color, box_quantity=shoe.box_quantity,
                                 material_top=shoe.material_top,
@@ -260,11 +296,17 @@ def save_copy_order_shoes(order_category_list: list[Shoe], new_order: Order) -> 
                                 gender=shoe.gender, country=shoe.country,
                                 with_packages=shoe.with_packages,
                                 tnved_code=shoe.tnved_code, article_price=shoe.article_price,
-                                tax=shoe.tax, rd_type=shoe.rd_type, rd_name=shoe.rd_name.replace('№', ''),
-                                rd_date=shoe.rd_date,
+                                tax=shoe.tax, rd_type=shoe.rd_type, rd_name=shoe.rd_name.replace('№', ''), rd_date=shoe.rd_date,
                                 sizes_quantities=list((ShoeQuantitySize(size=sq.size, quantity=sq.quantity)
                                                                     for sq in shoe.sizes_quantities)))
-                           for shoe in order_category_list)
+        new_order.shoes.append(new_shoes)
+        kept_linen_count += 1
+    if kept_linen_count == 0:
+        raise Exception("Не удалось скопировать ни одной позиции: все позиции не проходят новые правила ЧЗ."
+                        + (" Подробности: " + ", ".join(incompatible_items) if incompatible_items else ""))
+    if incompatible_items:
+        flash(message="Из скопированного заказа были удалены позиции согласно новым правилам ЧЗ."
+                      " Обратите внимание:" + ", ".join(incompatible_items), category="warning")
     return new_order
 
 
@@ -396,15 +438,28 @@ def _check_linen_compatibility(linen) -> str | bool:
       - str (например "[Тип Пол, ТНВЭД]"), если несовместима
     """
 
-    l_type   = (linen.type or '').strip()
-
-
-    if l_type not in ['ПОКРЫВАЛО', ]:
-        return False
+    l_type = (linen.type or '').strip()
+    l_textile_type = (linen.textile_type or '').strip()
     # Формируем короткое описание для отчёта
-    t = l_type or '—'
+    t = ''
+    tt = ''
+    _linen_exclude: tuple = ('АЖУРНАЯ САЛФЕТКА/САЛФЕТКА ПОД ПРИБОРЫ', 'КОМПЛЕКТ СТОЛОВОГО БЕЛЬЯ', 'НАВОЛОЧКА КВАДРАТНАЯ',
+                             'НАВОЛОЧКА ПРЯМОУГОЛЬНАЯ', 'НАВОЛОЧКА ЦИЛИНДРИЧЕСКАЯ', 'ПОДЗОР', 'ПОДОДЕЯЛЬНИК С ВЫРЕЗОМ',
+                             'ПОДОДЕЯЛЬНИК С КЛАПАНОМ', 'ПОКРЫВАЛО', 'ПОКРЫТИЕ ДЛЯ ПОДУШЕК', 'ПОКРЫТИЕ ДЛЯ СТУЛА',
+                             'ПОКРЫТИЯ ДЛЯ ДИВАНОВ', 'ПОЛОТЕНЦЕ ДЛЯ ПУТЕШЕСТВИЙ', 'ПОЛОТЕНЦЕ ДЛЯ ЧАЙНОЙ ПОСУДЫ',
+                             'ПОЛОТЕНЦЕ ДЛЯ ЧАЙНОЙ ПОСУДЫ', 'ПОЛОТЕНЦЕ КУХОННОЕ ДЛЯ СУШКИ', 'ТРЯПКА ДЛЯ МЫТЬЯ ПОСУДЫ',
+                             'ИЗДЕЛИЕ ДЛЯ САУНЫ', 'ГОСТЕВОЕ ПОЛОТЕНЦЕ ДЛЯ РУК', 'ПОЛОТЕНЦА ПЛЯЖНЫЕ', 'САЛФЕТКИ (МНОГОРАЗОВЫЕ)',
+                             'САЛФЕТКА ПОД ПРИБОРЫ (МНОГОРАЗОВАЯ)', 'СКАТЕРТЬ (МНОГОРАЗОВАЯ)')
 
-    return f"[{t}]"
+    _linen_textile_type_exclude: tuple = ('СИНТЕПОН',)
+    if l_type not in _linen_exclude and l_textile_type not in _linen_textile_type_exclude:
+        return False
+    if l_type in _linen_exclude:
+        t = l_type or '—'
+    if l_textile_type in _linen_textile_type_exclude:
+        tt = l_textile_type or '—'
+
+    return f"[{t}, {tt}]"
 
 
 def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) -> Order:
