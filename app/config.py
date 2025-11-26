@@ -947,7 +947,7 @@ class Settings(BaseSettings):
         MATERIALS_BOTTOM: list = SHOE_MATERIALS_BOTTOM
         TNVEDS_ALL: tuple = BIG_SHOE_TNVED
         MATERIALS_CORRECT: dict = SHOE_MATERIALS_CORRECT
-
+        EXCEPTED_MATERIALS_TOP_LINING: tuple = ('Джинса', 'Сетчатое полотно', )
         SHOE_AL: tuple = SHOE_AL
         SHOE_OT: tuple = SHOE_OT
         SHOE_NL: tuple = SHOE_NL
