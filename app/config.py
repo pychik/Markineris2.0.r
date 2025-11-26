@@ -907,7 +907,7 @@ class Settings(BaseSettings):
         RESTORE_LINK_TEXT: str = "Не отвечайте на это письмо, оно создано автоматически! Пройдите по "
         SENDER_NAME = "MARKISERVICE"
         CLIENT_NAME = "Клиент сервиса маркировки"
-        SENDER_EMAIL = "markiservice@best.com"
+        SENDER_EMAIL = "marki@service.com"
         EXPIRATION_RESTORE_LINK: int = 10800
 
     class Pdf:
