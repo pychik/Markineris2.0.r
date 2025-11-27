@@ -6,7 +6,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import SecretStr
 
 from utilities.categories_data.accessories_data import HATS_TYPES, GLOVES_TYPES, SHAWLS_TYPES
-from utilities.categories_data.clothes_common.clothes_common_tnved_by_gender import CLOTHES_TNVED_DICT
+from utilities.categories_data.clothes_common.clothes_common_tnved_by_gender import CLOTHES_TNVED_DICT, \
+    CLOTHES_COMMON_TNVED_LIST
 from utilities.categories_data.clothes_common.types_genders import CLOTHES_TYPE_GENDERS
 from utilities.categories_data.socks_data import (SOCKS_DEC_DICT, SOCKS_TYPES, SOCKS_TNVED_DICT,
                                                   SOCKS_TYPE_NUMBER_DICT, )
@@ -1083,7 +1084,8 @@ class Settings(BaseSettings):
         SIZE_TYPES_ALL: list = CLOTHES_TYPES_SIZES_DICT.keys()  # temporary before all types are ok to use
         TNVED_CODE: tuple = CLOTHES_TNVED  # "6202900001"
         # TNVED_CHECK_LIST: tuple = BIG_CLOTHES_TNVED_4DIGIT
-        TNVED_ALL: tuple = ALL_CLOTHES_TNVED
+        # TNVED_ALL: tuple = ALL_CLOTHES_TNVED
+        TNVED_ALL: tuple = CLOTHES_COMMON_TNVED_LIST
         START: list = CLOTHES_START
         START_EXT: list = CLOTHES_START_EXT_029
         START_EXT_046: list = CLOTHES_START_EXT_046
