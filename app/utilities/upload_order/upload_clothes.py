@@ -129,7 +129,7 @@ class ValidateClothesMixin:
 
         # 1) Россия — размер должен быть в списке разрешённых
         if size_type == settings.Clothes.DEFAULT_SIZE_TYPE:
-            if value not in settings.CLOTHES_ST_RUSSIA:
+            if value not in settings.Clothes.CLOTHES_ST_RUSSIA:
                 return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_SIZE_ERROR}"
 
         if len(value) > 100:
