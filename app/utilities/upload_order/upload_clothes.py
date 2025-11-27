@@ -98,7 +98,7 @@ class ValidateClothesMixin:
         if size_type in settings.Clothes.CLOTHES_SIZE_TYPES:
             return
 
-        return f"{val_error_start(row_num=row_num, col=size_col)} {settings.Clothes.UPLOAD_SIZE_ERROR}"
+        return f"{val_error_start(row_num=row_num, col=size_col)} {settings.Clothes.UPLOAD_SIZE_TYPE_ERROR}"
         # order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = corrected_value
 
     @staticmethod
@@ -289,7 +289,7 @@ class UploadClothes(UploadCategory):
                                             cl_type=cl_type)
                 # print(gender_error)
                 size_type_error = self._size_type(size_type=size_type, size_value=size_value,
-                                                  row_num=row_num, size_col='J', pos=5, order_list=order_list)
+                                                  row_num=row_num, size_col='I', pos=5, order_list=order_list)
                 # print(size_type_error)
                 size_error = self._size(value=size_value, size_type=size_type, row_num=row_num, col='J', pos=6,
                                         order_list=order_list)
