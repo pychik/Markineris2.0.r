@@ -77,7 +77,8 @@ class ValidateClothesMixin:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_COLOR_ERROR}"
 
     @staticmethod
-    def _size_type(size_value: str, row_num: int, size_col: str, pos: int, order_list: list) -> Optional[str]:
+    def _size_type(size_type: str, size_value: str, row_num: int, size_col: str, pos: int, order_list: list) -> \
+            Optional[str]:
         """
          searches for size_type in size_types_all and if not searches for size_type using size
         :param size_value:
@@ -90,26 +91,47 @@ class ValidateClothesMixin:
 
         # corrected_value = value.strip().replace(' ', '')
         # size_value.replace not making because of spaces in sizes
+
         if size_value in settings.Clothes.UNITE_SIZE_VALUES:
             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = settings.Clothes.INTERNATIONAL_SIZE_TYPE
             return
-        for el in settings.Clothes.SIZE_TYPES_ALL:
-            if size_value in settings.Clothes.SIZE_ALL_DICT.get(el):
-                order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = el
-                return
+        if size_type in settings.Clothes.CLOTHES_SIZE_TYPES:
+            return
+
         return f"{val_error_start(row_num=row_num, col=size_col)} {settings.Clothes.UPLOAD_SIZE_ERROR}"
         # order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = corrected_value
 
     @staticmethod
     @empty_value
-    def _size(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
+    def _size(value: str,
+              size_type: str,
+              row_num: int,
+              col: str,
+              pos: int,
+              order_list: list) -> Optional[str]:
+        """
+        Проверка значения размера с учётом типа размера.
+
+        :param value: значение размера из файла
+        :param size_type: тип размера (например "РОССИЯ", "МЕЖДУНАРОДНЫЙ", "РОСТ.")
+        :param row_num:
+        :param col:
+        :param pos:
+        :param order_list:
+        :return: None, если всё ок, либо строка с ошибкой
+        """
+
+        # Нормализация / запись значения в order_list (как и раньше)
         if value in settings.Clothes.UNITE_SIZE_VALUES:
             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = settings.Clothes.UNITE_SIZE_VALUE
         else:
             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = value
 
-        # if value not in settings.Clothes.SIZES_ALL:
-        #     return f"{val_error_start(row_num=row_n
+        # 1) Россия — размер должен быть в списке разрешённых
+        if size_type == settings.Clothes.DEFAULT_SIZE_TYPE:
+            if value not in settings.CLOTHES_ST_RUSSIA:
+                return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_SIZE_ERROR}"
+
         if len(value) > 100:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_SIZE_ERROR}"
 
@@ -246,6 +268,7 @@ class UploadClothes(UploadCategory):
             for data_group in order_list:
                 cl_type = data_group[2].strip()
                 gender = data_group[4].strip()
+                size_type = data_group[5].strip().upper()
                 size_value = data_group[6].strip().upper()
 
                 gender_condition = gender not in settings.RZ_GENDERS_RD_LIST
@@ -265,10 +288,10 @@ class UploadClothes(UploadCategory):
                 gender_error = self._gender(value=gender, row_num=row_num, col='H', subcategory=subcategory,
                                             cl_type=cl_type)
                 # print(gender_error)
-                size_type_error = self._size_type(size_value=size_value,
+                size_type_error = self._size_type(size_type=size_type, size_value=size_value,
                                                   row_num=row_num, size_col='J', pos=5, order_list=order_list)
                 # print(size_type_error)
-                size_error = self._size(value=size_value, row_num=row_num, col='J', pos=6,
+                size_error = self._size(value=size_value, size_type=size_type, row_num=row_num, col='J', pos=6,
                                         order_list=order_list)
                 # print(size_error)
                 content_error = self._content(order_list=order_list, value=data_group[7].strip(),
