@@ -443,18 +443,12 @@ def _check_linen_compatibility(linen) -> str | bool:
     # Формируем короткое описание для отчёта
     t = ''
     tt = ''
-    _linen_exclude: tuple = ('АЖУРНАЯ САЛФЕТКА/САЛФЕТКА ПОД ПРИБОРЫ', 'КОМПЛЕКТ СТОЛОВОГО БЕЛЬЯ', 'НАВОЛОЧКА КВАДРАТНАЯ',
-                             'НАВОЛОЧКА ПРЯМОУГОЛЬНАЯ', 'НАВОЛОЧКА ЦИЛИНДРИЧЕСКАЯ', 'ПОДЗОР', 'ПОДОДЕЯЛЬНИК С ВЫРЕЗОМ',
-                             'ПОДОДЕЯЛЬНИК С КЛАПАНОМ', 'ПОКРЫВАЛО', 'ПОКРЫТИЕ ДЛЯ ПОДУШЕК', 'ПОКРЫТИЕ ДЛЯ СТУЛА',
-                             'ПОКРЫТИЯ ДЛЯ ДИВАНОВ', 'ПОЛОТЕНЦЕ ДЛЯ ПУТЕШЕСТВИЙ', 'ПОЛОТЕНЦЕ ДЛЯ ЧАЙНОЙ ПОСУДЫ',
-                             'ПОЛОТЕНЦЕ ДЛЯ ЧАЙНОЙ ПОСУДЫ', 'ПОЛОТЕНЦЕ КУХОННОЕ ДЛЯ СУШКИ', 'ТРЯПКА ДЛЯ МЫТЬЯ ПОСУДЫ',
-                             'ИЗДЕЛИЕ ДЛЯ САУНЫ', 'ГОСТЕВОЕ ПОЛОТЕНЦЕ ДЛЯ РУК', 'ПОЛОТЕНЦА ПЛЯЖНЫЕ', 'САЛФЕТКИ (МНОГОРАЗОВЫЕ)',
-                             'САЛФЕТКА ПОД ПРИБОРЫ (МНОГОРАЗОВАЯ)', 'СКАТЕРТЬ (МНОГОРАЗОВАЯ)')
 
     _linen_textile_type_exclude: tuple = ('СИНТЕПОН',)
-    if l_type not in _linen_exclude and l_textile_type not in _linen_textile_type_exclude:
+
+    if l_type in settings.Linen.TYPES and l_textile_type not in _linen_textile_type_exclude:
         return False
-    if l_type in _linen_exclude:
+    if l_type not in settings.Linen.TYPES:
         t = l_type or '—'
     if l_textile_type in _linen_textile_type_exclude:
         tt = l_textile_type or '—'
