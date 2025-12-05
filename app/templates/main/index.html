@@ -357,7 +357,7 @@
                         <div class="d-flex search-wrapper">
                             <input type="text" id="searchInput" class="w-100 search-form"
                                 placeholder="Введите код ТН ВЭД, например, 4203"
-                                   oninput="searchByCode('{{ url_for('static', filename='ved.xml') }}', '{{ url_for('static', filename='index_v2/images/checked.svg') }}')"
+                                   oninput="searchByCode(`{{ url_for('static', filename='index_v2/ved.xml') }}`, '{{ url_for('static', filename='index_v2/images/checked.svg') }}')"
                                 onkeypress="return validateNumericInput(event)">
                             <button class="search-btn"><svg width="36" height="25" viewBox="0 0 36 25" fill="none"
                                     xmlns="http://www.w3.org/2000/svg">

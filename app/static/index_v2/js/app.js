@@ -232,38 +232,40 @@ function searchByCode(xml_url, checked_svg) {
   var searchValue = document.getElementById("searchInput").value.trim();
 
   if (searchValue === '') {
-      $("#searchResults").html('');
-      $("#searchResults").slideUp(200);
-      return;
+    $("#searchResults").html('');
+    $("#searchResults").slideUp(200);
+    return;
   }
 
   $.ajax({
-      url: xml_url,
-      dataType: "xml",
-      success: function (data) {
-          var results = $(data).find("Code").filter(function () {
-              return $(this).text().includes(searchValue);
-          }).closest("Element");
+    url: xml_url,
+    dataType: "xml",
+    success: function (data) {
+      var results = $(data).find("Code").filter(function () {
+        return $(this).text().includes(searchValue);
+      }).closest("Element");
 
-          if (results.length > 0) {
-              var output = "";
-              results.each(function () {
-                  var code = $(this).find("Code").text();
-                  var name = $(this).find("Name").text();
-                  var highlightedCode = code.replace(new RegExp(searchValue, "gi"), function (match) {
-                      return '<span class="highlight">' + match + '</span>';
-                  });
-                  output += "<div class='result'><div class='result-code'>" + highlightedCode + "</div>" + " <div class='result-name'>" + name + `<img src="${checked_svg}"></div></div>`;
-              });
-              $("#searchResults").html(output);
-              $("#searchResults").slideDown(200);
-          } else {
-              $("#searchResults").html("<div class='result'>Такого кода нет в нашей базе!</div>");
-          }
-      },
-      error: function () {
-          $("#searchResults").html("<div class='result'>Ошибка загрузки xml</div>");
+      if (results.length > 0) {
+        var output = "";
+        results.each(function () {
+          var code = $(this).find("Code").text();
+          var name = $(this).find("Name").text();
+          var highlightedCode = code.replace(new RegExp(searchValue, "gi"), function (match) {
+            return '<span class="highlight">' + match + '</span>';
+          });
+          output += "<div class='result'><div class='result-code'>" + highlightedCode + "</div>" +
+                    " <div class='result-name'>" + name +
+                    "<img src='" + checked_svg + "'></div></div>";
+        });
+        $("#searchResults").html(output);
+        $("#searchResults").slideDown(200);
+      } else {
+        $("#searchResults").html("<div class='result'>Такого кода нет в нашей базе!</div>");
       }
+    },
+    error: function () {
+      $("#searchResults").html("<div class='result'>Ошибка загрузки xml</div>");
+    }
   });
 }
 
