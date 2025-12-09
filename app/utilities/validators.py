@@ -5,6 +5,8 @@ from typing import Optional
 from config import settings
 from models import ExceptionDataUsers
 from utilities.categories_data.accessories_data import HATS_TNVEDS, GLOVES_TNVEDS, SHAWLS_TNVEDS
+from utilities.categories_data.clothes_common.clothes_common_tnved_by_gender import CLOTHES_TNVED_DICT
+from utilities.categories_data.clothes_common.types_genders import CLOTHES_TYPE_GENDERS
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVEDS
 from utilities.categories_data.underwear_data import UNDERWEAR_TNVEDS
@@ -89,10 +91,26 @@ class ValidatorProcessor:
 
     @staticmethod
     def clothes_pre_validate_tnved(tnved_str: str) -> bool:
-        if not tnved_str or tnved_str not in settings.Clothes.TNVED_ALL:
+        form = request.form
+        clothes_type = form.get('type')
+        gender = form.get('gender')
+
+        # если чего-то базового нет — сразу считаем ошибкой
+        if not (clothes_type and gender and tnved_str):
             return True
-        else:
-            return False
+
+        # безопасно достаем допустимые гендеры
+        correct_genders = CLOTHES_TYPE_GENDERS.get(clothes_type) or ()
+        if gender not in correct_genders:
+            return True
+
+        # безопасно достаем TNVED по типу и гендеру
+        type_tnveds = CLOTHES_TNVED_DICT.get(clothes_type) or {}
+
+        tnved_entry = type_tnveds.get(gender) or ([],)
+        correct_tnveds = tnved_entry[0] or []
+
+        return tnved_str not in correct_tnveds
 
     @staticmethod
     def linen_pre_validate_tnved(tnved_str: str) -> bool:
