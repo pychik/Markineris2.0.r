@@ -206,3 +206,4 @@ def h_cubaa():
 def h_get_dadata_token():
 
     return jsonify({"token": settings.DADATA_TOKEN})
+
