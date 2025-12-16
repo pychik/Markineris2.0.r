@@ -1,3 +1,4 @@
+import requests
 from typing import Union
 
 from flask import flash, jsonify, redirect, render_template, request, Response, url_for
@@ -10,6 +11,58 @@ from utilities.check_idn import IdnGetter
 from utilities.check_tnved import TnvedChecker
 from utilities.support import check_file_extension, send_file_tg, \
     orders_list_common, helper_check_useroragent_balance, helper_check_uoabm, helper_check_user_order_in_archive
+
+
+def h_dadata_party_by_inn():
+    _dadata_url = "https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/party"
+    q = (request.args.get("q") or "").strip()
+    if len(q) < 3:
+        return jsonify({"ok": True, "items": []})
+
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": f"Token {settings.DADATA_TOKEN}",
+    }
+
+    body = {
+        "query": q,
+        "count": 7,
+        # можно так ограничивать:
+        # "status": ["ACTIVE"],
+    }
+
+    try:
+        r = requests.post(_dadata_url, headers=headers, json=body, timeout=10)
+
+        # если снова 400 — вернём текст DaData для диагностики
+        if r.status_code == 400:
+            return jsonify({"ok": False, "error": "dadata_400", "details": r.text}), 502
+
+        r.raise_for_status()
+        data = r.json()
+
+    except requests.Timeout:
+        return jsonify({"ok": False, "error": "timeout"}), 504
+    except requests.RequestException:
+        logger.exception("DaData suggest failed")
+        return jsonify({"ok": False, "error": "dadata_unavailable"}), 502
+
+    items = []
+    for s in data.get("suggestions", []):
+        d = s.get("data") or {}
+
+        state = d.get("state") or {}
+        items.append({
+            "inn": d.get("inn"),
+            "kpp": d.get("kpp"),
+            "opf": (d.get("opf") or {}).get("short"),
+            "name": (d.get("name") or {}).get("full") or s.get("value"),
+            "address": (d.get("address") or {}).get("value"),
+            "status": state.get("status"),  # <-- ACTIVE / LIQUIDATING / LIQUIDATED и т.п.
+        })
+
+    return jsonify({"ok": True, "items": items})
 
 
 def h_get_company_data(u_id: int, from_category: str, idn: str) -> str:
@@ -201,9 +254,3 @@ def h_cubaa():
 
     return jsonify(dict(status_order=status_order, answer_orders=f"{answer_order}",
                         status_balance=status_balance, answer_balance=answer_balance,  agent_at2=agent_at2))
-
-
-def h_get_dadata_token():
-
-    return jsonify({"token": settings.DADATA_TOKEN})
-

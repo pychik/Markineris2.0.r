@@ -1,17 +1,19 @@
 {% if not o_id or 'change_order_org_param' in request.path%}
         <div class="form-group my-1" >
 
-            <input class="form-control"  type="text" id="organization" name="organization"
-                placeholder="Введите ИНН" title="Введите ИНН" oninput="if(count_words(this.value) < 3 || this.value.length<5){this.classList.remove('is-valid');this.classList.add('is-invalid')}"/>
+            <div class="position-relative">
+                <input class="form-control"  type="number" id="organization" name="organization"
+                    placeholder="Введите ИНН" title="Введите ИНН" />
+                <div id="org_suggest" class="list-group position-absolute w-100" style="z-index: 2000; display:none;"></div>
+                <div class="small form-text text-muted tex-justified">Заполнение и проверка типа организации, ее наименования
+                            происходит автоматически по выбранному введенному ИНН.<br>
+                            - введите <span style="color:indianred">ИНН</span>.<br>
+                            Произойдет запрос к базе, если введенного ИНН нет в базе - введите ваши данные вручную.<br>
+                    <a href="#manual_orgModal" data-bs-toggle="modal" data-bs-target="#manual_orgModal" title="Ввести данные о компании вручную">
+                        Ввести данные о компании вручную
+                    </a>
 
-            <div class="small form-text text-muted tex-justified">Заполнение и проверка типа организации, ее наименования
-                        происходит автоматически по выбранному введенному ИНН.<br>
-                        - введите <span style="color:indianred">ИНН</span>.<br>
-                        Произойдет запрос к базе, если введенного ИНН нет в базе - введите ваши данные вручную.<br>
-                <a href="#manual_orgModal" data-bs-toggle="modal" data-bs-target="#manual_orgModal" title="Ввести данные о компании вручную">
-                    Ввести данные о компании вручную
-                </a>
-
+                </div>
             </div>
         </div>
 {% endif %}
@@ -144,9 +146,9 @@
 
 
 <script>
-    const getDadataTokenUrl = "{{url_for('requests_common.get_dadata_token')}}";
+  const dadataByInnUrl = "{{ url_for('requests_common.dadata_party_by_inn') }}";
 </script>
 <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>-->
 <link href="{{url_for('static', filename='main_v2/dadata/suggestions.min.css')}}" rel="stylesheet" />
 <script src="{{url_for('static', filename='main_v2/dadata/jquery.suggestions.min.js')}}"></script>
-<script src="{{url_for('static', filename='main_v2/dadata/dadata.js')}}?v=3"></script>
+<script src="{{url_for('static', filename='main_v2/dadata/dadata.js')}}?v=4"></script>
