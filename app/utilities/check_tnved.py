@@ -49,19 +49,19 @@ class TnvedChecker:
         match subcategory:
             case ClothesSubcategories.underwear.value:
                 tnved_dict = UNDERWEAR_TNVED_DICT
-                big_tnved_tuple = tnved_dict.get(cloth_type)[0]
+                big_tnved_tuple = tnved_dict.get(cloth_type, [''])[0]
             case ClothesSubcategories.swimming_accessories.value:
                 tnved_dict = SWIMMING_ACCESSORIES_TNVED_DICT
-                big_tnved_tuple = tnved_dict.get(cloth_type)[0]
+                big_tnved_tuple = tnved_dict.get(cloth_type, [''])[0]
             case ClothesSubcategories.hats.value:
                 tnved_dict = HATS_TNVED_DICT
-                big_tnved_tuple = tnved_dict.get(cloth_type)[0]
+                big_tnved_tuple = tnved_dict.get(cloth_type, [''])[0]
             case ClothesSubcategories.gloves.value:
                 tnved_dict = GLOVES_TNVED_DICT
-                big_tnved_tuple = tnved_dict.get(cloth_type)[0]
+                big_tnved_tuple = tnved_dict.get(cloth_type, [''])[0]
             case ClothesSubcategories.shawls.value:
                 tnved_dict = SHAWLS_TNVED_DICT
-                big_tnved_tuple = tnved_dict.get(cloth_type)[0]
+                big_tnved_tuple = tnved_dict.get(cloth_type, [''])[0]
             case _:
                 tnved_dict = settings.Clothes.CLOTHES_TNVED_DICT
                 if gender not in settings.Clothes.GENDERS:
