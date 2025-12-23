@@ -684,6 +684,7 @@ def helper_preload_common(o_id: int, stage: int, category: str, category_process
     start_list, page, per_page, offset, pagination, order_list = orders_common_preload(category=category,
                                                                                        company_idn=company_idn,
                                                                                        orders_list=orders)
+    archive_flag = request.args.get('archive_flag', 'false').lower() == 'true'
 
     return render_template('preload.html', **locals())
 

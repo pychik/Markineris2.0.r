@@ -107,7 +107,7 @@
 {#                                    {% endif %}#}
                                     <td class="text-end actions">
                                         <a class="btn btn-dark btn-sm btn-watch  ms-md-auto"
-                                           href="{{ url_for(categories_dict[category] +'.preload', o_id=s.id, stage=s.stage) }}" title="Просмотреть заказ"
+                                           href="{{ url_for(categories_dict[category] +'.preload', o_id=s.id, stage=s.stage, archive_flag=True) }}" title="Просмотреть заказ"
                                             >Просмотреть</a>
 
                                         <div class="row g-3 justify-content-end">

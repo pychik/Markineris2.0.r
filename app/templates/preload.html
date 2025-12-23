@@ -3,6 +3,10 @@
 {% extends "main/base_v2.html" %}
 
 {% block preload %}
+
+{% set preview_title =
+    'Просмотр исходной накладной' if archive_flag else 'Предпросмотр'
+%}
 <div class="no-selection">
     <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
         <div class="breadcrumbs">
@@ -15,7 +19,7 @@
                 <a href="{{ url_for('orders_archive.index', category=category, subcategory=subcategory)}}">История заказов</a>/
             {% endif %}
 
-            <span>Предпросмотр</span>
+            <span>{{ preview_title }}</span>
         </div>
 
     </div>
@@ -23,8 +27,7 @@
         {%if start_list%}
             <div class="mb-4" id="orders_table">
                 <h3>
-                    Предпросмотр
-
+                    {{ preview_title }}
                 </h3>
             </div>
             <div class="col" align="left">
