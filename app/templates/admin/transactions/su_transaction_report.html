@@ -7,7 +7,7 @@
     <div><b>Статус:</b> <span class="badge bg-warning text-black">{{ transaction_statuses[transaction.status] }}</span></div>
 
     {% if transaction.promo_info %}
-        <div><b>Промо:</b> {{ transaction.promo_info }}</div>
+        <div><b>Промо:</b> {{ transaction.promo_info | safe }}</div>
     {%endif%}
 
     {% set transaction_type = transaction_types.get(transaction.transaction_type) %}

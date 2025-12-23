@@ -1841,63 +1841,92 @@ def helper_get_stmt_for_fin_promo_history(
         promo_code: Optional[str] = None,
         sort_type: str = 'DESC'
 ) -> TextClause:
-    sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
-    stmt = text(f"""select
-                        usr_promo.activated_at as activate_date,
-                        cli.email as user_email,
-                        COALESCE(agent.login_name, cli.login_name) as agent_login,
-                        promo.code as code,
-                        promo.value as promo_value
-                        from
-                            public.users cli
-                            left join public.users agent on agent.id = cli.admin_parent_id
-                            join public.users_promos usr_promo on usr_promo.user_id = cli.id
-                            join public.promos  promo on promo.id = usr_promo.promo_id
-                        where
-                            activated_at >= :date_from
-                            and activated_at < :date_to
-                        order by activated_at {sort_type}
-                        """
-                ).bindparams(date_from=date_from, date_to=date_to) if not promo_code else text(f"""select
-                        usr_promo.activated_at as activate_date,
-                        cli.email as user_email,
-                        COALESCE(agent.login_name, cli.login_name) as agent_login,
-                        promo.code as code,
-                        promo.value as promo_value
-                        from
-                            public.users cli
-                            left join public.users agent on agent.id = cli.admin_parent_id
-                            join public.users_promos usr_promo on usr_promo.user_id = cli.id
-                            join public.promos  promo on promo.id = usr_promo.promo_id
-                        where
-                            activated_at >= :date_from
-                            and activated_at < :date_to
-                            and promo.code = :promo_code
-                        order by activated_at {sort_type}
-                        """).bindparams(
-        date_from=date_from, date_to=date_to, promo_code=promo_code)
+
+    sort_type = 'desc' if str(sort_type).lower() == 'desc' else 'asc'
+
+    stmt = text(f"""
+        select * from (
+            -- обычные промокоды (M2M users_promos)
+            select
+                usr_promo.activated_at as activate_date,
+                cli.email as user_email,
+                COALESCE(agent.login_name, cli.login_name) as agent_login,
+                promo.code as code,
+                promo.value as promo_value
+            from public.users cli
+                left join public.users agent on agent.id = cli.admin_parent_id
+                join public.users_promos usr_promo on usr_promo.user_id = cli.id
+                join public.promos promo on promo.id = usr_promo.promo_id
+            where
+                usr_promo.activated_at >= :date_from
+                and usr_promo.activated_at < :date_to
+
+            union all
+
+            -- промо-коррекции через user_transactions
+            select
+                ut.created_at as activate_date,
+                cli.email as user_email,
+                COALESCE(agent.login_name, cli.login_name) as agent_login,
+                :mod_code as code,
+                ut.amount as promo_value
+            from public.user_transactions ut
+                join public.users cli on cli.id = ut.user_id
+                left join public.users agent on agent.id = cli.admin_parent_id
+            where
+                ut.created_at >= :date_from
+                and ut.created_at < :date_to
+                and ut.status = :success_status
+                and ut.transaction_type = :promo_type
+                and ut.type = true
+        ) t
+        where
+            (:promo_code is null or t.code = :promo_code)
+        order by t.activate_date {sort_type}
+    """)
+
+    stmt = stmt.bindparams(
+        date_from=date_from,
+        date_to=date_to,
+        promo_code=promo_code,  # может быть None
+        mod_code="MOD_UNIVERSAL",
+        success_status=TransactionStatuses.success.value,
+        promo_type=TransactionTypes.promo.value,  # ваш enum: promo
+    )
+
     return stmt
 
 
 def helper_get_filter_fin_promo_history(report: bool = False) -> tuple[str, str, str, str]:
-    default_day_to = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d')
+    default_day_to = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d')  # завтра
     default_day_from = (datetime.today() - timedelta(days=settings.PROMO_HISTORY_TIMEDELTA)).strftime('%Y-%m-%d')
+
     if report:
         url_date_from = request.form.get('date_from', '', type=str)
         url_date_to = request.form.get('date_to', '', type=str)
-        sort_type = request.form.get('sort_type', 'desc', str)
-        promo_code = request.form.get('promo_code', '', str)
-
+        sort_type = request.form.get('sort_type', 'desc', type=str)
+        promo_code = request.form.get('promo_code', '', type=str)
     else:
         url_date_from = request.args.get('date_from', '', type=str)
         url_date_to = request.args.get('date_to', '', type=str)
-        sort_type = request.args.get('sort_type', 'desc', str)
-        promo_code = request.args.get('promo_code', '', str)
+        sort_type = request.args.get('sort_type', 'desc', type=str)
+        promo_code = request.args.get('promo_code', '', type=str)
 
-    date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from else default_day_to
-    date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
-        '%Y-%m-%d') if url_date_to else default_day_from
-    sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
+    sort_type = 'desc' if str(sort_type).lower() == 'desc' else 'asc'
+    promo_code = promo_code.strip() or None  # чтобы пустая строка не ломала фильтр
+
+    date_from = (
+        datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d')
+        if url_date_from else
+        default_day_from
+    )
+
+    date_to = (
+        (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime('%Y-%m-%d')
+        if url_date_to else
+        default_day_to
+    )
+
     return date_from, date_to, promo_code, sort_type
 
 

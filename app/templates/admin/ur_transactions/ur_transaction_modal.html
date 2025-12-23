@@ -36,6 +36,14 @@
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                     <input type="number" class="form-control" id="balanceAmount" name="balanceAmount" placeholder="Введите сумму" min="1" max="1000000">
                     <input type="hidden" id="balanceOperationType" name="balanceOperationType">
+                    <label for="editBalanceComment" class="form-label">Комментарий (опционально):</label>
+                    <textarea class="form-control" id="editBalanceComment" rows="3" name="editBalanceComment" maxlength="100"></textarea>
+                    <div class="form-check mt-3" id="promoCorrectionWrap" style="display:none;">
+                      <input class="form-check-input" type="checkbox" id="isPromoCorrection" name="isPromoCorrection" value="1">
+                      <label class="form-check-label" for="isPromoCorrection">
+                        Промо-коррекция (MOD_UNIVERSAL)
+                      </label>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <div class="d-flex">

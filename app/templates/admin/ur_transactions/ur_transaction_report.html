@@ -4,7 +4,7 @@
     <div><b>Статус:</b> {{ transaction_statuses[transaction.status] }}</div>
 
     {% if transaction.promo_info %}
-    <div><b>Промо:</b> {{ transaction.promo_info }}</div>
+    <div><b>Промо:</b> {{ transaction.promo_info | safe}}</div>
     {%endif%}
     {% if transaction.type %}
         <div><b>Тип транзакции:</b> Пополнение лицевого счета</div>

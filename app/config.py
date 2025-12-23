@@ -402,6 +402,7 @@ class Settings(BaseSettings):
         TRANSACTIONS: dict = {PENDING: 'Ожидается подтверждение', CANCELLED: 'Отменена', SUCCESS: 'Успешно проведена'}
         TRANSACTION_WRITEOFF: int = 0
         TRANSACTION_REFILL: int = 1
+        PROMO_CORRECTION_CODE: str = "MOD_UNIVERSAL"
         TRANSACTION_OPERATION_TYPES: dict = {TRANSACTION_REFILL: 'Пополнение', TRANSACTION_WRITEOFF: 'Снятие средств'}
         TRANSACTION_TYPES: dict = {
             'refill_balance': 'Пополнение',

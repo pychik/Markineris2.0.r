@@ -37,7 +37,7 @@
     const currentUserRole = `{{current_user.role}}`;
     const prices_array = [{% for p in all_prices %}[{{ p.id }},'{{ p.price_code }}'],{% endfor %}];
 </script>
-<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc.js')}}?v=22"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc.js')}}?v=26"></script>
 <script src="{{url_for('static',filename='main_v2/js/admin/admin_common.js')}}"></script>
 <script src="{{url_for('static',filename='main_v2/js/admin/admin_main.js')}}"></script>
 <script src="{{url_for('static',filename='main_v2/js/admin/prices_block.js')}}?v=3"></script>

@@ -1473,25 +1473,40 @@ def update_user_balance(user_id: int, data: UpdateBalanceSchema):
     if user.role == settings.ORD_USER:
         if user.balance + update_sum < 0:
             raise NegativeBalanceError()
+    # промо-коррекция возможна только при пополнении
+    is_promo_corr = bool(data.is_promo_correction) and bool(data.operation_type)
 
+    # разрешаем промо-коррекцию только модераторам/админам (настройте роли как у вас принято)
+    if is_promo_corr and current_user.role not in ['superuser', 'admin', 'moderator']:
+        is_promo_corr = False
     try:
         server_params = ServerParam.query.first()
+        if is_promo_corr:
+            comment = (
+                f'<b>{current_user.login_name}</b> добавил на баланс через промокод '
+                f'<b>{settings.Transactions.PROMO_CORRECTION_CODE}</b> {data.amount} руб.'
+            )
+            tx_type = TransactionTypes.promo.value
+        else:
+            comment = (
+                f'<b>{current_user.login_name}</b> {"добавил на баланс" if data.operation_type else "списал с баланса"} '
+                f'{data.amount}</b> руб.'
+            )
+            tx_type = TransactionTypes.technical.value
 
-        comment = (
-            f'{current_user.login_name} {"Добавил на баланс" if data.operation_type else "Списал с баланса"} '
-            f'пользователя {user.login_name} {data.amount} руб.'
-        )
+        if data.comment:
+            comment += f'<br><b>Комментарий оператора:</b> {data.comment}'
 
         new_transaction = UserTransaction(
             type=data.operation_type,
             amount=data.amount,
             status=TransactionStatuses.success.value,
-            transaction_type=TransactionTypes.technical.value,
+            transaction_type=tx_type,
             promo_info=comment,
             user_id=user.id,
             agent_fee=0,
             sa_id=None,
-            bill_path=create_bill_path(filename=f"{user.login_name}.update_balance"),
+            bill_path=create_bill_path(filename=f"{current_user.login_name}.{user.login_name}.update_balance"),
         )
 
         user.balance += update_sum

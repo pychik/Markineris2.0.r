@@ -1666,11 +1666,20 @@ function openBalanceModal(url, operationType) {
     const modal = new bootstrap.Modal(document.getElementById('balanceModal'));
     document.getElementById("confirmBalanceForm").setAttribute("action", url);
     document.getElementById("balanceOperationType").value = operationType;
-    if(operationType){
-        document.getElementById('editBalanceTitle').innerText='пополнения';
+    document.getElementById('editBalanceComment').value = '';
+
+    const promoWrap = document.getElementById('promoCorrectionWrap');
+    const promoCb = document.getElementById('isPromoCorrection');
+
+    if (operationType) {
+        document.getElementById('editBalanceTitle').innerText = 'пополнения';
+        promoWrap.style.display = 'block';
+    } else {
+        document.getElementById('editBalanceTitle').innerText = 'списания';
+        promoWrap.style.display = 'none';
+        promoCb.checked = false;
     }
-    else{
-        document.getElementById('editBalanceTitle').innerText='списания';
-    }
+
     modal.show();
 }
+
