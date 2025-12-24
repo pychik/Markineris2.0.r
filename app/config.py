@@ -935,7 +935,7 @@ class Settings(BaseSettings):
         TYPE_UPLOADS: list = ['standart', 'extended']
 
     class ExceptionOrders:
-        EXCEPTED_ARTICLES: tuple = ('сигар',)
+        EXCEPTED_ARTICLES: tuple = ('сигар', 'комплект', 'набор', 'ассорт', 'в ассортименте')
         COMPANY_IDN_ERROR: str = "Невозможно оформить заказ по указанному ИНН {company_idn}"
 
     class Shoes:
