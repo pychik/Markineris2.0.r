@@ -43,8 +43,8 @@ def check_article_value(func: Callable) -> Callable:
 def handle_articles_exception(exception):
     logger.error(f"Пользователь {current_user.id} попытался загрузить запрещённый артикул: {exception}")
 
-    current_user.status = False
-    db.session.commit()
+    # current_user.status = False
+    # db.session.commit()
 
     logout_user()
     flash(message=f"Вы пытались сделать недопустимое действие, введя в заказе '{exception}' не из указанной категории. Обратитесь к модератору", category="error")

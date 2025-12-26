@@ -66,7 +66,14 @@
                 </select>
                 <button class="btn btn-dark ms-2" onclick="DTTemplate()">Скачать</button>
             </div>
-
+            <small class="text-muted mt-2 d-block text-center">
+                Не допускаются артикулы:<br>
+                {% for word in excepted_articles %}
+                    <span class="badge bg-warning-subtle text-secondary border border-warning me-1">
+                        {{ word }}
+                    </span>
+                {% endfor %}
+            </small>
     </div>
 
     <form method="post" id="uploadForm"
