@@ -266,7 +266,7 @@ class Settings(BaseSettings):
         DAYS_SEARCH_CONTENT: int = 60
         DAYS_UPDATE_CONTENT: int = 30
         DAYS_SENT_CONTENT: int = 1
-        AUTO_HOURS_CP: int = 72  # quantity of hours before changing order stage from MANAGER PROBLEM TO CANCEL
+        AUTO_HOURS_CP: int = 96  # quantity of hours before changing order stage from MANAGER PROBLEM TO CANCEL
         AUTO_MINUTES_CP: int = 10  # quantity of minutes before changing order stage from MANAGER PROBLEM TO CANCEL
         MANAGER_ORDERS_LIMIT: int = 10
         PS_DICT = CRM_PS_DICT
