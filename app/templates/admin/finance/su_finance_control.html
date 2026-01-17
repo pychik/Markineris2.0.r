@@ -41,6 +41,25 @@
         </div>
         <div class="col-md-7">
             <h5>Статистика за {{ stat_date.strftime('%d.%m.%Y') }}</h5>
+            <div class="my-3 d-flex flex-wrap gap-2 align-items-center">
+
+              <span class="badge badge-soft text-success bg-success bg-opacity-10">
+                  Оплаты (успешно): <b>{{ refill_success_sum }} р.</b>
+                </span>
+
+                <span class="badge badge-soft text-warning bg-warning bg-opacity-10">
+                  В ожидании: <b>{{ refill_pending_sum }} р.</b>
+                </span>
+
+                <span class="badge badge-soft text-danger bg-danger bg-opacity-10">
+                  Отменено: <b>{{ refill_cancelled_sum }} р.</b>
+                </span>
+
+                <span class="badge badge-soft text-primary bg-primary bg-opacity-10">
+                  Промокоды: <b>{{ promo_success_sum }} р.</b>
+                </span>
+
+            </div>
             <div class="row">
               <div class="col">
                 <label style="font-size: 28px">Заказов</label><br>

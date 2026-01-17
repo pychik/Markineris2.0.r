@@ -57,6 +57,56 @@ class NotFoundBonusCode(Exception):
 
 
 def h_su_control_finance():
+    def _get_stats_refill():
+        # НОВОЕ: суммы за сегодняшний день по нужным статусам/типам
+        today_tx_stmt = text("""
+                SELECT
+                    COALESCE(SUM(CASE
+                        WHEN ut.transaction_type = :refill_type
+                         AND ut.type = TRUE
+                         AND ut.status = :st_success
+                         AND ut.created_at >= DATE_TRUNC('day', NOW()::timestamp)
+                        THEN ut.amount ELSE 0 END
+                    ), 0) AS refill_success_sum,
+
+                    COALESCE(SUM(CASE
+                        WHEN ut.transaction_type = :refill_type
+                         AND ut.type = TRUE
+                         AND ut.status = :st_pending
+                         AND ut.created_at >= DATE_TRUNC('day', NOW()::timestamp)
+                        THEN ut.amount ELSE 0 END
+                    ), 0) AS refill_pending_sum,
+
+                    COALESCE(SUM(CASE
+                        WHEN ut.transaction_type = :refill_type
+                         AND ut.type = TRUE
+                         AND ut.status = :st_cancelled
+                         AND ut.created_at >= DATE_TRUNC('day', NOW()::timestamp)
+                        THEN ut.amount ELSE 0 END
+                    ), 0) AS refill_cancelled_sum,
+
+                    COALESCE(SUM(CASE
+                        WHEN ut.transaction_type = :promo_type
+                         AND ut.status = :st_success
+                         AND ut.created_at >= DATE_TRUNC('day', NOW()::timestamp)
+                        THEN ut.amount ELSE 0 END
+                    ), 0) AS promo_success_sum
+                FROM public.user_transactions ut
+            """)
+
+        today_tx = db.session.execute(
+            today_tx_stmt,
+            {
+                "refill_type": TransactionTypes.refill_balance.value,
+                "promo_type": TransactionTypes.promo.value,
+                "st_success": TransactionStatuses.success.value,
+                "st_pending": TransactionStatuses.pending.value,
+                "st_cancelled": TransactionStatuses.cancelled.value,
+            }
+        ).first()
+
+        return today_tx
+
     stat_date = datetime.today() - timedelta(days=1)
     stat_paid_stmt = text("""WITH mark_count as (SELECT os.transaction_id, count(os.id) as total_orders, sum(os.marks_count) as total_marks from public.orders_stats os GROUP BY os.transaction_id)
                             SELECT 
@@ -88,6 +138,12 @@ def h_su_control_finance():
                     """)
     stat_paid = db.session.execute(stat_paid_stmt).first()
     stat_proc = db.session.execute(stat_proc_stmt).first()
+
+    today_tx = _get_stats_refill()
+    refill_success_sum = today_tx.refill_success_sum
+    refill_pending_sum = today_tx.refill_pending_sum
+    refill_cancelled_sum = today_tx.refill_cancelled_sum
+    promo_success_sum = today_tx.promo_success_sum
 
     promos = Promo.query.with_entities(Promo.id, Promo.code, Promo.value, Promo.created_at, Promo.updated_at).filter(
         or_(Promo.is_archived == False, Promo.is_archived == None)).order_by(desc(Promo.created_at)).all()
