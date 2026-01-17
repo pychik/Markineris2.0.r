@@ -48,9 +48,13 @@
                           {% if u.created_at %}
                             <div class="font-10 text-secondary" title="Дата и время регистрации" style="font-size:12px">{{ u.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
                           {% endif %}
-                          <div style="font-size: 8px" title="Количество заказов, количество этикеток и дата крайнего заказа">
+                          <div style="font-size: 8px" title="Количество заказов, количество этикеток, количество поз, пополнено, р., списано р., средний чек, р. и дата крайнего заказа">
                               <span style="background-color: #dbf8b6;">{{ u.orders_count if u.orders_count else '_'}}</span> |
                               <span title="крайний заказ зарегистрирован {{ u.os_created_at.strftime('%d.%m.%Y %H:%M:%S ') if u.os_created_at else '_'}}" style="background-color: #fcf0b5;">{{ u.total_marks_count if u.total_marks_count else '_' }}</span> |
+                              <span>{{ u.total_rows_count if u.total_rows_count else '_'}}</span> |
+                              <span>{{ u.total_refill if u.total_refill else '_'}}</span> |
+                              <span>{{ u.total_write_off if u.total_write_off else '_'}}</span> |
+                              <span>{{ u.avg_check if u.avg_check else '_'}}</span> |
                               <span>{{ u.os_created_at.strftime('%d.%m.%Y %H:%M:%S ') if u.os_created_at else '_'}}</span>
                           </div>
                       </td>

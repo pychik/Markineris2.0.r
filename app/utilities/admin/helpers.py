@@ -10,7 +10,7 @@ from sqlalchemy.engine.row import Row
 from typing import Optional
 
 from config import settings
-from models import db, User
+from models import db, User, TransactionStatuses, TransactionTypes
 from utilities.admin.excel_report import ExcelReport
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.support import helper_paginate_data
@@ -316,58 +316,141 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
     if u_id:
         user_filter = f'and u.admin_parent_id = :u_id'
 
-    date_condition = f"HAVING max(os.saved_at) <= CURRENT_DATE - INTERVAL '{settings.Users.FILTER_MAX_QUANTITY} days' OR COUNT(os.id) = 0"
+    # интервал для "не заказывали" (по last order)
+    inactivity_cond = f"(oa.last_saved_at <= CURRENT_DATE - INTERVAL '{settings.Users.FILTER_MAX_QUANTITY} days' OR oa.orders_count IS NULL)"
+    # интервал для сумм пополнений (и при желании можно использовать для других агрегатов)
+    tx_date_cond = f"(ut.created_at >= CURRENT_DATE - INTERVAL '{settings.Users.FILTER_MAX_QUANTITY} days')"
+
     match date_type:
         case settings.Users.FILTER_DATE_HOURS:
-            date_condition = f"HAVING max(os.saved_at) <= CURRENT_TIMESTAMP - INTERVAL '{date_quantity} hours' OR COUNT(os.id) = 0"
+            inactivity_cond = f"(oa.last_saved_at <= CURRENT_TIMESTAMP - INTERVAL '{date_quantity} hours' OR oa.orders_count IS NULL)"
+            tx_date_cond = f"(ut.created_at >= CURRENT_TIMESTAMP - INTERVAL '{date_quantity} hours')"
         case settings.Users.FILTER_DATE_DAYS:
-            date_condition = f"HAVING max(os.saved_at) <= CURRENT_DATE - INTERVAL '{date_quantity} days' OR COUNT(os.id) = 0"
+            inactivity_cond = f"(oa.last_saved_at <= CURRENT_DATE - INTERVAL '{date_quantity} days' OR oa.orders_count IS NULL)"
+            tx_date_cond = f"(ut.created_at >= CURRENT_DATE - INTERVAL '{date_quantity} days')"
         case settings.Users.FILTER_DATE_MONTH:
-            date_condition = f"HAVING max(os.saved_at) <= CURRENT_DATE - INTERVAL '{date_quantity} month' OR COUNT(os.id) = 0"
-    query = text(f"""SELECT
-                           u.id as id,
-                           u.login_name as login_name,
-                           u.phone as phone,
-                           u.balance as balance,
-                           u.email as email,
-                           u.role as role,
-                           u.status as status,
-                           CASE WHEN MAX(a.id) IS NOT NULL THEN MAX(a.id) ELSE u.id END as admin_id,
-                           CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name END as admin_name,
-                           MAX(pr.price_code) as price_code,
-                           MAX(pr.price_1) as price_1,
-                           MAX(pr.price_2) as price_2,
-                           MAX(pr.price_3) as price_3,
-                           MAX(pr.price_4) as price_4,
-                           MAX(pr.price_5) as price_5,
-                           MAX(pr.price_6) as price_6,
-                           MAX(pr.price_7) as price_7,
-                           MAX(pr.price_8) as price_8,
-                           MAX(pr.price_9) as price_9,
-                           MAX(pr.price_10) as price_10,
-                           MAX(pr.price_11) as price_11,
-                           bool_and(pr.price_at2) as price_at2,
-                           u.client_code as client_code,
-                           u.created_at as created_at,
-                           MAX(pc.code) as partners_code,
-                           COUNT(os.id) as orders_count,
-                           sum(os.marks_count) as total_marks_count,
-                           MAX(os.created_at) as os_created_at,
-                           COALESCE(max(rs.comment), '') as comment,
-                           MAX(rs.call_result) as call_result,
-                           COALESCE(to_char(MAX(rs.updated_at),'dd-mm-yyyy hh24:mi'), '-') as last_call_update
-                    FROM public.users u
-                    LEFT JOIN public.users a ON u.admin_parent_id = a.id
-                    LEFT JOIN public.orders_stats as os on os.user_id=u.id
-                    LEFT JOIN public.prices pr on pr.id=u.price_id
-                    LEFT JOIN public.users_partners as up on up.user_id=u.id
-                    LEFT JOIN public.partner_codes as pc on pc.id=up.partner_code_id
-                    LEFT JOIN public.reanimate_status as rs on rs.user_id = u.id
-                    WHERE u.role=:role
-                    {user_filter}
-                    GROUP BY u.id, u.login_name
-                    {date_condition}
-                    ORDER BY """ + str(order_clause) + ";").bindparams(role=settings.ORD_USER)
+            inactivity_cond = f"(oa.last_saved_at <= CURRENT_DATE - INTERVAL '{date_quantity} month' OR oa.orders_count IS NULL)"
+            tx_date_cond = f"(ut.created_at >= CURRENT_DATE - INTERVAL '{date_quantity} month')"
+
+    query = text(f"""
+        WITH oa AS (
+            SELECT
+                os.user_id,
+                COUNT(*) AS orders_count,
+
+                COALESCE(SUM(os.marks_count), 0) AS total_marks_count,
+                COALESCE(SUM(os.rows_count), 0)  AS total_rows_count,
+
+                -- Итого списано (целое, округлённое)
+                COALESCE(
+                    ROUND(SUM(os.op_cost * os.marks_count)),
+                    0
+                )::BIGINT AS total_write_off,
+
+                -- Средний чек (целое, округлённое)
+                CASE
+                    WHEN COUNT(*) > 0 THEN
+                        ROUND(SUM(os.op_cost * os.marks_count) / COUNT(*))
+                    ELSE 0
+                END::BIGINT AS avg_check,
+
+                MAX(os.saved_at)   AS last_saved_at,
+                MAX(os.created_at) AS os_created_at
+            FROM public.orders_stats os
+            GROUP BY os.user_id
+        ),
+
+        ta AS (
+            SELECT
+                ut.user_id,
+                COALESCE(SUM(ut.amount), 0) AS total_refill
+            FROM public.user_transactions ut
+            WHERE
+                ut.status = {int(TransactionStatuses.success.value)}
+                AND ut.type = TRUE
+                AND ut.transaction_type = '{TransactionTypes.refill_balance.value}'
+                AND {tx_date_cond}
+            GROUP BY ut.user_id
+        ),
+        pa AS (
+            SELECT
+                up.user_id,
+                MAX(pc.code) AS partners_code
+            FROM public.users_partners up
+            LEFT JOIN public.partner_codes pc ON pc.id = up.partner_code_id
+            GROUP BY up.user_id
+        ),
+        ra AS (
+            SELECT
+                rs.user_id,
+                COALESCE(MAX(rs.comment), '') AS comment,
+                MAX(rs.call_result) AS call_result,
+                COALESCE(to_char(MAX(rs.updated_at),'dd-mm-yyyy hh24:mi'), '-') as last_call_update
+            FROM public.reanimate_status rs
+            GROUP BY rs.user_id
+        )
+        SELECT
+            u.id as id,
+            u.login_name as login_name,
+            u.phone as phone,
+            u.balance as balance,
+            u.email as email,
+            u.role as role,
+            u.status as status,
+
+            CASE WHEN a.id IS NOT NULL THEN a.id ELSE u.id END as admin_id,
+            CASE WHEN a.login_name IS NOT NULL THEN a.login_name ELSE u.login_name END as admin_name,
+
+            pr.price_code as price_code,
+            pr.price_1 as price_1,
+            pr.price_2 as price_2,
+            pr.price_3 as price_3,
+            pr.price_4 as price_4,
+            pr.price_5 as price_5,
+            pr.price_6 as price_6,
+            pr.price_7 as price_7,
+            pr.price_8 as price_8,
+            pr.price_9 as price_9,
+            pr.price_10 as price_10,
+            pr.price_11 as price_11,
+            pr.price_at2 as price_at2,
+
+            u.client_code as client_code,
+            u.created_at as created_at,
+
+            pa.partners_code as partners_code,
+
+            -- новое/исправленное:
+            COALESCE(oa.orders_count, 0)        as orders_count,
+            COALESCE(oa.total_marks_count, 0)  as total_marks_count,
+            COALESCE(oa.total_rows_count, 0)   as total_rows_count,
+            COALESCE(ta.total_refill, 0)   as total_refill,
+            COALESCE(oa.total_write_off, 0) as total_write_off,
+            COALESCE(oa.avg_check, 0)          as avg_check,
+
+            oa.os_created_at as os_created_at,
+
+            -- reanimate:
+            COALESCE(ra.comment, '') as comment,
+            ra.call_result as call_result,
+            COALESCE(ra.last_call_update, '-') as last_call_update
+
+        FROM public.users u
+        LEFT JOIN public.users a ON u.admin_parent_id = a.id
+        LEFT JOIN public.prices pr ON pr.id = u.price_id
+        LEFT JOIN oa ON oa.user_id = u.id
+        LEFT JOIN ta ON ta.user_id = u.id
+        LEFT JOIN pa ON pa.user_id = u.id
+        LEFT JOIN ra ON ra.user_id = u.id
+
+        WHERE
+            u.role = '{settings.ORD_USER}'
+            {user_filter}
+            AND {inactivity_cond}
+
+        ORDER BY {str(order_clause)}
+        ;
+    """)
 
     stmt = query.bindparams(u_id=u_id) if u_id else query
     return db.session.execute(stmt).fetchall()

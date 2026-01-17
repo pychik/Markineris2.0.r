@@ -1472,8 +1472,8 @@ def h_bck_su_control_reanimate_excel():
     # set manually type and status for render page case
     date_quantity, date_type, link_filters, sort_type = helper_get_filter_users(excel_report=True)
 
-    link = f'javascript:bck_get_users_reanimate(\'' + url_for(
-        'admin_control.bck_control_reanimate') + f'?bck=1&{link_filters}' + 'page={0}\');'
+    # link = f'javascript:bck_get_users_reanimate(\'' + url_for(
+    #     'admin_control.bck_control_reanimate') + f'?bck=1&{link_filters}' + 'page={0}\');'
 
     users = helper_get_users_reanimate(date_quantity=date_quantity, date_type=date_type, sort_type=sort_type)
 
