@@ -1477,7 +1477,9 @@ def h_bck_su_control_reanimate_excel():
 
     users = helper_get_users_reanimate(date_quantity=date_quantity, date_type=date_type, sort_type=sort_type)
 
-    users_processed = list(map(lambda x: (x.created_at, x.os_created_at, x.login_name, x.phone, x.email, x.partners_code), users))
+    users_processed = list(map(lambda x: (x.created_at, x.os_created_at, x.login_name, x.phone, x.email,
+                                          x.partners_code, x.orders_count, x.total_marks_count, x.total_rows_count,
+                                          x.total_refill, x.total_write_off, x.avg_check), users))
     excel_filters = {
         'Временная единица': date_type,
         'Количество временных единиц': date_quantity,
@@ -1486,7 +1488,9 @@ def h_bck_su_control_reanimate_excel():
     excel = ExcelReport(
         data=users_processed,
         filters=excel_filters,
-        columns_name=['дата регистрации', 'Дата крайнего заказа', 'Логин', 'Телефон', 'Email', 'Код партнера', ],
+        columns_name=['дата регистрации', 'Дата крайнего заказа', 'Логин', 'Телефон', 'Email', 'Код партнера',
+                      'Кол-во заказов', 'Сумма марок', 'Сумма строк', 'Итого пополнено, р.', 'Итого списано р.',
+                      'Средний чек, р.'],
         sheet_name='Отчет реанимации пользователей',
         output_file_name=f'реанимация клиентов({datetime.today().strftime("%d.%m.%y %H-%M")})',
     )
