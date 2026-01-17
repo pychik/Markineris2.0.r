@@ -316,21 +316,22 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
     if u_id:
         user_filter = f'and u.admin_parent_id = :u_id'
 
-    # интервал для "не заказывали" (по last order)
-    inactivity_cond = f"(oa.last_saved_at <= CURRENT_DATE - INTERVAL '{settings.Users.FILTER_MAX_QUANTITY} days' OR oa.orders_count IS NULL)"
-    # интервал для сумм пополнений (и при желании можно использовать для других агрегатов)
-    tx_date_cond = f"(ut.created_at >= CURRENT_DATE - INTERVAL '{settings.Users.FILTER_MAX_QUANTITY} days')"
-
+    # cutoff: дата/время "отсечки" (всё считаем ДО неё)
+    cutoff_expr = f"CURRENT_DATE - INTERVAL '{settings.Users.FILTER_MAX_QUANTITY} days'"
     match date_type:
         case settings.Users.FILTER_DATE_HOURS:
-            inactivity_cond = f"(oa.last_saved_at <= CURRENT_TIMESTAMP - INTERVAL '{date_quantity} hours' OR oa.orders_count IS NULL)"
-            tx_date_cond = f"(ut.created_at >= CURRENT_TIMESTAMP - INTERVAL '{date_quantity} hours')"
+            cutoff_expr = f"CURRENT_TIMESTAMP - INTERVAL '{date_quantity} hours'"
         case settings.Users.FILTER_DATE_DAYS:
-            inactivity_cond = f"(oa.last_saved_at <= CURRENT_DATE - INTERVAL '{date_quantity} days' OR oa.orders_count IS NULL)"
-            tx_date_cond = f"(ut.created_at >= CURRENT_DATE - INTERVAL '{date_quantity} days')"
+            cutoff_expr = f"CURRENT_DATE - INTERVAL '{date_quantity} days'"
         case settings.Users.FILTER_DATE_MONTH:
-            inactivity_cond = f"(oa.last_saved_at <= CURRENT_DATE - INTERVAL '{date_quantity} month' OR oa.orders_count IS NULL)"
-            tx_date_cond = f"(ut.created_at >= CURRENT_DATE - INTERVAL '{date_quantity} month')"
+            cutoff_expr = f"CURRENT_DATE - INTERVAL '{date_quantity} month'"
+
+    # условие "кандидат на реанимацию": последний заказ ДО cutoff или заказов нет
+    inactivity_cond = f"(oa.last_saved_at <= {cutoff_expr} OR oa.orders_count IS NULL)"
+
+    # все агрегаты считаем ДО cutoff
+    os_date_cond = f"os.saved_at <= {cutoff_expr}"
+    tx_date_cond = f"ut.created_at <= {cutoff_expr}"
 
     query = text(f"""
         WITH oa AS (
@@ -341,37 +342,35 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
                 COALESCE(SUM(os.marks_count), 0) AS total_marks_count,
                 COALESCE(SUM(os.rows_count), 0)  AS total_rows_count,
 
-                -- Итого списано (целое, округлённое)
-                COALESCE(
-                    ROUND(SUM(os.op_cost * os.marks_count)),
-                    0
-                )::BIGINT AS total_write_off,
+                -- Итого списано (целое, округлённое) ДО cutoff
+                COALESCE(ROUND(SUM(os.op_cost * os.marks_count)), 0)::BIGINT AS total_write_off,
 
-                -- Средний чек (целое, округлённое)
+                -- Средний чек (целое, округлённое) ДО cutoff
                 CASE
-                    WHEN COUNT(*) > 0 THEN
-                        ROUND(SUM(os.op_cost * os.marks_count) / COUNT(*))
+                    WHEN COUNT(*) > 0 THEN ROUND(SUM(os.op_cost * os.marks_count) / COUNT(*))
                     ELSE 0
                 END::BIGINT AS avg_check,
 
                 MAX(os.saved_at)   AS last_saved_at,
                 MAX(os.created_at) AS os_created_at
             FROM public.orders_stats os
+            WHERE {os_date_cond}
             GROUP BY os.user_id
         ),
 
         ta AS (
             SELECT
                 ut.user_id,
-                COALESCE(SUM(ut.amount), 0) AS total_refill
+                COALESCE(SUM(ut.amount), 0)::BIGINT AS total_refill
             FROM public.user_transactions ut
             WHERE
                 ut.status = {int(TransactionStatuses.success.value)}
-                AND ut.type = TRUE
+                AND ut.type = true
                 AND ut.transaction_type = '{TransactionTypes.refill_balance.value}'
                 AND {tx_date_cond}
             GROUP BY ut.user_id
         ),
+
         pa AS (
             SELECT
                 up.user_id,
@@ -380,6 +379,7 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
             LEFT JOIN public.partner_codes pc ON pc.id = up.partner_code_id
             GROUP BY up.user_id
         ),
+
         ra AS (
             SELECT
                 rs.user_id,
@@ -389,6 +389,7 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
             FROM public.reanimate_status rs
             GROUP BY rs.user_id
         )
+
         SELECT
             u.id as id,
             u.login_name as login_name,
@@ -420,17 +421,16 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
 
             pa.partners_code as partners_code,
 
-            -- новое/исправленное:
-            COALESCE(oa.orders_count, 0)        as orders_count,
-            COALESCE(oa.total_marks_count, 0)  as total_marks_count,
-            COALESCE(oa.total_rows_count, 0)   as total_rows_count,
-            COALESCE(ta.total_refill, 0)   as total_refill,
-            COALESCE(oa.total_write_off, 0) as total_write_off,
-            COALESCE(oa.avg_check, 0)          as avg_check,
+            -- метрики ДО cutoff:
+            COALESCE(oa.orders_count, 0)       as orders_count,
+            COALESCE(oa.total_marks_count, 0) as total_marks_count,
+            COALESCE(oa.total_rows_count, 0)  as total_rows_count,
+            COALESCE(ta.total_refill, 0)      as total_refill,
+            COALESCE(oa.total_write_off, 0)   as total_write_off,
+            COALESCE(oa.avg_check, 0)         as avg_check,
 
             oa.os_created_at as os_created_at,
 
-            -- reanimate:
             COALESCE(ra.comment, '') as comment,
             ra.call_result as call_result,
             COALESCE(ra.last_call_update, '-') as last_call_update
@@ -438,6 +438,7 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
         FROM public.users u
         LEFT JOIN public.users a ON u.admin_parent_id = a.id
         LEFT JOIN public.prices pr ON pr.id = u.price_id
+
         LEFT JOIN oa ON oa.user_id = u.id
         LEFT JOIN ta ON ta.user_id = u.id
         LEFT JOIN pa ON pa.user_id = u.id
