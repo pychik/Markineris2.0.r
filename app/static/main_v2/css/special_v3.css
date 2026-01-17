@@ -391,3 +391,17 @@
     cursor: pointer;
     padding: 0 0.65rem;
 }
+
+.badge-soft {
+  border: 1px solid currentColor;   /* рамка = акцентный цвет */
+  font-weight: 500;
+  padding: .45rem .6rem;
+  border-radius: 9px;
+  letter-spacing: .2px;
+
+  color: #3a3f45;                   /* спокойный тёмный текст */
+}
+
+.badge-soft b {
+  color: #5f6367;                   /* чуть темнее для суммы */
+}
