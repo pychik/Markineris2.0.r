@@ -68,6 +68,8 @@
                     <input type="hidden" class="form-control" id="captcha_hash" name="captcha-hash" value="{{ captcha_hash | safe }}">
             </div>
 
+            {% include 'auth/agreement_processing.html' %}
+
             <button type="submit" id="submit-button" class="btn btn-lg btn-accent btn-block mt-3">
                 Зарегистрироваться
             </button>

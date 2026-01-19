@@ -123,6 +123,9 @@ def h_sign_up_post() -> Union[Response, str]:
     if not SIMPLE_CAPTCHA.verify(c_text, c_hash):
         flash(message=settings.Messages.USER_SIGNUP_CAPTCHA_ERROR, category='error')
         return redirect(sp_link)
+    if not request.form.get("agree_pd"):
+        flash("Для регистрации необходимо принять Политику обработки персональных данных.", category='error')
+        return redirect(sp_link)
 
     if email.startswith('manager_'):
         flash(message=settings.Messages.EMAIL_MANAGER_ERROR, category='error')

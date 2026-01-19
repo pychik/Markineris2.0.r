@@ -41,6 +41,14 @@ def enter():
 #         return redirect(url_for('main.enter'))
 #     return render_template('main/video_instructions.html', **locals())
 
+@main.route('/privacy_policy', methods=['GET',])
+def privacy_policy():
+    user = current_user
+    # ruznak hardcode condition
+    # if (user.role == 'ordinary_user' and current_user.admin_parent_id == 2503) or current_user.id == 2503:
+    #     return redirect(url_for('main.enter'))
+    return render_template('index/privacy-policy.html', **locals())
+
 
 @main.route('/check_csrf')
 def check_csrf():

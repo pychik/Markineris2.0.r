@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Изготовление уникальных кодов Data Matrix для всех товаров</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Изготовление уникальных кодов Data Matrix для всех товаров" />
+
+    <!-- fevicon -->
+    <link rel="shortcut icon" href="{{url_for('static', filename='index_v3/images/favicon.ico')}}">
+
+    <!-- Bootstrap css -->
+    <link rel="stylesheet" href="{{url_for('static', filename='index_v3/css/bootstrap.min.css')}}" type="text/css" />
+
+    <!-- animation -->
+    <link rel="stylesheet" href="{{url_for('static', filename='index_v3/css/aos.css')}}" />
+
+    <!-- Icon -->
+    <link rel="stylesheet" href="{{url_for('static', filename='index_v3/css/materialdesignicons.min.css')}}" type="text/css" />
+
+    <!-- css -->
+    <link rel="stylesheet" href="{{url_for('static', filename='index_v3/css/style.css')}}?v=12" type="text/css" />
+    <link rel="stylesheet" href="{{url_for('static', filename='index_v3/css/style20240605.css')}}?v=1" type="text/css" />
+    <link rel="stylesheet" href="{{url_for('static',filename='index_v3/css/reviews.css')}}" type="text/css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <link rel="stylesheet" href="{{url_for('static',filename='main_v2/css/update_v2.css')}}  ">
+<!--    <script defer type="application/javascript" src="//panel.quizgo.ru/common?q=84738"></script>-->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.css" />
+
+    <link rel="stylesheet" href="{{url_for('static',filename='index_v3/css/fancybox.css')}}  ">
+
+
+
+</head>
+
+<body data-bs-spy="scroll" data-bs-target="#navbar" data-bs-offset="71">
+
+
+
+    {% block index %}
+    {% endblock %}
+
+
+    <!--end back-to-top-->
+
+    <!--Bootstrap Js-->
+    <script src="{{url_for('static', filename='index_v3/js/bootstrap.bundle.min.js')}}"></script>
+
+    <!-- animation -->
+    <script src="{{url_for('static', filename='index_v3/js/aos.js')}}"></script>
+
+
+    <!-- Team particles-->
+    <script src="{{url_for('static', filename='index_v3/js/particles.min.js')}}"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="{{url_for('static', filename='index_v3/js/fancybox/fancybox.umd.js')}}"></script>
+    <script src="{{url_for('static', filename='index_v3/js/swiper/swiper-bundle.min.js')}}"></script>
+    <!-- upload static routes for sound svg   -->
+    <script>
+         const SOUND_OFF = `{{ url_for('static', filename='index_v3/images/sound-off.svg') }}`;
+         const SOUND_ON = `{{ url_for('static', filename='index_v3/images/sound-on.svg') }}`;
+         const message_icon_error = `{{url_for('static',filename='main_v2/img/icons/error.svg')}}`;
+         const message_icon_warning = `{{url_for('static',filename='main_v2/img/icons/warning.svg')}}`;
+         const message_icon_success = `{{url_for('static',filename='main_v2/img/icons/success.svg')}}`;
+    </script>
+    <!-- App Js -->
+    <script src="{{url_for('static', filename='index_v3/js/app.js')}}?v=6"></script>
+    <script src="{{url_for('static',filename='main_v2/js/new_messages.js')}}"></script>
+
+    <script src="//code.jivo.ru/widget/bdahTCJAyN" async></script>
+
+    <script>
+        $(document).ready(function() {
+         // сообщение будет закрыто через 10 секунд после загрузки страницы
+             show_user_messages();
+             window.setTimeout(function() {
+             clear_user_messages();
+         }, 10000);
+        });
+
+    </script>
+
+</body>
+</html>
