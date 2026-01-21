@@ -6,7 +6,7 @@ from utilities.categories_data.clothes_common.tnved_processor import get_tnved_g
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVED_DICT, \
     SWIMMING_ACCESSORIES_TYPES, SWIMMING_ACCESSORIES_NAME, SWIMMING_ACCESSORIES_TNVEDS
 from views.main.categories.clothes.schemas import SubCategoriesCreds
-from utilities.categories_data.underwear_data import (UNDERWEAR_TYPES, UNDERWEAR_TYPES_056, UNDERWEAR_TNVED_DICT,
+from utilities.categories_data.underwear_data import (UNDERWEAR_TYPES, UNDERWEAR_TNVED_DICT,
                                                       UNDERWEAR_NAME, UNDERWEAR_TNVEDS)
 
 
@@ -72,6 +72,12 @@ class ClothesSubcategoryProcessor:
         match subcategory:
             case ClothesSubcategories.underwear.value:
                 tnved_dict = UNDERWEAR_TNVED_DICT
+                if cl_type in UNDERWEAR_TYPES:
+                    # tnved_dict = settings.Clothes.CLOTHES_TNVED_DICT
+                    # print(get_tnved_gender_clothes_common(type_name=cl_type, gender=cl_gender))
+                    return get_tnved_gender_clothes_common(type_name=cl_type, gender=cl_gender, data=tnved_dict)
+                else:
+                    return
             case ClothesSubcategories.swimming_accessories.value:
                 tnved_dict = SWIMMING_ACCESSORIES_TNVED_DICT
             case ClothesSubcategories.hats.value:

@@ -940,6 +940,7 @@ function get_tnveds(url, csrf, subcategory) {
     const needsGenderCheck =
         subcategory === '' ||
         subcategory === 'common' ||
+        subcategory === 'underwear' ||
         subcategory === null ||
         subcategory === 'None'; // Jinja может отрендерить None как строку
 
@@ -1017,7 +1018,7 @@ function get_genders(url, csrf, subcategory) {
     const cl_type = (typeEl.value || '').trim();
 
     // если подкатегория не требует пола — сразу выключаем селект и выходим
-    if (!['', 'common', null, 'None'].includes(subcategory)) {
+    if (!['', 'common', 'underwear', null, 'None'].includes(subcategory)) {
         return;
     }
 
