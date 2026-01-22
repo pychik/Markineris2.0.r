@@ -1477,7 +1477,9 @@ def h_bck_su_control_reanimate_excel():
 
     users = helper_get_users_reanimate(date_quantity=date_quantity, date_type=date_type, sort_type=sort_type)
 
-    users_processed = list(map(lambda x: (x.created_at, x.os_created_at, x.login_name, x.phone, x.email,
+    users_processed = list(map(lambda x: (x.created_at.date() if x.created_at else None,
+                                          x.os_created_at.date() if x.os_created_at else None,
+                                          x.login_name, x.phone, x.email,
                                           x.partners_code, x.orders_count, x.total_marks_count, x.total_rows_count,
                                           x.total_refill, x.total_write_off, x.avg_check), users))
     excel_filters = {
