@@ -12,6 +12,7 @@ from models import User, Order, Shoe, ShoeQuantitySize, Socks, SocksQuantitySize
     Clothes, ClothesQuantitySize, db
 from utilities.categories_data.clothes_common.tnved_processor import get_tnved_codes_for_gender
 from utilities.categories_data.subcategories_data import ClothesSubcategories
+from utilities.categories_data.underwear_data import UNDERWEAR_TNVED_DICT, UNDERWEAR_TYPE_GENDERS
 from utilities.exceptions import SizeTypeException
 
 
@@ -318,7 +319,7 @@ def _check_clothes_compatibility(clothes) -> str | bool:
       - str "[Тип Пол, ТНВЭД] ..." — если есть ошибки
     """
     def _needs_gender(subcat) -> bool:
-        return subcat in ('', 'common', None, 'None')
+        return subcat in ('', ClothesSubcategories.common.value, ClothesSubcategories.underwear.value, None, 'None')
 
     def _norm_tnved(s: str) -> str:
         return (s or '').replace(' ', '').replace('-', '').strip()
@@ -332,8 +333,15 @@ def _check_clothes_compatibility(clothes) -> str | bool:
     need_gender = _needs_gender(cl_subcat)
 
     if need_gender:
-        correct_genders = settings.Clothes.CLOTHES_TYPE_GENDERS.get(cl_type.upper(), [])
-        gender_ok = bool(cl_gender) and (cl_gender in correct_genders)
+        match cl_subcat:
+            case ClothesSubcategories.underwear.value:
+                correct_genders = UNDERWEAR_TYPE_GENDERS.get(cl_type.upper(), [])
+                gender_ok = bool(cl_gender) and (cl_gender in correct_genders)
+                data = UNDERWEAR_TNVED_DICT
+            case _:
+                correct_genders = settings.Clothes.CLOTHES_TYPE_GENDERS.get(cl_type.upper(), [])
+                gender_ok = bool(cl_gender) and (cl_gender in correct_genders)
+                data = settings.Clothes.CLOTHES_TNVED_DICT
     else:
         return False
 
@@ -341,7 +349,7 @@ def _check_clothes_compatibility(clothes) -> str | bool:
     tnved_ok = True
     if cl_tnved:
         try:
-            allowed_tnveds = get_tnved_codes_for_gender(type_name=cl_type, gender=cl_gender) or ()
+            allowed_tnveds = get_tnved_codes_for_gender(type_name=cl_type, gender=cl_gender, data=data) or ()
         except Exception:
             allowed_tnveds = ()
         allowed_tnveds = {_norm_tnved(x) for x in allowed_tnveds}

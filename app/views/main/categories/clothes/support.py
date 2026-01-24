@@ -5,6 +5,7 @@ from flask_login import current_user
 from config import settings
 from settings.start import db
 from utilities.categories_data.subcategories_data import ClothesSubcategories, Category
+from utilities.categories_data.underwear_data import UNDERWEAR_TYPE_GENDERS
 from utilities.support import helper_get_order_notification, helper_category_common_index
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
 
@@ -82,7 +83,7 @@ def h_bck_clothes_tnved() -> Response:
 def h_bck_clothes_genders():
     def _needs_gender(subcategory: str) -> bool:
         # учитываем '', 'common', None и строковый 'None' из шаблона
-        return subcategory in ('', 'common', None, 'None')
+        return subcategory in ('', ClothesSubcategories.common.value, ClothesSubcategories.underwear.value, None, 'None')
     status = settings.ERROR
     message = 'Не удалось загрузить список полов.'
     cl_type = (request.form.get('cl_type', '') or '').replace('--', '').strip()
@@ -100,7 +101,11 @@ def h_bck_clothes_genders():
     # если для подкатегории пол требуется — отдаём список, иначе — пустой список
     if _needs_gender(subcategory):
 
-        genders = settings.Clothes.CLOTHES_TYPE_GENDERS.get(cl_type, [])
+        match subcategory:
+            case ClothesSubcategories.underwear.value:
+                genders = UNDERWEAR_TYPE_GENDERS.get(cl_type, [])
+            case _:
+                genders = settings.Clothes.CLOTHES_TYPE_GENDERS.get(cl_type, [])
 
         if not genders:
             return jsonify(dict(status=settings.ERROR, message=f'Для типа {cl_type} не найден список полов.'))
