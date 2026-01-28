@@ -40,43 +40,86 @@
             </div>
         </div>
         <div class="col-md-7">
-            <h5>Статистика за {{ stat_date.strftime('%d.%m.%Y') }}</h5>
-            <div class="my-3 d-flex flex-wrap gap-2 align-items-center">
+            <div class="card bg-transparent mb-2">
+              <div class="card-body">
 
-              <span class="badge badge-soft text-success bg-success bg-opacity-10">
-                  Оплаты (успешно): <b>{{ refill_success_sum }} р.</b>
-                </span>
+                <h5 class="mb-2">
+                  Статистика транзакций за сегодня {{ today_date.strftime('%d.%m.%Y') }}
+                </h5>
 
-                <span class="badge badge-soft text-warning bg-warning bg-opacity-10">
-                  В ожидании: <b>{{ refill_pending_sum }} р.</b>
-                </span>
+                <div class="mt-3 d-flex flex-wrap gap-2 align-items-center">
 
-                <span class="badge badge-soft text-danger bg-danger bg-opacity-10">
-                  Отменено: <b>{{ refill_cancelled_sum }} р.</b>
-                </span>
+                  <span class="badge badge-soft bg-success bg-opacity-10 text-success">
+                    Оплаты (успешно): <b>{{ refill_success_sum }} р.</b>
+                  </span>
 
-                <span class="badge badge-soft text-primary bg-primary bg-opacity-10">
-                  Промокоды: <b>{{ promo_success_sum }} р.</b>
-                </span>
+                  <span class="badge badge-soft bg-warning bg-opacity-10 text-warning">
+                    В ожидании: <b>{{ refill_pending_sum }} р.</b>
+                  </span>
 
+                  <span class="badge badge-soft bg-danger bg-opacity-10 text-danger">
+                    Отменено: <b>{{ refill_cancelled_sum }} р.</b>
+                  </span>
+
+                  <span class="badge badge-soft bg-primary bg-opacity-10 text-primary">
+                    Промокоды: <b>{{ promo_success_sum }} р.</b>
+                  </span>
+
+                </div>
+
+              </div>
             </div>
-            <div class="row">
-              <div class="col">
-                <label style="font-size: 28px">Заказов</label><br>
-                Оплачено <label class= "text-warning">{{ stat_paid.total_orders }}</label>
-                Выполнено <label class= "text-warning">{{ stat_proc.total_orders_proc }}</label>
-              </div>
-              <div class="col">
-                <label style="font-size: 28px">Марок</label><br>
-                <label class= "text-warning">{{ stat_paid.marks_cnt }}</label>
-              </div>
-              <div class="col">
-                <label style="font-size: 28px">Списано</label><br>
-                <label class= "text-warning">{{ stat_paid.amount }} р.</label>
-              </div>
-              <div class="col">
-                <label style="font-size: 28px">Ср/цена</label><br>
-                <label class= "text-warning">{{ stat_paid.avg_price }} р.</label>
+
+
+            <!-- Итоги за выбранную дату -->
+            <div class="card bg-transparent">
+              <div class="card-body">
+
+                <h5 class="mb-2">
+                  Сводка за {{ stat_date.strftime('%d.%m.%Y') }}
+                </h5>
+
+                <div class="row">
+
+                  <div class="col">
+                    <div class="fw-semibold text-muted text-uppercase" style="font-size: 15px;">
+                      Заказов
+                    </div>
+                    <div class="mt-1" style="font-size: 13px;">
+                      Оплачено <span class="fw-semibold text-warning">{{ stat_paid.total_orders }}</span><br>
+                      Выполнено <span class="fw-semibold text-warning">{{ stat_paid.total_orders }}</span>
+                    </div>
+                  </div>
+
+                  <div class="col">
+                    <div class="fw-semibold text-muted text-uppercase" style="font-size: 15px;">
+                      Марок
+                    </div>
+                    <div class="fw-semibold text-warning">
+                      {{ stat_paid.marks_cnt }}
+                    </div>
+                  </div>
+
+                  <div class="col">
+                    <div class="fw-semibold text-muted text-uppercase" style="font-size: 15px;">
+                      Списано
+                    </div>
+                    <div class="fw-semibold text-warning">
+                      {{ stat_paid.amount }} р.
+                    </div>
+                  </div>
+
+                  <div class="col">
+                    <div class="fw-semibold text-muted text-uppercase" style="font-size: 15px;">
+                      Ср. цена
+                    </div>
+                    <div class="fw-semibold text-warning">
+                      {{ stat_paid.avg_price }} р.
+                    </div>
+                  </div>
+
+                </div>
+
               </div>
             </div>
         </div>
