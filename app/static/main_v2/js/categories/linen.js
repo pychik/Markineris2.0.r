@@ -593,3 +593,56 @@ function deleteCell(){
     cur.parent().remove();
     setLinen();
 }
+
+(function initCottonTnvedLock(){
+    const contentEl = document.getElementById('content');
+    const tnvedEl   = document.getElementById('tnved_code');
+    const msgEl     = document.getElementById('tnved_co_supressor');
+    const flagEl    = document.getElementById('check_tnved_flag');
+
+    if (!contentEl || !tnvedEl || !msgEl) return;
+
+    const WORD = 'ХЛОПОК';
+    const COTTON_TNVED = '6302100001';
+    const DEFAULT_TNVED = '6302999000'; // ← ИСХОДНОЕ
+
+    function hasCotton(){
+        return (contentEl.value || '').toUpperCase().includes(WORD);
+    }
+
+    function applyCottonMode(){
+        tnvedEl.value = COTTON_TNVED;
+
+        tnvedEl.readOnly = true;
+        tnvedEl.style.pointerEvents = 'none';
+        tnvedEl.onchange = null;
+        tnvedEl.removeAttribute('onchange');
+
+        if (flagEl) flagEl.value = "true";
+
+        msgEl.style.color = '#f13131';
+        msgEl.textContent =
+            'Вы выбрали хлопок в составе изделия — единственный возможный ТНВЭД: 6302100001';
+    }
+
+    function applyDefaultMode(){
+        tnvedEl.readOnly = false;
+        tnvedEl.style.pointerEvents = '';
+
+        tnvedEl.value = DEFAULT_TNVED;
+
+        msgEl.style.color = '#ffffff';
+        msgEl.innerHTML = '&nbsp;';
+    }
+
+    function sync(){
+        if (hasCotton()) applyCottonMode();
+        else applyDefaultMode();
+    }
+
+    contentEl.addEventListener('input', sync);
+    contentEl.addEventListener('change', sync);
+
+    sync(); // первичная инициализация
+    window.__syncCottonTnved = sync;
+})();

@@ -145,6 +145,7 @@ async function process_check_tnved(){
 // Sets system tnved code
 function set_tnved(){
     var tnved = document.getElementById("tnved_code");
+    if (typeof window.__syncCottonTnved === 'function') window.__syncCottonTnved();
 
     if (category === 'shoes'){
         const tnved_list = [{% for s in shoe_tnved %}'{{s}}',{% endfor %}];

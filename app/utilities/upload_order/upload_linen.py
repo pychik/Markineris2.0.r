@@ -65,7 +65,29 @@ class ValidateLinenMixin:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Linen.UPLOAD_SIZE_ERROR}"
 
     @staticmethod
-    def _tnved(order_list: list, value: str, row_num: int, col: str, pos: int = 8) -> Optional[str]:
+    def _tnved(order_list: list, value: str, row_num: int, col: str, pos: int = 8,
+               content_value: str = '') -> Optional[str]:
+        # 1) Принудительный ТНВЭД при "ХЛОПОК" в составе
+        if content_value and 'ХЛОПОК' in str(content_value).upper():
+            required_tnved = '6302100001'
+
+            value = str(value).replace('.0', '').strip()
+
+            # если ТНВЭД пустой или отличается от обязательного — ошибка
+            if value != required_tnved:
+                answer = (
+                    f'В составе изделия указан ХЛОПОК. '
+                    f'Единственно допустимый ТНВЭД: {required_tnved}'
+                )
+                return (
+                    f"{val_error_start(row_num=row_num, col=col)} {answer}."
+                    f"{settings.Messages.UPLOAD_TNVED_ERROR}"
+                )
+
+            # если ТНВЭД корректный — записываем и продолжаем
+            order_list[row_num - settings.Linen.UPLOAD_STANDART_ROW][pos] = required_tnved
+            return
+
         # value is tnved
         value.replace('.0', '')
 
@@ -219,6 +241,8 @@ class UploadLinen(UploadCategory):
             row_num = copy(settings.Linen.UPLOAD_STANDART_ROW)
 
             for data_group in order_list:
+                content_value = data_group[6].strip()
+
                 trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C', pos=0,
                                                   order_list=order_list)
                 article_error = self._article(value=data_group[1].strip(), row_num=row_num, col='E', pos=1,
@@ -232,14 +256,15 @@ class UploadLinen(UploadCategory):
                                                         order_list=order_list)
                 textile_type_error = self._textyle_type(value=data_group[5].strip(), row_num=row_num, col='I', pos=5,
                                                         order_list=order_list)
-                content_type_error = self._content(value=data_group[6].strip(), row_num=row_num, col='J')
+                content_type_error = self._content(value=content_value, row_num=row_num, col='J')
 
                 sizeX_error = self._size(value=data_group[7].strip(), row_num=row_num, col='K', pos=7,
                                         order_list=order_list)
                 sizeY_error = self._size(value=data_group[8].strip(), row_num=row_num, col='L', pos=8,
                                          order_list=order_list)
                 tnved_error = self._tnved(order_list=order_list,
-                                          value=data_group[9].strip(), row_num=row_num, col='M', pos=9)
+                                          value=data_group[9].strip(), row_num=row_num, col='M', pos=9,
+                                          content_value=content_value)
                 quantity_error = self._quantity(value=data_group[10].strip(), row_num=row_num, col='N')
 
                 country_error = self._country(value=data_group[11].strip(), row_num=row_num, col='O',
@@ -269,6 +294,7 @@ class UploadLinen(UploadCategory):
             row_num = copy(settings.Linen.UPLOAD_STANDART_ROW)
 
             for data_group in order_list:
+                content_value = data_group[6].strip()
 
                 trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C', pos=0,
                                                   order_list=order_list)
@@ -283,14 +309,15 @@ class UploadLinen(UploadCategory):
                                                         order_list=order_list)
                 textile_type_error = self._textyle_type(value=data_group[5].strip(), row_num=row_num, col='I', pos=5,
                                                         order_list=order_list)
-                content_type_error = self._content(value=data_group[6].strip(), row_num=row_num, col='J')
+                content_type_error = self._content(value=content_value, row_num=row_num, col='J')
 
                 sizeX_error = self._size(value=data_group[7].strip(), row_num=row_num, col='K', pos=7,
                                          order_list=order_list)
                 sizeY_error = self._size(value=data_group[8].strip(), row_num=row_num, col='L', pos=8,
                                          order_list=order_list)
                 tnved_error = self._tnved(order_list=order_list,
-                                          value=data_group[9].strip(), row_num=row_num, col='M', pos=9)
+                                          value=data_group[9].strip(), row_num=row_num, col='M', pos=9,
+                                          content_value=content_value)
 
                 box_quantity_error = self._quantity(value=data_group[10].strip(), row_num=row_num, col='N',
                                                     packages=True)

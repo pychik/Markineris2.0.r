@@ -440,28 +440,43 @@ def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) ->
 
 def _check_linen_compatibility(linen) -> str | bool:
     """
-    Проверяет, сочетаются ли type у одной позиции.
+    Проверяет, сочетаются ли правила у одной позиции.
     Возвращает:
       - False, если позиция корректна
-      - str (например "[Тип Пол, ТНВЭД]"), если несовместима
+      - str, если несовместима
     """
+
+    # --- НОВОЕ ПРАВИЛО: ХЛОПОК -> только 6302100001 ---
+    content = (linen.content or '')
+    tnved = (linen.tnved_code or '')
+
+    content_up = str(content).upper()
+    tnved_norm = str(tnved).replace('.0', '').strip()
+
+    if 'ХЛОПОК' in content_up and tnved_norm != '6302100001':
+
+        art = (linen.article or '—')
+        t = (linen.type or '—')
+        return f"[арт. {art}, тип {t}] Состав содержит ХЛОПОК → допустим только ТНВЭД 6302100001 (сейчас: {tnved_norm or 'пусто'})"
+    # --- /НОВОЕ ПРАВИЛО ---
 
     l_type = (linen.type or '').strip()
     l_textile_type = (linen.textile_type or '').strip()
-    # Формируем короткое описание для отчёта
-    t = ''
-    tt = ''
 
     _linen_textile_type_exclude: tuple = ('СИНТЕПОН',)
 
     if l_type in settings.Linen.TYPES and l_textile_type not in _linen_textile_type_exclude:
         return False
+
+    t = ''
+    tt = ''
     if l_type not in settings.Linen.TYPES:
         t = l_type or '—'
     if l_textile_type in _linen_textile_type_exclude:
         tt = l_textile_type or '—'
 
     return f"[{t}, {tt}]"
+
 
 
 def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) -> Order:
