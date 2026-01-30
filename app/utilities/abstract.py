@@ -45,7 +45,7 @@ class ProcessorInterface(ABC):
 
     @staticmethod
     def get_filename(order_num: int, category: str, pos_count: int, count: int,
-                     partner_code: str, company_type: str, company_name: str, flag_046: bool = False) -> str:
+                     partner_code: str, company_type: str, company_name: str, flag_046: bool = False) -> tuple[str, str]:
         ...
 
     @staticmethod

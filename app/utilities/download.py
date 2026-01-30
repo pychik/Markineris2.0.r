@@ -133,12 +133,13 @@ class OrdersProcessor(ProcessorInterface, ABC):
 
     @staticmethod
     def get_filename(order_num: int, category: str, pos_count: int, count: int,
-                     partner_code: str, company_type: str, company_name: str, flag_046: bool = False) -> str:
-        table_format = '029_' if not flag_046 else '046_'
+                     partner_code: str, company_type: str, company_name: str, flag_046: bool = False) -> tuple[str, str]:
+        table_format = '029' if not flag_046 else '046'
         name = f"{table_format}{order_num} {partner_code} {category} {company_type} " \
                f"{company_name.split(' ')[0] if len(company_name.split(' ')) > 1 else company_name} {pos_count}-{count}"
-        # return f"{name}.xlsx"
-        return f"{name}.zip"
+        e_name = f"{table_format}__{order_num}__{category} {company_type} " \
+                 f"{company_name.split(' ')[0] if len(company_name.split(' ')) > 1 else company_name} {pos_count}-{count}"
+        return f"{name}.zip", e_name
 
     @staticmethod
     def set_styles(workbook: Workbook,  worksheet: Worksheet, row: int):
@@ -197,7 +198,7 @@ class OrdersProcessor(ProcessorInterface, ABC):
     def make_file(self, order_num: int, category: str, pos_count: int, orders_pos_count: int,
                   c_partner_code: str, company_type: str, company_name: str, company_idn: str, edo_type: str,
                   edo_id: str, mark_type: str, c_name: str, c_phone: str, c_email: str, ) -> tuple[BytesIO, str]:
-        self.path = self.get_filename(order_num=order_num, category=category,
+        self.path, e_name = self.get_filename(order_num=order_num, category=category,
                                       pos_count=pos_count, count=orders_pos_count,
                                       partner_code=c_partner_code, company_type=company_type,
                                       company_name=company_name, flag_046=self.flag_046)
@@ -208,8 +209,8 @@ class OrdersProcessor(ProcessorInterface, ABC):
                                       user_email=c_email, partner=c_partner_code)
 
         excel_files = self.process_to_excel(list_of_orders=OrdersProcessor
-                                            .prepare_batches(orders_divided=[(self.orders_list_outer, "ВВЕЗЕН"),
-                                                                             (self.orders_list_inner, "РФ_ВНУТР")]))
+                                            .prepare_batches(orders_divided=[(self.orders_list_outer, f"{e_name}_ВВЕЗЕН"),
+                                                                             (self.orders_list_inner, f"{e_name}_РФ_ВНУТР")]))
 
         return OrdersProcessor.archive_excels(excel_files=excel_files, filename=self.path)
 
