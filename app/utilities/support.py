@@ -496,6 +496,7 @@ def helper_shoes_index(o_id: int, p_id: int = None, update_flag: int = None,
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
     countries = settings.COUNTRIES_LIST
+    rd_countries = settings.SHOES_COUNTRIES_RD
     shoe_tnved = settings.Shoes.TNVED_CODE
     shoe_al = settings.Shoes.SHOE_AL
     shoe_ot = settings.Shoes.SHOE_OT
@@ -536,6 +537,7 @@ def helper_socks_index(o_id: int, p_id: int = None, update_flag: int = None,
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
     countries = settings.COUNTRIES_LIST
+    rd_countries = settings.CLOTHES_COUNTRIES_RD
     socks_content = settings.Socks.CLOTHES_CONTENT
     socks_types_sizes_dict = settings.Socks.SIZE_ALL_DICT
 
@@ -577,6 +579,7 @@ def helper_linen_index(o_id: int, p_id: int = None, update_flag: int = None,
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
     countries = settings.COUNTRIES_LIST
+    rd_countries = settings.LINEN_COUNTRIES_RD
 
     types = settings.Linen.TYPES
     # colors = settings.Linen.COLORS
@@ -613,6 +616,7 @@ def helper_parfum_index(o_id: int, p_id: int = None, update_flag: int = None,
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
     countries = settings.COUNTRIES_LIST
+    rd_countries = settings.PARFUM_COUNTRIES_RD
 
     category = settings.Parfum.CATEGORY
     category_process_name = settings.Parfum.CATEGORY_PROCESS

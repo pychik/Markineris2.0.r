@@ -2,7 +2,6 @@
     <label class="control-label">Страна</label>
     <select class="form-control search-select" id="country" name="country" required>
 
-
       <option value="">------------</option>
       {%for con in countries%}
             <option value="{{con}}" {% if copied_order %}
@@ -14,3 +13,103 @@
       {%endfor%}
     </select>
 </div>
+<div class="form-check form-switch mb-2 d-flex align-items-center gap-2">
+  <input class="form-check-input border border-warning"
+         type="checkbox"
+         role="switch"
+         id="has-rd-switch"
+         name="has_rd"
+         data-bs-toggle="tooltip"
+         data-bs-placement="bottom"
+         title="Включите, если у вас есть разрешительная документация"
+         {% if copied_order and copied_order.rd_name %}checked{% endif %}>
+  <label class="form-check-label small mb-0 text-dark" for="has-rd-switch">РД</label>
+</div>
+
+
+<script>
+  const RD_COUNTRIES = {{ countries | tojson }};
+  const COUNTRIES = {{ rd_countries | tojson }};
+
+  function clearRdFields() {
+        const ids = ["rd_type", "rd_name", "rd_date", "rd_date_to"];
+
+        ids.forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+
+          el.value = "";
+          el.classList.remove("is-valid", "is-invalid");
+        });
+      }
+  function renderCountrySelect(selectEl, list, { preserveSelected = true } = {}) {
+    const prev = preserveSelected ? selectEl.value : "";
+
+    selectEl.innerHTML = "";
+    const emptyOpt = document.createElement("option");
+    emptyOpt.value = "";
+    emptyOpt.textContent = "------------";
+    selectEl.appendChild(emptyOpt);
+
+    list.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      selectEl.appendChild(opt);
+    });
+
+    // если preserveSelected=false — всегда сброс
+    if (preserveSelected && prev && list.includes(prev)) {
+      selectEl.value = prev;
+    } else {
+      selectEl.value = "";
+    }
+  }
+
+  function applySwitchStyle(isOn) {
+    const switchEl = document.getElementById("has-rd-switch");
+    if (!switchEl) return;
+    switchEl.classList.toggle("bg-warning", isOn); // bg-warning только когда ВКЛ
+  }
+
+  function toggleRdBlock(isOn) {
+    const wrap = document.getElementById("rd-wrapper");
+    if (!wrap) return;
+
+    wrap.style.display = isOn ? "" : "none";
+
+    ["rd_type", "rd_name", "rd_date_from", "rd_date_to"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.required = isOn;
+    });
+    if (!isOn) {
+    clearRdFields();
+  }
+  }
+
+  function applyRdState({ preserveSelected = true } = {}) {
+    const selectEl = document.getElementById("country");
+    const switchEl = document.getElementById("has-rd-switch");
+    if (!selectEl || !switchEl) return;
+
+    const isOn = switchEl.checked;
+
+    // ВКЛ → rd_countries, ВЫКЛ → countries
+    const list = isOn ? RD_COUNTRIES : COUNTRIES;
+
+    renderCountrySelect(selectEl, list, { preserveSelected });
+    applySwitchStyle(isOn);
+    toggleRdBlock(isOn);
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const switchEl = document.getElementById("has-rd-switch");
+    if (!switchEl) return;
+
+    // старт: можно оставить выбранную страну из copied_order
+    applyRdState({ preserveSelected: true });
+
+    // при переключении: всегда сбрасываем выбранную страну
+    switchEl.addEventListener("change", () => applyRdState({ preserveSelected: false }));
+  });
+</script>

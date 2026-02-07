@@ -30,6 +30,7 @@ def helper_clothes_index(o_id: int, p_id: int = None, update_flag: int = None,
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
     countries = settings.COUNTRIES_LIST
+    rd_countries = settings.CLOTHES_COUNTRIES_RD
     clothes_content = settings.Clothes.CLOTHES_CONTENT
     clothes_nat_content = settings.Clothes.CLOTHES_NAT_CONTENT
     # colors = settings.Clothes.COLORS
