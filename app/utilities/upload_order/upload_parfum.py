@@ -88,12 +88,26 @@ class ValidateParfumMixin:
 
     @staticmethod
     @empty_value
-    def _country(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
-        # value is parfum_country
-        country_value = value.upper()
+    def _country(value: str, row_num: int, col: str, pos: int, order_list: list, has_rd: bool = False) -> Optional[str]:
+        """
+        Если есть хоть одно поле РД -> страна проверяется по общему списку COUNTRIES_LIST.
+        Если РД нет -> страна проверяется по спец-списку PARFUM_COUNTRIES_RD и при ошибке
+        возвращаем список допустимых стран.
+        """
+        country_value = value.upper().strip()
         order_list[row_num - settings.Parfum.UPLOAD_STANDART_ROW][pos] = country_value
-        if country_value not in settings.COUNTRIES_LIST:
-            return f"{val_error_start(row_num=row_num, col=col)} {settings.Parfum.UPLOAD_COUNTRY_ERROR}"
+
+        if has_rd:
+            allowed = settings.COUNTRIES_LIST
+            if country_value not in allowed:
+                return f"{val_error_start(row_num=row_num, col=col)} {settings.Parfum.UPLOAD_COUNTRY_ERROR}"
+        else:
+            allowed = settings.PARFUM_COUNTRIES_RD
+            if country_value not in allowed:
+                return (
+                    f"{val_error_start(row_num=row_num, col=col)} {settings.Parfum.UPLOAD_COUNTRY_ERROR} "
+                    f"Допустимые страны без РД: {allowed}"
+                )
 
     @staticmethod
     @empty_value
@@ -201,6 +215,8 @@ class UploadParfum(UploadCategory):
             row_num = copy(settings.Shoes.UPLOAD_STANDART_ROW)
 
             for data_group in order_list:
+                rd_values = [x.strip() for x in data_group[9:12]]
+                has_rd = any(v not in ("", "nan", "None") for v in rd_values)
                 trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C', pos=0,
                                                   order_list=order_list)
                 # trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C')
@@ -214,13 +230,13 @@ class UploadParfum(UploadCategory):
                                                pos=5, order_list=order_list)
                 quantity_error = self._quantity(value=data_group[7].strip(), row_num=row_num, col='J')
                 country_error = self._country(value=data_group[8].strip(), row_num=row_num, col='K',
-                                              pos=8, order_list=order_list)
+                                              pos=8, order_list=order_list, has_rd=has_rd)
 
                 tnved_error = self._tnved(value=data_group[6].strip(), parfum_type=data_group[5].strip(),
                                           row_num=row_num, col='I', pos=6, order_list=order_list)
 
                 rd_general_error, rd_type_error, \
-                    rd_name_error, rd_date_error = self._rd_general(list_values=data_group[9:12],
+                    rd_name_error, rd_date_error = self._rd_general(list_values=rd_values,
                                                                     row_num=row_num, order_list=order_list,
                                                                     type_pos=9, cols=('L', 'M', 'N',))
 
@@ -241,7 +257,8 @@ class UploadParfum(UploadCategory):
             row_num = copy(settings.Shoes.UPLOAD_STANDART_ROW)
 
             for data_group in order_list:
-
+                rd_values = [x.strip() for x in data_group[10:13]]
+                has_rd = any(v not in ("", "nan", "None") for v in rd_values)
                 # trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C')
                 trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C', pos=0,
                                                   order_list=order_list)
@@ -256,7 +273,7 @@ class UploadParfum(UploadCategory):
                 box_quantity_error = self._quantity(value=data_group[7].strip(), row_num=row_num, col='J')
                 quantity_error = self._quantity(value=data_group[8].strip(), row_num=row_num, col='K')
                 country_error = self._country(value=data_group[9].strip(), row_num=row_num, col='L',
-                                              pos=9, order_list=order_list)
+                                              pos=9, order_list=order_list, has_rd=has_rd)
 
                 tnved_error = self._tnved(value=data_group[6].strip(), parfum_type=data_group[5].strip(),
                                           row_num=row_num, col='I', pos=6, order_list=order_list)

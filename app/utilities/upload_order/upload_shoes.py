@@ -155,12 +155,26 @@ class ValidateShoesMixin:
 
     @staticmethod
     @empty_value
-    def _country(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
-        # value is shoe_country
-        country_value = value.upper()
+    def _country(value: str, row_num: int, col: str, pos: int, order_list: list, has_rd: bool = False) -> Optional[str]:
+        """
+        Если есть хоть одно поле РД -> страна проверяется по общему списку COUNTRIES_LIST.
+        Если РД нет -> страна проверяется по спец-списку SHOES_COUNTRIES_RD и при ошибке
+        возвращаем список допустимых стран.
+        """
+        country_value = value.upper().strip()
         order_list[row_num - settings.Shoes.UPLOAD_STANDART_ROW][pos] = country_value
-        if country_value not in settings.COUNTRIES_LIST:
-            return f"{val_error_start(row_num=row_num, col=col)} {settings.Shoes.UPLOAD_COUNTRY_ERROR}"
+
+        if has_rd:
+            allowed = settings.COUNTRIES_LIST
+            if country_value not in allowed:
+                return f"{val_error_start(row_num=row_num, col=col)} {settings.Shoes.UPLOAD_COUNTRY_ERROR}"
+        else:
+            allowed = settings.SHOES_COUNTRIES_RD
+            if country_value not in allowed:
+                return (
+                    f"{val_error_start(row_num=row_num, col=col)} {settings.Shoes.UPLOAD_COUNTRY_ERROR} "
+                    f"Допустимые страны без РД: {allowed}"
+                )
 
     @staticmethod
     @empty_value
@@ -256,15 +270,18 @@ class UploadShoes(UploadCategory):
             errors_list = []
             error_rows = self._check_rows_cols(order_list=order_list)
             errors_list.append(error_rows) if error_rows is not None else None
-            row_num = copy(settings.Shoes.UPLOAD_STANDART_ROW)
+            # row_num = copy(settings.Shoes.UPLOAD_STANDART_ROW)
+            row_num = settings.Shoes.UPLOAD_STANDART_ROW
             rz_condition = ((current_user.role == 'ordinary_user' and current_user.admin_parent_id == 2)
                             or current_user.id == 2)
             for data_group in order_list:
-                # set condition for declar documents required
                 gender = data_group[9].strip()
 
                 gender_condition = gender not in settings.RZ_GENDERS_RD_LIST
                 rz_gender_condition = rz_condition and gender_condition
+                rd_values = [x.strip() for x in data_group[12:15]]
+                has_rd = any(v not in ("", "nan", "None") for v in rd_values)
+
                 trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C', pos=0,
                                                   order_list=order_list)
                 article_error = self._article(value=data_group[1].strip(), row_num=row_num, col='E', pos=1,
@@ -289,10 +306,10 @@ class UploadShoes(UploadCategory):
                                             order_list=order_list)
                 quantity_error = self._quantity(value=data_group[10].strip(), row_num=row_num, col='Q')
                 country_error = self._country(value=data_group[11].strip(), row_num=row_num, col='T',
-                                              pos=11, order_list=order_list)
+                                              pos=11, order_list=order_list, has_rd=has_rd)
 
                 rd_general_error, rd_type_error,\
-                    rd_name_error, rd_date_error = self._rd_general(list_values=data_group[12:15],
+                    rd_name_error, rd_date_error = self._rd_general(list_values=rd_values,
                                                                     rz_gender_condition=rz_gender_condition,
                                                                     gender=gender,
                                                                     row_num=row_num, order_list=order_list,
@@ -317,11 +334,15 @@ class UploadShoes(UploadCategory):
                             or current_user.id == 2)
             pos_count = 0
             for data_group in order_list:
-                # set condition for declar documents required
                 gender = data_group[11].strip()
 
                 gender_condition = gender not in settings.RZ_GENDERS_RD_LIST
                 rz_gender_condition = rz_condition and gender_condition
+                rd_values = [x.strip() for x in data_group[12:15]]
+                has_rd = any(v not in ("", "nan", "None") for v in rd_values)
+                # article_error = self._article(value=data_group[0].strip(), row_num=row_num, col='A')
+                #
+                # trademark_error = self._trademark(value=data_group[1].strip(), row_num=row_num, col='C')
 
                 article_error = self._article(value=data_group[1].strip(), row_num=row_num, col='A', pos=0,
                                               order_list=order_list)
@@ -344,7 +365,7 @@ class UploadShoes(UploadCategory):
                 size_quantity_error, pos_quantity = self._sizes_quantities(value=data_group[8].strip(), row_num=row_num, col='L')
 
                 country_error = self._country(value=data_group[9].strip(), row_num=row_num, col='M',
-                                              pos=9, order_list=order_list)
+                                              pos=9, order_list=order_list, has_rd=has_rd)
 
                 tnved_error = self._tnved(order_list=order_list, material_up=data_group[3].strip(),
                                           gender=gender,
@@ -354,7 +375,7 @@ class UploadShoes(UploadCategory):
                                             order_list=order_list)
 
                 rd_general_error, rd_type_error, \
-                    rd_name_error, rd_date_error = self._rd_general(list_values=data_group[12:15],
+                    rd_name_error, rd_date_error = self._rd_general(list_values=rd_values,
                                                                     rz_gender_condition=rz_gender_condition,
                                                                     gender=gender,
                                                                     row_num=row_num, order_list=order_list,

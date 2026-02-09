@@ -139,7 +139,7 @@ class ValidateClothesMixin:
     @empty_value
     def _content(order_list: list, value: str, row_num: int, col: str, pos: int,
                  ) -> Optional[str]:
-        # cols I J
+
         order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = value.capitalize().replace('\n', ' ')
         return
 
@@ -162,7 +162,7 @@ class ValidateClothesMixin:
 
     @staticmethod
     @empty_value
-    def _gender(value: str, row_num: int, col: str, subcategory: str = None, cl_type: str = None, ) -> Optional[str]:
+    def _gender(value: str, row_num: int, col: str, subcategory: str = None, cl_type: str = None,) -> Optional[str]:
         # value is gender
         if subcategory in ['common', '', None]:
             correct_genders = settings.Clothes.CLOTHES_TYPE_GENDERS.get(cl_type.upper(), [])
@@ -180,12 +180,26 @@ class ValidateClothesMixin:
 
     @staticmethod
     @empty_value
-    def _country(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
-        # value is shoe_country
-        country_value = value.upper()
+    def _country(value: str, row_num: int, col: str, pos: int, order_list: list, has_rd: bool = False) -> Optional[str]:
+        """
+        Если есть хоть одно поле РД -> страна проверяется по общему списку COUNTRIES_LIST.
+        Если РД нет -> страна проверяется по спец-списку CLOTHES_COUNTRIES_RD и при ошибке
+        возвращаем список допустимых стран.
+        """
+        country_value = value.upper().strip()
         order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = country_value
-        if value not in settings.COUNTRIES_LIST:
-            return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_COUNTRY_ERROR}"
+
+        if has_rd:
+            allowed = settings.COUNTRIES_LIST
+            if country_value not in allowed:
+                return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_COUNTRY_ERROR}"
+        else:
+            allowed = settings.CLOTHES_COUNTRIES_RD
+            if country_value not in allowed:
+                return (
+                    f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_COUNTRY_ERROR} "
+                    f"Допустимые страны без РД: {allowed}"
+                )
 
     @staticmethod
     @empty_value
@@ -216,6 +230,7 @@ class ValidateClothesMixin:
     @staticmethod
     def _rd_general(list_values: list, rz_gender_condition: bool, gender: str, row_num: int, order_list: list, cols: tuple) -> Optional[tuple]:
         res = len(list(filter(lambda x: x is None or x == 'nan' or len(x) == 0, list_values)))
+
         for i in range(11, 14):
             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][i] = \
                 order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][i].replace('nan', '')
@@ -225,7 +240,7 @@ class ValidateClothesMixin:
                     None, None, None)
         elif res == 0:
             rd_type_error = ValidateClothesMixin._rd_type(value=list_values[0].strip(), row_num=row_num, col=cols[0],
-                                                          pos=11, order_list=order_list)
+                                                         pos=11, order_list=order_list)
             rd_name_error = ValidateClothesMixin._rd_name(value=list_values[1].strip(), row_num=row_num, col=cols[1])
             rd_date_error = ValidateClothesMixin._rd_date(value=list_values[2].strip(), row_num=row_num, col=cols[2])
             return None, rd_type_error, rd_name_error, rd_date_error
@@ -266,13 +281,15 @@ class UploadClothes(UploadCategory):
             rz_condition = ((current_user.role == 'ordinary_user' and current_user.admin_parent_id == 2)
                             or current_user.id == 2)
             for data_group in order_list:
+                # print(data_group)
                 cl_type = data_group[2].strip()
                 gender = data_group[4].strip()
                 size_type = data_group[5].strip().upper()
                 size_value = data_group[6].strip().upper()
-
                 gender_condition = gender not in settings.RZ_GENDERS_RD_LIST
                 rz_gender_condition = rz_condition and gender_condition
+                rd_values = [x.strip() for x in data_group[11:14]]
+                has_rd = any(v not in ("", "nan", "None") for v in rd_values)
 
                 trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C', pos=0,
                                                   order_list=order_list)
@@ -288,7 +305,8 @@ class UploadClothes(UploadCategory):
                 gender_error = self._gender(value=gender, row_num=row_num, col='H', subcategory=subcategory,
                                             cl_type=cl_type)
                 # print(gender_error)
-                size_type_error = self._size_type(size_type=size_type, size_value=size_value,
+                size_type_error = self._size_type(size_type=size_type,
+                                                  size_value=size_value,
                                                   row_num=row_num, size_col='I', pos=5, order_list=order_list)
                 # print(size_type_error)
                 size_error = self._size(value=size_value, size_type=size_type, row_num=row_num, col='J', pos=6,
@@ -304,10 +322,10 @@ class UploadClothes(UploadCategory):
                 quantity_error = self._quantity(value=data_group[9].strip(), row_num=row_num, col='M')
                 # print(quantity_error)
                 country_error = self._country(value=data_group[10].strip(), row_num=row_num, col='N',
-                                              pos=10, order_list=order_list)
+                                              pos=10, order_list=order_list, has_rd=has_rd)
                 # print(country_error)
                 rd_general_error, rd_type_error, \
-                    rd_name_error, rd_date_error = self._rd_general(list_values=data_group[11:14],
+                    rd_name_error, rd_date_error = self._rd_general(list_values=rd_values,
                                                                     rz_gender_condition=rz_gender_condition,
                                                                     gender=gender,
                                                                     row_num=row_num, order_list=order_list,

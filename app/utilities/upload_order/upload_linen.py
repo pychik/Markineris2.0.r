@@ -65,8 +65,7 @@ class ValidateLinenMixin:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Linen.UPLOAD_SIZE_ERROR}"
 
     @staticmethod
-    def _tnved(order_list: list, value: str, row_num: int, col: str, pos: int = 8,
-               content_value: str = '') -> Optional[str]:
+    def _tnved(order_list: list, value: str, row_num: int, col: str, pos: int = 8, content_value: str = '') -> Optional[str]:
         # 1) Принудительный ТНВЭД при "ХЛОПОК" в составе
         if content_value and 'ХЛОПОК' in str(content_value).upper():
             required_tnved = '6302100001'
@@ -139,12 +138,26 @@ class ValidateLinenMixin:
 
     @staticmethod
     @empty_value
-    def _country(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
-        # value is shoe_country
-        country_value = value.upper()
+    def _country(value: str, row_num: int, col: str, pos: int, order_list: list, has_rd: bool = False) -> Optional[str]:
+        """
+        Если есть хоть одно поле РД -> страна проверяется по общему списку COUNTRIES_LIST.
+        Если РД нет -> страна проверяется по спец-списку LINEN_COUNTRIES_RD и при ошибке
+        возвращаем список допустимых стран.
+        """
+        country_value = value.upper().strip()
         order_list[row_num - settings.Linen.UPLOAD_STANDART_ROW][pos] = country_value
-        if country_value not in settings.COUNTRIES_LIST:
-            return f"{val_error_start(row_num=row_num, col=col)} {settings.Linen.UPLOAD_COUNTRY_ERROR}"
+
+        if has_rd:
+            allowed = settings.COUNTRIES_LIST
+            if country_value not in allowed:
+                return f"{val_error_start(row_num=row_num, col=col)} {settings.Linen.UPLOAD_COUNTRY_ERROR}"
+        else:
+            allowed = settings.LINEN_COUNTRIES_RD
+            if country_value not in allowed:
+                return (
+                    f"{val_error_start(row_num=row_num, col=col)} {settings.Linen.UPLOAD_COUNTRY_ERROR} "
+                    f"Допустимые страны без РД: {allowed}"
+                )
 
     @staticmethod
     @empty_value
@@ -242,6 +255,8 @@ class UploadLinen(UploadCategory):
 
             for data_group in order_list:
                 content_value = data_group[6].strip()
+                rd_values = [x.strip() for x in data_group[12:15]]
+                has_rd = any(v not in ("", "nan", "None") for v in rd_values)
 
                 trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C', pos=0,
                                                   order_list=order_list)
@@ -268,9 +283,9 @@ class UploadLinen(UploadCategory):
                 quantity_error = self._quantity(value=data_group[10].strip(), row_num=row_num, col='N')
 
                 country_error = self._country(value=data_group[11].strip(), row_num=row_num, col='O',
-                                              pos=11, order_list=order_list)
+                                              pos=11, order_list=order_list, has_rd=has_rd)
                 rd_general_error, rd_type_error, \
-                    rd_name_error, rd_date_error = self._rd_general(list_values=data_group[12:15],
+                    rd_name_error, rd_date_error = self._rd_general(list_values=rd_values,
                                                                     row_num=row_num, order_list=order_list, type_pos=12,
                                                                     cols=('P', 'Q', 'T',))
 
@@ -295,6 +310,8 @@ class UploadLinen(UploadCategory):
 
             for data_group in order_list:
                 content_value = data_group[6].strip()
+                rd_values = [x.strip() for x in data_group[13:16]]
+                has_rd = any(v not in ("", "nan", "None") for v in rd_values)
 
                 trademark_error = self._trademark(value=data_group[0].strip(), row_num=row_num, col='C', pos=0,
                                                   order_list=order_list)
@@ -323,9 +340,9 @@ class UploadLinen(UploadCategory):
                                                     packages=True)
                 quantity_error = self._quantity(value=data_group[11].strip(), row_num=row_num, col='O')
                 country_error = self._country(value=data_group[12].strip(), row_num=row_num, col='P',
-                                              pos=12, order_list=order_list)
+                                              pos=12, order_list=order_list, has_rd=has_rd)
                 rd_general_error, rd_type_error, \
-                    rd_name_error, rd_date_error = self._rd_general(list_values=data_group[13:16],
+                    rd_name_error, rd_date_error = self._rd_general(list_values=rd_values,
                                                                     row_num=row_num, order_list=order_list, type_pos=13,
                                                                     cols=('Q', 'R', 'S',))
 
