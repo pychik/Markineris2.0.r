@@ -65,17 +65,31 @@ class ValidateLinenMixin:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Linen.UPLOAD_SIZE_ERROR}"
 
     @staticmethod
-    def _tnved(order_list: list, value: str, row_num: int, col: str, pos: int = 8, content_value: str = '') -> Optional[str]:
-        # 1) Принудительный ТНВЭД при "ХЛОПОК" в составе
-        if content_value and 'ХЛОПОК' in str(content_value).upper():
-            required_tnved = '6302100001'
+    def _tnved(order_list: list, value: str, row_num: int, col: str, pos: int = 8, linen_type: str = '',
+               content_value: str = '') -> Optional[str]:
+        def _norm(s: str) -> str:
+            return str(s or '').strip().upper()
 
-            value = str(value).replace('.0', '').strip()
+        content_up = _norm(content_value)
+        type_up = _norm(linen_type)
 
+        # value is tnved
+        value = str(value).replace('.0', '').strip()
+
+        # 1) Принудительный ТНВЭД по связке (тип + хлопок)
+        required_tnved: Optional[str] = None
+
+        if 'ХЛОПОК' in content_up:
+            if 'ПОЛОТЕНЦЕ' in type_up:
+                required_tnved = '6302910000'
+            elif type_up == 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ':
+                required_tnved = '6302100001'
+
+        if required_tnved:
             # если ТНВЭД пустой или отличается от обязательного — ошибка
-            if value != required_tnved:
+            if not value or value == 'nan' or isna(value) or value != required_tnved:
                 answer = (
-                    f'В составе изделия указан ХЛОПОК. '
+                    f'Тип изделия: "{linen_type}". В составе указан ХЛОПОК. '
                     f'Единственно допустимый ТНВЭД: {required_tnved}'
                 )
                 return (
@@ -85,24 +99,25 @@ class ValidateLinenMixin:
 
             # если ТНВЭД корректный — записываем и продолжаем
             order_list[row_num - settings.Linen.UPLOAD_STANDART_ROW][pos] = required_tnved
-            return
+            return None
 
-        # value is tnved
-        value.replace('.0', '')
-
-        value.strip()
+        # 2) Обычная логика (без принудиловки)
         if value == 'nan' or isna(value) or len(value) < 1:
             tnved = settings.Linen.TNVED_CODE
-
             order_list[row_num - settings.Linen.UPLOAD_STANDART_ROW][pos] = tnved
-
             return None
 
         tc = TnvedChecker(category=settings.Linen.CATEGORY_PROCESS, tnved_code=value)
         result_status, answer = tc.tnved_parse()
         if result_status != 5:
-            return f"{val_error_start(row_num=row_num, col=col)} {answer}." \
-                   f"{settings.Messages.UPLOAD_TNVED_ERROR}"
+            return (
+                f"{val_error_start(row_num=row_num, col=col)} {answer}."
+                f"{settings.Messages.UPLOAD_TNVED_ERROR}"
+            )
+
+        # если всё ок — можно сохранить нормализованное значение (по желанию)
+        order_list[row_num - settings.Linen.UPLOAD_STANDART_ROW][pos] = value
+        return None
 
     @staticmethod
     @empty_value
@@ -254,6 +269,7 @@ class UploadLinen(UploadCategory):
             row_num = copy(settings.Linen.UPLOAD_STANDART_ROW)
 
             for data_group in order_list:
+                linen_type = data_group[2].strip()
                 content_value = data_group[6].strip()
                 rd_values = [x.strip() for x in data_group[12:15]]
                 has_rd = any(v not in ("", "nan", "None") for v in rd_values)
@@ -262,7 +278,7 @@ class UploadLinen(UploadCategory):
                                                   order_list=order_list)
                 article_error = self._article(value=data_group[1].strip(), row_num=row_num, col='E', pos=1,
                                               order_list=order_list)
-                type_error = self._linen_type(value=data_group[2].strip(), row_num=row_num, col='F',
+                type_error = self._linen_type(value=linen_type, row_num=row_num, col='F',
                                               pos=2, order_list=order_list)
 
                 color_error = self._color(value=data_group[3].strip(), row_num=row_num, col='G', pos=3,
@@ -279,6 +295,7 @@ class UploadLinen(UploadCategory):
                                          order_list=order_list)
                 tnved_error = self._tnved(order_list=order_list,
                                           value=data_group[9].strip(), row_num=row_num, col='M', pos=9,
+                                          linen_type=linen_type,
                                           content_value=content_value)
                 quantity_error = self._quantity(value=data_group[10].strip(), row_num=row_num, col='N')
 
@@ -309,6 +326,7 @@ class UploadLinen(UploadCategory):
             row_num = copy(settings.Linen.UPLOAD_STANDART_ROW)
 
             for data_group in order_list:
+                linen_type = data_group[2].strip()
                 content_value = data_group[6].strip()
                 rd_values = [x.strip() for x in data_group[13:16]]
                 has_rd = any(v not in ("", "nan", "None") for v in rd_values)
@@ -317,7 +335,7 @@ class UploadLinen(UploadCategory):
                                                   order_list=order_list)
                 article_error = self._article(value=data_group[1].strip(), row_num=row_num, col='E', pos=1,
                                               order_list=order_list)
-                type_error = self._linen_type(value=data_group[2].strip(), row_num=row_num, col='F',
+                type_error = self._linen_type(value=linen_type, row_num=row_num, col='F',
                                               pos=2, order_list=order_list)
 
                 color_error = self._color(value=data_group[3].strip(), row_num=row_num, col='G', pos=3,
@@ -334,6 +352,7 @@ class UploadLinen(UploadCategory):
                                          order_list=order_list)
                 tnved_error = self._tnved(order_list=order_list,
                                           value=data_group[9].strip(), row_num=row_num, col='M', pos=9,
+                                          linen_type=linen_type,
                                           content_value=content_value)
 
                 box_quantity_error = self._quantity(value=data_group[10].strip(), row_num=row_num, col='N',
