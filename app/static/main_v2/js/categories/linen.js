@@ -595,23 +595,35 @@ function deleteCell(){
 }
 
 (function initCottonTnvedLock(){
-    const contentEl = document.getElementById('content');
-    const tnvedEl   = document.getElementById('tnved_code');
+    const contentEl = document.getElementById('content');      // состав
+    const tnvedEl   = document.getElementById('tnved_code');   // ТНВЭД
     const msgEl     = document.getElementById('tnved_co_supressor');
     const flagEl    = document.getElementById('check_tnved_flag');
+    const typeEl    = document.getElementById('type');         // select2 select
 
-    if (!contentEl || !tnvedEl || !msgEl) return;
+    if (!contentEl || !tnvedEl || !msgEl || !typeEl) return;
 
     const WORD = 'ХЛОПОК';
-    const COTTON_TNVED = '6302100001';
-    const DEFAULT_TNVED = '6302999000'; // ← ИСХОДНОЕ
 
-    function hasCotton(){
-        return (contentEl.value || '').toUpperCase().includes(WORD);
+    const TNVED_TOWEL_COTTON  = '6302910000'; // ПОЛОТЕНЦЕ + ХЛОПОК
+    const TNVED_BEDSET_COTTON = '6302100001'; // КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ + ХЛОПОК
+    const DEFAULT_TNVED       = '6302999000'; // дефолт
+
+    function normStr(v){
+        return (v ?? '').toString().trim().toUpperCase();
     }
 
-    function applyCottonMode(){
-        tnvedEl.value = COTTON_TNVED;
+    function hasCotton(){
+        return normStr(contentEl.value).includes(WORD);
+    }
+
+    function getTypeText(){
+        // тут проще брать value — у тебя он уже текстовый ("ПОЛОТЕНЦЕ ...")
+        return normStr(typeEl.value);
+    }
+
+    function lockTnved(code, message){
+        tnvedEl.value = code;
 
         tnvedEl.readOnly = true;
         tnvedEl.style.pointerEvents = 'none';
@@ -621,28 +633,63 @@ function deleteCell(){
         if (flagEl) flagEl.value = "true";
 
         msgEl.style.color = '#f13131';
-        msgEl.textContent =
-            'Вы выбрали хлопок в составе изделия — единственный возможный ТНВЭД: 6302100001';
+        msgEl.textContent = message;
     }
 
-    function applyDefaultMode(){
+    function applyDefault(){
+        tnvedEl.value = DEFAULT_TNVED;
+
         tnvedEl.readOnly = false;
         tnvedEl.style.pointerEvents = '';
 
-        tnvedEl.value = DEFAULT_TNVED;
+        if (flagEl) flagEl.value = "false";
 
         msgEl.style.color = '#ffffff';
         msgEl.innerHTML = '&nbsp;';
     }
 
     function sync(){
-        if (hasCotton()) applyCottonMode();
-        else applyDefaultMode();
+        const typeText = getTypeText();
+        const cotton   = hasCotton();
+
+        if (cotton && typeText.includes('ПОЛОТЕНЦЕ')) {
+            lockTnved(
+                TNVED_TOWEL_COTTON,
+                'Тип содержит "ПОЛОТЕНЦЕ" и в составе хлопок — ТНВЭД: 6302910000'
+            );
+            return;
+        }
+
+        if (cotton && typeText === 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ') {
+            lockTnved(
+                TNVED_BEDSET_COTTON,
+                'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ и хлопок — ТНВЭД: 6302100001'
+            );
+            return;
+        }
+
+        applyDefault();
     }
 
+    // --- Состав (нативно) ---
     contentEl.addEventListener('input', sync);
     contentEl.addEventListener('change', sync);
 
-    sync(); // первичная инициализация
+    // --- Тип (нативно) ---
+    typeEl.addEventListener('change', sync);
+    typeEl.addEventListener('input', sync);
+
+    // --- Тип (Select2/jQuery) ---
+    if (window.jQuery) {
+        const $type = window.jQuery(typeEl);
+
+        // jQuery change (когда .trigger('change') делается через jQuery)
+        $type.on('change', sync);
+
+        // события select2 (самый надежный вариант)
+        $type.on('select2:select select2:unselect select2:clear', sync);
+    }
+
+    sync();
     window.__syncCottonTnved = sync;
 })();
