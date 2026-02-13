@@ -159,58 +159,53 @@ def _check_socks_compatibility(sock: Socks) -> str | bool:
 
 
 def _check_linen_compatibility(linen) -> str | bool:
-    """
-    Проверяет, сочетаются ли правила у одной позиции.
-    Возвращает:
-      - False, если позиция корректна
-      - str, если несовместима
-    """
-
     content = (linen.content or '')
     tnved = (linen.tnved_code or '')
+    l_type = (linen.type or '')
 
     content_up = str(content).upper()
     tnved_norm = str(tnved).replace('.0', '').strip()
+    type_up = str(l_type).strip().upper()
 
     errors = []
 
-    # --- НОВОЕ ПРАВИЛО: ХЛОПОК -> только 6302100001 ---
-    if 'ХЛОПОК' in content_up and tnved_norm != '6302100001':
+    # --- ПРАВИЛО ПО ХЛОПКУ ТОЛЬКО ДЛЯ ОПРЕДЕЛЕННЫХ ТИПОВ ---
+    required_tnved = None
+    if 'ХЛОПОК' in content_up:
+        if 'ПОЛОТЕНЦЕ' in type_up:
+            required_tnved = '6302910000'
+        elif type_up == 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ':
+            required_tnved = '6302100001'
+
+    if required_tnved and tnved_norm != required_tnved:
         art = (linen.article or '—')
         t = (linen.type or '—')
         errors.append(
-            f"[арт. {art}, тип {t}] Состав содержит ХЛОПОК → допустим только ТНВЭД 6302100001 "
+            f"[арт. {art}, тип {t}] Состав содержит ХЛОПОК → допустим только ТНВЭД {required_tnved} "
             f"(сейчас: {tnved_norm or 'пусто'})"
         )
 
-    l_type = (linen.type or '').strip()
     l_textile_type = (linen.textile_type or '').strip()
-
     _linen_textile_type_exclude: tuple = ('СИНТЕПОН',)
 
-    # если тип/текстиль корректны — это НЕ ошибка
-    linen_ok = (l_type in settings.Linen.TYPES and l_textile_type not in _linen_textile_type_exclude)
+    linen_ok = ((l_type or '').strip() in settings.Linen.TYPES and l_textile_type not in _linen_textile_type_exclude)
 
     if not linen_ok:
-        t = '' if l_type in settings.Linen.TYPES else (l_type or '—')
-        tt = '' if l_textile_type not in _linen_textile_type_exclude else (l_textile_type or '—')
-        errors.append(f"[{t} {tt}]")
+        t_bad = '' if (l_type or '').strip() in settings.Linen.TYPES else ((l_type or '').strip() or '—')
+        tt_bad = '' if l_textile_type not in _linen_textile_type_exclude else (l_textile_type or '—')
+        errors.append(f"[{t_bad} {tt_bad}]")
 
     # --- Страна (универсально) ---
     country_err = _check_country_by_rd(linen)
     if country_err:
-        # если уже есть ошибки — добавляем к последней через append_err,
-        # иначе сделаем base-ошибку только по стране
         if errors:
             errors[-1] = _append_err(errors[-1], country_err)
         else:
             errors.append(str(country_err))
 
-    # --- Итог ---
     if not errors:
         return False
 
-    # если ошибок несколько — склеим
     return "; ".join(errors)
 
 
