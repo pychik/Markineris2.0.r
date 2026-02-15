@@ -327,7 +327,14 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
             cutoff_expr = f"CURRENT_DATE - INTERVAL '{date_quantity} month'"
 
     # условие "кандидат на реанимацию": последний заказ ДО cutoff или заказов нет
-    inactivity_cond = f"(oa.last_saved_at <= {cutoff_expr} OR oa.orders_count IS NULL)"
+    no_recent_orders_cond = f"""
+    NOT EXISTS (
+        SELECT 1
+        FROM public.orders_stats osx
+        WHERE osx.user_id = u.id
+          AND osx.saved_at > {cutoff_expr}
+    )
+    """
 
     # все агрегаты считаем ДО cutoff
     os_date_cond = f"os.saved_at <= {cutoff_expr}"
@@ -447,7 +454,7 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
         WHERE
             u.role = '{settings.ORD_USER}'
             {user_filter}
-            AND {inactivity_cond}
+            AND {no_recent_orders_cond}
 
         ORDER BY {str(order_clause)}
         ;
