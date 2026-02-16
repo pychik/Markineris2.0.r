@@ -405,3 +405,35 @@
 .badge-soft b {
   color: #5f6367;                   /* чуть темнее для суммы */
 }
+
+/* Общий блок контакта */
+.contact-block {
+    margin-top: 20px;   /* ← отступ сверху */
+}
+
+/* Заголовок */
+.contact-title {
+    font-weight: 600;
+}
+
+/* Подзаголовок */
+.contact-subtitle {
+    margin-top: 4px;
+    color: #6c757d;
+}
+
+#contact_form_wrap .input-invalid {
+    border-color: #dc3545 !important;
+    background-color: #fff5f5;
+}
+
+#contact_form_wrap .input-valid {
+    border-color: #198754 !important;
+    background-color: #f6fffa;
+}
+
+#contact_form_wrap .contact-error-text {
+    font-size: 12px;
+    color: #dc3545;
+    margin-top: 4px;
+}

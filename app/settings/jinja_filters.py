@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 
@@ -65,3 +66,10 @@ def time_since_top(dt: datetime):
         days = -(-seconds // 86400)  # Округление вверх
         day_form = get_plural_form(int(days), ("день", "дня", "дней"))
         return f"{int(days)} {day_form} назад"
+
+
+def from_json_filter(value):
+    try:
+        return json.loads(value)
+    except Exception:
+        return {}

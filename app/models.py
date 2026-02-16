@@ -308,6 +308,8 @@ class Order(db.Model, UserMixin):
     edo_id = db.Column(db.String(100), default="")
     mark_type = db.Column(db.String(100), default='МАРКИРОВКА НЕ ВЫБРАНА')
     user_comment = db.Column(db.String(450), default="")
+    contact_info = db.Column(db.String(200), default="")
+
     has_new_tnveds = db.Column(db.Boolean, default=False)
 
     payment = db.Column(db.Boolean(), default=False)

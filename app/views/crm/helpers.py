@@ -10,6 +10,7 @@ from rq_scheduler.scheduler import Scheduler
 from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import aliased
 from werkzeug.utils import secure_filename
 
 from config import settings
@@ -2321,3 +2322,66 @@ def helper_categories_counter(all_cards: list | tuple) -> dict:
         categories_counter.update({cat: sum(1 for card in all_cards_proc if card.category == cat)})
 
     return categories_counter
+
+
+def _get_order_desc_row(order_id: int):
+    Agent = aliased(User)
+    Manager = aliased(User)
+
+    return (
+        db.session.query(
+            Order.id,
+            Order.user_id,
+            Order.manager_id,
+            Order.order_idn,
+            Order.category,
+            Order.company_type,
+            Order.company_name,
+            Order.company_idn,
+            Order.edo_type,
+            Order.mark_type,
+            Order.user_comment,
+            # Order.is_moderation,
+            Order.contact_info,
+
+            User.client_code,
+            User.login_name,
+            User.phone,
+            User.email,
+            User.is_at2,
+
+            db.case(
+                (Agent.login_name.isnot(None), Agent.login_name),
+                else_=User.login_name
+            ).label("agent_name"),
+
+            Manager.login_name.label("manager_login"),
+        )
+        .join(User, User.id == Order.user_id)
+        .outerjoin(Agent, User.admin_parent_id == Agent.id)
+        .outerjoin(Manager, Order.manager_id == Manager.id)
+        .filter(Order.id == order_id)
+        .first()
+    )
+
+
+def h_order_details():
+    src = (request.args.get("src") or "").strip()
+
+    order_id = request.args.get("order_id", type=int)
+    if not order_id:
+        return jsonify(status="error", message="order_id required"), 400
+
+    n = _get_order_desc_row(order_id)
+    if not n:
+        return jsonify(status="error", message="Order not found"), 404
+
+    # user_companies = _get_user_companies_for_user(n.user_id)
+
+    html = render_template(
+        "crm_mod_v1/helpers/order_description.html",
+        src=src,
+        n=n,
+        # user_companies=user_companies,
+    )
+    return jsonify(status="success", html=html)

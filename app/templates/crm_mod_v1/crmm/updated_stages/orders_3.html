@@ -1,7 +1,7 @@
 <div class="faded orders__list">
 <!--<h6>{% if update_orders %}{{update_orders | length}} шт.{%endif%}</h6>-->
    {% for n in update_orders %}
-     <div class="orders__item order {% if n.to_delete %} div-disabled {%endif%}" id="cardCommonBlock_{{n.id}}">
+     <div class="orders__item order {% if n.to_delete %} div-disabled {%endif%}" data-order-id="{{ n.id }}" id="cardCommonBlock_{{n.id}}">
         <div class="order__header">
             <div class="order__name">{{n.order_idn}} {%if n.is_at2%}<span>(Агент тип 2)</span>{%endif%} </div>
             {% include 'crm_mod_v1/helpers/order_category.html' %}
@@ -34,7 +34,7 @@
                         <span>{{n.manager}}</span>
                     </div>
                 </div>
-                {% include 'crm_mod_v1/crmm/order_description.html' %}
+                <div class="order__details" data-loaded="0"></div>
                 <div id="orderFile_{{n.id}}" class="file">
                     {% if n.order_file %}
                         <img src="{{url_for('static', filename='crm_mod/img/icons/check-circle-fill.svg')}}" alt="Файл прикреплен" width="24"
