@@ -14,6 +14,8 @@ class CompaniesOperators(Enum):
     AVRORA = ("Аврора", "4400023120")
     MIRAT = ("ООО Мират", "7730338476")
     MITAV = ("ООО Митав", "9726102048")
+    ISHMITOV = ("ИП Ишмитов Илья Алексеевич", "023103006891")
+    ALASTOR = ("ООО \"Аластор\"", "7751357550")
 
     def __init__(self, name, inn):
         self.display_name = name
