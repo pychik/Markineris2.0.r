@@ -31,10 +31,11 @@
     <div class="comment__text">{{ n.user_comment }}</div>
   </div>
 {% endif %}
-<div class="card mb-3 shadow-sm" title="Контакт для связи по заказу">
+{% if not hide_pii %}
+    <div class="card mb-3 shadow-sm" title="Контакт для связи по заказу">
 
-    <div class="card-body">
-        {% if not hide_pii %}
+        <div class="card-body">
+
             {% if  n.contact_info %}
 
                 {% set c = n.contact_info | from_json %}
@@ -122,10 +123,12 @@
                 </div>
 
             {% endif %}
-        {% endif %}
+        </div>
     </div>
+{% endif %}
 
-</div>
+
+
 
 
 {#{% include 'crm_mod_v1/helpers/order_companies_block.html' %}#}
