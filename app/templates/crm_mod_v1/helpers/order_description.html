@@ -34,99 +34,99 @@
 <div class="card mb-3 shadow-sm" title="Контакт для связи по заказу">
 
     <div class="card-body">
+        {% if not hide_pii %}
+            {% if  n.contact_info %}
 
-        {% if n.contact_info %}
+                {% set c = n.contact_info | from_json %}
 
-            {% set c = n.contact_info | from_json %}
+                <div class="d-flex align-items-center gap-3">
 
-            <div class="d-flex align-items-center gap-3">
+                    {# === TELEGRAM === #}
+                    {% if c.type == 'telegram' %}
 
-                {# === TELEGRAM === #}
-                {% if c.type == 'telegram' %}
+                        <div class="contact-icon">
+                            <!-- Telegram SVG -->
+                            <svg width="42" height="41" viewBox="0 0 42 41" fill="none"
+                                 xmlns="http://www.w3.org/2000/svg">
+                                <g clip-path="url(#clip0_46_151)">
+                                    <path
+                                        d="M21.4053 40.9368C32.7097 40.9368 41.8737 31.7728 41.8737 20.4684C41.8737 9.16403 32.7097 0 21.4053 0C10.1009 0 0.93689 9.16403 0.93689 20.4684C0.93689 31.7728 10.1009 40.9368 21.4053 40.9368Z"
+                                        fill="#039BE5"></path>
+                                    <path
+                                        d="M10.3029 20.025L30.0379 12.4159C30.9538 12.085 31.7538 12.6393 31.457 14.0244L31.4587 14.0227L28.0985 29.8533C27.8494 30.9756 27.1825 31.2485 26.2495 30.7198L21.1324 26.9485L18.6642 29.3262C18.3913 29.5991 18.1611 29.8294 17.6323 29.8294L17.9956 24.6219L27.4793 16.0541C27.8921 15.6908 27.3872 15.4861 26.8431 15.8478L15.1232 23.2266L10.0709 21.6506C8.97415 21.3026 8.95027 20.5538 10.3029 20.025Z"
+                                        fill="white"></path>
+                                </g>
+                            </svg>
+                        </div>
 
-                    <div class="contact-icon">
-                        <!-- Telegram SVG -->
-                        <svg width="42" height="41" viewBox="0 0 42 41" fill="none"
-                             xmlns="http://www.w3.org/2000/svg">
-                            <g clip-path="url(#clip0_46_151)">
-                                <path
-                                    d="M21.4053 40.9368C32.7097 40.9368 41.8737 31.7728 41.8737 20.4684C41.8737 9.16403 32.7097 0 21.4053 0C10.1009 0 0.93689 9.16403 0.93689 20.4684C0.93689 31.7728 10.1009 40.9368 21.4053 40.9368Z"
-                                    fill="#039BE5"></path>
-                                <path
-                                    d="M10.3029 20.025L30.0379 12.4159C30.9538 12.085 31.7538 12.6393 31.457 14.0244L31.4587 14.0227L28.0985 29.8533C27.8494 30.9756 27.1825 31.2485 26.2495 30.7198L21.1324 26.9485L18.6642 29.3262C18.3913 29.5991 18.1611 29.8294 17.6323 29.8294L17.9956 24.6219L27.4793 16.0541C27.8921 15.6908 27.3872 15.4861 26.8431 15.8478L15.1232 23.2266L10.0709 21.6506C8.97415 21.3026 8.95027 20.5538 10.3029 20.025Z"
-                                    fill="white"></path>
-                            </g>
-                        </svg>
-                    </div>
+                        <div>
+                            <div class="fw-semibold">Telegram</div>
+                            <div class="text-muted" style="cursor:pointer" onclick="copy_buffer('{{ c.value }}')">{{ c.value }}</div>
+                        </div>
 
-                    <div>
-                        <div class="fw-semibold">Telegram</div>
-                        <div class="text-muted" style="cursor:pointer" onclick="copy_buffer('{{ c.value }}')">{{ c.value }}</div>
-                    </div>
-
-                {% endif %}
-
-
-                {# === MAX === #}
-                {% if c.type == 'max' %}
-
-                    <div class="contact-icon">
-                        <img
-                            src="{{ url_for('static', filename='index_v2/images/max_bot.svg') }}"
-                            width="42"
-                            height="42"
-                            alt="MAX messenger">
-                    </div>
-
-                    <div>
-                        <div class="fw-semibold">Max</div>
-                        <div class="text-muted" style="cursor:pointer" onclick="copy_buffer('{{ c.value }}')">{{ c.value }}</div>
-                    </div>
-
-                {% endif %}
+                    {% endif %}
 
 
-                {# === PHONE === #}
-                {% if c.type == 'phone' %}
+                    {# === MAX === #}
+                    {% if c.type == 'max' %}
 
-                    <div class="contact-icon">
-                        <!-- Phone SVG -->
-                        <svg width="41" height="41" viewBox="0 0 41 41" fill="none"
-                             xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="20.5" cy="20.5" r="20.5" fill="#25D366"/>
-                            <g transform="translate(20.5 20.5) scale(2) translate(-20.5 -20.5)">
-                                <path
-                                    d="M16.57 20.556C16.4419 20.3852 15.5253 19.1684 15.5253 17.9089C15.5253 16.6494 16.1863 16.0302 16.4208 15.774C16.6554 15.5179 16.9326 15.4541 17.1034 15.4541C17.2741 15.4541 17.4449 15.4559 17.5941 15.4631C17.7513 15.4712 17.9621 15.4033 18.1697 15.9025C18.3831 16.4148 18.8945 17.6748 18.9587 17.8028C19.023 17.9309 19.0652 18.0801 18.9803 18.2513C18.8949 18.422 18.8522 18.5285 18.7246 18.6782C18.5965 18.8278 18.4559 19.012 18.3404 19.1266C18.2124 19.2542 18.0789 19.3926 18.2281 19.6487C18.3773 19.9049 18.8909 20.7429 19.6516 21.4219C20.6289 22.294 21.4535 22.5641 21.7096 22.6922C21.9653 22.8202 22.1149 22.7991 22.2641 22.6279C22.4133 22.4572 22.904 21.8806 23.0747 21.6245C23.2455 21.3684 23.4158 21.4111 23.6503 21.4965C23.8849 21.5818 25.1431 22.201 25.3987 22.3291C25.6544 22.4572 25.8252 22.5214 25.8894 22.6279C25.9537 22.7349 25.9537 23.2471 25.7402 23.8447C25.5268 24.4424 24.5045 24.9883 24.013 25.0616C23.5722 25.1276 23.0141 25.155 22.4012 24.96C21.9056 24.8062 21.4186 24.6262 20.9421 24.4208C18.3746 23.3118 16.6985 20.7267 16.57 20.556Z"
-                                    fill="white"/>
-                            </g>
-                        </svg>
-                    </div>
+                        <div class="contact-icon">
+                            <img
+                                src="{{ url_for('static', filename='index_v3/images/max_bot.svg') }}"
+                                width="42"
+                                height="42"
+                                alt="MAX messenger">
+                        </div>
 
-                    <div>
-                        <div class="fw-semibold">Телефон</div>
-                        <div class="text-muted" style="cursor:pointer" onclick="copy_buffer('{{ c.value }}')">{{ c.value }}</div>
-                    </div>
+                        <div>
+                            <div class="fw-semibold">Max</div>
+                            <div class="text-muted" style="cursor:pointer" onclick="copy_buffer('{{ c.value }}')">{{ c.value }}</div>
+                        </div>
 
-                {% endif %}
+                    {% endif %}
 
-            </div>
 
-        {% else %}
+                    {# === PHONE === #}
+                    {% if c.type == 'phone' %}
 
-            <!-- Заглушка -->
-            <div class="text-muted d-flex align-items-center gap-2">
+                        <div class="contact-icon">
+                            <!-- Phone SVG -->
+                            <svg width="41" height="41" viewBox="0 0 41 41" fill="none"
+                                 xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="20.5" cy="20.5" r="20.5" fill="#25D366"/>
+                                <g transform="translate(20.5 20.5) scale(2) translate(-20.5 -20.5)">
+                                    <path
+                                        d="M16.57 20.556C16.4419 20.3852 15.5253 19.1684 15.5253 17.9089C15.5253 16.6494 16.1863 16.0302 16.4208 15.774C16.6554 15.5179 16.9326 15.4541 17.1034 15.4541C17.2741 15.4541 17.4449 15.4559 17.5941 15.4631C17.7513 15.4712 17.9621 15.4033 18.1697 15.9025C18.3831 16.4148 18.8945 17.6748 18.9587 17.8028C19.023 17.9309 19.0652 18.0801 18.9803 18.2513C18.8949 18.422 18.8522 18.5285 18.7246 18.6782C18.5965 18.8278 18.4559 19.012 18.3404 19.1266C18.2124 19.2542 18.0789 19.3926 18.2281 19.6487C18.3773 19.9049 18.8909 20.7429 19.6516 21.4219C20.6289 22.294 21.4535 22.5641 21.7096 22.6922C21.9653 22.8202 22.1149 22.7991 22.2641 22.6279C22.4133 22.4572 22.904 21.8806 23.0747 21.6245C23.2455 21.3684 23.4158 21.4111 23.6503 21.4965C23.8849 21.5818 25.1431 22.201 25.3987 22.3291C25.6544 22.4572 25.8252 22.5214 25.8894 22.6279C25.9537 22.7349 25.9537 23.2471 25.7402 23.8447C25.5268 24.4424 24.5045 24.9883 24.013 25.0616C23.5722 25.1276 23.0141 25.155 22.4012 24.96C21.9056 24.8062 21.4186 24.6262 20.9421 24.4208C18.3746 23.3118 16.6985 20.7267 16.57 20.556Z"
+                                        fill="white"/>
+                                </g>
+                            </svg>
+                        </div>
 
-                <i class="bi bi-exclamation-circle"></i>
-                Контактная информация не указана
+                        <div>
+                            <div class="fw-semibold">Телефон</div>
+                            <div class="text-muted" style="cursor:pointer" onclick="copy_buffer('{{ c.value }}')">{{ c.value }}</div>
+                        </div>
 
-            </div>
+                    {% endif %}
 
+                </div>
+
+            {% else %}
+
+                <!-- Заглушка -->
+                <div class="text-muted d-flex align-items-center gap-2">
+
+                    <i class="bi bi-exclamation-circle"></i>
+                    Контактная информация не указана
+
+                </div>
+
+            {% endif %}
         {% endif %}
-
     </div>
 
 </div>
 
 
-{# {% include 'crm_mod_v1/helpers/order_companies_block.html' %} #}
+{#{% include 'crm_mod_v1/helpers/order_companies_block.html' %}#}
 
