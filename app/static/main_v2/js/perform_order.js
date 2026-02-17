@@ -355,7 +355,7 @@ function perform_balance_order_check(urlCheckBalance, csrf, o_id, category) {
 
                 document.getElementById('process_modal_footer').innerHTML = `
                     <button type="button" class="btn btn-accent" id="btn_process"
-                        onclick="show_contact_step('${urlFinalSubmit}', '${csrf}', ${o_id}, '${category}', '${urlCheckBalance}');">
+                        onclick="show_contact_step();">
                         Все-равно оформить накладную!
                     </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>`;
