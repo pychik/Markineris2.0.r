@@ -130,9 +130,10 @@ def _check_clothes_compatibility(clothes) -> str | bool:
     sizes_ok = not size_errors
 
     # --- Итог ---
-    country_err = _check_country_by_rd(clothes)
+    # country_err = _check_country_by_rd(clothes)
 
-    if gender_ok and tnved_ok and sizes_ok and not country_err:
+    # if gender_ok and tnved_ok and sizes_ok and not country_err:
+    if gender_ok and tnved_ok and sizes_ok:
         return False
 
     # Формируем короткое описание для отчёта
@@ -146,7 +147,7 @@ def _check_clothes_compatibility(clothes) -> str | bool:
         bad = ", ".join(size_errors)
         base = f"{base} — несоответствующие размеры: {bad}"
 
-    base = _append_err(base, country_err)
+    # base = _append_err(base, country_err)
 
     return base
 
@@ -196,12 +197,12 @@ def _check_linen_compatibility(linen) -> str | bool:
         errors.append(f"[{t_bad} {tt_bad}]")
 
     # --- Страна (универсально) ---
-    country_err = _check_country_by_rd(linen)
-    if country_err:
-        if errors:
-            errors[-1] = _append_err(errors[-1], country_err)
-        else:
-            errors.append(str(country_err))
+    # country_err = _check_country_by_rd(linen)
+    # if country_err:
+    #     if errors:
+    #         errors[-1] = _append_err(errors[-1], country_err)
+    #     else:
+    #         errors.append(str(country_err))
 
     if not errors:
         return False
@@ -226,10 +227,11 @@ def _check_shoes_compatibility(shoe: Shoe) -> str | bool:
     lining_bad = s_material_lining in excepted
 
     # --- Страна ---
-    country_err = _check_country_by_rd(shoe)
+    # country_err = _check_country_by_rd(shoe)
 
     # --- Всё корректно ---
-    if not top_bad and not lining_bad and not country_err:
+    # if not top_bad and not lining_bad and not country_err:
+    if not top_bad and not lining_bad:
         return False
 
     # --- База по материалам ---
@@ -238,7 +240,7 @@ def _check_shoes_compatibility(shoe: Shoe) -> str | bool:
     base = f"[Материал верха {top}, Материал подкладки {linen}]"
 
     # --- Добавляем страну ---
-    base = _append_err(base, country_err)
+    # base = _append_err(base, country_err)
 
     return base
 

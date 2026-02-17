@@ -13,7 +13,7 @@ from models import User, Order, Shoe, ShoeQuantitySize, Socks, SocksQuantitySize
 from utilities.categories_data.clothes_common.tnved_processor import get_tnved_codes_for_gender
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.helpers.helpers_checks import _check_linen_compatibility, _check_clothes_compatibility, \
-    _check_shoes_compatibility, rd_name_clean, _check_parfum_compatibility, _check_socks_compatibility
+    _check_shoes_compatibility, rd_name_clean
 from utilities.exceptions import SizeTypeException
 
 
@@ -320,14 +320,14 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
 
 
 def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) -> Order:
-    incompatible_items = []
-    kept_socks_count = 0
+    # incompatible_items = []
+    # kept_socks_count = 0
 
     for sock in order_category_list:
-        result = _check_socks_compatibility(sock)
-        if result:  # несовместима — сохраняем сообщение
-            incompatible_items.append(result)
-            continue
+        # result = _check_socks_compatibility(sock)
+        # if result:  # несовместима — сохраняем сообщение
+        #     incompatible_items.append(result)
+        #     continue
 
         new_order.socks.append(Socks(
             trademark=sock.trademark,
@@ -349,20 +349,20 @@ def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) ->
                 for sq in sock.sizes_quantities
             ]
         ))
-        kept_socks_count += 1
+        # kept_socks_count += 1
 
-    if kept_socks_count == 0:
-        raise Exception(
-            "Не удалось скопировать ни одной позиции: все позиции не проходят новые правила ЧЗ."
-            + (" Подробности: " + ", ".join(incompatible_items) if incompatible_items else "")
-        )
-
-    if incompatible_items:
-        flash(
-            message="Из скопированного заказа были удалены позиции согласно новым правилам ЧЗ."
-                    " Обратите внимание:" + ", ".join(incompatible_items),
-            category="warning"
-        )
+    # if kept_socks_count == 0:
+    #     raise Exception(
+    #         "Не удалось скопировать ни одной позиции: все позиции не проходят новые правила ЧЗ."
+    #         + (" Подробности: " + ", ".join(incompatible_items) if incompatible_items else "")
+    #     )
+    #
+    # if incompatible_items:
+    #     flash(
+    #         message="Из скопированного заказа были удалены позиции согласно новым правилам ЧЗ."
+    #                 " Обратите внимание:" + ", ".join(incompatible_items),
+    #         category="warning"
+    #     )
 
     return new_order
 
@@ -404,14 +404,14 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
 
 
 def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) -> Order:
-    incompatible_items = []
-    kept_parfum_count = 0
+    # incompatible_items = []
+    # kept_parfum_count = 0
 
     for parfum in order_category_list:
-        result = _check_parfum_compatibility(parfum)
-        if result:
-            incompatible_items.append(result)
-            continue
+        # result = _check_parfum_compatibility(parfum)
+        # if result:
+        #     incompatible_items.append(result)
+        #     continue
 
         new_parfum = Parfum(
             trademark=parfum.trademark,
@@ -432,20 +432,20 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
             rd_date=parfum.rd_date,
         )
         new_order.parfum.append(new_parfum)
-        kept_parfum_count += 1
+        # kept_parfum_count += 1
 
-    if kept_parfum_count == 0:
-        raise Exception(
-            "Не удалось скопировать ни одной позиции: все позиции не проходят новые правила ЧЗ."
-            + (" Подробности: " + ", ".join(incompatible_items) if incompatible_items else "")
-        )
-
-    if incompatible_items:
-        flash(
-            message="Из скопированного заказа были удалены позиции согласно новым правилам ЧЗ."
-                    " Обратите внимание: " + ", ".join(incompatible_items),
-            category="warning"
-        )
+    # if kept_parfum_count == 0:
+    #     raise Exception(
+    #         "Не удалось скопировать ни одной позиции: все позиции не проходят новые правила ЧЗ."
+    #         + (" Подробности: " + ", ".join(incompatible_items) if incompatible_items else "")
+    #     )
+    #
+    # if incompatible_items:
+    #     flash(
+    #         message="Из скопированного заказа были удалены позиции согласно новым правилам ЧЗ."
+    #                 " Обратите внимание: " + ", ".join(incompatible_items),
+    #         category="warning"
+    #     )
 
     return new_order
 

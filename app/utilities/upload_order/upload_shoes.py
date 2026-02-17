@@ -164,17 +164,19 @@ class ValidateShoesMixin:
         country_value = value.upper().strip()
         order_list[row_num - settings.Shoes.UPLOAD_STANDART_ROW][pos] = country_value
 
-        if has_rd:
-            allowed = settings.COUNTRIES_LIST
-            if country_value not in allowed:
-                return f"{val_error_start(row_num=row_num, col=col)} {settings.Shoes.UPLOAD_COUNTRY_ERROR}"
-        else:
-            allowed = settings.SHOES_COUNTRIES_RD
-            if country_value not in allowed:
-                return (
-                    f"{val_error_start(row_num=row_num, col=col)} {settings.Shoes.UPLOAD_COUNTRY_ERROR} "
-                    f"Допустимые страны без РД: {allowed}"
-                )
+        if country_value not in settings.COUNTRIES_LIST:
+            return f"{val_error_start(row_num=row_num, col=col)} {settings.Shoes.UPLOAD_COUNTRY_ERROR}"
+        # if has_rd:
+        #     allowed = settings.COUNTRIES_LIST
+        #     if country_value not in allowed:
+        #         return f"{val_error_start(row_num=row_num, col=col)} {settings.Shoes.UPLOAD_COUNTRY_ERROR}"
+        # else:
+        #     allowed = settings.SHOES_COUNTRIES_RD
+        #     if country_value not in allowed:
+        #         return (
+        #             f"{val_error_start(row_num=row_num, col=col)} {settings.Shoes.UPLOAD_COUNTRY_ERROR} "
+        #             f"Допустимые страны без РД: {allowed}"
+        #         )
 
     @staticmethod
     @empty_value

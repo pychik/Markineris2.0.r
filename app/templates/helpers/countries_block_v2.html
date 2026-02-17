@@ -97,7 +97,7 @@
     // ВКЛ → rd_countries, ВЫКЛ → countries
     const list = isOn ? RD_COUNTRIES : COUNTRIES;
 
-    renderCountrySelect(selectEl, list, { preserveSelected });
+    {#renderCountrySelect(selectEl, list, { preserveSelected });#}
     applySwitchStyle(isOn);
     toggleRdBlock(isOn);
   }
