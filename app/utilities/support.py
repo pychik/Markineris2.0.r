@@ -2258,64 +2258,79 @@ def helper_get_image_html(img_path: str):
     return transaction_image
 
 
-def helper_get_check_archive(category_process: str, order_ids: str) -> list:
-    res = db.session.execute(text(
-        f"""
-            SELECT 
-                 string_agg( public.{category_process}.type, ''
-                 ) AS types,
-                 string_agg(public.{category_process}.country, '') AS countries,
-                 string_agg( public.{category_process}.trademark, ''
-                 ) AS trademarks
+def helper_get_check_archive(category_process: str, order_ids: list[int]) -> list[tuple[int, str]]:
+    if not order_ids:
+        return []
 
-            FROM public.orders 
-                JOIN public.{category_process} on public.{category_process}.order_id=public.orders.id
-            WHERE public.orders.id in ({order_ids}) 
-            GROUP BY public.orders.id ORDER BY public.orders.id DESC;    
-        """
-    ))
+    stmt = text(f"""
+        SELECT
+            o.id AS order_id,
+            string_agg(
+                concat_ws('|', c.type, c.country, c.trademark),
+                '||'
+                ORDER BY c.type, c.country, c.trademark
+            ) AS signature
+        FROM public.orders o
+        JOIN public.{category_process} c ON c.order_id = o.id
+        WHERE o.id = ANY(:order_ids)
+          AND o.to_delete IS NOT TRUE
+        GROUP BY o.id
+        ORDER BY o.id DESC;
+    """)
 
-    return res.fetchall()
+    return db.session.execute(stmt, {"order_ids": order_ids}).fetchall()
 
 
 def helper_check_user_order_in_archive(category: str, o_id: int) -> tuple[int, str]:
-    check_res = helper_get_check_archive(category_process=settings.CATEGORIES_DICT.get(category),
-                                         order_ids=str(o_id))
-    check_order_list = ''.join(check_res[0]) if check_res else None
+    check_res = helper_get_check_archive(
+        category_process=settings.CATEGORIES_DICT.get(category),
+        order_ids=[o_id]
+    )
+
+    check_sig = check_res[0][1] if check_res and check_res[0][1] else None
     result_status = 0
 
-    if not check_order_list:
-        answer = settings.Messages.CHECK_ORDER_REQUEST_ABS_ERROR
+    if not check_sig:
+        return 0, settings.Messages.CHECK_ORDER_REQUEST_ABS_ERROR
 
-    else:
-        dt_from = datetime.today() - timedelta(days=settings.ARCHIVE_CHECK_DAYS)
+    dt_from = datetime.today() - timedelta(days=settings.ARCHIVE_CHECK_DAYS)
 
-        # check archive orders for last 30 days for doubles prevent
-        a_orders = Order.query.with_entities(Order.id, Order.created_at,
-                                             Order.order_idn).filter(Order.category == category,
-                                                                     Order.user_id == current_user.id,
-                                                                     Order.stage > settings.OrderStage.CREATING,
-                                                                     Order.created_at >= dt_from) \
-            .order_by(desc(Order.id)).all()
+    a_orders = (Order.query.with_entities(Order.id, Order.created_at, Order.order_idn)
+        .filter(
+            Order.category == category,
+            Order.user_id == current_user.id,
+            Order.to_delete.is_(False),
+            Order.stage > settings.OrderStage.CREATING,
+            Order.created_at >= dt_from
+        )
+        .order_by(desc(Order.id)).all()
+    )
 
-        # we need to add null for new users with empty ordersarchive
-        a_orders_ids = 'null, ' + ','.join(list(map(lambda x: str(x.id), a_orders))) if a_orders else 'null'
+    a_orders_ids = [o.id for o in a_orders]
+    if not a_orders_ids:
+        return 0, settings.Messages.CHECK_ORDER_REQUEST_NO_MATCH
 
-        archive_orders = list(map(lambda x: ''.join(x),
-                                  helper_get_check_archive(category_process=settings.CATEGORIES_DICT.get(category),
-                                                           order_ids=a_orders_ids)))
+    archive_rows = helper_get_check_archive(
+        category_process=settings.CATEGORIES_DICT.get(category),
+        order_ids=a_orders_ids
+    )
 
-        if archive_orders.count(check_order_list) >= 1:
-            check_index = archive_orders.index(check_order_list)
+    # signature -> order_id
+    sig_to_order_id = {sig: oid for (oid, sig) in archive_rows if sig}
+
+    match_id = sig_to_order_id.get(check_sig)
+    if match_id:
+        matched = next((o for o in a_orders if o.id == match_id), None)
+        if matched:
             result_status = 1
+            answer = (
+                f"<u>{settings.Messages.CHECK_ORDER_MATCH}</u><br>"
+                f"{matched.order_idn} от <u>{matched.created_at.strftime('%d-%m-%Y %H:%M:%S')}</u>, "
+                f"все равно оформить?"
+            )
+            return result_status, answer
 
-            answer = f"<u>{settings.Messages.CHECK_ORDER_MATCH}</u><br>{a_orders[check_index].order_idn} от" \
-                     f" <u>{a_orders[check_index].created_at.strftime('%d-%m-%Y %H:%M:%S')}</u>, все равно оформить?"
-
-        else:
-            answer = settings.Messages.CHECK_ORDER_REQUEST_NO_MATCH
-
-    return result_status, answer
+    return 0, settings.Messages.CHECK_ORDER_REQUEST_NO_MATCH
 
 
 def helper_get_orders_marks(u_id: int, o_id: int = None, wo_flag: bool = False) -> Optional[tuple | Row]:
