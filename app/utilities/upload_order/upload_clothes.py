@@ -46,7 +46,6 @@ class ValidateClothesMixin:
     def _type(value: str, row_num: int, col: str, pos: int, order_list: list, subcategory: str = None) -> Optional[
         Union[list, str]]:
 
-        type_value = value.upper()
         message_ending = ''
 
         subcategory_types_map = {
@@ -62,9 +61,9 @@ class ValidateClothesMixin:
         if subcategory in subcategory_types_map:
             message_ending = f', подкатегория {subcategory}'
 
-        order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = type_value
+        order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = value
 
-        if type_value not in types_list:
+        if value not in types_list:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_TYPE_ERROR} {message_ending}"
 
     @staticmethod
@@ -284,7 +283,7 @@ class UploadClothes(UploadCategory):
                             or current_user.id == 2)
             for data_group in order_list:
                 # print(data_group)
-                cl_type = data_group[2].strip()
+                cl_type = data_group[2].strip().upper()
                 gender = data_group[4].strip()
                 size_type = data_group[5].strip().upper()
                 size_value = data_group[6].strip().upper()
