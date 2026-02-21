@@ -9,7 +9,8 @@ from models import User, Order, ServerParam
 from utilities.download import orders_download_common
 from utilities.support import (bck_sumausmumu_required, user_activated, sumausmumu_required, susmumu_required,
                                susmu_required,
-                               aus_required, ausumsuu_required, suausmumu_required, aus_mod_required)
+                               aus_required, ausumsuu_required, suausmumu_required, aus_mod_required,
+                               bck_not_ordinary_user_required)
 from .crm_support import get_weekly_order_summary
 
 from .helpers import (helper_get_agent_orders, helper_get_manager_orders, helper_m_order_processed, helper_m_order_ps,
@@ -20,7 +21,7 @@ from .helpers import (helper_get_agent_orders, helper_get_manager_orders, helper
                       helper_get_agent_stage_orders, helper_categories_counter,
                       helper_change_agent_stage_bck, helper_a_order_bp, helper_m_order_bp,
                       helpers_problem_order_response,
-                      helper_get_processing_order_info, helper_update_processing_order_info,)
+                      helper_get_processing_order_info, helper_update_processing_order_info, h_order_details, )
 from .helpers_mo import h_all_new_multi_pool
 crm_d = Blueprint('crm_d', __name__)
 
@@ -382,3 +383,11 @@ def get_processing_order_info():
 @bck_sumausmumu_required
 def update_processing_order_info():
     return helper_update_processing_order_info()
+
+
+@crm_d.route("/order/details")
+@login_required
+@user_activated
+@bck_not_ordinary_user_required
+def order_details():
+    return h_order_details()

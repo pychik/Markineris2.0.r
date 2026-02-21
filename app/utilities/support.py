@@ -47,7 +47,7 @@ from utilities.daily_price import get_cocmd
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
 from utilities.pdf_processor import get_first_page_as_image
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
-from utilities.validators import ValidatorProcessor
+from utilities.validators import ValidatorProcessor, validate_and_build_contact_info
 from views.crm.schema import CrmDefaults
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
 from .categories_data.subcategories_data import ClothesSubcategories, Category
@@ -1428,7 +1428,16 @@ def helper_process_category_order(user: User, order: Order, category: str, order
         flash(message=settings.Messages.EMPTY_ORDER, category='error')
         return redirect(url_for(f'{_category_name}.index'))
     o_id = order.id
+    ok, payload, err = validate_and_build_contact_info(
+        request.form.get("contact_type"),
+        request.form.get("contact_value")
+    )
 
+    if not ok:
+        flash(err, "error")
+        return redirect(url_for(f"{_category_name}.index", o_id=o_id))
+
+    order.contact_info = payload
     # check for company_idn exception
     company_idn = order.company_idn
     if company_idn in ExceptionDataUsers.get_company_idns():
@@ -3089,6 +3098,19 @@ def bck_sumausmumu_required(func):
             return jsonify(dict(status='danger', message='Недостаточно прав для этого запроса'))
 
     return wrapper
+
+
+def bck_not_ordinary_user_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.status is True and current_user.role != settings.ORD_USER:
+            return func(*args, **kwargs)
+        else:
+            return jsonify(dict(status='danger', message='Недостаточно прав для этого запроса'))
+
+    return wrapper
+
+
 # admin user required with id checks
 def au_required(func):
     @wraps(func)

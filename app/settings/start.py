@@ -8,7 +8,7 @@ from settings.initialization import create_app
 from settings.blueprints import register_blueprints
 from settings.handlers import register_handlers, setup_login
 from .commands import create_superuser, create_superuser_custom, set_server_default_params
-from .jinja_filters import count_quantity, time_since, time_since_top
+from .jinja_filters import count_quantity, time_since, time_since_top, from_json_filter
 
 urllib3.disable_warnings()
 
@@ -16,6 +16,7 @@ urllib3.disable_warnings()
 FILTERS["count_quantity"] = count_quantity
 FILTERS["time_since"] = time_since
 FILTERS["time_since_top"] = time_since_top
+FILTERS["from_json"] = from_json_filter
 
 migrate_handler = Migrate()
 SIMPLE_CAPTCHA = CAPTCHA(config=settings.CAPTCHA_CONFIG)

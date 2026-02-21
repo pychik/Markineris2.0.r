@@ -1,3 +1,5 @@
+import json
+import re
 from flask import request
 from re import fullmatch
 from typing import Optional
@@ -203,3 +205,38 @@ class ValidatorProcessor:
     @staticmethod
     def check_colors(color: str) -> bool:
         return color not in settings.ALL_COLORS
+
+
+def validate_and_build_contact_info(contact_type_raw: Optional[str],
+                                    contact_value_raw: Optional[str]) -> tuple[bool, str, Optional[str]]:
+    """
+    Возвращает:
+      (ok, payload_json, error_message)
+
+    payload_json: JSON строка для записи в Order.contact_info
+    """
+    _allowed_order_contact_types = {"telegram", "max", "phone"}
+    contact_type = (contact_type_raw or "").strip()
+    contact_value = (contact_value_raw or "").strip()
+
+    if not contact_type or not contact_value:
+        return False, "", "Способ связи обязателен"
+
+    if contact_type not in _allowed_order_contact_types:
+        return False, "", "Неверный способ связи"
+
+    if contact_type == "telegram":
+        if not re.fullmatch(r"@[A-Za-z0-9_]{5,32}", contact_value):
+            return False, "", "Telegram должен быть вида @username"
+
+    elif contact_type == "phone":
+        digits = re.sub(r"\D", "", contact_value)
+        if len(digits) < 10:
+            return False, "", "Введите корректный номер телефона"
+
+    elif contact_type == "max":
+        if len(contact_value) < 3:
+            return False, "", "Введите данные для связи через Max"
+
+    payload = json.dumps({"type": contact_type, "value": contact_value}, ensure_ascii=False)
+    return True, payload, None

@@ -1,0 +1,35 @@
+{% set is_agents_page = ('/agents' in (src or '')) %}
+{% set has_manager = n.manager_login is not none and n.manager_login != '' %}
+<div id="managerNameBlock_{{n.id}}">
+    <div class="manager d-flex align-items-center gap-2
+                {% if not has_manager %} text-muted {% endif %}"
+         {% if not is_agents_page and has_manager %}
+           data-bs-toggle="tooltip"
+           data-bs-html="true"
+           data-bs-placement="top"
+           {% if current_user.role in ['superuser', 'supermanager', 'markineris_admin'] %}
+             data-bs-title="Оператор заказа. Нажмите, чтобы изменить."
+             onclick="change_operator(
+               '{{ n.id }}',
+               '{{ n.order_idn }}',
+               `{{ url_for('crm_d.change_order_manager',
+                           manager_id=n.manager_id,
+                           o_id=n.id) }}`,
+               '{{ csrf_token() }}'
+             )"
+           {% else %}
+             data-bs-title="Оператор заказа"
+           {% endif %}
+         {% endif %}
+    >
+      <img src="{{ url_for('static', filename='crm_mod/img/icons/file-person.svg') }}"
+           alt=""
+           width="24" height="24">
+
+      {% if has_manager %}
+        <span>{{ n.manager_login }}</span>
+      {% else %}
+        <span class="fst-italic">Не назначен</span>
+      {% endif %}
+    </div>
+</div>
