@@ -1,0 +1,29 @@
+<div class="crm__col">
+  <div class="orders">
+    <h2 class="orders__title">
+      Одобренные заявки <span id="approved_cards_qty">({{ approved_cards|length }})</span>
+
+      <img src="{{ url_for('static', filename='crm_mod/img/icons/refresh.svg') }}"
+       role="button"
+       width="18" height="18"
+       data-bs-toggle="tooltip"
+       data-bs-title="Обновить"
+       onclick="pcReloadColumn('approved')">
+      <img src="{{ url_for('static', filename='crm_mod/img/icons/download.svg') }}"
+       role="button"
+       width="18" height="18"
+       class="ms-1 icon-grey-filter"
+       data-bs-toggle="tooltip"
+       data-bs-title="Скачать одобренные (по фирмам)"
+       onclick="pcDownloadCompaniesByStatus('approved')">
+    </h2>
+
+    <div style="width:335px"></div>
+
+    <div id="approved_cards_main">
+      <div class="orders__list" id="approved_cards_list">
+        {% include 'product_cards/crm/cards/updated_stages/_approved_list.html' %}
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,67 @@
+
+  {% for c in in_moderation_cards %}
+
+
+    <div class="orders__item order" id="cardCommonBlock_{{ c.id }}">
+
+    {% include 'product_cards/crm/helpers/card_header.html' %}
+
+    <div class="order__body">
+      <div class="order__info">
+        {% include 'product_cards/crm/helpers/card_bottom_info_common.html' %}
+      </div>
+
+
+      <div class="order__all">
+        {% include 'product_cards/crm/helpers/card_description.html' %}
+
+        <div class="order__footer">
+          {% include 'product_cards/crm/helpers/table_download.html' %}
+
+          <div class="steps d-flex gap-2">
+
+            {# <-- назад в обработку  #}
+
+              <img src="{{ url_for('static', filename='crm_mod/img/icons/arrow-left-circle-fill.svg') }}"
+                   width="24" height="24"
+                   data-bs-toggle="tooltip"
+                   data-bs-title="Вернуть в обработку"
+                   data-card-id="{{ c.id }}"
+                   onclick="pcMoveCard(this, 'in_progress')">
+
+              {# --> на уточнение #}
+              <img src="{{ url_for('static', filename='crm_mod/img/icons/chat-dots-fill.svg') }}"
+                   width="24" height="24"
+                   data-bs-toggle="tooltip"
+                   data-bs-title="Отправить на уточнение"
+                   data-card-id="{{ c.id }}"
+                   onclick="pcMoveCard(this, 'clarification')">
+              {# --> одобрить #}
+              <img src="{{ url_for('static', filename='crm_mod/img/icons/check-circle-fill.svg') }}"
+                   width="24" height="24"
+                   data-bs-toggle="tooltip"
+                   data-bs-title="Одобрить"
+                   data-card-id="{{ c.id }}"
+                   onclick="pcMoveCard(this, 'approved')">
+
+              {# --> отменить/отклонить (нужна причина) #}
+              <img src="{{ url_for('static', filename='crm_mod/img/icons/x-circle-fill.svg') }}"
+                   width="24" height="24"
+                   data-bs-toggle="tooltip"
+                   data-bs-title="Отменить (нужна причина)"
+                   data-card-id="{{ c.id }}"
+                   onclick="pcOpenRejectModal(this)">
+
+
+
+          </div>
+        </div>
+
+        <div class="order__roll">
+          Свернуть
+          <img src="{{ url_for('static', filename='crm_mod/img/icons/roll.svg') }}" width="19" height="19">
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}

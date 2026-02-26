@@ -1,0 +1,31 @@
+<div class="order__header">
+
+
+
+  <div class="order__name">
+
+      #{{ c.id }}
+    <span class="mx-1" data-bs-toggle="tooltip"
+             data-bs-title="{{c.sizes}}">
+      {% include 'product_cards/crm/helpers/counter.html' %}
+    </span>
+    <span class="me-1">
+        <img src="{{ url_for('static', filename='crm_mod/img/icons/eye.svg') }}"
+             role="button"
+             class="pc-article-link"
+             data-bs-toggle="tooltip"
+             data-bs-title="открыть карточку"
+             data-card-id="{{ c.id }}"
+             data-view-url="{{ url_for('crm_product_cards.crm_card_view', card_id=c.id) }}"
+              onclick="pcOpenViewModal(`{{ url_for('crm_product_cards.crm_card_view', card_id=c.id) }}`)">
+    </span>
+
+    {% include 'product_cards/crm/helpers/chat_icon.html' %}
+
+    {% include 'product_cards/crm/helpers/card_logs.html' %}
+
+
+  </div>
+  {% include 'product_cards/crm/helpers/order_category.html' %}
+
+</div>

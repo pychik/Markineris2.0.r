@@ -1,0 +1,54 @@
+{% set st = card.status.value if card.status.value is defined else card.status %}
+{% set unread = unread_map.get(card.id, 0) %}
+{% if st in ['in_progress', 'in_moderation', 'clarification', ] %}
+    <span class="me-1 pc-chat-wrap position-relative" style="display:inline-block;">
+          <button type="button"
+            class="pc-icon-btn"
+            data-pc-action="chat"
+            data-card-id="{{ card.id }}"
+            title="Чат"
+            onclick="pcChatOpen(this)">
+
+      <svg xmlns="http://www.w3.org/2000/svg"
+           width="20"
+           height="20"
+           viewBox="0 0 24 24"
+           fill="none">
+
+        <!-- bubble -->
+        <path
+          d="M5 6.5
+             H19
+             C20.9 6.5 22.5 8.1 22.5 10
+             V14
+             C22.5 15.9 20.9 17.5 19 17.5
+             H10
+             L6.5 20
+             V17.5
+             H5
+             C3.1 17.5 1.5 15.9 1.5 14
+             V10
+             C1.5 8.1 3.1 6.5 5 6.5Z"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linejoin="round"
+          stroke-linecap="round"
+          fill="none"
+        />
+
+        <!-- dots -->
+        <circle cx="9"  cy="12" r="1" fill="currentColor"/>
+        <circle cx="12" cy="12" r="1" fill="currentColor"/>
+        <circle cx="15" cy="12" r="1" fill="currentColor"/>
+
+      </svg>
+    </button>
+
+      {% if unread and unread > 0 %}
+        <span class="badge rounded-pill bg-warning text-dark position-absolute"
+              style="top:-8px; right:-10px; font-size:11px;">
+          +{{ unread }}
+        </span>
+      {% endif %}
+    </span>
+{% endif %}

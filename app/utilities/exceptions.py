@@ -24,3 +24,6 @@ class ArticlesException(Exception):
 
 class SizeTypeException(Exception):
     """Исключение вводом запрещеного сочетания типа и размера одежды"""
+
+class CompanyPoolError(Exception):
+    """Недостаточно активных компаний в пуле."""

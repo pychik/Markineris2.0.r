@@ -1,0 +1,92 @@
+{% extends 'main/base_v2.html' %}
+{% block main %}
+
+<div id="config"
+     data-csrf="{{ csrf_token() }}"
+     data-order-id="{{ o_id }}"
+     data-table-url="{{ url_for('user_product_cards.pc_order_table', o_id=o_id) }}"
+     data-delete-order-url="{{ url_for('user_product_cards.pc_order_delete', o_id=o_id) }}"
+     data-pos-url-template="{{ url_for('user_product_cards.pc_order_pos_view', o_id=o_id, pos_id=0) }}"
+     data-delete-pos-url-template="{{ url_for('user_product_cards.pc_order_delete_pos', o_id=o_id, pos_id=0) }}"
+     data-check-url="{{ url_for('user_product_cards.pc_order_check_before_process', o_id=o_id) }}">
+</div>
+
+<div class="container mt-3">
+
+  <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
+    <div class="breadcrumbs">
+      <a href="{{ url_for('user_product_cards.pc_orders_drafts') }}">
+        Оформление заказов (из карточек товаров прошедших модерацию)
+      </a>
+      /
+      <span>Заказ {{ o_id }}</span>
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <h4 class="mb-1">
+      Заказ {{ o_id }} — {{ category_title }}
+      {% if subcategory_title %} / {{ subcategory_title }}{% endif %}
+    </h4>
+    <div class="text-muted">
+      Компания: <b>{{ order.company_name or '-' }}</b> (ИНН: {{ order.company_idn or '-' }})
+    </div>
+  </div>
+
+  <div class="step-btns mt-3 px-5 d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center justify-content-sm-between">
+  <!-- Слева: Очистить -->
+  <button type="button"
+          class="btn btn-outline-dark flex-sm-grow-0"
+          id="btnClearPcOrder">
+    Очистить накладную
+  </button>
+
+  <!-- Центр: Просмотр -->
+  <a class="btn btn-outline-secondary flex-sm-grow-0" id="btnPreviewPcOrder" href="{{ url_for('user_product_cards.pc_order_preview', o_id=o_id) }}">
+    Просмотр накладной
+  </a>
+
+
+  <!-- Справа: Оформить -->
+  <form id="form_process" method="post"
+        action="{{ url_for('user_product_cards.pc_order_process', o_id=o_id) }}"
+        class="m-0">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <input type="hidden" name="orders_pos_count" id="orders_pos_count" value="{{ marks_count }}">
+    <input type="hidden" maxlength="100" id="order_comment" name="order_comment">
+
+    <button type="button"
+            id="finalizeOrderBtn"
+            class="btn btn-primary btn-accent border-0 text-dark"
+            data-bs-toggle="modal" data-bs-target="#processModal" data-bs-backdrop="static">
+      Оформить заказ
+    </button>
+  </form>
+</div>
+
+
+  <div id="pc-order-table" class="mt-5"></div>
+
+</div>
+
+{% include 'product_cards/user/modals/modal_process.html' %}
+
+<div class="modal fade" id="pcPosModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Позиция</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body" id="pcPosModalBody">
+        Загрузка...
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='product_cards/users/pc_order_view.js') }}?v=1"></script>
+<script src="{{ url_for('static', filename='product_cards/users/pc_order_process.js') }}?v=3"></script>
+
+
+{% endblock %}

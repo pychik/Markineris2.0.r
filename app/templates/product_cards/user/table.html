@@ -1,0 +1,222 @@
+<div id="categories_config"
+     data-current-category="current_category"
+     data-current-category-title="{{ category_titles.get(current_category, current_category) }}"
+     data-current-subcategory-title="{% if current_subcategory %}{{ categories_common.get(current_category).get('subcategories').get(current_subcategory) }}{% endif %}">
+</div>
+<div class="row mt-3 faded">
+  <div class="col-12">
+    <h5 class="fw-bold">
+
+      Карточки в категории
+      {{ category_titles.get(current_category, current_category) }}
+
+      {% if current_subcategory %}
+        — {{ categories_common.get(current_category).get('subcategories').get(current_subcategory) }}
+      {% endif %}
+      {% if article_query %}
+        <span class="text-muted" style="font-weight: normal;">
+          (поиск: «{{ article_query }}»)
+        </span>
+      {% endif %}
+    </h5>
+
+    {% if product_cards %}
+      <div class="table-responsive pc-table-wrapper">
+        <table class="table align-middle pc-table">
+          <thead>
+            <tr>
+              <th>Артикул / товар</th>
+              {% if product_cards[0].category != 'parfum' %}<th>Размеры</th>{%endif%}
+              <th>Статус</th>
+              <th>Создан</th>
+              <th class="text-end">Действия</th>
+            </tr>
+          </thead>
+
+          <tbody id="pcTableBody">
+            {% for card in product_cards %}
+
+              {# определяем «основной» объект в карточке #}
+              {% set item = None %}
+              {% if card.category == 'clothes' %}
+                {% set item = card.clothes[0] if card.clothes else None %}
+              {% elif card.category == 'shoes' %}
+                {% set item = card.shoes[0] if card.shoes else None %}
+              {% elif card.category == 'linen' %}
+                {% set item = card.linen[0] if card.linen else None %}
+              {% elif card.category == 'socks' %}
+                {% set item = card.socks[0] if card.socks else None %}
+              {% elif card.category == 'parfum' %}
+                {% set item = card.parfum[0] if card.parfum else None %}
+              {% endif %}
+
+              <tr class="{{ 'pc-row-blink' if card.status.value == 'clarification' }}">
+                {# 1. Артикул (для парфюма вместо артикула — торговая марка) #}
+                <td>
+                  {% if item %}
+                    {% if card.category == 'parfum' %}
+                      {{ item.trademark or "-" }}
+                    {% else %}
+                      {{ item.article or "-" }}
+                    {% endif %}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+
+
+                {# 3. Размеры через запятую (для тех категорий, где они есть) #}
+                {% if item and card.category in ['clothes', 'shoes', 'linen', 'socks'] %}
+                  <td>
+
+                    {% if item.sizes_quantities %}
+                      {% set size_list = item.sizes_quantities | map(attribute='size') | list %}
+                      {{ size_list|join(', ') }}
+
+                    {% else %}
+                      -
+                    {% endif %}
+                    </td>
+                  {% endif %}
+
+
+                {# 4. Статус карточки #}
+                <td>
+                  <span class="pc-status pc-status-{{ card.status.value }}">
+                      {{ status_titles[card.status.value] }}
+                  </span>
+                </td>
+
+                {# 5. Дата/время #}
+                <td>
+                  {{ card.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                </td>
+
+                {# 6. Действия #}
+                  <td class="text-end pc-actions">
+                    <div class="pc-actions-inner">
+
+                      {# Чат #}
+                      {% include 'product_cards/user/chat_icon.html'%}
+
+                      {# Просмотреть #}
+                      <button type="button"
+                              class="pc-icon-btn"
+                              data-pc-action="view"
+                              data-card-id="{{ card.id }}"
+                              data-view-url="{{ url_for('user_product_cards.card_view', card_id=card.id) }}">
+
+                        {% if card.status.value not in ['approved', 'partially_approved'] %}
+                            {# иконка «глаз» #}
+                          <span title="Посмотреть карточку товара">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 5C7 5 3.2 8.1 2 12c1.2 3.9 5 7 10 7s8.8-3.1 10-7c-1.2-3.9-5-7-10-7Z"
+                                      stroke="currentColor" stroke-width="1.5" fill="none"/>
+                                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                              </svg>
+                          </span>
+                        {% else %}
+                          {# иконка «корзина» #}
+                          <span title="Добавить товар в заказ">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cart-plus" viewBox="0 0 16 16">
+                              <path d="M9 5.5a.5.5 0 0 0-1 0V7H6.5a.5.5 0 0 0 0 1H8v1.5a.5.5 0 0 0 1 0V8h1.5a.5.5 0 0 0 0-1H9z"/>
+                              <path d="M.5 1a.5.5 0 0 0 0 1h1.11l.401 1.607 1.498 7.985A.5.5 0 0 0 4 12h1a2 2 0 1 0 0 4 2 2 0 0 0 0-4h7a2 2 0 1 0 0 4 2 2 0 0 0 0-4h1a.5.5 0 0 0 .491-.408l1.5-8A.5.5 0 0 0 14.5 3H2.89l-.405-1.621A.5.5 0 0 0 2 1zm3.915 10L3.102 4h10.796l-1.313 7zM6 14a1 1 0 1 1-2 0 1 1 0 0 1 2 0m7 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                            </svg>
+                          </span>
+                        {% endif %}
+                      </button>
+
+                      {# Изменить и копировать #}
+                      {% if card.status.value == 'clarification' %}
+                        <a class="pc-icon-btn"
+                           title="Изменить"
+                           href="{{ url_for('user_product_cards.edit_product_card', card_id=card.id) }}">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                               viewBox="0 0 24 24" fill="none">
+                            <path d="M4 20h4l11-11a2.2 2.2 0 0 0 0-3.1l-.9-.9a2.2 2.2 0 0 0-3.1 0L4 16v4Z"
+                                  stroke="currentColor" stroke-width="1.5" fill="none"
+                                  stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M13.5 6.5l4 4"
+                                  stroke="currentColor" stroke-width="1.5" fill="none"
+                                  opacity="0.6"
+                                  stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                        </a>
+                      {% elif card.status.value == 'rejected' %}
+                        <button type="button"
+                                class="pc-icon-btn"
+                                title="Скопировать и создать новую с необходимыми изменениями"
+                                data-pc-action="edit"
+                                data-card-id="{{ card.id }}"
+                                data-edit-url="{{ url_for('user_product_cards.card_edit', card_id=card.id) }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                 viewBox="0 0 24 24" fill="none">
+                              <!-- квадрат -->
+                              <rect x="4" y="4" width="16" height="16" rx="2"
+                                    stroke="currentColor" stroke-width="1.5" fill="none"/>
+                              <!-- плюс -->
+                              <path d="M12 8v8M8 12h8"
+                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+
+
+                        </button>
+                      {% else %}
+                        <button type="button"
+                                class="pc-icon-btn"
+                                title="Копировать"
+                                data-pc-action="edit"
+                                data-card-id="{{ card.id }}"
+                                data-edit-url="{{ url_for('user_product_cards.card_edit', card_id=card.id) }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                               viewBox="0 0 24 24" fill="none">
+                            <rect x="8" y="8" width="11" height="11" rx="2"
+                                  stroke="currentColor" stroke-width="1.5" fill="none"/>
+                            <rect x="5" y="5" width="11" height="11" rx="2"
+                                  stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.6"/>
+                          </svg>
+                        </button>
+                      {% endif %}
+
+                      {# Удалить #}
+                      {% if card.status.value in ['created', 'rejected', 'partially_approved', 'approved'] %}
+                        <button type="button"
+                                class="pc-icon-btn"
+                                title="Удалить"
+                                data-pc-action="delete"
+                                data-card-id="{{ card.id }}"
+                                data-delete-url="{{ url_for('user_product_cards.card_delete', card_id=card.id) }}">
+
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20"
+                               height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M10.1 2.25a.75.75 0 0 0-.75.75v.75H5.1A.75.75 0 0 0 4.35 4.5c0 .414.336.75.75.75h14a.75.75 0 0 0 0-1.5h-4.25V3a.75.75 0 0 0-.75-.75h-4Z"
+                                  fill="currentColor"/>
+                            <path d="M10.1 10.65c.414 0 .75.336.75.75V18.4a.75.75 0 0 1-1.5 0V11.4c0-.414.336-.75.75-.75Z"
+                                  fill="currentColor"/>
+                            <path d="M14.85 11.4a.75.75 0 0 0-1.5 0V18.4a.75.75 0 1 0 1.5 0V11.4Z"
+                                  fill="currentColor"/>
+                            <path fill-rule="evenodd" clip-rule="evenodd"
+                                  d="M6.09 7.917A.75.75 0 0 1 6.837 7.25h10.526a.75.75 0 0 1 .747.667l.2 1.801c.362 3.265.362 6.56 0 9.826l-.02.177a2.75 2.75 0 0 1-2.44 2.51 29.6 29.6 0 0 1-7.498 0 2.75 2.75 0 0 1-2.44-2.51l-.02-.177a48.3 48.3 0 0 1 0-9.826l.2-1.801Zm1.417.833-.126 1.134a46.8 46.8 0 0 0 0 9.495l.02.178c.07.615.545 1.105 1.158 1.19a28.1 28.1 0 0 0 7.082 0 1.25 1.25 0 0 0 1.158-1.19l.02-.178a46.8 46.8 0 0 0 0-9.495L16.69 8.75h-9.184Z"
+                                  fill="currentColor"/>
+                          </svg>
+                        </button>
+                      {% endif %}
+                    </div>
+                  </td>
+
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+    {% else %}
+      <div class="pc-empty text-center py-5 text-muted">
+        <p>У вас пока нет товаров</p>
+        <p>Нажмите «Создать новый товар», чтобы добавить первый.</p>
+      </div>
+    {% endif %}
+  </div>
+{% include "product_cards/user/pagination.html" %}
+</div>
+

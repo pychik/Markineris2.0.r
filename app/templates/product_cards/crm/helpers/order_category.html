@@ -1,0 +1,47 @@
+    {% if c.category == 'shoes' %}
+        <div class="order__img order__img--green" data-bs-toggle="tooltip" style="user-select: none;"
+                            data-bs-placement="top" data-bs-title="{{ categories_common[c.category].title }}">
+            <img src="{{ url_for('static', filename='crm_mod/img/icons/02.svg')}}" alt="" class="img-fluid">
+        </div>
+    {% elif c.category == 'clothes' %}
+      {% set sub_icon_map = {
+          'underwear': 'underwear.svg',
+          'swimming_accessories': 'swimming_accessories.svg',
+          'hats': 'hats.svg',
+          'gloves': 'gloves.svg',
+          'shawls': 'shawls.svg'
+      } %}
+
+      {% if c.subcategory and c.subcategory in sub_icon_map %}
+        <div class="order__img order__img--blue"
+             data-bs-toggle="tooltip"
+             data-bs-placement="top"
+             data-bs-title="{{ c.subcategory_title }}">
+          <img src="{{ url_for('static', filename='crm_mod/img/icons/' ~ sub_icon_map[c.subcategory]) }}"
+               alt="" class="img-fluid">
+        </div>
+      {% else %}
+        <div class="order__img order__img--blue"
+             data-bs-toggle="tooltip"
+             data-bs-placement="top"
+             data-bs-title="{{ categories_common[c.category].title }}">
+          <img src="{{ url_for('static', filename='crm_mod/img/icons/01.svg') }}" alt="" class="img-fluid">
+        </div>
+      {% endif %}
+
+    {% elif c.category == 'socks' %}
+        <div class="order__img order__img--blue" data-bs-toggle="tooltip" style="user-select: none;"
+                        data-bs-placement="top" data-bs-title="{{ categories_common[c.category].title }}">
+            <img src="{{ url_for('static', filename='crm_mod/img/icons/socks.svg')}}" alt="" class="img-fluid">
+        </div>
+    {% elif c.category == 'linen' %}
+        <div class="order__img order__img--blue" data-bs-toggle="tooltip" style="user-select: none;"
+                        data-bs-placement="top" data-bs-title="{{ categories_common[c.category].title }}">
+            <img src="{{ url_for('static', filename='crm_mod/img/icons/03.svg')}}" alt="" class="img-fluid">
+        </div>
+    {% elif c.category == 'parfum' %}
+        <div class="order__img order__img--pink" data-bs-toggle="tooltip" style="user-select: none;"
+                        data-bs-placement="top" data-bs-title="{{ categories_common[c.category].title }}">
+            <img src="{{ url_for('static', filename='crm_mod/img/icons/04.svg')}}" alt="" class="img-fluid">
+        </div>
+    {% endif %}

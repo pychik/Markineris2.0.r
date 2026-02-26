@@ -1,0 +1,78 @@
+.pc-article-link{
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #0d6efd;
+  cursor: pointer;
+  text-decoration: underline;
+  font-weight: 600;
+}
+.pc-article-link:hover{
+  text-decoration: none;
+}
+
+.main_cards {
+  padding-top: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+
+.crm-download-icon-btn{
+  background:none;border:none;padding:0;margin:0;cursor:pointer;
+  font-size:16px;line-height:1;
+}
+.crm-download-icon-btn:hover{opacity:.7}
+
+/* фон модалки (как хотели ранее) */
+#crmSearchModal .modal-body{
+  background:#f2f3f5;
+  padding:16px;
+}
+
+/* колонка фикс ширины */
+.crm-search-cards-column{
+  width:335px;
+}
+
+/* 1) если внутри списки / list-group */
+.crm-search-cards-column .list-group-item{
+  margin-bottom:12px;
+}
+
+/* 2) если используются bootstrap card */
+.crm-search-cards-column .card{
+  margin-bottom:12px;
+}
+
+/* 3) если карточки — просто блоки внутри общего контейнера */
+.crm-search-cards-column > div > div{
+  margin-bottom:12px;
+}
+
+/* 4) если внутри таблица (карточки строками) — даём вертикальный отступ строкам */
+.crm-search-cards-column table{
+  border-collapse: separate !important;
+  border-spacing: 0 12px !important; /* вертикальный gap между строками */
+}
+
+.badge-soft {
+  border: 1px solid currentColor;   /* рамка = акцентный цвет */
+  font-weight: 500;
+  padding: .45rem .6rem;
+  border-radius: 9px;
+  letter-spacing: .2px;
+
+  color: #3a3f45;                   /* спокойный тёмный текст */
+}
+
+.badge-soft b {
+  color: #5f6367;                   /* чуть темнее для суммы */
+}
+
+#crm-search-card-input {
+  width: 150px;       /* фиксированная ширина */
+  min-width: 150px;
+}

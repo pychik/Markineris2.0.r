@@ -1,0 +1,21 @@
+{% if current_user.role == "supermanager" or current_user.role == 'superuser' %}
+    <div class="mb-1" title="Фильтр заказов по менеджеру">
+
+        <div class="row mt-3">
+<!--            <div class="col-md-3 col-xs-12 text-left"></div>-->
+            <div class="col-md-3 col-xs-12 text-left">
+                <select class="form-control" id="selectManager" onchange="filter_manager(`{{url_for('crm_d.managers')}}`);">
+                    <option value="" {% if not filtered_manager_id%}selected{% endif %}>
+                            Все заказы
+                        </option>
+                    {%for m in managers_list%}
+                        <option value="/{{m[0]}}" {% if filtered_manager_id == m[0] %}selected{% endif %}>
+                            Заказы {{m[1]}}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+    </div>
+{% endif %}

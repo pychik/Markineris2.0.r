@@ -31,8 +31,27 @@ def register_handlers(app: Flask) -> None:
             return
         if current_user.role not in [settings.MANAGER_USER, settings.SUPER_MANAGER, settings.MARKINERIS_ADMIN_USER]:
             return
-        if request.path == url_for('auth.logout') or request.path.startswith('/static/') or request.path.startswith(
-                '/_debug_toolbar/'):
+        if (
+                request.path == url_for('auth.logout')
+                or request.path.startswith('/static/')
+                or request.path.startswith('/_debug_toolbar/')
+                or request.endpoint == 'static'  # на всякий случай
+        ):
+            return
+        # ✅ allow crm_product_cards for all 3 roles
+        allowed_blueprints = {'crm_product_cards', 'chat_product_cards', }
+        if request.blueprint in allowed_blueprints:
+            return
+        operator_allowed_endpoints = {
+            "clothes.bck_clothes_genders",
+            "clothes.bck_clothes_tnved",
+            "user_product_cards.update_product_card",
+            "user_product_cards.edit_product_card"
+        }
+        if request.endpoint in operator_allowed_endpoints:
+            return
+        # existing exception
+        if current_user.role == settings.SUPER_MANAGER and request.path.startswith('/crm_uoc'):
             return
         if current_user.role == settings.SUPER_MANAGER and request.path.startswith('/crm_uoc'):
             return
@@ -44,7 +63,7 @@ def register_handlers(app: Flask) -> None:
             ]
             allowed_transaction_url = [
                 url_for('admin_control.su_bck_control_ut'),
-                # url_for('admin_control.update_transaction_account', transaction_id=1)[:-3],
+                url_for('admin_control.update_transaction_account', transaction_id=1)[:-3],
                 url_for('admin_control.su_control_ut'),
                 url_for('admin_control.su_bck_ut_report'),
                 url_for('admin_control.bck_su_transaction_detail', u_id=1, t_id=1)[:-3],
@@ -55,7 +74,7 @@ def register_handlers(app: Flask) -> None:
             allowed_finance_url = [
                 url_for('admin_control.su_add_promo'),
                 url_for('admin_control.su_bck_promo'),
-                # url_for('admin_control.get_accounts'),
+                url_for('admin_control.get_accounts'),
                 url_for('admin_control.su_delete_promo', p_id=1),
                 url_for('admin_control.su_fin_promo_history'),
                 url_for('admin_control.su_control_finance'),

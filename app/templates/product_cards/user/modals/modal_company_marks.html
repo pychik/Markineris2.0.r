@@ -1,0 +1,23 @@
+<div class="modal fade" id="o-b-cart-settings-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content p-3 p-md-4">
+      <div class="modal-header">
+        <h5 class="modal-title">Настройки заказа</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- 1) организация -->
+        {% include 'product_cards/user/modals/organization.html' %}
+
+        <!-- 2) тип этикетки (твой mark_type + markModal уже есть внутри include) -->
+        <!-- ВАЖНО: ниже в JS мы будем перехватывать выбор маркировки и писать в корзину -->
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+        <button type="button" class="btn btn-accent" id="o-b-cart-settings-save">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>

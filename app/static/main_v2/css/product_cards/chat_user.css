@@ -1,0 +1,68 @@
+/* Контейнер */
+.pc-chat {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+/* Текстовое поле */
+.pc-chat__input {
+  flex: 1;
+  resize: none;
+  padding: 8px 10px;
+  font-size: 14px;
+  line-height: 1.4;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  outline: none;
+}
+
+.pc-chat__input:focus {
+  border-color: #f0ad4e;
+}
+
+/* Контейнер кнопок */
+.pc-chat__buttons {
+  display: flex;
+  gap: 6px;
+}
+
+/* Общий стиль кнопок */
+.pc-chat__btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+/* Кнопка отправки */
+.pc-chat__btn--send {
+  border-color: #f0ad4e;
+  color: #f0ad4e;
+}
+
+.pc-chat__btn--send:hover {
+  background: #f0ad4e;
+  color: #000;
+}
+
+/* Кнопка обновления */
+.pc-chat__btn--refresh {
+  border-color: #6c757d;
+  color: #6c757d;
+}
+
+.pc-chat__btn--refresh:hover {
+  background: #6c757d;
+  color: #fff;
+}

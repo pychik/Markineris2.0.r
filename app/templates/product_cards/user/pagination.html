@@ -1,0 +1,53 @@
+{% if product_cards %}
+  <div class="pc-pagination mt-3">
+
+    <div class="pagination-page-info text-center mb-2">
+      На этой странице
+      <b>{{ offset + 1 }} - {{ offset + product_cards|length }}</b>
+      Всего: <b>{{ pagination.total }}</b>
+    </div>
+
+    {% if pagination.pages > 1 %}
+      <div class="pagination_section my-1">
+        <ul class="pagination justify-content-center mb-0">
+
+          {# «Назад» #}
+          <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+            <a href="#"
+               class="page-link"
+               data-pc-page="{{ pagination.prev_num if pagination.has_prev else 1 }}">
+              &laquo;
+            </a>
+          </li>
+
+          {# Номера страниц #}
+          {% for p in pagination.iter_pages(left_edge=1, left_current=2,
+                                            right_current=2, right_edge=1) %}
+            {% if p %}
+              <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                <a href="#"
+                   class="page-link"
+                   data-pc-page="{{ p }}">{{ p }}</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled">
+                <span class="page-link">…</span>
+              </li>
+            {% endif %}
+          {% endfor %}
+
+          {# «Вперёд» #}
+          <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+            <a href="#"
+               class="page-link"
+               data-pc-page="{{ pagination.next_num if pagination.has_next else pagination.page }}">
+              &raquo;
+            </a>
+          </li>
+
+        </ul>
+      </div>
+    {% endif %}
+
+  </div>
+{% endif %}

@@ -1,0 +1,39 @@
+<div class="modal fade" id="processModal" tabindex="-1"
+     data-bs-backdrop="static" data-bs-keyboard="false"
+     aria-labelledby="processModalLabel" aria-modal="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content p-3 p-md-4">
+
+      <div class="modal-header">
+        <h5 class="modal-title border-0" id="processModalLabel">
+          Проверка перед оформлением
+        </h5>
+      </div>
+
+      <div class="modal-body">
+        <b class="d-flex justify-content-between">
+          Количество маркировок в заказе
+          <div id="modal_orders_pos_count"><span>{{ orders_pos_count or 0 }}</span> шт.</div>
+        </b>
+
+        <div id="data_order_check_insert" class="mt-2"></div>
+      </div>
+
+      <div class="modal-body">
+        <label class="mb-3">Комментарий (необязательно)</label>
+        <textarea class="form-control mt-1"
+                  maxlength="450"
+                  placeholder="Комментарий к заказу"
+                  id="order_comment_after"
+                  name="order_comment_after"></textarea>
+      </div>
+
+      <div class="modal-footer d-flex flex-column" id="process_modal_footer">
+        <div class="col text-center text-warning">
+          <b>Откройте модалку — проверим заказ</b>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

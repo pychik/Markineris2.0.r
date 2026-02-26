@@ -1,0 +1,81 @@
+{% extends "product_cards/crm/base_crm.html" %}
+
+{% block crm_user_product_cards %}
+<div id="pc-config"
+     data-current-user-id="{{ current_user.id }}"
+     data-csrf="{{ csrf_token() }}"
+     data-current-category="{{ current_category or '' }}"
+     data-current-subcategory="{{ current_subcategory or '' }}"
+     data-take-card-url-template="{{ url_for('crm_product_cards.pc_take_card_to_processing', pc_id=0) }}"
+
+     data-move-card-url-template="{{ url_for('crm_product_cards.pc_move_card', pc_id=0) }}"
+
+     data-companies-modal-url="{{ url_for('crm_product_cards.companies_modal') }}"
+     data-companies-create-url="{{ url_for('crm_product_cards.companies_create') }}"
+     data-companies-delete-url-template="{{ url_for('crm_product_cards.companies_delete', company_id=0) }}"
+
+     data-card-logs-url-template="{{ url_for('crm_product_cards.pc_card_logs', pc_id=0) }}"
+
+     data-lazy-column-url="{{ url_for('crm_product_cards.pc_lazy_column') }}"
+     data-search-card-url="{{ url_for('crm_product_cards.search_card') }}"
+
+     data-chat-messages-url-template="{{ url_for('chat_product_cards.pc_chat_get_messages', pc_id=0) }}"
+     data-chat-send-url-template="{{ url_for('chat_product_cards.pc_chat_send', pc_id=0) }}"
+     data-chat-read-url-template="{{ url_for('chat_product_cards.pc_chat_mark_read', pc_id=0) }}"
+
+     data-approve-from-partially-url-template="{{ url_for('crm_product_cards.crm_approve_from_partially', card_id=0) }}"
+
+     data-set-company-slot-url="{{ url_for('crm_product_cards.crm_set_company_slot', card_id=0) }}"
+     data-transfer-sent-to-in-progress-url="{{ url_for('crm_product_cards.transfer_sent_to_in_progress') }}"
+     data-download-cards-companies-in-progress="{{ url_for('crm_product_cards.download_cards_companies_in_progress') }}"
+     data-download-companies-url="{{ url_for('crm_product_cards.download_cards_companies') }}"
+
+
+></div>
+{#
+{% include "product_cards/crm/helpers/helper_button_reject_cards_with_rd.html" %}#}
+<div id="update_all_info">
+
+    {% include 'product_cards/crm/cards/data_block.html'%}
+</div>
+{% include 'product_cards/crm/helpers/manager_alert.html' %}
+
+{% include "product_cards/crm/helpers/modals/crm_search.html" %}
+ {% include "product_cards/chat/modal_crm.html" %}
+
+ {% include "product_cards/crm/helpers/modals/modal_card_logs.html" %}
+
+
+<div class="modal fade" id="pc-view-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Просмотр карточки</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body" id="pc-view-modal-body">
+        <!-- сюда прилетит HTML -->
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal fade" id="problem_orderModal" tabindex="-1" data-bs-backdrop="static" role="dialog" aria-labelledby="problem_orderModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+          <h5 class="modal-title" id="problem_orderModalLabel"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div id="order_problem_block">
+
+      </div>
+
+
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,9 @@
+{% if c.manager_login %}
+  <div class="order__num">
+    Оператор: <span class="text-secondary">{{ c.manager_login }}</span>
+  </div>
+{% else %}
+  <div class="order__num text-muted">
+    Оператор: не назначен
+  </div>
+{% endif %}

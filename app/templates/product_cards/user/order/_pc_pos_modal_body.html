@@ -1,0 +1,90 @@
+<div class="container-fluid">
+
+  <div class="row">
+    <div class="col-12">
+
+      <h6 class="mb-3">Основные параметры</h6>
+
+      <table class="table table-sm">
+        <tbody>
+        <tr>
+          <td class="text-muted" style="width: 40%;">Категория</td>
+          <td>
+            <b>{{ category or '-' }}</b>
+            {% if subcategory_title %}
+              <span class="text-muted"> / </span><b>{{ subcategory_title }}</b>
+            {% endif %}
+          </td>
+        </tr>
+        {% for label, value in fields_prepared %}
+          <tr>
+            <td class="text-muted" style="width: 40%;">{{ label }}</td>
+            <td><b>{{ value }}</b></td>
+          </tr>
+        {% endfor %}
+
+        {# RD — если нужно показывать, добавим универсально #}
+        {% if pos.rd_type or pos.rd_name or pos.rd_date %}
+          <tr><td colspan="2"><hr class="my-2"></td></tr>
+          <tr>
+            <td class="text-muted">РД тип</td>
+            <td><b>{{ pos.rd_type or '-' }}</b></td>
+          </tr>
+          <tr>
+            <td class="text-muted">РД название</td>
+            <td><b>{{ pos.rd_name or '-' }}</b></td>
+          </tr>
+          <tr>
+            <td class="text-muted">РД дата От</td>
+            <td><b>{{ pos.rd_date.strftime('%d.%m.%Y') if pos.rd_date else '-' }}</b></td>
+          </tr>
+          <tr>
+            <td class="text-muted">РД дата По</td>
+            <td><b>{{ pos.rd_date_to.strftime('%d.%m.%Y') if pos.rd_date else '-' }}</b></td>
+          </tr>
+        {% endif %}
+        </tbody>
+      </table>
+
+      <hr class="my-3">
+
+      {# PARFUM: quantity одним полем #}
+      {% if category == 'парфюм' %}
+        <div>
+          Количество: <b>{{ pos.quantity or 0 }}</b>
+        </div>
+
+      {# Остальные категории: sizes_quantities #}
+      {% else %}
+       <h6 class="mb-2">Количество</h6>
+        {% set sq = pos.sizes_quantities or [] %}
+        {% if sq|length == 0 %}
+          <div class="text-muted">Размеры не найдены</div>
+        {% else %}
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Размер</th>
+                <th>Тип</th>
+                <th>Ед.</th>
+                <th class="text-end">Кол-во</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in sq %}
+                <tr>
+                  <td><b>{{ s.size }}</b></td>
+                  <td>{{ s.size_type or '-' }}</td>
+                  <td>{{ s.unit or '-' }}</td>
+                  <td class="text-end"><b>{{ s.quantity }}</b></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
