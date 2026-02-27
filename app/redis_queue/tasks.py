@@ -12,6 +12,7 @@ from models import db, RestoreLink, OrderFile, Order
 from utilities.admin.h_finance_control import h_su_wo_transactions
 from utilities.minio_service.services import get_s3_service
 from views.crm.helpers import helpers_move_orders_to_processed, helper_auto_new_cancel_order
+from views.main.product_cards.crm.helpers import helper_reject_cards_by_rd_date_to_today
 
 
 def delete_restore_link_periodic_task() -> dict[str, int]:
@@ -73,6 +74,7 @@ def daily_tasks():
     h_su_wo_transactions()
     helpers_move_orders_to_processed()
     helper_auto_new_cancel_order()
+    helper_reject_cards_by_rd_date_to_today()
     # change maintenance mode to OFF here
     return {"status": "transactions performed; orders stage changes performed"}
 

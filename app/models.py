@@ -662,6 +662,7 @@ class CommonMixin:
     rd_type = db.Column(db.String(50))
     rd_name = db.Column(db.String(100))
     rd_date = db.Column(db.Date())
+    rd_date_to = db.Column(db.Date(), index=True)
 
 
 class OrderCommon(CommonMixin):

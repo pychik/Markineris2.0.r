@@ -1001,6 +1001,7 @@ class Settings(BaseSettings):
         CATEGORY: str = 'белье'
         CATEGORY_PROCESS: str = 'linen'
         TYPES: list = LINEN_TYPES
+        TYPES_CARDS: list = list(filter(lambda t: t != "КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ", LINEN_TYPES))
         COLORS: tuple = COMMON_COLORS
         TEXTILE_TYPES: list = LINEN_TEXTILE_TYPES
         CUSTOMER_AGES: list = LINEN_CUSTOMER_AGES
