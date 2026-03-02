@@ -1428,16 +1428,17 @@ def h_pc_order_process(o_id: int):
 
     category = (order.category or "").strip()
 
-    ok, payload, vbci_err = validate_and_build_contact_info(
-        request.form.get("contact_type"),
-        request.form.get("contact_value")
-    )
+    # ok, payload, vbci_err = validate_and_build_contact_info(
+    #     request.form.get("contact_type"),
+    #     request.form.get("contact_value")
+    # )
+    #
+    # if not ok:
+    #     flash(vbci_err, "error")
+    #     return _back_to_order_view()
 
-    if not ok:
-        flash(vbci_err, "error")
-        return _back_to_order_view()
+    # order.contact_info = payload
 
-    order.contact_info = payload
     # 1) company_idn exception
     company_idn = order.company_idn
     if company_idn and company_idn in ExceptionDataUsers.get_company_idns():
@@ -1450,9 +1451,9 @@ def h_pc_order_process(o_id: int):
         return _back_to_order_view()
 
     # 3) проверка наборов
-    if not ValidatorProcessor.validate_aggr_order_completeness(order=order):
-        flash(message="Заказ не передан на оформление. В режиме наборы необходимо включить все размеры", category="error")
-        return _back_to_order_view()
+    # if not ValidatorProcessor.validate_aggr_order_completeness(order=order):
+    #     flash(message="Заказ не передан на оформление. В режиме наборы необходимо включить все размеры", category="error")
+    #     return _back_to_order_view()
     user = current_user
     # 4) баланс
     status_balance, total_order_price, agent_at2, message_balance = helper_check_uoabm(user=user, o_id=order.id)
@@ -1476,7 +1477,6 @@ def h_pc_order_process(o_id: int):
             db.session.rollback()
             flash(message=f"{settings.Messages.PROCESS_ERROR}: Такого заказа нет в бд", category="error")
             return _back_to_order_view()
-
 
         if is_at2:
             sent_flag = orders_process_send_order(

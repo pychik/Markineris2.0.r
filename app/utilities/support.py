@@ -1362,7 +1362,7 @@ def get_category_archive_all(user: User) -> list:
     return user.orders.filter(~Order.to_delete). \
                with_entities(Order.id, Order.stage, Order.order_idn, Order.category, Order.company_type,
                              Order.company_name, Order.company_idn, Order.to_delete, Order.processed,
-                             Order.created_at, Order.stage, Order.closed_at).order_by(desc(Order.created_at)).all()
+                             Order.created_at, Order.stage, Order.closed_at, Order.is_moderation).order_by(desc(Order.created_at)).all()
 
 
 def helper_category_archive_orders(all_orders: list) -> tuple:

@@ -4,7 +4,7 @@ import re
 from typing import Optional
 
 from config import settings
-from models import ExceptionDataUsers
+from models import ExceptionDataUsers, Order
 from utilities.categories_data.accessories_data import HATS_TNVEDS, GLOVES_TNVEDS, SHAWLS_TNVEDS
 from utilities.categories_data.clothes_common.clothes_common_tnved_by_gender import CLOTHES_TNVED_DICT
 from utilities.categories_data.clothes_common.types_genders import CLOTHES_TYPE_GENDERS
@@ -201,6 +201,36 @@ class ValidatorProcessor:
                 case _:
                     return ValidatorProcessor.clothes_pre_validate_tnved(tnved_str=tnved_str)
 
+    @staticmethod
+    def check_colors(color: str) -> bool:
+        return color not in settings.ALL_COLORS
+
+    @staticmethod
+    def validate_aggr_order_completeness(order: Order) -> bool:
+        """Проверка: все ли размеры из заказа включены в наборы."""
+        if order.category not in [settings.Clothes.CATEGORY, settings.Socks.CATEGORY] or not order.has_aggr:
+            return True
+
+        all_size_ids = set()
+        if order.category == settings.Clothes.CATEGORY:
+            for pos in order.clothes:
+                for sq in pos.sizes_quantities:
+                    if sq.quantity > 0:
+                        all_size_ids.add(sq.id)
+        elif order.category == settings.Socks.CATEGORY:
+            for pos in order.socks:
+                for sq in pos.sizes_quantities:
+                    if sq.quantity > 0:
+                        all_size_ids.add(sq.id)
+        used_size_ids = set()
+        for aggr in order.aggr_orders:
+            if aggr.category == settings.Clothes.CATEGORY_PROCESS:
+                used_size_ids.update(s.cqs_id for s in aggr.aggr_clothes_sizes)
+            elif aggr.category == settings.Socks.CATEGORY_PROCESS:
+                used_size_ids.update(s.sqs_id for s in aggr.aggr_socks_sizes)
+        diff = all_size_ids - used_size_ids
+
+        return not diff
     @staticmethod
     def check_colors(color: str) -> bool:
         return color not in settings.ALL_COLORS

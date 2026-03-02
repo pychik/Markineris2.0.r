@@ -179,18 +179,18 @@
   }
 
   function submit_contact_and_form() {
-    const type = __order_contact.type;
-    const value = (__order_contact.value || "").trim();
-
-    const errBox = document.getElementById("contact_error");
-    if (!type) {
-      if (errBox) errBox.innerHTML = "Выберите способ связи";
-      return;
-    }
-    if (!value) {
-      if (errBox) errBox.innerHTML = "Заполните контактные данные";
-      return;
-    }
+    // const type = __order_contact.type;
+    // const value = (__order_contact.value || "").trim();
+    //
+    // const errBox = document.getElementById("contact_error");
+    // if (!type) {
+    //   if (errBox) errBox.innerHTML = "Выберите способ связи";
+    //   return;
+    // }
+    // if (!value) {
+    //   if (errBox) errBox.innerHTML = "Заполните контактные данные";
+    //   return;
+    // }
 
     const form = document.getElementById("form_process");
     if (!form) {
@@ -199,26 +199,26 @@
     }
 
     // hidden поля (если ещё нет)
-    let typeInput = document.getElementById("contact_type_input");
-    if (!typeInput) {
-      typeInput = document.createElement("input");
-      typeInput.type = "hidden";
-      typeInput.name = "contact_type";
-      typeInput.id = "contact_type_input";
-      form.appendChild(typeInput);
-    }
-
-    let valueInput = document.getElementById("contact_value_input");
-    if (!valueInput) {
-      valueInput = document.createElement("input");
-      valueInput.type = "hidden";
-      valueInput.name = "contact_value";
-      valueInput.id = "contact_value_input";
-      form.appendChild(valueInput);
-    }
-
-    typeInput.value = type;
-    valueInput.value = value;
+    // let typeInput = document.getElementById("contact_type_input");
+    // if (!typeInput) {
+    //   typeInput = document.createElement("input");
+    //   typeInput.type = "hidden";
+    //   typeInput.name = "contact_type";
+    //   typeInput.id = "contact_type_input";
+    //   form.appendChild(typeInput);
+    // }
+    //
+    // let valueInput = document.getElementById("contact_value_input");
+    // if (!valueInput) {
+    //   valueInput = document.createElement("input");
+    //   valueInput.type = "hidden";
+    //   valueInput.name = "contact_value";
+    //   valueInput.id = "contact_value_input";
+    //   form.appendChild(valueInput);
+    // }
+    //
+    // typeInput.value = type;
+    // valueInput.value = value;
 
     // дальше запускаем ТВОЙ штатный финальный сабмит (копирует коммент + показывает лоадер + submit)
     performProcess();
@@ -242,7 +242,8 @@
     `;
 
     const btn = document.getElementById("btn_process");
-    if (btn) btn.addEventListener("click", show_contact_step);
+    // if (btn) btn.addEventListener("click", show_contact_step);
+    if (btn) btn.addEventListener("click", performProcess);
   }
 
   function setFooterForce() {
@@ -253,7 +254,8 @@
       <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
     `;
     const btn = document.getElementById("btn_force");
-    if (btn) btn.addEventListener("click", show_contact_step);
+    // if (btn) btn.addEventListener("click", show_contact_step);
+    if (btn) btn.addEventListener("click", performProcess);
   }
 
   function setCheckMessage(html) {

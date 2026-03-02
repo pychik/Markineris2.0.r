@@ -424,7 +424,7 @@ def common_save_copy_pc_order(user: User, category: str, order: Order) -> int | 
             mark_type=order.mark_type,
             category=order.category,
             processed=False,
-            has_aggr=order.has_aggr,
+            # has_aggr=order.has_aggr,
 
             # ✅ pc-поля
             is_moderation=True,
