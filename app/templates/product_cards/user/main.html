@@ -131,20 +131,20 @@
 });
 </script>
 
-{% if show_cards_video %}
-  <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    if (!window.Fancybox) return;
-
-    Fancybox.show([{
-      src: "{{ url_for('static', filename='videos/instructions/vid02_create_order.mp4') }}",
-      type: "html5video"
-    }], {
-      Toolbar: true,
-      dragToClose: true
-    });
-  });
-  </script>
-{% endif %}
+{#{% if show_cards_video %}#}
+{#  <script>#}
+{#  document.addEventListener('DOMContentLoaded', () => {#}
+{#    if (!window.Fancybox) return;#}
+{##}
+{#    Fancybox.show([{#}
+{#      src: "{{ url_for('static', filename='videos/instructions/vid02_create_order.mp4') }}",#}
+{#      type: "html5video"#}
+{#    }], {#}
+{#      Toolbar: true,#}
+{#      dragToClose: true#}
+{#    });#}
+{#  });#}
+{#  </script>#}
+{#{% endif %}#}
 
 {% endblock %}
