@@ -311,6 +311,9 @@ class Settings(BaseSettings):
         SMS_CODE_SUCCESS: str = "На ваш номер {phone} отправлен код верификации. Введите его ниже!"
         SMS_CODE_SEND_ERROR: str = "Код не отправлен. Обратитесь к администратору!"
 
+    class ProducCards:
+        MAX_LOG: int = 1998
+
     class Telegram:
         URL: str = "https://api.telegram.org/bot"
         TELEGRAM_MAIN_GROUP_ID: str = "-1001858559646"

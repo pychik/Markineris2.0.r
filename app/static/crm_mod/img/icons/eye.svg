@@ -1,0 +1,13 @@
+<svg width="25" height="24" viewBox="0 0 25 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="12.5" cy="12" r="12" fill="#E9ECEF"/>
+
+  <!-- eye -->
+  <path
+    d="M4.7 12c1.9-3.1 4.7-4.9 7.8-4.9S18.4 8.9 20.3 12c-1.9 3.1-4.7 4.9-7.8 4.9S6.6 15.1 4.7 12Z"
+    fill="none"
+    stroke="#087990"
+    stroke-width="2"
+    stroke-linejoin="round"
+  />
+  <circle cx="12.5" cy="12" r="2.2" fill="#087990"/>
+</svg>

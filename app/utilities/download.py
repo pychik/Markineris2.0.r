@@ -23,10 +23,10 @@ from .telegram import TelegramProcessor
 
 
 class OrdersProcessor(ProcessorInterface, ABC):
-    def __init__(self, category: str, company_idn: str, orders_list: list, flag_046: bool = False) -> None:
+    def __init__(self, category: str, company_idn: str, orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> None:
         (self._orders_list,
          self._orders_list_outer,
-         self._orders_list_inner) = self.prepare_ext_data(orders_list=orders_list, flag_046=flag_046)
+         self._orders_list_inner) = self.prepare_ext_data(orders_list=orders_list, flag_046=flag_046, has_aggr=has_aggr)
 
         self.company_idn = company_idn
         self.path = ''
@@ -195,7 +195,152 @@ class OrdersProcessor(ProcessorInterface, ABC):
             )) + 1  # adding a little extra space
             worksheet.set_column(idx, idx, max_len)
 
-    def make_file(self, order_num: int, category: str, pos_count: int, orders_pos_count: int,
+    @staticmethod
+    def set_autowidth_columns(worksheet, data: list[list], start_col: int = 0):
+        """
+        Устанавливает ширину колонок по максимальной длине содержимого в каждой колонке.
+
+        :param worksheet: объект worksheet (XlsxWriter)
+        :param data: список списков (строки данных)
+        :param start_col: колонка начала данных
+        """
+        if not data:
+            return
+
+        col_widths = {}
+
+        for row in data:
+            for col_idx, cell in enumerate(row):
+                col = start_col + col_idx
+                length = len(str(cell)) if cell is not None else 0
+                col_widths[col] = max(col_widths.get(col, 0), length)
+
+        for col, width in col_widths.items():
+            worksheet.set_column(col, col, width + 2)  # немного запаса
+
+    def make_aggr_excel_table(self, order) -> tuple[BytesIO, str]:
+        """
+        Генерация Excel-файла с таблицей наборов по НОВОМУ шаблону.
+        - Шапка: 3 строки (0..2)
+        - Данные: с 4-й строки (row = 3)
+        - Количество наборов: колонка O (index 14)
+        - 'Состав набора' (F): ТИП+ПОЛ+ТОВАРНЫЙ ЗНАК+ арт. + АРТИКУЛ+ ЦВЕТ+РАЗМЕР / ...
+        """
+        output = BytesIO()
+        workbook = Workbook(output)
+        worksheet = workbook.add_worksheet('Наборы')
+
+        # --- ШАПКА (3 строки) ---
+        headers = [
+            ['Код товара', 'ТНВЭД', 'Наименование набора', 'Товарный знак', 'Товарная группа', 'Состав набора',
+             'Количество маркированных товаров в наборе', 'Код товара для набора', 'Количество в наборе',
+             'Статус карточки товара в Каталоге', 'Результат обработки данных в Каталоге', '', '', '', 'количество'],
+            ['gtin', 'tnved', '2478', '2504', '23768', '16271', '23821', 'set-gtins', 'gtins-quantity', 'status',
+             'result', '', '', '', ''],
+            ['GTIN товара', 'Группа/код ТНВЭД (обязательно)', 'Текстовое наименование набора (обязательно)',
+             'Наименование товарного знака (обязательно)',
+             'Наименование товарной группы, значение из справочника (обязательно)',
+             'Текстовое описание всех компонентов набора', 'Число маркированных товаров, входящих в набор',
+             'Несколько значений заполняются с помощью разделителя "|||"',
+             'Количество каждого товара, входящего в набор. Несколько значений заполняются с помощью разделителя "|||"',
+             'Текстовое поле (Черновик или На модерации)', 'Заполняется автоматически при загрузке в систему', '', '',
+             '', '']
+        ]
+        for r_idx, row_vals in enumerate(headers):
+            for c_idx, cell in enumerate(row_vals):
+                worksheet.write(r_idx, c_idx, cell)
+
+        # --- ДАННЫЕ С 4-Й СТРОКИ ---
+        row = 3
+        data_rows = []
+
+        for aggr in order.aggr_orders:
+            sizes = aggr.aggr_clothes_sizes if aggr.category == 'clothes' else aggr.aggr_socks_sizes
+            if not sizes:
+                continue
+
+            tnved = None
+            composition_chunks = []  # для F
+            qty_chunks = []  # для I
+            name_parts = []  # для C
+            grouped = {}
+
+            for s in sizes:
+                size_obj = s.cqs if aggr.category == 'clothes' else s.sqs
+                item = size_obj.clothes if aggr.category == 'clothes' else size_obj.socks
+
+                if tnved is None:
+                    tnved = getattr(item, 'tnved_code', '') or ''
+
+                type_ = getattr(item, 'type', '') or ''
+                gender = getattr(item, 'gender', '') or ''  # ПОЛ
+                trademark = getattr(item, 'trademark', '') or ''  # ТОВАРНЫЙ ЗНАК
+                article = getattr(item, 'article', '') or ''  # АРТИКУЛ
+                color = getattr(item, 'color', '') or ''
+                size_val = getattr(size_obj, 'size', '') or ''
+                qty_val = getattr(s, 'quantity', None) or getattr(size_obj, 'quantity', '')
+
+                # Группировка по типу — для человекочитаемого имени набора
+                grouped.setdefault(type_, []).append((size_val, qty_val, color))
+
+                # Состав (строго по формуле)
+                chunk = f"{type_} {gender} {trademark} арт.  {article} {color} {size_val}"
+                composition_chunks.append(chunk)
+
+                # количества в наборе
+                qty_chunks.append(str(qty_val))
+
+            # Наименование набора — «Набор {тип (qty шт, р. size color; ...)} и {тип ...}»
+            for type_, entries in grouped.items():
+                parts = []
+                for size_val, qty_val, color in entries:
+                    parts.append(f"{qty_val} шт, р. {size_val} {color}".strip())
+                name_parts.append(f"{type_} ({'; '.join(parts)})")
+            full_name = "Набор " + " и ".join(name_parts)
+
+            # Кол-во маркированных товаров в наборе (G)
+            marked_items_count = sum(
+                q if isinstance(q, int) else 0
+                for entries in grouped.values()
+                for (_, q, __) in entries
+            ) or ''
+
+            # Возьмём товарный знак из первого встреченного элемента (для колонки D — обязательно)
+            first_trademark = ''
+            # Попытаемся найти не-пустой trademark из первого размера
+            for s in sizes:
+                size_obj = s.cqs if aggr.category == 'clothes' else s.sqs
+                item = size_obj.clothes if aggr.category == 'clothes' else size_obj.socks
+                first_trademark = getattr(item, 'trademark', '') or ''
+                if first_trademark:
+                    break
+
+            # Заполняем A..O (индексы 0..14)
+            values = [''] * 15
+            values[0] = ''  # A: GTIN
+            values[1] = tnved or ''  # B: ТНВЭД
+            values[2] = full_name  # C: Наименование набора
+            values[3] = first_trademark  # D: Товарный знак (обязательно)
+            values[4] = 'Предметы одежды, белье постельное, столовое, туалетное и кухонное'  # E: Товарная группа
+            values[5] = " / ".join([p for p in composition_chunks if p])  # F: Состав набора
+            values[6] = marked_items_count  # G: Кол-во маркированных товаров в наборе
+            values[7] = ''  # H: set-gtins
+            values[8] = "|".join(qty_chunks)              # I: количество в наборе
+            values[9] = ''  # J: Статус карточки
+            values[10] = ''  # K: Результат обработки
+            # L, M, N — пустые
+            values[14] = aggr.quantity or 0  # O: КОЛ-ВО НАБОРОВ (строго колонка O)
+
+            worksheet.write_row(row, 0, values)
+            data_rows.append(values)
+            row += 1
+
+        self.set_autowidth_columns(worksheet, headers + data_rows)
+        workbook.close()
+        output.seek(0)
+        return output, f'Наборы_{order.order_idn or order.id}.xlsx'
+
+    def make_file(self, order: Order, order_num: int, category: str, pos_count: int, orders_pos_count: int,
                   c_partner_code: str, company_type: str, company_name: str, company_idn: str, edo_type: str,
                   edo_id: str, mark_type: str, c_name: str, c_phone: str, c_email: str, ) -> tuple[BytesIO, str]:
         self.path, e_name = self.get_filename(order_num=order_num, category=category,
@@ -211,6 +356,10 @@ class OrdersProcessor(ProcessorInterface, ABC):
         excel_files = self.process_to_excel(list_of_orders=OrdersProcessor
                                             .prepare_batches(orders_divided=[(self.orders_list_outer, f"{e_name}_ВВЕЗЕН"),
                                                                              (self.orders_list_inner, f"{e_name}_РФ_ВНУТР")]))
+
+        if getattr(order, 'has_aggr', False):
+            aggr_table, aggr_filename = self.make_aggr_excel_table(order=order)
+            excel_files.append((aggr_table, aggr_filename))
 
         return OrdersProcessor.archive_excels(excel_files=excel_files, filename=self.path)
 
@@ -238,7 +387,7 @@ class OrdersProcessor(ProcessorInterface, ABC):
 class ShoesProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list, ]:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list, ]:
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
@@ -292,7 +441,7 @@ class ShoesProcessor(OrdersProcessor):
 class LinenProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list]:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
@@ -327,7 +476,7 @@ class LinenProcessor(OrdersProcessor):
 class ParfumProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list]:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
@@ -372,7 +521,7 @@ class ParfumProcessor(OrdersProcessor):
 class ClothesProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list]:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
@@ -466,7 +615,7 @@ class ClothesProcessor(OrdersProcessor):
 class SocksProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False) -> tuple[list, list, list]:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
