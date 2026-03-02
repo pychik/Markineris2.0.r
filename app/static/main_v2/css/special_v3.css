@@ -405,3 +405,61 @@
 .badge-soft b {
   color: #5f6367;                   /* чуть темнее для суммы */
 }
+
+.nav-chevron {
+  transition: transform .2s ease;
+}
+
+a[aria-expanded="true"] .nav-chevron {
+  transform: rotate(180deg);
+}
+
+.tnved-warning {
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: #c94a4a;          /* мягкий красный */
+    background: #fff5f5;    /* лёгкая подложка */
+    border-left: 3px solid #e06666;
+    padding: 6px 8px;
+    border-radius: 4px;
+}
+
+.tnved-note {
+    color: #6c757d;          /* основной серый текст */
+    background: #f5f6f7;    /* лёгкая серая подложка */
+    border-left: 3px solid #adb5bd; /* серая полоска */
+    padding: 6px 8px;
+    border-radius: 4px;
+}
+
+/* Общий блок контакта */
+.contact-block {
+    margin-top: 20px;   /* ← отступ сверху */
+}
+
+/* Заголовок */
+.contact-title {
+    font-weight: 600;
+}
+
+/* Подзаголовок */
+.contact-subtitle {
+    margin-top: 4px;
+    color: #6c757d;
+}
+
+#contact_form_wrap .input-invalid {
+    border-color: #dc3545 !important;
+    background-color: #fff5f5;
+}
+
+#contact_form_wrap .input-valid {
+    border-color: #198754 !important;
+    background-color: #f6fffa;
+}
+
+#contact_form_wrap .contact-error-text {
+    font-size: 12px;
+    color: #dc3545;
+    margin-top: 4px;
+}
