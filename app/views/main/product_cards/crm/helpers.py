@@ -571,11 +571,19 @@ def h_cards_ctx_key_for_status(st: str) -> str | None:
 
 
 def h_find_card_ids_by_article_or_tm(q: str) -> list[int]:
+    def _escape_like(pattern: str) -> str:
+        """Экранирование спецсимволов LIKE для SQL"""
+        # Экранируем спецсимволы: % _ и саму обратную косую
+        escaped = pattern.replace('\\', '\\\\')  # экранируем обратную косую
+        escaped = escaped.replace('%', '\\%')  # экранируем %
+        escaped = escaped.replace('_', '\\_')  # экранируем _
+        return escaped
+
     q = (q or "").strip()
     if not q:
         return []
-
-    like = f"%{q}%"
+    q_escaped = _escape_like(q)
+    like = f"%{q_escaped}%"
 
     ids = set()
 
@@ -608,7 +616,7 @@ def h_find_card_ids_by_article_or_tm(q: str) -> list[int]:
         .filter(Parfum.card_id.isnot(None), Parfum.trademark.ilike(like))
         .distinct().all()
     )
-
+    print(ids)
     return sorted(ids)
 
 
