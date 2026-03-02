@@ -769,6 +769,11 @@ def crm_orders_common_preload(category: str, company_idn: str, orders_list: list
         cp = ClothesProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
         res_list_raw = cp.orders_list
         res_list = list(map(lambda x: x[1:11] + x[15:18] + x[20:], res_list_raw))
+    elif category == settings.Socks.CATEGORY:
+        start_list = copy(settings.Clothes.START_CRM_PRELOAD)
+        cp = SocksProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
+        res_list_raw = cp.orders_list
+        res_list = list(map(lambda x: x[1:11] + x[15:18] + x[20:], res_list_raw))
     elif category == settings.Linen.CATEGORY:
         start_list = copy(settings.Linen.START_CRM_PRELOAD)
         lp = LinenProcessor(company_idn=company_idn, category=category, orders_list=orders_list)

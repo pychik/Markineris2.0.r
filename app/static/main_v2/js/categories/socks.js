@@ -1038,9 +1038,25 @@ function get_tnveds(url, csrf){
    });
   }
 
+  function selectTnved(code){
+    // если включён аггрегатор — проверим по префиксам
+    // if (window.HAS_AGGR) {
+    //     const ok = window.HAS_AGGR_LIST.some(prefix => code.startsWith(prefix));
+    //     if (!ok) {
+    //         showNotAllowedModal();
+    //         return;
+    //     }
+    // }
+
+    // иначе принимаем
+    document.getElementById('tnved_code').value = code;
+    clear_manual_tnved();
+    $('#manualTnvedModal').modal('hide');
+}
+
 function socks_manual_tnved(){
     let m_tnved = document.getElementById("manual_tnved_input").value;
-    console.log(all_tnved);
+
     if (all_tnved.includes(m_tnved)){
         document.getElementById('tnved_code').value = m_tnved;
         clear_manual_tnved();
