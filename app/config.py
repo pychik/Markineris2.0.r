@@ -121,8 +121,8 @@ class Settings(BaseSettings):
     USER_ROLES: list = [ORD_USER, MANAGER_USER, SUPER_MANAGER, ADMIN_USER, MARKINERIS_ADMIN_USER, SUPER_USER]
     ADMIN_USER_POSTFIX: str = "@agentsm2r.com"
     MM_PARTNER: str = "IAMMODERATOR"
-    SQ_CATEGORIES: list = ['обувь', 'одежда', 'белье']
-    CATEGORIES_PROCESS_NAMES: list = ['shoes', 'clothes', 'linen', 'parfum', 'send_table']
+    SQ_CATEGORIES: list = ['обувь', 'одежда', 'белье', 'носки и прочее']
+    CATEGORIES_PROCESS_NAMES: list = ['shoes', 'clothes', 'linen', 'parfum', 'socks', 'send_table']
     CATEGORIES_UPLOAD: tuple = ('обувь', 'одежда', 'парфюм', 'белье', 'носки и прочее')
     RZ_GENDERS_RD_LIST: tuple = ("Детские", "Мальчик", "Девочка", "Детск.",)
     COMPANY_TYPES: list = ["ИП", "ООО", "АО"]
