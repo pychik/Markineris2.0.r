@@ -1,0 +1,41 @@
+  <div>
+    <form onsubmit="return crmSearchCardSubmit(event)">
+      <div class="input-group">
+        <input
+          id="crm-search-card-input"
+          type="text"
+          class="form-control"
+          placeholder="Номер карточки"
+          autocomplete="off"
+          onkeydown="crmSearchCardKeyHandler(event)"
+        >
+        <button class="btn btn-warning" type="submit">Найти</button>
+        <button
+          class="btn btn-outline-secondary"
+          type="button"
+          onclick="crmSearchCardClear()"
+          title="Очистить (Esc)"
+        >✕</button>
+      </div>
+
+      <!-- режим поиска -->
+      <div class="form-check mt-2">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="crm-search-by-article"
+          onchange="crmSearchModeChanged()"
+        >
+        <label class="form-check-label" for="crm-search-by-article">
+          Искать по артикулу (для парфюма — по торговой марке)
+        </label>
+      </div>
+
+      <div class="small text-muted mt-1" id="crm-search-mode-label">
+        Режим: поиск по ID
+      </div>
+    </form>
+
+
+  </div>
+

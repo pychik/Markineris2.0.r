@@ -450,4 +450,8 @@ body {
   animation: pulse-red 2.8s ease-in-out infinite;
 }
 
+.order--moderation {
+    background-color: rgb(236, 253, 236); /* очень легкий зелёный */
+}
+
 /*# sourceMappingURL=main.css.map */

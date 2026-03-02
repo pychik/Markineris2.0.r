@@ -6,6 +6,8 @@ from pandas import DataFrame
 from xlsxwriter.workbook import Workbook
 from xlsxwriter.worksheet import Worksheet
 
+from models import Order
+
 
 class ProcessorInterface(ABC):
 
@@ -40,7 +42,7 @@ class ProcessorInterface(ABC):
         ...
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False):
+    def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False):
         ...
 
     @staticmethod
@@ -76,11 +78,14 @@ class ProcessorInterface(ABC):
     def eatp(value: str, field_type: str) -> str:
         ...
 
-    def make_file(self, order_num: int, category: str, pos_count: int, orders_pos_count: int,
-                  c_partner_code: str, company_type: str, company_name: str, company_idn: str, edo_type: str,
-                  edo_id: str, mark_type: str, c_name: str, c_phone: str, c_email: str, ) -> tuple[BytesIO, str]:
+    @staticmethod
+    def set_autowidth_columns(worksheet, data: list[list], start_col: int = 0):
         ...
 
-    @staticmethod
-    def eatp(value: str, field_type: str) -> str:
+    def make_aggr_excel_table(self, order) -> tuple[BytesIO, str]:
+        ...
+
+    def make_file(self, order: Order, order_num: int, category: str, pos_count: int, orders_pos_count: int,
+                  c_partner_code: str, company_type: str, company_name: str, company_idn: str, edo_type: str,
+                  edo_id: str, mark_type: str, c_name: str, c_phone: str, c_email: str, ) -> tuple[BytesIO, str]:
         ...

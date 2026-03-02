@@ -1,0 +1,12 @@
+{% if current_user.role in ['supermanager', 'markineris_admin', 'superuser'] %}
+  <span class="me-1 pc-logs-wrap">
+    <img src="{{ url_for('static', filename='crm_mod/img/icons/logs.svg') }}"
+         role="button"
+         class="pc-logs-btn"
+         onclick="pcOpenCardLogs(this)"
+         data-pc-action="logs"
+         data-bs-toggle="tooltip"
+         data-bs-title="Логи карточки"
+         data-card-id="{{ c.id }}">
+  </span>
+{% endif %}

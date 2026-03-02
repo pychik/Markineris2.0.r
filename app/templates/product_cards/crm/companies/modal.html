@@ -1,0 +1,23 @@
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div>
+    <div class="text-muted small">Добавление / Удаление</div>
+  </div>
+</div>
+
+<form id="pcCompaniesCreateForm" class="row g-2 mb-3">
+  <div class="col-6">
+    <input class="form-control" name="title" placeholder='Название (ООО "…")' required>
+  </div>
+  <div class="col-4">
+    <input class="form-control" name="inn" placeholder="ИНН (опционально)">
+  </div>
+  <div class="col-2 d-grid">
+    <button class="btn btn-primary" type="submit">Добавить</button>
+  </div>
+</form>
+
+<div id="pcCompaniesTableWrap">
+  {% include "product_cards/crm/companies/_table.html" %}
+</div>
+
+<div class="small text-muted mt-2" id="pcCompaniesHint"></div>

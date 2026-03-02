@@ -1,0 +1,36 @@
+<button type="button"
+        class="btn btn-danger btn-sm"
+        id="btn-reject-rd-today"
+        data-url="{{ url_for('crm_product_cards.crm_reject_cards_by_rd_today') }}"
+        data-csrf="{{ csrf_token() }}">
+  Отклонить карточки по РД (сегодня)
+</button>
+
+<script>
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest("#btn-reject-rd-today");
+  if (!btn) return;
+
+  if (!confirm("Отклонить все карточки, у которых дата РД 'До' равна сегодняшней?")) return;
+
+  try {
+    const resp = await fetch(btn.dataset.url, {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": btn.dataset.csrf,
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    });
+
+    const data = await resp.json().catch(() => ({}));
+    if (data.status === "success") {
+      make_message(`Отклонено карточек: ${data.rejected}`, "success");
+    } else {
+      make_message(data.message || "Ошибка", "error");
+    }
+  } catch (err) {
+    console.error(err);
+    make_message("Ошибка запроса", "error");
+  }
+});
+</script>

@@ -1362,7 +1362,7 @@ def get_category_archive_all(user: User) -> list:
     return user.orders.filter(~Order.to_delete). \
                with_entities(Order.id, Order.stage, Order.order_idn, Order.category, Order.company_type,
                              Order.company_name, Order.company_idn, Order.to_delete, Order.processed,
-                             Order.created_at, Order.stage, Order.closed_at).order_by(desc(Order.created_at)).all()
+                             Order.created_at, Order.stage, Order.closed_at, Order.is_moderation).order_by(desc(Order.created_at)).all()
 
 
 def helper_category_archive_orders(all_orders: list) -> tuple:
@@ -3041,6 +3041,19 @@ def susmu_required(func):
     return wrapper
 
 
+def bck_susmu_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.status is True and current_user.role in [settings.SUPER_USER, settings.SUPER_MANAGER,
+                                                                 settings.MARKINERIS_ADMIN_USER]:
+            return func(*args, **kwargs)
+        else:
+
+            return jsonify(dict(status='danger', message=settings.Messages.SUPERUM_REQUIRED))
+
+    return wrapper
+
+
 def susmumu_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -3089,6 +3102,8 @@ def bck_sumausmumu_required(func):
             return jsonify(dict(status='danger', message='Недостаточно прав для этого запроса'))
 
     return wrapper
+
+
 # admin user required with id checks
 def au_required(func):
     @wraps(func)

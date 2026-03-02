@@ -1,0 +1,150 @@
+{% extends 'main/base_v2.html' %}
+
+
+
+{% block main %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/product_cards/user.css') }}?v=6">
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/product_cards/chat_user.css') }}?v=2">
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/video/css/fancybox.css') }}">
+<script src="{{ url_for('static', filename='product_cards/users/users.js') }}?v=4"></script>
+<script src="{{ url_for('static', filename='product_cards/users/pc_send_created.js') }}"></script>
+<script src="{{url_for('static', filename='product_cards/crm/js/card_chat.js')}}?v=4"></script>
+<script src="{{url_for('static', filename='product_cards/users/pc_cart.js')}}?v=13"></script>
+
+<meta name="csrf-token" content="{{ csrf_token() }}">
+
+<div id="pc-config"
+     data-cards-table-url="{{ url_for('user_product_cards.cards_table') }}"
+     data-card-view-url-template="{{ url_for('user_product_cards.card_view', card_id=0) }}"
+     data-current-category="{{ current_category }}"
+     data-current-subcategory="{{ current_subcategory or '' }}"
+     data-csrf="{{ csrf_token() }}"
+     data-current-user-id="{{ current_user.id }}"
+     data-new-card-url="{{ url_for('user_product_cards.new_product_card') }}"
+     data-get-created-cards-url="{{ url_for('user_product_cards.get_created_cards') }}"
+     data-send-cards-moderate-url="{{ url_for('user_product_cards.send_cards_moderate') }}"
+
+     data-chat-messages-url-template="{{ url_for('chat_product_cards.pc_chat_get_messages', pc_id=0) }}"
+     data-chat-send-url-template="{{ url_for('chat_product_cards.pc_chat_send', pc_id=0) }}"
+     data-chat-read-url-template="{{ url_for('chat_product_cards.pc_chat_mark_read', pc_id=0) }}">
+</div>
+
+<div class="container-fluid pb-4 content-main">
+
+  {% include "product_cards/user/top.html" %}
+
+  <div class="d-flex gap-2 justify-content-end align-items-center">
+
+    <button type="button"
+            class="btn btn-warning"
+            data-bs-toggle="modal"
+            data-bs-target="#pc-create-modal">
+      <span class="me-2">+</span>
+      <span>Создать новый товар</span>
+    </button>
+
+    <button type="button"
+        class="btn btn-outline-dark "
+        id="o-b-cart-open-btn"
+        data-bs-toggle="offcanvas"
+        data-bs-target="#o-b-cart-offcanvas"
+        aria-controls="o-b-cart-offcanvas">
+  Корзина
+  <span class="badge bg-dark ms-1 o-b-badge" id="o-b-cart-count">0</span>
+</button>
+
+</div>
+
+  <div id="pc-table-wrapper">
+    {#{% include "product_cards/user/table.html" %}#}
+  </div>
+<button
+  class="btn btn-warning"
+  onclick="pcOpenSendCreatedCardsModal(this)"
+  data-url-created="{{ url_for('user_product_cards.get_created_cards') }}"
+  data-url-send="{{ url_for('user_product_cards.send_cards_moderate') }}"
+>
+  Отправить карточки “Создана” на модерацию
+</button>
+
+
+</div>
+
+{% include "product_cards/user/modals/modal_card_view.html" %}
+{% include "product_cards/user/modals/modal_choose_category.html" %}
+{% include "product_cards/user/modals/modal_company_marks.html" %}
+{% include "product_cards/user/modals/modal_marks.html" %}
+{% include "product_cards/chat/modal_user.html" %}
+
+
+{% include "product_cards/user/offcanvas_basket.html" %}
+
+<a id="cardsVideo"
+   href="{{ url_for('static', filename='videos/instructions/vid02_create_order.mp4') }}"
+   data-fancybox
+   data-width="1900"
+   style="display:none"></a>
+
+<script defer src="{{ url_for('static', filename='main_v2/video/js/fancybox.umd.js') }}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('pcOpenOrderVideo');
+  if (!btn) return;
+
+  btn.addEventListener('click', () => {
+    if (!window.Fancybox) {
+      console.error('Fancybox not loaded');
+      return;
+    }
+
+    const mp4 = "{{ url_for('static', filename='videos/instructions/vid02_create_order.mp4') }}";
+
+    Fancybox.show([{
+      type: "html",
+      src: `
+        <video id="pcOrderVideo"
+               controls
+               autoplay
+               playsinline
+               style="max-width:95vw; max-height:85vh;">
+          <source src="${mp4}" type="video/mp4">
+        </video>
+      `
+    }], {
+      Toolbar: true,
+      dragToClose: true,
+      on: {
+        reveal: (fancybox, slide) => {
+          const video = slide.el.querySelector('video');
+          if (!video) return;
+
+          // клик пользователя уже был -> браузер обычно разрешит звук
+          video.muted = false;
+          video.volume = 0.4;
+
+          const p = video.play();
+          if (p?.catch) p.catch(()=>{});
+        }
+      }
+    });
+  });
+});
+</script>
+
+{% if show_cards_video %}
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!window.Fancybox) return;
+
+    Fancybox.show([{
+      src: "{{ url_for('static', filename='videos/instructions/vid02_create_order.mp4') }}",
+      type: "html5video"
+    }], {
+      Toolbar: true,
+      dragToClose: true
+    });
+  });
+  </script>
+{% endif %}
+
+{% endblock %}

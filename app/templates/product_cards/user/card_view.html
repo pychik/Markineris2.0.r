@@ -1,0 +1,174 @@
+{# В корзину можно только в пользовательском режиме #}
+{% set can_card_to_cart = (not is_operator_view) and (card.data_status in ['approved', 'partially_approved']) %}
+
+{% set subcat_title = '' %}
+{% if cfg.has_subcategory and main and main.subcategory not in [None, '', 'common'] %}
+  {% set subcat_title = cfg.get('subcategories', {}).get(main.subcategory, '') %}
+{% endif %}
+
+<div class="pc-card-view">
+  <div class="pc-card-view__header mb-3">
+    <h5 class="fw-bold mb-1">
+      Карточка №{{ card.id }}
+    </h5>
+    <div class="text-muted small">
+      Категория:
+      {{ cfg.title }} / {{ subcat_title }}
+
+    </div>
+    <div class="mt-1">
+      <span class="pc-status pc-status-{{ card.status.value }}">
+        {{ status_titles[card.status.value] }}
+      </span>
+    </div>
+  </div>
+
+  {% include 'product_cards/user/helpers/_card_view_companies_block.html' %}
+
+
+  {% if main %}
+  <div class="pc-card-view__block mb-3">
+    <h6 class="fw-semibold mb-2">Основная информация</h6>
+    <dl class="row mb-0">
+      {% for field, label in fields %}
+        {% set value = main[field] %}
+        {% if value not in [None, '', 0] %}
+          <dt class="col-4">{{ label }}</dt>
+          <dd class="col-8">{{ value }}</dd>
+        {% endif %}
+      {% endfor %}
+    </dl>
+  </div>
+  {% endif %}
+
+  {% if card.category == 'parfum' %}
+    {% if main.package_type %}
+      <dt class="col-4">Упаковка</dt>
+      <dd class="col-8">
+        {{ main.package_type }}
+        {% if main.material_package %}
+          ({{ main.material_package }})
+        {% endif %}
+      </dd>
+    {% endif %}
+  {% endif %}
+
+  {# РД показываем только если карточку можно добавлять в корзину #}
+{% if main and (main.rd_type or main.rd_name or main.rd_date or main.rd_date_to) %}
+  {% include 'product_cards/user/rd_section.html' %}
+{% endif %}
+
+  {% if sizes %}
+    <div class="pc-card-view__block mb-3">
+      <h6 class="fw-semibold mb-2">Размеры</h6>
+
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Размер</th>
+              {% if card.category in ['clothes', 'socks'] %}
+                <th>Тип</th>
+              {% elif card.category == 'linen' %}
+                <th>Ед.</th>
+              {% endif %}
+              <th>Модерация</th>
+
+              {% if can_card_to_cart %}
+<!--                <th style="width:140px;">Кол-во</th>-->
+                <th style="width:160px;"></th>
+              {% endif %}
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for s in sizes %}
+              <tr>
+                <td>{{ s.size }}</td>
+
+                {% if card.category in ['clothes', 'socks'] %}
+                  <td>{{ s.size_type }}</td>
+                {% elif card.category == 'linen' %}
+                  <td>{{ s.unit }}</td>
+                {% endif %}
+
+                <td>
+                  {% if s.is_approved %}
+                    <span class="badge bg-secondary-subtle text-muted">Одобрено</span>
+                  {% else %}
+                    <span class="badge bg-secondary-subtle text-muted">Проверка не пройдена</span>
+                  {% endif %}
+                </td>
+
+                {% if can_card_to_cart %}
+                  <td style="width:140px;">
+
+                    <input type="number"
+                           class="o-b-qty pc-size-qty"
+                           min="0"
+                           value="0"
+                           {% if not s.is_approved %}disabled{% endif %}
+                           data-size="{{ s.size }}"
+                           data-size-type="{{ s.size_type if s.size_type is defined else '' }}"
+                           data-unit="{{ s.unit if s.unit is defined else '' }}">
+                  </td>
+                  <td style="width:160px;">
+                    <button type="button"
+                            class="pc-btn pc-btn-yellow pc-btn--sm pc-apply-qty-btn"
+                            title="Применить количество в корзину"
+                            data-card-id="{{ card.id }}"
+                            data-category="{{ card.category }}"
+                            data-category-title="{{ cfg.title }}"
+                            data-subcategory="{{ main.subcategory or '' }}"
+                            data-subcategory-title="{{ subcat_title }}"
+                            data-article="{{ main.article if main else '' }}"
+                            data-trademark="{{ main.trademark if main else '' }}"
+                            data-color="{{ main.color if main else '' }}">
+                      ✓
+                    </button>
+                  </td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if card.category == 'parfum' and can_card_to_cart %}
+    <div class="d-flex align-items-center gap-2">
+      <input type="number" id="pc-parfum-qty" class="o-b-qty" min="0" value="0">
+      <button id="pc-parfum-add"
+              class="pc-btn pc-btn-yellow pc-btn--sm"
+              title="Применить количество в корзину"
+              data-card-id="{{ card.id }}"
+              data-category="{{ card.category }}"
+              data-category-title="{{ cfg.title }}"
+              data-subcategory="{{ main.subcategory or '' }}"
+              data-subcategory-title="{% if cfg.has_subcategory and main and main.subcategory not in [None,'','common'] %}{{ cfg.get('subcategories', {}).get(main.subcategory, '') }}{% endif %}"
+              data-article="{{ main.article if main else '' }}"
+              data-trademark="{{ main.trademark if main else '' }}"
+              data-color="{{ main.color if main else '' }}"
+              >
+        ✓
+      </button>
+    </div>
+  {% endif %}
+
+  <div class="pc-card-view__meta small text-muted">
+    Создана: {{ card.created_at.strftime('%d.%m.%Y %H:%M') }}
+    {% if card.approved_at %}
+      · Одобрена: {{ card.approved_at.strftime('%d.%m.%Y %H:%M') }}
+    {% endif %}
+  </div>
+  {% if is_operator_view and card.status.value == 'partially_approved' %}
+    <div class="mt-2">
+      <button type="button" class="btn btn-success btn-sm"
+              onclick="pcApproveFromPartially({{ card.id }})">
+        Перевести в APPROVED
+      </button>
+    </div>
+  {% endif %}
+
+</div>

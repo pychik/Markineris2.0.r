@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{{url_for('static',filename='main_v2/images/favicon.ico')}}" type="image/x-icon">
+    <link rel="icon" href="{{url_for('static',filename='main_v2/images/favicon.ico')}}">
+<!--    <link rel="preconnect" href="https://fonts.googleapis.com">-->
+<!--    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>-->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="{{url_for('static',filename='main_v2/css/service/g_fonts.css')}}" crossorigin>
+    <link href="{{url_for('static',filename='main_v2/css/service/g_fonts.css')}}" rel="stylesheet">
+    <link rel="stylesheet" href="{{url_for('static', filename='crm_mod/libs/bootstrap/css/bootstrap.min.css')}}">
+    <link rel="stylesheet" href="{{url_for('static', filename='crm_mod/css/main.css')}}?v=4">
+    <link rel="stylesheet" href="{{ url_for('static', filename='crm_mod/css/special_crm_effects_v2.css') }}?v=5">
+    <link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/product_cards/crm.css') }}?v=9">
+
+    <script src="{{url_for('static',filename='main_v2/js/assets/jquery.min.js')}}"></script>
+
+    <title>CRM Product Cards</title>
+
+</head>
+
+<body>
+    <header class="header container-fluid py-3">
+        <div class="header__wrapper d-flex justify-content-between align-items-start">
+            <div class="header__left d-flex">
+                <div class="logo header__logo">
+                    <a class="text-secondary" style="text-decoration: none" href="{{url_for('main.enter')}}" title="CRM для модерации карточек товаров">
+                        MARKA-SERVICE <br>CRM карточки товаров
+                    </a>
+                </div>
+
+
+            </div>
+
+            {% include 'product_cards/crm/helpers/search_card.html' %}
+            <div class="header__right d-flex ">
+
+                {% include 'product_cards/crm/helpers/categories_tab.html'%}
+                {% include 'product_cards/crm/helpers/user_tab.html'%}
+
+            </div>
+
+        </div>
+
+    </header>
+
+    <main class="main_cards container-fluid">
+        <script>
+            // отключаем тултип консоль
+            (function suppressTooltipConsoleErrors() {
+              window.addEventListener('error', function (e) {
+                const msg = e?.message || '';
+
+                if (
+                  msg.includes('tooltip.js') ||
+                  msg.includes('_isWithActiveTrigger') ||
+                  msg.includes('removeAttribute') ||
+                  msg.includes('Cannot convert undefined or null to object')
+                ) {
+                  e.preventDefault();
+                  return false;
+                }
+              });
+            })();
+        </script>
+        {% block crm_user_product_cards %}
+        {% endblock %}
+
+
+    </main>
+
+    <!-- УВЕДОМЛЕНИЯ  https://getbootstrap.ru/docs/5.1/components/toasts/ -->
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11" id="all_messages">
+       {% with messages = get_flashed_messages(with_categories=true) %}
+           {% if messages %}
+               {% for category, message in messages %}
+                    {% if category == 'error' %}
+                        <div id="alert-message-error" class="toast toast-error" role="alert" data-bs-delay="30000"
+                             aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header">
+                                <strong class="me-auto fw-bold ">Ошибка!</strong>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+                            </div>
+                            <div class="toast-body d-flex align-items-center ">
+                                <img src="{{url_for('static',filename='crm_mod/img/icons/error.svg')}}" alt="" width="66" height="66" class="img-fluid ">
+                                <p class="mt-2">{{ message | safe }}</p>
+                            </div>
+                        </div>
+                    {% elif category == 'warning' %}
+                        <div id="alert-message-warning" class="toast toast-warning " role="alert" data-bs-delay="30000"
+                             aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header">
+                                <strong class="me-auto fw-bold ">Предупреждение!</strong>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+                            </div>
+                            <div class="toast-body d-flex align-items-center ">
+                                <img src="{{url_for('static',filename='crm_mod/img/icons/warning.svg')}}" alt="" width="66" height="66" class="img-fluid ">
+                                <p class="mt-2">{{ message | safe }}</p>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div id="alert-message-success" class="toast toast-success " role="alert" data-bs-delay="30000"
+                             aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header">
+                                <strong class="me-auto fw-bold ">Успешно!</strong>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+                            </div>
+                            <div class="toast-body d-flex align-items-center ">
+                                <img src="{{url_for('static',filename='crm_mod/img/icons/success.svg')}}" alt="" width="66" height="66" class="img-fluid ">
+                                <p class="mt-2">{{ message | safe }}</p>
+                            </div>
+                        </div>
+                    {% endif %}
+               {% endfor %}
+           {% endif %}
+       {% endwith %}
+
+    </div>
+    <div class="overlay" id="overlay_loading" >
+        <div class="d-flex justify-content-center">
+          <div class="text-warning over_text text-center">
+             <h3>Производится обработка запроса...</h3>
+             <h5>Если процесс длится более 3 мин, обновите страницу!</h5>
+             <div class="spinner-border" style="width: 5rem; height: 5rem;" role="status">
+                 <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <script src="{{url_for('static',filename='main_v2/js/assets/popper.min.js')}}"></script>
+    <script src="{{url_for('static', filename='crm_mod/libs/bootstrap/js/bootstrap.bundle.min.js')}}"></script>
+    <script src="{{url_for('static', filename='crm_mod/libs/scrollbooster/scrollbooster.min.js')}}" defer></script>
+    <script src="{{url_for('static',filename='main_v2/js/new_messages.js')}}?v=1"></script>
+    <script src="{{url_for('static', filename='product_cards/crm/js/main.js')}}?v=9"></script>
+    <script src="{{url_for('static', filename='product_cards/crm/js/cards.js')}}?v=18"></script>
+    <script src="{{url_for('static', filename='product_cards/crm/js/companies_admin.js')}}?v=1"></script>
+    <script src="{{url_for('static', filename='product_cards/crm/js/card_chat.js')}}?v=4"></script>
+
+    <script>
+
+        const message_icon_error = `{{url_for('static',filename='main_v2/img/icons/error.svg')}}`;
+        const message_icon_warning = `{{url_for('static',filename='main_v2/img/icons/warning.svg')}}`;
+        const message_icon_success = `{{url_for('static',filename='main_v2/img/icons/success.svg')}}`;
+        // const LOAD_ORDER_PROCESS_INFO_URL = `{{ url_for('crm_d.get_processing_order_info')}}`;
+        // const UPDATE_ORDER_PROCESS_INFO_URL = `{{ url_for('crm_d.update_processing_order_info')}}`;
+        var UPDATE_PRODUCT_CARDS_CRM_URL = "{{url_for('crm_product_cards.cards', bck=1)}}";
+
+        var update_url_temp = '';
+        var SEARCH_ORDER_URL = "{{url_for('crm_product_cards.search_card')}}"
+        var managers_list = [{% for m in managers_list %}['{{m[0]}}','{{m[1]}}'], {% endfor %}];
+
+         initializeJSPage(document);
+
+
+    </script>
+
+
+
+</body>
+
+
+
+
+
+</html>

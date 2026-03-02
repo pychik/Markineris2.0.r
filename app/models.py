@@ -3,7 +3,7 @@ from enum import Enum as PyEnum
 
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func
+from sqlalchemy import func, text
 
 from config import settings
 from utilities.categories_data.subcategories_data import ClothesSubcategories
@@ -18,6 +18,18 @@ class ValidExceptionsUserDataKinds(PyEnum):
     @classmethod
     def choices(cls):
         return [member.value for member in cls]
+
+
+class ModerationStatus(str, PyEnum):
+    CREATED = "created"                  # отправлены на модерацию
+    SENT_NO_RD = "sent_no_rd"                  # отправлены на модерацию без РД
+    SENT = "sent"                  # отправлены на модерацию
+    IN_PROGRESS = "in_progress"    # в обработке
+    IN_MODERATION = "in_moderation"    # на модерации
+    CLARIFICATION = "clarification" # на уточнении
+    APPROVED = "approved"
+    PARTIALLY_APPROVED = "partially_approved" # прошли модерацию но требуют доработки по фирмам
+    REJECTED = "rejected"          # отклонены
 
 
 class User(db.Model, UserMixin):
@@ -300,7 +312,7 @@ class Order(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
 
     category = db.Column(db.String(100), nullable=False, default='')
-
+    is_moderation = db.Column(db.Boolean, default=False, nullable=False, server_default=text("false"), index=True)
     company_idn = db.Column(db.String(100))
     company_type = db.Column(db.String(100))
     company_name = db.Column(db.String(100))
@@ -342,11 +354,15 @@ class Order(db.Model, UserMixin):
     transaction_id = db.Column(db.Integer, db.ForeignKey('user_transactions.id'), index=True)
 
     order_zip_file = db.relationship('OrderFile', uselist=False, cascade='all,delete', backref='orders')
-    shoes = db.relationship('Shoe', backref='orders', cascade="all,delete", lazy='joined')
-    linen = db.relationship('Linen', backref='orders', cascade="all,delete", lazy='joined')
-    parfum = db.relationship('Parfum', backref='orders', cascade="all,delete", lazy='joined')
-    clothes = db.relationship('Clothes', backref='orders', cascade="all,delete", lazy='joined')
-    socks = db.relationship('Socks', backref='orders', cascade="all,delete", lazy='joined')
+    shoes = db.relationship('Shoe', backref='order', cascade="all,delete", lazy='joined', foreign_keys='Shoe.order_id')
+    linen = db.relationship('Linen', backref='order', cascade="all,delete", lazy='joined',
+                            foreign_keys='Linen.order_id')
+    parfum = db.relationship('Parfum', backref='order', cascade="all,delete", lazy='joined',
+                             foreign_keys='Parfum.order_id')
+    clothes = db.relationship('Clothes', backref='order', cascade="all,delete", lazy='joined',
+                              foreign_keys='Clothes.order_id')
+    socks = db.relationship('Socks', backref='order', cascade="all,delete", lazy='joined',
+                            foreign_keys='Socks.order_id')
 
 
 class OrderFile(db.Model, UserMixin):
@@ -391,6 +407,248 @@ class OrderStat(db.Model, UserMixin):
     transaction_id = db.Column(db.Integer, db.ForeignKey('user_transactions.id'), index=True)
 
 
+class ProductCard(db.Model, UserMixin):
+    __tablename__ = "product_cards"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    category = db.Column(db.String(100), nullable=False, default='', index=True)
+    has_aggr = db.Column(db.Boolean, default=False, nullable=False, server_default=text("false"))
+
+    # Информация по закрепленной компании проводчику
+    processing_info = db.Column(db.String(100), default="")
+
+    # пользователь, который создал карточку (аналог user_id в Order)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), index=True)
+
+    # менеджер-модератор, который ведёт карточку
+    manager_id = db.Column(db.Integer, db.ForeignKey('users.id'), index=True)
+
+    # логи карточки
+    card_log = db.Column(db.String(2000), default="", server_default="")
+
+    # --- статусы модерации ---
+
+    status = db.Column(
+        db.Enum(ModerationStatus, native_enum=False),
+        nullable=False,
+        default=ModerationStatus.CREATED,
+        index=True,
+        server_default=text("'created'")
+    )
+
+    user_comment = db.Column(db.String(450), default="")
+    reject_reason = db.Column(db.String(450), default="")  # если отклонено
+
+    # --- тайминги по жизни карточки ---
+
+    created_at = db.Column(db.DateTime(), default=datetime.now, index=True)  # пользователь  создал карточку
+    sent_at = db.Column(db.DateTime(), index=True)  # отправлена в crm карточек модерации
+    taken_at = db.Column(db.DateTime())  # оператор взял в работу
+    moderation_at = db.Column(db.DateTime())  # оператор взял на модерацию
+    clarification_requested_at = db.Column(db.DateTime())  # отправлена на уточнение
+    approved_at = db.Column(db.DateTime(), index=True)  # прошла модерацию
+    rejected_at = db.Column(db.DateTime(), index=True)
+
+    creator = db.relationship(
+        "User",
+        foreign_keys=[user_id],
+        primaryjoin="ProductCard.user_id==User.id",
+        lazy="joined",
+    )
+
+    manager = db.relationship(
+        "User",
+        foreign_keys=[manager_id],
+        primaryjoin="ProductCard.manager_id==User.id",
+        lazy="joined",
+    )
+    shoes = db.relationship(
+        'Shoe',
+        backref='product_card',
+        cascade="all,delete",
+        lazy='select',
+        foreign_keys='Shoe.card_id',
+    )
+    linen = db.relationship(
+        'Linen',
+        backref='product_card',
+        cascade="all,delete",
+        lazy='select',
+        foreign_keys='Linen.card_id',
+    )
+    parfum = db.relationship(
+        'Parfum',
+        backref='product_card',
+        cascade="all,delete",
+        lazy='select',
+        foreign_keys='Parfum.card_id',
+    )
+    clothes = db.relationship(
+        'Clothes',
+        backref='product_card',
+        cascade="all,delete",
+        lazy='select',
+        foreign_keys='Clothes.card_id',
+    )
+    socks = db.relationship(
+        'Socks',
+        backref='product_card',
+        cascade="all,delete",
+        lazy='select',
+        foreign_keys='Socks.card_id',
+    )
+
+    # чат по карточке
+    messages = db.relationship(
+        'CardMessage',
+        backref='product_card',
+        cascade='all,delete',
+        lazy='dynamic'
+    )
+
+    def _all_moderation_units(self):
+        """
+        Возвращает список объектов, по которым принимается решение
+        о статусе данных карточки.
+        У всех этих объектов должно быть булево поле `is_approved`.
+        """
+        if self.category == 'clothes':
+            # пример — все строки размеров одежды
+            return [s for c in self.clothes for s in c.sizes_quantities]
+
+        if self.category == 'linen':
+            return [s for l in self.linen for s in l.sizes_quantities]
+
+        if self.category == 'shoes':
+            return [s for sh in self.shoes for s in sh.sizes_quantities]
+
+        if self.category == 'parfum':
+            # здесь юнит – сама парфюмерная запись(и)
+            return list(self.parfum)    # relationship к Parfum по card_id
+
+        if self.category == 'socks':
+            return [s for sk in self.socks for s in sk.sizes_quantities]     # как сделаешь
+
+        return []
+
+    @property
+    def data_status(self) -> str:
+        units = self._all_moderation_units()
+
+        if not units:
+            return "empty"
+
+        has_approved = any(u.is_approved for u in units)
+        has_pending  = any(not u.is_approved for u in units)
+
+        if has_approved and has_pending:
+            return "partially_approved"
+        if has_approved:
+            return "approved"
+        return "pending"
+
+
+class CardMessage(db.Model, UserMixin):
+    __tablename__ = "card_messages"
+
+    id = db.Column(db.BigInteger, primary_key=True)
+
+    card_id = db.Column(
+        db.Integer,
+        db.ForeignKey('product_cards.id', ondelete='CASCADE'),
+        index=True,
+        nullable=False
+    )
+
+    text = db.Column(db.String(2000), nullable=False)
+
+    # внутреннее сообщение (не показывать пользователю, только оператор/модератор/суперюзер)
+    is_internal = db.Column(
+        db.Boolean,
+        default=False,
+        nullable=False,
+        server_default="false"
+    )
+
+    created_at = db.Column(
+        db.DateTime(),
+        default=datetime.now,
+        index=True,
+        nullable=False
+    )
+
+    author = db.relationship('User')
+    author_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id', ondelete='SET NULL'),
+        index=True,
+        nullable=True
+    )
+
+
+class CardChatRead(db.Model):
+    __tablename__ = "card_chat_reads"
+
+    id = db.Column(db.BigInteger, primary_key=True)
+
+    card_id = db.Column(
+        db.Integer,
+        db.ForeignKey("product_cards.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    last_read_message_id = db.Column(db.BigInteger, nullable=False, default=0, server_default="0")
+    last_read_at = db.Column(db.DateTime(), default=datetime.now, nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint("card_id", "user_id", name="uq_card_chat_read_card_user"),
+    )
+
+
+class ProcessingCompany(db.Model):
+    __tablename__ = "processing_companies"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)   # ООО "..."
+    inn = db.Column(db.String(20), unique=True, index=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True, server_default="true")
+
+    created_at = db.Column(db.DateTime(), default=datetime.now)
+
+
+class UserProcessingCompany(db.Model):
+    __tablename__ = "user_processing_companies"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    company_id = db.Column(db.Integer, db.ForeignKey("processing_companies.id"), nullable=False, index=True)
+
+    # слот 1 или 2
+    slot = db.Column(db.SmallInteger, nullable=False)
+
+    is_approved = db.Column(db.Boolean, nullable=False, default=True, server_default="true")
+
+    assigned_at = db.Column(db.DateTime(), default=datetime.now)
+    # approved_at = db.Column(db.DateTime(), default=datetime.now)
+
+    user = db.relationship("User", lazy="joined")
+    company = db.relationship("ProcessingCompany", lazy="joined")
+
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "slot", name="uq_user_processing_company_slot"),
+        db.UniqueConstraint("user_id", "company_id", name="uq_user_processing_company_company"),
+    )
+
+
 class CommonMixin:
     id = db.Column(db.BigInteger, primary_key=True)
     type = db.Column(db.String(100))
@@ -404,6 +662,7 @@ class CommonMixin:
     rd_type = db.Column(db.String(50))
     rd_name = db.Column(db.String(100))
     rd_date = db.Column(db.Date())
+    rd_date_to = db.Column(db.Date(), index=True)
 
 
 class OrderCommon(CommonMixin):
@@ -423,7 +682,19 @@ class Shoe(db.Model, UserMixin, OrderCommon):
     with_packages = db.Column(db.Boolean(), default=False)
 
     sizes_quantities = db.relationship('ShoeQuantitySize', backref='shoes', cascade="all,delete", lazy='joined')
-    order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), index=True)
+    order_id = db.Column(
+        db.Integer,
+        db.ForeignKey('orders.id', ondelete='CASCADE'),
+        index=True,
+        nullable=True
+    )
+
+    card_id = db.Column(
+        db.Integer,
+        db.ForeignKey('product_cards.id', ondelete='CASCADE'),
+        index=True,
+        nullable=True
+    )
 
 
 class ShoeQuantitySize(db.Model, UserMixin):
@@ -431,6 +702,14 @@ class ShoeQuantitySize(db.Model, UserMixin):
     id = db.Column(db.BigInteger, primary_key=True)
     size = db.Column(db.String())
     quantity = db.Column(db.Integer())
+
+    is_approved = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+    )
+
     shoe_id = db.Column(db.Integer, db.ForeignKey('shoes.id', ondelete='CASCADE'), index=True)
 
 
@@ -444,7 +723,19 @@ class Linen(db.Model, UserMixin, OrderCommon):
     content = db.Column(db.String(100))
     with_packages = db.Column(db.String(50), default="нет")
     sizes_quantities = db.relationship('LinenQuantitySize', backref='linen', cascade="all,delete", lazy='joined')
-    order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), index=True)
+    order_id = db.Column(
+        db.Integer,
+        db.ForeignKey('orders.id', ondelete='CASCADE'),
+        index=True,
+        nullable=True
+    )
+
+    card_id = db.Column(
+        db.Integer,
+        db.ForeignKey('product_cards.id', ondelete='CASCADE'),
+        index=True,
+        nullable=True
+    )
 
 
 class LinenSizesUnits(PyEnum):
@@ -463,6 +754,12 @@ class LinenQuantitySize(db.Model, UserMixin):
     size = db.Column(db.String())
     quantity = db.Column(db.Integer())
     unit = db.Column(db.String(10), default=LinenSizesUnits.sm.value, server_default=LinenSizesUnits.mm.value)
+    is_approved = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+    )
     lin_id = db.Column(db.Integer, db.ForeignKey('linen.id', ondelete='CASCADE'), index=True)
 
 
@@ -476,7 +773,26 @@ class Parfum(db.Model, UserMixin, CommonMixin):
     with_packages = db.Column(db.String(50), default="нет")
     box_quantity = db.Column(db.Integer(), default=1)
     quantity = db.Column(db.Integer())
-    order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), index=True)
+    order_id = db.Column(
+        db.Integer,
+        db.ForeignKey('orders.id', ondelete='CASCADE'),
+        index=True,
+        nullable=True
+    )
+
+    is_approved = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+    )
+
+    card_id = db.Column(
+        db.Integer,
+        db.ForeignKey('product_cards.id', ondelete='CASCADE'),
+        index=True,
+        nullable=True
+    )
 
 
 class ClothesMixin(db.Model, UserMixin, OrderCommon):
@@ -497,6 +813,13 @@ class CQSMixin(db.Model, UserMixin):
     size = db.Column(db.String())
     quantity = db.Column(db.Integer())
     size_type = db.Column(db.String(50))
+    is_approved = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+    )
+
     # cl_id = db.Column(db.Integer, db.ForeignKey('clothes.id', ondelete='CASCADE'), index=True)
 
 
@@ -507,7 +830,19 @@ class Clothes(ClothesMixin):
     # We use subcategory as a scaling option
     subcategory = db.Column(db.String(32), nullable=False, default=ClothesSubcategories.common.value, server_default=ClothesSubcategories.common.value)
     sizes_quantities = db.relationship('ClothesQuantitySize', backref='clothes', cascade="all,delete", lazy='joined')
-    order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), index=True)
+    order_id = db.Column(
+        db.Integer,
+        db.ForeignKey('orders.id', ondelete='CASCADE'),
+        index=True,
+        nullable=True
+    )
+
+    card_id = db.Column(
+        db.Integer,
+        db.ForeignKey('product_cards.id', ondelete='CASCADE'),
+        index=True,
+        nullable=True
+    )
 
 
 class ClothesQuantitySize(CQSMixin):
@@ -523,7 +858,19 @@ class ClothesQuantitySize(CQSMixin):
 class Socks(ClothesMixin):
     __tablename__ = "socks"
     sizes_quantities = db.relationship('SocksQuantitySize', backref='socks', cascade="all,delete", lazy='joined')
-    order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), index=True)
+    order_id = db.Column(
+        db.Integer,
+        db.ForeignKey('orders.id', ondelete='CASCADE'),
+        index=True,
+        nullable=True
+    )
+
+    card_id = db.Column(
+        db.Integer,
+        db.ForeignKey('product_cards.id', ondelete='CASCADE'),
+        index=True,
+        nullable=True
+    )
 
 
 class SocksQuantitySize(CQSMixin):

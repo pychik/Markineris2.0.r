@@ -1,0 +1,21 @@
+<div class="crm__col">
+  <div class="orders">
+    <h2 class="orders__title">
+      На уточнении <span id="clarification_cards_qty">({{ clarification_cards|length }})</span>
+      <img src="{{ url_for('static', filename='crm_mod/img/icons/download.svg') }}"
+       role="button"
+       width="18" height="18"
+       class="ms-1 icon-grey-filter"
+       data-bs-toggle="tooltip"
+       data-bs-title="Скачать на уточнении (по фирмам)"
+       onclick="pcDownloadCompaniesByStatus('clarification')">
+    </h2>
+    <div style="width:335px"></div>
+
+    <div id="clarification_cards_main">
+      <div class="orders__list" id="clarification_cards_list">
+        {% include 'product_cards/crm/cards/updated_stages/_clarification_list.html' %}
+      </div>
+    </div>
+  </div>
+</div>

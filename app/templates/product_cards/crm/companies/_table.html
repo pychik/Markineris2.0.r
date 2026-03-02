@@ -1,0 +1,34 @@
+<table class="table table-sm align-middle">
+  <thead>
+    <tr>
+      <th style="width:70px;">ID</th>
+      <th>Название</th>
+      <th style="width:180px;">ИНН</th>
+      <th style="width:170px;">Действия</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for c in companies %}
+    <tr data-company-id="{{ c.id }}">
+      <td>{{ c.id }}</td>
+
+      <td>
+        <input class="form-control form-control-sm" value="{{ c.title }}" data-field="title">
+      </td>
+
+      <td>
+        <input class="form-control form-control-sm" value="{{ c.inn or '' }}" data-field="inn">
+      </td>
+
+      <td>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-danger"
+                  type="button"
+                  data-action="delete">Удалить</button>
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

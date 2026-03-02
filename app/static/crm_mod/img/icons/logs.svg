@@ -1,0 +1,21 @@
+<svg width="25" height="24" viewBox="0 0 25 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- background circle -->
+  <circle cx="12.5" cy="12" r="12" fill="#E9ECEF"/>
+
+  <!-- document -->
+  <path
+    d="M9 6.5h5l3 3v8.5c0 .55-.45 1-1 1H9c-.55 0-1-.45-1-1v-10c0-.55.45-1 1-1Z"
+    fill="#087990"
+  />
+
+  <!-- folded corner -->
+  <path
+    d="M14 6.5v3c0 .28.22.5.5.5h3"
+    fill="#E9ECEF"
+  />
+
+  <!-- log lines -->
+  <rect x="10.2" y="11" width="5.6" height="1" rx=".5" fill="#E9ECEF"/>
+  <rect x="10.2" y="13" width="5.6" height="1" rx=".5" fill="#E9ECEF"/>
+  <rect x="10.2" y="15" width="3.6" height="1" rx=".5" fill="#E9ECEF"/>
+</svg>

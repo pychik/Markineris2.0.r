@@ -1,0 +1,21 @@
+<div class="modal fade" id="markModal" tabindex="-1" role="dialog" aria-labelledby="markModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+    <div class="modal-content p-3 p-md-4">
+      <div class="modal-header">
+        <h5 class="modal-title" id="markModalLabel">Выберите понравившуюся маркировку и нажмите на нее</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body">
+
+          {% include 'product_cards/user/modals/marks.html' %}
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Close">
+            Выйти из окна выбора типа этикетки</button>
+
+      </div>
+    </div>
+  </div>
+</div>

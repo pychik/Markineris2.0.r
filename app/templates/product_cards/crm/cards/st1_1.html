@@ -1,0 +1,17 @@
+<div class="crm__col">
+  <div class="orders">
+    <h2 class="orders__title">
+      Отправленные заявки без РД <span id="sent_no_rd_cards_qty">({{ sent_no_rd_cards|length }})</span>
+
+    </h2>
+
+<div style="width:335px"></div>
+    <div id="sent_no_rd_cards_main">
+      <div class="orders__list" id="sent_no_rd_cards_list">
+
+        {% include 'product_cards/crm/cards/updated_stages/_sent_no_rd_list.html' %}
+
+      </div>
+    </div>
+  </div>
+</div>

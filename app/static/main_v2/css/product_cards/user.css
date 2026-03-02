@@ -1,0 +1,480 @@
+/* ==========================================================================
+   user.css (existing + new styles, without duplicates)
+   ========================================================================== */
+
+/* ===========================
+   Product cards UI (pc-*)
+   =========================== */
+
+/* Базовая кнопка */
+.pc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  text-decoration: none;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+}
+
+/* маленький вариант (для "В корзину" в таблице) */
+.pc-btn--sm {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.9rem;
+  line-height: 1.1;
+}
+
+/* чтобы буквы не упирались в края в узких кнопках */
+.pc-btn,
+.pc-btn--sm {
+  letter-spacing: 0.2px;
+}
+
+/* Жёлтая кнопка */
+.pc-btn-yellow {
+  background: #ffc400;
+  color: #000;
+}
+
+.pc-btn-yellow:hover {
+  background: #ffb900;
+  color: #000;
+  text-decoration: none;
+}
+
+/* Зелёная кнопка */
+.pc-btn-green {
+  background: #28a745;
+  color: #fff;
+}
+
+.pc-btn-green:hover {
+  background: #218838;
+  color: #fff;
+  text-decoration: none;
+}
+
+/* Красная (danger) кнопка */
+.pc-btn-danger {
+  background: #dc3545;
+  color: #fff;
+}
+
+.pc-btn-danger:hover {
+  background: #c82333;
+  color: #fff;
+  text-decoration: none;
+}
+
+
+/* Серая кнопка */
+.pc-btn-gray {
+  background: #f2f2f2;
+  color: #444;
+  border: 1px solid #d0d0d0;
+}
+
+.pc-btn-gray:hover {
+  background: #e6e6e6;
+  color: #222;
+  text-decoration: none;
+}
+
+/* Исправляем "input-group", чтобы кнопки не ломались */
+.input-group > .pc-btn {
+  border-radius: 0;
+}
+
+.input-group > .pc-btn:first-of-type {
+  border-radius: 0 6px 6px 0;
+}
+
+.input-group > .pc-btn-gray {
+  border-radius: 0 6px 6px 0;
+}
+
+/* Общая база */
+.pc-status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0.2px;
+}
+
+/* ----------- Статусы ------------ */
+
+/* CREATED */
+.pc-status-created {
+  background: rgba(112, 179, 246, 0.89);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* SENT */
+.pc-status-sent {
+  background: rgba(120, 130, 140, 0.15);
+  color: rgba(70, 80, 90, 0.85);
+}
+
+.pc-status-sent_no_rd {
+  background: rgba(120, 130, 140, 0.15);
+  color: rgba(70, 80, 90, 0.85);
+}
+
+/* IN_PROGRESS — почти нейтральный жёлтый */
+.pc-status-in_progress {
+  background: rgba(255, 243, 205, 0.7);
+  color: rgba(120, 105, 40, 0.85);
+}
+
+/* IN_MODERATION — пастельный жёлтый */
+.pc-status-in_moderation {
+  background: rgba(255, 230, 170, 0.75);
+  color: rgba(125, 95, 25, 0.9);
+}
+
+/* CLARIFICATION — мягкий жёлто-оранжевый */
+.pc-status-clarification {
+  background: rgba(255, 205, 140, 0.8);
+  color: rgba(120, 70, 20, 0.95);
+}
+
+
+/* APPROVED */
+.pc-status-approved {
+  background: rgba(40, 167, 69, 0.20);
+  color: rgba(25, 95, 45, 0.85);
+}
+
+/* PARTIALLY_APPROVED */
+.pc-status-partially_approved {
+  background: rgba(40, 167, 69, 0.03);
+  color: rgba(25, 95, 45, 0.60);
+  border: 1px solid rgba(40, 167, 69, 0.18);
+}
+
+
+/* REJECTED */
+.pc-status-rejected {
+  background: rgba(220, 53, 69, 0.20);
+  color: rgba(150, 40, 50, 0.85);
+}
+
+/* Контейнер действий */
+.pc-actions-inner {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Базовая кнопка-иконка */
+.pc-icon-btn {
+  border: none;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 999px;
+  padding: 4px;
+  cursor: pointer;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  color: rgba(60, 60, 60, 0.7);
+}
+
+.pc-icon-btn svg {
+  display: block;
+}
+
+.pc-icon-btn:hover,
+.pc-icon-btn:focus-visible {
+  background: rgba(0, 0, 0, 0.06);
+  color: rgba(40, 40, 40, 0.85);
+  outline: none;
+  transform: translateY(-1px);
+  box-shadow: 0 1px 3px rgba(15, 15, 15, 0.12);
+}
+
+.pc-icon-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.pc-icon-btn[disabled] {
+  opacity: 0.4;
+  cursor: default;
+  box-shadow: none;
+}
+
+.pc-row-blink > td,
+.pc-row-blink > th {
+  animation: pulseYellow 2s ease-in-out infinite;
+}
+
+@keyframes pulseYellow {
+  0%   { background-color: transparent; }
+  40%  { background-color: #fff8dc; }
+  60%  { background-color: #fff8dc; }
+  100% { background-color: transparent; }
+}
+
+/* ===========================
+   o-b button system (NO bootstrap look)
+   =========================== */
+.o-b-btn {
+  appearance: none;
+  border: 1px solid rgba(0,0,0,.18);
+  background: #fff;
+  color: #222;
+  border-radius: 5px;
+  padding: 6px 10px;
+  font-size: 14px;
+  line-height: 1.1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+  width: auto !important;
+  min-width: 0 !important;
+  white-space: nowrap;
+}
+
+.o-b-btn:hover { background: rgba(0,0,0,.03); }
+.o-b-btn:active { transform: translateY(1px); }
+.o-b-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+.o-b-btn--gray {
+  background: #f3f4f6;
+  border-color: rgba(0,0,0,.12);
+}
+
+.o-b-btn--yellow {
+  background: #ffd54a;
+  border-color: rgba(0,0,0,.18);
+}
+
+.o-b-btn--danger {
+  background: #fff;
+  border-color: rgba(209,38,0,.35);
+  color: #a31f00;
+}
+
+.o-b-btn--icon {
+  width: 42px;
+  height: 34px;
+  padding: 0;
+  border-radius: 5px;
+}
+
+.o-b-btn--wide {
+  flex: 1 1 auto;
+}
+
+/* stack helper (qty + delete same width) */
+.o-b-btn--stack {
+  width: 88px;
+}
+
+/* выключаем влияние bootstrap на кнопки ВНУТРИ корзины */
+.o-b-cart .btn,
+.o-b-cart .btn:focus,
+.o-b-cart .btn:hover,
+.o-b-cart .btn:active {
+  all: unset;
+}
+
+/* и внутри модалки card_view (чтобы не тянуть btn-стили) */
+.pc-card-view .btn,
+.pc-card-view .btn:focus,
+.pc-card-view .btn:hover,
+.pc-card-view .btn:active {
+  all: unset;
+}
+
+/* инпут количества */
+.o-b-qty {
+  max-width: 80px;
+  height: 34px;
+  border: 1px solid rgba(0,0,0,.18);
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-size: 14px;
+  background: #fff;
+}
+
+/* бейдж счётчика */
+.o-b-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #111;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* ===========================
+   Cart layout (o-b-cart-*)
+   =========================== */
+
+.o-b-cart-empty {
+  padding: 10px 6px;
+  color: rgba(0,0,0,.55);
+}
+
+.o-b-order-block {
+  padding: 10px 10px 6px;
+  border: 1px solid rgba(0,0,0,.10);
+  border-radius: 10px;
+  background: #fff;
+  margin-bottom: 10px;
+}
+
+.o-b-order-head {
+  font-weight: 600;
+  font-size: 14px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}
+
+.o-b-cart-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.o-b-cart-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}
+
+.o-b-cart-item:last-child {
+  border-bottom: none;
+}
+
+.o-b-cart-item__left {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.o-b-cart-item__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.o-b-cart-title {
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.o-b-cart-meta {
+  font-size: 12px;
+  color: rgba(0,0,0,.60);
+}
+
+.o-b-cart-meta-pos {
+  margin-top: 0.5rem;
+  font-size: 12px;
+  color: rgba(0,0,0,.60);
+}
+
+/* RD pill */
+.o-b-rd-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.16);
+  background: #fff7d1;
+  color: rgba(0,0,0,.80);
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* card_view: кнопка "В корзину" */
+.pc-card-view .pc-add-to-cart-btn {
+  padding: 0.42rem 0.9rem;
+  font-size: 0.9rem;
+  line-height: 1.1;
+}
+
+/* в card_view не используем зелёный */
+.pc-card-view .badge.bg-success-subtle.text-success {
+  background: rgba(255, 193, 7, 0.25) !important;
+  color: rgba(130, 100, 10, 0.85) !important;
+  border: 1px solid rgba(0,0,0,.08);
+}
+
+/* ===== Группы по артикулам в корзине ===== */
+.o-b-article-block{
+  border-top: 1px solid rgba(0,0,0,.08);
+  padding-top: 10px;
+  margin-top: 10px;
+}
+.o-b-article-block:first-child{
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.o-b-article-head{
+  padding-bottom: 8px;
+}
+
+.o-b-sizes-list{
+  border-top: 1px solid rgba(0,0,0,.06);
+}
+
+/* ===== Полосы между размерами ===== */
+.o-b-size-row{
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0,0,0,.06);
+}
+.o-b-size-row:last-child{
+  border-bottom: none;
+}
+
+.o-b-size-left{
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.o-b-size-right{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* одинаковая ширина input и кнопки "Удалить" */
+.o-b-stack-w{
+  width: 80px;
+}

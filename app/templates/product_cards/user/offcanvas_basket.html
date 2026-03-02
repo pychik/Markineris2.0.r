@@ -1,0 +1,28 @@
+<div class="offcanvas offcanvas-end o-b-cart" tabindex="-1" id="o-b-cart-offcanvas" aria-labelledby="o-b-cart-offcanvasLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="o-b-cart-offcanvasLabel">Корзина заказов</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+
+  <div class="offcanvas-body">
+    <div class="small text-muted mb-2">
+      В одном заказе — только одна категория. При добавлении товара из другой категории начнётся новый заказ.
+    </div>
+<button class="o-b-btn o-b-btn--gray o-b-btn--wide" id="o-b-cart-settings"
+        data-bs-toggle="modal" data-bs-target="#o-b-cart-settings-modal">
+  Настройки заказа
+</button>
+    <div id="o-b-cart-settings-status" class="mb-2"></div>
+    <div id="o-b-cart-messages" class="mb-2"></div>
+
+    <div id="o-b-cart-orders"></div>
+
+    <div class="o-b-cart-actions mt-3">
+  <button class="o-b-btn o-b-btn--gray o-b-btn--wide" id="o-b-cart-clear">Очистить</button>
+  <button class="o-b-btn o-b-btn--yellow o-b-btn--wide" id="o-b-cart-checkout"
+    data-post-url="{{ url_for('user_product_cards.make_pc_basket_order') }}"
+    data-csrf="{{ csrf_token() }}">Оформить</button>
+</div>
+
+  </div>
+</div>

@@ -1,0 +1,14 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- bubble -->
+  <path
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M12 0C5.3726 0 0 4.92487 0 11c0 3.122 1.409 5.939 3.667 7.889L3 24l5.432-2.847C9.58 21.704 10.772 22 12 22c6.6274 0 12-4.9249 12-11S18.6274 0 12 0Z"
+    fill="#FFC107"
+  />
+
+  <!-- dots -->
+  <circle cx="8" cy="11" r="1.5" fill="#212529"/>
+  <circle cx="12" cy="11" r="1.5" fill="#212529"/>
+  <circle cx="16" cy="11" r="1.5" fill="#212529"/>
+</svg>

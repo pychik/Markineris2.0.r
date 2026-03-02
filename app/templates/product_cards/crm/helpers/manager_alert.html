@@ -1,0 +1,37 @@
+{% if current_user.role == 'manager' %}
+<!-- Modal -->
+<div class="modal fade" id="managerAlertModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Уведомление для оператора</h5>
+      </div>
+      <div class="modal-body">
+        Вы авторизовались под учетной записью <strong id="operatorName" style="font-size: 22px"></strong>
+      </div>
+      <div class="modal-footer">
+        <button id="managerAlertOk" type="button" class="btn btn-secondary">Ок</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const loginName = "{{ current_user.login_name }}";
+    const modalKey = "managerAlertSeen_" + loginName;
+
+    if (!sessionStorage.getItem(modalKey)) {
+      document.getElementById("operatorName").textContent = loginName;
+
+      const managerModal = new bootstrap.Modal(document.getElementById("managerAlertModal"));
+      managerModal.show();
+
+      document.getElementById("managerAlertOk").addEventListener("click", function () {
+        sessionStorage.setItem(modalKey, "true");
+        managerModal.hide();
+      });
+    }
+  });
+</script>
+{% endif %}

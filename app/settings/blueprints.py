@@ -15,6 +15,9 @@ def register_blueprints(app: Flask) -> None:
     from views.main.requests_common import requests_common as requests_common_blueprint
     from views.crm.crm_dash import crm_d as crm_d_blueprint
     from views.crm.crm_uoc import crm_uoc as crm_uoc_blueprint
+    from views.main.product_cards.users import user_product_cards as user_product_cards_blueprint
+    from views.main.product_cards.crm.main import crm_product_cards as crm_product_cards_blueprint
+    from views.main.product_cards.chat.main import chat_product_cards as chat_product_cards_blueprint
     from views.api.transactions import api as api_blueprint
 
     app.register_blueprint(auth_blueprint)
@@ -27,6 +30,9 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(parfum_blueprint, url_prefix='/parfum')
     app.register_blueprint(clothes_blueprint, url_prefix='/clothes')
     app.register_blueprint(socks_blueprint, url_prefix='/socks')
+    app.register_blueprint(user_product_cards_blueprint, url_prefix='/user_product_cards')
+    app.register_blueprint(crm_product_cards_blueprint, url_prefix='/crm_product_cards')
+    app.register_blueprint(chat_product_cards_blueprint, url_prefix='/chat_product_cards')
     app.register_blueprint(requests_common_blueprint, url_prefix='/rc')
     app.register_blueprint(crm_d_blueprint, url_prefix='/crm_dashboard')
     app.register_blueprint(crm_uoc_blueprint, url_prefix='/crm_uoc')

@@ -1,0 +1,29 @@
+<div class="row align-items-center mb-4">
+
+    <form id="pc-search-form" method="get">
+      <input type="hidden" name="category" value="{{ current_category }}">
+
+      <input type="hidden" name="subcategory" value="{{ current_subcategory or '' }}">
+
+      <div class="input-group">
+
+        <input
+          type="text"
+          name="article_query"
+          class="form-control"
+          placeholder="Поиск по артикулу..."
+          value="{{ request.args.get('article_query', '') }}"
+        >
+
+        <button type="submit" class="pc-btn pc-btn-yellow">
+          Поиск
+        </button>
+
+        <button type="button" class="pc-btn pc-btn-gray" id="pc-btn-clear">
+          Очистить
+        </button>
+
+      </div>
+    </form>
+
+</div>

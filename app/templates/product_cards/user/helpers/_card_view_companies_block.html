@@ -1,0 +1,68 @@
+<div class="pc-card-view__block mb-3" id="pc-card-view-companies">
+  <h6 class="fw-semibold mb-2">Закреплённые компании пользователя</h6>
+
+  {% if user_companies %}
+    <div class="d-flex flex-wrap gap-2 mb-2">
+      {% for uc in user_companies %}
+        <span class="badge bg-secondary-subtle text-secondary border"
+              title="{% if uc.inn %}ИНН: {{ uc.inn }}{% endif %}{% if not uc.is_active %} · неактивна{% endif %}">
+          {{ uc.slot }}: {{ uc.title }} {{ uc.inn }}
+          {% if uc.is_approved %}<span class="ms-1">✓</span>{% endif %}
+        </span>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="text-muted mb-2">Нет закреплённых компаний</div>
+  {% endif %}
+
+  {% if can_edit_companies %}
+    {% if slot1_filled and slot2_filled %}
+      {# оба заполнены — ничего не даём менять #}
+      <div class="text-muted small">
+        Оба слота заполнены. Изменение запрещено.
+      </div>
+    {% else %}
+      <div class="small text-muted mb-2">
+        Можно <b>добавить только отсутствующий слот</b>. Изменение заполненных слотов запрещено.
+      </div>
+
+      <div class="row g-2">
+        {% if not slot1_filled %}
+          <div class="col-6">
+            <label class="form-label small mb-1">Слот 1</label>
+            <select class="form-select form-select-sm" id="pc-company-slot-1">
+              <option value="">— выбрать —</option>
+              {% for c in pool_companies %}
+                <option value="{{ c.id }}">{{ c.title }} ({{ c.inn }})</option>
+              {% endfor %}
+            </select>
+            <button type="button"
+                    class="btn btn-outline-primary btn-sm mt-2"
+                    onclick="pcSetCompanySlot({{ card.id }}, 1)">
+              Добавить в слот 1
+            </button>
+          </div>
+        {% endif %}
+
+        {% if not slot2_filled %}
+          <div class="col-6">
+            <label class="form-label small mb-1">Слот 2</label>
+            <select class="form-select form-select-sm" id="pc-company-slot-2">
+              <option value="">— выбрать —</option>
+              {% for c in pool_companies %}
+                <option value="{{ c.id }}">{{ c.title }} ({{ c.inn }})</option>
+              {% endfor %}
+            </select>
+            <button type="button"
+                    class="btn btn-outline-primary btn-sm mt-2"
+                    onclick="pcSetCompanySlot({{ card.id }}, 2)">
+              Добавить в слот 2
+            </button>
+          </div>
+        {% endif %}
+      </div>
+
+      <div id="pc-companies-msg" class="small mt-2"></div>
+    {% endif %}
+  {% endif %}
+</div>

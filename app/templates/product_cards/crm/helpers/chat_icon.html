@@ -1,0 +1,16 @@
+<span class="me-1 pc-chat-wrap position-relative" style="display:inline-block;">
+  <img src="{{ url_for('static', filename='crm_mod/img/icons/chat.svg') }}"
+       role="button"
+       class="pc-chat-btn"
+       onclick="pcChatOpen(this)"
+       data-bs-toggle="tooltip"
+       data-bs-title="Чат"
+       data-card-id="{{ c.id }}">
+
+  {% if c.unread_count and c.unread_count > 0 %}
+    <span class="badge rounded-pill bg-warning text-dark position-absolute"
+          style="top:-8px; right:-10px; font-size:11px;">
+      +{{ c.unread_count }}
+    </span>
+  {% endif %}
+</span>

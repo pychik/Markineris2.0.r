@@ -109,25 +109,79 @@
                                         <a class="btn btn-dark btn-sm btn-watch  ms-md-auto"
                                            href="{{ url_for(categories_dict[category] +'.preload', o_id=s.id, stage=s.stage, archive_flag=True) }}" title="Просмотреть заказ"
                                             >Просмотреть</a>
-
                                         <div class="row g-3 justify-content-end">
+                                            {% if not s.is_moderation %}
+                                                <form method="post" class="btn-table me-2" action="{{url_for('orders_archive.copy_order', o_id=s.id, category=s.category)}}">
+                                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                                  <span title="Скопировать заказ для редактирования"
+                                                         type="submit" name="copy"
+                                                         onclick="loadingCircle(); this.parentNode.submit()">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24"
+                                                        height="24" viewBox="0 0 24 24" fill="none">
+                                                        <path
+                                                            d="M9 3.25C5.82436 3.25 3.25 5.82436 3.25 9V16.1069C3.25 16.5211 3.58579 16.8569 4 16.8569C4.41421 16.8569 4.75 16.5211 4.75 16.1069V9C4.75 6.65279 6.65279 4.75 9 4.75H16.0129C16.4271 4.75 16.7629 4.41421 16.7629 4C16.7629 3.58579 16.4271 3.25 16.0129 3.25H9Z"
+                                                            fill="#8F8F8F" />
+                                                        <path fill-rule="evenodd" clip-rule="evenodd"
+                                                            d="M18.4026 6.79327C15.1616 6.43105 11.8384 6.43105 8.59748 6.79327C7.6742 6.89646 6.93227 7.62305 6.82344 8.55349C6.43906 11.84 6.43906 15.16 6.82344 18.4465C6.93227 19.377 7.6742 20.1035 8.59748 20.2067C11.8384 20.569 15.1616 20.569 18.4026 20.2067C19.3258 20.1035 20.0678 19.377 20.1766 18.4465C20.561 15.16 20.561 11.84 20.1766 8.55349C20.0678 7.62305 19.3258 6.89646 18.4026 6.79327ZM8.76409 8.28399C11.8943 7.93414 15.1057 7.93414 18.2359 8.28399C18.4733 8.31051 18.6599 8.49822 18.6867 8.72774C19.0576 11.8984 19.0576 15.1016 18.6867 18.2723C18.6599 18.5018 18.4733 18.6895 18.2359 18.716C15.1057 19.0659 11.8943 19.0659 8.76409 18.716C8.52674 18.6895 8.34013 18.5018 8.31329 18.2723C7.94245 15.1016 7.94245 11.8984 8.31329 8.72774C8.34013 8.49822 8.52674 8.31051 8.76409 8.28399Z"
+                                                            fill="#8F8F8F" />
+                                                    </svg>
+                                                  </span>
+                                                </form>
+                                            {% else %}
+                                                <form method="post" action="{{ url_for('user_product_cards.pc_order_copy', o_id=s.id) }}" class="btn-table me-2">
+                                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                                            <form method="post" class="btn-table me-2" action="{{url_for('orders_archive.copy_order', o_id=s.id, category=s.category)}}">
-                                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                              <span title="Скопировать заказ для редактирования"
-                                                     type="submit" name="copy"
-                                                     onclick="loadingCircle(); this.parentNode.submit()">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24"
-                                                    height="24" viewBox="0 0 24 24" fill="none">
-                                                    <path
-                                                        d="M9 3.25C5.82436 3.25 3.25 5.82436 3.25 9V16.1069C3.25 16.5211 3.58579 16.8569 4 16.8569C4.41421 16.8569 4.75 16.5211 4.75 16.1069V9C4.75 6.65279 6.65279 4.75 9 4.75H16.0129C16.4271 4.75 16.7629 4.41421 16.7629 4C16.7629 3.58579 16.4271 3.25 16.0129 3.25H9Z"
-                                                        fill="#8F8F8F" />
-                                                    <path fill-rule="evenodd" clip-rule="evenodd"
-                                                        d="M18.4026 6.79327C15.1616 6.43105 11.8384 6.43105 8.59748 6.79327C7.6742 6.89646 6.93227 7.62305 6.82344 8.55349C6.43906 11.84 6.43906 15.16 6.82344 18.4465C6.93227 19.377 7.6742 20.1035 8.59748 20.2067C11.8384 20.569 15.1616 20.569 18.4026 20.2067C19.3258 20.1035 20.0678 19.377 20.1766 18.4465C20.561 15.16 20.561 11.84 20.1766 8.55349C20.0678 7.62305 19.3258 6.89646 18.4026 6.79327ZM8.76409 8.28399C11.8943 7.93414 15.1057 7.93414 18.2359 8.28399C18.4733 8.31051 18.6599 8.49822 18.6867 8.72774C19.0576 11.8984 19.0576 15.1016 18.6867 18.2723C18.6599 18.5018 18.4733 18.6895 18.2359 18.716C15.1057 19.0659 11.8943 19.0659 8.76409 18.716C8.52674 18.6895 8.34013 18.5018 8.31329 18.2723C7.94245 15.1016 7.94245 11.8984 8.31329 8.72774C8.34013 8.49822 8.52674 8.31051 8.76409 8.28399Z"
-                                                        fill="#8F8F8F" />
-                                                </svg>
-                                              </span>
+                                                <span
+                                                      title="Этот заказ был создан из карточек товаров прошедших модерацию. Его можно скопировать и отправить в обработку"
+                                                      type="submit" name="copy"
+                                                         onclick="loadingCircle(); this.parentNode.submit()">
+                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                         width="20" height="20"
+                                                         viewBox="0 0 24 24"
+                                                         fill="none">
+
+                                                      <!-- file -->
+                                                      <path
+                                                        d="M8 3.5H15.2L19.5 7.8V18.5
+                                                           C19.5 20.2 18.1 21.5 16.4 21.5H8
+                                                           C6.3 21.5 4.9 20.2 4.9 18.5V6.5
+                                                           C4.9 4.8 6.3 3.5 8 3.5Z"
+                                                        stroke="#7C7C7C"
+                                                        stroke-width="1.5"
+                                                        stroke-linejoin="round"
+                                                        stroke-linecap="round"/>
+
+                                                      <!-- folded corner -->
+                                                      <path
+                                                        d="M15 3.5V8H19.5"
+                                                        stroke="#7C7C7C"
+                                                        stroke-width="1.5"
+                                                        stroke-linejoin="round"
+                                                        stroke-linecap="round"/>
+
+                                                      <!-- small M (top) -->
+                                                      <path
+                                                        d="M8.8 9.8V7.6
+                                                           L10.4 9.6
+                                                           L12 7.6
+                                                           V9.8"
+                                                        stroke="#7C7C7C"
+                                                        stroke-width="1.3"
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"/>
+
+                                                      <!-- big centered check -->
+                                                      <path
+                                                        d="M8.6 14.2L11.4 17L16.2 11.8"
+                                                        stroke="#7C7C7C"
+                                                        stroke-width="2"
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"/>
+
+                                                    </svg>
+                                                </span>
                                             </form>
+                                            {% endif %}
 
                                             {%if not current_user.is_at2%}
                                                 <form method="post" class="btn-table me-2" id="delete_archive_order_{{ s.id }}"

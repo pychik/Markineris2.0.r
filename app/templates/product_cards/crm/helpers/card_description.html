@@ -1,0 +1,22 @@
+ <div class="order__text">
+    <b>Номер заказа:</b> <span style="cursor:pointer" class="text-secondary" onclick="copy_buffer('{{ c.id }}')">{{ c.id }}</span><br>
+    <b>Категория:</b> {{ categories_common[c.category].title }}<br>
+    <b>Логин:</b>{{ c.user_login }}<br>
+    {% if current_user.role not in ['manager', 'supermanager'] %}
+        <b>Email:</b>{{ c.user_email }}<br>
+        <b>Телефон:</b>{{ c.user_phone }}<br>
+    {% endif %}
+</div>
+
+
+{% if c.user_comment %}
+    <div class="comment order__comment">
+        <div class="comment__title">
+            Комментарий:
+        </div>
+        <div class="comment__text">
+            {{ c.user_comment }}
+        </div>
+    </div>
+{% endif %}
+

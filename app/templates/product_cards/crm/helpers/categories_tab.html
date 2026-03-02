@@ -1,0 +1,54 @@
+{% if 'manager' in request.path%}{%set manager_flag=1 %}{% else %}{%set manager_flag=0%}{%endif%}
+{% if not 'crm_uoc' in request.path %}
+    <div class="categories header__categories">
+        <div class="categories__list">
+            <!-- Для активной категории свой класс .categories__item--active -->
+            <span onclick="update_category_crm_info(UPDATE_PRODUCT_CARDS_CRM_URL, '', this, '{{manager_flag}}')" class="categories__item categories__item--active" style="cursor:pointer; user-select: none;">
+                <img src="{{url_for('static', filename='crm_mod/img/icons/05.svg')}}" class="img-fluid" alt="Все">
+<!--                                <span id="all_commonCounter" class="font-12">{{categories_counter['all']}}</span>-->
+                <div class="categories-item__body">
+                    <p class="categories-item__text" style="line-height: 1">Все<br><span id="all_commonCounter" class="font-12">{{categories_counter['all']}}</span></p>
+<!--<span id="all_commonCounter" class="font-12">{{categories_counter['all']}}</span>-->
+                </div>
+            </span>
+            <span onclick="update_category_crm_info(UPDATE_PRODUCT_CARDS_CRM_URL, 'clothes', this, '{{manager_flag}}')" class="categories__item" style="cursor:pointer; user-select: none;">
+                <img src="{{url_for('static', filename='crm_mod/img/icons/01.svg')}}" class="img-fluid" alt="Одежда">
+<!--                                <span id="clothes_commonCounter" class="font-12">{{categories_counter['одежда']}}</span>-->
+                <div class="categories-item__body">
+                    <p class="categories-item__text" style="line-height: 1">Одежда<br><span id="clothes_commonCounter" class="font-12">{{categories_counter['clothes']}}</span></p>
+<!--<span id="clothes_commonCounter" class="font-12">{{categories_counter['одежда']}}</span>-->
+                </div>
+            </span>
+            <span onclick="update_category_crm_info(UPDATE_PRODUCT_CARDS_CRM_URL, 'shoes', this, '{{manager_flag}}')" class="categories__item" style="cursor:pointer; user-select: none;">
+                <img src="{{url_for('static', filename='crm_mod/img/icons/02.svg')}}" class="img-fluid" alt="Обувь">
+
+                <div class="categories-item__body">
+                    <p class="categories-item__text" style="line-height: 1">Обувь<br><span id="shoes_commonCounter" class="font-12">{{categories_counter['shoes']}}</span></p>
+<!--<span id="shoes_commonCounter" class="font-12">{{categories_counter['обувь']}}</span>-->
+                </div>
+            </span>
+            <span onclick="update_category_crm_info(UPDATE_PRODUCT_CARDS_CRM_URL, 'linen', this, '{{manager_flag}}')" class="categories__item" style="cursor:pointer; user-select: none;">
+                <img src="{{url_for('static', filename='crm_mod/img/icons/03.svg')}}" class="img-fluid" alt="Белье">
+                <div class="categories-item__body">
+                    <p class="categories-item__text" style="line-height: 1">Белье<br><span id="linen_commonCounter" class="font-12">{{categories_counter['linen']}}</span></p>
+<!--<span id="linen_commonCounter" class="font-12">{{categories_counter['белье']}}</span>-->
+                </div>
+            </span>
+            <span onclick="update_category_crm_info(UPDATE_PRODUCT_CARDS_CRM_URL, 'parfum', this, '{{manager_flag}}')" class="categories__item" style="cursor:pointer; user-select: none;">
+                <img src="{{url_for('static', filename='crm_mod/img/icons/04.svg')}}" class="img-fluid" alt="Духи">
+<!--                                <span id="parfum_commonCounter" class="font-12">{{categories_counter['парфюм']}}</span>-->
+                <div class="categories-item__body">
+                    <p class="categories-item__text" style="line-height: 1">Духи<br><span id="parfum_commonCounter" class="font-12">{{categories_counter['parfum']}}</span></p>
+<!--<span id="parfum_commonCounter" class="font-12">{{categories_counter['парфюм']}}</span>-->
+                </div>
+            </span>
+            <span onclick="update_category_crm_info(UPDATE_PRODUCT_CARDS_CRM_URL, 'socks', this, '{{manager_flag}}')" class="categories__item" style="cursor:pointer; user-select: none;">
+                <img src="{{url_for('static', filename='crm_mod/img/icons/socks.svg')}}" class="img-fluid" alt="Носки и прочее">
+<!--                                <span id="parfum_commonCounter" class="font-12">{{categories_counter['парфюм']}}</span>-->
+                <div class="categories-item__body">
+                    <p class="categories-item__text" style="line-height: 1">Носки<br><span id="socks_commonCounter" class="font-12">{{categories_counter['socks']}}</span></p>
+                </div>
+            </span>
+        </div>
+    </div>
+{% endif%}

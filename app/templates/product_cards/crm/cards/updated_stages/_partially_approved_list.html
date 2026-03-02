@@ -1,0 +1,32 @@
+
+  {% for c in partially_approved_cards %}
+
+
+    <div class="orders__item order" id="cardCommonBlock_{{ c.id }}">
+
+      {% include 'product_cards/crm/helpers/card_header.html' %}
+
+
+      <div class="order__body">
+        <div class="order__info">
+          {% include 'product_cards/crm/helpers/card_bottom_info_common.html' %}
+        </div>
+
+        <div class="order__all">
+          {# Описание карточки (артикул, бренд, размеры) #}
+          {% include 'product_cards/crm/helpers/card_description.html' %}
+
+          <div class="order__footer">
+            {% include 'product_cards/crm/helpers/table_download.html' %}
+
+          </div>
+
+          <div class="order__roll">
+            Свернуть
+            <img src="{{ url_for('static', filename='crm_mod/img/icons/roll.svg') }}" width="19" height="19">
+          </div>
+        </div>
+
+      </div>
+    </div>
+  {% endfor %}

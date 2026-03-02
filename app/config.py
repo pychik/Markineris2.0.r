@@ -311,6 +311,9 @@ class Settings(BaseSettings):
         SMS_CODE_SUCCESS: str = "На ваш номер {phone} отправлен код верификации. Введите его ниже!"
         SMS_CODE_SEND_ERROR: str = "Код не отправлен. Обратитесь к администратору!"
 
+    class ProducCards:
+        MAX_LOG: int = 1998
+
     class Telegram:
         URL: str = "https://api.telegram.org/bot"
         TELEGRAM_MAIN_GROUP_ID: str = "-1001858559646"
@@ -1001,6 +1004,7 @@ class Settings(BaseSettings):
         CATEGORY: str = 'белье'
         CATEGORY_PROCESS: str = 'linen'
         TYPES: list = LINEN_TYPES
+        TYPES_CARDS: list = list(filter(lambda t: t != "КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ", LINEN_TYPES))
         COLORS: tuple = COMMON_COLORS
         TEXTILE_TYPES: list = LINEN_TEXTILE_TYPES
         CUSTOMER_AGES: list = LINEN_CUSTOMER_AGES

@@ -1,0 +1,28 @@
+<div class="crm__col">
+  <div class="orders">
+    <h2 class="orders__title">
+      Отмененные заявки <span id="rejected_cards_qty">({{ rejected_cards|length }})</span>
+      <img src="{{ url_for('static', filename='crm_mod/img/icons/refresh.svg') }}"
+           role="button"
+           width="18" height="18"
+           data-bs-toggle="tooltip"
+           data-bs-title="Обновить"
+           onclick="pcReloadColumn('rejected')">
+      <img src="{{ url_for('static', filename='crm_mod/img/icons/download.svg') }}"
+       role="button"
+       width="18" height="18"
+       class="ms-1 icon-grey-filter"
+       data-bs-toggle="tooltip"
+       data-bs-title="Скачать отмененные (по фирмам)"
+       onclick="pcDownloadCompaniesByStatus('rejected')">
+
+    </h2>
+    <div style="width:335px"></div>
+
+    <div id="rejected_cards_main">
+      <div class="orders__list" id="rejected_cards_list">
+        {% include 'product_cards/crm/cards/updated_stages/_rejected_list.html' %}
+      </div>
+    </div>
+  </div>
+</div>

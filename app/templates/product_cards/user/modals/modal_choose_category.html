@@ -1,0 +1,44 @@
+<div class="modal fade" id="pc-create-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Новый товар</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="pc-create-category" class="form-label">Категория</label>
+          <select id="pc-create-category" class="form-select">
+            <option value="" selected disabled>Выберите категорию</option>
+            {% for key, label in mapper_categories.items() %}
+                <option value="{{ key }}">{{ label['title'] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3 d-none" id="pc-create-subcat-wrapper">
+            <label for="pc-create-subcategory" class="form-label">Подкатегория одежды</label>
+
+            <select id="pc-create-subcategory" class="form-select">
+                {% for key, label in mapper_categories['clothes']['subcategories'].items() %}
+                    <option value="{{ key }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button"
+                class="btn btn-accent"
+                id="pc-create-continue">
+          Продолжить
+        </button>
+        <button type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal">Отмена</button>
+
+      </div>
+    </div>
+  </div>
+</div>

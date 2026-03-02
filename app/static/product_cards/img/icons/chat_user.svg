@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="20"
+     height="20"
+     viewBox="0 0 24 24"
+     fill="none">
+
+  <!-- chat bubble -->
+  <path
+    d="M7 7.5h10a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3h-4.2L9 19.5v-2H7a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3Z"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.5"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+  />
+
+  <!-- dots -->
+  <circle cx="10" cy="12" r="1" fill="currentColor"/>
+  <circle cx="12" cy="12" r="1" fill="currentColor"/>
+  <circle cx="14" cy="12" r="1" fill="currentColor"/>
+
+</svg>

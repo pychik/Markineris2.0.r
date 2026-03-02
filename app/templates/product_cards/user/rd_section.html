@@ -1,0 +1,29 @@
+<div class="pc-card-view__block mb-3">
+  <h6 class="fw-semibold mb-2">Разрешительная документация</h6>
+
+  {% if main and (main.rd_type or main.rd_name or main.rd_date or main.rd_date_to) %}
+    <dl class="row mb-0">
+      {% if main.rd_type %}
+        <dt class="col-4">Тип документа</dt>
+        <dd class="col-8">{{ main.rd_type }}</dd>
+      {% endif %}
+
+      {% if main.rd_name %}
+        <dt class="col-4">Код/Название</dt>
+        <dd class="col-8">{{ main.rd_name }}</dd>
+      {% endif %}
+
+      {% if main.rd_date %}
+        <dt class="col-4">Действует от</dt>
+        <dd class="col-8">{{ main.rd_date.strftime('%d.%m.%Y') }}</dd>
+      {% endif %}
+
+      {% if main.rd_date_to %}
+        <dt class="col-4">Действует до</dt>
+        <dd class="col-8">{{ main.rd_date_to.strftime('%d.%m.%Y') }}</dd>
+      {% endif %}
+    </dl>
+  {% else %}
+    <div class="small text-muted">РД не указана</div>
+  {% endif %}
+</div>
