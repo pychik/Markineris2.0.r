@@ -1009,8 +1009,7 @@ function getTypeValue() {
     return false;
   }
 
-
-function get_genders(url, csrf, subcategory) {
+function get_genders(url, csrf, subcategory, preferGender) {
     const typeEl   = document.getElementById('type');
     const genderEl = document.getElementById('gender');
     if (!typeEl || !genderEl) return;
@@ -1024,21 +1023,21 @@ function get_genders(url, csrf, subcategory) {
 
     // тип не выбран — ошибка
     if (!cl_type) {
-
         show_form_errors(['Выберите тип одежды до выбора пола']);
         $('#form_errorModal').modal('show');
-        // лёгкая подсветка и фокус на тип
         try { typeEl.classList.add('is-invalid'); typeEl.focus(); } catch(e){}
         return;
     }
 
-    // избегаем лишних запросов: если уже подгружали для этого типа — не грузим повторно
+    // если уже подгружали для этого типа — всё равно попробуем применить preferGender (если пришёл)
     const loadedFor = genderEl.getAttribute('data-loaded-for-type');
     if (loadedFor === cl_type && genderEl.options.length > 1 && !genderEl.disabled) {
-        return; // уже актуально
+        if (preferGender) {
+            applyPreferredGender(preferGender);
+        }
+        return;
     }
 
-    // UI: прелоадер
     fillGenderSelect([], { keepValue:false, enabled:false, placeholder:'Загрузка…' });
 
     $.ajax({
@@ -1068,11 +1067,16 @@ function get_genders(url, csrf, subcategory) {
             $('#gender').attr('required', true);
             genderEl.setAttribute('data-loaded-for-type', cl_type);
 
-            // если используете select2 — открыть дропдаун
+            // ✅ применяем пол из copied_order, если передали
+            if (preferGender) {
+                applyPreferredGender(preferGender, options);
+            }
+
+            // если используете select2 — открыть дропдаун только если пол не проставили
             if ($ && $.fn && $.fn.select2) {
-                $('#gender').select2('open');
+                if (!genderEl.value) $('#gender').select2('open');
             } else {
-                genderEl.focus();
+                if (!genderEl.value) genderEl.focus();
             }
         },
         error: function () {
@@ -1081,6 +1085,32 @@ function get_genders(url, csrf, subcategory) {
             $('#form_errorModal').modal('show');
         }
     });
+}
+
+
+function applyPreferredGender(preferGender, options) {
+    const genderEl = document.getElementById('gender');
+    if (!genderEl) return;
+
+    const wanted = (preferGender || '').toString().trim();
+    if (!wanted) return;
+
+    const exists = Array.isArray(options)
+        ? options.includes(wanted)
+        : Array.from(genderEl.options).some(o => o.value === wanted);
+
+    if (!exists) return;
+
+    window.__gender_autofill = true;   // ✅ start
+    genderEl.value = wanted;
+
+    if (window.$) {
+        $('#gender').trigger('change.select2');
+        $('#gender').trigger('change'); // не почистит tnved, потому что флаг true
+    }
+
+    // сброс флага в микротаске/тик — чтобы следующие ручные изменения чистили tnved
+    setTimeout(() => { window.__gender_autofill = false; }, 0); // ✅ end
 }
 
 function fillGenderSelect(genders, { keepValue = true, enabled = true, placeholder = 'Выберите пол...' } = {}) {
@@ -1158,6 +1188,11 @@ function clothes_manual_tnved(){
     document.getElementById('tnved_code').value = m_tnved;
     clear_manual_tnved();
     $('#manualTnvedModal').modal('hide');
+}
+
+function genderChangeHandler(e) {
+  if (window.__gender_autofill) return; // при автоподстановке не чистим
+  clear_tnved_input();                  // при ручном выборе — чистим
 }
 
 function clear_manual_tnved(){

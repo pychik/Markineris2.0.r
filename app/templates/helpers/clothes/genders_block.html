@@ -1,4 +1,4 @@
-<div class="form-group" onclick="genderClickGuard(event)" onfocus="genderClickGuard(event)" onchange="clear_tnved_input();">
+<div class="form-group" onclick="genderClickGuard(event)" onfocus="genderClickGuard(event)">
   <label class="control-label">Пол</label>
   <select class="form-control search-select" id="gender" name="gender" required>
     <option disabled selected value="">Выберите пол...</option>
@@ -9,11 +9,30 @@
       <script>
             document.addEventListener('DOMContentLoaded', function () {
                 get_genders(`{{ url_for('clothes.bck_clothes_genders', subcategory=subcategory) }}`,
-                    `{{ csrf_token() }}`, `{{ subcategory }}`);
+                    `{{ csrf_token() }}`, `{{ subcategory }}`, `{{copied_order.gender}}`);
             });
         </script>
     {% endif %}
 
   </select>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const $g = $('#gender');
 
+  // обычный select: user-initiated change имеет e.originalEvent
+  $g.on('change', function (e) {
+    // programmatic trigger('change') => originalEvent обычно undefined
+    if (!e.originalEvent) return;
+    clear_tnved_input();
+  });
+
+  // select2: user-initiated выбор ловим тут
+  $g.on('select2:select', function (e) {
+    // если выбор мышкой/клавиатурой — тут почти всегда есть originalEvent
+    if (e.params && e.params.originalEvent) {
+      clear_tnved_input();
+    }
+  });
+});
+</script>
