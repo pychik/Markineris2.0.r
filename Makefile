@@ -42,7 +42,12 @@ maintenance-off:				## Выключение режима "технических
 	sleep 10
 	rm -fr ./maintenance/maintenance.flag
 	docker image prune -f
-
+maintenance-easy:				## Выключение режима "технических работ" и удаление всех неиспользуемых докер образов.
+	@make flask-up
+	touch ./maintenance/maintenance.flag
+	sleep 10
+	rm -fr ./maintenance/maintenance.flag
+	docker image prune -f
 service-logs:					## Отображение в режиме реального времени всех логов поступающих в сеть контейнеров сервиса марка- сервис(Flask app, db, nginx).
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} logs -f
 
