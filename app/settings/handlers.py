@@ -63,7 +63,7 @@ def register_handlers(app: Flask) -> None:
             ]
             allowed_transaction_url = [
                 url_for('admin_control.su_bck_control_ut'),
-                url_for('admin_control.update_transaction_account', transaction_id=1)[:-3],
+                # url_for('admin_control.update_transaction_account', transaction_id=1)[:-3],
                 url_for('admin_control.su_control_ut'),
                 url_for('admin_control.su_bck_ut_report'),
                 url_for('admin_control.bck_su_transaction_detail', u_id=1, t_id=1)[:-3],
@@ -74,7 +74,7 @@ def register_handlers(app: Flask) -> None:
             allowed_finance_url = [
                 url_for('admin_control.su_add_promo'),
                 url_for('admin_control.su_bck_promo'),
-                url_for('admin_control.get_accounts'),
+                # url_for('admin_control.get_accounts'),
                 url_for('admin_control.su_delete_promo', p_id=1),
                 url_for('admin_control.su_fin_promo_history'),
                 url_for('admin_control.su_control_finance'),
