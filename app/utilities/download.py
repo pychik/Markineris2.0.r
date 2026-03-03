@@ -780,7 +780,7 @@ def get_download_info(o_id, user: User, flag_046: bool = False) -> Union[Respons
         return (None,) * 12
 
     category_name_excel = category if not category_name_excel else category_name_excel
-    files_list = op.make_file(order_num=order_num, category=category_name_excel, pos_count=pos_count, orders_pos_count=orders_pos_count,
+    files_list = op.make_file(order=order, order_num=order_num, category=category_name_excel, pos_count=pos_count, orders_pos_count=orders_pos_count,
                               c_partner_code=c_partner_code, company_type=company_type, company_name=company_name,
                               company_idn=company_idn, edo_type=edo_type, edo_id=edo_id, mark_type=mark_type,
                               c_name=c_name, c_phone=c_phone, c_email=c_email)
