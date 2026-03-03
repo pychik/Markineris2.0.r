@@ -5,7 +5,7 @@
   </div>
   {% include 'product_cards/crm/helpers/card_manager_info.html' %}
   <div class="order__num">
-    Артикул: <span class="text-secondary" onclick="copy_buffer('{{ c.article_or_trademark }}', event)">{{ c.article_or_trademark }}</span><br>
+    Артикул: <span class="text-secondary" data-copy="{{ c.article_or_trademark }}" onclick="copy_buffer(this.dataset.copy, event)">{{ c.article_or_trademark }}</span><br>
   </div>
   <div class="order__time"
        data-bs-toggle="tooltip"
