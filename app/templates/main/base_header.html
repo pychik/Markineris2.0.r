@@ -182,7 +182,7 @@
                         </a>
                     </li>
                 {%endif%}
-                {% if current_user.role == 'superuser', 'supermanager', 'manager'%}
+                {% if current_user.role in ['superuser', 'supermanager', 'manager']%}
                     <li>
                         <a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('crm_product_cards.cards')}}"
                             title="Панель управления пользователями">Модерация CRM</a>
