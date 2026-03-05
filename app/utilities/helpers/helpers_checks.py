@@ -126,6 +126,8 @@ def _check_clothes_compatibility(clothes) -> str | bool:
 
         if sq_size_type == settings.Clothes.DEFAULT_SIZE_TYPE and sq_size not in settings.Clothes.CLOTHES_ST_RUSSIA:
             size_errors.append(sq_size)
+        if sq_size_type == settings.Clothes.INTERNATIONAL_SIZE_TYPE and 'ЕДИНЫЙ' in sq_size.upper():
+            size_errors.append(sq_size)
 
     sizes_ok = not size_errors
 

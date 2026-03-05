@@ -121,7 +121,7 @@ class ValidateClothesMixin:
         """
 
         # Нормализация / запись значения в order_list (как и раньше)
-        if value in settings.Clothes.UNITE_SIZE_VALUES:
+        if 'ЕДИНЫЙ' in value:
             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = settings.Clothes.UNITE_SIZE_VALUE
         else:
             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = value

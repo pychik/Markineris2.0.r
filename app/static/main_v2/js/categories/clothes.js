@@ -546,7 +546,10 @@ function perform_free_size_input(clothingType){
         <div id="freeInputBlock${clothingType}" class="d-none">
             <p>Поле свободного ввода размера типа ${clothingType} (введите размер, количество и нажмите добавить)</p>
             <div class="input-group mb-3">
-                <input type="text" class="form-control" id="subcategorySizeInput${clothingType}" placeholder="Введите размер" maxlength="8" pattern="[A-Za-z0-9]([-,.;]?[A-Za-z0-9]){0,7}" title="Только латиница и цифры (до 8 символов)" required>
+                <input type="text" class="form-control" id="subcategorySizeInput${clothingType}" placeholder="Введите размер"
+                       maxlength="8"  pattern="[A-Za-z0-9]([-,.;]?[A-Za-z0-9]){0,7}" title="Только латиница и цифры (до 8 символов)"
+                       oninput="if(this.value.toUpperCase() === 'ЕДИНЫЙ'){ this.value = ''; }" 
+                       required>
                 <input type="number" class="form-control" id="subcategorySizeQuantity${clothingType}" placeholder="Кол-во" min="1" required>
                 <button class="btn btn-accent" type="button" onclick="subcategory_size_add('${clothingType}')">Добавить</button>
                 <div class="invalid-feedback d-block" id="subcategorySizeError${clothingType}"></div>
