@@ -687,6 +687,7 @@ function init_tooltip(document){
             new bootstrap.Tooltip(tooltipTriggerEl);
         });
 }
+
 function getCrmConfig(document) {
   const el = document.getElementById('crm-config');
   return {
