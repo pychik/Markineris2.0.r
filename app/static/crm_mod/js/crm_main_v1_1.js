@@ -761,9 +761,11 @@ async function loadOrderDetails(order, document) {
 function initializeJSPage(document) {
   init_tooltip(document);
 
-  // ВАЖНО: не вешаем обработчики на каждый элемент,
-  // делаем один обработчик на документ (работает и после AJAX-рендера)
-  document.addEventListener('click', async (event) => {
+  if (document._crmClickHandler) {
+    document.removeEventListener('click', document._crmClickHandler, true);
+  }
+
+  document._crmClickHandler = async function(event) {
     const roll = event.target.closest('.order__roll');
     if (roll) {
       const order = roll.closest('.order');
@@ -779,8 +781,6 @@ function initializeJSPage(document) {
       const order = header.closest('.order');
       if (!order) return;
 
-      // Если кликнули по элементу, у которого есть inline onclick (стрелки/кнопки),
-      // то НЕ раскрываем карточку, чтобы не мешать действию
       if (event.target.closest('[onclick]')) return;
 
       event.stopPropagation();
@@ -794,16 +794,16 @@ function initializeJSPage(document) {
       return;
     }
 
-    // Опционально: клик по самой карточке, если она закрыта, тоже открывает
     const order = event.target.closest('.order');
     if (order && !order.classList.contains('active')) {
-      // не открываем если клик по кнопкам/иконкам с onclick
       if (event.target.closest('[onclick]')) return;
 
       order.classList.add('active');
       await loadOrderDetails(order, document);
     }
-  }, true);
+  };
+
+  document.addEventListener('click', document._crmClickHandler, true);
 }
 
 
