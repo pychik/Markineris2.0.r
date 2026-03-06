@@ -12,8 +12,8 @@
     <link rel="preconnect" href="{{url_for('static',filename='main_v2/css/service/g_fonts.css')}}" crossorigin>
     <link href="{{url_for('static',filename='main_v2/css/service/g_fonts.css')}}" rel="stylesheet">
     <link rel="stylesheet" href="{{url_for('static', filename='crm_mod/libs/bootstrap/css/bootstrap.min.css')}}">
-    <link rel="stylesheet" href="{{url_for('static', filename='crm_mod/css/main.css')}}?v=3">
-    <link rel="stylesheet" href="{{ url_for('static', filename='crm_mod/css/special_crm_effects_v2.css') }}?v=4">
+    <link rel="stylesheet" href="{{url_for('static', filename='crm_mod/css/main.css')}}?v=4">
+    <link rel="stylesheet" href="{{ url_for('static', filename='crm_mod/css/special_crm_effects_v2.css') }}?v=5">
 
     <script src="{{url_for('static',filename='main_v2/js/assets/jquery.min.js')}}"></script>
 
@@ -44,6 +44,10 @@
         </div>
 
     </header>
+
+    <div id="crm-config"
+         data-order-details-url="{{ url_for('crm_d.order_details') }}">
+    </div>
 
     <main class="main container-fluid">
 

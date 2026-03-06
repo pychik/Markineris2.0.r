@@ -1,6 +1,6 @@
 <div class="faded orders__list">
 {% for n in update_orders %}
-    <div class="orders__item order {% if n.to_delete %} div-disabled {%endif%}{% if n.is_moderation %} order--moderation {% endif %}" id="cardCommonBlock_{{n.id}}">
+    <div class="orders__item order {% if n.to_delete %} div-disabled {%endif%}{% if n.is_moderation %} order--moderation {% endif %}" data-order-id="{{ n.id }}" id="cardCommonBlock_{{n.id}}">
         <div class="order__header">
             <div class="order__name">{{n.order_idn}} {%if n.is_at2%}<span>(Агент тип 2)</span>{%endif%} </div>
             {% include 'crm_mod_v1/helpers/order_category.html' %}
@@ -21,12 +21,8 @@
                 </div>
             </div>
             <div class="order__all">
-                <div class="manager">
-                    <img src="{{url_for('static', filename='crm_mod/img/icons/file-person.svg')}}" alt="" class="img-fluid" width="24"
-                        height="24">
-                    <span>{{n.manager}}</span>
-                </div>
-                {% include 'crm_mod_v1/crma/order_description.html' %}
+
+                <div class="order__details" data-loaded="0"></div>
 
                 <div class="order__footer">
                     <div class="order__icons icons">

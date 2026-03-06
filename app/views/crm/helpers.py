@@ -10,11 +10,12 @@ from rq_scheduler.scheduler import Scheduler
 from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload, aliased
 from werkzeug.utils import secure_filename
 
 from config import settings
 from logger import logger
-from models import User, Order, OrderStat, db, ServerParam
+from models import User, Order, OrderStat, db, ServerParam, UserProcessingCompany
 from redis_queue.callbacks import on_success_periodic_task, on_failure_periodic_task
 from utilities.download import crm_orders_common_preload
 from utilities.exceptions import EmptyFileToUploadError
@@ -45,7 +46,7 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                  o.sent_at as sent_at,
                                  o.closed_at as closed_at,
                               """
-    stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
+    # stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
 
     if user.role not in [settings.SUPER_USER,  settings.MARKINERIS_ADMIN_USER]:
         admin_id = user.id
@@ -56,11 +57,7 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                     """
 
         stmt_orders = f"""
-                              SELECT u.client_code as client_code,
-                                  {stmt_get_agent}  as agent_name ,
-                                  u.login_name as login_name,
-                                  u.phone as phone,
-                                  u.email as email,
+                              SELECT 
                                   u.is_at2 as is_at2,
                                   o.id as id,
                                   o.stage as stage,
@@ -102,11 +99,6 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
     else:
         stmt_orders = f"""
                               SELECT 
-                                  u.client_code as client_code,
-                                  {stmt_get_agent} as agent_name ,
-                                  u.login_name as login_name, 
-                                  u.phone as phone, 
-                                  u.email as email, 
                                   u.is_at2 as is_at2,
                                   o.id as id,
                                   o.stage as stage,
@@ -173,11 +165,7 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                             """
 
         stmt_orders = text(f"""
-                                      SELECT u.client_code as client_code,
-                                          CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end as agent_name ,
-                                          u.login_name as login_name,
-                                          u.phone as phone,
-                                          u.email as email,
+                                      SELECT 
                                           u.is_at2 as is_at2,
                                           o.id as id,
                                           o.stage as stage,
@@ -229,11 +217,6 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
 
         stmt_orders = text(f"""
                               SELECT 
-                                  u.client_code as client_code,
-                                  CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end as agent_name ,
-                                  u.login_name as login_name, 
-                                  u.phone as phone, 
-                                  u.email as email, 
                                   u.is_at2 as is_at2,
                                   o.id as id,
                                   o.stage as stage,
@@ -310,13 +293,10 @@ def helper_get_manager_orders(
 
     conditional_stmt_common = f"(o.stage!={settings.OrderStage.POOL} AND o.stage>{settings.OrderStage.CREATING} AND o.stage<={settings.OrderStage.MANAGER_SOLVED} AND o.stage!={settings.OrderStage.CRM_PROCESSED})"
 
-    if user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, ]:
+    if user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MARKINERIS_ADMIN_USER]:
         conditional_stmt = f"(({conditional_stmt_common} AND o.manager_id=:manager_id) OR o.stage={settings.OrderStage.POOL}){category_stmt}{stage_stmt}"
         stmt_orders = text(f"""
-                             SELECT u.client_code as client_code,
-                                 u.login_name as login_name, 
-                                 u.phone as phone, 
-                                 u.email as email, 
+                             SELECT 
                                  o.id as id,
                                  o.stage as stage,
                                  o.payment as payment,
@@ -360,10 +340,6 @@ def helper_get_manager_orders(
         vsoc = f" AND ( (o.manager_id is not NULL AND managers.role not in ('{settings.SUPER_USER}', '{settings.MARKINERIS_ADMIN_USER}')) or o.manager_id is NULL)" if current_user.role == settings.SUPER_MANAGER else ""
         stmt_orders_qry = text(f"""
                               SELECT 
-                                  u.client_code as client_code,
-                                  u.login_name as login_name, 
-                                  u.phone as phone, 
-                                  u.email as email, 
                                   o.id as id,
                                   o.stage as stage,
                                   o.payment as payment,
@@ -1661,7 +1637,7 @@ def helpers_move_orders_to_processed() -> Response:
                SET stage=:new_stage,
                    closed_at=:closed_at, processed={True}
                WHERE stage=:stage
-                AND sent_at < :date_compare' AND payment=True AND to_delete != True; 
+                AND sent_at < :date_compare AND payment=True AND to_delete != True; 
             """).bindparams(
         new_stage=settings.OrderStage.CRM_PROCESSED,
         closed_at=closed_at,
@@ -1745,7 +1721,6 @@ def h_get_agent_order_info(search_order_idn):
                                          o.sent_at as sent_at,
                                          o.closed_at as closed_at,
                                       """
-    stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
     agent_condition = ''
     if current_user.role not in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]:
         admin_id = current_user.id
@@ -1756,11 +1731,6 @@ def h_get_agent_order_info(search_order_idn):
         agent_condition = f"u.id in ({stmt_users}) AND"
     stmt_search_order = text(f"""
                                   SELECT 
-                                      u.client_code as client_code,
-                                      {stmt_get_agent} as agent_name ,
-                                      u.login_name as login_name, 
-                                      u.phone as phone, 
-                                      u.email as email, 
                                       o.id as id,
                                       o.stage as stage,
                                       o.payment as payment,
@@ -1822,11 +1792,7 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
         conditional_stmt = f"(({conditional_stmt_common} AND o.manager_id={manager_id}) OR o.stage={settings.OrderStage.POOL})"
 
         stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
-        stmt_orders = text(f"""SELECT u.client_code as client_code,
-                                     ({stmt_get_agent})  as agent_name ,
-                                     u.login_name as login_name, 
-                                     u.phone as phone, 
-                                     u.email as email, 
+        stmt_orders = text(f"""SELECT 
                                      o.id as id,
                                      o.stage as stage,
                                      o.payment as payment,
@@ -1869,11 +1835,6 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
         stmt_get_agent = f"CASE WHEN MAX(a.login_name) IS NOT NULL THEN MAX(a.login_name) ELSE u.login_name end"
         stmt_orders = text(f"""
                                   SELECT 
-                                      u.client_code as client_code,
-                                      ({stmt_get_agent})  as agent_name ,
-                                      u.login_name as login_name, 
-                                      u.phone as phone, 
-                                      u.email as email, 
                                       o.id as id,
                                       o.stage as stage,
                                       o.payment as payment,
@@ -2332,3 +2293,89 @@ def helper_categories_counter(all_cards: list | tuple) -> dict:
         categories_counter.update({cat: sum(1 for card in all_cards_proc if card.category == cat)})
 
     return categories_counter
+
+
+def _get_order_desc_row(order_id: int):
+    Agent = aliased(User)
+    Manager = aliased(User)
+
+    return (
+        db.session.query(
+            Order.id,
+            Order.user_id,
+            Order.manager_id,
+            Order.order_idn,
+            Order.category,
+            Order.company_type,
+            Order.company_name,
+            Order.company_idn,
+            Order.edo_type,
+            Order.mark_type,
+            Order.user_comment,
+            Order.is_moderation,
+            # Order.contact_info,
+
+            User.client_code,
+            User.login_name,
+            User.phone,
+            User.email,
+            User.is_at2,
+
+            db.case(
+                (Agent.login_name.isnot(None), Agent.login_name),
+                else_=User.login_name
+            ).label("agent_name"),
+
+            Manager.login_name.label("manager_login"),
+        )
+        .join(User, User.id == Order.user_id)
+        .outerjoin(Agent, User.admin_parent_id == Agent.id)
+        .outerjoin(Manager, Order.manager_id == Manager.id)
+        .filter(Order.id == order_id)
+        .first()
+    )
+
+
+def _get_user_companies_for_user(user_id: int):
+    rows = (
+        UserProcessingCompany.query
+        .options(joinedload(UserProcessingCompany.company))
+        .filter(UserProcessingCompany.user_id == user_id)
+        .order_by(UserProcessingCompany.slot.asc())
+        .all()
+    )
+
+    out = []
+    for r in rows:
+        comp = r.company
+        out.append({
+            "slot": r.slot,
+            "is_approved": bool(r.is_approved),
+            "assigned_at": r.assigned_at,
+            "title": comp.title if comp else "",
+            "inn": comp.inn if comp else "",
+            "is_active": bool(comp.is_active) if comp else True,
+        })
+    return out
+
+
+def h_order_details():
+    src = (request.args.get("src") or "").strip()
+
+    order_id = request.args.get("order_id", type=int)
+    if not order_id:
+        return jsonify(status="error", message="order_id required"), 400
+
+    n = _get_order_desc_row(order_id)
+    if not n:
+        return jsonify(status="error", message="Order not found"), 404
+
+    user_companies = _get_user_companies_for_user(n.user_id)
+
+    html = render_template(
+        "crm_mod_v1/helpers/order_description.html",
+        src=src,
+        n=n,
+        user_companies=user_companies,
+    )
+    return jsonify(status="success", html=html)

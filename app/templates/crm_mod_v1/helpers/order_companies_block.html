@@ -1,0 +1,23 @@
+{% if n.is_moderation and user_companies %}
+  <div class="order__companies mt-1 p-2">
+    <div class="order__companies-title mb-1">
+      Закреплённые компании
+    </div>
+
+    {% for c in user_companies %}
+      <div class="order__company-row">
+        <div class="order__company-text">
+          <b>{{ c.slot }}.</b>
+          {{ c.title or '-' }}
+          {% if c.inn %} · {{ c.inn }}{% endif %}
+        </div>
+
+        {% if c.is_approved %}
+          <span class="badge bg-success-subtle text-success">OK</span>
+        {% else %}
+          <span class="badge bg-secondary-subtle text-muted">False</span>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}

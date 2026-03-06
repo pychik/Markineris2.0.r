@@ -30,7 +30,7 @@ def h_all_new_multi_pool():
                     FROM public.orders o
                            LEFT join public.user_transactions ut on ut.id=o.transaction_id  
                            {SQLQueryCategoriesAll.get_joins()} 
-                    WHERE o.stage = :stage AND (o.processed = null or o.processed=false) AND o.to_delete != True 
+                    WHERE o.stage = :stage AND (o.processed is null or o.processed=false) AND o.to_delete != True 
                     GROUP BY o.id, o.category, o.company_idn, o.company_type, o.company_name, o.order_idn, o.stage,
                      o.created_at, o.crm_created_at, o.user_id, o.payment, ut.op_cost, o.transaction_id
                     order by o.created_at
@@ -42,22 +42,25 @@ def h_all_new_multi_pool():
         message = settings.Messages.ORDER_STAGE_CHANGE_EMPTY
         return jsonify({'status': status, 'message': message})
 
+    # dt_pool = datetime.now()
+    # bulk_array = [{"o_id": o.id, "stage": settings.OrderStage.POOL, 'p_started': f'{dt_pool}'} for o in all_new_orders]
+    # update_orders_stmt = update(Order).where(Order.id == bindparam('o_id')).values(stage=bindparam('stage')).execution_options(synchronize_session=False)
     dt_pool = datetime.now()
-    bulk_array = [{"o_id": o.id, "stage": settings.OrderStage.POOL, 'p_started': f'{dt_pool}'} for o in all_new_orders]
-    update_orders_stmt = update(Order).where(Order.id == bindparam('o_id')).values(stage=bindparam('stage'))
 
-    # Executing the update operation in bulk
+    update_orders_stmt = (
+        update(Order)
+        .where(Order.id.in_([o.id for o in all_new_orders]))
+        .values(
+            stage=settings.OrderStage.POOL,
+            p_started=dt_pool
+        )
+        .execution_options(synchronize_session=False)
+    )
 
-    # db.session.execute(update(Order), bulk_array)
     try:
-        db.session.execute(update_orders_stmt, bulk_array)
-        # db.session.execute(update(Order), bulk_array)
-        # for o in all_new_orders:
-        #     db.session.execute(
-        #         update(Order)
-        #         .where(Order.id == o.id)
-        #         .values(stage=o.stage)
-        #     )
+        # db.session.execute(update_orders_stmt, bulk_array)
+        db.session.execute(update_orders_stmt)
+
         db.session.commit()
 
         orders_stats_stmt = h_create_multi_os_stmt(orders=all_new_orders)
@@ -79,28 +82,44 @@ def h_all_new_multi_pool():
     return jsonify({'status': status, 'message': message})
 
 
-def h_create_multi_os_stmt(orders: list) -> str:
+def h_create_multi_os_stmt(orders: list):
     """
-     creates stm for upserting OrderStats
-    :param orders:
-    :return:
+    creates stm for upserting OrderStats
     """
-    stmt = "INSERT INTO public.orders_stats (category, company_idn, company_type, company_name, order_idn, rows_count, "\
-           "marks_count, op_cost, created_at, crm_created_at, user_id, transaction_id, saved_at) VALUES "
-    first = True
-    saved_at = datetime.now()
-    for order_info in orders:
-        if first:
-            first = False
-            prefix = ''
-        else:
-            prefix = ', '
-        op_cost = order_info.op_cost if order_info.op_cost else null()
-        transaction_id = order_info.transaction_id if order_info.transaction_id else null()
 
-        stmt += f"{prefix}('{order_info.category}', '{order_info.company_idn}', '{order_info.company_type}', " \
-                f"'{order_info.company_name}', '{order_info.order_idn}', {order_info.rows_count}, {order_info.marks_count}, " \
-                f"{op_cost}, '{order_info.created_at}'," \
-                f" '{order_info.crm_created_at}', {order_info.user_id}, {transaction_id}, '{saved_at}')"
-    stmt += "ON CONFLICT DO NOTHING; "
-    return stmt
+    saved_at = datetime.now()
+
+    values = []
+    for order_info in orders:
+
+        op_cost = order_info.op_cost if order_info.op_cost else "NULL"
+        transaction_id = order_info.transaction_id if order_info.transaction_id else "NULL"
+
+        values.append(
+            f"""(
+            '{order_info.category}',
+            '{order_info.company_idn}',
+            '{order_info.company_type}',
+            '{order_info.company_name}',
+            '{order_info.order_idn}',
+            {order_info.rows_count},
+            {order_info.marks_count},
+            {op_cost},
+            '{order_info.created_at}',
+            '{order_info.crm_created_at}',
+            {order_info.user_id},
+            {transaction_id},
+            '{saved_at}'
+            )"""
+        )
+
+    sql = f"""
+    INSERT INTO public.orders_stats
+    (category, company_idn, company_type, company_name, order_idn,
+     rows_count, marks_count, op_cost, created_at, crm_created_at,
+     user_id, transaction_id, saved_at)
+    VALUES {",".join(values)}
+    ON CONFLICT DO NOTHING
+    """
+
+    return text(sql)

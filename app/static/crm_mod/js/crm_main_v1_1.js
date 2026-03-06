@@ -1,3 +1,79 @@
+function init_tooltip(document){
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(tooltipTriggerEl => {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+}
+function getCrmConfig(document) {
+  const el = document.getElementById('crm-config');
+  return {
+    orderDetailsUrl: el ? el.dataset.orderDetailsUrl : null,
+  };
+}
+
+async function loadOrderDetails(order, document) {
+  let details = order.querySelector('.order__details');
+  if (!details) {
+    details = document.createElement('div');
+    details.className = 'order__details';
+    details.dataset.loaded = "0";
+    const all = order.querySelector('.order__all') || order;
+    // вставим перед footer/roll если надо — но просто prepend ок
+    all.prepend(details);
+  }
+
+  if (details.dataset.loaded === "1") return;
+  if (details.dataset.loading === "1") return;
+  details.dataset.loading = "1";
+
+  const { orderDetailsUrl } = getCrmConfig(document);
+  const orderId = order.dataset.orderId;
+
+  if (!orderDetailsUrl) {
+    details.dataset.loading = "0";
+    details.innerHTML = `<div class="text-danger small">Нет crm-config[data-order-details-url]</div>`;
+    return;
+  }
+  if (!orderId) {
+    details.dataset.loading = "0";
+    details.innerHTML = `<div class="text-danger small">Нет data-order-id у .order</div>`;
+    return;
+  }
+
+  details.innerHTML = `<div class="text-muted small">Загрузка...</div>`;
+
+  try {
+    const src = window.location.pathname; // или pathname+search, если надо
+    const resp = await fetch(`${orderDetailsUrl}?order_id=${encodeURIComponent(orderId)}&src=${encodeURIComponent(src)}`, {
+      headers: { "X-Requested-With": "XMLHttpRequest" }
+    });
+
+    // если вдруг редирект/403 и вернулась HTML-страница — покажем
+    const ct = resp.headers.get("content-type") || "";
+    if (!ct.includes("application/json")) {
+      const text = await resp.text();
+      details.innerHTML = `<div class="text-danger small">Не JSON ответ (${resp.status}).</div>`;
+      details.dataset.loading = "0";
+      return;
+    }
+
+    const data = await resp.json();
+    if (data.status !== "success") {
+      details.innerHTML = `<div class="text-danger small">${data.message || "Ошибка загрузки"}</div>`;
+      details.dataset.loading = "0";
+      return;
+    }
+
+    details.innerHTML = data.html;
+    details.dataset.loaded = "1";
+    details.dataset.loading = "0";
+    init_tooltip(details);
+  } catch (e) {
+    details.innerHTML = `<div class="text-danger small">Fetch error</div>`;
+    details.dataset.loading = "0";
+  }
+}
+
+
 function cancel_order(order_idn, o_id, decrement_id,  url_text, csrf){
         document.getElementById("cancel_orderModalLabel").innerHTML = `Вы хотите отменить заказ номер ${order_idn}!`
         document.getElementById("order_cancel_block").innerHTML = `
@@ -605,57 +681,130 @@ function update_spec_block_info(url, block, stage, csrf, clicked_block, order_id
    setTimeout(function() {clear_user_messages();}, 15000);
 
 }
+
 function init_tooltip(document){
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(tooltipTriggerEl => {
             new bootstrap.Tooltip(tooltipTriggerEl);
         });
 }
+function getCrmConfig(document) {
+  const el = document.getElementById('crm-config');
+  return {
+    orderDetailsUrl: el ? el.dataset.orderDetailsUrl : null,
+  };
+}
+
+async function loadOrderDetails(order, document) {
+  let details = order.querySelector('.order__details');
+  if (!details) {
+    details = document.createElement('div');
+    details.className = 'order__details';
+    details.dataset.loaded = "0";
+    const all = order.querySelector('.order__all') || order;
+    // вставим перед footer/roll если надо — но просто prepend ок
+    all.prepend(details);
+  }
+
+  if (details.dataset.loaded === "1") return;
+  if (details.dataset.loading === "1") return;
+  details.dataset.loading = "1";
+
+  const { orderDetailsUrl } = getCrmConfig(document);
+  const orderId = order.dataset.orderId;
+
+  if (!orderDetailsUrl) {
+    details.dataset.loading = "0";
+    details.innerHTML = `<div class="text-danger small">Нет crm-config[data-order-details-url]</div>`;
+    return;
+  }
+  if (!orderId) {
+    details.dataset.loading = "0";
+    details.innerHTML = `<div class="text-danger small">Нет data-order-id у .order</div>`;
+    return;
+  }
+
+  details.innerHTML = `<div class="text-muted small">Загрузка...</div>`;
+
+  try {
+    const src = window.location.pathname; // или pathname+search, если надо
+    const resp = await fetch(`${orderDetailsUrl}?order_id=${encodeURIComponent(orderId)}&src=${encodeURIComponent(src)}`, {
+      headers: { "X-Requested-With": "XMLHttpRequest" }
+    });
+
+    // если вдруг редирект/403 и вернулась HTML-страница — покажем
+    const ct = resp.headers.get("content-type") || "";
+    if (!ct.includes("application/json")) {
+      const text = await resp.text();
+      details.innerHTML = `<div class="text-danger small">Не JSON ответ (${resp.status}).</div>`;
+      details.dataset.loading = "0";
+      return;
+    }
+
+    const data = await resp.json();
+    if (data.status !== "success") {
+      details.innerHTML = `<div class="text-danger small">${data.message || "Ошибка загрузки"}</div>`;
+      details.dataset.loading = "0";
+      return;
+    }
+
+    details.innerHTML = data.html;
+    details.dataset.loaded = "1";
+    details.dataset.loading = "0";
+    init_tooltip(details);
+  } catch (e) {
+    details.innerHTML = `<div class="text-danger small">Fetch error</div>`;
+    details.dataset.loading = "0";
+  }
+}
 
 function initializeJSPage(document) {
- // Инициализация всех тултипов
-        init_tooltip(document);
+  init_tooltip(document);
 
-        // Обработка всех элементов заказа
-        document.querySelectorAll('.order').forEach(order => {
-            const orderHeader = order.querySelector('.order__header');
-            const orderRoll = order.querySelector('.order__roll');
+  // ВАЖНО: не вешаем обработчики на каждый элемент,
+  // делаем один обработчик на документ (работает и после AJAX-рендера)
+  document.addEventListener('click', async (event) => {
+    const roll = event.target.closest('.order__roll');
+    if (roll) {
+      const order = roll.closest('.order');
+      if (order) {
+        event.stopPropagation();
+        order.classList.remove('active');
+      }
+      return;
+    }
 
-            const toggleOrder = (event) => {
-                event.stopPropagation();
-                order.classList.toggle('active');
-            };
+    const header = event.target.closest('.order__header');
+    if (header) {
+      const order = header.closest('.order');
+      if (!order) return;
 
-            if (orderHeader) {
-                orderHeader.addEventListener('click', toggleOrder);
-            }
+      // Если кликнули по элементу, у которого есть inline onclick (стрелки/кнопки),
+      // то НЕ раскрываем карточку, чтобы не мешать действию
+      if (event.target.closest('[onclick]')) return;
 
-            order.addEventListener('click', (event) => {
-                if (!event.target.closest('.order__roll') && !order.classList.contains('active')) {
-                    order.classList.add('active');
-                }
-            });
+      event.stopPropagation();
 
-            if (orderRoll) {
-                orderRoll.addEventListener('click', (event) => {
-                    event.stopPropagation();
-                    order.classList.remove('active');
-                });
-            }
-        });
+      const willOpen = !order.classList.contains('active');
+      order.classList.toggle('active');
 
-        //SCROLL
+      if (willOpen) {
+        await loadOrderDetails(order, document);
+      }
+      return;
+    }
 
-        // document.addEventListener('DOMContentLoaded', function () {
-        //     new ScrollBooster({
-        //         viewport: document.querySelector('.crm'),
-        //         content: document.querySelector('.crm__wrapper'),
-        //         scrollMode: 'transform',
-        //         direction: 'horizontal',
-        //         emulateScroll: true,
-        //         textSelection: true,
-        //     });
-        // });
+    // Опционально: клик по самой карточке, если она закрыта, тоже открывает
+    const order = event.target.closest('.order');
+    if (order && !order.classList.contains('active')) {
+      // не открываем если клик по кнопкам/иконкам с onclick
+      if (event.target.closest('[onclick]')) return;
+
+      order.classList.add('active');
+      await loadOrderDetails(order, document);
+    }
+  }, true);
 }
+
 
 function process_attach_file(file_url, link_url, csrf, o_id, order_idn){
     // order{{ n.id }}_file_input', '#order{{ n.id }}_selected_filename', {{ n.id }}, '{{ url_for('crm_d.attach_of_link', manager=n.manager, manager_id=n.manager_id, o_id=n.id) }}', '{{ csrf_token() }}'

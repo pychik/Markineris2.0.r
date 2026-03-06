@@ -43,4 +43,10 @@
         </div>
     {% endif %}
 {% endif %}
-
+{% if n.is_moderation %}
+    <img class="icons__item active" src="{{url_for('static', filename='crm_mod/img/icons/m.svg')}}" width="24" height="24"
+        data-bs-toggle="tooltip" data-bs-placement="top"
+        data-bs-title="Заказ создан из карточек товаров прошедших модерацию">
+{%else%}
+    <img class="icons__item" src="{{url_for('static', filename='crm_mod/img/icons/m.svg')}}" width="24" height="24">
+{% endif %}

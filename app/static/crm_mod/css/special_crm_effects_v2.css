@@ -246,6 +246,35 @@ border-style:solid;
     }
 }
 
+.order__companies {
+  border: 1px dashed #d0d7de;
+  border-radius: 8px;
+  background: #fafbfc;
+}
+
+.order__companies-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+}
+
+.order__company-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-top: 1px solid #eef1f4;
+}
+
+.order__company-row:first-child {
+  border-top: none;
+}
+
+.order__company-text {
+  font-size: 13px;
+}
+
 .icon-grey-filter {
   filter: grayscale(1) brightness(0.6);
 }
