@@ -162,6 +162,18 @@ MODERATION_STATUS_TITLES = {
     "rejected": "Отклонена",
 }
 
+CARD_STATUS_DATETIME_ATTR = {
+    ModerationStatus.CREATED.value: "created_at",
+    ModerationStatus.SENT_NO_RD.value: "sent_at",
+    ModerationStatus.SENT.value: "sent_at",
+    ModerationStatus.IN_PROGRESS.value: "taken_at",
+    ModerationStatus.IN_MODERATION.value: "moderation_at",
+    ModerationStatus.CLARIFICATION.value: "clarification_requested_at",
+    ModerationStatus.APPROVED.value: "approved_at",
+    ModerationStatus.PARTIALLY_APPROVED.value: "approved_at",
+    ModerationStatus.REJECTED.value: "rejected_at",
+}
+
 ALLOWED_CARDS_DELETE_STATUSES = {
     ModerationStatus.CREATED,
     ModerationStatus.APPROVED,

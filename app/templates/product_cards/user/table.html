@@ -28,7 +28,6 @@
               <th>Артикул / товар</th>
               {% if product_cards[0].category != 'parfum' %}<th>Размеры</th>{%endif%}
               <th>Статус</th>
-              <th>Создан</th>
               <th class="text-end">Действия</th>
             </tr>
           </thead>
@@ -52,7 +51,7 @@
 
               <tr class="{{ 'pc-row-blink' if card.status.value == 'clarification' }}">
                 {# 1. Артикул (для парфюма вместо артикула — торговая марка) #}
-                <td>
+                <td title="Карточка создана пользователем {{ card.created_at.strftime('%Y-%m-%d') }}">
                   {% if item %}
                     {% if card.category == 'parfum' %}
                       {{ item.trademark or "-" }}
@@ -85,11 +84,8 @@
                   <span class="pc-status pc-status-{{ card.status.value }}">
                       {{ status_titles[card.status.value] }}
                   </span>
-                </td>
-
-                {# 5. Дата/время #}
-                <td>
-                  {{ card.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                  {% set status_dt = get_card_status_datetime(card) %}
+                  {{ status_dt.strftime('%Y-%m-%d') if status_dt else '' }}
                 </td>
 
                 {# 6. Действия #}

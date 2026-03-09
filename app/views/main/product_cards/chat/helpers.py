@@ -6,7 +6,8 @@ CHAT_ALLOWED_ROLES = {"superuser", "supermanager", "markineris_admin", "manager"
 
 def h_pc_chat_can_access(card: ProductCard, user: User) -> bool:
     st = card.status.value if hasattr(card.status, "value") else str(card.status)
-    if st not in {ModerationStatus.IN_PROGRESS.value, ModerationStatus.IN_MODERATION.value, ModerationStatus.CLARIFICATION.value}:
+    # if user.role == "ordinary_user" and st not in {ModerationStatus.IN_PROGRESS.value, ModerationStatus.IN_MODERATION.value, ModerationStatus.CLARIFICATION.value}:
+    if user.role == "ordinary_user" and st != ModerationStatus.CLARIFICATION.value:
         return False
 
     if user.role not in CHAT_ALLOWED_ROLES:

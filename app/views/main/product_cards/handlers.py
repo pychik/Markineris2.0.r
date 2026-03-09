@@ -29,7 +29,7 @@ from views.main.product_cards.support import validate_card_form, save_clothes_ca
     MODERATION_STATUS_COLORS, normalize_article_for_category, collect_existing_size_keys, filter_new_sizes, CARD_FIELDS, \
     extract_card_main_and_sizes, get_card_ctx, check_same_fields_if_exists, \
     require_user_two_companies, CATEGORY_TITLES, get_card_entity_for_prefill, assert_frozen_fields_unchanged, \
-    update_card_allowed_fields, ALLOWED_CARDS_DELETE_STATUSES, card_has_rd
+    update_card_allowed_fields, ALLOWED_CARDS_DELETE_STATUSES, card_has_rd, CARD_STATUS_DATETIME_ATTR
 from views.main.product_cards.utils import validate_rd_block
 
 
@@ -66,6 +66,10 @@ def h_cards():
 
 # @profile_db_verbose('cards_table')
 def h_cards_table():
+    def _get_card_status_datetime(card: ProductCard):
+        status_value = card.status.value if hasattr(card.status, "value") else str(card.status)
+        attr_name = CARD_STATUS_DATETIME_ATTR.get(status_value, "created_at")
+        return getattr(card, attr_name, None) or card.created_at
     category = request.form.get("category", settings.Clothes.CATEGORY_PROCESS )
     subcategory = request.form.get("subcategory") or None
     article_query = request.form.get("article_query", "").strip()
@@ -162,6 +166,7 @@ def h_cards_table():
         # status_colors=MODERATION_STATUS_COLORS,
         offset=offset,
         unread_map=unread_map,
+        get_card_status_datetime=_get_card_status_datetime
     )
     return jsonify({
         "status": "success",
