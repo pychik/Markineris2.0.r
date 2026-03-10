@@ -8,7 +8,7 @@ from utilities.support import user_activated
 orders_archive = Blueprint('orders_archive', __name__)
 
 
-@orders_archive.route('/', defaults={'category': settings.Shoes.CATEGORY}, methods=['GET', ])
+@orders_archive.route('/', defaults={'category': 'все'}, methods=['GET', ])
 @orders_archive.route('/<string:category>/', defaults={'upload_flag': None}, methods=['GET', ])
 @orders_archive.route('/<string:category>/<int:upload_flag>', methods=['GET', ])
 @login_required
