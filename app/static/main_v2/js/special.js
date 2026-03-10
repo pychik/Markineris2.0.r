@@ -745,6 +745,7 @@ function delete_archive_order(ao_id, user_order_idn){
 
 function update_category(category_p) {
     const tabIds = [
+        'all',
         'shoes',
         'clothes',
         'linen',

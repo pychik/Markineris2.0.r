@@ -761,10 +761,9 @@ main {
 }
 
 .nav-pills--cat {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(6, 120px);
+  gap: 20px;
   justify-content: center;
 }
 
@@ -776,10 +775,19 @@ main {
 }
 
 .nav-pills--cat button {
-  padding: 15px 30px;
-  background-color: #fff;
+  width: 100%;
   height: 100%;
+  padding: 15px 10px;
+  background-color: #fff;
 }
+
+@media (max-width: 575.98px) {
+  .nav-pills--cat {
+    grid-template-columns: repeat(3, 1fr);
+    justify-content: stretch;
+  }
+}
+
 @media (max-width: 991.98px) {
   .nav-pills--cat button {
     font-size: 14px;
@@ -802,9 +810,11 @@ main {
 }
 
 .nav-pills--cat .nav-link {
+  width: 120px;
+  height: 100px;
+  padding: 0;
   color: inherit;
   background-color: inherit;
-  height: 100px;
 }
 @media (max-width: 575.98px) {
   .nav-pills--cat .nav-link {

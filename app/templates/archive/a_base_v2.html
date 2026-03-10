@@ -15,7 +15,17 @@
             <h1 class="mb-5 fs-2">История заказов</h1>
         </div>
         <ul class=" nav-pills  nav-pills--cat mb-4" id="pills-tab" role="tablist">
-<!--            <span onclick="get_shoes_history('{{ url_for('orders_archive.index', category='обувь', upload_flag=1) }}')">-->
+            <a href="javascript:get_category_history(`{{ url_for('orders_archive.index', category='все', upload_flag=111)}}`, 'all')">
+                        <li class="nav-link" id="pills-all-tab"
+                            type="button" role="tab">
+                            <button class="text-center border-0">
+                                <img src="{{url_for('static', filename='crm_mod/img/icons/05.svg')}}" class="img-fluid" alt="Все">
+                                <div class="category-item__name text-center">
+                                   Все
+                                </div>
+                            </button>
+                        </li>
+                    </a>
             <a href="javascript:get_category_history(`{{ url_for('orders_archive.index', category='обувь', upload_flag=111)}}`, 'shoes')">
                 <li class="nav-link" id="pills-shoes-tab"
                     type="button" role="tab">

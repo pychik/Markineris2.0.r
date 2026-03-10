@@ -18,6 +18,7 @@
         </div>
     </button>
     <ul class="dropdown-menu mt-2" aria-labelledby="dropdownMenuLink">
+
         <li><a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('auth.logout')}}">
             <img src="{{url_for('static', filename='main_v2/img/icons/exit.svg')}}" class="me-2" width="24"
                     height="24">Выход</a>
@@ -31,6 +32,8 @@
                     Панель управления CRM
                 </a>
             </li>
+         {% endif %}
+         {% if current_user.role in ['superuser', 'admin']%}
             <li><a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('main.enter')}}">
                 <img src="{{url_for('static', filename='main_v2/img/icons/home.svg')}}" class="me-2" width="32"
                         height="32">Платформа</a>
@@ -72,11 +75,13 @@
                 </a>
             </li>
     {% endif %}
-    <li>
+    {% if current_user.role in ['superuser', 'supermanager', 'manager', 'm2r_admin']%}
+        <li>
             <a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('crm_product_cards.cards')}}"
                 title="Панель управления пользователями">&nbspCRM карточки товаров</a>
         </li>
-    {% if current_user.role in ['superuser', 'supermanager', 'manager'] %}
+    {% endif %}
+    {% if current_user.role in ['superuser', 'supermanager', 'manager', 'admin'] %}
             <li>
                 <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_d.managers') }}"
                    title="Перейти в CRM">

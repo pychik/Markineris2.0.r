@@ -909,9 +909,10 @@ TEMPLATE_TABLES_DICT: dict = {"обувь": (
                                         )
                               }
 
-CATEGORIES_DICT: dict = {"обувь": "shoes",
+CATEGORIES_DICT: dict = {"все": "all",
                          "одежда": "clothes",
                          "белье": "linen",
+                         "обувь": "shoes",
                          "парфюм": "parfum",
                          "носки и прочее": "socks",
                          "underwear": "underwear",

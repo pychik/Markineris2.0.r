@@ -13,7 +13,7 @@ orders_archive = Blueprint('orders_archive', __name__)
 @orders_archive.route('/<string:category>/<int:upload_flag>', methods=['GET', ])
 @login_required
 @user_activated
-def index(category: str = settings.Shoes.CATEGORY, upload_flag: int = None):
+def index(category: str = 'все', upload_flag: int = None):
     # using upload bck flag as 111
     return h_category(category=category, upload_flag=upload_flag)
 

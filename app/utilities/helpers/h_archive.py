@@ -29,66 +29,167 @@ def h_index() -> tuple:
     return render_template('archive/a_base_v2.html', **locals()), 200
 
 
-def h_category(category: str = settings.Shoes.CATEGORY, upload_flag: int = None):
+def h_category(category: str = 'все', upload_flag: int = None):
     user = current_user
     admin_id = user.admin_parent_id
-    order_notification, admin_name, crm = helper_get_order_notification(admin_id=admin_id if admin_id else user.id)
+    order_notification, admin_name, crm = helper_get_order_notification(
+        admin_id=admin_id if admin_id else user.id
+    )
+
+    # category может прийти аргументом или из query params
+    category = category if category is not None else request.args.get('category', 'все')
+    category = (category or '').strip().lower()
 
     subcategory = request.args.get('subcategory', '')
-    if not Category.check_subcategory(category=category, subcategory=subcategory):
-        message = settings.Messages.STRANGE_REQUESTS + ' нет такой подкатегории'
-        if upload_flag:
-            return jsonify(dict(status='error', message=message))
-        else:
-            flash(message=message, category='error')
-            return redirect(url_for('main.enter'))
-    query = (user.orders.filter(
+    subcategory = (subcategory or '').strip()
+
+    # all / пусто = все категории
+    is_all_categories = category == 'все'
+    # Проверку подкатегории делаем только для конкретной категории clothes
+    if not is_all_categories and category == settings.Clothes.CATEGORY:
+        if not Category.check_subcategory(category=category, subcategory=subcategory):
+            message = settings.Messages.STRANGE_REQUESTS + ' нет такой подкатегории'
+            if upload_flag:
+                return jsonify(dict(status='error', message=message))
+            else:
+                flash(message=message, category='error')
+                return redirect(url_for('main.enter'))
+
+    # # Для остальных категорий можно оставить общую проверку, если она нужна
+    # elif not is_all_categories:
+    #     if not Category.check_subcategory(category=category, subcategory=subcategory):
+    #         message = settings.Messages.STRANGE_REQUESTS + ' нет такой подкатегории'
+    #         print(f'{category=}{subcategory=}')
+    #         if upload_flag:
+    #             return jsonify(dict(status='error', message=message))
+    #         else:
+    #             flash(message=message, category='error')
+    #             return redirect(url_for('main.enter'))
+
+    query = (
+        user.orders.filter(
             ~Order.to_delete,
-            Order.category == category,
             Order.stage > 0
         )
         .with_entities(
-            Order.id, Order.stage, Order.order_idn, Order.category,
-            Order.company_type, Order.company_name, Order.company_idn, Order.user_comment,
-            Order.to_delete, Order.processed, Order.payment, Order.created_at,
-            Order.crm_created_at, Order.stage, Order.closed_at, Order.processing_info,
+            Order.id,
+            Order.stage,
+            Order.order_idn,
+            Order.category,
+            Order.company_type,
+            Order.company_name,
+            Order.company_idn,
+            Order.to_delete,
+            Order.processed,
+            Order.payment,
+            Order.user_comment,
+            Order.created_at,
+            Order.crm_created_at,
+            Order.closed_at,
+            Order.processing_info,
             Order.is_moderation,
-            func.max(OrderFile.file_link).label('file_link')  # Агрегируем file_link
+            Clothes.subcategory.label('subcategory'),
+            func.max(OrderFile.file_link).label('file_link')
         )
         .outerjoin(OrderFile, Order.order_zip_file)
-        .group_by(Order.id)
+        .outerjoin(Clothes, Order.id == Clothes.order_id)
+    )
+
+    # Если выбрана конкретная категория — фильтруем по ней
+    if not is_all_categories:
+        query = query.filter(Order.category == category)
+
+    # Фильтр по подкатегории нужен только для clothes,
+    # и только если выбрана именно эта категория
+    if not is_all_categories and category == settings.Clothes.CATEGORY:
+
+
+        if subcategory in (None, '', 'common'):
+            query = query.filter(or_(
+                Clothes.subcategory.is_(None),
+                Clothes.subcategory == '',
+                Clothes.subcategory == 'common'
+            ))
+        else:
+            query = query.filter(Clothes.subcategory == subcategory)
+
+    query = (
+        query.group_by(
+            Order.id,
+            Order.stage,
+            Order.order_idn,
+            Order.category,
+            Order.company_type,
+            Order.company_name,
+            Order.company_idn,
+            Order.to_delete,
+            Order.processed,
+            Order.payment,
+            Order.user_comment,
+            Order.created_at,
+            Order.crm_created_at,
+            Order.closed_at,
+            Order.processing_info,
+            Order.is_moderation,
+            Clothes.subcategory
+        )
         .order_by(desc(Order.crm_created_at))
     )
 
-    # Добавляем проверку на подкатегорию
-    if category == settings.Clothes.CATEGORY:
-        query = query.join(Clothes, Order.id == Clothes.order_id)
-
-        if subcategory is None or subcategory == '' or subcategory == 'common':
-            query = query.filter(or_(
-                Clothes.subcategory.is_(None),  # subcategory = NULL в базе
-                Clothes.subcategory == '',  # subcategory = '' в базе
-                Clothes.subcategory == 'common'  # subcategory = 'common' в базе
-            ))
-        else:
-            # Иначе фильтруем по конкретному subcategory
-            query = query.filter(Clothes.subcategory == subcategory)
-
     category_orders = query.all()
 
-    link = 'javascript:get_category_history(\''+url_for('orders_archive.index', category=category,
-                                                        upload_flag=settings.UPLOAD_BACKGROUND,
-                                                        subcategory=subcategory) + \
-           '&page={0}\', \'' + settings.CATEGORIES_DICT[category] + '\', \'' + subcategory + '\');'
+    category_for_url = 'Все' if is_all_categories else category
+    category_title = 'Все' if is_all_categories else settings.CATEGORIES_DICT.get(category, category)
 
-    page, per_page, \
-        offset, pagination, \
-        category_orders = helper_paginate_data(data=category_orders,
-                                               href=link,
-                                               per_page=settings.PAGINATION_PER_PAGE_HISTORY_ORDERS)
+    link = (
+        "javascript:get_category_history('"
+        + url_for(
+            'orders_archive.index',
+            category=category_for_url,
+            upload_flag=settings.UPLOAD_BACKGROUND,
+            subcategory='' if is_all_categories else subcategory
+        )
+        + "&page={0}', '"
+        + category_title
+        + "', '"
+        + ('' if is_all_categories else subcategory)
+        + "');"
+    )
+
+    page, per_page, offset, pagination, category_orders = helper_paginate_data(
+        data=category_orders,
+        href=link,
+        per_page=settings.PAGINATION_PER_PAGE_HISTORY_ORDERS
+    )
     stages_description = settings.OrderStage.STAGES
+    subcategories_dict = settings.SUB_CATEGORIES_DICT
+
+    prepared_orders = []
+    for s in category_orders:
+        s_dict = s._asdict() if hasattr(s, '_asdict') else dict(s)
+
+        display_category = ''
+
+        if category in ['', 'все']:
+            if s_dict.get('category') == 'одежда':
+                subcat = s_dict.get('subcategory')
+                if subcat and subcat != 'common':
+                    display_category = subcategories_dict.get(subcat, subcat)
+                else:
+                    display_category = s_dict.get('category', '')
+            else:
+                display_category = s_dict.get('category', '')
+
+        s_dict['display_category'] = display_category
+        prepared_orders.append(s_dict)
+
+    category_orders = prepared_orders
+
     if upload_flag == 111:
-        return jsonify({'htmlresponse': render_template(f'archive/a_category_common_v2.html', **locals())})
+        return jsonify({
+            'htmlresponse': render_template('archive/a_category_common_v2.html', **locals())
+        })
+
     return render_template('archive/a_base_v2.html', **locals()), 200
 
 
