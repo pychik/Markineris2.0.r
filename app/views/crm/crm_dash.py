@@ -10,7 +10,7 @@ from utilities.download import orders_download_common
 from utilities.support import (bck_sumausmumu_required, user_activated, sumausmumu_required, susmumu_required,
                                susmu_required,
                                aus_required, ausumsuu_required, suausmumu_required, aus_mod_required,
-                               bck_not_ordinary_user_required)
+                               bck_not_ordinary_user_required, su_mod_required, bck_su_mod_required)
 from .crm_support import get_weekly_order_summary
 
 from .helpers import (helper_get_agent_orders, helper_get_manager_orders, helper_m_order_processed, helper_m_order_ps,
@@ -245,7 +245,7 @@ def m_order_processed(o_id: int, manager_id: int):
 @crm_d.route('/m_order_ps/<int:o_id>/<int:manager_id>', methods=["POST"])
 @login_required
 @user_activated
-@susmumu_required
+@bck_su_mod_required
 def m_order_ps(o_id: int, manager_id: int, f_manager_id: int = None):
     """
         change stage of order manager problem solved
