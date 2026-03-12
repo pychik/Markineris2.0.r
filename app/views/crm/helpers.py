@@ -509,9 +509,9 @@ def helper_m_order_ps(user: User, o_id: int, manager_id: int) -> Response:
     if not order_info:
         message = settings.Messages.ORDER_MANAGER_PS_ABS_ERROR
         return jsonify({'htmlresponse': None, 'status': status, 'message': message})
-    if order_info.external_problem:
-        message = "Отмена операции переноса заказа. Оператором установлен флаг внешней проблемы"
-        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
+    # if order_info.external_problem:
+    #     message = "Отмена операции переноса заказа. Оператором установлен флаг внешней проблемы"
+    #     return jsonify({'htmlresponse': None, 'status': status, 'message': message})
     if not order_info.file_system_name and not order_info.file_link:
         message = settings.Messages.ORDER_MANAGER_PROCESSED_ABS_FILE_ERROR
         return jsonify({'htmlresponse': None, 'status': status, 'message': message})

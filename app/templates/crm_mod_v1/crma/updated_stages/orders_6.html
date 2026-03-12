@@ -58,27 +58,7 @@
                       {% include 'crm_mod_v1/helpers/table_download.html' %}
                     </div>
                     <div class="steps">
-                        {%if n.order_file%}
-                            <form method="POST" id="download_file_order{{ n.id }}" action="{{ url_for('crm_d.download_file', manager_id=n.manager_id, o_id=n.id) }}"
-                                  style="cursor: pointer" enctype="multipart/form-data">
-                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                              <img class="icons__item" src="{{url_for('static', filename='crm_mod/img/icons/download.svg')}}"
-                                  width="24" height="24" data-bs-toggle="tooltip"
-                                  data-bs-placement="top" data-bs-title="Скачать файл заказа" onclick="this.closest('form').submit();">
-                            </form>
 
-                        {%endif%}
-
-
-                        {% if n.order_file or n.order_file_link %}
-                            <img src="{{url_for('static', filename='crm_mod/img/icons/arrow-right-circle-fill.svg')}}" alt="Вперед"
-                                class="icons__item" width="24" height="24" data-bs-toggle="tooltip"
-                                data-bs-placement="top" data-bs-title="Переместить заказа в проблема решена"
-                                onclick="update_spec_block_info(`{{ url_for('crm_d.m_order_ps', manager_id=n.manager_id, o_id=n.id, bck=1)}}`,
-                                                                'm_solved_ordersMainDiv', 7, '{{csrf_token()}}',
-                                                                 this, `{{n.id}}`, `{{n.order_idn}}`,
-                                                                 'm_problem_ordersMainDiv_quantity')">
-                        {% endif %}
                         <img src="{{url_for('static', filename='crm_mod/img/icons/x-circle-fill.svg')}}"
                              id="cancel_order{{n.id}}" alt="Отменить заказ"
                              class="img-fluid" width="24" height="24" data-bs-toggle="tooltip"
