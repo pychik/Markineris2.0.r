@@ -166,7 +166,7 @@ def ceps(o_id: int, ep: int):
         message = settings.Messages.SUPER_MOD_REQUIRED
         return jsonify({'status': status, 'message': message})
     if ep == 0:
-        if current_user.role not in [settings.SUPER_USER, settings.ADMIN_USER]:
+        if current_user.role not in [settings.SUPER_USER, settings.ADMIN_USER, settings.MARKINERIS_ADMIN_USER]:
             message = settings.Messages.SUPERADMIN_MADMIN_USER_REQUIRED
             return jsonify({'status': status, 'message': message})
 
@@ -174,7 +174,6 @@ def ceps(o_id: int, ep: int):
         if current_user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MANAGER_USER]:
             message = settings.Messages.CRM_MANAGER_USER_REQUIRED
             return jsonify({'status': status, 'message': message})
-
     return helpers_ceps_order(o_id=o_id, ep=ep, executor=executor)
 
 
