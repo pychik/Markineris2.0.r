@@ -31,7 +31,7 @@
     {% if n.processing_info %}
         <div class="icons__item active"
             data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
-            data-bs-title="{{n.processing_info | safe}}">
+            data-bs-title="{{n.processing_info | e}}">
             <svg width="24" height="24" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-label="УПД">
               <circle cx="20" cy="20" r="18" fill="#087990" />
               <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-size="14" fill="white">УПД</text>
