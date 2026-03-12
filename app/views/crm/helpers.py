@@ -551,8 +551,10 @@ def helper_m_order_ps(user: User, o_id: int, manager_id: int) -> Response:
     status = settings.SUCCESS
     update_orders = helper_get_manager_orders(user=user, filtered_manager_id=filtered_manager_id,
                                               category=category, stage=stage)
+    rendered_group = 'crma' if current_user.role not in [settings.SUPER_MANAGER, settings.MANAGER_USER] else 'crmm'
     return jsonify({'htmlresponse': render_template(
-        'crm_mod_v1/crmm/updated_stages/orders_{stage}.html'.format(stage=stage), **locals()),
+        'crm_mod_v1/{rendered_group}/updated_stages/orders_{stage}.html'.format(rendered_group=rendered_group,
+                                                                                stage=stage), **locals()),
         'quantity': len(update_orders), 'status': status, 'message': message})
 
 
