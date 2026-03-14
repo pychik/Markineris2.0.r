@@ -176,9 +176,9 @@ def h_cards_table():
 def h_new_product_card():
     category = request.args.get("category")
     subcategory = request.args.get("subcategory")
-    if category == 'shoes':
-        flash("Ведется обновление раздела карточки категории обувь. Карточки категории обувь временно не обрабатываются", "error")
-        return redirect(url_for('user_product_cards.cards'))
+    # if category == 'shoes':
+    #     flash("Ведется обновление раздела карточки категории обувь. Карточки категории обувь временно не обрабатываются", "error")
+    #     return redirect(url_for('user_product_cards.cards'))
     if category not in CATEGORIES_COMMON:
         flash("Неизвестная категория", "error")
         return redirect(url_for('user_product_cards.cards'))
@@ -199,8 +199,8 @@ def h_save_product_card():
 
     category = form_data.get("category")
     subcategory = form_data.get("subcategory")
-    if category == 'shoes':
-        return jsonify(status="error", message="Ведется обновление раздела карточки категории обувь. Карточки категории обувь временно не обрабатываются")
+    # if category == 'shoes':
+    #     return jsonify(status="error", message="Ведется обновление раздела карточки категории обувь. Карточки категории обувь временно не обрабатываются")
     if category not in CATEGORIES_COMMON:
         return jsonify(status="error", message="Неизвестная категория")
 
@@ -370,9 +370,9 @@ def h_edit_product_card(card_id: int, crm_: bool = False):
         if current_user.role == settings.ORD_USER and card.user_id != current_user.id:
             flash("Ошибка! Вы пытаетесь редактировать не свою карточку.", "error")
             return redirect(url_for('user_product_cards.cards'))
-    if card.category == 'shoes' and not crm_:
-        flash("Ведется обновление раздела карточки категории обувь. Карточки категории обувь временно не обрабатываются", "error")
-        return redirect(url_for("user_product_cards.cards"))
+    # if card.category == 'shoes' and not crm_:
+    #     flash("Ведется обновление раздела карточки категории обувь. Карточки категории обувь временно не обрабатываются", "error")
+    #     return redirect(url_for("user_product_cards.cards"))
     if card.status not in [ModerationStatus.SENT_NO_RD, ModerationStatus.CLARIFICATION]:
         flash("Редактирование доступно только для карточек 'На уточнении' и 'Отправлены без РД'.", "error")
         return redirect(url_for("user_product_cards.cards")) if not crm_ else redirect(url_for("crm_product_cards.cards"))
@@ -523,9 +523,8 @@ def h_send_cards_moderate():
             q = ProductCard.query.filter(ProductCard.id.in_(ids))
 
             if cat == "shoes":
-                return jsonify({"status": "error", "error": "Ведется обновление раздела карточки категории обувь. Карточки категории обувь временно не обрабатываются"}), 404
-
-                # q = q.options(joinedload(ProductCard.shoes))   # sizes_quantities для RD не нужно
+                # return jsonify({"status": "error", "error": "Ведется обновление раздела карточки категории обувь. Карточки категории обувь временно не обрабатываются"}), 404
+                q = q.options(joinedload(ProductCard.shoes))   # sizes_quantities для RD не нужно
             elif cat == "clothes":
                 q = q.options(joinedload(ProductCard.clothes))
             elif cat == "socks":
@@ -801,9 +800,9 @@ def h_card_edit(card_id: int):
         .first_or_404()
     )
     category = card.category
-    if category == 'shoes':
-        flash("Ведется обновление раздела карточки категории обувь. Карточки категории обувь временно не обрабатываются", "error")
-        return redirect(url_for("user_product_cards.cards"))
+    # if category == 'shoes':
+    #     flash("Ведется обновление раздела карточки категории обувь. Карточки категории обувь временно не обрабатываются", "error")
+    #     return redirect(url_for("user_product_cards.cards"))
     main, sizes = extract_card_main_and_sizes(card)
     if not main:
         flash("Карточка пуста, редактировать нечего", "error")
