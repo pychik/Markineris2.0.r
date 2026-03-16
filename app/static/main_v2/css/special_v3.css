@@ -463,3 +463,30 @@ a[aria-expanded="true"] .nav-chevron {
     color: #dc3545;
     margin-top: 4px;
 }
+
+.size-check{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 18px;
+  height: 18px;
+  margin-left: 6px;
+
+  border-radius: 50%;
+  border: 1.5px solid #ffc107;          /* bootstrap warning */
+  color: #ffc107;
+
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
+
+  background-color: #f8f9fa;            /* светло-серый */
+}
+
+/* активное состояние */
+.size-check:not(.d-none){
+  background-color: #ffc107;
+  color: #212529;                       /* тёмно-серый */
+  border-color: #ffc107;
+}

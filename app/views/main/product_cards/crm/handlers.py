@@ -20,7 +20,8 @@ from .helpers import crm_get_cards, helper_categories_counter, split_cards_by_st
     delete_company_from_pool_no_reassign, h_pc_move_render_list_html, h_append_card_log, \
     h_pc_move_pack_cards, h_pc_move_template_for_status, h_pc_move_get_cards_by_status, \
     h_pc_move_apply_status_transition, get_card_download_info, h_find_card_ids_by_article_or_tm, \
-    h_cards_ctx_key_for_status, helper_reject_cards_by_rd_date_to_today
+    h_cards_ctx_key_for_status, helper_reject_cards_by_rd_date_to_today, is_at2_admin_user, \
+    get_crm_card_for_user, apply_crm_cards_scope
 from .transitions import validate_transition, check_special_rules, check_owner_or_admin
 from ..support import CATEGORIES_COMMON, MODERATION_STATUS_TITLES, json_response, card_has_rd
 from config import settings
@@ -31,7 +32,7 @@ def h_crm_cards():
     subcategory = request.args.get("subcategory")  # только для clothes
 
     cards = crm_get_cards(category=category, subcategory=subcategory, user=current_user)
-    buckets =  split_cards_by_status(cards)
+    buckets = split_cards_by_status(cards)
     sent_no_rd_cards = buckets["sent_no_rd"]
     sent_cards = buckets["sent"]
     in_progress_cards = buckets["in_progress"]
@@ -45,10 +46,7 @@ def h_crm_cards():
 
     companies_pool = (
         ProcessingCompany.query
-
-        .filter(
-            ProcessingCompany.is_active.is_(True)
-        )
+        .filter(ProcessingCompany.is_active.is_(True))
         .with_entities(ProcessingCompany.id, ProcessingCompany.inn, ProcessingCompany.title)
         .distinct()
         .order_by(ProcessingCompany.title.asc())
@@ -132,18 +130,17 @@ def h_pc_lazy_column():
 
 
 def h_download_product_card(pc_id: int):
-    card_id = ProductCard.query.filter_by(id=pc_id).with_entities(ProductCard.id).first()
-    if not card_id:
+    card = (
+        apply_crm_cards_scope(ProductCard.query, current_user)
+        .filter(ProductCard.id == pc_id)
+        .with_entities(ProductCard.id, ProductCard.user_id)
+        .first()
+    )
+    if not card:
         flash(message="Карточка не найдена", category="error")
         return redirect(url_for('crm_d.cards'))
 
-    user_id = (
-        ProductCard.query
-        .filter_by(id=pc_id)
-        .with_entities(ProductCard.user_id)
-        .scalar()
-    )
-    user = User.query.get(user_id)
+    user = User.query.get(card.user_id)
 
     return product_card_download_common(user=user, pc_id=pc_id)
 
@@ -1150,10 +1147,12 @@ def h_pc_move_card(pc_id: int):
 
 
 def h_pc_cards(pc_id: int):
-    if current_user.role not in ('supermanager', 'markineris_admin', 'superuser'):
+    if current_user.role not in ('supermanager', 'markineris_admin', 'superuser') and not is_at2_admin_user(current_user):
         return jsonify(status="error", message="Нет доступа"), 403
 
-    card = ProductCard.query.get_or_404(pc_id)
+    card = get_crm_card_for_user(pc_id, current_user)
+    if not card:
+        return jsonify(status="error", message="Карточка не найдена"), 404
 
     return jsonify(
         status="success",
@@ -1184,7 +1183,7 @@ def h_search_crm_card():
         pc_id = int(q)
 
         card = (
-            ProductCard.query
+            apply_crm_cards_scope(ProductCard.query, current_user)
             .options(joinedload(ProductCard.creator), joinedload(ProductCard.manager))
             .filter(ProductCard.id == pc_id)
             .first()
@@ -1234,7 +1233,7 @@ def h_search_crm_card():
             return jsonify(status="error", message="Ничего не найдено"), 404
 
         cards = (
-            ProductCard.query
+            apply_crm_cards_scope(ProductCard.query, current_user)
             .options(joinedload(ProductCard.creator), joinedload(ProductCard.manager))
             .filter(ProductCard.id.in_(ids))
             .all()
@@ -1249,7 +1248,7 @@ def h_search_crm_card():
             return jsonify(status="error", message="Найденные карточки не находятся в CRM-статусах"), 400
 
         # права менеджера: SENT можно, остальное — только своё
-        if getattr(current_user, "role", None) == "manager":
+        if getattr(current_user, "role", None) == settings.MANAGER_USER:
             filtered = []
             for c in cards:
                 st = c.status.value if hasattr(c.status, "value") else str(c.status)

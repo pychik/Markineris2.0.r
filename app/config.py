@@ -119,6 +119,19 @@ class Settings(BaseSettings):
     ORD_USER: str = 'ordinary_user'
     USER_TRANSLATE: dict = USER_TRANSLATE_DICT
     USER_ROLES: list = [ORD_USER, MANAGER_USER, SUPER_MANAGER, ADMIN_USER, MARKINERIS_ADMIN_USER, SUPER_USER]
+    PRODUCT_CARD_CHAT_ALLOWED_ROLES: tuple = (
+        SUPER_USER,
+        SUPER_MANAGER,
+        MARKINERIS_ADMIN_USER,
+        MANAGER_USER,
+        ORD_USER,
+        ADMIN_USER,
+    )
+    PRODUCT_CARD_CHAT_FULL_ACCESS_ROLES: tuple = (
+        SUPER_USER,
+        SUPER_MANAGER,
+        MARKINERIS_ADMIN_USER,
+    )
     ADMIN_USER_POSTFIX: str = "@agentsm2r.com"
     MM_PARTNER: str = "IAMMODERATOR"
     SQ_CATEGORIES: list = ['обувь', 'одежда', 'белье', 'носки и прочее']

@@ -18,7 +18,7 @@
         </div>
     </button>
     <ul class="dropdown-menu mt-2" aria-labelledby="dropdownMenuLink">
-        {% if current_user.role == 'superuser'%}
+        {% if current_user.role == 'superuser' or (current_user.role =='admin' and current_user.is_at2)%}
              <li><a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('main.enter')}}">
                 <img src="{{url_for('static', filename='main_v2/img/icons/home.svg')}}" class="me-2" width="32"
                         height="32">Платформа</a>
@@ -28,7 +28,7 @@
             <a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('crm_product_cards.cards')}}"
                 title="Панель управления пользователями">CRM карточки товаров</a>
         </li>
-        {% if current_user.role in ['superuser', 'supermanager', 'manager'] %}
+        {% if current_user.role in ['superuser', 'supermanager', 'manager', ]%}
             <li>
                 <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_d.managers') }}"
                    title="Перейти в CRM">
@@ -36,6 +36,12 @@
                 </a>
             </li>
         {% endif %}
+    {% if current_user.role =='admin'%}
+        <li>
+            <a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('crm_d.agents')}}"
+                title="CRM заказы">&nbspCRM заказы&nbsp</a>
+        </li>
+    {% endif %}
         {% if current_user.role == 'm2r_admin' %}
             <li>
                 <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_d.agents') }}"

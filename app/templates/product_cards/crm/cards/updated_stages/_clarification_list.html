@@ -14,12 +14,13 @@
 
       <div class="order__all">
         {% include 'product_cards/crm/helpers/card_description.html' %}
-        <a href="{{url_for('crm_product_cards.crm_card_edit', card_id=c.id)}}" target="_blank" class="text-decoration-none">
-          <span class="badge badge-soft bg-warning bg-opacity-10 text-warning">
-             <b>Редактировать</b>
-          </span>
-        </a>
-
+        {% if current_user.role != 'admin' %}
+          <a href="{{url_for('crm_product_cards.crm_card_edit', card_id=c.id)}}" target="_blank" class="text-decoration-none">
+            <span class="badge badge-soft bg-warning bg-opacity-10 text-warning">
+               <b>Редактировать</b>
+            </span>
+          </a>
+        {% endif %}
         <div class="order__footer">
           {% include 'product_cards/crm/helpers/table_download.html' %}
 

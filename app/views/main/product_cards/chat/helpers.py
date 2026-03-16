@@ -1,29 +1,51 @@
 from sqlalchemy import func
+from config import settings
 from models import db, ProductCard, ModerationStatus, User, CardChatRead, CardMessage
 
-CHAT_ALLOWED_ROLES = {"superuser", "supermanager", "markineris_admin", "manager", "ordinary_user"}
+
+def h_pc_chat_is_at2_admin(user: User | None) -> bool:
+    return bool(
+        user
+        and getattr(user, "role", None) == settings.ADMIN_USER
+        and getattr(user, "is_at2", False) is True
+    )
+
+
+def h_pc_chat_get_card_for_access(pc_id: int, user: User | None):
+    q = ProductCard.query.filter(ProductCard.id == pc_id)
+
+    if h_pc_chat_is_at2_admin(user):
+        q = q.join(User, User.id == ProductCard.user_id).filter(User.admin_parent_id == user.id)
+
+    return q.first()
 
 
 def h_pc_chat_can_access(card: ProductCard, user: User) -> bool:
     st = card.status.value if hasattr(card.status, "value") else str(card.status)
     # if user.role == "ordinary_user" and st not in {ModerationStatus.IN_PROGRESS.value, ModerationStatus.IN_MODERATION.value, ModerationStatus.CLARIFICATION.value}:
-    if user.role == "ordinary_user" and st != ModerationStatus.CLARIFICATION.value:
+    if user.role == settings.ORD_USER and st != ModerationStatus.CLARIFICATION.value:
         return False
 
-    if user.role not in CHAT_ALLOWED_ROLES:
+    if user.role not in settings.PRODUCT_CARD_CHAT_ALLOWED_ROLES:
         return False
 
-    if user.role == "ordinary_user":
+    if user.role == settings.ORD_USER:
         return card.user_id == user.id
 
-    if user.role == "manager":
+    if user.role == settings.MANAGER_USER:
         return card.manager_id == user.id
 
-    return True  # super roles
+    if h_pc_chat_is_at2_admin(user):
+        return card.creator is not None and card.creator.admin_parent_id == user.id
+
+    if user.role == settings.ADMIN_USER:
+        return False
+
+    return user.role in settings.PRODUCT_CARD_CHAT_FULL_ACCESS_ROLES
 
 
 def h_pc_chat_visible_filter(q, user):
-    if user.role == "ordinary_user":
+    if user.role == settings.ORD_USER:
         return q.filter(CardMessage.is_internal.is_(False))
     return q
 

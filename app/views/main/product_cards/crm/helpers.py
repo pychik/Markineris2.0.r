@@ -34,6 +34,40 @@ CRM_ADMIN_ROLES = {"superuser", "supermanager"}  # кто видит всё
 CRM_MANAGER_ROLE = "manager"
 
 
+def is_at2_admin_user(user: User | None) -> bool:
+    return bool(
+        user
+        and getattr(user, "role", None) == settings.ADMIN_USER
+        and getattr(user, "is_at2", False) is True
+    )
+
+
+def apply_crm_cards_scope(query, user: User | None):
+    if not user:
+        return query
+
+    if getattr(user, "role", None) == CRM_MANAGER_ROLE:
+        return query.filter(
+            or_(
+                ProductCard.status.in_([ModerationStatus.SENT, ModerationStatus.SENT_NO_RD]),
+                ProductCard.manager_id == user.id
+            )
+        )
+
+    if is_at2_admin_user(user):
+        return query.join(User, User.id == ProductCard.user_id).filter(User.admin_parent_id == user.id)
+
+    return query
+
+
+def get_crm_card_for_user(card_id: int, user: User | None = None):
+    return (
+        apply_crm_cards_scope(ProductCard.query, user)
+        .filter(ProductCard.id == card_id)
+        .first()
+    )
+
+
 def helper_categories_counter(all_cards: list | tuple) -> dict:
     """
     Возвращает счётчики карточек по категориям.
@@ -76,14 +110,7 @@ def crm_get_cards(category: str = None, subcategory: str = None, user: User = No
         ModerationStatus.CLARIFICATION
     ]))
 
-    if user and getattr(user, "role", None) == CRM_MANAGER_ROLE:
-
-        q = q.filter(
-            or_(
-                ProductCard.status.in_([ModerationStatus.SENT, ModerationStatus.SENT_NO_RD]),
-                ProductCard.manager_id == user.id
-            )
-        )
+    q = apply_crm_cards_scope(q, user)
 
     # subcategory только для clothes
     if subcategory:
@@ -486,6 +513,8 @@ def h_pc_move_get_cards_by_status(status_value: str, category=None, subcategory=
              )
         )
 
+    q = apply_crm_cards_scope(q, current_user)
+
     if getattr(current_user, "role", None) == "manager":
         if status_value not in [ModerationStatus.SENT.value, ModerationStatus.SENT_NO_RD.value]:
             q = q.filter(ProductCard.manager_id == current_user.id)
@@ -801,4 +830,3 @@ def helper_reject_cards_by_rd_date_to_today() -> dict:
     except Exception:
         db.session.rollback()
         return {"status": "error"}
-

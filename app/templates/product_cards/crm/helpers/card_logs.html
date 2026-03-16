@@ -1,4 +1,4 @@
-{% if current_user.role in ['supermanager', 'markineris_admin', 'superuser'] %}
+{% if current_user.role in ['supermanager', 'markineris_admin', 'superuser', 'admin'] %}
   <span class="me-1 pc-logs-wrap">
     <img src="{{ url_for('static', filename='crm_mod/img/icons/logs.svg') }}"
          role="button"

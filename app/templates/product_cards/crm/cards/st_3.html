@@ -2,17 +2,19 @@
   <div class="orders">
     <h2 class="orders__title">
       На модерации <span id="in_moderation_cards_qty">({{ in_moderation_cards|length }})</span>
-      <select id="in_moderation_company_select"
+      {% if current_user.role != 'admin' %}
+        <select id="in_moderation_company_select"
           class="form-select form-select-sm mt-2"
           style="width: 210px; display:inline-block;"
           data-bs-toggle="tooltip"
           data-bs-title="Фильтр по компании"
           onchange="pcReloadColumn('in_moderation')">
-    <option value="">Все фирмы</option>
-    {% for c in companies_pool %}
-      <option value="{{ c.id }}">{{ c.inn }} {{ c.title }}</option>
-    {% endfor %}
-  </select>
+            <option value="">Все фирмы</option>
+            {% for c in companies_pool %}
+              <option value="{{ c.id }}">{{ c.inn }} {{ c.title }}</option>
+            {% endfor %}
+          </select>
+        {% endif %}
       <img src="{{ url_for('static', filename='crm_mod/img/icons/download.svg') }}"
        role="button"
        width="18" height="18"

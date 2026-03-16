@@ -1,13 +1,14 @@
 from datetime import datetime
 
 from flask import Blueprint, jsonify
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 from utilities.support import (
     user_activated,
     sumausmumu_required,
+    suausmumu_required,
     susmumu_required,
-    bck_sumausmumu_required, sumsuu_required, bck_susmu_required,
+    bck_sumausmumu_required, sumsuu_required, bck_susmu_required, bck_suausmumu_t2_required,
 )
 
 
@@ -15,6 +16,7 @@ from .handlers import h_crm_cards, h_download_product_card, h_pc_take_card_to_pr
     h_companies_create, h_companies_update, h_companies_modal, h_pc_move_card, h_pc_cards, h_pc_lazy_column, \
     h_search_crm_card, h_crm_set_company_slot, h_crm_approve_from_partially, h_download_cards_companies_in_progress, \
     h_transfer_sent_to_in_progress, h_download_cards_companies_by_status,  h_crm_reject_cards_by_rd_today
+from .helpers import get_crm_card_for_user
 
 
 from ..handlers import h_card_view, h_edit_product_card
@@ -25,7 +27,7 @@ crm_product_cards = Blueprint('crm_product_cards', __name__)
 @crm_product_cards.route("/cards", methods=["GET"])
 @login_required
 @user_activated
-@bck_sumausmumu_required
+@bck_suausmumu_t2_required
 def cards():
     return h_crm_cards()
 
@@ -33,7 +35,7 @@ def cards():
 @crm_product_cards.route("/crm/cards/lazy_column", methods=["GET"])
 @login_required
 @user_activated
-@bck_sumausmumu_required
+@bck_suausmumu_t2_required
 def pc_lazy_column():
     return h_pc_lazy_column()
 
@@ -41,8 +43,10 @@ def pc_lazy_column():
 @crm_product_cards.route("/crm_card_view/<int:card_id>", methods=["GET"])
 @login_required
 @user_activated
-@bck_sumausmumu_required
+@bck_suausmumu_t2_required
 def crm_card_view(card_id: int):
+    if not get_crm_card_for_user(card_id, current_user):
+        return jsonify(status="error", message="Карточка не найдена"), 404
     return h_card_view(card_id=card_id, crm_=True)
 
 
@@ -57,7 +61,7 @@ def crm_card_edit(card_id: int):
 @crm_product_cards.route('/crm/download_card/<int:pc_id>', methods=["POST"])
 @login_required
 @user_activated
-@sumausmumu_required
+@suausmumu_required
 def download_product_card(pc_id: int):
     return h_download_product_card(pc_id=pc_id)
 
@@ -73,7 +77,7 @@ def transfer_sent_to_in_progress():
 @crm_product_cards.route("/crm/download_cards_companies_in_progress", methods=["POST"])
 @login_required
 @user_activated
-@sumausmumu_required
+@suausmumu_required
 def download_cards_companies_in_progress():
     """
         POST:
@@ -85,7 +89,7 @@ def download_cards_companies_in_progress():
 @crm_product_cards.route("/crm/download_cards_companies", methods=["POST"])
 @login_required
 @user_activated
-@sumausmumu_required
+@suausmumu_required
 def download_cards_companies():
     return h_download_cards_companies_by_status()
 
@@ -133,7 +137,7 @@ def pc_move_card(pc_id: int):
 @crm_product_cards.route("/pc/<int:pc_id>/logs")
 @login_required
 @user_activated
-@bck_susmu_required
+@bck_suausmumu_t2_required
 def pc_card_logs(pc_id):
     return h_pc_cards(pc_id=pc_id)
 
@@ -141,7 +145,7 @@ def pc_card_logs(pc_id):
 @crm_product_cards.route('/crm/search_card', methods=['POST'])
 @login_required
 @user_activated
-@sumausmumu_required
+@bck_suausmumu_t2_required
 def search_card():
 
     return h_search_crm_card()

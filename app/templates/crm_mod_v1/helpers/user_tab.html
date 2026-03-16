@@ -75,13 +75,19 @@
                 </a>
             </li>
     {% endif %}
-    {% if current_user.role in ['superuser', 'supermanager', 'manager', 'm2r_admin']%}
+    {% if current_user.role in ['superuser', 'supermanager', 'manager', 'm2r_admin'] or (current_user.role =='admin' and current_user.is_at2)%}
         <li>
             <a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('crm_product_cards.cards')}}"
                 title="Панель управления пользователями">&nbspCRM карточки товаров</a>
         </li>
     {% endif %}
-    {% if current_user.role in ['superuser', 'supermanager', 'manager', 'admin'] %}
+    {% if current_user.role =='admin' and current_user.is_at2%}
+        <li>
+            <a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('crm_d.agents')}}"
+                title="Панель управления пользователями">&nbspCRM заказы&nbsp</a>
+        </li>
+    {% endif %}
+    {% if current_user.role in ['superuser', 'supermanager', 'manager'] %}
             <li>
                 <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_d.managers') }}"
                    title="Перейти в CRM">

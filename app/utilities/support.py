@@ -3091,6 +3091,20 @@ def suausmumu_required(func):
     return wrapper
 
 
+def bck_suausmumu_t2_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.status is True and (current_user.role in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER,
+                                                                 settings.SUPER_MANAGER, settings.ADMIN_USER,
+                                                                 settings.MANAGER_USER]
+                                            or (current_user.role == settings.ADMIN_USER and current_user.is_at2 == True)):
+            return func(*args, **kwargs)
+        else:
+            return jsonify(dict(status='danger', message='Недостаточно прав для этого запроса'))
+
+    return wrapper
+
+
 def bck_sumausmumu_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):

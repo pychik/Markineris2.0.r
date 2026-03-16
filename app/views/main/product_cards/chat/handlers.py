@@ -2,12 +2,14 @@ from datetime import datetime
 
 from flask import jsonify, request
 from flask_login import current_user
-from models import db, ProductCard, CardMessage, CardChatRead
-from views.main.product_cards.chat.helpers import h_pc_chat_can_access, h_pc_chat_visible_filter
+from config import settings
+from models import db, CardMessage, CardChatRead
+from views.main.product_cards.chat.helpers import h_pc_chat_can_access, h_pc_chat_visible_filter, \
+    h_pc_chat_get_card_for_access
 
 
 def h_pc_chat_get_messages(pc_id: int):
-    card = ProductCard.query.filter_by(id=pc_id).first()
+    card = h_pc_chat_get_card_for_access(pc_id, current_user)
     if not card or not h_pc_chat_can_access(card, current_user):
         return jsonify({"status": "error", "message": "Нет доступа"}), 403
 
@@ -43,7 +45,7 @@ def h_pc_chat_get_messages(pc_id: int):
 
 
 def h_pc_chat_send(pc_id: int):
-    card = ProductCard.query.filter_by(id=pc_id).first()
+    card = h_pc_chat_get_card_for_access(pc_id, current_user)
     if not card or not h_pc_chat_can_access(card, current_user):
         return jsonify({"status": "error", "message": "Нет доступа"}), 403
 
@@ -55,7 +57,7 @@ def h_pc_chat_send(pc_id: int):
 
     # ordinary_user не может слать internal
     is_internal = False
-    if current_user.role != "ordinary_user":
+    if current_user.role != settings.ORD_USER:
         is_internal = bool(request.form.get("is_internal"))  
 
     try:
@@ -68,7 +70,7 @@ def h_pc_chat_send(pc_id: int):
         db.session.add(msg)
         db.session.flush()
 
-        # лог карточки (учитывай твой h_append_card_log)
+        # лог карточки
         # line = f"\n{datetime.now():%d-%m-%Y %H:%M:%S} сообщение в чате от {current_user.login_name};"
         # card.card_log = h_append_card_log(card.card_log, line)
 
@@ -80,7 +82,7 @@ def h_pc_chat_send(pc_id: int):
 
 
 def h_pc_chat_mark_read(pc_id: int):
-    card = ProductCard.query.filter_by(id=pc_id).first()
+    card = h_pc_chat_get_card_for_access(pc_id, current_user)
     if not card or not h_pc_chat_can_access(card, current_user):
         return jsonify({"status": "error", "message": "Нет доступа"}), 403
 
