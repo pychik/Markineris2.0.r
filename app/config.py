@@ -735,6 +735,8 @@ class Settings(BaseSettings):
         ORDER_RESTORED_SENT: str = "Восстановленный заказ отправлен"
         NO_SUCH_ORDER: str = "Ошибка! Такого заказа нет в БД, он может быть на оформлении " \
                              "(проверьте через вкладку заказы), или он помечен на удаление!"
+        ORDER_NOT_AVAILABLE: str = "Нет доступа к заказу"
+        ORDER_CATEGORY_NOT_FOUND: str = "Категория не найдена"
         NO_SUCH_BG_TASK: str = "Такой фоновой задачи нет в хранилище!"
         NO_SUCH_SIGNUP_LINK: str = "Используется некорректная ссылка для регистрации!"
         NO_SUCH_ORDER_REMOVE: str = "Вы пытаетесь удалить не ваш заказ. Запрещено"
