@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+from types import SimpleNamespace
 from typing import Optional
 from uuid import uuid4
 
@@ -2310,6 +2311,8 @@ def _get_order_desc_row(order_id: int):
             Order.id,
             Order.user_id,
             Order.manager_id,
+            Order.stage,
+            Order.to_delete,
             Order.order_idn,
             Order.category,
             Order.company_type,
@@ -2319,13 +2322,14 @@ def _get_order_desc_row(order_id: int):
             Order.mark_type,
             Order.user_comment,
             Order.is_moderation,
-            # Order.contact_info,
+            Order.contact_info,
 
             User.client_code,
             User.login_name,
             User.phone,
             User.email,
             User.is_at2,
+            User.admin_parent_id,
 
             db.case(
                 (Agent.login_name.isnot(None), Agent.login_name),
@@ -2333,6 +2337,7 @@ def _get_order_desc_row(order_id: int):
             ).label("agent_name"),
 
             Manager.login_name.label("manager_login"),
+            Manager.role.label("manager_role"),
         )
         .join(User, User.id == Order.user_id)
         .outerjoin(Agent, User.admin_parent_id == Agent.id)
@@ -2340,6 +2345,42 @@ def _get_order_desc_row(order_id: int):
         .filter(Order.id == order_id)
         .first()
     )
+
+
+def _can_view_order_desc(order_row, user: User) -> bool:
+    if not order_row or order_row.to_delete:
+        return False
+
+    if user.role in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]:
+        return True
+
+    if user.role == settings.ADMIN_USER:
+        return bool(order_row.admin_parent_id == user.id)
+
+    if user.role == settings.MANAGER_USER:
+        return order_row.stage == settings.OrderStage.POOL or order_row.manager_id == user.id
+
+    if user.role == settings.SUPER_MANAGER:
+        return (
+            order_row.stage == settings.OrderStage.POOL
+            or order_row.manager_id is None
+            or order_row.manager_role not in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]
+        )
+
+    return False
+
+
+def _sanitize_order_desc_pii(order_row, user: User):
+    if user.role not in [settings.MANAGER_USER, settings.SUPER_MANAGER]:
+        return order_row
+
+    safe_data = dict(order_row._mapping)
+    safe_data["client_code"] = ""
+    safe_data["login_name"] = ""
+    safe_data["phone"] = ""
+    safe_data["email"] = ""
+    safe_data["contact_info"] = ""
+    return SimpleNamespace(**safe_data)
 
 
 def _get_user_companies_for_user(user_id: int):
@@ -2375,6 +2416,11 @@ def h_order_details():
     n = _get_order_desc_row(order_id)
     if not n:
         return jsonify(status="error", message="Order not found"), 404
+
+    if not _can_view_order_desc(n, current_user):
+        return jsonify(status="error", message="Access denied"), 403
+
+    n = _sanitize_order_desc_pii(n, current_user)
 
     user_companies = _get_user_companies_for_user(n.user_id)
 
