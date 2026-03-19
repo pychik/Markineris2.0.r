@@ -2322,7 +2322,6 @@ def _get_order_desc_row(order_id: int):
             Order.mark_type,
             Order.user_comment,
             Order.is_moderation,
-            Order.contact_info,
 
             User.client_code,
             User.login_name,
