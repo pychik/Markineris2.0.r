@@ -2354,7 +2354,7 @@ def _can_view_order_desc(order_row, user: User) -> bool:
         return True
 
     if user.role == settings.ADMIN_USER:
-        return bool(order_row.admin_parent_id == user.id)
+        return bool(order_row.admin_parent_id == user.id or order_row.user_id == user.id)
 
     if user.role == settings.MANAGER_USER:
         return order_row.stage == settings.OrderStage.POOL or order_row.manager_id == user.id
