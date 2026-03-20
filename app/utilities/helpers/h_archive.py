@@ -207,7 +207,8 @@ def h_copy_order(o_id: int, category: str) -> Response:
     u_id = user.id
     orders_id = [o.id for o in user.orders.with_entities(Order.id).filter(~Order.to_delete).all()]
 
-    order = Order.query.filter_by(id=o_id, category=category).filter(~Order.to_delete).first()
+    order = (Order.query.filter_by(id=o_id, category=category, user_id=user.id)
+             .filter(~Order.to_delete).first())
 
     if not order or order.id not in orders_id:
         flash(message=f"{settings.Messages.NO_SUCH_ORDER_COPY}", category='error')

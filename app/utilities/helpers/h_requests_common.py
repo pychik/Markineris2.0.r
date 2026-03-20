@@ -110,6 +110,9 @@ def h_check_tnved_code_data(u_id: int, from_category: str, tnved_code: str) -> s
 
 
 def h_get_tg_user_data(tg_id: int) -> str:
+    if current_user.role not in [settings.ADMIN_USER, settings.SUPER_USER]:
+        return f"0;{settings.Messages.STRANGE_REQUESTS}"
+
     telegram_data = Telegram.query.filter_by(id=tg_id).first()
     result_status = 0
     if not telegram_data:
@@ -177,8 +180,8 @@ def h_send_table_order() -> Response:
 
 
 def h_change_order_org_param(o_id: int) -> Union[str, Response]:
-
-    order = Order.query.filter_by(id=o_id, processed=False).filter(~Order.to_delete).first()
+    order = (Order.query.filter_by(id=o_id, processed=False, user_id=current_user.id)
+             .filter(~Order.to_delete).first())
     if not order:
         flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
         return redirect(url_for('main.enter'))
@@ -201,7 +204,8 @@ def h_change_order_org_param(o_id: int) -> Union[str, Response]:
 
 
 def h_change_order_org_param_form(o_id: int) -> Response:
-    order = Order.query.filter_by(id=o_id, processed=False).filter(~Order.to_delete).first()
+    order = (Order.query.filter_by(id=o_id, processed=False, user_id=current_user.id)
+             .filter(~Order.to_delete).first())
     if not order:
         flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
         return redirect(url_for('main.enter'))

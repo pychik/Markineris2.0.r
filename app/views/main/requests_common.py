@@ -1,4 +1,4 @@
-from flask import Blueprint, send_file
+from flask import Blueprint, send_from_directory
 from flask_login import login_required
 
 from config import settings
@@ -29,8 +29,7 @@ def process_idn_error(from_category: str, message: str):
 @login_required
 @user_activated
 def download_file(filename: str):
-    path = f"{settings.DOWNLOAD_DIR}/system_files/{filename}"
-    return send_file(path_or_file=path, as_attachment=True)
+    return send_from_directory(f"{settings.DOWNLOAD_DIR}/system_files", filename, as_attachment=True)
 
 
 @requests_common.route('check_tnved_code_data/<int:u_id>/<from_category>/', defaults={'tnved_code': None})

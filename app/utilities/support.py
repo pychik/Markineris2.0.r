@@ -913,7 +913,7 @@ def process_delete_order_pos(category: str, o_id: int, m_id: int, edit: bool = F
     else:
 
         try:
-            stmt = get_delete_pos_stmts(category=category, m_id=m_id)
+            stmt = get_delete_pos_stmts(category=category, m_id=m_id, o_id=o_id)
             db.session.execute(text(stmt))
             db.session.commit()
             if not edit and not async_type:
@@ -931,10 +931,16 @@ def process_delete_order_pos(category: str, o_id: int, m_id: int, edit: bool = F
 def helper_delete_order_pos(o_id: int, m_id: int, category: str, model: db.Model,
                             async_type: int = None) -> Union[tuple, Response]:
     cat_list = model.query.with_entities(model.id).filter_by(order_id=o_id).all()
+    pos_exists = model.query.with_entities(model.id).filter_by(id=m_id, order_id=o_id).first()
     subcategory = request.args.get('subcategory', '')
     if not Category.check_subcategory(category=category, subcategory=subcategory):
         return jsonify(
             dict(status='error', message=settings.Messages.STRANGE_REQUESTS + ' нет такой подкатегории'))
+    if not pos_exists:
+        if async_type:
+            return jsonify(dict(status='error', message=settings.Messages.STRANGE_REQUESTS))
+        flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
+        return redirect(url_for(f'{settings.CATEGORIES_DICT.get(category)}.index', o_id=o_id, subcategory=subcategory))
 
     if len(cat_list) > 1:
         if not async_type:

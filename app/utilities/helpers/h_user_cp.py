@@ -201,6 +201,9 @@ def h_update_transactions_history(u_id: int):
 
 
 def h_transaction_detail(u_id: int, t_id: int):
+    if u_id != current_user.id:
+        return '', 403
+
     is_at2 = helper_get_user_at2(user=current_user)
 
     transaction = UserTransaction.query.with_entities(UserTransaction.id, UserTransaction.type, UserTransaction.status,
@@ -238,6 +241,9 @@ def h_transaction_detail(u_id: int, t_id: int):
 
 
 def h_order_book_detail(u_id: int):
+    if u_id != current_user.id:
+        return '', 403
+
     categories: dict = {"обувь": 'shoes',
                         "одежда": 'clothes',
                         "белье": 'linen',
@@ -282,6 +288,9 @@ def h_order_book_detail(u_id: int):
 
 
 def h_tg_verify_detail(u_id: int):
+    if u_id != current_user.id:
+        return '', 403
+
     tg_user = TgUser.query.filter(TgUser.flask_user_id == u_id).first()
     is_at2 = current_user.is_at2
     bot_link = settings.TELEGRAMM_USER_NOTIFY_LINK

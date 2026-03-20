@@ -117,16 +117,52 @@ async function process_check_tnved(){
 
 
         var tnved_resp_insert = document.getElementById("check_tnved_insert")
-        tnved_resp_insert.innerHTML = `<h5>${data_list[1].replace('Прочитайте инструкцию ниже и подберите другой код!', '')}</h5><br>- <b><i>Проверьте</i></b> актуальность вашего кода по <a href="https://www.alta.ru/tnved/?ysclid=ley5fa8rg7766035472">ссылке</a>
-                                        <br>- <b><i>Ознакомьтесь со списком</i></b> корректных кодов, для категории <i>{{ category }}</i> ниже:<br><div id="modal_tnved_common_row" class="row mt-1"></div>`;
-        // tnved_resp_insert.innerHTML += "<br>- <b><i>Ознакомьтесь со списком</i></b> корректных кодов, для категории <i>{{ category }}</i> ниже:<br><div class=\"row\">"
-        let modal_tnved_common_row = document.getElementById('modal_tnved_common_row');
+        tnved_resp_insert.replaceChildren();
+
+        const title = document.createElement('h5');
+        title.textContent = data_list[1].replace('Прочитайте инструкцию ниже и подберите другой код!', '');
+        tnved_resp_insert.appendChild(title);
+        tnved_resp_insert.appendChild(document.createElement('br'));
+
+        tnved_resp_insert.appendChild(document.createTextNode('- '));
+        const checkBold = document.createElement('b');
+        const checkItalic = document.createElement('i');
+        checkItalic.textContent = 'Проверьте';
+        checkBold.appendChild(checkItalic);
+        tnved_resp_insert.appendChild(checkBold);
+        tnved_resp_insert.appendChild(document.createTextNode(' актуальность вашего кода по '));
+        const altaLink = document.createElement('a');
+        altaLink.href = 'https://www.alta.ru/tnved/?ysclid=ley5fa8rg7766035472';
+        altaLink.textContent = 'ссылке';
+        tnved_resp_insert.appendChild(altaLink);
+        tnved_resp_insert.appendChild(document.createElement('br'));
+
+        tnved_resp_insert.appendChild(document.createTextNode('- '));
+        const listBold = document.createElement('b');
+        const listItalic = document.createElement('i');
+        listItalic.textContent = 'Ознакомьтесь со списком';
+        listBold.appendChild(listItalic);
+        tnved_resp_insert.appendChild(listBold);
+        tnved_resp_insert.appendChild(document.createTextNode(' корректных кодов, для категории '));
+        const categoryItalic = document.createElement('i');
+        categoryItalic.textContent = '{{ category }}';
+        tnved_resp_insert.appendChild(categoryItalic);
+        tnved_resp_insert.appendChild(document.createTextNode(' ниже:'));
+        tnved_resp_insert.appendChild(document.createElement('br'));
+
+        let modal_tnved_common_row = document.createElement('div');
+        modal_tnved_common_row.id = 'modal_tnved_common_row';
+        modal_tnved_common_row.className = 'row mt-1';
+        tnved_resp_insert.appendChild(modal_tnved_common_row);
+
         var processed_data = data_list[2].split(',');
             processed_data.forEach(function (el, index) {
-                modal_tnved_common_row.innerHTML += `<div class="col-4">${index+1}. ${el}</div>`;
+                const item = document.createElement('div');
+                item.className = 'col-4';
+                item.textContent = `${index+1}. ${el}`;
+                modal_tnved_common_row.appendChild(item);
                 }
             )
-        tnved_resp_insert.innerHTML += "</div>";
         $('#checkTnvedModal').modal('show');
 
         return false

@@ -30,7 +30,9 @@ def index(o_id: int = None, update_flag: int = None):
 @login_required
 @user_activated
 def copy_order(o_id: int, p_id: int = None, edit_order: str = None):
-    copied_order = Linen.query.filter_by(id=p_id).first()
+    copied_order = (Linen.query.join(Order, Linen.order_id == Order.id)
+                    .filter(Linen.id == p_id, Order.user_id == current_user.id, ~Order.to_delete)
+                    .first())
 
     if not copied_order:
         flash(message=settings.Messages.NO_SUCH_ORDER, category='error')

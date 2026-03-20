@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, send_file, Response, request
+from flask import Blueprint, render_template, send_from_directory, Response, request
 from flask_login import login_required, current_user
 
 from config import settings
@@ -59,5 +59,4 @@ def check_csrf():
 @login_required
 @user_activated
 def download_template_table(filename: str):
-    path = f"{settings.DOWNLOAD_DIR}/system_files/{filename}"
-    return send_file(path_or_file=path, as_attachment=True)
+    return send_from_directory(f"{settings.DOWNLOAD_DIR}/system_files", filename, as_attachment=True)

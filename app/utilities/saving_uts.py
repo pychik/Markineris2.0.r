@@ -573,19 +573,19 @@ def get_delete_stmts(category: str, o_id: int) -> list:
     return stmts
 
 
-def get_delete_pos_stmts(category: str, m_id: int) -> str:
+def get_delete_pos_stmts(category: str, m_id: int, o_id: int) -> str:
     stmt = ""
     match category:
         case settings.Shoes.CATEGORY:
-            stmt = f"DELETE FROM public.shoes WHERE public.shoes.id={m_id}"
+            stmt = f"DELETE FROM public.shoes WHERE public.shoes.id={m_id} AND public.shoes.order_id={o_id}"
         case settings.Clothes.CATEGORY:
-            stmt = f"DELETE FROM public.clothes WHERE public.clothes.id={m_id}"
+            stmt = f"DELETE FROM public.clothes WHERE public.clothes.id={m_id} AND public.clothes.order_id={o_id}"
         case settings.Socks.CATEGORY:
-            stmt = f"DELETE FROM public.socks AS sm WHERE sm.id={m_id}"
+            stmt = f"DELETE FROM public.socks AS sm WHERE sm.id={m_id} AND sm.order_id={o_id}"
         case settings.Linen.CATEGORY:
-            stmt = f"DELETE FROM public.linen WHERE public.linen.id={m_id}"
+            stmt = f"DELETE FROM public.linen WHERE public.linen.id={m_id} AND public.linen.order_id={o_id}"
         case settings.Parfum.CATEGORY:
-            stmt = f"DELETE FROM public.parfum AS pm WHERE pm.id={m_id}"
+            stmt = f"DELETE FROM public.parfum AS pm WHERE pm.id={m_id} AND pm.order_id={o_id}"
         case _:
             flash(message=settings.Messages.ORDER_DELETE_ERROR)
             raise Exception
