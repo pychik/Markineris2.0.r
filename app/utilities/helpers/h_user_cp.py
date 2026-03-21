@@ -201,7 +201,22 @@ def h_update_transactions_history(u_id: int):
 
 
 def h_transaction_detail(u_id: int, t_id: int):
-    if u_id != current_user.id:
+    def _can_view_user_transactions(viewer: User, u_id: int) -> bool:
+        if viewer.id == u_id:
+            return True
+
+        if viewer.role in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]:
+            return True
+
+        if viewer.role != settings.ADMIN_USER:
+            return False
+
+        target_user = (User.query.with_entities(User.admin_parent_id)
+                       .filter(User.id == u_id)
+                       .first())
+        return bool(target_user and target_user.admin_parent_id == viewer.id)
+
+    if not _can_view_user_transactions(viewer=current_user, u_id=u_id):
         return '', 403
 
     is_at2 = helper_get_user_at2(user=current_user)
