@@ -1,0 +1,30 @@
+<div class="modal fade" id="order-chat-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-md modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="order-chat-modal-title">Чат заказа</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+
+      <div class="modal-body">
+        <div id="order-chat-list" style="min-height: 240px;"></div>
+
+        <hr>
+
+        <div class="d-flex gap-2 align-items-start">
+          <textarea class="form-control" id="order-chat-input" rows="2" maxlength="300"
+                    placeholder="Введите сообщение (до 300 символов)"></textarea>
+          <div class="d-flex justify-content-end mb-2">
+            <button type="button" title="Отправить" class="btn btn-outline-warning me-1" id="order-chat-send-btn"> &#8594;</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="order-chat-refresh-btn" title="Обновить">⟳</button>
+          </div>
+        </div>
+
+        <div class="small text-muted mt-1">
+          <span id="order-chat-counter">0/300</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

@@ -613,6 +613,62 @@ class CardChatRead(db.Model):
     )
 
 
+class OrderMessage(db.Model, UserMixin):
+    __tablename__ = "order_messages"
+
+    id = db.Column(db.BigInteger, primary_key=True)
+
+    order_id = db.Column(
+        db.Integer,
+        db.ForeignKey('orders.id', ondelete='CASCADE'),
+        index=True,
+        nullable=False
+    )
+
+    text = db.Column(db.String(2000), nullable=False)
+
+    created_at = db.Column(
+        db.DateTime(),
+        default=datetime.now,
+        index=True,
+        nullable=False
+    )
+
+    author = db.relationship('User')
+    author_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id', ondelete='SET NULL'),
+        index=True,
+        nullable=True
+    )
+
+
+class OrderChatRead(db.Model):
+    __tablename__ = "order_chat_reads"
+
+    id = db.Column(db.BigInteger, primary_key=True)
+
+    order_id = db.Column(
+        db.Integer,
+        db.ForeignKey("orders.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    last_read_message_id = db.Column(db.BigInteger, nullable=False, default=0, server_default="0")
+    last_read_at = db.Column(db.DateTime(), default=datetime.now, nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint("order_id", "user_id", name="uq_order_chat_read_order_user"),
+    )
+
+
 class ProcessingCompany(db.Model):
     __tablename__ = "processing_companies"
 
