@@ -543,18 +543,18 @@ def helper_m_order_ps(user: User, o_id: int, manager_id: int) -> Response:
     # if order_info.external_problem:
     #     message = "Отмена операции переноса заказа. Оператором установлен флаг внешней проблемы"
     #     return jsonify({'htmlresponse': None, 'status': status, 'message': message})
-    if not order_info.file_system_name and not order_info.file_link:
-        message = settings.Messages.ORDER_MANAGER_PROCESSED_ABS_FILE_ERROR
-        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
-    elif order_info.file_system_name:
-        # check order file
-        check_of_status, check_of_message = check_order_file(order_file_name=order_info.file_system_name, o_id=o_id)
-        if order_info.file_system_name and not check_of_status:
-            return jsonify({'htmlresponse': None, 'status': status, 'message': check_of_message})
+    # if not order_info.file_system_name and not order_info.file_link:
+    #     message = settings.Messages.ORDER_MANAGER_PROCESSED_ABS_FILE_ERROR
+    #     return jsonify({'htmlresponse': None, 'status': status, 'message': message})
+    # elif order_info.file_system_name:
+    #     # check order file
+    #     check_of_status, check_of_message = check_order_file(order_file_name=order_info.file_system_name, o_id=o_id)
+    #     if order_info.file_system_name and not check_of_status:
+    #         return jsonify({'htmlresponse': None, 'status': status, 'message': check_of_message})
     if not order_info.processing_info:
         message = settings.Messages.ORDER_MANAGER_PROCESSED_ABS_PROCESSING_INFO
         return jsonify({'htmlresponse': None, 'status': status, 'message': message})
-    if user.id != manager_id and user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MARKINERIS_ADMIN_USER]:
+    if user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MARKINERIS_ADMIN_USER]:
         message = settings.Messages.STRANGE_REQUESTS
         return jsonify({'htmlresponse': None, 'status': status, 'message': message})
 

@@ -60,13 +60,6 @@
                                                                     'm_start_ordersMainDiv', 3, '{{csrf_token()}}',
                                                                      this, `{{n.id}}`,`{{n.order_idn}}`, 'm_solved_ordersMainDiv_quantity')">
 
-                                <img src="{{url_for('static', filename='crm_mod/img/icons/arrow-right-circle-fill-y.svg')}}" alt="Вперед"
-                                    class="img-fluid" width="24" height="24" data-bs-toggle="tooltip"
-                                    data-bs-placement="top" data-bs-title="Перевести заказ в ОТПРАВЛЕНЫ КЛИЕНТУ"
-                                    onclick="update_spec_block_info(`{{url_for('crm_d.update_agent_stage')}}`,
-                                                            'sentOrdersMainDiv', 8, '{{csrf_token()}}',
-                                                             this, `{{n.id}}`, `{{n.order_idn}}`, 'm_solved_ordersMainDiv_quantity')">
-
                             </div>
                         </div>
                         <div class="order__roll">

@@ -266,7 +266,7 @@ def m_order_processed(o_id: int, manager_id: int):
 @crm_d.route('/m_order_ps/<int:o_id>/<int:manager_id>', methods=["POST"])
 @login_required
 @user_activated
-@susmumu_required
+@su_mod_required
 def m_order_ps(o_id: int, manager_id: int, f_manager_id: int = None):
     """
         change stage of order manager problem solved
