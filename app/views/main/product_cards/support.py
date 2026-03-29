@@ -210,7 +210,7 @@ def helper_clothes_info(subcategory: str | None) -> Union[Response,  dict[str, A
     category_process_name = settings.Clothes.CATEGORY_PROCESS
     (clothes_all_tnved, clothes_sizes,
      clothes_types_sizes_dict, types, subcategory_name) = ClothesSubcategoryProcessor(
-        subcategory=subcategory).get_creds()
+        subcategory=subcategory, is_cards=True).get_creds()
 
     return locals()
 

@@ -7,7 +7,7 @@ from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSO
     SWIMMING_ACCESSORIES_TYPES, SWIMMING_ACCESSORIES_NAME, SWIMMING_ACCESSORIES_TNVEDS
 from views.main.categories.clothes.schemas import SubCategoriesCreds
 from utilities.categories_data.underwear_data import (UNDERWEAR_TYPES, UNDERWEAR_TNVED_DICT,
-                                                      UNDERWEAR_NAME, UNDERWEAR_TNVEDS)
+                                                      UNDERWEAR_NAME, UNDERWEAR_TNVEDS, UNDERWEAR_TYPES_CARDS)
 
 
 # todo understand real need of double request for globals
@@ -19,8 +19,9 @@ class Underwear:
 
 
 class ClothesSubcategoryProcessor:
-    def __init__(self, subcategory: str = ClothesSubcategories.common.value):
+    def __init__(self, subcategory: str = ClothesSubcategories.common.value, is_cards: bool = False):
         self._subcategory = subcategory
+        self._is_cards = is_cards
 
     @property
     def subcategory(self) -> str:
@@ -32,7 +33,7 @@ class ClothesSubcategoryProcessor:
                 scc = SubCategoriesCreds(clothes_all_tnved=UNDERWEAR_TNVEDS,
                                          clothes_sizes=settings.Clothes.SIZES_ALL,
                                          clothes_types_sizes_dict=settings.Clothes.SIZE_ALL_DICT,
-                                         types=UNDERWEAR_TYPES,
+                                         types=UNDERWEAR_TYPES_CARDS if self._is_cards else UNDERWEAR_TYPES,
                                          subcategory_name=UNDERWEAR_NAME)
             case ClothesSubcategories.swimming_accessories.value:
                 scc = SubCategoriesCreds(clothes_all_tnved=SWIMMING_ACCESSORIES_TNVEDS,
