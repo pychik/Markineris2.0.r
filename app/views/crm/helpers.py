@@ -28,7 +28,38 @@ from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.support import (helper_get_at2_pending_balance, helper_get_limits, orders_list_common)
 from utilities.telegram import MarkinerisInform
 from .crm_support import h_cancel_order_process_payment
+from .order_chat import h_order_chat_unread_map
 from .schema import CompaniesOperators
+
+
+def _attach_order_chat_unread(rows, viewer_user_id: Optional[int]):
+    if not rows or not viewer_user_id:
+        return rows
+
+    order_ids = set()
+    for row in rows:
+        rid = getattr(row, "id", None)
+        if rid:
+            order_ids.add(int(rid))
+
+    if not order_ids:
+        return rows
+
+    unread_map = h_order_chat_unread_map(list(order_ids), int(viewer_user_id))
+    if not unread_map or not any(unread_map.values()):
+        return rows
+
+    wrapped = []
+    for row in rows:
+        if hasattr(row, "_mapping"):
+            data = dict(row._mapping)
+        else:
+            data = dict(getattr(row, "__dict__", {}))
+        data.pop("_sa_instance_state", None)
+        data["unread_chat_count"] = int(unread_map.get(int(data.get("id", 0) or 0), 0))
+        wrapped.append(SimpleNamespace(**data))
+
+    return wrapped
 
 
 def helper_get_agent_orders(user: User, category: str | None = None) -> list:
@@ -139,8 +170,8 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                               ORDER BY o.crm_created_at ASC
                                """
 
-    res = db.session.execute(text(stmt_orders))
-    return res.fetchall()
+    res = db.session.execute(text(stmt_orders)).fetchall()
+    return _attach_order_chat_unread(res, user.id if user else current_user.id)
 
 
 def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all') -> list:
@@ -265,9 +296,8 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                               GROUP BY u.id, o.id, o.crm_created_at
                               ORDER BY o.crm_created_at ASC
                                """.format(time_stmt=time_stmt)).bindparams(stage=stage)
-    res = db.session.execute(stmt_orders)
-
-    return res.fetchall()
+    res = db.session.execute(stmt_orders).fetchall()
+    return _attach_order_chat_unread(res, user.id if user else current_user.id)
 
 
 def helper_get_manager_orders(
@@ -379,8 +409,8 @@ def helper_get_manager_orders(
                                """)
         stmt_orders = stmt_orders_qry.bindparams(
             filtered_manager_id=filtered_manager_id) if filtered_manager_id else stmt_orders_qry
-    res = db.session.execute(stmt_orders)
-    return res.fetchall()
+    res = db.session.execute(stmt_orders).fetchall()
+    return _attach_order_chat_unread(res, user.id if user else current_user.id)
 
 
 def helper_check_extension(filename: str) -> bool:
@@ -513,18 +543,18 @@ def helper_m_order_ps(user: User, o_id: int, manager_id: int) -> Response:
     # if order_info.external_problem:
     #     message = "Отмена операции переноса заказа. Оператором установлен флаг внешней проблемы"
     #     return jsonify({'htmlresponse': None, 'status': status, 'message': message})
-    if not order_info.file_system_name and not order_info.file_link:
-        message = settings.Messages.ORDER_MANAGER_PROCESSED_ABS_FILE_ERROR
-        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
-    elif order_info.file_system_name:
-        # check order file
-        check_of_status, check_of_message = check_order_file(order_file_name=order_info.file_system_name, o_id=o_id)
-        if order_info.file_system_name and not check_of_status:
-            return jsonify({'htmlresponse': None, 'status': status, 'message': check_of_message})
+    # if not order_info.file_system_name and not order_info.file_link:
+    #     message = settings.Messages.ORDER_MANAGER_PROCESSED_ABS_FILE_ERROR
+    #     return jsonify({'htmlresponse': None, 'status': status, 'message': message})
+    # elif order_info.file_system_name:
+    #     # check order file
+    #     check_of_status, check_of_message = check_order_file(order_file_name=order_info.file_system_name, o_id=o_id)
+    #     if order_info.file_system_name and not check_of_status:
+    #         return jsonify({'htmlresponse': None, 'status': status, 'message': check_of_message})
     if not order_info.processing_info:
         message = settings.Messages.ORDER_MANAGER_PROCESSED_ABS_PROCESSING_INFO
         return jsonify({'htmlresponse': None, 'status': status, 'message': message})
-    if user.id != manager_id and user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MARKINERIS_ADMIN_USER]:
+    if user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MARKINERIS_ADMIN_USER]:
         message = settings.Messages.STRANGE_REQUESTS
         return jsonify({'htmlresponse': None, 'status': status, 'message': message})
 
@@ -1904,6 +1934,7 @@ def helper_search_crma_order() -> Response:
 
     htmlresponse = ''
     update_orders = [order_info, ]
+    update_orders = _attach_order_chat_unread(update_orders, current_user.id)
     match order_info.stage:
         case settings.OrderStage.NEW:
             htmlresponse = render_template(f'crm_mod_v1/crma/updated_stages/crma_search_1.html', **locals())
@@ -1950,6 +1981,7 @@ def helper_search_crmm_order() -> Response:
 
     htmlresponse = ''
     update_orders = [order_info, ]
+    update_orders = _attach_order_chat_unread(update_orders, current_user.id)
     match order_info.stage:
         case settings.OrderStage.POOL:
             htmlresponse = render_template(f'crm_mod_v1/crmm/updated_stages/crmm_search_2.html', **locals())

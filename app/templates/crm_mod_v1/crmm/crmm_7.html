@@ -9,7 +9,8 @@
              <div class="orders__item order {% if n.to_delete %} div-disabled {%endif%}{% if n.is_moderation %} order--moderation {% endif %}" data-order-id="{{ n.id }}" id="cardCommonBlock_{{n.id}}">
                     <div class="order__header">
                         <div class="order__name">{{n.order_idn}} {%if n.is_at2%}<span>(Агент тип 2)</span>{%endif%} </div>
-                        {% include 'crm_mod_v1/helpers/order_category.html' %}
+                        {% include 'crm_mod_v1/helpers/order_chat_icon.html' %}
+            {% include 'crm_mod_v1/helpers/order_category.html' %}
                     </div>
                     <div class="order__body">
                         <div class="order__info">
@@ -29,7 +30,37 @@
                         <div class="order__all">
 
                             <div class="order__details" data-loaded="0"></div>
+                             <div id="orderFile_{{n.id}}" class="file">
+                                {% if n.order_file %}
+                                    <img src="{{url_for('static', filename='crm_mod/img/icons/check-circle-fill.svg')}}" alt="Файл прикреплен" width="24"
+                                        height="24" class="img-fluid">
+                                    <b>Файл прикреплен</b><br>
+                                    <span class="ms-4 font-10">{{ n.order_file }}</span>
+                                    <img src="{{url_for('static', filename='crm_mod/img/icons/x-circle-fill.svg')}}" alt="Удалить файл"
+                                         data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right"
+                                         data-bs-title="Удалить файл" class="img-fluid ms-3" width="14"  height="14"
+                                         onclick="process_post_delete_file(`{{ url_for('crm_d.delete_order_file', manager_id=n.manager_id, o_id=n.id) }}?stage=6`, '{{csrf_token()}}', '{{n.id}}')">
 
+                                {% elif n.order_file_link %}
+                                    <img src="{{url_for('static', filename='crm_mod/img/icons/check-circle-fill.svg')}}" alt="Файл прикреплен" width="24"
+                                            height="24" class="img-fluid">
+                                    <b>Прикреплена ссылка на файл</b>
+                                    <span class="ms-4 font-10" onclick="copy_buffer('{{ n.order_file_link }}')">{{ n.order_file_link }}</span>
+                                    <img src="{{url_for('static', filename='crm_mod/img/icons/x-circle-fill.svg')}}" alt="Удалить файл"
+                                         data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right"
+                                         data-bs-title="Удалить файл" class="img-fluid ms-3" width="14"  height="14"
+                                         onclick="process_post_delete_file(`{{ url_for('crm_d.delete_order_file', manager_id=n.manager_id, o_id=n.id) }}?stage=6`, '{{csrf_token()}}', '{{n.id}}')">
+
+                                {% else %}
+                                    <span onclick="process_attach_file(`{{ url_for('crm_d.attach_file',  manager=n.manager, manager_id=n.manager_id, o_id=n.id) }}?stage=6`,
+                                         `{{ url_for('crm_d.attach_of_link', manager=n.manager, manager_id=n.manager_id, o_id=n.id) }}?stage=6`,
+                                          `{{ csrf_token() }}`, '{{n.id}}', '{{n.order_idn}}')">
+                                            <img src="{{url_for('static', filename='crm_mod/img/icons/paperclip.svg')}}" alt="Прикрепите архив файлов заказа" class="img-fluid"
+                                                width="25" height="25">
+                                            <b>Прикрепите файл заказа</b></span>
+
+                                {% endif %}
+                            </div>
                             <div class="order__footer">
                                 <div class="order__icons icons">
                                   {% include 'crm_mod_v1/helpers/table_download.html' %}

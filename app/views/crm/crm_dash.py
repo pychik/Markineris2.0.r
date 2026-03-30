@@ -23,7 +23,29 @@ from .helpers import (helper_get_agent_orders, helper_get_manager_orders, helper
                       helpers_problem_order_response,
                       helper_get_processing_order_info, helper_update_processing_order_info, h_order_details, )
 from .helpers_mo import h_all_new_multi_pool
+from .order_chat import h_order_chat_get_messages, h_order_chat_send, h_order_chat_mark_read
 crm_d = Blueprint('crm_d', __name__)
+
+
+@crm_d.route('/orders/<int:o_id>/chat/messages', methods=["GET"])
+@login_required
+@user_activated
+def order_chat_get_messages(o_id: int):
+    return h_order_chat_get_messages(o_id)
+
+
+@crm_d.route('/orders/<int:o_id>/chat/send', methods=["POST"])
+@login_required
+@user_activated
+def order_chat_send(o_id: int):
+    return h_order_chat_send(o_id)
+
+
+@crm_d.route('/orders/<int:o_id>/chat/read', methods=["POST"])
+@login_required
+@user_activated
+def order_chat_mark_read(o_id: int):
+    return h_order_chat_mark_read(o_id)
 
 
 @crm_d.route('/agents', methods=["GET"])
@@ -244,7 +266,7 @@ def m_order_processed(o_id: int, manager_id: int):
 @crm_d.route('/m_order_ps/<int:o_id>/<int:manager_id>', methods=["POST"])
 @login_required
 @user_activated
-@susmumu_required
+@su_mod_required
 def m_order_ps(o_id: int, manager_id: int, f_manager_id: int = None):
     """
         change stage of order manager problem solved

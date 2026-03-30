@@ -5,6 +5,7 @@
         data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Есть нерешенная проблема">
         <div class="order__header">
             <div class="order__name">{{n.order_idn}} {%if n.is_at2%}<span>(Агент тип 2)</span>{%endif%} </div>
+            {% include 'crm_mod_v1/helpers/order_chat_icon.html' %}
             {% include 'crm_mod_v1/helpers/order_category.html' %}
         </div>
         <div class="order__body">
@@ -58,6 +59,12 @@
                       {% include 'crm_mod_v1/helpers/table_download.html' %}
                     </div>
                     <div class="steps">
+                        <img src="{{url_for('static', filename='crm_mod/img/icons/arrow-right-circle-fill.svg')}}" alt="Вперед"
+                                                    class="icons__item" width="24" height="24" data-bs-toggle="tooltip"
+                                                    data-bs-placement="top" data-bs-title="Переместить заказа в проблема решена"
+                                                    onclick="update_spec_block_info(`{{ url_for('crm_d.m_order_ps', manager_id=n.manager_id, o_id=n.id, bck=1)}}`,                                                                                    'm_solved_ordersMainDiv', 7, '{{csrf_token()}}',
+                                                                                     this, `{{n.id}}`, `{{n.order_idn}}`,
+                                                                                     'm_problem_ordersMainDiv_quantity')">
 
                         <img src="{{url_for('static', filename='crm_mod/img/icons/x-circle-fill.svg')}}"
                              id="cancel_order{{n.id}}" alt="Отменить заказ"
