@@ -166,6 +166,21 @@ function orderChatScrollToBottom(smooth = true) {
   setTimeout(doScroll, 150);
 }
 
+function orderChatFormatDate(value) {
+  if (!value) return "";
+
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return "";
+
+  const dd = String(dt.getDate()).padStart(2, "0");
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const yyyy = String(dt.getFullYear());
+  const hh = String(dt.getHours()).padStart(2, "0");
+  const min = String(dt.getMinutes()).padStart(2, "0");
+
+  return `${dd}-${mm}-${yyyy} ${hh}:${min}`;
+}
+
 function orderChatRender(messages, currentUserId) {
   const list = document.getElementById("order-chat-list");
   if (!list) return;
@@ -177,7 +192,7 @@ function orderChatRender(messages, currentUserId) {
   messages.forEach((m) => {
     const isMine = (m.author_id || 0) === myId;
     const side = isMine ? "right" : "left";
-    const time = m.created_at ? new Date(m.created_at).toLocaleString() : "";
+    const time = orderChatFormatDate(m.created_at);
     const login = m.author_login || "";
     const theme = orderChatAuthorTheme(m.author_id, isMine);
     const gap = (lastSide !== null && lastSide !== side) ? "mt-3" : "mt-2";
