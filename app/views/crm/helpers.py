@@ -551,9 +551,9 @@ def helper_m_order_ps(user: User, o_id: int, manager_id: int) -> Response:
     #     check_of_status, check_of_message = check_order_file(order_file_name=order_info.file_system_name, o_id=o_id)
     #     if order_info.file_system_name and not check_of_status:
     #         return jsonify({'htmlresponse': None, 'status': status, 'message': check_of_message})
-    if not order_info.processing_info:
-        message = settings.Messages.ORDER_MANAGER_PROCESSED_ABS_PROCESSING_INFO
-        return jsonify({'htmlresponse': None, 'status': status, 'message': message})
+    # if not order_info.processing_info:
+    #     message = settings.Messages.ORDER_MANAGER_PROCESSED_ABS_PROCESSING_INFO
+    #     return jsonify({'htmlresponse': None, 'status': status, 'message': message})
     if user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MARKINERIS_ADMIN_USER]:
         message = settings.Messages.STRANGE_REQUESTS
         return jsonify({'htmlresponse': None, 'status': status, 'message': message})
