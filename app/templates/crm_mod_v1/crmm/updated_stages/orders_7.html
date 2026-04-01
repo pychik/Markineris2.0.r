@@ -87,6 +87,15 @@
                                                              this, `{{n.id}}`,`{{n.order_idn}}`,
                                                               'm_processed_ordersMainDiv_quantity')">
                           {% endif %}
+                          {% if n.order_file or n.order_file_link %}
+                                <img src="{{url_for('static', filename='crm_mod/img/icons/arrow-right-circle-fill.svg')}}" alt="Вперед"
+                                    class="icons__item" width="24" height="24" data-bs-toggle="tooltip"
+                                    data-bs-placement="top" data-bs-title="Переместить заказа в готовые"
+                                    onclick="update_spec_block_info(`{{ url_for('crm_d.m_order_processed', manager_id=n.manager_id, o_id=n.id, f_manager_id=filtered_manager_id) }}`,
+                                                                    'm_processed_ordersMainDiv', 5, '{{csrf_token()}}',
+                                                                     this, `{{n.id}}`, `{{n.order_idn}}`,
+                                                                     'm_start_ordersMainDiv_quantity')">
+                          {% endif %}
 
                     </div>
                 </div>
