@@ -2156,9 +2156,16 @@ def helper_refill_transaction(amount: int, status: int, promo_info: str, transac
 
 
 def helper_get_agent_wo_pending_transactions(u_id: int) -> bool | int:
-    query = text("""SELECT SUM(ut.amount) as pending_amount 
+    query = text("""SELECT SUM(ut.amount) as pending_amount
                     FROM public.user_transactions ut
-                    WHERE ut.user_id = :u_id AND ut.type=False AND ut.status=1;""").bindparams(u_id=u_id)
+                    WHERE ut.user_id = :u_id
+                      AND ut.type = False
+                      AND ut.status = :status
+                      AND ut.transaction_type = :transaction_type;""").bindparams(
+        u_id=u_id,
+        status=TransactionStatuses.pending.value,
+        transaction_type=TransactionTypes.agent_withdrawal.value,
+    )
     try:
         res = db.session.execute(query).fetchone().pending_amount
     except Exception as e:
@@ -2172,28 +2179,48 @@ def helper_agent_wo_transaction(amount: int, status: int, user_id: int, bill_pat
     if not (amount and wo_account_info):
         return False, 'Incorrect input: amount-{amount}, wo_account_info-{wo_account_info}'
 
-    pending_amount = helper_get_agent_wo_pending_transactions(u_id=user_id)
-    if pending_amount is False:
-        return False, settings.Messages.WO_TRANSACTION_PENDING_AMOUNT_ERROR
-
-    balance = helper_get_user_balance(u_id=user_id)[0]
-    summary_request = amount + pending_amount
-    if balance < summary_request:
-        return False, settings.Messages.WO_TRANSACTION_BALANCE_ERROR.format(request_summ=summary_request,
-                                                                            balance=balance)
-
-    if helper_get_user_balance(u_id=user_id)[0] < amount:
-        return False, settings.Messages.WO_TRANSACTION_BALANCE_ERROR
-
     created_at = datetime.now()
-    query = text(f"""INSERT into public.user_transactions (type, status, transaction_type, amount, user_id, bill_path, wo_account_info, created_at)
-                VALUES(False, :status, :transaction_type, :amount, :user_id, :bill_path, :wo_account_info, :created_at);
-
-            """).bindparams(status=status, amount=amount, user_id=user_id, bill_path=bill_path,
-                            wo_account_info=wo_account_info, created_at=created_at,
-                            transaction_type=TransactionTypes.agent_withdrawal.value)
     try:
-        db.session.execute(query)
+        user = (db.session.query(User)
+                .filter(User.id == user_id)
+                .with_for_update()
+                .with_entities(User.id, User.balance)
+                .first())
+        if not user:
+            db.session.rollback()
+            return False, settings.Messages.WO_TRANSACTION_PENDING_AMOUNT_ERROR
+
+        pending_amount = (db.session.query(func.coalesce(func.sum(UserTransaction.amount), 0))
+                          .filter(
+                              UserTransaction.user_id == user_id,
+                              UserTransaction.status == TransactionStatuses.pending.value,
+                              UserTransaction.type == False,
+                              UserTransaction.transaction_type == TransactionTypes.agent_withdrawal.value,
+                          )
+                          .scalar())
+        if pending_amount is None:
+            db.session.rollback()
+            return False, settings.Messages.WO_TRANSACTION_PENDING_AMOUNT_ERROR
+
+        summary_request = amount + pending_amount
+        if user.balance < summary_request:
+            db.session.rollback()
+            return False, settings.Messages.WO_TRANSACTION_BALANCE_ERROR.format(
+                request_summ=summary_request,
+                balance=user.balance,
+            )
+
+        transaction = UserTransaction(
+            type=False,
+            status=status,
+            transaction_type=TransactionTypes.agent_withdrawal.value,
+            amount=amount,
+            user_id=user_id,
+            bill_path=bill_path,
+            wo_account_info=wo_account_info,
+            created_at=created_at,
+        )
+        db.session.add(transaction)
         db.session.commit()
         return True, ''
     except Exception as e:

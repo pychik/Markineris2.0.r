@@ -1430,7 +1430,7 @@ def h_su_pending_transaction_update(u_id: int, t_id: int,):
     operation_type = request.form.get('operation_type', 0, int)
     tr_status = request.form.get('tr_status', 0, int)
 
-    if operation_type not in [0, 1, ] and tr_status not in settings.Transactions.TRANSACTIONS.keys():
+    if operation_type not in [0, 1, ] or tr_status not in settings.Transactions.TRANSACTIONS.keys():
         return jsonify(dict(status=status, message=f"{message} ошибка ввода"))
 
     # check for tricksters

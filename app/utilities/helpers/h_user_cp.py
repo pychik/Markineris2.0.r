@@ -433,6 +433,27 @@ def h_pa_refill(u_id: int, sa_id: int):
     return jsonify(dict(status=status, message=message))
 
 
+def _validate_agent_wo_form(amount: int, wo_fio: str, wo_bill_acc: str, wo_bik: str,
+                            wo_account_info: str) -> tuple[bool, str]:
+    if amount < 5000:
+        return False, f"{settings.Messages.USER_TRANSACTION_ERROR} ошибка ввода данных"
+    if not wo_fio:
+        return False, f"{settings.Messages.USER_TRANSACTION_ERROR} ФИО не заполнено"
+    if not wo_bill_acc:
+        return False, f"{settings.Messages.USER_TRANSACTION_ERROR} Счет получателя не заполнен"
+    if not wo_bik:
+        return False, f"{settings.Messages.USER_TRANSACTION_ERROR} Банк получателя не заполнен"
+    if not 10 <= len(wo_bill_acc) <= 20:
+        return False, f"{settings.Messages.USER_TRANSACTION_ERROR} длина счета должна быть от 10 до 20 символов"
+    if len(wo_fio) > 100:
+        return False, f"{settings.Messages.USER_TRANSACTION_ERROR} ФИО не должно превышать 100 символов"
+    if len(wo_bik) > 35:
+        return False, f"{settings.Messages.USER_TRANSACTION_ERROR} Банк получателя не должен превышать 35 символов"
+    if len(wo_account_info) > 100:
+        return False, f"{settings.Messages.USER_TRANSACTION_ERROR} Комментарий не должен превышать 100 символов"
+    return True, ''
+
+
 def h_agent_wo(u_id: int):
     status = 'danger'
     if u_id != current_user.id:
@@ -448,13 +469,19 @@ def h_agent_wo(u_id: int):
         uuid_prefix = str(uuid4())[:8]
         bill_path = f'{uuid_prefix}_{current_user.login_name}_write_off_patch'
         amount = int(request.form.get('wo_summ', '').replace('--', ''))
-        wo_fio = request.form.get('wo_fio', '').replace('--', '')
-        wo_bill_acc = request.form.get('wo_bill_acc', '').replace('--', '')
-        wo_bik = request.form.get('wo_bik', '').replace('--', '')
-        wo_account_info = request.form.get('wo_account_info', '').replace('--', '')
+        wo_fio = request.form.get('wo_fio', '').replace('--', '').strip()
+        wo_bill_acc = request.form.get('wo_bill_acc', '').replace('--', '').strip()
+        wo_bik = request.form.get('wo_bik', '').replace('--', '').strip()
+        wo_account_info = request.form.get('wo_account_info', '').replace('--', '').strip()
 
-        if not (wo_bill_acc.isdigit() and wo_bik.isdigit()) and amount < 5000:
-            message = f"{settings.Messages.USER_TRANSACTION_ERROR} ошибка ввода данных"
+        is_valid, message = _validate_agent_wo_form(
+            amount=amount,
+            wo_fio=wo_fio,
+            wo_bill_acc=wo_bill_acc,
+            wo_bik=wo_bik,
+            wo_account_info=wo_account_info,
+        )
+        if not is_valid:
             return jsonify(dict(status=status, message=message))
 
         tg_wo_account_info = f"<i>{wo_fio}</i>\n<b>{wo_bill_acc}</b>\n<b>{wo_bik}</b>\n{wo_account_info}"

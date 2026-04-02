@@ -931,7 +931,7 @@ function check_agent_wo_form(){
             if (error_field_id !== true){
                 let label_text = ''
                 if (error_field_id === 'wo_summ'){
-                    label_text += 'Введите сумму пополнения от 5000 р. с шагом 100 р.'
+                    label_text += 'Введите сумму снятия от 5000 р. с шагом 100 р.'
                 }
                 else{
                     label_text += jQuery(`#${error_field_id}`).closest(".form-group").find("label").text();
