@@ -47,7 +47,7 @@ from utilities.daily_price import get_cocmd
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
 from utilities.pdf_processor import get_first_page_as_image
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
-from utilities.validators import ValidatorProcessor
+from utilities.validators import ValidatorProcessor, is_valid_mark_type_full
 from views.crm.schema import CrmDefaults
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
 from .categories_data.subcategories_data import ClothesSubcategories, Category
@@ -288,6 +288,14 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
                             o_id: int = None, p_id: int = None, ) -> tuple[Optional[int], Optional[str],
                                                                                           Optional[str]]:
     form_dict: dict = form_data_raw.to_dict()
+    mark_type_hidden = form_dict.get("mark_type_hidden")
+
+    if not mark_type_hidden:
+        flash(message="не указан тип маркировки", category='error')
+        return (None,) * 3
+    if not is_valid_mark_type_full(mark_type_hidden):
+        flash(message="некорректный тип маркировки", category='error')
+        return (None,) * 3
 
     # this check not raises error and redirect in sequence of response logic
     # add check for clothes and tnved not empty
@@ -311,7 +319,7 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
             return (None,) * 3
         order = Order(company_type=form_dict.get("company_type"), company_name=form_dict.get("company_name"),
                       edo_type=form_dict.get("edo_type"), edo_id=form_dict.get("edo_id"),
-                      company_idn=company_idn, mark_type=form_dict.get("mark_type_hidden", "МАРКИРОВКА НЕ УКАЗАНА"),
+                      company_idn=company_idn, mark_type=mark_type_hidden,
                       category=category, stage=settings.OrderStage.CREATING, processed=False, to_delete=False)
     try:
         check_forbidden_words(form_dict.get("article", "").strip(), "article")
@@ -367,6 +375,14 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
 
 
 def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id: int = None) -> tuple:
+    mark_type_hidden = form_dict.get("mark_type_hidden")
+
+    if not mark_type_hidden:
+        flash(message="не указан тип маркировки", category='error')
+        return (None,) * 3
+    if not is_valid_mark_type_full(mark_type_hidden):
+        flash(message="некорректный тип маркировки", category='error')
+        return (None,) * 3
 
     if not o_id:
         company_idn = form_dict.get("company_idn")
@@ -380,7 +396,7 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
             check_forbidden_words(form_dict.get("trademark", "").strip(), "trademark")
             order = Order(company_type=form_dict.get("company_type"), company_name=form_dict.get("company_name"),
                           edo_type=form_dict.get("edo_type"), edo_id=form_dict.get("edo_id"),
-                          company_idn=form_dict.get("company_idn"), mark_type=form_dict.get("mark_type_hidden", "МАРКИРОВКА НЕ УКАЗАНА"),
+                          company_idn=form_dict.get("company_idn"), mark_type=mark_type_hidden,
                           category=settings.Parfum.CATEGORY, stage=settings.OrderStage.CREATING, processed=False)
 
             updated_order = common_save_db(order=order, form_dict=form_dict,

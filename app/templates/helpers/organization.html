@@ -98,7 +98,7 @@
                                     required>
 
                             <input type="hidden" id="mark_type_hidden" name="mark_type_hidden" class="form-control"
-                                           title="Поле привязки типа маркировки" {% if mark_type %}value="{{ mark_type }}"{% endif %}
+                                           title="Поле привязки типа маркировки" {% if mark_type_hidden %}value="{{ mark_type_hidden }}"{% endif %}
                                            data-validate="true">
                             <div class="small form-text text-muted tex-justified">
                                 Выберите необходимый тип этикетки!
@@ -136,7 +136,7 @@
                        {% endif %} required>
 
                 <input type="hidden" id="mark_type_hidden" name="mark_type_hidden" class="form-control"
-                               title="Поле привязки типа маркировки" {% if mark_type %}value="{{ mark_type }}"{% endif %}
+                               title="Поле привязки типа маркировки" {% if mark_type_hidden %}value="{{ mark_type_hidden }}"{% endif %}
                                data-validate="true">
                 <div class="small form-text text-muted tex-justified">
                     Выберите необходимый тип этикетки!

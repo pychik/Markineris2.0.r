@@ -110,6 +110,7 @@ function reload_upload_page_with_params() {
     const company_idn = document.getElementById('company_idn').value;
     const edo_type = document.getElementById('edo_type').value;
     const mark_type = document.getElementById('mark_type').value;
+    const mark_type_hidden = document.getElementById('mark_type_hidden').value;
 
     const urlParams = new URLSearchParams();
     urlParams.set('company_type', company_type);
@@ -117,6 +118,7 @@ function reload_upload_page_with_params() {
     urlParams.set('company_idn', company_idn);
     urlParams.set('edo_type', edo_type);
     urlParams.set('mark_type', mark_type);
+    urlParams.set('mark_type_hidden', mark_type_hidden);
 
     // Добавим subcategory, если она определена и не пустая
     if (typeof subcategory !== 'undefined' && subcategory ) {

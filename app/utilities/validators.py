@@ -12,6 +12,28 @@ from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVEDS
 from utilities.categories_data.underwear_data import UNDERWEAR_TNVEDS
 
+ALLOWED_MARK_TYPES_FULL = (
+    "11 макет 58*40",
+    "10 макет 58*30",
+    "8 макет 40*58",
+    "7 макет 30*20",
+    "17 макет WB 58*40",
+    "6 макет 45*25",
+    "4 этикетка 43*25",
+    "46_полное_описание_сокращенная_90х60",
+    "45_полное_описание_сокращенная_120х75",
+    "44_полное_описание_сокращенная_90х60",
+    "43_полное_описание_сокращенная_120х75",
+    "30_полное_описание_сокращенная_90х60",
+    "31_полное_описание_сокращенная_120х75",
+    "20_полное_описание_сокращенная_90х60",
+    "21_полное_описание_сокращенная_120х75",
+)
+
+
+def is_valid_mark_type_full(mark_type: str) -> bool:
+    return (mark_type or "").strip() in ALLOWED_MARK_TYPES_FULL
+
 
 class ValidationError(Exception):
     def __init__(self, field: str, message: str):

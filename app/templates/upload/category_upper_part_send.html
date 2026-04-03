@@ -260,7 +260,7 @@
                         });
                     </script>
                 <input type="hidden" id="mark_type_hidden" name="mark_type_hidden" class="form-control"
-                               title="Поле привязки типа маркировки" {% if mark_type %}value="{{ mark_type }}"{% endif %}
+                               title="Поле привязки типа маркировки" {% if mark_type_hidden %}value="{{ mark_type_hidden }}"{% endif %}
                                data-validate="true">
             </div>
         </div>
@@ -516,9 +516,16 @@ function reload_page_with_params(){
     var edo_type = document.getElementById('edo_type').value;
     var edo_id = document.getElementById('edo_id').value;
     var mark_type = document.getElementById('mark_type').value;
-    window.location = "{{ request.path }}?company_type="+company_type +
-        "&company_name=" + company_name + "&company_idn=" + company_idn + "&edo_type=" + edo_type +
-        "&edo_id=" + edo_id + "&mark_type=" + mark_type;
+    var mark_type_hidden = document.getElementById('mark_type_hidden').value;
+    const urlParams = new URLSearchParams();
+    urlParams.set('company_type', company_type);
+    urlParams.set('company_name', company_name);
+    urlParams.set('company_idn', company_idn);
+    urlParams.set('edo_type', edo_type);
+    urlParams.set('edo_id', edo_id);
+    urlParams.set('mark_type', mark_type);
+    urlParams.set('mark_type_hidden', mark_type_hidden);
+    window.location = "{{ request.path }}?" + urlParams.toString();
 }
 
 function check_upload_form(){

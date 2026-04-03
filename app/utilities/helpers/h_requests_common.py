@@ -11,6 +11,7 @@ from utilities.check_idn import IdnGetter
 from utilities.check_tnved import TnvedChecker
 from utilities.support import check_file_extension, send_file_tg, \
     orders_list_common, helper_check_useroragent_balance, helper_check_uoabm, helper_check_user_order_in_archive
+from utilities.validators import is_valid_mark_type_full
 
 
 def h_dadata_party_by_inn():
@@ -139,6 +140,7 @@ def h_send_table() -> str:
     edo_type = request.args.get("edo_type")
     edo_id = request.args.get("edo_id")
     mark_type = request.args.get("mark_type")
+    mark_type_hidden = request.args.get("mark_type_hidden") or mark_type
     return render_template('upload/category_upper_part_send.html', **locals())
 
 
@@ -151,23 +153,32 @@ def h_send_table_order() -> Response:
     edo_type = form_dict.get("edo_type")
     edo_id = form_dict.get("edo_id")
     mark_type = form_dict.get("mark_type")
+    mark_type_hidden = form_dict.get("mark_type_hidden")
 
     table_file = request.files.get('table_upload')
+    redirect_params = dict(company_type=company_type, company_name=company_name, company_idn=company_idn,
+                           edo_type=edo_type, edo_id=edo_id, mark_type=mark_type,
+                           mark_type_hidden=mark_type_hidden)
 
     # print(not table_file, check_file_extension(filename=table_file.filename))
     if table_file is False or check_file_extension(filename=table_file.filename) is False:
         flash(message=settings.Messages.UPLOAD_FILE_EXTENSION_ERROR, category='error')
-        return redirect(url_for('requests_common.send_table', company_type=company_type, company_name=company_name,
-                                    company_idn=company_idn, edo_type=edo_type, edo_id=edo_id, mark_type=mark_type))
+        return redirect(url_for('requests_common.send_table', **redirect_params))
+
+    if not mark_type_hidden:
+        flash(message="не указан тип маркировки", category='error')
+        return redirect(url_for('requests_common.send_table', **redirect_params))
 
     if not all([company_type, company_name, company_idn, edo_type, mark_type]):
         flash(message=f"{settings.Messages.SEND_FILE_EXTEXSION_ERROR}", category='error')
+    elif not is_valid_mark_type_full(mark_type_hidden):
+        flash(message="Произошла ошибка заполнения заказа. Указан некорректный тип маркировки.", category='error')
     else:
         try:
             user = current_user
             send_file_tg(user=user, company_idn=company_idn, company_type=company_type,
                          company_name=company_name, edo_type=edo_type, edo_id=edo_id,
-                         mark_type=mark_type, table_file=table_file.read())
+                         mark_type=mark_type_hidden, table_file=table_file.read())
             return redirect(url_for('requests_common.send_table'))
 
         except Exception as e:
@@ -175,8 +186,7 @@ def h_send_table_order() -> Response:
             flash(message=message, category='error')
             logger.error(message)
 
-    return redirect(url_for('requests_common.send_table', company_type=company_type, company_name=company_name,
-                            company_idn=company_idn, edo_type=edo_type, edo_id=edo_id, mark_type=mark_type))
+    return redirect(url_for('requests_common.send_table', **redirect_params))
 
 
 def h_change_order_org_param(o_id: int) -> Union[str, Response]:
@@ -219,13 +229,20 @@ def h_change_order_org_param_form(o_id: int) -> Response:
 
     # form_dict = request.form.to_dict()
     category = form_dict.get("category_hidden")
+    mark_type = form_dict.get("mark_type_hidden") or form_dict.get("mark_type")
+    if not mark_type:
+        flash(message="не указан тип маркировки", category='error')
+        return redirect(url_for(category + '.index', o_id=o_id))
+    if not is_valid_mark_type_full(mark_type):
+        flash(message="некорректный тип маркировки", category='error')
+        return redirect(url_for(category + '.index', o_id=o_id))
     try:
         order.company_type = form_dict.get("company_type")
         order.company_name = form_dict.get("company_name")
         order.edo_type = form_dict.get("edo_type")
         order.edo_id = form_dict.get("edo_id")
         order.company_idn = new_company_idn
-        order.mark_type = form_dict.get("mark_type_hidden"),
+        order.mark_type = mark_type
 
         db.session.commit()
         flash(message=settings.Messages.UPDATE_ORG_SUCCESS)

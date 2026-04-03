@@ -13,6 +13,7 @@ from utilities.upload_order.upload_parfum import UploadParfum
 from utilities.upload_order.upload_saving_uts import upload_table_common
 from utilities.upload_order.upload_shoes import UploadShoes
 from utilities.upload_order.upload_socks import UploadSocks
+from utilities.validators import is_valid_mark_type_full
 
 
 def helper_upload_common_get(category: str, category_process_name: str) -> Union[Response, str]:
@@ -43,6 +44,7 @@ def helper_upload_common_get(category: str, category_process_name: str) -> Union
     edo_type = request.args.get("edo_type")
     edo_id = request.args.get("edo_id")
     mark_type = request.args.get("mark_type")
+    mark_type_hidden = request.args.get("mark_type_hidden") or mark_type
     templates = settings.TEMPLATES_DICT.get(settings.SUB_CATEGORIES_DICT.get(subcategory)) if subcategory in settings.CATEGORIES_DICT else settings.TEMPLATES_DICT.get(category)
     # download_instruction = settings.UPLOAD_ORDER_EXCEL_INSTRUCTION
     return render_template(f'upload/{category_process_name}_upload_footer_v2.html', **locals())
@@ -59,6 +61,7 @@ def helper_upload_common_post(category: str, category_process_name: str,
     edo_type = form_dict.get("edo_type")
     edo_id = form_dict.get("edo_id")
     mark_type = form_dict.get("mark_type")
+    mark_type_hidden = form_dict.get("mark_type_hidden")
     subcategory = form_dict.get("subcategory")
 
     table_file = request.files.get('table_upload')
@@ -69,15 +72,20 @@ def helper_upload_common_post(category: str, category_process_name: str,
         'company_idn': company_idn,
         'edo_type': edo_type,
         'edo_id': edo_id,
-        'mark_type': mark_type
+        'mark_type': mark_type,
+        'mark_type_hidden': mark_type_hidden,
     }
 
     # Добавляем subcategory только если она есть
     if subcategory:
         params['subcategory'] = subcategory
 
-    if not mark_type:
-        flash(message=settings.Messages.UPLOAD_MARK_TYPE_ERROR, category='error')
+    if not mark_type_hidden:
+        flash(message="не указан тип маркировки", category='error')
+        return redirect(url_for(f'{category_process_name}.upload', **params))
+
+    if not is_valid_mark_type_full(mark_type_hidden):
+        flash(message="некорректный тип маркировки", category='error')
         return redirect(url_for(f'{category_process_name}.upload', **params))
 
     if table_file is None or table_file is False or check_file_extension(filename=table_file.filename) is False:
@@ -98,7 +106,7 @@ def helper_upload_common_post(category: str, category_process_name: str,
         if not error_list:
             order_id = upload_table_common(user=current_user, company_type=company_type, company_name=company_name,
                                            company_idn=company_idn, edo_type=edo_type, edo_id=edo_id,
-                                           mark_type=mark_type,
+                                           mark_type=mark_type_hidden,
                                            order_list=order_list, category=category,
                                            type_upload=table_type, subcategory=params.get('subcategory'))
             match order_id:
