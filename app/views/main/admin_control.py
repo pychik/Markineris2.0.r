@@ -8,7 +8,7 @@ from data_migrations.instance import etl_service
 from data_migrations.utils import make_password
 from models import User, db
 from utilities.admin.h_admin_control import h_bck_agent_reanimate, h_exception_user_data_main, \
-    h_add_exception_user_data, h_delete_exception_user_data
+    h_add_exception_user_data, h_delete_exception_user_data, h_admins_table
 from utilities.admin.h_admin_control import (
     h_index,
     h_admin,
