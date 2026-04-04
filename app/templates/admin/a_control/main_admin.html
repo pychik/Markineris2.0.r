@@ -48,7 +48,7 @@
                 <div class="d-flex flex-column ">
                     <a class="btn btn-primary btn-accent border-0 text-dark mb-2" type="button" onclick="$('#addAdminModal').modal('show')">Добавить
                         админов</a>
-                    <a class="btn btn-secondary mb-2" onclick="$('#admins_listModal').modal('show')">Показать админов</a>
+                    <a class="btn btn-secondary mb-2" onclick="openAdminsListModal('{{ url_for('admin_control.admins_table') }}')">Показать админов</a>
                     <a class="btn btn-secondary" onclick="$('#ac_listModal').modal('show')">Показать модераторов</a>
                 </div>
             </div>
@@ -118,7 +118,7 @@
 
 
 <script src="{{url_for('static',filename='main_v2/js/admin/admin_common.js')}}"></script>
-<script src="{{url_for('static',filename='main_v2/js/admin/admin_main.js')}}?v=5"></script>
+<script src="{{url_for('static',filename='main_v2/js/admin/admin_main.js')}}?v=6"></script>
 <script src="{{url_for('static',filename='main_v2/js/admin/prices_block.js')}}?v=1"></script>
 
 <script>

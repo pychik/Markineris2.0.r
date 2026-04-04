@@ -120,6 +120,13 @@ def index(expanded: str = None):
     return h_index()
 
 
+@admin_control.route('/admins_table', methods=["GET"])
+@login_required
+@su_required
+def admins_table():
+    return h_admins_table()
+
+
 @admin_control.route('/su_get_telegram')
 @login_required
 @aus_required

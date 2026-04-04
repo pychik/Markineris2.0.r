@@ -11,6 +11,42 @@ function telegram_add(){
     }
 }
 
+function getAdminsTableLoadingMarkup() {
+    return `
+        <div class="d-flex align-items-center justify-content-center py-5">
+            <div class="spinner-border text-secondary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    `;
+}
+
+function openAdminsListModal(url) {
+    const adminsTable = document.getElementById('admins_table');
+
+    if (!adminsTable) {
+        return;
+    }
+
+    adminsTable.innerHTML = getAdminsTableLoadingMarkup();
+    $('#admins_listModal').modal('show');
+
+    fetch(url, {credentials: 'same-origin'})
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error('Failed to load admins table');
+            }
+
+            return response.text();
+        })
+        .then((html) => {
+            adminsTable.innerHTML = html;
+        })
+        .catch(() => {
+            adminsTable.innerHTML = '<div class="alert alert-danger mb-0">Не удалось загрузить список админов. Обновите страницу и попробуйте снова.</div>';
+        });
+}
+
 async function get_tg_data(url_link){
     var data = await fetchAsync(url_link);
 
