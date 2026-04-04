@@ -31,8 +31,49 @@ ALLOWED_MARK_TYPES_FULL = (
 )
 
 
+MARK_TYPE_DISPLAY_TO_FULL = {
+    "макет 58*40": "11 макет 58*40",
+    "макет 58*30": "10 макет 58*30",
+    "макет 40*58": "8 макет 40*58",
+    "макет 30*20": "7 макет 30*20",
+    "макет WB 58*40": "17 макет WB 58*40",
+    "макет 45*25": "6 макет 45*25",
+    "этикетка 43*25": "4 этикетка 43*25",
+}
+
+MARK_TYPE_DISPLAY_BY_CATEGORY_TO_FULL = {
+    (settings.Shoes.CATEGORY, "полное_описание_сокращенная_90х60"): "46_полное_описание_сокращенная_90х60",
+    (settings.Shoes.CATEGORY, "полное_описание_сокращенная_120х75"): "45_полное_описание_сокращенная_120х75",
+    (settings.Clothes.CATEGORY, "полное_описание_сокращенная_90х60"): "44_полное_описание_сокращенная_90х60",
+    (settings.Clothes.CATEGORY, "полное_описание_сокращенная_120х75"): "43_полное_описание_сокращенная_120х75",
+    (settings.Linen.CATEGORY, "полное_описание_сокращенная_90х60"): "30_полное_описание_сокращенная_90х60",
+    (settings.Linen.CATEGORY, "полное_описание_сокращенная_120х75"): "31_полное_описание_сокращенная_120х75",
+    (settings.Parfum.CATEGORY, "полное_описание_сокращенная_90х60"): "20_полное_описание_сокращенная_90х60",
+    (settings.Parfum.CATEGORY, "полное_описание_сокращенная_120х75"): "21_полное_описание_сокращенная_120х75",
+}
+
+
 def is_valid_mark_type_full(mark_type: str) -> bool:
     return (mark_type or "").strip() in ALLOWED_MARK_TYPES_FULL
+
+
+def normalize_mark_type_full(mark_type: str, category: str | None = None) -> str:
+    value = (mark_type or "").strip()
+    if not value:
+        return ""
+    if is_valid_mark_type_full(value):
+        return value
+
+    normalized = MARK_TYPE_DISPLAY_TO_FULL.get(value)
+    if normalized:
+        return normalized
+
+    if category:
+        normalized = MARK_TYPE_DISPLAY_BY_CATEGORY_TO_FULL.get((category, value))
+        if normalized:
+            return normalized
+
+    return value
 
 
 class ValidationError(Exception):

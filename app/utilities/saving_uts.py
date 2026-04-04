@@ -15,6 +15,7 @@ from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.helpers.helpers_checks import _check_linen_compatibility, _check_clothes_compatibility, \
     _check_shoes_compatibility, rd_name_clean
 from utilities.exceptions import SizeTypeException
+from utilities.validators import normalize_mark_type_full
 
 
 def time_count(func):
@@ -221,10 +222,11 @@ def common_save_db(order: Order, form_dict: dict, category: str, subcategory: st
 def common_save_copy_order(u_id: int, user: User, category: str, order: Order) -> Optional[int]:
 
     try:
+        normalized_mark_type = normalize_mark_type_full(order.mark_type, category=order.category or category)
 
         new_order = Order(company_type=order.company_type, company_name=order.company_name,
                           edo_type=order.edo_type, edo_id=order.edo_id,
-                          company_idn=order.company_idn, mark_type=order.mark_type,
+                          company_idn=order.company_idn, mark_type=normalized_mark_type,
                           category=order.category, processed=False)
 
         match category:

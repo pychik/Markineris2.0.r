@@ -470,7 +470,7 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
         orders, company_type, company_name, company_idn, \
             edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
             total_price, price_exist, subcategory = orders_list_common(category=category, user=user, o_id=o_id)
-
+        mark_type_hidden = mark_type
         if not orders:
             flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
             return redirect(url_for(f'{category_process_name}.index'))
@@ -490,6 +490,7 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
         (clothes_all_tnved, clothes_sizes,
          clothes_types_sizes_dict, types, subcategory_name) = ClothesSubcategoryProcessor(
             subcategory=subcategory).get_creds()
+
     return render_template(f'categories/category_v2.html', **locals(), **kwargs)
 
 
