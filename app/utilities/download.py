@@ -13,6 +13,7 @@ from xlsxwriter.worksheet import Worksheet
 from config import settings
 from models import Order, db, User
 from .categories_data.accessories_data import HATS_DEC_DICT, GLOVES_DEC_DICT, SHAWLS_DEC_DICT
+from .categories_data.categories_codes.clothes_category_code_mapper import resolve_clothes_category_code
 from .categories_data.subcategories_data import ClothesSubcategories, Category
 from .abstract import ProcessorInterface
 from .support import order_count, helper_paginate_data, check_leather
@@ -527,12 +528,9 @@ class ClothesProcessor(OrdersProcessor):
         res_list_inner = []
         actual_date = datetime.now().strftime('%d.%m.%Y')
         for el in orders_list:
-            #     if not el.tnved_code else el.tnved_code
+
             tnved = el.tnved_code
-            # fc_tnved = tnved if (tnved not in settings.Clothes.TNVED_ALL or tnved == '4304000000'
-            #                      or tnved[:4] in settings.Clothes.FULL_TNVED_4DIGIT_LIST) \
-            #     else tnved[:4]
-            # fc_tnved = tnved if tnved == '4304000000' else tnved[:4]
+            category_code = resolve_clothes_category_code(tnved)
 
             declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" \
                 if all([el.rd_date, el.rd_type, el.rd_name]) else ''
@@ -544,7 +542,7 @@ class ClothesProcessor(OrdersProcessor):
                 full_name = f'{el.type} {gender_dec} ' \
                             f'{OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color} р. {sq.size}'
 
-                temp_list = [tnved, full_name,
+                temp_list = [tnved, category_code, full_name,
                              el.trademark, 'Артикул', el.article, el.type, el.color, gender, sq.size_type, sq.size,
                              el.content, tnved, settings.Clothes.NUMBER_STANDART,
                              '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,
@@ -622,10 +620,9 @@ class SocksProcessor(OrdersProcessor):
 
         actual_date = datetime.now().strftime('%d.%m.%Y')
         for el in orders_list:
-            #     if not el.tnved_code else el.tnved_code
-            tnved = el.tnved_code
 
-            # fc_tnved = tnved if tnved == '4304000000' else tnved[:4]
+            tnved = el.tnved_code
+            category_code = resolve_clothes_category_code(tnved)
 
             declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" \
                 if all([el.rd_date, el.rd_type, el.rd_name]) else ''
@@ -637,7 +634,7 @@ class SocksProcessor(OrdersProcessor):
                 full_name = f'{el.type} {gender_dec} ' \
                             f'{OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color} р. {sq.size}'
 
-                temp_list = [tnved, full_name,
+                temp_list = [tnved, category_code, full_name,
                              el.trademark, 'Артикул', el.article, el.type, el.color, gender, sq.size_type, sq.size,
                              el.content, tnved, settings.Clothes.NUMBER_STANDART,
                              '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,
