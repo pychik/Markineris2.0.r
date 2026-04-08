@@ -663,7 +663,7 @@ def helper_parfum_index(o_id: int, p_id: int = None, update_flag: int = None,
         specific_order = True
         orders, trademark, mark_type, company_idn, company_type, company_name, edo_type, edo_id, \
             orders_pos_count, pos_count, price_exist, total_price = parfum_orders(user=user, o_id=o_id)
-
+        mark_type_hidden = mark_type
         if not orders:
             flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
             return redirect(url_for('parfum.index'))
