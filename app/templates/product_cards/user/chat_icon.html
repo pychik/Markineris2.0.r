@@ -1,6 +1,6 @@
 {% set st = card.status.value if card.status.value is defined else card.status %}
 {% set unread = unread_map.get(card.id, 0) %}
-{% if st in ['in_progress', 'in_moderation', 'clarification', ] %}
+{% if card.id in chat_readable_ids %}
     <span class="me-1 pc-chat-wrap position-relative" style="display:inline-block;">
           <button type="button"
             class="pc-icon-btn"

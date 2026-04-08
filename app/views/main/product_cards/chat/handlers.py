@@ -4,13 +4,17 @@ from flask import jsonify, request
 from flask_login import current_user
 from config import settings
 from models import db, CardMessage, CardChatRead
-from views.main.product_cards.chat.helpers import h_pc_chat_can_access, h_pc_chat_visible_filter, \
-    h_pc_chat_get_card_for_access
+from views.main.product_cards.chat.helpers import (
+    h_pc_chat_can_read,
+    h_pc_chat_can_send,
+    h_pc_chat_get_card_for_access,
+    h_pc_chat_visible_filter,
+)
 
 
 def h_pc_chat_get_messages(pc_id: int):
     card = h_pc_chat_get_card_for_access(pc_id, current_user)
-    if not card or not h_pc_chat_can_access(card, current_user):
+    if not card or not h_pc_chat_can_read(card, current_user):
         return jsonify({"status": "error", "message": "Нет доступа"}), 403
 
     q = (CardMessage.query
@@ -39,6 +43,7 @@ def h_pc_chat_get_messages(pc_id: int):
     return jsonify({
         "status": "success",
         "card_id": pc_id,
+        "can_send": h_pc_chat_can_send(card, current_user),
         "unread_count": unread_count,
         "messages": payload,
     })
@@ -46,7 +51,7 @@ def h_pc_chat_get_messages(pc_id: int):
 
 def h_pc_chat_send(pc_id: int):
     card = h_pc_chat_get_card_for_access(pc_id, current_user)
-    if not card or not h_pc_chat_can_access(card, current_user):
+    if not card or not h_pc_chat_can_send(card, current_user):
         return jsonify({"status": "error", "message": "Нет доступа"}), 403
 
     text = (request.form.get("text") or "").strip()
@@ -83,7 +88,7 @@ def h_pc_chat_send(pc_id: int):
 
 def h_pc_chat_mark_read(pc_id: int):
     card = h_pc_chat_get_card_for_access(pc_id, current_user)
-    if not card or not h_pc_chat_can_access(card, current_user):
+    if not card or not h_pc_chat_can_read(card, current_user):
         return jsonify({"status": "error", "message": "Нет доступа"}), 403
 
     last_id = request.form.get("last_id", type=int)

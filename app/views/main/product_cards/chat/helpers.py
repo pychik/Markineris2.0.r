@@ -2,6 +2,47 @@ from sqlalchemy import func
 from config import settings
 from models import db, ProductCard, ModerationStatus, User, CardChatRead, CardMessage
 
+USER_CHAT_WRITE_STATUSES = {
+    ModerationStatus.CLARIFICATION.value,
+}
+
+
+def h_pc_chat_can_read(card: ProductCard, user: User) -> bool:
+    st = card.status.value if hasattr(card.status, "value") else str(card.status)
+
+    if user.role not in settings.PRODUCT_CARD_CHAT_ALLOWED_ROLES:
+        return False
+
+    if user.role == settings.ORD_USER:
+        if card.user_id != user.id:
+            return False
+        if st in USER_CHAT_WRITE_STATUSES:
+            return True
+        return h_pc_chat_has_visible_messages(card.id, user)
+
+    if user.role == settings.MANAGER_USER:
+        return card.manager_id == user.id
+
+    if h_pc_chat_is_at2_admin(user):
+        return card.creator is not None and card.creator.admin_parent_id == user.id
+
+    if user.role == settings.ADMIN_USER:
+        return False
+
+    return user.role in settings.PRODUCT_CARD_CHAT_FULL_ACCESS_ROLES
+
+
+def h_pc_chat_can_send(card: ProductCard, user: User) -> bool:
+    if not h_pc_chat_can_read(card, user):
+        return False
+
+    st = card.status.value if hasattr(card.status, "value") else str(card.status)
+
+    if user.role == settings.ORD_USER:
+        return st in USER_CHAT_WRITE_STATUSES
+
+    return True
+
 
 def h_pc_chat_is_at2_admin(user: User | None) -> bool:
     return bool(
@@ -21,33 +62,29 @@ def h_pc_chat_get_card_for_access(pc_id: int, user: User | None):
 
 
 def h_pc_chat_can_access(card: ProductCard, user: User) -> bool:
-    st = card.status.value if hasattr(card.status, "value") else str(card.status)
-    # if user.role == "ordinary_user" and st not in {ModerationStatus.IN_PROGRESS.value, ModerationStatus.IN_MODERATION.value, ModerationStatus.CLARIFICATION.value}:
-    if user.role == settings.ORD_USER and st != ModerationStatus.CLARIFICATION.value:
-        return False
-
-    if user.role not in settings.PRODUCT_CARD_CHAT_ALLOWED_ROLES:
-        return False
-
-    if user.role == settings.ORD_USER:
-        return card.user_id == user.id
-
-    if user.role == settings.MANAGER_USER:
-        return card.manager_id == user.id
-
-    if h_pc_chat_is_at2_admin(user):
-        return card.creator is not None and card.creator.admin_parent_id == user.id
-
-    if user.role == settings.ADMIN_USER:
-        return False
-
-    return user.role in settings.PRODUCT_CARD_CHAT_FULL_ACCESS_ROLES
+    return h_pc_chat_can_read(card, user)
 
 
 def h_pc_chat_visible_filter(q, user):
     if user.role == settings.ORD_USER:
         return q.filter(CardMessage.is_internal.is_(False))
     return q
+
+
+def h_pc_chat_has_visible_messages(card_id: int, user) -> bool:
+    q = CardMessage.query.filter(CardMessage.card_id == card_id)
+    q = h_pc_chat_visible_filter(q, user)
+    return db.session.query(q.exists()).scalar()
+
+
+def h_visible_chat_card_ids(card_ids: list[int], user) -> set[int]:
+    if not card_ids:
+        return set()
+
+    q = db.session.query(CardMessage.card_id).filter(CardMessage.card_id.in_(card_ids))
+    q = h_pc_chat_visible_filter(q, user)
+    rows = q.distinct().all()
+    return {int(card_id) for (card_id,) in rows}
 
 
 def h_pc_chat_unread_count(card_id: int, user) -> int:

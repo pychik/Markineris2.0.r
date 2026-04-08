@@ -90,8 +90,26 @@ document.addEventListener("DOMContentLoaded", function () {
             case "delete":
                 handleCardDelete(btn, cardId);
                 break;
+            case "show-reject-reason":
+                handleRejectReason(btn);
+                break;
         }
     });
+
+    function handleRejectReason(btn) {
+        const textEl = document.getElementById("pcRejectReasonText");
+        const modalEl = document.getElementById("pcRejectReasonModal");
+        if (!textEl || !modalEl || !window.bootstrap?.Modal) {
+            console.warn("Reject reason modal not available");
+            return;
+        }
+
+        const reason = (btn.dataset.rejectReason || "").trim();
+        textEl.textContent = reason || "Причина отклонения не указана.";
+
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    }
 
     async function handleCardView(btn) {
         if (!btn) return;

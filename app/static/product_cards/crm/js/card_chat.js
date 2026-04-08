@@ -19,6 +19,7 @@ function pcChatHideLoading() {
 
 let PC_CHAT_STATE = {
   cardId: null,
+  canSend: true,
 };
 
 function pcChatResetModal() {
@@ -30,6 +31,7 @@ function pcChatResetModal() {
   if (title) title.textContent = "Чат карточки";
   if (list) list.innerHTML = `<div class="text-muted">Загрузка...</div>`;
   if (input) input.value = "";
+  pcChatApplyCanSend(true);
   if (counter) counter.textContent = "0/300";
 }
 
@@ -136,6 +138,7 @@ function pcChatReload(silent = false) {
       return data;
     })
     .then((data) => {
+      pcChatApplyCanSend(data.can_send !== false);
       pcChatRender(data.messages || [], cfg.currentUserId);
 
       return pcChatMarkReadIfNeeded(data.messages || [])
@@ -152,6 +155,30 @@ function pcChatReload(silent = false) {
     })
     .finally(() =>close_Loading_circle());
 
+}
+
+function pcChatApplyCanSend(canSend) {
+  PC_CHAT_STATE.canSend = !!canSend;
+
+  const input = document.getElementById("pc-chat-input");
+  const sendBtn = document.getElementById("pc-chat-send-btn");
+  const counter = document.getElementById("pc-chat-counter");
+
+  if (input) {
+    input.disabled = !canSend;
+    input.placeholder = canSend
+      ? "Введите сообщение (до 300 символов)"
+      : "Чат доступен только для чтения";
+  }
+
+  if (sendBtn) {
+    sendBtn.disabled = !canSend;
+    sendBtn.title = canSend ? "Отправить" : "Отправка недоступна для текущего статуса";
+  }
+
+  if (counter) {
+    counter.style.opacity = canSend ? "1" : "0.55";
+  }
 }
 
 function pcChatScrollToBottom(smooth = true) {
@@ -247,6 +274,7 @@ function pcChatAuthorTheme(authorId, isMine) {
 function pcChatSend() {
   const cardId = PC_CHAT_STATE.cardId;
   if (!cardId) return;
+  if (!PC_CHAT_STATE.canSend) return;
 
   const cfg = pcChatCfg();
   const url = pcChatUrlFromTemplate(cfg.chatSendUrlTemplate, cardId);

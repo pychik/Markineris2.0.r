@@ -19,7 +19,12 @@ from utilities.support import check_forbidden_words, helper_preload_common, help
     helper_check_user_order_in_archive, check_order_pos, process_admin_order_num, process_order_start
 from utilities.telegram import MarkinerisInform
 from utilities.validators import ValidatorProcessor, validate_and_build_contact_info
-from views.main.product_cards.chat.helpers import h_pc_chat_unread_count, h_unread_map_for_cards
+from views.main.product_cards.chat.helpers import (
+    USER_CHAT_WRITE_STATUSES,
+    h_pc_chat_unread_count,
+    h_unread_map_for_cards,
+    h_visible_chat_card_ids,
+)
 from views.main.product_cards.crm.helpers import crm_card_subcategory_title, crm_card_sizes_label, crm_card_article
 from views.main.product_cards.order_helpers import _json_error, _add_order_item_from_card, \
     _count_open_moderation_orders, _get_card_or_fail, _validate_card_access_and_status, _load_cards_for_order, \
@@ -144,14 +149,16 @@ def h_cards_table():
     offset = (pagination.page - 1) * pagination.per_page
 
     cards = pagination.items
-    need_ids = [
+    card_ids = [c.id for c in cards]
+    chat_visible_ids = h_visible_chat_card_ids(card_ids, current_user)
+    chat_readable_ids = {
         c.id for c in cards
-        if (c.status.value if hasattr(c.status, "value") else str(c.status))
-           in (ModerationStatus.IN_PROGRESS.value, ModerationStatus.IN_MODERATION.value, ModerationStatus.CLARIFICATION.value)
-    ]
+        if (c.status.value if hasattr(c.status, "value") else str(c.status)) in USER_CHAT_WRITE_STATUSES
+        or c.id in chat_visible_ids
+    }
 
     unread_map = {c.id: 0 for c in cards}
-    unread_map.update(h_unread_map_for_cards(need_ids, current_user))
+    unread_map.update(h_unread_map_for_cards(list(chat_readable_ids), current_user))
 
     html = render_template(
         "product_cards/user/table.html",
@@ -166,6 +173,7 @@ def h_cards_table():
         # status_colors=MODERATION_STATUS_COLORS,
         offset=offset,
         unread_map=unread_map,
+        chat_readable_ids=chat_readable_ids,
         get_card_status_datetime=_get_card_status_datetime
     )
     return jsonify({
@@ -1523,4 +1531,3 @@ def h_pc_order_process(o_id: int):
 
 
     return _back_to_list()
-

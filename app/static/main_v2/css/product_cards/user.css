@@ -108,6 +108,19 @@
   letter-spacing: 0.2px;
 }
 
+.pc-status-btn {
+  border: none;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.pc-status-btn:hover,
+.pc-status-btn:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(15, 15, 15, 0.12);
+  outline: none;
+}
+
 /* ----------- Статусы ------------ */
 
 /* CREATED */
@@ -164,6 +177,35 @@
 .pc-status-rejected {
   background: rgba(220, 53, 69, 0.20);
   color: rgba(150, 40, 50, 0.85);
+}
+
+.pc-reject-modal {
+  border-radius: 16px;
+  border: 1px solid rgba(220, 53, 69, 0.12);
+}
+
+.pc-reject-modal .modal-header {
+  border-bottom: 1px solid rgba(220, 53, 69, 0.10);
+}
+
+.pc-reject-modal .modal-body {
+  padding: 1rem 1rem 1.1rem;
+}
+
+.pc-reject-modal__caption {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: rgba(150, 40, 50, 0.75);
+  margin-bottom: 0.5rem;
+}
+
+.pc-reject-modal__text {
+  color: #3a2a2d;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
 }
 
 /* Контейнер действий */

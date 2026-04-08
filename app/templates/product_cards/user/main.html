@@ -3,12 +3,12 @@
 
 
 {% block main %}
-<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/product_cards/user.css') }}?v=6">
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/product_cards/user.css') }}?v=7">
 <link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/product_cards/chat_user.css') }}?v=2">
 <link rel="stylesheet" href="{{ url_for('static', filename='main_v2/video/css/fancybox.css') }}">
-<script src="{{ url_for('static', filename='product_cards/users/users.js') }}?v=4"></script>
+<script src="{{ url_for('static', filename='product_cards/users/users.js') }}?v=5"></script>
 <script src="{{ url_for('static', filename='product_cards/users/pc_send_created.js') }}"></script>
-<script src="{{url_for('static', filename='product_cards/crm/js/card_chat.js')}}?v=4"></script>
+<script src="{{url_for('static', filename='product_cards/crm/js/card_chat.js')}}?v=5"></script>
 <script src="{{url_for('static', filename='product_cards/users/pc_cart.js')}}?v=13"></script>
 
 <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -74,6 +74,7 @@
 {% include "product_cards/user/modals/modal_choose_category.html" %}
 {% include "product_cards/user/modals/modal_company_marks.html" %}
 {% include "product_cards/user/modals/modal_marks.html" %}
+{% include "product_cards/user/modals/modal_reject_reason.html" %}
 {% include "product_cards/chat/modal_user.html" %}
 
 
