@@ -31,6 +31,13 @@
   - перенос данных карточки в строку заказа;
   - копирование черновиков заказов.
 
+- [pc_cart.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/users/pc_cart.js)
+  Фронтовая корзина заказов из карточек:
+  - хранение корзины в `localStorage`;
+  - синхронизация модалки карточки с корзиной;
+  - сборка payload для `make_pc_basket_order`;
+  - применение настроек компании и типа маркировки.
+
 - [utils.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/utils.py)
   Локальные утилиты модуля. Сейчас здесь в основном проверка блока РД и парсинг дат.
 
@@ -66,13 +73,14 @@
 1. Пользователь открывает `/cards`, маршрут идет через [users.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/users.py) в `h_cards()` из [handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/handlers.py).
 2. Таблица карточек грузится отдельно через `h_cards_table()`.
 3. Создание и редактирование карточки проходят через `validate_card_form(...)`, `save_*_card(...)`, `update_card_allowed_fields(...)` и соседние функции из [support.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/support.py).
-4. Если пользователь собирает заказ из карточек, дальше включается [order_helpers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/order_helpers.py), где approved-данные карточки копируются в строки заказа.
+4. Если пользователь собирает заказ из карточек, сначала работает фронтовая корзина в [pc_cart.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/users/pc_cart.js), а затем серверная сборка заказа в [handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/handlers.py) и [order_helpers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/order_helpers.py), где approved-данные карточки копируются в строки заказа.
 
 ## Ключевые бизнес-правила
 
 - Категории и category-модели описаны в `CATEGORIES_COMMON`.
 - Для `parfum` сравнение товара завязано на `trademark`.
 - Для вещевых категорий (`clothes`, `shoes`, `linen`, `socks`) логика уникальности строится вокруг `article + color`, а для одежды дополнительно важна `subcategory`.
+- В корзине и в модалке добавления позиции вещевые товары нельзя склеивать только по `article`: там безопасная идентичность идет от `card_id`, а размеры объединяются только внутри одной карточки.
 - Размеры живут не в `ProductCard`, а в дочерних таблицах `*QuantitySize`.
 - Доступные действия пользователя и CRM зависят от `status` и `data_status`.
 
@@ -88,6 +96,9 @@
 
 - [order_helpers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/order_helpers.py)
   сборка заказа из approved-единиц карточки.
+
+- [pc_cart.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/users/pc_cart.js)
+  фронтовая идентичность товара в корзине и в модалке добавления позиции.
 
 Точечная правка только в одном месте почти наверняка даст скрытый рассинхрон.
 
