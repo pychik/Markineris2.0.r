@@ -3,7 +3,7 @@ from enum import Enum as PyEnum
 
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func, text
+from sqlalchemy import func, Index, text
 
 from config import settings
 from utilities.categories_data.subcategories_data import ClothesSubcategories
@@ -728,6 +728,9 @@ class OrderCommon(CommonMixin):
 
 class Shoe(db.Model, UserMixin, OrderCommon):
     __tablename__ = "shoes"
+    __table_args__ = (
+        Index("ix_shoes_article_color", "article", "color"),
+    )
 
     # SHOE_TYPE IS TYPE COMMONMIXIN
     color = db.Column(db.String(50))
@@ -771,6 +774,9 @@ class ShoeQuantitySize(db.Model, UserMixin):
 
 class Linen(db.Model, UserMixin, OrderCommon):
     __tablename__ = "linen"
+    __table_args__ = (
+        Index("ix_linen_article_color", "article", "color"),
+    )
 
     # BED_LINEN PRODUCT tYPE IS TYPE COMMONMIXIN
     color = db.Column(db.String(50))
@@ -881,6 +887,9 @@ class CQSMixin(db.Model, UserMixin):
 
 class Clothes(ClothesMixin):
     __tablename__ = "clothes"
+    __table_args__ = (
+        Index("ix_clothes_article_color", "article", "color"),
+    )
 
     # CLOTHES PRODUCT tYPE IS TYPE COMMONMIXIN
     # We use subcategory as a scaling option
@@ -913,6 +922,9 @@ class ClothesQuantitySize(CQSMixin):
 
 class Socks(ClothesMixin):
     __tablename__ = "socks"
+    __table_args__ = (
+        Index("ix_socks_article_color", "article", "color"),
+    )
     sizes_quantities = db.relationship('SocksQuantitySize', backref='socks', cascade="all,delete", lazy='joined')
     order_id = db.Column(
         db.Integer,

@@ -260,6 +260,34 @@
   animation: pulseYellow 2s ease-in-out infinite;
 }
 
+.pc-pagination .pagination_section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.pc-pagination .pagination_section a,
+.pc-pagination .pagination_section .pc-pagination-muted {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  line-height: 1;
+  text-decoration: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 100%;
+}
+
+.pc-pagination .pagination_section a {
+  color: inherit;
+}
+
+.pc-pagination .pagination_section .pc-pagination-muted {
+  color: rgba(90, 90, 90, 0.4);
+}
+
 @keyframes pulseYellow {
   0%   { background-color: transparent; }
   40%  { background-color: #fff8dc; }

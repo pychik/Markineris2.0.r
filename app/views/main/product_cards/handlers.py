@@ -31,7 +31,7 @@ from views.main.product_cards.order_helpers import _json_error, _add_order_item_
     _count_open_pc_orders, common_save_copy_pc_order
 from views.main.product_cards.support import validate_card_form, save_clothes_card, save_shoes_card, save_linen_card, \
     save_socks_card, save_parfum_card, parse_sizes_for_category, CATEGORIES_COMMON, MODERATION_STATUS_TITLES, \
-    MODERATION_STATUS_COLORS, normalize_article_for_category, collect_existing_size_keys, filter_new_sizes, CARD_FIELDS, \
+    MODERATION_STATUS_COLORS, normalize_article_for_category, normalize_color_for_category,  collect_existing_size_keys, filter_new_sizes, CARD_FIELDS, \
     extract_card_main_and_sizes, get_card_ctx, check_same_fields_if_exists, \
     require_user_two_companies, CATEGORY_TITLES, get_card_entity_for_prefill, assert_frozen_fields_unchanged, \
     update_card_allowed_fields, ALLOWED_CARDS_DELETE_STATUSES, card_has_rd, CARD_STATUS_DATETIME_ATTR
@@ -267,11 +267,13 @@ def h_save_product_card():
 
         # 2.1 Нормализованный артикул и поиск уже существующих размеров
         article_norm = normalize_article_for_category(category, form_dict)
+        color_norm = normalize_color_for_category(form_dict)
 
         existing_keys, existing_card_ids = collect_existing_size_keys(user_id=current_user.id,
             category=category,
             subcategory=subcategory,
             article=article_norm,
+            color=color_norm,
         )
 
         # 2.2 Фильтруем дублирующиеся размеры
@@ -490,6 +492,8 @@ def h_get_created_cards():
             "category_title": cfg.get("title", card.category),
             "subcategory": crm_card_subcategory_title(card),
             "article": crm_card_article(card),
+            "color": getattr(get_card_entity_for_prefill(card), "color",
+                             None) if card.category != settings.Parfum.CATEGORY_PROCESS else None,
             "sizes": crm_card_sizes_label(card)[1],
         })
 

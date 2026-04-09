@@ -83,7 +83,10 @@ function pcRenderSendCreated(cards) {
                 <div><b>${c.category_title}</b></div>
                 ${c.subcategory ? `<div class="text-muted small">${c.subcategory}</div>` : ""}
               </td>
-              <td>${c.article || "-"}</td>
+              <td>
+                <div>${c.article || "-"}</div>
+                ${c.color ? `<div class="text-muted" style="font-size:0.72rem;">${c.color}</div>` : ""}
+              </td>
               <td>${c.sizes || "-"}</td>
             </tr>
           `).join("")}
