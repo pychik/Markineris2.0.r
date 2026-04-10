@@ -24,7 +24,6 @@ from utilities.validators import ValidatorProcessor
 from views.crm.schema import CompanyLite, is_forbidden_pair_by_inn
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
 
-
 CATEGORIES_COMMON = {
     "shoes": {
         "title": "обувь",
@@ -75,9 +74,9 @@ CATEGORIES_COMMON = {
 }
 
 CATEGORY_TITLES = {
-        key: cfg["title"]
-        for key, cfg in CATEGORIES_COMMON.items()
-    }
+    key: cfg["title"]
+    for key, cfg in CATEGORIES_COMMON.items()
+}
 
 CARD_FIELDS = {
     "clothes": {
@@ -138,16 +137,15 @@ CARD_FIELDS = {
     }
 }
 
-
 MODERATION_STATUS_COLORS = {
-    "created": "info",        # голубой
-    "sent": "secondary",        # серый
-    "in_progress": "primary",   # синий
-    "in_moderation": "warning",   # желтый
-    "clarification": "warning", # жёлтый
-    "approved": "success",      # зелёный
-    "partially_approved": "success",      # зелёный
-    "rejected": "danger",       # красный
+    "created": "info",  # голубой
+    "sent": "secondary",  # серый
+    "in_progress": "primary",  # синий
+    "in_moderation": "warning",  # желтый
+    "clarification": "warning",  # жёлтый
+    "approved": "success",  # зелёный
+    "partially_approved": "success",  # зелёный
+    "rejected": "danger",  # красный
 }
 
 MODERATION_STATUS_TITLES = {
@@ -182,8 +180,7 @@ ALLOWED_CARDS_DELETE_STATUSES = {
 }
 
 
-def helper_clothes_info(subcategory: str | None) -> Union[Response,  dict[str, Any]]:
-
+def helper_clothes_info(subcategory: str | None) -> Union[Response, dict[str, Any]]:
     # Формируем набор глобальных переменных для категории одежда и ее подкатегорий
 
     price_description = settings.PRICE_DESCRIPTION
@@ -248,8 +245,7 @@ def helper_shoes_info(subcategory: str | None) -> Union[Response, dict[str, Any]
     return locals()
 
 
-def helper_socks_info(subcategory: str | None) -> Union[Response,  dict[str, Any]]:
-
+def helper_socks_info(subcategory: str | None) -> Union[Response, dict[str, Any]]:
     price_description = settings.PRICE_DESCRIPTION
     tnved_description = settings.TNVED_DESCRIPTION
     socks_all_tnved = settings.Socks.TNVED_ALL
@@ -281,7 +277,6 @@ def helper_socks_info(subcategory: str | None) -> Union[Response,  dict[str, Any
 
 
 def helper_linen_info(subcategory: str | None) -> Union[Response, dict[str, Any]]:
-
     category = settings.Linen.CATEGORY
     category_process_name = settings.Linen.CATEGORY_PROCESS
 
@@ -385,9 +380,9 @@ def validate_card_form(category_process: str, subcategory: str, form_data: Immut
 
     # 3. TНВЭД
     if ValidatorProcessor.check_tnveds(
-        category=category_title,
-        subcategory=subcategory,
-        tnved_str=form_data.get("tnved_code")
+            category=category_title,
+            subcategory=subcategory,
+            tnved_str=form_data.get("tnved_code")
     ):
         raise ValueError(settings.Messages.TNVED_ABSENCE_ERROR)
 
@@ -476,7 +471,8 @@ def normalize_color_for_category(form_dict: dict) -> str:
 
 
 def collect_existing_size_keys(user_id: int, category: str, subcategory: str | None,
-                               article: str, color: str | None = None, crm_: bool = False) -> tuple[set, set]:
+                               article: str, color: str | None = None, crm_: bool = False,
+                               exclude_card_id: int | None = None) -> tuple[set, set]:
     """
     Возвращает:
       - set ключей размеров
@@ -494,6 +490,9 @@ def collect_existing_size_keys(user_id: int, category: str, subcategory: str | N
          .filter(ProductCard.status != ModerationStatus.REJECTED)
          .join(rel)
          .filter(model.article == article))
+
+    if exclude_card_id:
+        q = q.filter(ProductCard.id != exclude_card_id)
 
     if hasattr(model, "color"):
         q = q.filter(model.color == (color or ""))
@@ -606,10 +605,10 @@ def filter_new_sizes(category: str,
 
 # ---------- SHOES ----------
 def save_shoes_card(
-    card: ProductCard,
-    form_dict: dict,
-    sizes_quantities: list,
-    subcategory: str | None = None,
+        card: ProductCard,
+        form_dict: dict,
+        sizes_quantities: list,
+        subcategory: str | None = None,
 ) -> ProductCard:
     """
     Создаёт объект Shoe, привязанный к карточке (card_id), + размеры.
@@ -686,10 +685,10 @@ def save_shoes_card(
 
 
 def save_clothes_card(
-    card: ProductCard,
-    form_dict: dict,
-    sizes_quantities: list,
-    subcategory: str | None = None,
+        card: ProductCard,
+        form_dict: dict,
+        sizes_quantities: list,
+        subcategory: str | None = None,
 ) -> ProductCard:
     """
     sizes_quantities: [(size, quantity, size_type), ...]
@@ -738,10 +737,10 @@ def save_clothes_card(
 # ---------- SOCKS ----------
 
 def save_socks_card(
-    card: ProductCard,
-    form_dict: dict,
-    sizes_quantities: list,
-    subcategory: str | None = None,
+        card: ProductCard,
+        form_dict: dict,
+        sizes_quantities: list,
+        subcategory: str | None = None,
 ) -> ProductCard:
     """
     sizes_quantities: [(size, quantity, size_type), ...]
@@ -792,10 +791,10 @@ def save_socks_card(
 # ---------- LINEN ----------
 
 def save_linen_card(
-    card: ProductCard,
-    form_dict: dict,
-    sizes_quantities: list,
-    subcategory: str | None = None,
+        card: ProductCard,
+        form_dict: dict,
+        sizes_quantities: list,
+        subcategory: str | None = None,
 ) -> ProductCard:
     """
     sizes_quantities: [(size, unit, quantity), ...]
@@ -857,10 +856,10 @@ def save_linen_card(
 # ---------- PARFUM ----------
 
 def save_parfum_card(
-    card: ProductCard,
-    form_dict: dict,
-    sizes_quantities: list | None = None,
-    subcategory: str | None = None,
+        card: ProductCard,
+        form_dict: dict,
+        sizes_quantities: list | None = None,
+        subcategory: str | None = None,
 ) -> ProductCard:
     """
     Для парфюма размеров нет, sizes_quantities не используется.
@@ -947,7 +946,6 @@ def extract_card_main_and_sizes(card: ProductCard):
 
 
 def get_card_ctx(category: str, subcategory: str | None = None) -> dict:
-
     category_ctx_builder = {
         "clothes": helper_clothes_info,
         "socks": helper_socks_info,
@@ -1194,9 +1192,9 @@ def _hrw_score(user_id: int, company_id: int, salt: str) -> int:
 
 
 def pick_two_companies_for_user_checked(
-    user_id: int,
-    companies: Iterable[CompanyLite],
-    salt: str,
+        user_id: int,
+        companies: Iterable[CompanyLite],
+        salt: str,
 ) -> Optional[Tuple[int, int]]:
     items = list(companies)
     if len(items) < 2:
@@ -1218,7 +1216,6 @@ def pick_two_companies_for_user_checked(
 
 def require_user_two_companies(user_id: int) -> tuple[int, int]:
     salt = "pc_companies_v1"
-
 
     pool_rows = (
         db.session.query(ProcessingCompany.id, ProcessingCompany.inn, ProcessingCompany.title)
@@ -1390,10 +1387,27 @@ def assert_frozen_fields_unchanged(card: ProductCard, form_data):
 
     if category == settings.Parfum.CATEGORY_PROCESS:
         parfum = card.parfum[0]
-        # замораживаем trademark
-        incoming_trademark = (form_data.get("trademark") or "").strip()
-        if (parfum.trademark or "").strip() != incoming_trademark:
-            raise ValueError("Нельзя менять товарный знак (карточка на уточнении).")
+        incoming_trademark = process_input_str(form_data.get("trademark") or "")
+        db_trademark = process_input_str(parfum.trademark or "")
+
+        if incoming_trademark != db_trademark:
+            existing = (
+                db.session.query(Parfum)
+                .join(ProductCard, ProductCard.id == Parfum.card_id)
+                .filter(
+                    ProductCard.id != card.id,
+                    ProductCard.user_id == card.user_id,
+                    ProductCard.category == category,
+                    ProductCard.status != ModerationStatus.REJECTED,
+                    Parfum.trademark == incoming_trademark,
+                )
+                .first()
+            )
+            if existing:
+                raise ValueError(
+                    f"У вас уже есть карточка парфюма с товарным знаком '{incoming_trademark}' "
+                    f"(ID {existing.card_id})."
+                )
 
         # цвета у парфюма нет — пропускаем
         # sizes у парфюма нет — пропускаем
@@ -1404,13 +1418,7 @@ def assert_frozen_fields_unchanged(card: ProductCard, form_data):
     if not entity:
         raise ValueError("Не удалось прочитать данные карточки для сравнения.")
 
-    incoming_article = (form_data.get("article") or "").strip()
-    db_article = (entity.article or "").strip()
-    # если у тебя нормализация артикула (БЕЗ АРТИКУЛА → ОТСУТСТВУЕТ) — сравнивай нормализованно:
-    incoming_article_norm = normalize_article_for_category(category, {"article": incoming_article})
-    db_article_norm = normalize_article_for_category(category, {"article": db_article})
-    if incoming_article_norm != db_article_norm:
-        raise ValueError("Нельзя менять артикул (карточка на уточнении).")
+    incoming_article_norm = normalize_article_for_category(category, form_data)
 
     incoming_color = (form_data.get("color") or "").strip()
     db_color = (entity.color or "").strip()
@@ -1418,23 +1426,102 @@ def assert_frozen_fields_unchanged(card: ProductCard, form_data):
         raise ValueError("Нельзя менять цвет (карточка на уточнении).")
 
     # sizes: сравниваем набор ключей (как ты уже делаешь через collect_existing_size_keys)
-    incoming_sq = parse_sizes_for_category(category=category, form_data_raw=form_data, subcategory=getattr(entity, "subcategory", None))
-    db_keys, _ = collect_existing_size_keys(user_id=card.user_id,
-        category=category,
-        subcategory=getattr(entity, "subcategory", None),
-        article=db_article_norm,
-        color=db_color,
-    )
+    incoming_sq = parse_sizes_for_category(category=category, form_data_raw=form_data,
+                                           subcategory=getattr(entity, "subcategory", None))
+    current_keys = set()
+    if category == settings.Clothes.CATEGORY_PROCESS:
+        for c in card.clothes:
+            for sq in c.sizes_quantities:
+                current_keys.add((sq.size, sq.size_type))
+    elif category == settings.Socks.CATEGORY_PROCESS:
+        for s in card.socks:
+            for sq in s.sizes_quantities:
+                current_keys.add((sq.size, sq.size_type))
+    elif category == settings.Shoes.CATEGORY_PROCESS:
+        for sh in card.shoes:
+            for sq in sh.sizes_quantities:
+                current_keys.add(sq.size)
+    elif category == settings.Linen.CATEGORY_PROCESS:
+        for l in card.linen:
+            for sq in l.sizes_quantities:
+                current_keys.add((sq.size, sq.unit))
 
     incoming_keys = build_size_keys_for_incoming(category, incoming_sq)
 
-    if not (incoming_keys <= db_keys):
+    if not (incoming_keys <= current_keys):
         raise ValueError("Нельзя добавлять новые размеры")
+
+    cfg = CATEGORIES_COMMON[category]
+    model = cfg["model"]
+
+    q = (
+        db.session.query(model)
+        .join(ProductCard, ProductCard.id == model.card_id)
+        .filter(
+            ProductCard.id != card.id,
+            ProductCard.user_id == card.user_id,
+            ProductCard.category == category,
+            ProductCard.status != ModerationStatus.REJECTED,
+            model.article == incoming_article_norm,
+        )
+    )
+
+    if hasattr(model, "color"):
+        q = q.filter(model.color == db_color)
+
+    if cfg.get("has_subcategory") and hasattr(model, "subcategory"):
+        q = q.filter(model.subcategory == getattr(entity, "subcategory", None))
+
+    existing_items = q.all()
+    if not existing_items:
+        return
+
+    def _norm(v):
+        return ("" if v is None else str(v)).strip()
+
+    for existing in existing_items:
+        diffs = []
+        for field, label in CARD_FIELDS[category].items():
+            if field == "article":
+                form_val = _norm(incoming_article_norm)
+            elif field == "color":
+                form_val = _norm(db_color)
+            elif field == "subcategory":
+                form_val = _norm(getattr(entity, "subcategory", None))
+            else:
+                form_val = _norm(form_data.get(field))
+
+            db_val = _norm(getattr(existing, field, None))
+            if db_val != form_val:
+                diffs.append((label, db_val, form_val))
+
+        if diffs:
+            details = "; ".join(f"{label}: было '{dbv}', стало '{fv}'" for label, dbv, fv in diffs)
+            raise ValueError(
+                f"У вас уже есть карточка с артикулом '{incoming_article_norm}' и цветом '{db_color}' "
+                f"(ID {existing.card_id}). Поля товара должны совпадать. Несовпадения: {details}"
+            )
+
+    existing_keys, existing_card_ids = collect_existing_size_keys(
+        user_id=card.user_id,
+        category=category,
+        subcategory=getattr(entity, "subcategory", None),
+        article=incoming_article_norm,
+        color=db_color,
+        exclude_card_id=card.id,
+    )
+    duplicates = incoming_keys & existing_keys
+    if duplicates:
+        ids_str = ", ".join(str(cid) for cid in sorted(existing_card_ids))
+        raise ValueError(
+            f"Для артикула '{incoming_article_norm}' и цвета '{db_color}' уже есть такие размеры "
+            f"в карточках ID: {ids_str}."
+        )
 
 
 FROZEN_FIELDS = {
-    "default": {"article", "color", "size", "size_type", "quantity", "sizeX", "sizeY", "sizeUnit"},
-    "parfum": {"trademark"},
+    "default": {"color", "size", "size_type", "quantity", "sizeX", "sizeY", "sizeUnit"},
+    "parfum": set(),
 }
 
 
@@ -1453,7 +1540,12 @@ def update_card_allowed_fields(card: ProductCard, form_dict: dict, form_data):
         if field in frozen:
             continue
         if hasattr(entity, field) and field in form_dict:
-            setattr(entity, field, form_dict[field])
+            if field == "article":
+                setattr(entity, field, normalize_article_for_category(category, form_dict))
+            elif field == "trademark":
+                setattr(entity, field, process_input_str(form_dict[field] or ""))
+            else:
+                setattr(entity, field, form_dict[field])
 
     if hasattr(entity, "rd_type"):
         entity.rd_type = (form_dict.get("rd_type") or "").strip() or None
@@ -1527,13 +1619,14 @@ def profile_db_verbose(name=None, max_sql=100):
                 event.remove(db.engine, "before_cursor_execute", before)
                 event.remove(db.engine, "after_cursor_execute", after)
 
-                msg = (f"[PROFILE] {name or fn.__name__} total={total*1000:.1f}ms "
-                       f"sql={sql_time*1000:.1f}ms ({len(q)}+ queries) "
-                       f"python={(total - sql_time)*1000:.1f}ms")
+                msg = (f"[PROFILE] {name or fn.__name__} total={total * 1000:.1f}ms "
+                       f"sql={sql_time * 1000:.1f}ms ({len(q)}+ queries) "
+                       f"python={(total - sql_time) * 1000:.1f}ms")
 
                 logger.info(msg)
                 for i, s in enumerate(q, 1):
                     logger.info(f"  [SQL {i}] {s}")
-        return wrapper
-    return dec
 
+        return wrapper
+
+    return dec

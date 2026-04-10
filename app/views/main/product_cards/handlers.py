@@ -25,7 +25,7 @@ from views.main.product_cards.chat.helpers import (
     h_unread_map_for_cards,
     h_visible_chat_card_ids,
 )
-from views.main.product_cards.crm.helpers import crm_card_subcategory_title, crm_card_sizes_label, crm_card_article
+from views.main.product_cards.crm.helpers import crm_card_subcategory_title, crm_card_sizes_label, crm_card_article, h_append_card_log
 from views.main.product_cards.order_helpers import _json_error, _add_order_item_from_card, \
     _count_open_moderation_orders, _get_card_or_fail, _validate_card_access_and_status, _load_cards_for_order, \
     _count_open_pc_orders, common_save_copy_pc_order
@@ -383,8 +383,18 @@ def h_edit_product_card(card_id: int, crm_: bool = False):
     # if card.category == 'shoes' and not crm_:
     #     flash("Ведется обновление раздела карточки категории обувь. Карточки категории обувь временно не обрабатываются", "error")
     #     return redirect(url_for("user_product_cards.cards"))
-    if card.status not in [ModerationStatus.SENT_NO_RD, ModerationStatus.CLARIFICATION]:
-        flash("Редактирование доступно только для карточек 'На уточнении' и 'Отправлены без РД'.", "error")
+    allowed_statuses = (
+        [ModerationStatus.SENT_NO_RD, ModerationStatus.CLARIFICATION]
+        if crm_
+        else [ModerationStatus.CLARIFICATION]
+    )
+    if card.status not in allowed_statuses:
+        message = (
+            "Редактирование доступно только для карточек 'На уточнении' и 'Отправлены без РД'."
+            if crm_
+            else "Редактирование доступно только для карточек 'На уточнении'."
+        )
+        flash(message, "error")
         return redirect(url_for("user_product_cards.cards")) if not crm_ else redirect(url_for("crm_product_cards.cards"))
 
     # достаём данные категории (первая запись)
@@ -411,18 +421,39 @@ def h_update_product_card():
     if not card:
         return jsonify(status="error", message="Карточка не найдена")
 
-    if card.status not in [ModerationStatus.SENT_NO_RD, ModerationStatus.CLARIFICATION]:
-        return jsonify(status="error", message="Редактирование доступно только для статусов 'Отправлены без РД' и 'На уточнении'")
-
     if current_user.role == settings.ORD_USER and card.user_id != current_user.id:
+        return jsonify(status="error", message="Вы пытаетесь редактировать не свою карточку.")
+
+    if current_user.role == settings.ORD_USER and card.status != ModerationStatus.CLARIFICATION:
+        return jsonify(status="error", message="Редактирование доступно только для карточек 'На уточнении'.")
+    if current_user.role != settings.ORD_USER and card.status not in [ModerationStatus.SENT_NO_RD,
+                                                                      ModerationStatus.CLARIFICATION]:
+        return jsonify(status="error",
+                       message="Редактирование доступно только для статусов 'Отправлены без РД' и 'На уточнении'")
+    if (
+            current_user.role == settings.MANAGER_USER
+            and card.status not in [ModerationStatus.SENT_NO_RD, ModerationStatus.SENT]
+            and card.manager_id != current_user.id
+    ):
         return jsonify(status="error", message="Вы пытаетесь редактировать не свою карточку.")
 
     category = card.category
     subcategory = form_data.get("subcategory")
-
+    entity_before = get_card_entity_for_prefill(card)
+    old_identity = ""
+    if entity_before:
+        old_identity = (
+                           getattr(entity_before, "trademark", "") if category == settings.Parfum.CATEGORY_PROCESS
+                           else getattr(entity_before, "article", "")
+                       ) or ""
     # 1) валидируем форму как обычно,
     try:
         validate_card_form(category_process=category, subcategory=subcategory, form_data=form_data)
+    except Exception as e:
+        return jsonify(status="error", message=str(e))
+    try:
+        check_forbidden_words(form_dict.get("article", "").strip(), "article")
+        check_forbidden_words(form_dict.get("trademark", "").strip(), "trademark")
     except Exception as e:
         return jsonify(status="error", message=str(e))
     try:
@@ -436,9 +467,24 @@ def h_update_product_card():
     except Exception as e:
         return jsonify(status="error", message=str(e))
 
-    # 3) обновляем только разрешённые поля (кроме артикула/цвета/размеров)
+    # 3) обновляем только разрешённые поля (кроме артикула/цвета/размеров) identity-поля уже проверены выше
     try:
         update_card_allowed_fields(card=card, form_dict=form_dict, form_data=form_data)
+        entity_after = get_card_entity_for_prefill(card)
+        new_identity = ""
+        if entity_after:
+            new_identity = (
+                               getattr(entity_after, "trademark", "") if category == settings.Parfum.CATEGORY_PROCESS
+                               else getattr(entity_after, "article", "")
+                           ) or ""
+        if old_identity != new_identity:
+            dt_str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+            field_title = "товарный знак" if category == settings.Parfum.CATEGORY_PROCESS else "артикул"
+            actor = getattr(current_user, "login_name", "") or str(current_user.id)
+            card.card_log = h_append_card_log(
+                card.card_log,
+                f"\n{dt_str} изменил {field_title}: '{old_identity}' -> '{new_identity}' пользователь {actor};"
+            )
         db.session.commit()
     except Exception as e:
         db.session.rollback()
