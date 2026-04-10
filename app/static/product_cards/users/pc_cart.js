@@ -126,7 +126,7 @@ function oBNormalizeCardId(cardId) {
 }
 
 // ключ позиции:
-// - parfum: category + trademark
+// - parfum: category + card_id
 // - остальные: card_id + size + size_type + unit
 function oBItemKey(item) {
   const category = (item.category || "").trim();
@@ -134,11 +134,9 @@ function oBItemKey(item) {
   const size = (item.size || "").trim();
   const st = (item.size_type || "").trim();
   const unit = (item.unit || "").trim();
-  const art = (item.article || "").trim();
-  const trademark = (item.trademark || "").trim();
 
   if (category === "parfum") {
-    return `${category}||${trademark}`;
+    return oBParfumKey(category, cardId);
   }
 
   return `${category}||${cardId}||${size}||${st}||${unit}`;
@@ -451,7 +449,9 @@ function oBCartRender() {
   // группируем по артикулу (одна "шапка" артикула + список размеров)
   const groups = new Map();
   order.items.forEach((it, idx) => {
-    const gKey = `${it.card_id}||${(it.article||"").trim()}||${(it.trademark||"").trim()}`;
+    const gKey = it.category === "parfum"
+      ? oBParfumKey(it.category, it.card_id)
+      : `${it.card_id}||${(it.article||"").trim()}||${(it.trademark||"").trim()}`;
 
     if (!groups.has(gKey)) groups.set(gKey, { it, rows: [] });
     groups.get(gKey).rows.push({ it, idx });
@@ -466,9 +466,13 @@ function oBCartRender() {
 
 
     const sizesHtml = g.rows.map(({ it, idx }) => {
-      const sizeLine = it.size
-        ? `Размер: ${it.size}${it.size_type ? " · " + it.size_type : ""}${it.unit ? " · " + it.unit : ""}`
-        : `Без размеров`;
+      const isParfum = it.category === "parfum";
+      const sizeLine = isParfum
+        ? "Количество"
+        : (it.size
+          ? `Размер: ${it.size}${it.size_type ? " · " + it.size_type : ""}${it.unit ? " · " + it.unit : ""}`
+          : `Без размеров`);
+      const removeTitle = isParfum ? "Удалить позицию" : "Удалить размер";
 
       return `
         <div class="o-b-size-row">
@@ -487,7 +491,7 @@ function oBCartRender() {
                     data-o-b-remove="1"
                     data-order-id="${order.orderId}"
                     data-idx="${idx}"
-                    title="Удалить размер">
+                    title="${removeTitle}">
               <span class="mx-1" >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
                   <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
@@ -570,21 +574,19 @@ function oBCartBuildPayloadOrError() {
   for (const ord of orders) {
     if (!ord.items || !ord.items.length) continue;
 
-    // ✅ PARFUM: группируем по trademark, без sizes
+    // ✅ PARFUM: группируем по card_id, без sizes
     if ((ord.category || "").trim() === "parfum") {
-      const byTm = {};
+      const byCardId = {};
 
       for (const it of ord.items) {
-        const tm = (it.trademark || "").trim();
-        if (!tm) continue;
+        const cardId = oBNormalizeCardId(it.card_id);
+        if (!cardId) continue;
 
-        const key = tm.toLowerCase();
-
-        if (!byTm[key]) {
-          byTm[key] = {
+        if (!byCardId[cardId]) {
+          byCardId[cardId] = {
             article: "",                   // у парфюма не используем
-            trademark: tm,
-            card_id: it.card_id,
+            trademark: it.trademark || "",
+            card_id: parseInt(cardId, 10),
             category: it.category,
             subcategory: it.subcategory || "",
             qty: 0,
@@ -593,22 +595,22 @@ function oBCartBuildPayloadOrError() {
 
         // qty может прийти как it.qty либо как it.quantity — учтём оба
         const q = parseInt(it.qty ?? it.quantity ?? 0, 10) || 0;
-        byTm[key].qty += q;
+        byCardId[cardId].qty += q;
 
         // RD: берём первую непустую
-        if (!byTm[key].rd && it.rd && typeof it.rd === "object") {
-          byTm[key].rd = it.rd;
+        if (!byCardId[cardId].rd && it.rd && typeof it.rd === "object") {
+          byCardId[cardId].rd = it.rd;
         }
       }
 
-      const items = Object.values(byTm);
+      const items = Object.values(byCardId);
 
       if (!items.length) continue;
 
       for (const a of items) {
 
         if (!a.qty || a.qty < 1) {
-          return { error: `Некорректное количество для товарного знака ${a.trademark}` };
+          return { error: `Некорректное количество для карточки ${a.card_id}` };
         }
       }
 
@@ -841,14 +843,14 @@ function oBCartGetParfumQtyFromCart() {
   const order = oBCartGetSingleOrder();
   if (!order || (order.category || "").toLowerCase() !== "parfum") return 0;
 
-  // ✅ берём trademark из текущей открытой карточки
+  // ✅ берём card_id из текущей открытой карточки
   const btn = document.getElementById("pc-parfum-add");
-  const trademark = (btn?.dataset?.trademark || "").trim();
-  if (!trademark) return 0;
+  const cardId = oBNormalizeCardId(btn?.dataset?.cardId);
+  if (!cardId) return 0;
 
-  const key = oBParfumKey("parfum", trademark);
+  const key = oBParfumKey("parfum", cardId);
   const it = (order.items || []).find(
-    x => oBParfumKey(x.category, x.trademark) === key
+    x => oBParfumKey(x.category, x.card_id) === key
   );
 
   return parseInt(it?.qty || 0, 10) || 0;
@@ -862,9 +864,9 @@ function oBCartSyncParfumQtyFromCart() {
 }
 // ===== CART KEYS =====
 
-// ключ для парфюма (1 позиция = 1 товарный знак)
-function oBParfumKey(category, trademark) {
-  return `${(category || "").trim()}||${(trademark || "").trim()}`;
+// ключ для парфюма (1 позиция = 1 карточка)
+function oBParfumKey(category, cardId) {
+  return `${(category || "").trim()}||${oBNormalizeCardId(cardId)}`;
 }
 
 function oBKeyNorm(v) {
@@ -907,10 +909,10 @@ function oBCartUpsertFromModalQty(payload) {
   orders = res.orders;
   const order = res.order;
 
-  // --- PARFUM (ключ по trademark) ---
+  // --- PARFUM (ключ по card_id) ---
   if ((payload.category || "").trim() === "parfum") {
-    const k = oBParfumKey(payload.category, payload.trademark);
-    const idx = order.items.findIndex(x => oBParfumKey(x.category, x.trademark) === k);
+    const k = oBParfumKey(payload.category, payload.card_id);
+    const idx = order.items.findIndex(x => oBParfumKey(x.category, x.card_id) === k);
 
     if (qty === 0) {
       if (idx >= 0) order.items.splice(idx, 1);
