@@ -470,8 +470,13 @@ def normalize_article_for_category(category: str, form_dict: dict) -> str:
     return article
 
 
+def normalize_color_for_category(form_dict: dict) -> str:
+    """Цвет хранится как значение из формы; для сравнения убираем лишние пробелы."""
+    return (form_dict.get("color") or "").strip()
+
+
 def collect_existing_size_keys(user_id: int, category: str, subcategory: str | None,
-                               article: str, crm_: bool = False) -> tuple[set, set]:
+                               article: str, color: str | None = None, crm_: bool = False) -> tuple[set, set]:
     """
     Возвращает:
       - set ключей размеров
@@ -489,6 +494,9 @@ def collect_existing_size_keys(user_id: int, category: str, subcategory: str | N
          .filter(ProductCard.status != ModerationStatus.REJECTED)
          .join(rel)
          .filter(model.article == article))
+
+    if hasattr(model, "color"):
+        q = q.filter(model.color == (color or ""))
 
     if has_subcategory and subcategory:
         # только для одежды
@@ -981,10 +989,11 @@ def check_same_fields_if_exists(*, category: str, subcategory: str | None, form_
 
     2. Остальные категории (clothes, shoes, linen, socks)
        ---------------------------------------------------
-       Для остальных категорий ключом товара считается артикул (article)
+       Для остальных категорий ключом товара считается комбинация
+       артикул (article) + цвет (color)
        в рамках категории (и подкатегории, если она участвует в уникальности).
 
-       Если у пользователя уже существует товар с тем же артикулом:
+       Если у пользователя уже существует товар с тем же article + color:
        - все поля, перечисленные в CARD_FIELDS[category], должны полностью
          совпадать со значениями в базе данных;
        - изменение любых из этих полей запрещено.
@@ -1013,13 +1022,13 @@ def check_same_fields_if_exists(*, category: str, subcategory: str | None, form_
             Выбрасывается, если:
             - категория не существует;
             - для парфюма уже существует карточка с таким trademark;
-            - для остальных категорий найден товар с тем же артикулом,
+            - для остальных категорий найден товар с тем же article + color,
               но значения защищённых полей не совпадают.
 
     Возвращаемое значение:
         None — если проверка пройдена и создание карточки разрешено.
     """
-    
+
     def _norm(v):
         return ("" if v is None else str(v)).strip()
 
@@ -1061,6 +1070,7 @@ def check_same_fields_if_exists(*, category: str, subcategory: str | None, form_
     # ОСТАЛЬНЫЕ: article + совпадение полей
     # =========================
     article_norm = normalize_article_for_category(category, form_dict)
+    color_norm = normalize_color_for_category(form_dict)
     key_value = _norm(article_norm)
     if not key_value:
         return
@@ -1075,6 +1085,9 @@ def check_same_fields_if_exists(*, category: str, subcategory: str | None, form_
             model.article == article_norm,
         )
     )
+
+    if hasattr(model, "color"):
+        q = q.filter(model.color == color_norm)
 
     if cfg.get("has_subcategory") and hasattr(model, "subcategory"):
         q = q.filter(model.subcategory == subcategory)
@@ -1102,7 +1115,7 @@ def check_same_fields_if_exists(*, category: str, subcategory: str | None, form_
         details = "; ".join(f"{label}: было '{dbv}', стало '{fv}'" for label, dbv, fv in diffs)
 
         raise Exception(
-            f"У вас уже есть карточка с артикулом '{key_value}' в категории '{category}'. "
+            f"У вас уже есть карточка с артикулом '{key_value}' и цветом '{color_norm}' в категории '{category}'. "
             f"Менять значения нельзя для полей: {changed_labels}. "
             f"Несовпадения: {details}"
         )
@@ -1410,6 +1423,7 @@ def assert_frozen_fields_unchanged(card: ProductCard, form_data):
         category=category,
         subcategory=getattr(entity, "subcategory", None),
         article=db_article_norm,
+        color=db_color,
     )
 
     incoming_keys = build_size_keys_for_incoming(category, incoming_sq)

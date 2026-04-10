@@ -56,7 +56,8 @@
                     {% if card.category == 'parfum' %}
                       {{ item.trademark or "-" }}
                     {% else %}
-                      {{ item.article or "-" }}
+                      <div>{{ item.article or "-" }}</div>
+                      <div class="text-muted" style="font-size: 0.72rem;">{{ item.color or "-" }}</div>
                     {% endif %}
                   {% else %}
                     -
@@ -81,23 +82,23 @@
 
                 {# 4. Статус карточки #}
                 <td>
-                    {% if card.status.value == 'rejected' %}
-                        <button type="button"
-                                class="pc-status pc-status-{{ card.status.value }} pc-status-btn"
-                                data-pc-action="show-reject-reason"
-                                data-card-id="{{ card.id }}"
-                                data-reject-reason="{{ card.reject_reason or '' }}"
-                                title="Нажмите, чтобы узнать причину отклонения"
-                                aria-label="Показать причину отклонения">
-                          {{ status_titles[card.status.value] }}
-                        </button>
-                      {% else %}
-                        <span class="pc-status pc-status-{{ card.status.value }}">
-                            {{ status_titles[card.status.value] }}
-                        </span>
-                      {% endif %}
-                    {% set status_dt = get_card_status_datetime(card) %}
-                    {{ status_dt.strftime('%Y-%m-%d') if status_dt else '' }}
+                  {% if card.status.value == 'rejected' %}
+                    <button type="button"
+                            class="pc-status pc-status-{{ card.status.value }} pc-status-btn"
+                            data-pc-action="show-reject-reason"
+                            data-card-id="{{ card.id }}"
+                            data-reject-reason="{{ card.reject_reason or '' }}"
+                            title="Нажмите, чтобы узнать причину отклонения"
+                            aria-label="Показать причину отклонения">
+                      {{ status_titles[card.status.value] }}
+                    </button>
+                  {% else %}
+                    <span class="pc-status pc-status-{{ card.status.value }}">
+                        {{ status_titles[card.status.value] }}
+                    </span>
+                  {% endif %}
+                  {% set status_dt = get_card_status_datetime(card) %}
+                  {{ status_dt.strftime('%Y-%m-%d') if status_dt else '' }}
                 </td>
 
                 {# 6. Действия #}
@@ -227,4 +228,3 @@
   </div>
 {% include "product_cards/user/pagination.html" %}
 </div>
-

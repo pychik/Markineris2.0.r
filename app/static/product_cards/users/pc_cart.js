@@ -120,13 +120,28 @@ function pcSetApplyBtnState(btn, qty) {
   btn.classList.add(q > 0 ? "pc-btn-green" : "pc-btn-yellow");
 }
 
-// ключ позиции: category + article + size + size_type + unit
+function oBNormalizeCardId(cardId) {
+  const num = parseInt(cardId, 10);
+  return Number.isFinite(num) ? String(num) : "";
+}
+
+// ключ позиции:
+// - parfum: category + trademark
+// - остальные: card_id + size + size_type + unit
 function oBItemKey(item) {
+  const category = (item.category || "").trim();
+  const cardId = oBNormalizeCardId(item.card_id);
   const size = (item.size || "").trim();
   const st = (item.size_type || "").trim();
   const unit = (item.unit || "").trim();
   const art = (item.article || "").trim();
-  return `${item.category}||${art}||${size}||${st}||${unit}`;
+  const trademark = (item.trademark || "").trim();
+
+  if (category === "parfum") {
+    return `${category}||${trademark}`;
+  }
+
+  return `${category}||${cardId}||${size}||${st}||${unit}`;
 }
 
 // Корзина ДОЛЖНА содержать позиции только одной категории и одной субкатегории.
@@ -612,22 +627,25 @@ function oBCartBuildPayloadOrError() {
     // ====== остальные категории  ======
     if (!ord.items || !ord.items.length) continue;
 
-    // группируем по article
-    const byArticle = {};
+    // Для вещевых категорий одна карточка = один товар.
+    // Размеры объединяем только внутри одного card_id.
+    const byCardId = {};
     for (const it of ord.items) {
+      const cardId = oBNormalizeCardId(it.card_id);
       const art = oBNormalizeArticle(it.article);
-      if (!art) continue;
+      if (!cardId || !art) continue;
 
-      byArticle[art] = byArticle[art] || {
+      byCardId[cardId] = byCardId[cardId] || {
         article: art,
         trademark: it.trademark || "",
-        card_id: it.card_id,
+        card_id: parseInt(cardId, 10),
         category: it.category,
         subcategory: it.subcategory || "",
+        color: it.color || "",
         sizes: []
       };
 
-      byArticle[art].sizes.push({
+      byCardId[cardId].sizes.push({
         size: it.size || "",
         size_type: it.size_type || "",
         unit: it.unit || "",
@@ -635,14 +653,9 @@ function oBCartBuildPayloadOrError() {
       });
     }
 
-    const articles = Object.values(byArticle);
+    const articles = Object.values(byCardId);
 
     for (const a of articles) {
-      const firstWithRD = (ord.items || []).find(it =>
-        oBNormalizeArticle(it.article) === oBNormalizeArticle(a.article)
-      );
-
-
       const bad = a.sizes.find(s => !s.qty || s.qty < 1);
       if (bad) {
         return { error: `Некорректное количество для артикула ${a.article}` };
@@ -777,7 +790,6 @@ function oBGetOpenCardModalContext() {
   return {
     category: (anyBtn.dataset.category || "").trim(),
     subcategory: (anyBtn.dataset.subcategory || "").trim(),
-    article: (anyBtn.dataset.article || "").trim(),
     card_id: parseInt(anyBtn.dataset.cardId, 10) || null,
   };
 }
@@ -790,13 +802,13 @@ function oBCartGetQtyForSize(order, ctx, size, sizeType, unit) {
   if ((order.category || "") !== (ctx.category || "")) return 0;
   if ((order.subcategory || "") !== (ctx.subcategory || "")) return 0;
 
-  const k = oBSizeKey(ctx.category, ctx.article, size, sizeType, unit);
+  const k = oBSizeKey(ctx.category, ctx.card_id, size, sizeType, unit);
 
   const it = (order.items || []).find(x => {
-    // 1) новый формат: key уже oBSizeKey
+    // 1) новый формат: key уже card_id-based
     if (oBKeyNorm(x.key) === oBKeyNorm(k)) return true;
 
-    // 2) fallback: вычислим ключ из полей (на случай старых/битых key)
+    // 2) fallback: вычислим ключ из полей элемента корзины
     return oBKeyNorm(oBStoredSizeKey(x)) === oBKeyNorm(k);
   });
 
@@ -863,7 +875,7 @@ function oBKeyNorm(v) {
 function oBStoredSizeKey(it) {
   return oBSizeKey(
     it.category,
-    it.article,
+    it.card_id,
     it.size,
     it.size_type || it.sizeType || "",
     it.unit || ""
@@ -871,10 +883,10 @@ function oBStoredSizeKey(it) {
 }
 
 // ключ для size-based товаров
-function oBSizeKey(category, article, size, sizeType, unit) {
+function oBSizeKey(category, cardId, size, sizeType, unit) {
   return [
     (category || ""),
-    (article || "").trim(),
+    oBNormalizeCardId(cardId),
     (size || "").trim(),
     (sizeType || "").trim(),
     (unit || "").trim(),
@@ -930,7 +942,7 @@ function oBCartUpsertFromModalQty(payload) {
   // --- NON-PARFUM (ключ по size) ---
   const k = oBSizeKey(
     payload.category,
-    payload.article,
+    payload.card_id,
     payload.size,
     payload.size_type,
     payload.unit

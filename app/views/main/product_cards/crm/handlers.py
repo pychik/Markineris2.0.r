@@ -931,7 +931,8 @@ def h_pc_move_card(pc_id: int):
 
     def _find_base_card_same_article(card: ProductCard):
         """
-        Ищем базовую карточку ЭТОГО ЖЕ пользователя по article (+ subcategory для clothes),
+        Ищем базовую карточку ЭТОГО ЖЕ пользователя по article + color
+        (+ subcategory для clothes),
         но только среди статусов APPROVED / PARTIALLY_APPROVED.
         Берём самую раннюю (created_at asc) — это будет "основная".
         """
@@ -964,6 +965,9 @@ def h_pc_move_card(pc_id: int):
             )
             .order_by(ProductCard.created_at.asc())
         )
+
+        if hasattr(model, "color"):
+            q = q.filter(model.color == getattr(main, "color", None))
 
         if cfg.get("has_subcategory") and hasattr(model, "subcategory"):
             q = q.filter(model.subcategory == getattr(main, "subcategory", None))
