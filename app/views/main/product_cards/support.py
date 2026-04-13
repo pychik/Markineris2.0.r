@@ -1467,6 +1467,44 @@ def update_card_allowed_fields(card: ProductCard, form_dict: dict, form_data):
         entity.rd_date_to = form_dict.get("_rd_date_to_obj")
 
 
+def get_card_allowed_field_changes(card: ProductCard, form_dict: dict) -> list[str]:
+    category = card.category
+    entity = get_card_entity_for_prefill(card)
+    if not entity:
+        return []
+
+    frozen = FROZEN_FIELDS["parfum"] if category == "parfum" else FROZEN_FIELDS["default"]
+    changes: list[str] = []
+
+    def _norm(value):
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+    for field, label in CARD_FIELDS[category].items():
+        if field in frozen or not hasattr(entity, field) or field not in form_dict:
+            continue
+        if _norm(getattr(entity, field, None)) != _norm(form_dict.get(field)):
+            changes.append(label)
+
+    rd_changed = False
+    if hasattr(entity, "rd_type"):
+        rd_changed = rd_changed or _norm(entity.rd_type) != _norm(form_dict.get("rd_type"))
+    if hasattr(entity, "rd_name"):
+        rd_name = (form_dict.get("rd_name") or "").replace("№", "").strip()
+        rd_changed = rd_changed or _norm(entity.rd_name) != rd_name
+    if hasattr(entity, "rd_date"):
+        rd_changed = rd_changed or getattr(entity, "rd_date", None) != form_dict.get("_rd_date_obj")
+    if hasattr(entity, "rd_date_to"):
+        rd_changed = rd_changed or getattr(entity, "rd_date_to", None) != form_dict.get("_rd_date_to_obj")
+    if rd_changed:
+        changes.append("РД")
+
+    return changes
+
+
 def json_response(message: str, status: str = "success", code: int = 200, **extra):
     payload = {"status": status, "message": message, **extra}
     resp = jsonify(payload)

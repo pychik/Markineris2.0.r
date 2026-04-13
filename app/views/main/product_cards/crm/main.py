@@ -19,7 +19,7 @@ from .handlers import h_crm_cards, h_download_product_card, h_pc_take_card_to_pr
 from .helpers import get_crm_card_for_user
 
 
-from ..handlers import h_card_view, h_edit_product_card
+from ..handlers import h_card_view, h_edit_product_card, h_update_product_card
 
 crm_product_cards = Blueprint('crm_product_cards', __name__)
 
@@ -56,6 +56,14 @@ def crm_card_view(card_id: int):
 @bck_sumausmumu_required
 def crm_card_edit(card_id: int):
     return h_edit_product_card(card_id=card_id, crm_=True)
+
+
+@crm_product_cards.route("/crm/update_product_card", methods=["POST"])
+@login_required
+@user_activated
+@bck_sumausmumu_required
+def crm_update_product_card():
+    return h_update_product_card(crm_=True)
 
 
 @crm_product_cards.route('/crm/download_card/<int:pc_id>', methods=["POST"])

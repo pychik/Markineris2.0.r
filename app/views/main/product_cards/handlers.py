@@ -25,16 +25,19 @@ from views.main.product_cards.chat.helpers import (
     h_unread_map_for_cards,
     h_visible_chat_card_ids,
 )
-from views.main.product_cards.crm.helpers import crm_card_subcategory_title, crm_card_sizes_label, crm_card_article
+from views.main.product_cards.crm.helpers import crm_card_subcategory_title, crm_card_sizes_label, crm_card_article, \
+    h_append_card_log
 from views.main.product_cards.order_helpers import _json_error, _add_order_item_from_card, \
     _count_open_moderation_orders, _get_card_or_fail, _validate_card_access_and_status, _load_cards_for_order, \
     _count_open_pc_orders, common_save_copy_pc_order
 from views.main.product_cards.support import validate_card_form, save_clothes_card, save_shoes_card, save_linen_card, \
     save_socks_card, save_parfum_card, parse_sizes_for_category, CATEGORIES_COMMON, MODERATION_STATUS_TITLES, \
-    MODERATION_STATUS_COLORS, normalize_article_for_category, normalize_color_for_category,  collect_existing_size_keys, filter_new_sizes, CARD_FIELDS, \
+    MODERATION_STATUS_COLORS, normalize_article_for_category, normalize_color_for_category, collect_existing_size_keys, \
+    filter_new_sizes, CARD_FIELDS, \
     extract_card_main_and_sizes, get_card_ctx, check_same_fields_if_exists, \
     require_user_two_companies, CATEGORY_TITLES, get_card_entity_for_prefill, assert_frozen_fields_unchanged, \
-    update_card_allowed_fields, ALLOWED_CARDS_DELETE_STATUSES, card_has_rd, CARD_STATUS_DATETIME_ATTR
+    update_card_allowed_fields, ALLOWED_CARDS_DELETE_STATUSES, card_has_rd, CARD_STATUS_DATETIME_ATTR, \
+    get_card_allowed_field_changes
 from views.main.product_cards.utils import validate_rd_block
 
 
@@ -399,7 +402,7 @@ def h_edit_product_card(card_id: int, crm_: bool = False):
     return render_template("product_cards/new/main_card.html", **ctx)
 
 
-def h_update_product_card():
+def h_update_product_card(crm_: bool = False):
     form_data = request.form
     form_dict = form_data.to_dict()
 
@@ -438,7 +441,19 @@ def h_update_product_card():
 
     # 3) обновляем только разрешённые поля (кроме артикула/цвета/размеров)
     try:
+        changes = get_card_allowed_field_changes(card=card, form_dict=form_dict) if crm_ else []
         update_card_allowed_fields(card=card, form_dict=form_dict, form_data=form_data)
+        if changes:
+            dt_str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+            manager_login = getattr(current_user, "login_name", "") or str(current_user.id)
+            status_log_label = {
+                ModerationStatus.CLARIFICATION: "НУ",
+                ModerationStatus.SENT_NO_RD: "ОБРД",
+            }.get(card.status, "")
+            card.card_log = h_append_card_log(
+                card.card_log,
+                f"\n{dt_str} {manager_login} исправил ({status_log_label}): {', '.join(changes)};"
+            )
         db.session.commit()
     except Exception as e:
         db.session.rollback()

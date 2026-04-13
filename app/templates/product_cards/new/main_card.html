@@ -7,7 +7,7 @@
 
 <div id="pc-config"
      data-save-card-url="{{ url_for('user_product_cards.save_product_card') }}"
-     data-update-card-url="{{ url_for('user_product_cards.update_product_card', crm_=crm_) }}"
+     data-update-card-url="{{ url_for('crm_product_cards.crm_update_product_card') if crm_ else url_for('user_product_cards.update_product_card') }}"
      data-crm-redirect-url="{{ url_for('crm_product_cards.cards') }}"
      data-crm-flag="{{ '1' if crm_ else '0' }}"
      data-cards-url="{{ url_for('user_product_cards.cards') }}"
