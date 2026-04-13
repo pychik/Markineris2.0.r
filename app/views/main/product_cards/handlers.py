@@ -441,18 +441,20 @@ def h_update_product_card(crm_: bool = False):
 
     # 3) обновляем только разрешённые поля (кроме артикула/цвета/размеров)
     try:
-        changes = get_card_allowed_field_changes(card=card, form_dict=form_dict) if crm_ else []
+        log_user_changes = card.status == ModerationStatus.CLARIFICATION
+        changes = get_card_allowed_field_changes(card=card, form_dict=form_dict) if (crm_ or log_user_changes) else []
         update_card_allowed_fields(card=card, form_dict=form_dict, form_data=form_data)
         if changes:
             dt_str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-            manager_login = getattr(current_user, "login_name", "") or str(current_user.id)
+            user_login = getattr(current_user, "login_name", "") or str(current_user.id)
+            actor_label = f"Клиент {user_login}" if current_user.id == card.user_id else user_login
             status_log_label = {
                 ModerationStatus.CLARIFICATION: "НУ",
                 ModerationStatus.SENT_NO_RD: "ОБРД",
             }.get(card.status, "")
             card.card_log = h_append_card_log(
                 card.card_log,
-                f"\n{dt_str} {manager_login} исправил ({status_log_label}): {', '.join(changes)};"
+                f"\n{dt_str} {actor_label} исправил ({status_log_label}): {', '.join(changes)};"
             )
         db.session.commit()
     except Exception as e:
