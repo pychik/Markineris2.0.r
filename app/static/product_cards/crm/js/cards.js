@@ -30,6 +30,12 @@ function pcGetMoveUrl(cardId) {
   return pcUrlFromTemplate(tpl, cardId);
 }
 
+function pcGetBulkMoveUrl() {
+  const cfg = pcGetConfigEl().dataset;
+  const url = cfg.bulkMoveUrl;
+  if (!url) throw new Error("bulkMoveUrl missing in pc-config");
+  return url;
+}
 /* =========================
    ANIMATION
 ========================= */
@@ -395,6 +401,129 @@ function pcApplyMoveResponse(data) {
     applyBlock(toKey, data.to_qty, data.to_list_html);
   }
 }
+
+function pcApplyBulkMoveResponse(data) {
+  if (!data || !data.updated_columns) return;
+
+  const map = {
+    sent_no_rd: {qty: "sent_no_rd_cards_qty", list: "sent_no_rd_cards_list"},
+    sent: {qty: "sent_cards_qty", list: "sent_cards_list"},
+    in_progress: {qty: "in_progress_cards_qty", list: "in_progress_cards_list"},
+    in_moderation: {qty: "in_moderation_cards_qty", list: "in_moderation_cards_list"},
+    clarification: {qty: "clarification_cards_qty", list: "clarification_cards_list"},
+    approved: {qty: "approved_cards_qty", list: "approved_cards_list"},
+    rejected: {qty: "rejected_cards_qty", list: "rejected_cards_list"},
+    partially_approved: {qty: "partially_approved_cards_qty", list: "partially_approved_cards_list"},
+  };
+
+  Object.entries(data.updated_columns).forEach(([statusKey, payload]) => {
+    const cfg = map[statusKey];
+    if (!cfg) return;
+
+    const qtyEl = document.getElementById(cfg.qty);
+    if (qtyEl && typeof payload.qty === "number") {
+      qtyEl.textContent = `(${payload.qty})`;
+    }
+
+    const listEl = document.getElementById(cfg.list);
+    if (listEl && typeof payload.list_html === "string") {
+      listEl.innerHTML = payload.list_html;
+      if (typeof animateFade === "function") animateFade(listEl);
+    }
+  });
+}
+
+function pcBulkCheckboxes(statusKey) {
+  return Array.from(document.querySelectorAll(`.pc-bulk-check[data-bulk-status="${statusKey}"]`));
+}
+
+function pcSetBulkMode(statusKey, enabled) {
+  const panel = document.getElementById(`pc-bulk-panel-${statusKey}`);
+  const startBtn = document.getElementById(`pc-bulk-start-${statusKey}`);
+
+  if (panel) panel.classList.toggle("d-none", !enabled);
+  if (startBtn) startBtn.classList.toggle("d-none", enabled);
+
+  pcBulkCheckboxes(statusKey).forEach((checkbox) => {
+    checkbox.checked = false;
+    const holder = checkbox.closest(".pc-bulk-select");
+    if (holder) holder.classList.toggle("d-none", !enabled);
+  });
+
+  pcUpdateBulkCount(statusKey);
+}
+
+function pcToggleBulkMode(statusKey) {
+  const panel = document.getElementById(`pc-bulk-panel-${statusKey}`);
+  pcSetBulkMode(statusKey, !panel || panel.classList.contains("d-none"));
+}
+
+function pcUpdateBulkCount(statusKey) {
+  const count = pcBulkCheckboxes(statusKey).filter((checkbox) => checkbox.checked).length;
+  const el = document.getElementById(`pc-bulk-count-${statusKey}`);
+  if (el) el.textContent = String(count);
+}
+
+function pcBulkMoveSelected(fromStatus, target) {
+  const selectedIds = pcBulkCheckboxes(fromStatus)
+      .filter((checkbox) => checkbox.checked)
+      .map((checkbox) => checkbox.value)
+      .filter(Boolean);
+
+  if (!selectedIds.length) {
+    if (typeof make_message === "function") make_message("Выберите карточки", "warning");
+    return;
+  }
+
+  const cfg = pcGetConfigEl().dataset;
+  const fd = new FormData();
+  if (cfg.csrf) fd.append("csrf_token", cfg.csrf);
+  fd.append("target", target);
+  selectedIds.forEach((cardId) => fd.append("card_ids[]", cardId));
+
+  const category = pcGetActiveCategory();
+  const subcategory = pcGetActiveSubcategory();
+  if (category) fd.append("category", category);
+  if (subcategory) fd.append("subcategory", subcategory);
+
+  loadingCircle();
+
+  fetch(pcGetBulkMoveUrl(), {method: "POST", body: fd})
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.status !== "success") {
+          throw new Error(data.message || "Ошибка");
+        }
+        return data;
+      })
+      .then((data) => {
+        withTooltipsRefresh(() => {
+          pcApplyBulkMoveResponse(data);
+          pcSetBulkMode(fromStatus, false);
+
+          if (target === "in_moderation" || fromStatus === "in_moderation") {
+            requestAnimationFrame(() => pcReloadColumn("in_moderation"));
+          }
+
+          if (typeof make_message === "function") {
+            make_message(data.message || "Готово", data.status || "success");
+          }
+        }, document);
+      })
+      .catch((e) => {
+        if (typeof make_message === "function") make_message(e.message || "Ошибка", "error");
+        else alert(e.message);
+      })
+      .finally(() => {
+        close_Loading_circle();
+      });
+}
+
+window.pcApplyBulkMoveResponse = pcApplyBulkMoveResponse;
+window.pcSetBulkMode = pcSetBulkMode;
+window.pcToggleBulkMode = pcToggleBulkMode;
+window.pcUpdateBulkCount = pcUpdateBulkCount;
+window.pcBulkMoveSelected = pcBulkMoveSelected;
 
 /* =========================
    REJECT MODAL -> move rejected with reason

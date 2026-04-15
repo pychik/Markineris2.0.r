@@ -1150,6 +1150,109 @@ def h_pc_move_card(pc_id: int):
         return jsonify({"status": "error", "message": "Ошибка"}), 500
 
 
+def h_pc_bulk_move_cards():
+    raw_ids = request.form.getlist("card_ids[]") or request.form.getlist("card_ids")
+    target = (request.form.get("target") or "").strip()
+    reject_reason = (request.form.get("reject_reason") or "").strip()
+    category = (request.form.get("category") or "").strip() or None
+    subcategory = (request.form.get("subcategory") or "").strip() or None
+
+    allowed_bulk_transitions = {
+        (ModerationStatus.CLARIFICATION.value, ModerationStatus.IN_MODERATION.value),
+    }
+
+    try:
+        card_ids = []
+        for raw_id in raw_ids:
+            raw_id = str(raw_id).strip()
+            if not raw_id:
+                continue
+            card_ids.append(int(raw_id))
+    except ValueError:
+        return jsonify({"status": "error", "message": "Некорректные ID карточек"}), 400
+
+    # Убираем повторяющиеся ID, сохраняя порядок выбора.
+    card_ids = list(dict.fromkeys(card_ids))
+    if not card_ids:
+        return jsonify({"status": "error", "message": "Выберите карточки"}), 400
+
+    if not target:
+        return jsonify({"status": "error", "message": "Не указан целевой статус"}), 400
+
+    try:
+        cards = (
+            ProductCard.query
+            .filter(ProductCard.id.in_(card_ids))
+            .with_for_update(of=ProductCard)
+            .all()
+        )
+        cards_by_id = {card.id: card for card in cards}
+        missing_ids = [card_id for card_id in card_ids if card_id not in cards_by_id]
+        if missing_ids:
+            return jsonify({
+                "status": "error",
+                "message": f"Карточки не найдены: {', '.join(map(str, missing_ids))}",
+            }), 404
+
+        from_statuses = set()
+        for card_id in card_ids:
+            card = cards_by_id[card_id]
+            from_status = card.status.value if hasattr(card.status, "value") else str(card.status)
+            from_statuses.add(from_status)
+
+            if (from_status, target) not in allowed_bulk_transitions:
+                return jsonify({
+                    "status": "error",
+                    "message": f"Массовый перенос из '{from_status}' в '{target}' сейчас не разрешен",
+                }), 400
+
+            if not validate_transition(from_status, target):
+                return jsonify({
+                    "status": "error",
+                    "message": f"Нельзя переместить карточку #{card.id} из '{from_status}' в '{target}'",
+                }), 400
+
+            err = check_owner_or_admin(current_user, card)
+            if err:
+                return jsonify({"status": "error", "message": f"#{card.id}: {err.message}"}), err.status_code
+
+            err = check_special_rules(current_user, card, target)
+            if err:
+                return jsonify({"status": "error", "message": f"#{card.id}: {err.message}"}), err.status_code
+
+        for card_id in card_ids:
+            h_pc_move_apply_status_transition(cards_by_id[card_id], target, reject_reason=reject_reason)
+
+        db.session.commit()
+
+        updated_columns = {}
+        for status_value in sorted(from_statuses | {target}):
+            html, qty = h_pc_move_render_list_html(status_value, category=category, subcategory=subcategory)
+            updated_columns[status_value] = {
+                "qty": qty,
+                "list_html": html,
+            }
+
+        return jsonify({
+            "status": "success",
+            "message": f"Перенесено на модерацию: {len(card_ids)}",
+            "moved_count": len(card_ids),
+            "from_statuses": sorted(from_statuses),
+            "to": target,
+            "updated_columns": updated_columns,
+        })
+
+    except SQLAlchemyError:
+        db.session.rollback()
+        logger.exception("pc_bulk_move_cards db error")
+        return jsonify({"status": "error", "message": "Ошибка БД"}), 500
+    except Exception:
+        db.session.rollback()
+        logger.exception("pc_bulk_move_cards error")
+        return jsonify({"status": "error", "message": "Ошибка"}), 500
+
+
+
 def h_pc_cards(pc_id: int):
     if current_user.role not in ('supermanager', 'markineris_admin', 'superuser') and not is_at2_admin_user(current_user):
         return jsonify(status="error", message="Нет доступа"), 403

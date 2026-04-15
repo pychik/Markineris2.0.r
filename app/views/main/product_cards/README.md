@@ -126,6 +126,16 @@
 13-04-2026 14:25:31 Клиент client_login исправил (НУ): РД;
 ```
 
+## Массовый перенос в CRM
+
+- Универсальная ручка массового переноса карточек: `POST /crm/cards/bulk_move`, route `pc_bulk_move_cards()` в [crm/main.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/crm/main.py), handler `h_pc_bulk_move_cards()` в [crm/handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/crm/handlers.py).
+- Ручка принимает `card_ids[]`, `target`, а также текущие фильтры `category` и `subcategory`, чтобы после переноса вернуть актуальный HTML затронутых колонок.
+- Сейчас массово разрешен только выборочный перенос `clarification -> in_moderation`. Разрешенные bulk-переходы задаются whitelist-ом внутри `h_pc_bulk_move_cards()`.
+- Обычный `manager` может массово переносить только карточки, закрепленные за ним по `manager_id`. `superuser` и `supermanager` могут переносить любые карточки.
+- Если хотя бы одна выбранная карточка не найдена, не проходит whitelist, не проходит `validate_transition(...)` или проверку прав, вся операция отклоняется без частичного переноса.
+- UI массового выбора сейчас добавлен только в колонку "На уточнении": кнопка `✓✓` включает чекбоксы на карточках, затем `✓` переносит выбранные на модерацию, `×` отменяет режим выбора. Фронтовая логика находится в [cards.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/crm/js/cards.js): `pcBulkMoveSelected(...)`, `pcApplyBulkMoveResponse(...)`.
+
+
 ## Что полезно помнить перед изменениями
 
 - `handlers.py` старается быть слоем orchestration, а не местом для низкоуровневой валидации.

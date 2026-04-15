@@ -15,7 +15,8 @@ from utilities.support import (
 from .handlers import h_crm_cards, h_download_product_card, h_pc_take_card_to_processing, h_companies_delete, \
     h_companies_create, h_companies_update, h_companies_modal, h_pc_move_card, h_pc_cards, h_pc_lazy_column, \
     h_search_crm_card, h_crm_set_company_slot, h_crm_approve_from_partially, h_download_cards_companies_in_progress, \
-    h_transfer_sent_to_in_progress, h_download_cards_companies_by_status,  h_crm_reject_cards_by_rd_today
+    h_transfer_sent_to_in_progress, h_download_cards_companies_by_status, h_crm_reject_cards_by_rd_today, \
+    h_pc_bulk_move_cards
 from .helpers import get_crm_card_for_user
 
 
@@ -140,6 +141,14 @@ def companies_delete(company_id: int):
 @bck_sumausmumu_required
 def pc_move_card(pc_id: int):
     return h_pc_move_card(pc_id)
+
+
+@crm_product_cards.route("/crm/cards/bulk_move", methods=["POST"])
+@login_required
+@user_activated
+@bck_sumausmumu_required
+def pc_bulk_move_cards():
+    return h_pc_bulk_move_cards()
 
 
 @crm_product_cards.route("/pc/<int:pc_id>/logs")
