@@ -636,11 +636,11 @@ function pcOpenAssignManagerModal(btnEl) {
           return `<option value="${escapeHtml(id)}" ${selected}>${escapeHtml(manager.login)}</option>`;
         }).join("");
 
-        pcSetModalTitle(`Назначить менеджера карточке #${cardId}`);
+        pcSetModalTitle(`Назначить оператора карточке #${cardId}`);
         pcSetModalHtml(`
-          <div class="mb-2 text-muted">Выберите менеджера сервиса:</div>
+          <div class="mb-2 text-muted">Выберите оператора сервиса:</div>
           <select class="form-control" id="pcAssignManagerSelect">
-            <option value="">Выберите менеджера</option>
+            <option value="">Выберите оператора</option>
             ${options}
           </select>
           <div class="d-flex justify-content-end gap-2 mt-3">
