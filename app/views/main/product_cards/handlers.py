@@ -37,7 +37,7 @@ from views.main.product_cards.support import validate_card_form, save_clothes_ca
     extract_card_main_and_sizes, get_card_ctx, check_same_fields_if_exists, \
     require_user_two_companies, CATEGORY_TITLES, get_card_entity_for_prefill, assert_frozen_fields_unchanged, \
     update_card_allowed_fields, ALLOWED_CARDS_DELETE_STATUSES, card_has_rd, CARD_STATUS_DATETIME_ATTR, \
-    get_card_allowed_field_changes
+    get_card_allowed_field_changes, merge_selected_created_wear_cards
 from views.main.product_cards.utils import validate_rd_block
 
 
@@ -553,13 +553,13 @@ def h_send_cards_moderate():
 
             if cat == "shoes":
                 # return jsonify({"status": "error", "error": "Ведется обновление раздела карточки категории обувь. Карточки категории обувь временно не обрабатываются"}), 404
-                q = q.options(joinedload(ProductCard.shoes))   # sizes_quantities для RD не нужно
+                q = q.options(joinedload(ProductCard.shoes).joinedload(Shoe.sizes_quantities))
             elif cat == "clothes":
-                q = q.options(joinedload(ProductCard.clothes))
+                q = q.options(joinedload(ProductCard.clothes).joinedload(Clothes.sizes_quantities))
             elif cat == "socks":
-                q = q.options(joinedload(ProductCard.socks))
+                q = q.options(joinedload(ProductCard.socks).joinedload(Socks.sizes_quantities))
             elif cat == "linen":
-                q = q.options(joinedload(ProductCard.linen))
+                q = q.options(joinedload(ProductCard.linen).joinedload(Linen.sizes_quantities))
             elif cat == "parfum":
                 q = q.options(joinedload(ProductCard.parfum))
             else:
@@ -567,6 +567,10 @@ def h_send_cards_moderate():
                 pass
 
             cards.extend(q.all())
+
+        merge_result = merge_selected_created_wear_cards(cards)
+        cards = merge_result["cards"]
+        db.session.flush()
 
         ids_with_rd: list[int] = []
         ids_no_rd: list[int] = []
@@ -608,11 +612,24 @@ def h_send_cards_moderate():
 
         db.session.commit()
 
+        message = f"Отправлено с РД: {updated_sent}, без РД: {updated_no_rd}"
+        if merge_result["merged_cards"]:
+            message += (
+                f". Объединено карточек: {merge_result['merged_cards']}, "
+                f"перенесено размеров: {merge_result['moved_sizes']}"
+            )
+            if merge_result["skipped_sizes"]:
+                message += f", пропущено дублей размеров: {merge_result['skipped_sizes']}"
+
         return jsonify({
             "status": "success",
             "requested": len(card_ids),
-            "updated": len(base),
-            "message": f"Отправлено с РД: {updated_sent}, без РД: {updated_no_rd}",
+            "updated": updated_sent + updated_no_rd,
+            "merged_cards": merge_result["merged_cards"],
+            "moved_sizes": merge_result["moved_sizes"],
+            "skipped_sizes": merge_result["skipped_sizes"],
+            "deleted_card_ids": merge_result["deleted_card_ids"],
+            "message": message,
         })
 
     except SQLAlchemyError:
