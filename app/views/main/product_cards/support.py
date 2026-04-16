@@ -138,6 +138,12 @@ CARD_FIELDS = {
     }
 }
 
+WEAR_CARD_CATEGORIES = {
+    settings.Clothes.CATEGORY_PROCESS,
+    settings.Shoes.CATEGORY_PROCESS,
+    settings.Linen.CATEGORY_PROCESS,
+    settings.Socks.CATEGORY_PROCESS,
+}
 
 MODERATION_STATUS_COLORS = {
     "created": "info",        # голубой
@@ -1383,6 +1389,156 @@ def build_size_keys_for_incoming(category: str, sizes_quantities: list) -> set:
             keys.add((size, unit))
 
     return keys
+
+
+def _card_merge_main_entity(card: ProductCard):
+    cfg = CATEGORIES_COMMON.get(card.category)
+    if not cfg:
+        return None
+    items = getattr(card, cfg["rel_name"], None) or []
+    return items[0] if items else None
+
+
+def _card_merge_key(card: ProductCard) -> tuple | None:
+    if card.category not in WEAR_CARD_CATEGORIES:
+        return None
+
+    main = _card_merge_main_entity(card)
+    if not main:
+        return None
+
+    article = normalize_article_for_category(card.category, {"article": getattr(main, "article", "")})
+    color = (getattr(main, "color", "") or "").strip()
+    key = [card.category, article, color]
+
+    if card.category == settings.Clothes.CATEGORY_PROCESS:
+        key.append(getattr(main, "subcategory", None) or ClothesSubcategories.common.value)
+
+    return tuple(key)
+
+
+def _card_merge_size_key(category: str, sq):
+    if category in (settings.Clothes.CATEGORY_PROCESS, settings.Socks.CATEGORY_PROCESS):
+        return sq.size, sq.size_type
+    if category == settings.Shoes.CATEGORY_PROCESS:
+        return sq.size
+    if category == settings.Linen.CATEGORY_PROCESS:
+        return sq.size, sq.unit
+    return None
+
+
+def _card_merge_clone_size(category: str, sq):
+    if category == settings.Clothes.CATEGORY_PROCESS:
+        return ClothesQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
+    if category == settings.Socks.CATEGORY_PROCESS:
+        return SocksQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
+    if category == settings.Shoes.CATEGORY_PROCESS:
+        return ShoeQuantitySize(size=sq.size, quantity=sq.quantity)
+    if category == settings.Linen.CATEGORY_PROCESS:
+        return LinenQuantitySize(size=sq.size, unit=sq.unit, quantity=sq.quantity)
+    return None
+
+
+def _card_merge_copy_rd_if_base_empty(base_main, source_main) -> bool:
+    if not base_main or not source_main:
+        return False
+
+    if getattr(base_main, "rd_date", None) or not getattr(source_main, "rd_date", None):
+        return False
+
+    for field in ("rd_type", "rd_name", "rd_date", "rd_date_to"):
+        setattr(base_main, field, getattr(source_main, field, None))
+    return True
+
+
+def merge_selected_created_wear_cards(cards: list[ProductCard]) -> dict:
+    """
+    Объединяет выбранные CREATED-карточки вещевых категорий перед отправкой.
+
+    Группировка:
+      - clothes: category + article + color + subcategory
+      - shoes/linen/socks: category + article + color
+
+    Возвращает статистику и список карточек, которые остаются после merge.
+    """
+    groups: dict[tuple, list[ProductCard]] = {}
+    passthrough: list[ProductCard] = []
+
+    for card in cards:
+        if card.status != ModerationStatus.CREATED:
+            passthrough.append(card)
+            continue
+
+        key = _card_merge_key(card)
+        if not key:
+            passthrough.append(card)
+            continue
+
+        groups.setdefault(key, []).append(card)
+
+    kept_cards: list[ProductCard] = list(passthrough)
+    merged_cards = 0
+    moved_sizes = 0
+    skipped_sizes = 0
+    copied_rd = 0
+    deleted_card_ids: list[int] = []
+
+    for group_cards in groups.values():
+        if len(group_cards) == 1:
+            kept_cards.append(group_cards[0])
+            continue
+
+        group_cards.sort(key=lambda c: (c.created_at or datetime.min, c.id))
+        base = group_cards[0]
+        base_main = _card_merge_main_entity(base)
+        if not base_main:
+            kept_cards.append(base)
+            continue
+
+        base_size_keys = {
+            _card_merge_size_key(base.category, sq)
+            for sq in (base_main.sizes_quantities or [])
+        }
+        base_size_keys.discard(None)
+
+        for duplicate in group_cards[1:]:
+            dup_main = _card_merge_main_entity(duplicate)
+            if not dup_main:
+                kept_cards.append(duplicate)
+                continue
+
+            if _card_merge_copy_rd_if_base_empty(base_main, dup_main):
+                copied_rd += 1
+
+            for sq in list(dup_main.sizes_quantities or []):
+                size_key = _card_merge_size_key(duplicate.category, sq)
+                if size_key in base_size_keys:
+                    skipped_sizes += 1
+                    continue
+
+                cloned_sq = _card_merge_clone_size(duplicate.category, sq)
+                if not cloned_sq:
+                    skipped_sizes += 1
+                    continue
+
+                base_main.sizes_quantities.append(cloned_sq)
+                base_size_keys.add(size_key)
+                moved_sizes += 1
+
+            db.session.delete(duplicate)
+            deleted_card_ids.append(duplicate.id)
+            merged_cards += 1
+
+        kept_cards.append(base)
+
+    return {
+        "cards": kept_cards,
+        "merged_cards": merged_cards,
+        "moved_sizes": moved_sizes,
+        "skipped_sizes": skipped_sizes,
+        "copied_rd": copied_rd,
+        "deleted_card_ids": deleted_card_ids,
+    }
 
 
 def assert_frozen_fields_unchanged(card: ProductCard, form_data):

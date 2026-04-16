@@ -126,6 +126,20 @@
 13-04-2026 14:25:31 Клиент client_login исправил (НУ): РД;
 ```
 
+## Пользовательская отправка на модерацию
+
+- Массовая отправка выбранных карточек со статусом `created` идет через `POST /cards/send_moderate`, route `send_cards_moderate()` в [users.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/users.py), handler `h_send_cards_moderate()` в [handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/handlers.py).
+- Перед выставлением статусов `sent` / `sent_no_rd` выбранные свежие вещевые карточки объединяются через `merge_selected_created_wear_cards(...)` из [support.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/support.py).
+- Объединение работает только для категорий с размерами: `clothes`, `shoes`, `linen`, `socks`. `parfum` не трогается.
+- Ключ объединения для `clothes`: `category + article + color + subcategory`.
+- Ключ объединения для `shoes`, `linen`, `socks`: `category + article + color`.
+- В каждой группе базовой остается самая ранняя карточка по `created_at`, затем `id`.
+- В базовую карточку копируются только недостающие размеры из дублей. Уже существующие размеры пропускаются.
+- После переноса размеров карточки-дубли удаляются через ORM `db.session.delete(...)`.
+- Если у базовой карточки нет РД, а у дубля есть РД, блок РД копируется в базовую карточку перед отправкой.
+- Ответ ручки возвращает статистику `merged_cards`, `moved_sizes`, `skipped_sizes`, `deleted_card_ids`; фронт показывает `message` из ответа.
+- Фронтовая логика отправки находится в [pc_send_created.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/users/pc_send_created.js).
+
 ## Массовый перенос в CRM
 
 - Универсальная ручка массового переноса карточек: `POST /crm/cards/bulk_move`, route `pc_bulk_move_cards()` в [crm/main.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/crm/main.py), handler `h_pc_bulk_move_cards()` в [crm/handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/crm/handlers.py).
@@ -135,6 +149,17 @@
 - Если хотя бы одна выбранная карточка не найдена, не проходит whitelist, не проходит `validate_transition(...)` или проверку прав, вся операция отклоняется без частичного переноса.
 - UI массового выбора сейчас добавлен только в колонку "На уточнении": кнопка `✓✓` включает чекбоксы на карточках, затем `✓` переносит выбранные на модерацию, `×` отменяет режим выбора. Фронтовая логика находится в [cards.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/crm/js/cards.js): `pcBulkMoveSelected(...)`, `pcApplyBulkMoveResponse(...)`.
 
+## Назначение оператора в CRM
+
+- Назначение оператора из карточки доступно только ролям `superuser` и `supermanager`.
+- В карточке оператор рендерится через [card_manager_info.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/templates/product_cards/crm/helpers/card_manager_info.html). Для разрешенных ролей и разрешенных статусов имя оператора становится кнопкой.
+- Нельзя назначать оператора в колонках `sent`, `sent_no_rd`, `approved`, `rejected`. Это проверяется и в шаблоне, и на backend.
+- Список доступных операторов грузится AJAX-ом через `GET /crm/cards/managers`, route `pc_managers_list()` в [crm/main.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/crm/main.py), handler `h_pc_managers_list()` в [crm/handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/crm/handlers.py).
+- Назначение выполняется AJAX-ом через `POST /crm/card/<pc_id>/assign_manager`, route `pc_assign_manager()` в [crm/main.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/crm/main.py), handler `h_pc_assign_manager()` в [crm/handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/crm/handlers.py).
+- Ручка назначения меняет только `ProductCard.manager_id`, статус карточки не меняется.
+- При успешном назначении пишется строка в `ProductCard.card_log` через `h_append_card_log(...)`.
+- Фронтовая логика находится в [cards.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/crm/js/cards.js): `pcOpenAssignManagerModal(...)`, `pcAssignManager(...)`, `pcUpdateManagerOnCard(...)`.
+- URL для AJAX передаются через `#pc-config` в [crm_main.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/templates/product_cards/crm/crm_main.html): `data-managers-url`, `data-assign-manager-url-template`.
 
 ## Что полезно помнить перед изменениями
 
