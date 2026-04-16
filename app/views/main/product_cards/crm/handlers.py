@@ -129,6 +129,109 @@ def h_pc_lazy_column():
     )
 
 
+def h_pc_managers_list():
+    if current_user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER]:
+        return json_response(status="error", message="Недостаточно прав", code=403)
+
+    managers = (
+        User.query
+        .filter(
+            User.status.is_(True),
+            User.role.in_([settings.MANAGER_USER, settings.SUPER_MANAGER]),
+        )
+        .with_entities(User.id, User.login_name)
+        .order_by(User.login_name.asc())
+        .all()
+    )
+
+    return jsonify(
+        status="success",
+        managers=[
+            {"id": manager.id, "login": manager.login_name or str(manager.id)}
+            for manager in managers
+        ],
+    )
+
+
+def h_pc_assign_manager(pc_id: int):
+    if current_user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER]:
+        return json_response(status="error", message="Недостаточно прав", code=403)
+
+    manager_id = request.form.get("manager_id", type=int)
+    if not manager_id:
+        payload = request.get_json(silent=True) or {}
+        manager_id = payload.get("manager_id")
+
+    try:
+        manager_id = int(manager_id)
+    except (TypeError, ValueError):
+        return json_response(status="error", message="Выберите менеджера", code=400)
+
+    card = ProductCard.query.filter_by(id=pc_id).first()
+    if not card:
+        return json_response(status="error", message="Карточка не найдена", code=404)
+
+    blocked_statuses = {
+        ModerationStatus.SENT,
+        ModerationStatus.SENT_NO_RD,
+        ModerationStatus.APPROVED,
+        ModerationStatus.REJECTED,
+    }
+    if card.status in blocked_statuses:
+        return json_response(
+            status="error",
+            message="В этом статусе нельзя назначать оператора",
+            code=400,
+        )
+
+    manager = (
+        User.query
+        .filter(
+            User.id == manager_id,
+            User.status.is_(True),
+            User.role.in_([settings.MANAGER_USER, settings.SUPER_MANAGER]),
+        )
+        .with_entities(User.id, User.login_name)
+        .first()
+    )
+    if not manager:
+        return json_response(status="error", message="Менеджер не найден", code=404)
+
+    old_manager_login = card.manager.login_name if card.manager else "не назначен"
+    new_manager_login = manager.login_name or str(manager.id)
+
+    if card.manager_id == manager.id:
+        return jsonify(
+            status="success",
+            message=f"Карточка №{pc_id} уже закреплена за {new_manager_login}",
+            card_id=pc_id,
+            manager_id=manager.id,
+            manager_login=new_manager_login,
+        )
+
+    try:
+        dt_str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        actor_login = getattr(current_user, "login_name", "") or str(current_user.id)
+        card.manager_id = manager.id
+        card.card_log = h_append_card_log(
+            card.card_log,
+            f"\n{dt_str} {actor_login} назначил оператора: {old_manager_login} -> {new_manager_login};",
+        )
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        logger.exception("DB error in h_pc_assign_manager")
+        return json_response(status="error", message="Ошибка назначения менеджера", code=500)
+
+    return jsonify(
+        status="success",
+        message=f"Карточка №{pc_id} закреплена за {new_manager_login}",
+        card_id=pc_id,
+        manager_id=manager.id,
+        manager_login=new_manager_login,
+    )
+
+
 def h_download_product_card(pc_id: int):
     card = (
         apply_crm_cards_scope(ProductCard.query, current_user)
@@ -1250,7 +1353,6 @@ def h_pc_bulk_move_cards():
         db.session.rollback()
         logger.exception("pc_bulk_move_cards error")
         return jsonify({"status": "error", "message": "Ошибка"}), 500
-
 
 
 def h_pc_cards(pc_id: int):

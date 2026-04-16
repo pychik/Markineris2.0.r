@@ -36,6 +36,14 @@ function pcGetBulkMoveUrl() {
   if (!url) throw new Error("bulkMoveUrl missing in pc-config");
   return url;
 }
+
+function pcGetAssignManagerUrl(cardId) {
+  const cfg = pcGetConfigEl().dataset;
+  const tpl = cfg.assignManagerUrlTemplate;
+  if (!tpl) throw new Error("assignManagerUrlTemplate missing in pc-config");
+  return pcUrlFromTemplate(tpl, cardId);
+}
+
 /* =========================
    ANIMATION
 ========================= */
@@ -75,6 +83,17 @@ function initializeJSPage(root) {
       e.preventDefault();
       e.stopPropagation();
       pcOpenViewModal(el.dataset.viewUrl);
+    });
+  });
+
+  r.querySelectorAll("[data-pc-action='assign-manager']").forEach((el) => {
+    if (el.dataset.pcBound === "1") return;
+    el.dataset.pcBound = "1";
+
+    el.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      pcOpenAssignManagerModal(el);
     });
   });
 
@@ -586,6 +605,118 @@ function pcMoveCardWithReason(cardId, target, rejectReason) {
         close_Loading_circle();
       });
 }
+
+/* =========================
+   ASSIGN MANAGER
+========================= */
+
+function pcOpenAssignManagerModal(btnEl) {
+  const cardId = btnEl?.dataset?.cardId;
+  if (!cardId) return alert("card-id not found");
+
+  const cfg = pcGetConfigEl().dataset;
+  const managersUrl = cfg.managersUrl;
+  if (!managersUrl) return alert("managersUrl missing in pc-config");
+
+  loadingCircle();
+
+  fetch(managersUrl, {method: "GET"})
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.status !== "success") {
+          throw new Error(data.message || "Ошибка загрузки менеджеров");
+        }
+        return data;
+      })
+      .then((data) => {
+        const currentManagerId = String(btnEl.dataset.managerId || "");
+        const options = (data.managers || []).map((manager) => {
+          const id = String(manager.id);
+          const selected = id === currentManagerId ? "selected" : "";
+          return `<option value="${escapeHtml(id)}" ${selected}>${escapeHtml(manager.login)}</option>`;
+        }).join("");
+
+        pcSetModalTitle(`Назначить менеджера карточке #${cardId}`);
+        pcSetModalHtml(`
+          <div class="mb-2 text-muted">Выберите менеджера сервиса:</div>
+          <select class="form-control" id="pcAssignManagerSelect">
+            <option value="">Выберите менеджера</option>
+            ${options}
+          </select>
+          <div class="d-flex justify-content-end gap-2 mt-3">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+            <button type="button" class="btn btn-primary" id="pcAssignManagerSubmitBtn">OK</button>
+          </div>
+        `);
+
+        const modal = pcShowModal();
+        const body = document.getElementById("pc-view-modal-body");
+        const submitBtn = body.querySelector("#pcAssignManagerSubmitBtn");
+
+        submitBtn.onclick = function () {
+          const select = body.querySelector("#pcAssignManagerSelect");
+          const managerId = (select?.value || "").trim();
+          if (!managerId) return alert("Выберите менеджера");
+          pcAssignManager(cardId, managerId, modal);
+        };
+      })
+      .catch((e) => {
+        if (typeof make_message === "function") make_message(e.message || "Ошибка", "error");
+        else alert(e.message);
+      })
+      .finally(() => {
+        close_Loading_circle();
+      });
+}
+
+function pcAssignManager(cardId, managerId, modal) {
+  const cfg = pcGetConfigEl().dataset;
+  const fd = new FormData();
+  if (cfg.csrf) fd.append("csrf_token", cfg.csrf);
+  fd.append("manager_id", managerId);
+
+  loadingCircle();
+
+  fetch(pcGetAssignManagerUrl(cardId), {method: "POST", body: fd})
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.status !== "success") {
+          throw new Error(data.message || "Ошибка назначения менеджера");
+        }
+        return data;
+      })
+      .then((data) => {
+        pcUpdateManagerOnCard(data.card_id, data.manager_id, data.manager_login);
+        modal?.hide();
+        if (typeof make_message === "function") make_message(data.message || "Готово", data.status || "success");
+      })
+      .catch((e) => {
+        if (typeof make_message === "function") make_message(e.message || "Ошибка", "error");
+        else alert(e.message);
+      })
+      .finally(() => {
+        close_Loading_circle();
+      });
+}
+
+function pcUpdateManagerOnCard(cardId, managerId, managerLogin) {
+  const cardEl = document.getElementById(`cardCommonBlock_${cardId}`);
+  if (!cardEl) return;
+
+  const btn = cardEl.querySelector('[data-pc-action="assign-manager"]');
+  if (!btn) return;
+
+  btn.dataset.managerId = managerId || "";
+  btn.dataset.managerLogin = managerLogin || "";
+  btn.textContent = managerLogin || "не назначен";
+
+  const holder = btn.closest(".order__num");
+  if (holder) holder.classList.toggle("text-muted", !managerLogin);
+}
+
+window.pcOpenAssignManagerModal = pcOpenAssignManagerModal;
+window.pcAssignManager = pcAssignManager;
+
 
 /* =========================
    BOOT
