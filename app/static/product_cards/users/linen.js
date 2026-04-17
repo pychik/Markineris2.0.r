@@ -279,7 +279,7 @@ function deleteCell(){
         tnvedEl.readOnly = false;
         tnvedEl.style.pointerEvents = '';
 
-        if (flagEl) flagEl.value = "false";
+        if (flagEl) flagEl.value = "true";
 
         msgEl.style.color = '#ffffff';
         msgEl.innerHTML = '&nbsp;';
