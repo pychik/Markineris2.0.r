@@ -3,6 +3,10 @@ window.pc_check_rd_docs = function () {
   const hasRd = !!(sw && sw.checked);
   if (!hasRd) return [];
 
+  if (typeof window.pcNormalizeRdDates === "function") {
+    window.pcNormalizeRdDates();
+  }
+
   const rdType = (document.getElementById("rd_type")?.value || "").trim();
   const rdName = (document.getElementById("rd_name")?.value || "").trim();
   const rdDate = (document.getElementById("rd_date")?.value || "").trim();

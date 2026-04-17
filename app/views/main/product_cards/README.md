@@ -126,6 +126,20 @@
 13-04-2026 14:25:31 Клиент client_login исправил (НУ): РД;
 ```
 
+## Поля даты РД
+
+- Даты РД лежат не в `ProductCard`, а в category-моделях через `CommonMixin`: `rd_date` = "От", `rd_date_to` = "До".
+- Поля формы находятся в [rd.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/templates/product_cards/new/categories/helpers/rd.html): `id="rd_date"` и `id="rd_date_to"`.
+- `rd.html` используется общими формами создания и редактирования карточки, поэтому изменения в нем затрагивают и пользовательскую часть, и CRM-редактирование.
+- Для операторов CRM разрешен ручной ввод дат. Видимые поля `rd_date` / `rd_date_to` должны оставаться обычными текстовыми input без привязанного datepicker, иначе клик по полю открывает календарь и ломает ручной ввод.
+- Datepicker в карточках РД привязан к скрытым proxy-input без `name`: `rd_date_picker` и `rd_date_to_picker`. Они нужны только для открытия календаря по иконке и не отправляются на backend.
+- Календарь открывается только по SVG-иконке рядом с пустым полем. Если дата уже указана или оператор начал ввод, иконка скрывается; после очистки даты через `×` иконка снова появляется.
+- Ручной ввод нормализуется во фронтовый формат `dd.mm.yyyy`; примеры: `12042026` -> `12.04.2026`, `120426` -> `12.04.2026`, `12-04-2026` -> `12.04.2026`.
+- Нормализация перед отправкой вызывается из [common.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/users/common.js) через `window.pcNormalizeRdDates()`.
+- Проверки дат должны сохраняться и при ручном вводе, и при выборе через календарь: `rd_date` не раньше `01.01.2022`, `rd_date` не позже сегодня, `rd_date_to` не раньше сегодня + 1 месяц, `rd_date <= rd_date_to`. Для календаря ограничения пересчитываются перед открытием proxy-datepicker.
+- Backend все еще принимает даты через [utils.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/utils.py) в формате `%d.%m.%Y`; если меняется фронтовый ввод, итоговое значение перед submit должно оставаться `dd.mm.yyyy`.
+- После правки [common.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/users/common.js) надо поднять cache-busting версию подключения в [main_card.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/templates/product_cards/new/main_card.html).
+
 ## Пользовательская отправка на модерацию
 
 - Массовая отправка выбранных карточек со статусом `created` идет через `POST /cards/send_moderate`, route `send_cards_moderate()` в [users.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/users.py), handler `h_send_cards_moderate()` в [handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/handlers.py).
