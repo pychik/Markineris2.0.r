@@ -1,6 +1,7 @@
 from copy import copy
 from flask_login import current_user
 from datetime import datetime
+import re
 from pandas import isna
 from typing import Optional, Union
 
@@ -16,6 +17,22 @@ from utilities.upload_order.upload_common import empty_value, val_error_start, U
 
 
 class ValidateClothesMixin:
+    @staticmethod
+    def _normalize_length_width_size(value: str) -> Optional[str]:
+        size_match = re.fullmatch(
+            r'\s*(\d+(?:[.,]\d+)?)\s*[*xх]\s*(\d+(?:[.,]\d+)?)\s*(мм|см)\s*',
+            value or '',
+            flags=re.IGNORECASE,
+        )
+        if not size_match:
+            return None
+
+        length_value, width_value, unit_value = size_match.groups()
+        if float(length_value.replace(',', '.')) <= 0 or float(width_value.replace(',', '.')) <= 0:
+            return None
+
+        return f"{length_value}*{width_value} {unit_value.lower()}"
+
     @staticmethod
     def check_rows_cols(order_list: list) -> Optional[str]:
         row_error = None
@@ -76,7 +93,8 @@ class ValidateClothesMixin:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_COLOR_ERROR}"
 
     @staticmethod
-    def _size_type(size_type: str, size_value: str, row_num: int, size_col: str, pos: int, order_list: list) -> \
+    def _size_type(size_type: str, size_value: str, row_num: int, size_col: str, pos: int, order_list: list,
+                   subcategory: str = None) -> \
             Optional[str]:
         """
          searches for size_type in size_types_all and if not searches for size_type using size
@@ -94,6 +112,11 @@ class ValidateClothesMixin:
         if size_value in settings.Clothes.UNITE_SIZE_VALUES:
             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = settings.Clothes.INTERNATIONAL_SIZE_TYPE
             return
+        if size_type == settings.Clothes.LENGTH_WIDTH_SIZE_TYPE:
+            if subcategory == ClothesSubcategories.shawls.value:
+                order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = settings.Clothes.LENGTH_WIDTH_SIZE_TYPE
+                return
+            return f"{val_error_start(row_num=row_num, col=size_col)} {settings.Clothes.UPLOAD_SIZE_TYPE_ERROR}"
         if size_type in settings.Clothes.CLOTHES_SIZE_TYPES:
             return
 
@@ -121,7 +144,12 @@ class ValidateClothesMixin:
         """
 
         # Нормализация / запись значения в order_list (как и раньше)
-        if 'ЕДИНЫЙ' in value:
+        if size_type == settings.Clothes.LENGTH_WIDTH_SIZE_TYPE:
+            normalized_size = ValidateClothesMixin._normalize_length_width_size(value)
+            if not normalized_size:
+                return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_SIZE_ERROR}"
+            order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = normalized_size
+        elif 'ЕДИНЫЙ' in value:
             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = settings.Clothes.UNITE_SIZE_VALUE
         else:
             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = value
@@ -308,7 +336,8 @@ class UploadClothes(UploadCategory):
                 # print(gender_error)
                 size_type_error = self._size_type(size_type=size_type,
                                                   size_value=size_value,
-                                                  row_num=row_num, size_col='I', pos=5, order_list=order_list)
+                                                  row_num=row_num, size_col='I', pos=5, order_list=order_list,
+                                                  subcategory=subcategory)
                 # print(size_type_error)
                 size_error = self._size(value=size_value, size_type=size_type, row_num=row_num, col='J', pos=6,
                                         order_list=order_list)
