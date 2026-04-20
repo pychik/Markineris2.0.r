@@ -487,6 +487,7 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
 
     kwargs.pop('subcategory') if 'subcategory' in kwargs else None
     if category == settings.Clothes.CATEGORY:
+        clothes_length_width_size_type = settings.Clothes.LENGTH_WIDTH_SIZE_TYPE
         (clothes_all_tnved, clothes_sizes,
          clothes_types_sizes_dict, types, subcategory_name) = ClothesSubcategoryProcessor(
             subcategory=subcategory).get_creds()

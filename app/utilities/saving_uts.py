@@ -1,5 +1,6 @@
 from datetime import datetime
 from functools import wraps
+import re
 from time import time
 from typing import Optional
 
@@ -63,6 +64,25 @@ def get_clothes_size_type(size: str, provided_type: str) -> str:
         raise SizeTypeException("Тип размера не указан.")
 
     provided_type = provided_type.strip()
+    length_width_size_type = settings.Clothes.LENGTH_WIDTH_SIZE_TYPE
+
+    if provided_type == length_width_size_type:
+        normalized_size = (size or '').strip()
+        size_match = re.fullmatch(r'(\d+(?:[.,]\d+)?)\*(\d+(?:[.,]\d+)?)\s+(мм|см)', normalized_size)
+        if not size_match:
+            raise SizeTypeException(
+                f"Размер '{size}' не соответствует типу '{length_width_size_type}'."
+            )
+        length_value, width_value, unit_value = size_match.groups()
+        if unit_value not in {'мм', 'см'}:
+            raise SizeTypeException(
+                f"Размер '{size}' не соответствует типу '{length_width_size_type}'."
+            )
+        if float(length_value.replace(',', '.')) <= 0 or float(width_value.replace(',', '.')) <= 0:
+            raise SizeTypeException(
+                f"Размер '{size}' не соответствует типу '{length_width_size_type}'."
+            )
+        return length_width_size_type
 
     valid_keys = settings.Clothes.SIZE_ALL_DICT.keys()
     if provided_type not in valid_keys:

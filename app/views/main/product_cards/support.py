@@ -212,6 +212,7 @@ def helper_clothes_info(subcategory: str | None) -> Union[Response,  dict[str, A
     genders = settings.Clothes.GENDERS
 
     clothes_size_description = settings.Clothes.CLOTHES_SIZE_DESC
+    clothes_length_width_size_type = settings.Clothes.LENGTH_WIDTH_SIZE_TYPE
     category = settings.Clothes.CATEGORY
     category_process_name = settings.Clothes.CATEGORY_PROCESS
     (clothes_all_tnved, clothes_sizes,

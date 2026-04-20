@@ -54,9 +54,11 @@ class ClothesSubcategoryProcessor:
                                          types=GLOVES_TYPES,
                                          subcategory_name=GLOVES_NAME)
             case ClothesSubcategories.shawls.value:
+                shawls_size_types = dict(settings.Clothes.SIZE_ALL_DICT)
+                shawls_size_types[settings.Clothes.LENGTH_WIDTH_SIZE_TYPE] = tuple()
                 scc = SubCategoriesCreds(clothes_all_tnved=SHAWLS_TNVEDS,
                                          clothes_sizes=settings.Clothes.SIZES_ALL,
-                                         clothes_types_sizes_dict=settings.Clothes.SIZE_ALL_DICT,
+                                         clothes_types_sizes_dict=shawls_size_types,
                                          types=SHAWLS_TYPES,
                                          subcategory_name=SHAWLS_NAME)
             case _:  # case ClothesSubcategories.common.value:

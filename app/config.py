@@ -1105,6 +1105,7 @@ class Settings(BaseSettings):
         DEFAULT_SIZE_TYPE: str = "РОССИЯ"
         INTERNATIONAL_SIZE_TYPE: str = "МЕЖДУНАРОДНЫЙ"
         ROST_SIZE_TYPE: str = "РОСТ"
+        LENGTH_WIDTH_SIZE_TYPE: str = "ДЛИНА*ШИРИНА"
         UNITE_SIZE_VALUE: str = "ONE SIZE"
         UNITE_SIZE_VALUES: tuple = ("ЕДИНЫЙ РАЗМЕР", "ONE SIZE", )
         CLOTHES_ST_RUSSIA: tuple = CLOTHES_ST_RUSSIA
