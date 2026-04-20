@@ -6,8 +6,9 @@ function orderChatCfg() {
   return el.dataset;
 }
 
-function orderChatUrlFromTemplate(tpl, id) {
-  return tpl.replace(/\/0(\b|\/|$)/, `/${id}$1`);
+function orderChatUrlFromTemplate(tpl, ...ids) {
+  let index = 0;
+  return tpl.replace(/\/0(\b|\/|$)/g, (_match, suffix) => `/${ids[index++] ?? 0}${suffix}`);
 }
 
 function orderChatShowLoading() {
@@ -20,7 +21,79 @@ function orderChatHideLoading() {
 
 let ORDER_CHAT_STATE = {
   orderId: null,
+  isSending: false,
 };
+
+function orderChatSyncControls() {
+  const input = document.getElementById("order-chat-input");
+  const sendBtn = document.getElementById("order-chat-send-btn");
+  const attachBtn = document.getElementById("order-chat-attach-btn");
+  const refreshBtn = document.getElementById("order-chat-refresh-btn");
+  const filesInput = document.getElementById("order-chat-files");
+
+  if (input) input.disabled = ORDER_CHAT_STATE.isSending;
+  if (sendBtn) sendBtn.disabled = ORDER_CHAT_STATE.isSending;
+  if (attachBtn) attachBtn.disabled = ORDER_CHAT_STATE.isSending;
+  if (refreshBtn) refreshBtn.disabled = ORDER_CHAT_STATE.isSending;
+  if (filesInput) filesInput.disabled = ORDER_CHAT_STATE.isSending;
+}
+
+function orderChatSetSending(isSending) {
+  ORDER_CHAT_STATE.isSending = !!isSending;
+  orderChatSyncControls();
+}
+
+function orderChatReplaceSelectedFiles(files) {
+  const input = document.getElementById("order-chat-files");
+  if (!input) return;
+
+  if (typeof DataTransfer !== "function") {
+    input.value = "";
+    orderChatSetSelectedFilesPreview();
+    return;
+  }
+
+  const transfer = new DataTransfer();
+  files.forEach((file) => transfer.items.add(file));
+  input.files = transfer.files;
+}
+
+function orderChatSelectedFiles() {
+  const input = document.getElementById("order-chat-files");
+  return Array.from(input?.files || []);
+}
+
+function orderChatRemoveSelectedFile(index) {
+  const files = orderChatSelectedFiles().filter((_file, fileIndex) => fileIndex !== index);
+  orderChatReplaceSelectedFiles(files);
+  orderChatSetSelectedFilesPreview();
+}
+
+function orderChatSetSelectedFilesPreview() {
+  const preview = document.getElementById("order-chat-files-preview");
+  if (!preview) return;
+
+  const files = orderChatSelectedFiles();
+  if (!files.length) {
+    preview.innerHTML = "";
+    return;
+  }
+
+  preview.innerHTML = files
+    .map((file, index) => `
+      <span class="badge rounded-pill text-bg-light border d-inline-flex align-items-center me-1 mb-1" style="gap:8px;">
+        <span>${escapeHtml(file.name)} · ${escapeHtml(orderChatFormatFileSize(file.size || 0))}</span>
+        <button type="button" class="btn btn-sm p-0 border-0 bg-transparent lh-1" data-order-chat-remove-file="${index}" title="Удалить файл" aria-label="Удалить файл">&times;</button>
+      </span>
+    `)
+    .join("");
+}
+
+function orderChatClearFiles() {
+  const input = document.getElementById("order-chat-files");
+  if (input) input.value = "";
+  orderChatSetSelectedFilesPreview();
+}
 
 function orderChatResetModal() {
   const list = document.getElementById("order-chat-list");
@@ -31,6 +104,8 @@ function orderChatResetModal() {
   if (title) title.textContent = "Чат заказа";
   if (list) list.innerHTML = `<div class="text-muted">Загрузка...</div>`;
   if (input) input.value = "";
+  orderChatSetSending(false);
+  orderChatClearFiles();
   if (counter) counter.textContent = "0/300";
 }
 
@@ -82,6 +157,9 @@ function orderChatBindModalHandlersOnce() {
 
   const refreshBtn = document.getElementById("order-chat-refresh-btn");
   const sendBtn = document.getElementById("order-chat-send-btn");
+  const attachBtn = document.getElementById("order-chat-attach-btn");
+  const filesInput = document.getElementById("order-chat-files");
+  const filesPreview = document.getElementById("order-chat-files-preview");
   const input = document.getElementById("order-chat-input");
 
   const modalEl = document.getElementById("order-chat-modal");
@@ -96,6 +174,21 @@ function orderChatBindModalHandlersOnce() {
 
   if (refreshBtn) refreshBtn.addEventListener("click", orderChatReload);
   if (sendBtn) sendBtn.addEventListener("click", orderChatSend);
+  if (attachBtn && filesInput) {
+    attachBtn.addEventListener("click", () => filesInput.click());
+    filesInput.addEventListener("change", orderChatSetSelectedFilesPreview);
+  }
+  if (filesPreview) {
+    filesPreview.addEventListener("click", (event) => {
+      const removeBtn = event.target.closest("[data-order-chat-remove-file]");
+      if (!removeBtn) return;
+
+      const fileIndex = Number(removeBtn.dataset.orderChatRemoveFile);
+      if (Number.isNaN(fileIndex)) return;
+
+      orderChatRemoveSelectedFile(fileIndex);
+    });
+  }
 
   if (input) {
     input.addEventListener("input", () => {
@@ -181,6 +274,38 @@ function orderChatFormatDate(value) {
   return `${dd}-${mm}-${yyyy} ${hh}:${min}`;
 }
 
+function orderChatFormatFileSize(sizeBytes) {
+  const size = Number(sizeBytes) || 0;
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(size / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+function orderChatRenderAttachments(attachments) {
+  if (!attachments || !attachments.length) return "";
+
+  const cfg = orderChatCfg();
+  const orderId = ORDER_CHAT_STATE.orderId;
+
+  return attachments
+    .map((attachment) => {
+      const url = orderChatUrlFromTemplate(
+        cfg.orderChatAttachmentDownloadUrlTemplate,
+        orderId,
+        attachment.id,
+      );
+
+      return `
+        <a href="${url}" target="_blank" rel="noopener" class="d-flex justify-content-between align-items-center text-decoration-none px-2 py-1 mt-1 rounded" style="gap:8px; border:1px solid rgba(0,0,0,.12); background:rgba(255,255,255,.72); color:#333;">
+          <span class="text-truncate" style="max-width: 210px;">${escapeHtml(attachment.name || "Файл")}</span>
+          <span class="small text-muted text-nowrap">${escapeHtml(orderChatFormatFileSize(attachment.size_bytes))}</span>
+        </a>
+      `;
+    })
+    .join("");
+}
+
 function orderChatRender(messages, currentUserId) {
   const list = document.getElementById("order-chat-list");
   if (!list) return;
@@ -196,6 +321,8 @@ function orderChatRender(messages, currentUserId) {
     const login = m.author_login || "";
     const theme = orderChatAuthorTheme(m.author_id, isMine);
     const gap = (lastSide !== null && lastSide !== side) ? "mt-3" : "mt-2";
+    const attachmentsHtml = orderChatRenderAttachments(m.attachments || []);
+    const textHtml = m.text ? `<div style="white-space: pre-wrap;">${escapeHtml(m.text)}</div>` : "";
     lastSide = side;
 
     html += `
@@ -205,7 +332,8 @@ function orderChatRender(messages, currentUserId) {
             <b style="color:${theme.name};">${escapeHtml(login)}</b>
             <span class="ms-2">${escapeHtml(time)}</span>
           </div>
-          <div style="white-space: pre-wrap;">${escapeHtml(m.text || "")}</div>
+          ${textHtml}
+          ${attachmentsHtml ? `<div class="${textHtml ? "mt-2" : ""}">${attachmentsHtml}</div>` : ""}
         </div>
       </div>
     `;
@@ -239,7 +367,7 @@ function orderChatAuthorTheme(authorId, isMine) {
 
 function orderChatSend() {
   const orderId = ORDER_CHAT_STATE.orderId;
-  if (!orderId) return;
+  if (!orderId || ORDER_CHAT_STATE.isSending) return;
 
   const cfg = orderChatCfg();
   const url = orderChatUrlFromTemplate(cfg.orderChatSendUrlTemplate, orderId);
@@ -248,13 +376,16 @@ function orderChatSend() {
   if (!input) return;
 
   const text = (input.value || "").trim();
-  if (!text) return alert("Введите сообщение");
+  const files = orderChatSelectedFiles();
+  if (!text && !files.length) return alert("Введите сообщение или прикрепите файл");
   if (text.length > 300) return alert("Максимум 300 символов");
 
   const fd = new FormData();
   if (cfg.csrf) fd.append("csrf_token", cfg.csrf);
   fd.append("text", text);
+  files.forEach((file) => fd.append("files", file, file.name));
 
+  orderChatSetSending(true);
   orderChatShowLoading();
 
   fetch(url, { method: "POST", body: fd })
@@ -265,13 +396,17 @@ function orderChatSend() {
     })
     .then(() => {
       input.value = "";
+      orderChatClearFiles();
       const counter = document.getElementById("order-chat-counter");
       if (counter) counter.textContent = "0/300";
       return orderChatReload();
     })
     .then(() => orderChatScrollToBottom())
     .catch((e) => alert(e.message))
-    .finally(() => orderChatHideLoading());
+    .finally(() => {
+      orderChatSetSending(false);
+      orderChatHideLoading();
+    });
 }
 
 function orderChatMarkReadIfNeeded(messages) {
