@@ -51,7 +51,8 @@
             data-csrf="{{ csrf_token() }}"
             data-order-chat-messages-url-template="{{ url_for('crm_d.order_chat_get_messages', o_id=0) }}"
             data-order-chat-send-url-template="{{ url_for('crm_d.order_chat_send', o_id=0) }}"
-            data-order-chat-read-url-template="{{ url_for('crm_d.order_chat_mark_read', o_id=0) }}">
+            data-order-chat-read-url-template="{{ url_for('crm_d.order_chat_mark_read', o_id=0) }}"
+            data-order-chat-attachment-download-url-template="{{ url_for('crm_d.order_chat_download_attachment', o_id=0, attachment_id=0) }}">
     </div>
 
     <main class="main container-fluid">
@@ -156,7 +157,7 @@
     <script src="{{url_for('static',filename='main_v2/js/assets/popper.min.js')}}"></script>
     <script src="{{url_for('static', filename='crm_mod/libs/bootstrap/js/bootstrap.bundle.min.js')}}"></script>
     <script src="{{url_for('static', filename='crm_mod/js/crm_main_v1_1.js')}}?v=6"></script>
-    <script src="{{url_for('static', filename='crm_mod/js/order_chat.js')}}?v=2"></script>
+    <script src="{{url_for('static', filename='crm_mod/js/order_chat.js')}}?v=5"></script>
     <script src="{{url_for('static', filename='crm_mod/libs/scrollbooster/scrollbooster.min.js')}}" defer></script>
     <script src="{{url_for('static',filename='main_v2/js/new_messages.js')}}?v=1"></script>
 
