@@ -203,6 +203,11 @@ class Settings(BaseSettings):
     ALLOWED_IMG_EXTENSIONS: tuple = ('png', 'jpg', 'jpeg', )
     ALLOWED_BILL_EXTENSIONS: tuple = ('png', 'jpg', 'jpeg', 'pdf', )
     CRM_ALLOWED_EXTENSIONS: tuple = ('rar', 'zip', )
+    CHAT_ALLOWED_EXTENSIONS: tuple = (
+        'pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp',
+        'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'rtf',
+        'zip', 'rar', '7z', 'odt', 'ods'
+    )
     UPLOAD_TABLE_ERRORS_FILE: str = "Ошибки_загрузки_заказа.txt"
     SEND_TABLE_NAME: str = "таблица_заказ.xlsx"
     ERROR: str = 'error'

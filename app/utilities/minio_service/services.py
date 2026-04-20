@@ -1,8 +1,10 @@
 from contextlib import contextmanager
 from typing import IO, Optional
+from urllib.parse import quote
 
 from flask import Response
 from minio import Minio, S3Error
+from werkzeug.utils import secure_filename
 
 from config import settings
 from logger import logger
@@ -69,20 +71,37 @@ class S3Service:
             client.remove_object(bucket_name=bucket_name, object_name=object_name)
 
 
-def download_file_from_minio(bucket_name: str, object_name: str, download_name: str) -> Response:
+def build_download_content_disposition(download_name: str) -> str:
+    normalized_name = (download_name or 'download').replace('\r', ' ').replace('\n', ' ').strip()
+    ascii_name = secure_filename(normalized_name) or 'download'
+    utf8_name = quote(normalized_name, safe='')
+    return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{utf8_name}"
+
+
+def download_file_from_minio(
+        bucket_name: str,
+        object_name: str,
+        download_name: str,
+        content_type: Optional[str] = None,
+) -> Response:
     try:
         s3_service = get_s3_service()
         response = s3_service.get_object(object_name=object_name, bucket_name=bucket_name)
 
+        if not response:
+            return Response(status=404)
+
         return Response(
             response.data,
             headers={
-                'Content-Disposition': f'attachment; filename={download_name}',
-                'Content-Type': 'application/octet-stream'
+                'Content-Disposition': build_download_content_disposition(download_name),
+                'Content-Type': content_type or 'application/octet-stream',
+                'Content-Length': str(response.size),
             }
         )
-    except Exception as e:
+    except Exception:
         logger.exception("Ошибка скачивания файла из хранилища")
+        return Response(status=500)
 
 
 def get_s3_service() -> S3Service:
