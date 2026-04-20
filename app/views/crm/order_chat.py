@@ -1,12 +1,13 @@
 from datetime import datetime
 
-from flask import jsonify, request
+from flask import abort, jsonify, request
 from flask_login import current_user
 from sqlalchemy import func
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, load_only, selectinload
 
 from config import settings
-from models import db, Order, OrderMessage, OrderChatRead, User
+from logger import logger
+from models import db, Order, OrderMessage, OrderChatRead, User, OrderMessageAttachment
 from utilities.chat_attachments import (
     cleanup_chat_files,
     collect_chat_files,
@@ -15,6 +16,7 @@ from utilities.chat_attachments import (
     upload_chat_files,
     validate_chat_files,
 )
+from utilities.minio_service.services import download_file_from_minio
 
 ORDER_CHAT_ALLOWED_ROLES = {
     settings.SUPER_USER,
@@ -211,7 +213,13 @@ def h_order_chat_send(o_id: int):
 
 def h_order_chat_download_attachment(o_id: int, attachment_id: int):
     order = h_get_order_access_data(o_id)
-    if not order or not h_order_chat_can_access(order.stage, order.manager_id, current_user):
+    if not order or not h_order_chat_can_access(
+        order.stage,
+        order.manager_id,
+        order.user_id,
+        order.user_admin_parent_id,
+        current_user,
+    ):
         return jsonify({"status": "error", "message": "Нет доступа"}), 403
 
     attachment = (
