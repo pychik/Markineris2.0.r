@@ -401,14 +401,14 @@ function updateSizesQuantityBlock() {
     });
 
     // Обрабатываем выбранные размеры из формы
-    let selectedSizes = document.querySelectorAll('#sizesClothesModal .form-control:not([readonly]):not([disabled])');
+    let selectedSizes = document.querySelectorAll('#sizesClothesModal input[id^="size_"]:not([readonly]):not([disabled])');
     let newSizes = {};
     selectedSizes.forEach(input => {
         let size = input.getAttribute('id').replace('size_', '').trim();
         let quantity = parseInt(input.value.trim(), 10);
         let sizeType = input.getAttribute('data-size-type') || "";
 
-        if (size.startsWith('subcategorySize')) return;
+        if (size.startsWith('subcategorySize') || isNaN(quantity)) return;
         if (special_clothes_sizes.includes(size)) {
             sizeType = 'МЕЖДУНАРОДНЫЙ';
         }
