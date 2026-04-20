@@ -8,11 +8,15 @@ from sqlalchemy.orm import sessionmaker
 
 from config import settings
 from logger import logger
-from models import db, RestoreLink, OrderFile, Order
+from models import db, RestoreLink, OrderFile, Order, OrderMessage, OrderMessageAttachment
 from utilities.admin.h_finance_control import h_su_wo_transactions
 from utilities.minio_service.services import get_s3_service
 from views.crm.helpers import helpers_move_orders_to_processed, helper_auto_new_cancel_order
 from views.main.product_cards.crm.helpers import helper_reject_cards_by_rd_date_to_today
+from utilities.chat_attachments import (
+    DELETED_CHAT_ATTACHMENT_CONTENT_TYPE,
+    build_deleted_chat_attachment_storage_name,
+)
 
 
 def delete_restore_link_periodic_task() -> dict[str, int]:
@@ -64,6 +68,93 @@ def delete_order_files_from_server() -> dict[str, int]:
     return {"archive_deleted": archive_deleted}
 
 
+def delete_old_order_chat_attachments(retention_days: int = 14) -> dict[str, int]:
+    """Delete order chat files from storage and keep placeholder rows in chat history."""
+    threshold_time = datetime.now() - timedelta(days=retention_days)
+
+    attachment_rows = (
+        db.session.query(OrderMessageAttachment)
+        .join(OrderMessage, OrderMessageAttachment.message_id == OrderMessage.id)
+        .join(Order, OrderMessage.order_id == Order.id)
+        .filter(OrderMessageAttachment.content_type != DELETED_CHAT_ATTACHMENT_CONTENT_TYPE)
+        .filter(
+            or_(
+                and_(
+                    Order.stage == settings.OrderStage.SENT,
+                    Order.sent_at.isnot(None),
+                    Order.sent_at < threshold_time,
+                ),
+                and_(
+                    Order.stage == settings.OrderStage.CANCELLED,
+                    Order.cc_created.isnot(None),
+                    Order.cc_created < threshold_time,
+                ),
+                and_(
+                    Order.stage == settings.OrderStage.CRM_PROCESSED,
+                    Order.closed_at.isnot(None),
+                    Order.closed_at < threshold_time,
+                ),
+            )
+        )
+        .all()
+    )
+
+    if not attachment_rows:
+        return {
+            "eligible_order_chat_attachments": 0,
+            "deleted_order_chat_attachment_files": 0,
+            "marked_order_chat_attachment_placeholders": 0,
+            "failed_order_chat_attachment_files": 0,
+            "retention_days": retention_days,
+        }
+
+    s3_service = get_s3_service()
+    deleted_files = 0
+    marked_placeholders = 0
+    failed_files = 0
+
+    for attachment in attachment_rows:
+        attachment_id = attachment.id
+        storage_name = attachment.storage_name
+
+        if storage_name:
+            try:
+                s3_service.remove_object(
+                    bucket_name=settings.MINIO_CRM_BUCKET_NAME,
+                    object_name=storage_name,
+                )
+                deleted_files += 1
+            except Exception:
+                failed_files += 1
+                logger.exception(
+                    "Ошибка при удалении файла вложения из чата заказа: attachment_id={}, storage_name={}",
+                    attachment_id,
+                    storage_name,
+                )
+                continue
+
+        attachment.storage_name = build_deleted_chat_attachment_storage_name(attachment_id)
+        attachment.content_type = DELETED_CHAT_ATTACHMENT_CONTENT_TYPE
+        attachment.size_bytes = 0
+        marked_placeholders += 1
+
+    if marked_placeholders:
+        try:
+            db.session.commit()
+        except sqlalchemy.exc.SQLAlchemyError:
+            db.session.rollback()
+            logger.exception("Ошибка при сохранении заглушек вложений чата заказов")
+            marked_placeholders = 0
+
+    return {
+        "eligible_order_chat_attachments": len(attachment_rows),
+        "deleted_order_chat_attachment_files": deleted_files,
+        "marked_order_chat_attachment_placeholders": marked_placeholders,
+        "failed_order_chat_attachment_files": failed_files,
+        "retention_days": retention_days,
+    }
+
+
 def daily_tasks():
     """
     scheduler daily tasks united in one func
@@ -75,8 +166,15 @@ def daily_tasks():
     helpers_move_orders_to_processed()
     helper_auto_new_cancel_order()
     helper_reject_cards_by_rd_date_to_today()
+    order_chat_cleanup = delete_old_order_chat_attachments()
     # change maintenance mode to OFF here
-    return {"status": "transactions performed; orders stage changes performed"}
+    return {
+        "status": "transactions performed; orders stage changes performed",
+        "order_chat_attachments_eligible": order_chat_cleanup["eligible_order_chat_attachments"],
+        "order_chat_attachment_files_deleted": order_chat_cleanup["deleted_order_chat_attachment_files"],
+        "order_chat_attachment_placeholders_marked": order_chat_cleanup["marked_order_chat_attachment_placeholders"],
+        "order_chat_attachment_files_failed": order_chat_cleanup["failed_order_chat_attachment_files"],
+    }
 
 
 def backup_database():

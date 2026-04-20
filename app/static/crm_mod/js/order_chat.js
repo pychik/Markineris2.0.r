@@ -290,6 +290,14 @@ function orderChatRenderAttachments(attachments) {
 
   return attachments
     .map((attachment) => {
+      if (attachment.is_deleted) {
+        return `
+          <div class="d-flex justify-content-between align-items-center px-2 py-1 mt-1 rounded" style="gap:8px; border:1px dashed rgba(0,0,0,.18); background:rgba(248,249,250,.95); color:#6c757d;">
+            <span class="text-truncate" style="max-width: 240px;">${escapeHtml(attachment.name || "Файл удален")}</span>
+          </div>
+        `;
+      }
+
       const url = orderChatUrlFromTemplate(
         cfg.orderChatAttachmentDownloadUrlTemplate,
         orderId,

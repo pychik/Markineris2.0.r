@@ -7,6 +7,14 @@ from sqlalchemy.orm import joinedload
 
 from config import settings
 from models import db, Order, OrderMessage, OrderChatRead, User
+from utilities.chat_attachments import (
+    cleanup_chat_files,
+    collect_chat_files,
+    get_deleted_chat_attachment_name,
+    is_deleted_chat_attachment,
+    upload_chat_files,
+    validate_chat_files,
+)
 
 ORDER_CHAT_ALLOWED_ROLES = {
     settings.SUPER_USER,
@@ -85,10 +93,12 @@ def h_order_chat_unread_map(order_ids: list[int], user_id: int) -> dict[int, int
 
 
 def h_order_chat_serialize_attachment(attachment: OrderMessageAttachment) -> dict:
+    is_deleted = is_deleted_chat_attachment(attachment.content_type)
     return {
         "id": attachment.id,
-        "name": attachment.original_name,
-        "size_bytes": attachment.size_bytes,
+        "name": get_deleted_chat_attachment_name(attachment.original_name) if is_deleted else attachment.original_name,
+        "size_bytes": 0 if is_deleted else attachment.size_bytes,
+        "is_deleted": is_deleted,
     }
 
 
@@ -212,6 +222,9 @@ def h_order_chat_download_attachment(o_id: int, attachment_id: int):
     )
     if not attachment:
         abort(404)
+
+    if is_deleted_chat_attachment(attachment.content_type):
+        return jsonify({"status": "error", "message": get_deleted_chat_attachment_name(attachment.original_name)}), 410
 
     return download_file_from_minio(
         bucket_name=settings.MINIO_CRM_BUCKET_NAME,

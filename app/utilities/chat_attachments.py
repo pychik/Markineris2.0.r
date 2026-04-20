@@ -14,6 +14,21 @@ from utilities.support import check_file_extension
 
 CHAT_UPLOAD_FIELDS = ('files', 'files[]')
 MAX_CHAT_FILE_NAME_LENGTH = 180
+DELETED_CHAT_ATTACHMENT_CONTENT_TYPE = 'application/x-chat-attachment-deleted'
+DELETED_CHAT_ATTACHMENT_PLACEHOLDER_NAME = 'Файл удален по сроку давности'
+DELETED_CHAT_ATTACHMENT_STORAGE_PREFIX = '__deleted__/chat_attachments'
+
+
+def is_deleted_chat_attachment(content_type: str) -> bool:
+    return (content_type or '').strip() == DELETED_CHAT_ATTACHMENT_CONTENT_TYPE
+
+
+def get_deleted_chat_attachment_name(original_name: str) -> str:
+    return DELETED_CHAT_ATTACHMENT_PLACEHOLDER_NAME
+
+
+def build_deleted_chat_attachment_storage_name(attachment_id: int) -> str:
+    return f"{DELETED_CHAT_ATTACHMENT_STORAGE_PREFIX}/{attachment_id}"
 
 
 def collect_chat_files(request) -> list[FileStorage]:
