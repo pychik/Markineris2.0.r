@@ -28,6 +28,9 @@ function socks_perform_pos_add(async_flag, url) {
             socks_load_upload_table(url)
         }
     } else {
+        if (typeof window.clearPendingStep3TransitionAfterAsyncAdd === 'function') {
+            window.clearPendingStep3TransitionAfterAsyncAdd();
+        }
         var allInputs = $('#form_process_main input, #form_process_main select ');
         var errors_list = [];
 
@@ -324,7 +327,13 @@ function socks_load_upload_table(url) {
                 message_type = 'success';
                 make_message(message, message_type);
                 socks_clear_pos();
+                if (typeof window.runPendingStep3TransitionAfterAsyncAdd === 'function') {
+                    window.runPendingStep3TransitionAfterAsyncAdd();
+                }
             } else {
+                if (typeof window.clearPendingStep3TransitionAfterAsyncAdd === 'function') {
+                    window.clearPendingStep3TransitionAfterAsyncAdd();
+                }
                 if (data.message) {
                     message = data.message;
                 } else {
@@ -335,6 +344,9 @@ function socks_load_upload_table(url) {
             }
         },
         error: function () {
+            if (typeof window.clearPendingStep3TransitionAfterAsyncAdd === 'function') {
+                window.clearPendingStep3TransitionAfterAsyncAdd();
+            }
             console.log('error')
             make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
         }

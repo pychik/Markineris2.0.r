@@ -279,8 +279,11 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
     if not o_id and not p_id and order_id:
         flash(message=f"{settings.Messages.ORDER_ADD_POS_SUCCESS} {form_data_raw.get('article') if category != settings.Parfum.CATEGORY else form_data_raw.get('trademark')}")
 
-    return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=order_id, subcategory=subcategory,
-                            sort_type=sort_type, sort_order=sort_order))
+    redirect_kwargs = dict(o_id=order_id, subcategory=subcategory, sort_type=sort_type, sort_order=sort_order)
+    if form_data_raw.get("after_add_go_to_step3") == "1":
+        redirect_kwargs["page"] = 1
+
+    return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', **redirect_kwargs))
 
 
 def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,

@@ -23,6 +23,9 @@ function shoe_perform_pos_add(async_flag, url){
         }
     }
     else{
+        if (typeof window.clearPendingStep3TransitionAfterAsyncAdd === 'function') {
+            window.clearPendingStep3TransitionAfterAsyncAdd();
+        }
         var allInputs = $('#form_process_main input, #form_process_main select ');
         var errors_list = [];
 
@@ -334,14 +337,23 @@ async function async_shoe_delete_pos(url, csrf,block){
           message_type = 'success';
           make_message(message, message_type);
           shoe_clear_pos();
+          if (typeof window.runPendingStep3TransitionAfterAsyncAdd === 'function') {
+            window.runPendingStep3TransitionAfterAsyncAdd();
+          }
         }
         else{
+           if (typeof window.clearPendingStep3TransitionAfterAsyncAdd === 'function') {
+             window.clearPendingStep3TransitionAfterAsyncAdd();
+           }
            message = 'Произошла ошибка во время сохранения позиции';
            message_type = 'danger';
            make_message(message, message_type);
         }
     },
     error: function() {
+        if (typeof window.clearPendingStep3TransitionAfterAsyncAdd === 'function') {
+            window.clearPendingStep3TransitionAfterAsyncAdd();
+        }
         make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
     }
    });
