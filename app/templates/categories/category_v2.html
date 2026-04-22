@@ -39,6 +39,7 @@
 
 <script src="{{url_for('static',filename='main_v2/js/categories/' + category_process_name + '.js')}}?v=41"></script>
 <script src="{{url_for('static',filename='main_v2/js/perform_order.js')}}?v=1"></script>
+<script src="{{url_for('static',filename='main_v2/js/ordinary_order_test_fill.js')}}?v=1"></script>
 
 <script>
     const RZ_CONDITION = '{{ rz_condition }}';
@@ -51,6 +52,7 @@
         return false;
       }
     });
+
 </script>
 
 {% endblock %}
