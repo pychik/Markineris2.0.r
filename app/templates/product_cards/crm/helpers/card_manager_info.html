@@ -1,9 +1,17 @@
-{% if c.manager_login %}
-  <div class="order__num">
-    Оператор: <span class="text-secondary">{{ c.manager_login }}</span>
-  </div>
-{% else %}
-  <div class="order__num text-muted">
-    Оператор: не назначен
-  </div>
-{% endif %}
+{% set can_assign_manager = current_user.role in ['superuser', 'supermanager'] and c.status not in ['sent', 'sent_no_rd', 'approved', 'rejected'] %}
+
+<div class="order__num{% if not c.manager_login %} text-muted{% endif %}">
+  Оператор:
+  {% if can_assign_manager %}
+    <button type="button"
+            class="btn btn-link btn-sm p-0 align-baseline text-secondary pc-manager-assign-btn"
+            data-pc-action="assign-manager"
+            data-card-id="{{ c.id }}"
+            data-manager-id="{{ c.manager_id or '' }}"
+            data-manager-login="{{ c.manager_login or '' }}">
+      {{ c.manager_login or 'не назначен' }}
+    </button>
+  {% else %}
+    <span class="text-secondary">{{ c.manager_login or 'не назначен' }}</span>
+  {% endif %}
+</div>

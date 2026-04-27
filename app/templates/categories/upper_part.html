@@ -38,9 +38,28 @@
 </div>
 
 <div class="d-flex justify-content-center mt-5 mb-4">
-{% if not o_id %}
-        <h4>Создать заказ</h4>
-{% endif %}
+    <div class="d-inline-flex align-items-center gap-2">
+        {% if not o_id %}
+            <h4 class="mb-0">Создать заказ</h4>
+        {% endif %}
+        {% if current_user.role == 'superuser' %}
+            <span
+                role="button"
+                tabindex="0"
+                class="small text-secondary d-inline-flex align-items-center"
+                style="cursor:pointer;"
+                title="Заполнить форму"
+                data-category="{{ category_process_name }}"
+                data-subcategory="{{ subcategory or '' }}"
+                onclick="ordinaryOrderTestFillStep2(this);"
+                onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); ordinaryOrderTestFillStep2(this); }"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M13.65 2.35A7 7 0 1 0 15 8h-1.5a5.5 5.5 0 1 1-1.61-3.89L9.5 6.5H15V1l-1.35 1.35Z" fill="currentColor"/>
+                </svg>
+            </span>
+        {% endif %}
+    </div>
 </div>
 
 

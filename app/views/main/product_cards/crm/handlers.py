@@ -129,6 +129,109 @@ def h_pc_lazy_column():
     )
 
 
+def h_pc_managers_list():
+    if current_user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER]:
+        return json_response(status="error", message="Недостаточно прав", code=403)
+
+    managers = (
+        User.query
+        .filter(
+            User.status.is_(True),
+            User.role.in_([settings.MANAGER_USER, settings.SUPER_MANAGER]),
+        )
+        .with_entities(User.id, User.login_name)
+        .order_by(User.login_name.asc())
+        .all()
+    )
+
+    return jsonify(
+        status="success",
+        managers=[
+            {"id": manager.id, "login": manager.login_name or str(manager.id)}
+            for manager in managers
+        ],
+    )
+
+
+def h_pc_assign_manager(pc_id: int):
+    if current_user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER]:
+        return json_response(status="error", message="Недостаточно прав", code=403)
+
+    manager_id = request.form.get("manager_id", type=int)
+    if not manager_id:
+        payload = request.get_json(silent=True) or {}
+        manager_id = payload.get("manager_id")
+
+    try:
+        manager_id = int(manager_id)
+    except (TypeError, ValueError):
+        return json_response(status="error", message="Выберите менеджера", code=400)
+
+    card = ProductCard.query.filter_by(id=pc_id).first()
+    if not card:
+        return json_response(status="error", message="Карточка не найдена", code=404)
+
+    blocked_statuses = {
+        ModerationStatus.SENT,
+        ModerationStatus.SENT_NO_RD,
+        ModerationStatus.APPROVED,
+        ModerationStatus.REJECTED,
+    }
+    if card.status in blocked_statuses:
+        return json_response(
+            status="error",
+            message="В этом статусе нельзя назначать оператора",
+            code=400,
+        )
+
+    manager = (
+        User.query
+        .filter(
+            User.id == manager_id,
+            User.status.is_(True),
+            User.role.in_([settings.MANAGER_USER, settings.SUPER_MANAGER]),
+        )
+        .with_entities(User.id, User.login_name)
+        .first()
+    )
+    if not manager:
+        return json_response(status="error", message="Менеджер не найден", code=404)
+
+    old_manager_login = card.manager.login_name if card.manager else "не назначен"
+    new_manager_login = manager.login_name or str(manager.id)
+
+    if card.manager_id == manager.id:
+        return jsonify(
+            status="success",
+            message=f"Карточка №{pc_id} уже закреплена за {new_manager_login}",
+            card_id=pc_id,
+            manager_id=manager.id,
+            manager_login=new_manager_login,
+        )
+
+    try:
+        dt_str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        actor_login = getattr(current_user, "login_name", "") or str(current_user.id)
+        card.manager_id = manager.id
+        card.card_log = h_append_card_log(
+            card.card_log,
+            f"\n{dt_str} {actor_login} назначил оператора: {old_manager_login} -> {new_manager_login};",
+        )
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        logger.exception("DB error in h_pc_assign_manager")
+        return json_response(status="error", message="Ошибка назначения менеджера", code=500)
+
+    return jsonify(
+        status="success",
+        message=f"Карточка №{pc_id} закреплена за {new_manager_login}",
+        card_id=pc_id,
+        manager_id=manager.id,
+        manager_login=new_manager_login,
+    )
+
+
 def h_download_product_card(pc_id: int):
     card = (
         apply_crm_cards_scope(ProductCard.query, current_user)
@@ -1147,6 +1250,108 @@ def h_pc_move_card(pc_id: int):
     except Exception:
         db.session.rollback()
         logger.exception("pc_move_card error")
+        return jsonify({"status": "error", "message": "Ошибка"}), 500
+
+
+def h_pc_bulk_move_cards():
+    raw_ids = request.form.getlist("card_ids[]") or request.form.getlist("card_ids")
+    target = (request.form.get("target") or "").strip()
+    reject_reason = (request.form.get("reject_reason") or "").strip()
+    category = (request.form.get("category") or "").strip() or None
+    subcategory = (request.form.get("subcategory") or "").strip() or None
+
+    allowed_bulk_transitions = {
+        (ModerationStatus.CLARIFICATION.value, ModerationStatus.IN_MODERATION.value),
+    }
+
+    try:
+        card_ids = []
+        for raw_id in raw_ids:
+            raw_id = str(raw_id).strip()
+            if not raw_id:
+                continue
+            card_ids.append(int(raw_id))
+    except ValueError:
+        return jsonify({"status": "error", "message": "Некорректные ID карточек"}), 400
+
+    # Убираем повторяющиеся ID, сохраняя порядок выбора.
+    card_ids = list(dict.fromkeys(card_ids))
+    if not card_ids:
+        return jsonify({"status": "error", "message": "Выберите карточки"}), 400
+
+    if not target:
+        return jsonify({"status": "error", "message": "Не указан целевой статус"}), 400
+
+    try:
+        cards = (
+            ProductCard.query
+            .filter(ProductCard.id.in_(card_ids))
+            .with_for_update(of=ProductCard)
+            .all()
+        )
+        cards_by_id = {card.id: card for card in cards}
+        missing_ids = [card_id for card_id in card_ids if card_id not in cards_by_id]
+        if missing_ids:
+            return jsonify({
+                "status": "error",
+                "message": f"Карточки не найдены: {', '.join(map(str, missing_ids))}",
+            }), 404
+
+        from_statuses = set()
+        for card_id in card_ids:
+            card = cards_by_id[card_id]
+            from_status = card.status.value if hasattr(card.status, "value") else str(card.status)
+            from_statuses.add(from_status)
+
+            if (from_status, target) not in allowed_bulk_transitions:
+                return jsonify({
+                    "status": "error",
+                    "message": f"Массовый перенос из '{from_status}' в '{target}' сейчас не разрешен",
+                }), 400
+
+            if not validate_transition(from_status, target):
+                return jsonify({
+                    "status": "error",
+                    "message": f"Нельзя переместить карточку #{card.id} из '{from_status}' в '{target}'",
+                }), 400
+
+            err = check_owner_or_admin(current_user, card)
+            if err:
+                return jsonify({"status": "error", "message": f"#{card.id}: {err.message}"}), err.status_code
+
+            err = check_special_rules(current_user, card, target)
+            if err:
+                return jsonify({"status": "error", "message": f"#{card.id}: {err.message}"}), err.status_code
+
+        for card_id in card_ids:
+            h_pc_move_apply_status_transition(cards_by_id[card_id], target, reject_reason=reject_reason)
+
+        db.session.commit()
+
+        updated_columns = {}
+        for status_value in sorted(from_statuses | {target}):
+            html, qty = h_pc_move_render_list_html(status_value, category=category, subcategory=subcategory)
+            updated_columns[status_value] = {
+                "qty": qty,
+                "list_html": html,
+            }
+
+        return jsonify({
+            "status": "success",
+            "message": f"Перенесено на модерацию: {len(card_ids)}",
+            "moved_count": len(card_ids),
+            "from_statuses": sorted(from_statuses),
+            "to": target,
+            "updated_columns": updated_columns,
+        })
+
+    except SQLAlchemyError:
+        db.session.rollback()
+        logger.exception("pc_bulk_move_cards db error")
+        return jsonify({"status": "error", "message": "Ошибка БД"}), 500
+    except Exception:
+        db.session.rollback()
+        logger.exception("pc_bulk_move_cards error")
         return jsonify({"status": "error", "message": "Ошибка"}), 500
 
 

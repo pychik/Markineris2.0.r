@@ -23,7 +23,13 @@ from .helpers import (helper_get_agent_orders, helper_get_manager_orders, helper
                       helpers_problem_order_response,
                       helper_get_processing_order_info, helper_update_processing_order_info, h_order_details, )
 from .helpers_mo import h_all_new_multi_pool
-from .order_chat import h_order_chat_get_messages, h_order_chat_send, h_order_chat_mark_read
+from .order_chat import (
+    h_order_chat_download_attachment,
+    h_order_chat_get_messages,
+    h_order_chat_mark_read,
+    h_order_chat_send,
+)
+
 crm_d = Blueprint('crm_d', __name__)
 
 
@@ -39,6 +45,13 @@ def order_chat_get_messages(o_id: int):
 @user_activated
 def order_chat_send(o_id: int):
     return h_order_chat_send(o_id)
+
+
+@crm_d.route('/orders/<int:o_id>/chat/attachments/<int:attachment_id>/download', methods=["GET"])
+@login_required
+@user_activated
+def order_chat_download_attachment(o_id: int, attachment_id: int):
+    return h_order_chat_download_attachment(o_id, attachment_id)
 
 
 @crm_d.route('/orders/<int:o_id>/chat/read', methods=["POST"])

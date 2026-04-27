@@ -51,7 +51,7 @@ def edit_product_card(card_id):
 @login_required
 @user_activated
 def update_product_card():
-    return h_update_product_card()
+    return h_update_product_card(crm_=False)
 
 
 @user_product_cards.route("/cards/created", methods=["GET"])

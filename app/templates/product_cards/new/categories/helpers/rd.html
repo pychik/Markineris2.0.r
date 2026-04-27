@@ -54,6 +54,18 @@
           </div>
 
           <!-- ПРАВО: даты друг под другом -->
+ <style>
+  .rd-date-picker-proxy {
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    border: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    pointer-events: none !important;
+  }
+ </style>
  <script>
   $(function () {
     const today = new Date();
@@ -73,66 +85,339 @@
     // --- yearRange ---
     const yearRangeFromStr = `2022:${currentYear}`;        // ОТ: до сегодня
     const yearRangeToStr   = `${currentYear}:${maxYearTo}`; // ДО: +5 лет
+    const maxToDate = new Date(maxYearTo, 11, 31);
+
+    function pad2(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function formatRdDate(date) {
+      return `${pad2(date.getDate())}.${pad2(date.getMonth() + 1)}.${date.getFullYear()}`;
+    }
+
+    function parseManualRdDate(value) {
+      const raw = (value || "").trim();
+      if (!raw) return null;
+
+      let day;
+      let month;
+      let year;
+      const digitsOnly = raw.replace(/\D/g, "");
+
+      if (/^\d{8}$/.test(digitsOnly) && raw === digitsOnly) {
+        day = Number(digitsOnly.slice(0, 2));
+        month = Number(digitsOnly.slice(2, 4));
+        year = Number(digitsOnly.slice(4, 8));
+      } else if (/^\d{6}$/.test(digitsOnly) && raw === digitsOnly) {
+        day = Number(digitsOnly.slice(0, 2));
+        month = Number(digitsOnly.slice(2, 4));
+        year = 2000 + Number(digitsOnly.slice(4, 6));
+      } else {
+        const parts = raw.split(/[.\-/\s]+/).filter(Boolean);
+        if (parts.length !== 3 || parts[0].length === 4) return null;
+
+        day = Number(parts[0]);
+        month = Number(parts[1]);
+        year = Number(parts[2]);
+        if (parts[2].length === 2) year = 2000 + year;
+      }
+
+      if (!Number.isInteger(day) || !Number.isInteger(month) || !Number.isInteger(year)) return null;
+      if (year < 1000 || year > maxYearTo) return null;
+
+      const parsed = new Date(year, month - 1, day);
+      if (
+        parsed.getFullYear() !== year ||
+        parsed.getMonth() !== month - 1 ||
+        parsed.getDate() !== day
+      ) {
+        return null;
+      }
+
+      return parsed;
+    }
+
+    function clearDateError($el) {
+      $el.removeClass("is-invalid");
+      $el.removeAttr("title");
+    }
+
+    function setDateError($el, message) {
+      $el.addClass("is-invalid");
+      $el.attr("title", message);
+    }
+
+    function dateOnly(date) {
+      if (!date) return null;
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
+    function maxDate(a, b) {
+      if (!a) return b;
+      if (!b) return a;
+      return a > b ? a : b;
+    }
+
+    function rawDateValue($el) {
+      const manualRaw = $el.data("manualRaw");
+      if (typeof manualRaw === "string") return manualRaw.trim();
+      return ($el.val() || "").trim();
+    }
+
+    function pickerId(inputId) {
+      return `${inputId}_picker`;
+    }
+
+    function pickerFor(inputId) {
+      return $("#" + pickerId(inputId));
+    }
+
+    function setCalendarButtonVisible(inputId, visible) {
+      $(`.js-rd-calendar-btn[data-target="${inputId}"]`).toggleClass("d-none", !visible);
+    }
+
+    function syncCalendarButtonVisibility(inputId) {
+      setCalendarButtonVisible(inputId, !$("#" + inputId).val().trim());
+    }
+
+    function readParsedDate(inputId) {
+      const $el = $("#" + inputId);
+      const raw = rawDateValue($el);
+      return raw ? parseManualRdDate(raw) : null;
+    }
+
+    function readValidFromDate() {
+      const from = readParsedDate("rd_date");
+      const valueDate = dateOnly(from);
+      if (!valueDate) return null;
+      if (valueDate < dateOnly(minAllowedDate)) return null;
+      if (valueDate > dateOnly(today)) return null;
+      return from;
+    }
+
+    function getRdDateBounds(inputId) {
+      if (inputId === "rd_date") {
+        return {
+          minDate: minAllowedDate,
+          maxDate: today
+        };
+      }
+
+      return {
+        minDate: maxDate(minToDate, readValidFromDate()),
+        maxDate: maxToDate
+      };
+    }
+
+    function applyDatepickerBounds(inputId) {
+      const bounds = getRdDateBounds(inputId);
+      pickerFor(inputId).datepicker("option", "minDate", bounds.minDate);
+      pickerFor(inputId).datepicker("option", "maxDate", bounds.maxDate);
+      return bounds;
+    }
+
+    function validateRdDateValue($el, parsed, label) {
+      const bounds = getRdDateBounds($el.attr("id"));
+      const valueDate = dateOnly(parsed);
+      const minDate = dateOnly(bounds.minDate);
+      const maxDate = dateOnly(bounds.maxDate);
+
+      if (minDate && valueDate < minDate) {
+        setDateError($el, `${label}: дата не может быть раньше ${formatRdDate(minDate)}`);
+        return false;
+      }
+
+      if (maxDate && valueDate > maxDate) {
+        setDateError($el, `${label}: дата не может быть позже ${formatRdDate(maxDate)}`);
+        return false;
+      }
+
+      return true;
+    }
+
+    function normalizeByDatepickerBounds($el, label) {
+      const raw = rawDateValue($el);
+      if (!raw) {
+        clearDateError($el);
+        pickerFor($el.attr("id")).datepicker("setDate", null);
+        $el.removeData("manualRaw");
+        setCalendarButtonVisible($el.attr("id"), true);
+        return null;
+      }
+
+      const parsed = parseManualRdDate(raw);
+      if (!parsed) {
+        setDateError($el, `${label}: укажите дату в формате ДД.ММ.ГГГГ`);
+        return null;
+      }
+
+      if (!validateRdDateValue($el, parsed, label)) {
+        return null;
+      }
+
+      pickerFor($el.attr("id")).datepicker("setDate", parsed);
+      $el.val(formatRdDate(parsed));
+      $el.removeData("manualRaw");
+      clearDateError($el);
+      setCalendarButtonVisible($el.attr("id"), false);
+      return parsed;
+    }
+
+    function openRdDatepicker(inputId) {
+      const $el = $("#" + inputId);
+      applyDatepickerBounds(inputId);
+      normalizeByDatepickerBounds($el, inputId === "rd_date" ? "РД дата 'От'" : "РД дата 'До'");
+      $el.removeData("manualRaw");
+      applyDatepickerBounds(inputId);
+      pickerFor(inputId).datepicker("show");
+    }
+
+    function syncRdDateConstraints() {
+      applyDatepickerBounds("rd_date");
+      applyDatepickerBounds("rd_date_to");
+
+      const from = readValidFromDate();
+      const to = readParsedDate("rd_date_to");
+      if (from) {
+        const newMinTo = maxDate(from, minToDate);
+        pickerFor("rd_date_to").datepicker("option", "minDate", newMinTo);
+
+        if (to && to < newMinTo) {
+          $("#rd_date_to").val("");
+          pickerFor("rd_date_to").datepicker("setDate", null);
+          setCalendarButtonVisible("rd_date_to", true);
+        }
+      } else {
+        pickerFor("rd_date_to").datepicker("option", "minDate", minToDate);
+      }
+    }
+
+    function normalizeRdDateInputs() {
+      const errors = [];
+      const $from = $("#rd_date");
+      const $to = $("#rd_date_to");
+
+      normalizeByDatepickerBounds($from, "РД дата 'От'");
+      syncRdDateConstraints();
+      normalizeByDatepickerBounds($to, "РД дата 'До'");
+      syncRdDateConstraints();
+
+      if ($from.hasClass("is-invalid")) errors.push($from.attr("title"));
+      if ($to.hasClass("is-invalid")) errors.push($to.attr("title"));
+
+      return errors.filter(Boolean);
+    }
+
+    window.pcNormalizeRdDates = normalizeRdDateInputs;
+    window.pcClearRdDate = function (inputId) {
+      const $el = $("#" + inputId);
+      pickerFor(inputId).datepicker("setDate", null);
+      $el.val("");
+      $el.removeData("manualRaw");
+      clearDateError($el);
+      setCalendarButtonVisible(inputId, true);
+      syncRdDateConstraints();
+    };
 
     // ===== ОТ =====
-    $("#rd_date").datepicker({
+    pickerFor("rd_date").datepicker({
       dateFormat: "dd.mm.yy",
       changeMonth: true,
       changeYear: true,
+      constrainInput: false,
       yearRange: yearRangeFromStr,
       minDate: minAllowedDate,
       maxDate: today,                 // ⬅️ КЛЮЧЕВО
-      onClose: function () {
-        const from = $("#rd_date").datepicker("getDate");
-        const to   = $("#rd_date_to").datepicker("getDate");
-
-        if (from) {
-          const newMinTo = from > minToDate ? from : minToDate;
-          $("#rd_date_to").datepicker("option", "minDate", newMinTo);
-
-          if (to && to < newMinTo) {
-            $("#rd_date_to").val("");
-          }
+      onSelect: function (dateText) {
+        const $el = $("#rd_date");
+        const selected = parseManualRdDate(dateText);
+        if (selected && validateRdDateValue($el, selected, "РД дата 'От'")) {
+          pickerFor("rd_date").datepicker("setDate", selected);
+          $el.val(formatRdDate(selected));
+          $el.removeData("manualRaw");
+          clearDateError($el);
+          setCalendarButtonVisible("rd_date", false);
         } else {
-          $("#rd_date_to").datepicker("option", "minDate", minToDate);
+          pickerFor("rd_date").datepicker("setDate", null);
+          $el.val("");
+          $el.removeData("manualRaw");
+          setCalendarButtonVisible("rd_date", true);
         }
+        syncRdDateConstraints();
+      },
+      onClose: function () {
+        syncRdDateConstraints();
       }
     });
 
     // ===== ДО =====
-    $("#rd_date_to").datepicker({
+    pickerFor("rd_date_to").datepicker({
       dateFormat: "dd.mm.yy",
       changeMonth: true,
       changeYear: true,
+      constrainInput: false,
       yearRange: yearRangeToStr,
       minDate: minToDate,
-      onClose: function () {
-        const to = $("#rd_date_to").datepicker("getDate");
-
-        if (to) {
-          $("#rd_date").datepicker("option", "maxDate", to);
+      maxDate: maxToDate,
+      onSelect: function (dateText) {
+        const $el = $("#rd_date_to");
+        const selected = parseManualRdDate(dateText);
+        if (selected && validateRdDateValue($el, selected, "РД дата 'До'")) {
+          pickerFor("rd_date_to").datepicker("setDate", selected);
+          $el.val(formatRdDate(selected));
+          $el.removeData("manualRaw");
+          clearDateError($el);
+          setCalendarButtonVisible("rd_date_to", false);
         } else {
-          $("#rd_date").datepicker("option", "maxDate", today);
+          pickerFor("rd_date_to").datepicker("setDate", null);
+          $el.val("");
+          $el.removeData("manualRaw");
+          setCalendarButtonVisible("rd_date_to", true);
         }
+        syncRdDateConstraints();
+      },
+      onClose: function () {
+        syncRdDateConstraints();
       }
     });
 
-    // ===== INIT =====
-    const initFrom = $("#rd_date").datepicker("getDate");
-    const initTo   = $("#rd_date_to").datepicker("getDate");
+    syncRdDateConstraints();
+    syncCalendarButtonVisibility("rd_date");
+    syncCalendarButtonVisibility("rd_date_to");
 
-    if (initFrom) {
-      const initMinTo = initFrom > minToDate ? initFrom : minToDate;
-      $("#rd_date_to").datepicker("option", "minDate", initMinTo);
-    } else {
-      $("#rd_date_to").datepicker("option", "minDate", minToDate);
-    }
+    $("#rd_date, #rd_date_to").on("blur", function () {
+      const input = this;
+      setTimeout(function () {
+        if ($("#ui-datepicker-div").is(":visible")) return;
 
-    if (initTo) {
-      $("#rd_date").datepicker("option", "maxDate", initTo);
-    } else {
-      $("#rd_date").datepicker("option", "maxDate", today);
-    }
+        const $el = $(input);
+        const label = input.id === "rd_date" ? "РД дата 'От'" : "РД дата 'До'";
+        normalizeByDatepickerBounds($el, label);
+        syncRdDateConstraints();
+      }, 0);
+    });
+
+    $("#rd_date, #rd_date_to").on("input", function () {
+      const $el = $(this);
+      $el.data("manualRaw", $el.val());
+      clearDateError($el);
+      pickerFor(this.id).datepicker("hide");
+      setCalendarButtonVisible(this.id, !$el.val().trim());
+    });
+
+    $("#rd_date, #rd_date_to").on("keydown", function (event) {
+      if (event.key === "Enter") {
+        normalizeRdDateInputs();
+      }
+    });
+
+    $(".js-rd-calendar-btn").on("mousedown", function (event) {
+      event.preventDefault();
+    });
+
+    $(".js-rd-calendar-btn").on("click", function () {
+      openRdDatepicker(this.dataset.target);
+    });
   });
 </script>
 
@@ -151,13 +436,25 @@
                    id="rd_date"
                    name="rd_date"
                    placeholder="Дата от"
-                   readonly autocomplete="off"
-                   onpaste="return false;" oncopy="return false" oncut="return false"
+                   autocomplete="off"
                    value="{% if copied_order and copied_order.rd_date %}{{ copied_order.rd_date.strftime('%d.%m.%Y') }}{% endif %}">
+              <span class="input-group-text js-rd-calendar-btn"
+                    role="button"
+                    title="Открыть календарь"
+                    data-target="rd_date">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                     fill="currentColor" class="bi bi-calendar2-check"
+                     viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M10.854 8.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708 0"/>
+                  <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M2 2a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z"/>
+                  <path d="M2.5 4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H3a.5.5 0 0 1-.5-.5z"/>
+                </svg>
+              </span>
+              <input type="text" id="rd_date_picker" class="rd-date-picker-proxy" tabindex="-1" aria-hidden="true">
               <span class="input-group-text text-danger"
                     role="button"
                     title="Очистить дату"
-                    onclick="document.getElementById('rd_date').value=''">
+                    onclick="window.pcClearRdDate ? window.pcClearRdDate('rd_date') : document.getElementById('rd_date').value=''">
                 ×
               </span>
             </div>
@@ -170,16 +467,31 @@
                      id="rd_date_to"
                      name="rd_date_to"
                      placeholder="Дата по"
-                     readonly autocomplete="off"
-                     onpaste="return false;" oncopy="return false" oncut="return false"
+                     autocomplete="off"
                      value="{% if copied_order and copied_order.rd_date_to %}{{ copied_order.rd_date_to.strftime('%d.%m.%Y') }}{% endif %}">
+              <span class="input-group-text js-rd-calendar-btn"
+                    role="button"
+                    title="Открыть календарь"
+                    data-target="rd_date_to">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                     fill="currentColor" class="bi bi-calendar2-check"
+                     viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M10.854 8.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708 0"/>
+                  <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M2 2a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z"/>
+                  <path d="M2.5 4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H3a.5.5 0 0 1-.5-.5z"/>
+                </svg>
+              </span>
+              <input type="text" id="rd_date_to_picker" class="rd-date-picker-proxy" tabindex="-1" aria-hidden="true">
               <span class="input-group-text text-danger"
                     role="button"
                     title="Очистить дату"
-                    onclick="document.getElementById('rd_date_to').value=''">
+                    onclick="window.pcClearRdDate ? window.pcClearRdDate('rd_date_to') : document.getElementById('rd_date_to').value=''">
                 ×
               </span>
             </div>
+            <small class="form-text text-muted" style="font-size: 10px;">
+              Можно вводить дату вручную: 12042026, 12.04.2026, 12-04-2026
+            </small>
 
           </div>
         </div>

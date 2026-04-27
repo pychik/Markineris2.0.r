@@ -9,6 +9,9 @@
      data-take-card-url-template="{{ url_for('crm_product_cards.pc_take_card_to_processing', pc_id=0) }}"
 
      data-move-card-url-template="{{ url_for('crm_product_cards.pc_move_card', pc_id=0) }}"
+     data-bulk-move-url="{{ url_for('crm_product_cards.pc_bulk_move_cards') }}"
+     data-managers-url="{{ url_for('crm_product_cards.pc_managers_list') }}"
+     data-assign-manager-url-template="{{ url_for('crm_product_cards.pc_assign_manager', pc_id=0) }}"
 
      data-companies-modal-url="{{ url_for('crm_product_cards.companies_modal') }}"
      data-companies-create-url="{{ url_for('crm_product_cards.companies_create') }}"

@@ -1,12 +1,22 @@
 from datetime import datetime
 
-from flask import jsonify, request
+from flask import abort, jsonify, request
 from flask_login import current_user
 from sqlalchemy import func
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, load_only, selectinload
 
 from config import settings
-from models import db, Order, OrderMessage, OrderChatRead, User
+from logger import logger
+from models import db, Order, OrderMessage, OrderChatRead, User, OrderMessageAttachment
+from utilities.chat_attachments import (
+    cleanup_chat_files,
+    collect_chat_files,
+    get_deleted_chat_attachment_name,
+    is_deleted_chat_attachment,
+    upload_chat_files,
+    validate_chat_files,
+)
+from utilities.minio_service.services import download_file_from_minio
 
 ORDER_CHAT_ALLOWED_ROLES = {
     settings.SUPER_USER,
@@ -84,6 +94,16 @@ def h_order_chat_unread_map(order_ids: list[int], user_id: int) -> dict[int, int
     return result
 
 
+def h_order_chat_serialize_attachment(attachment: OrderMessageAttachment) -> dict:
+    is_deleted = is_deleted_chat_attachment(attachment.content_type)
+    return {
+        "id": attachment.id,
+        "name": get_deleted_chat_attachment_name(attachment.original_name) if is_deleted else attachment.original_name,
+        "size_bytes": 0 if is_deleted else attachment.size_bytes,
+        "is_deleted": is_deleted,
+    }
+
+
 def h_order_chat_get_messages(o_id: int):
     order = h_get_order_access_data(o_id)
     if not order or not h_order_chat_can_access(
@@ -97,7 +117,10 @@ def h_order_chat_get_messages(o_id: int):
 
     msgs = (
         OrderMessage.query
-        .options(joinedload(OrderMessage.author).load_only(User.id, User.login_name))
+        .options(
+            joinedload(OrderMessage.author).load_only(User.id, User.login_name),
+            selectinload(OrderMessage.attachments),
+        )
         .filter(OrderMessage.order_id == o_id)
         .order_by(OrderMessage.created_at.asc(), OrderMessage.id.asc())
         .all()
@@ -111,6 +134,7 @@ def h_order_chat_get_messages(o_id: int):
             "created_at": m.created_at.isoformat() if m.created_at else None,
             "author_id": m.author_id,
             "author_login": m.author.login_name if m.author else "",
+            "attachments": [h_order_chat_serialize_attachment(a) for a in m.attachments],
         })
 
     read_row = OrderChatRead.query.filter_by(order_id=o_id, user_id=current_user.id).first()
@@ -137,11 +161,17 @@ def h_order_chat_send(o_id: int):
         return jsonify({"status": "error", "message": "Нет доступа"}), 403
 
     text = (request.form.get("text") or "").strip()
-    if not text:
+    files = collect_chat_files(request)
+    prepared_files, validation_error = validate_chat_files(files)
+    if validation_error:
+        return jsonify({"status": "error", "message": validation_error}), 400
+
+    if not text and not prepared_files:
         return jsonify({"status": "error", "message": "Пустое сообщение"}), 400
     if len(text) > 300:
         return jsonify({"status": "error", "message": "Сообщение слишком длинное (макс 300)"}), 400
 
+    uploaded_files = []
     try:
         msg = OrderMessage(
             order_id=o_id,
@@ -149,11 +179,67 @@ def h_order_chat_send(o_id: int):
             author_id=current_user.id,
         )
         db.session.add(msg)
+        db.session.flush()
+
+        uploaded_files, upload_error = upload_chat_files(
+            prepared_files,
+            object_prefix=f"chat_attachments/orders/{o_id}/{msg.id}",
+        )
+        if upload_error:
+            db.session.rollback()
+            return jsonify({"status": "error", "message": upload_error}), 400
+
+        for uploaded_file in uploaded_files:
+            db.session.add(OrderMessageAttachment(
+                message_id=msg.id,
+                original_name=uploaded_file['original_name'],
+                storage_name=uploaded_file['storage_name'],
+                content_type=uploaded_file['content_type'],
+                size_bytes=uploaded_file['size_bytes'],
+            ))
+
         db.session.commit()
-        return jsonify({"status": "success", "message_id": msg.id})
+        return jsonify({
+            "status": "success",
+            "message_id": msg.id,
+            "attachments_count": len(uploaded_files),
+        })
     except Exception:
         db.session.rollback()
+        cleanup_chat_files([item['storage_name'] for item in uploaded_files])
+        logger.exception("Ошибка отправки сообщения в чат заказа")
         return jsonify({"status": "error", "message": "Ошибка отправки"}), 500
+
+
+def h_order_chat_download_attachment(o_id: int, attachment_id: int):
+    order = h_get_order_access_data(o_id)
+    if not order or not h_order_chat_can_access(
+        order.stage,
+        order.manager_id,
+        order.user_id,
+        order.user_admin_parent_id,
+        current_user,
+    ):
+        return jsonify({"status": "error", "message": "Нет доступа"}), 403
+
+    attachment = (
+        OrderMessageAttachment.query
+        .join(OrderMessage, OrderMessageAttachment.message_id == OrderMessage.id)
+        .filter(OrderMessage.order_id == o_id, OrderMessageAttachment.id == attachment_id)
+        .first()
+    )
+    if not attachment:
+        abort(404)
+
+    if is_deleted_chat_attachment(attachment.content_type):
+        return jsonify({"status": "error", "message": get_deleted_chat_attachment_name(attachment.original_name)}), 410
+
+    return download_file_from_minio(
+        bucket_name=settings.MINIO_CRM_BUCKET_NAME,
+        object_name=attachment.storage_name,
+        download_name=attachment.original_name,
+        content_type=attachment.content_type,
+    )
 
 
 def h_order_chat_mark_read(o_id: int):

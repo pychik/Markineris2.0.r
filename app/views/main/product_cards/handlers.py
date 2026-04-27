@@ -31,10 +31,12 @@ from views.main.product_cards.order_helpers import _json_error, _add_order_item_
     _count_open_pc_orders, common_save_copy_pc_order
 from views.main.product_cards.support import validate_card_form, save_clothes_card, save_shoes_card, save_linen_card, \
     save_socks_card, save_parfum_card, parse_sizes_for_category, CATEGORIES_COMMON, MODERATION_STATUS_TITLES, \
-    MODERATION_STATUS_COLORS, normalize_article_for_category, normalize_color_for_category,  collect_existing_size_keys, filter_new_sizes, CARD_FIELDS, \
+    MODERATION_STATUS_COLORS, normalize_article_for_category, normalize_color_for_category, collect_existing_size_keys, \
+    filter_new_sizes, CARD_FIELDS, \
     extract_card_main_and_sizes, get_card_ctx, check_same_fields_if_exists, \
     require_user_two_companies, CATEGORY_TITLES, get_card_entity_for_prefill, assert_frozen_fields_unchanged, \
-    update_card_allowed_fields, ALLOWED_CARDS_DELETE_STATUSES, card_has_rd, CARD_STATUS_DATETIME_ATTR
+    update_card_allowed_fields, ALLOWED_CARDS_DELETE_STATUSES, card_has_rd, CARD_STATUS_DATETIME_ATTR, \
+    get_card_allowed_field_changes, merge_selected_created_wear_cards
 from views.main.product_cards.utils import validate_rd_block
 
 
@@ -409,7 +411,7 @@ def h_edit_product_card(card_id: int, crm_: bool = False):
     return render_template("product_cards/new/main_card.html", **ctx)
 
 
-def h_update_product_card():
+def h_update_product_card(crm_: bool = False):
     form_data = request.form
     form_dict = form_data.to_dict()
 
@@ -469,6 +471,8 @@ def h_update_product_card():
 
     # 3) обновляем только разрешённые поля (кроме артикула/цвета/размеров) identity-поля уже проверены выше
     try:
+        log_user_changes = card.status == ModerationStatus.CLARIFICATION
+        changes = get_card_allowed_field_changes(card=card, form_dict=form_dict) if (crm_ or log_user_changes) else []
         update_card_allowed_fields(card=card, form_dict=form_dict, form_data=form_data)
         entity_after = get_card_entity_for_prefill(card)
         new_identity = ""
@@ -484,6 +488,17 @@ def h_update_product_card():
             card.card_log = h_append_card_log(
                 card.card_log,
                 f"\n{dt_str} изменил {field_title}: '{old_identity}' -> '{new_identity}' пользователь {actor};"
+        if changes:
+            dt_str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+            user_login = getattr(current_user, "login_name", "") or str(current_user.id)
+            actor_label = f"Клиент {user_login}" if current_user.id == card.user_id else user_login
+            status_log_label = {
+                ModerationStatus.CLARIFICATION: "НУ",
+                ModerationStatus.SENT_NO_RD: "ОБРД",
+            }.get(card.status, "")
+            card.card_log = h_append_card_log(
+                card.card_log,
+                f"\n{dt_str} {actor_label} исправил ({status_log_label}): {', '.join(changes)};"
             )
         db.session.commit()
     except Exception as e:
@@ -582,13 +597,13 @@ def h_send_cards_moderate():
 
             if cat == "shoes":
                 # return jsonify({"status": "error", "error": "Ведется обновление раздела карточки категории обувь. Карточки категории обувь временно не обрабатываются"}), 404
-                q = q.options(joinedload(ProductCard.shoes))   # sizes_quantities для RD не нужно
+                q = q.options(joinedload(ProductCard.shoes).joinedload(Shoe.sizes_quantities))
             elif cat == "clothes":
-                q = q.options(joinedload(ProductCard.clothes))
+                q = q.options(joinedload(ProductCard.clothes).joinedload(Clothes.sizes_quantities))
             elif cat == "socks":
-                q = q.options(joinedload(ProductCard.socks))
+                q = q.options(joinedload(ProductCard.socks).joinedload(Socks.sizes_quantities))
             elif cat == "linen":
-                q = q.options(joinedload(ProductCard.linen))
+                q = q.options(joinedload(ProductCard.linen).joinedload(Linen.sizes_quantities))
             elif cat == "parfum":
                 q = q.options(joinedload(ProductCard.parfum))
             else:
@@ -596,6 +611,10 @@ def h_send_cards_moderate():
                 pass
 
             cards.extend(q.all())
+
+        merge_result = merge_selected_created_wear_cards(cards)
+        cards = merge_result["cards"]
+        db.session.flush()
 
         ids_with_rd: list[int] = []
         ids_no_rd: list[int] = []
@@ -637,11 +656,24 @@ def h_send_cards_moderate():
 
         db.session.commit()
 
+        message = f"Отправлено с РД: {updated_sent}, без РД: {updated_no_rd}"
+        if merge_result["merged_cards"]:
+            message += (
+                f". Объединено карточек: {merge_result['merged_cards']}, "
+                f"перенесено размеров: {merge_result['moved_sizes']}"
+            )
+            if merge_result["skipped_sizes"]:
+                message += f", пропущено дублей размеров: {merge_result['skipped_sizes']}"
+
         return jsonify({
             "status": "success",
             "requested": len(card_ids),
-            "updated": len(base),
-            "message": f"Отправлено с РД: {updated_sent}, без РД: {updated_no_rd}",
+            "updated": updated_sent + updated_no_rd,
+            "merged_cards": merge_result["merged_cards"],
+            "moved_sizes": merge_result["moved_sizes"],
+            "skipped_sizes": merge_result["skipped_sizes"],
+            "deleted_card_ids": merge_result["deleted_card_ids"],
+            "message": message,
         })
 
     except SQLAlchemyError:

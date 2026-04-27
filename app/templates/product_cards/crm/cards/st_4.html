@@ -9,7 +9,34 @@
        data-bs-toggle="tooltip"
        data-bs-title="Скачать на уточнении (по фирмам)"
        onclick="pcDownloadCompaniesByStatus('clarification')">
+    <button type="button"
+              class="btn btn-sm btn-outline-secondary ms-2 px-2 py-0"
+              id="pc-bulk-start-clarification"
+              data-bs-toggle="tooltip"
+              data-bs-title="Выбрать несколько"
+              onclick="pcToggleBulkMode('clarification')">
+        ✓✓
+      </button>
     </h2>
+    <div class="d-none mb-2"
+         id="pc-bulk-panel-clarification"
+         style="display:flex; align-items:center; justify-content:center; gap:.5rem;">
+      <span class="text-muted small me-2">
+        Выбрано: <b id="pc-bulk-count-clarification">0</b>
+      </span>
+      <span role="button"
+            class="text-muted"
+            style="font-size:24px; line-height:1;"
+            data-bs-toggle="tooltip"
+            data-bs-title="Перенести на модерацию"
+            onclick="pcBulkMoveSelected('clarification', 'in_moderation')">✓</span>
+      <span role="button"
+            class="text-muted"
+            style="font-size:26px; line-height:1;"
+            data-bs-toggle="tooltip"
+            data-bs-title="Отмена"
+            onclick="pcSetBulkMode('clarification', false)">×</span>
+    </div>
     <div style="width:335px"></div>
 
     <div id="clarification_cards_main">

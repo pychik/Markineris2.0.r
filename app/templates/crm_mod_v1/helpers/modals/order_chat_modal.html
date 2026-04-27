@@ -14,11 +14,15 @@
         <div class="d-flex gap-2 align-items-start">
           <textarea class="form-control" id="order-chat-input" rows="2" maxlength="300"
                     placeholder="Введите сообщение (до 300 символов)"></textarea>
+          <input type="file" id="order-chat-files" class="d-none" multiple>
           <div class="d-flex justify-content-end mb-2">
+            <button type="button" title="Прикрепить файлы" class="btn btn-outline-secondary me-1" id="order-chat-attach-btn">+</button>
             <button type="button" title="Отправить" class="btn btn-outline-warning me-1" id="order-chat-send-btn"> &#8594;</button>
             <button type="button" class="btn btn-sm btn-outline-secondary" id="order-chat-refresh-btn" title="Обновить">⟳</button>
           </div>
         </div>
+
+        <div id="order-chat-files-preview" class="mt-2"></div>
 
         <div class="small text-muted mt-1">
           <span id="order-chat-counter">0/300</span>

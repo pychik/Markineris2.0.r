@@ -203,6 +203,9 @@ class Settings(BaseSettings):
     ALLOWED_IMG_EXTENSIONS: tuple = ('png', 'jpg', 'jpeg', )
     ALLOWED_BILL_EXTENSIONS: tuple = ('png', 'jpg', 'jpeg', 'pdf', )
     CRM_ALLOWED_EXTENSIONS: tuple = ('rar', 'zip', )
+    CHAT_ALLOWED_EXTENSIONS: tuple = (
+        'pdf', 'png', 'jpg', 'jpeg', 'xls', 'xlsx', 'csv'
+    )
     UPLOAD_TABLE_ERRORS_FILE: str = "Ошибки_загрузки_заказа.txt"
     SEND_TABLE_NAME: str = "таблица_заказ.xlsx"
     ERROR: str = 'error'
@@ -1102,6 +1105,7 @@ class Settings(BaseSettings):
         DEFAULT_SIZE_TYPE: str = "РОССИЯ"
         INTERNATIONAL_SIZE_TYPE: str = "МЕЖДУНАРОДНЫЙ"
         ROST_SIZE_TYPE: str = "РОСТ"
+        LENGTH_WIDTH_SIZE_TYPE: str = "ДЛИНА*ШИРИНА"
         UNITE_SIZE_VALUE: str = "ONE SIZE"
         UNITE_SIZE_VALUES: tuple = ("ЕДИНЫЙ РАЗМЕР", "ONE SIZE", )
         CLOTHES_ST_RUSSIA: tuple = CLOTHES_ST_RUSSIA

@@ -28,6 +28,9 @@ function clothes_perform_pos_add(async_flag, url) {
             clothes_load_upload_table(url)
         }
     } else {
+        if (typeof window.clearPendingStep3TransitionAfterAsyncAdd === 'function') {
+            window.clearPendingStep3TransitionAfterAsyncAdd();
+        }
         var allInputs = $('#form_process_main input, #form_process_main select ');
         var errors_list = [];
 
@@ -324,7 +327,13 @@ function clothes_load_upload_table(url) {
                 message_type = 'success';
                 make_message(message, message_type);
                 clothes_clear_pos();
+                if (typeof window.runPendingStep3TransitionAfterAsyncAdd === 'function') {
+                    window.runPendingStep3TransitionAfterAsyncAdd();
+                }
             } else {
+                if (typeof window.clearPendingStep3TransitionAfterAsyncAdd === 'function') {
+                    window.clearPendingStep3TransitionAfterAsyncAdd();
+                }
                 if (data.message) {
                     message = data.message;
                 } else {
@@ -335,6 +344,9 @@ function clothes_load_upload_table(url) {
             }
         },
         error: function () {
+            if (typeof window.clearPendingStep3TransitionAfterAsyncAdd === 'function') {
+                    window.clearPendingStep3TransitionAfterAsyncAdd();
+                }
             console.log('error')
             make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
         }
@@ -559,6 +571,128 @@ function perform_free_size_input(clothingType){
     return subcategoryInputBlock
 }
 
+function clothesAccordionId(clothingType) {
+    return String(clothingType).replace(/[^A-Za-zА-Яа-яЁё0-9_-]/g, '_');
+}
+
+function preventNegativeDimensionInput(event) {
+    if (event.key === '-' || event.key === '+') {
+        event.preventDefault();
+    }
+}
+
+function normalizePositiveDimensionInput(input) {
+    if (input.value && Number(input.value.replace(',', '.')) < 0) {
+        input.value = '';
+    }
+}
+
+function createLengthWidthSizeBlock(clothingType) {
+    const typeId = clothesAccordionId(clothingType);
+    return `
+        <div class="mb-3">
+            <p>Введите длину и ширину изделия, затем нажмите +</p>
+            <div class="d-flex align-items-start gap-2 flex-nowrap">
+                <input type="number" class="form-control" id="lengthWidthLength${typeId}"
+                       min="0.01" step="any" placeholder="Длина" style="width: 120px; flex: 0 0 120px;"
+                       onkeydown="preventNegativeDimensionInput(event)"
+                       oninput="normalizePositiveDimensionInput(this)">
+                <span class="pt-2 fw-bold">*</span>
+                <input type="number" class="form-control" id="lengthWidthWidth${typeId}"
+                       min="0.01" step="any" placeholder="Ширина" style="width: 120px; flex: 0 0 120px;"
+                       onkeydown="preventNegativeDimensionInput(event)"
+                       oninput="normalizePositiveDimensionInput(this)">
+                <select class="form-control" id="lengthWidthUnit${typeId}" style="width: 86px; flex: 0 0 86px;">
+                    <option value="мм" selected>мм</option>
+                    <option value="см">см</option>
+                </select>
+                <input type="number" class="form-control" id="lengthWidthQuantity${typeId}"
+                       min="1" step="1" value="1" placeholder="Кол-во" style="width: 92px; flex: 0 0 92px;"
+                       onkeydown="preventNegativeDimensionInput(event)"
+                       oninput="normalizePositiveDimensionInput(this)">
+                <button class="btn btn-accent" type="button"
+                        style="width: 44px; min-width: 44px; max-width: 44px; height: 38px; min-height: 38px; max-height: 38px; flex: 0 0 44px; padding: 0; line-height: 1; display: inline-flex; align-items: center; justify-content: center;"
+                        onclick="addLengthWidthClothesSize('${clothingType}')">+</button>
+            </div>
+            <div class="invalid-feedback d-block" id="lengthWidthError${typeId}"></div>
+        </div>`;
+}
+
+function addLengthWidthClothesSize(clothingType) {
+    const typeId = clothesAccordionId(clothingType);
+    const lengthInput = document.getElementById(`lengthWidthLength${typeId}`);
+    const widthInput = document.getElementById(`lengthWidthWidth${typeId}`);
+    const unitInput = document.getElementById(`lengthWidthUnit${typeId}`);
+    const quantityInput = document.getElementById(`lengthWidthQuantity${typeId}`);
+    const errorBlock = document.getElementById(`lengthWidthError${typeId}`);
+
+    const lengthValue = lengthInput.value.trim();
+    const widthValue = widthInput.value.trim();
+    const quantityValue = parseInt(quantityInput.value, 10);
+    const dimensionPattern = /^\d+(?:[.,]\d+)?$/;
+
+    if (
+        !dimensionPattern.test(lengthValue) ||
+        !dimensionPattern.test(widthValue) ||
+        Number(lengthValue.replace(',', '.')) <= 0 ||
+        Number(widthValue.replace(',', '.')) <= 0 ||
+        !Number.isInteger(quantityValue) ||
+        quantityValue < 1
+    ) {
+        errorBlock.textContent = "Введите длину, ширину и количество числами больше 0.";
+        return;
+    }
+
+    errorBlock.textContent = "";
+    const unitValue = unitInput.value || 'мм';
+    const size = `${lengthValue}*${widthValue} ${unitValue}`;
+    const sizesQuantityBlock = document.getElementById('sizes_quantity');
+    const existingSizeBlocks = sizesQuantityBlock.getElementsByClassName('important-card__item');
+
+    for (let block of existingSizeBlocks) {
+        let sizeSpan = block.querySelector('#size_info');
+        let typeSpan = block.querySelector('#size_type_info');
+        if (sizeSpan && typeSpan && sizeSpan.textContent.trim() === size && typeSpan.textContent.trim() === clothingType) {
+            let quantitySpan = block.querySelector('#quantity_info');
+            let hiddenQuantityInput = block.querySelector('input[name="quantity"]');
+            let newQuantity = parseInt(quantitySpan.textContent, 10) + quantityValue;
+            quantitySpan.textContent = newQuantity;
+            hiddenQuantityInput.value = newQuantity;
+            lengthInput.value = '';
+            widthInput.value = '';
+            quantityInput.value = '1';
+            setClothes();
+            return;
+        }
+    }
+
+    let sizeQuantityHTML = `
+        <div class="important-card__item important-card__size ms-2">
+            <div class="d-flex align-items-center g-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" onclick="$(this).closest('div').parent().remove();setClothes();"
+                    viewBox="0 0 20 20" fill="none">
+                    <path fill-rule="evenodd" clip-rule="evenodd"
+                        d="M4.34074 0.312213C8.07158 -0.104071 11.9285 -0.104071 15.6593 0.312213C17.7413 0.544517 19.4209 2.18214 19.6655 4.26889C20.1115 8.07671 20.1115 11.9234 19.6655 15.7312C19.4209 17.8179 17.7413 19.4555 15.6593 19.6878C11.9285 20.1041 8.07158 20.1041 4.34074 19.6878C2.25873 19.4555 0.579043 17.8179 0.33457 15.7312C-0.111523 11.9234 -0.111523 8.07671 0.33457 4.26889C0.579043 2.18214 2.25873 0.544517 4.34074 0.312213ZM10 9.08981H10.9117H15.1575C15.661 9.08981 16.0692 9.49734 16.0692 10C16.0692 10.5027 15.661 10.9102 15.1575 10.9102H10.9117C10.9117 10.9102 10.2506 10.9102 10 10.9102C9.74947 10.9102 9.46208 10.9102 9.46208 10.9102H9.08832H4.84265C4.33912 10.9102 3.93094 10.5027 3.93094 10C3.93094 9.49734 4.33912 9.08981 4.84265 9.08981H9.08832H10Z"
+                        fill="white" />
+                </svg>
+                <div class="ms-2">
+                    <span id="size_info">${size}</span>
+                    <span id="size_type_info" style="font-size: 10px">${clothingType}</span>
+                </div>
+            </div>
+            <div class="important-card__val"><span id="quantity_info">${quantityValue}</span> <span>шт.</span></div>
+            <input type="hidden" name="size" value="${size}">
+            <input type="hidden" name="quantity" value="${quantityValue}">
+            <input type="hidden" id="size_type" name="size_type" value="${clothingType}">
+        </div>`;
+
+    sizesQuantityBlock.innerHTML += sizeQuantityHTML;
+    lengthInput.value = '';
+    widthInput.value = '';
+    quantityInput.value = '1';
+    setClothes();
+}
+
 function chooseSizeClothes(subcategory) {
     let divBlock = document.getElementById('sizesClothesDiv');
     let content = '';
@@ -585,20 +719,23 @@ function chooseSizeClothes(subcategory) {
     for (let clothingType in clothes_types_sizes_dict) {
         if (clothes_types_sizes_dict.hasOwnProperty(clothingType)) {
             let sizes = clothes_types_sizes_dict[clothingType];
-            let sizesBlock = create_size_blocks(sizes, clothingType);
+            let sizesBlock = clothingType === clothes_length_width_size_type
+                ? createLengthWidthSizeBlock(clothingType)
+                : create_size_blocks(sizes, clothingType);
             let free_size_input = '';
-            if (!['ОСОБЫЕ_РАЗМЕРЫ', 'РОССИЯ'].includes(clothingType)){
+            if (!['ОСОБЫЕ_РАЗМЕРЫ', 'РОССИЯ', clothes_length_width_size_type].includes(clothingType)){
                 free_size_input = perform_free_size_input(clothingType);
                 }
+            const typeId = clothesAccordionId(clothingType);
 
             content += `
                 <div class="accordion-item">
-                    <h2 class="accordion-header" id="heading_${clothingType}">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_${clothingType}" aria-expanded="false" aria-controls="collapse_${clothingType}">
+                    <h2 class="accordion-header" id="heading_${typeId}">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_${typeId}" aria-expanded="false" aria-controls="collapse_${typeId}">
                             ${clothingType}
                         </button>
                     </h2>
-                    <div id="collapse_${clothingType}" class="accordion-collapse collapse" aria-labelledby="heading_${clothingType}">
+                    <div id="collapse_${typeId}" class="accordion-collapse collapse" aria-labelledby="heading_${typeId}">
                         <div class="accordion-body">
                             <div>${free_size_input}</div>
                             <div class="row">${sizesBlock}</div>
@@ -609,7 +746,7 @@ function chooseSizeClothes(subcategory) {
     }
 
     divBlock.innerHTML = `
-        <div class="modal fade" id="sizesClothesModal" tabindex="-1" role="dialog" aria-labelledby="sizesClothesModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal fade" id="sizesClothesModal" tabindex="-1" role="dialog" aria-labelledby="sizesClothesModalLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
             <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -669,14 +806,14 @@ function updateSizesQuantityBlock() {
     });
 
     // Обрабатываем выбранные размеры из формы
-    let selectedSizes = document.querySelectorAll('#sizesClothesModal .form-control:not([readonly]):not([disabled])');
+    let selectedSizes = document.querySelectorAll('#sizesClothesModal input[id^="size_"]:not([readonly]):not([disabled])');
     let newSizes = {};
     selectedSizes.forEach(input => {
         let size = input.getAttribute('id').replace('size_', '').trim();
         let quantity = parseInt(input.value.trim(), 10);
         let sizeType = input.getAttribute('data-size-type') || "";
 
-        if (size.startsWith('subcategorySize')) return;
+        if (size.startsWith('subcategorySize') || isNaN(quantity)) return;
         if (special_clothes_sizes.includes(size)) {
             sizeType = 'МЕЖДУНАРОДНЫЙ';
         }

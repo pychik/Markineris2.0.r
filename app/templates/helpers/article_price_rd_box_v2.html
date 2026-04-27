@@ -1,5 +1,5 @@
 <div id="rd-wrapper" style="display:none;">
-    <div class="form-group">
+    <div class="form-group mb-3">
         <label class="control-label">
             <a class="option text-dark "
                 href="#collapseDocResolve" aria-expanded="false"
@@ -110,11 +110,8 @@
 
 <div class="form-group mb-3">
     <label class="control-label">
-        <a class="option text-dark " role="button" {% if company_idn and price_exist %} data-bs-toggle="collapse" href="#collapsePrice"
-               aria-expanded="true" aria-controls="collapsePrice">
-               {% elif company_idn and not price_exist %}>
-               {% else %} data-bs-toggle="collapse" href="#collapsePrice" aria-expanded="false" aria-controls="collapsePrice">
-               {% endif %}
+        <a class="option text-dark " role="button" data-bs-toggle="collapse" href="#collapsePrice"
+               aria-expanded="{{ 'true' if price_exist else 'false' }}" aria-controls="collapsePrice">
             Цена артикула (необязательно)
         </a>
         <a data-bs-toggle="tooltip" data-html="true" title="Указание ценовых характеристик обязательно для всех позиций для ПОДСЧЕТА суммы накладной, либо не указывайте цену артикула ни в одной позиции
@@ -142,7 +139,7 @@
             </label>
             <input type="number" step="0.01" id="article_price" name="article_price"
                 class="form-control" value="{% if copied_order %}{{ copied_order.article_price }}{% else %}0{% endif %}"
-            {% if price_exist %}min="1" required{% else %}min="0"{% endif %} oninput="if (!this.value  && this.value !== 0){this.value=0}">
+            {% if price_exist %}min="1" required{% else %}min="0" {% endif %} oninput="if (!this.value  && this.value !== 0){this.value=0}">
         </div>
         <div class="col-md-6 col-xs-12 form-group">
             <label>
@@ -162,15 +159,3 @@
         </div>
     </div>
 </div>
-
-
-
-
-
-
-
-
-
-<!--<script src="{{ url_for('static', filename='main_v2/js/assets/jquery-ui.min.js')}}"></script>-->
-<!--<script src="{{ url_for('static', filename='main_v2/js/datepicker-ru.js') }}"></script>-->
-

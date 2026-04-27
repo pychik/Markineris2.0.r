@@ -354,6 +354,7 @@ class Order(db.Model, UserMixin):
     transaction_id = db.Column(db.Integer, db.ForeignKey('user_transactions.id'), index=True)
 
     order_zip_file = db.relationship('OrderFile', uselist=False, cascade='all,delete', backref='orders')
+    messages = db.relationship('OrderMessage', backref='order', cascade='all,delete', lazy='dynamic')
     shoes = db.relationship('Shoe', backref='order', cascade="all,delete", lazy='joined', foreign_keys='Shoe.order_id')
     linen = db.relationship('Linen', backref='order', cascade="all,delete", lazy='joined',
                             foreign_keys='Linen.order_id')
@@ -586,6 +587,35 @@ class CardMessage(db.Model, UserMixin):
         nullable=True
     )
 
+    attachments = db.relationship(
+        'CardMessageAttachment',
+        back_populates='message',
+        cascade='all,delete-orphan',
+        lazy='selectin',
+        order_by='CardMessageAttachment.id.asc()',
+    )
+
+
+class CardMessageAttachment(db.Model, UserMixin):
+    __tablename__ = "card_message_attachments"
+
+    id = db.Column(db.BigInteger, primary_key=True)
+
+    message_id = db.Column(
+        db.BigInteger,
+        db.ForeignKey('card_messages.id', ondelete='CASCADE'),
+        index=True,
+        nullable=False,
+    )
+
+    original_name = db.Column(db.String(255), nullable=False)
+    storage_name = db.Column(db.String(500), nullable=False, unique=True)
+    content_type = db.Column(db.String(255), nullable=False, default='application/octet-stream')
+    size_bytes = db.Column(db.BigInteger, nullable=False, default=0, server_default="0")
+    created_at = db.Column(db.DateTime(), default=datetime.now, index=True, nullable=False)
+
+    message = db.relationship('CardMessage', back_populates='attachments')
+
 
 class CardChatRead(db.Model):
     __tablename__ = "card_chat_reads"
@@ -641,6 +671,35 @@ class OrderMessage(db.Model, UserMixin):
         index=True,
         nullable=True
     )
+
+    attachments = db.relationship(
+        'OrderMessageAttachment',
+        back_populates='message',
+        cascade='all,delete-orphan',
+        lazy='selectin',
+        order_by='OrderMessageAttachment.id.asc()',
+    )
+
+
+class OrderMessageAttachment(db.Model, UserMixin):
+    __tablename__ = "order_message_attachments"
+
+    id = db.Column(db.BigInteger, primary_key=True)
+
+    message_id = db.Column(
+        db.BigInteger,
+        db.ForeignKey('order_messages.id', ondelete='CASCADE'),
+        index=True,
+        nullable=False,
+    )
+
+    original_name = db.Column(db.String(255), nullable=False)
+    storage_name = db.Column(db.String(500), nullable=False, unique=True)
+    content_type = db.Column(db.String(255), nullable=False, default='application/octet-stream')
+    size_bytes = db.Column(db.BigInteger, nullable=False, default=0, server_default="0")
+    created_at = db.Column(db.DateTime(), default=datetime.now, index=True, nullable=False)
+
+    message = db.relationship('OrderMessage', back_populates='attachments')
 
 
 class OrderChatRead(db.Model):

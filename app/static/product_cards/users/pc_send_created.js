@@ -204,7 +204,7 @@ async function pcSendSelectedCreatedCards() {
       throw new Error(data.error || "Ошибка отправки");
     }
 
-    pcShowOk(`Отправлено: ${data.updated ?? selected.length}`);
+    pcShowOk(data.message || `Отправлено: ${data.updated ?? selected.length}`);
 
     // обновить страницу/таблицу
     setTimeout(() => window.location.reload(), 900);
