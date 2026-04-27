@@ -57,6 +57,8 @@ def validate_rd_block(form_dict: dict) -> None:
 
     if rd_date < RD_MIN_DATE:
         raise ValueError(f"Дата 'От' не может быть раньше {RD_MIN_DATE_STR}.")
+    if rd_date > date.today():
+        raise ValueError("Дата 'От' не может быть позже сегодняшней даты.")
     if rd_date_to < RD_MIN_DATE:
         raise ValueError(f"Дата 'До' не может быть раньше {RD_MIN_DATE_STR}.")
 
