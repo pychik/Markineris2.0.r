@@ -487,7 +487,7 @@ def h_update_product_card(crm_: bool = False):
             actor = getattr(current_user, "login_name", "") or str(current_user.id)
             card.card_log = h_append_card_log(
                 card.card_log,
-                f"\n{dt_str} изменил {field_title}: '{old_identity}' -> '{new_identity}' пользователь {actor};"
+                f"\n{dt_str} изменил {field_title}: '{old_identity}' -> '{new_identity}' пользователь {actor};")
         if changes:
             dt_str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
             user_login = getattr(current_user, "login_name", "") or str(current_user.id)
