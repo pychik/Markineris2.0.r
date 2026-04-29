@@ -5,6 +5,7 @@ from typing import Any, Callable
 import telebot
 from requests.exceptions import RequestException
 from telebot import apihelper
+from telebot.apihelper import ApiTelegramException
 from rq.decorators import job
 from telebot import types
 from werkzeug.datastructures import FileStorage
