@@ -159,7 +159,7 @@ def h_su_control_finance():
         not_(ServiceAccount.is_archived.is_(True))).order_by(desc(ServiceAccount.created_at)).all()
 
     # rf- refill , wo write off
-    balance, pending_balance_rf, summ_at1, summ_at2, summ_client = helper_get_server_balance()
+    pending_balance_rf, summ_at1, summ_at2, summ_client = helper_get_server_balance()
 
     basic_prices = settings.Prices.BASIC_PRICES
     base_path = settings.DOWNLOAD_QA_BASIC
@@ -1414,12 +1414,12 @@ def h_su_wo_transactions() -> Response:
                       """
     user_ids = db.session.execute(text(user_ids_stmt)).fetchall()
     if user_ids:
-        status, server_balance = helper_perform_ut_wo_mod(user_ids=user_ids)
+        status, message = helper_perform_ut_wo_mod(user_ids=user_ids)
     else:
-        status, server_balance = 0, 'No orders to write off'
+        status, message = 0, 'No orders to write off'
 
     app.config['MAINTENANCE_MODE'] = False
-    return jsonify(dict(status=status, server_balance=server_balance))
+    return jsonify(dict(status=status, message=message))
 
 
 def h_su_pending_transaction_update(u_id: int, t_id: int,):
@@ -1538,7 +1538,6 @@ def update_user_balance(user_id: int, data: UpdateBalanceSchema):
     if is_promo_corr and current_user.role not in ['superuser', 'admin', 'moderator']:
         is_promo_corr = False
     try:
-        server_params = ServerParam.query.first()
         if is_promo_corr:
             comment = (
                 f'<b>{current_user.login_name}</b> добавил на баланс через промокод '
@@ -1568,7 +1567,6 @@ def update_user_balance(user_id: int, data: UpdateBalanceSchema):
         )
 
         user.balance += update_sum
-        server_params.balance += update_sum
 
         db.session.add(new_transaction)
         db.session.commit()

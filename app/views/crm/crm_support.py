@@ -130,7 +130,6 @@ def build_refund_sql_on_order_cancel(order_idn: str, user_info: dict, order_cost
     # Общие действия
     sql += f"""
         UPDATE public.orders_stats SET op_cost = NULL WHERE order_idn = '{order_idn}';
-        UPDATE public.server_params SET balance = balance + {order_cost};
     """
 
     return sql

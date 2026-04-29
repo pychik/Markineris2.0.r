@@ -1,6 +1,10 @@
 from io import BytesIO
+import time
+from typing import Any, Callable
 
 import telebot
+from requests.exceptions import RequestException
+from telebot import apihelper
 from rq.decorators import job
 from telebot import types
 from werkzeug.datastructures import FileStorage
@@ -9,6 +13,75 @@ from config import settings
 from logger import logger
 from models import User, TelegramMessage, db, TgUser
 from redis_queue.constants import TELEGRAM_JOB_PARAMS, NOTIFICATION_TG_JOB_PARAMS
+
+
+TELEGRAM_CONNECT_TIMEOUT_SEC = max(1, int(getattr(settings.Telegram, "CONNECT_TIMEOUT_SEC", 25)))
+TELEGRAM_READ_TIMEOUT_SEC = max(1, int(getattr(settings.Telegram, "READ_TIMEOUT_SEC", 60)))
+TELEGRAM_SEND_RETRIES = max(1, int(getattr(settings.Telegram, "SEND_RETRIES", 3)))
+TELEGRAM_RETRY_BACKOFF_SEC = max(0.1, float(getattr(settings.Telegram, "RETRY_BACKOFF_SEC", 2.0)))
+TELEGRAM_RETRY_BACKOFF_FACTOR = max(1.0, float(getattr(settings.Telegram, "RETRY_BACKOFF_FACTOR", 1.7)))
+TELEGRAM_RETRY_MAX_DELAY_SEC = max(0.5, float(getattr(settings.Telegram, "RETRY_MAX_DELAY_SEC", 20.0)))
+
+apihelper.CONNECT_TIMEOUT = TELEGRAM_CONNECT_TIMEOUT_SEC
+apihelper.READ_TIMEOUT = TELEGRAM_READ_TIMEOUT_SEC
+
+telegram_proxy = getattr(settings.Telegram, "PROXY", "")
+if telegram_proxy:
+    apihelper.proxy = {
+        "http": telegram_proxy,
+        "https": telegram_proxy,
+    }
+
+
+def _is_transient_telegram_error(exc: Exception) -> bool:
+    if isinstance(exc, RequestException):
+        return True
+
+    if isinstance(exc, ApiTelegramException):
+        description = str(exc).lower()
+        transient_descriptions = (
+            "timed out",
+            "timeout",
+            "temporarily unavailable",
+            "service unavailable",
+            "bad gateway",
+            "gateway timeout",
+            "internal server error",
+            "connection reset",
+            "too many requests",
+            "retry after",
+        )
+        return any(item in description for item in transient_descriptions)
+
+    return False
+
+
+def _send_telegram_with_retry(send_action: Callable[[], Any], context: str) -> bool:
+    delay = TELEGRAM_RETRY_BACKOFF_SEC
+
+    for attempt in range(1, TELEGRAM_SEND_RETRIES + 1):
+        try:
+            send_action()
+            return True
+        except Exception as exc:
+            is_last_try = attempt == TELEGRAM_SEND_RETRIES
+            retryable = _is_transient_telegram_error(exc)
+
+            if is_last_try or not retryable:
+                logger.error(
+                    f"{settings.Messages.TELEGRAM_SEND_ERROR}: {context}; "
+                    f"attempt={attempt}/{TELEGRAM_SEND_RETRIES}; error={exc}"
+                )
+                return False
+
+            logger.warning(
+                f"Временная ошибка Telegram API: {context}; "
+                f"attempt={attempt}/{TELEGRAM_SEND_RETRIES}; retry_in={delay:.1f}s; error={exc}"
+            )
+            time.sleep(delay)
+            delay = min(delay * TELEGRAM_RETRY_BACKOFF_FACTOR, TELEGRAM_RETRY_MAX_DELAY_SEC)
+
+    return False
 
 
 def convert_spec_symbols(converted_string: str) -> str:
@@ -76,10 +149,15 @@ class TelegramProcessor:
     @staticmethod
     def send_message_idn(message: str) -> None:
         tg_bot = telebot.TeleBot(token=settings.TELEGRAM_BOT_TOKEN)
-        try:
-            tg_bot.send_message(chat_id=settings.Telegram.TELEGRAM_ALERTS_GROUP_ID, text=message, parse_mode='HTML')
-        except Exception as e:
-            logger.error(f"{settings.Messages.TELEGRAM_SEND_ERROR}: {e}")
+        _send_telegram_with_retry(
+            send_action=lambda: tg_bot.send_message(
+                chat_id=settings.Telegram.TELEGRAM_ALERTS_GROUP_ID,
+                text=message,
+                parse_mode='HTML',
+                timeout=TELEGRAM_READ_TIMEOUT_SEC,
+            ),
+            context=f"send_message_idn chat_id={settings.Telegram.TELEGRAM_ALERTS_GROUP_ID}",
+        )
 
     @staticmethod
     @job(**TELEGRAM_JOB_PARAMS)
@@ -143,38 +221,38 @@ class TelegramProcessor:
             mark_type=mark_type,
         )
 
-        try:
-            tg_bot = telebot.TeleBot(settings.TELEGRAM_BOT_TOKEN)
-            tg_bot.send_document(
+        tg_bot = telebot.TeleBot(settings.TELEGRAM_BOT_TOKEN)
+        _send_telegram_with_retry(
+            send_action=lambda: tg_bot.send_document(
                 chat_id=telegram_id,
                 visible_file_name=vfn,
                 document=document,
                 caption=message,
                 parse_mode="HTML",
-            )
-        except Exception as e:
-            logger.error(f"{settings.Messages.TELEGRAM_SEND_ERROR}: {e}")
+                timeout=TELEGRAM_READ_TIMEOUT_SEC,
+            ),
+            context=f"send_message_file chat_id={telegram_id}",
+        )
 
     @staticmethod
     @job(**TELEGRAM_JOB_PARAMS)
     def send_message_tg(message: str, group_id: str, files_list: list[BytesIO, str]) -> None:
+        tg_bot = telebot.TeleBot(settings.TELEGRAM_BOT_TOKEN)
 
-        try:
-            tg_bot = telebot.TeleBot(settings.TELEGRAM_BOT_TOKEN)
-
-            # media_group = list(map(lambda x: types.InputMediaDocument(x[0]), files_list))
-            # media_group[-1] = types.InputMediaDocument(files_list[-1][0], caption=message, parse_mode='HTML')
-            # tg_bot.send_media_group(chat_id=group_id, media=media_group, )
-            tg_bot.send_document(
+        # media_group = list(map(lambda x: types.InputMediaDocument(x[0]), files_list))
+        # media_group[-1] = types.InputMediaDocument(files_list[-1][0], caption=message, parse_mode='HTML')
+        _send_telegram_with_retry(
+            send_action=lambda: tg_bot.send_document(
                 chat_id=group_id,
                 visible_file_name=files_list[1],
                 document=files_list[0],
                 caption=message,
                 parse_mode="HTML",
-            )
-
-        except Exception as e:
-            logger.error(f"{settings.Messages.TELEGRAM_SEND_ERROR}: {e}")
+                timeout=TELEGRAM_READ_TIMEOUT_SEC,
+            ),
+            context=f"send_message_tg_document chat_id={group_id}",
+        )
+        # tg_bot.send_media_group(chat_id=group_id, media=media_group, )
 
 
 class NewUser:
@@ -205,22 +283,28 @@ class NewUser:
 
     @staticmethod
     def send_message_start(bot: telebot.TeleBot, change_password: bool = False) -> None:
-        try:
-            bot.send_message(chat_id=settings.Telegram.USERS_GROUP, text='🆕' if not change_password else '🔐'
-                             , parse_mode='HTML')
-
-        except Exception as e:
-            logger.error(f"{settings.Messages.TELEGRAM_SEND_ERROR}: {e}")
+        _send_telegram_with_retry(
+            send_action=lambda: bot.send_message(
+                chat_id=settings.Telegram.USERS_GROUP,
+                text='🆕' if not change_password else '🔐',
+                parse_mode='HTML',
+                timeout=TELEGRAM_READ_TIMEOUT_SEC,
+            ),
+            context=f"send_message_start chat_id={settings.Telegram.USERS_GROUP}",
+        )
 
     @staticmethod
     def send_message_new(bot: telebot.TeleBot, message: str, ) -> None:
-
-        try:
-
-            bot.send_message(chat_id=settings.Telegram.USERS_GROUP, text=message, parse_mode='HTML',
-                             disable_web_page_preview=True)
-        except Exception as e:
-            logger.error(f"message_2 {settings.Messages.TELEGRAM_SEND_ERROR}: {e}\n {message}")
+        _send_telegram_with_retry(
+            send_action=lambda: bot.send_message(
+                chat_id=settings.Telegram.USERS_GROUP,
+                text=message,
+                parse_mode='HTML',
+                disable_web_page_preview=True,
+                timeout=TELEGRAM_READ_TIMEOUT_SEC,
+            ),
+            context=f"send_message_new chat_id={settings.Telegram.USERS_GROUP}",
+        )
 
     @staticmethod
     @job(**TELEGRAM_JOB_PARAMS)
@@ -333,20 +417,28 @@ class WriteOffBalance:
 
     @staticmethod
     def send_message_start(bot: telebot.TeleBot, ) -> None:
-        try:
-            bot.send_message(chat_id=settings.Telegram.WO_GROUP, text='🆕', parse_mode='HTML')
-
-        except Exception as e:
-            logger.error(f"{settings.Messages.TELEGRAM_SEND_ERROR}: {e}")
+        _send_telegram_with_retry(
+            send_action=lambda: bot.send_message(
+                chat_id=settings.Telegram.WO_GROUP,
+                text='🆕',
+                parse_mode='HTML',
+                timeout=TELEGRAM_READ_TIMEOUT_SEC,
+            ),
+            context=f"writeoff_send_message_start chat_id={settings.Telegram.WO_GROUP}",
+        )
 
     @staticmethod
     def send_message_new(bot: telebot.TeleBot, message: str) -> None:
-        try:
-            bot.send_message(chat_id=settings.Telegram.WO_GROUP, text=message, parse_mode='HTML',
-                             disable_web_page_preview=True)
-
-        except Exception as e:
-            logger.error(f"{settings.Messages.TELEGRAM_SEND_ERROR}: {e}")
+        _send_telegram_with_retry(
+            send_action=lambda: bot.send_message(
+                chat_id=settings.Telegram.WO_GROUP,
+                text=message,
+                parse_mode='HTML',
+                disable_web_page_preview=True,
+                timeout=TELEGRAM_READ_TIMEOUT_SEC,
+            ),
+            context=f"writeoff_send_message_new chat_id={settings.Telegram.WO_GROUP}",
+        )
 
     @staticmethod
     @job(**TELEGRAM_JOB_PARAMS)
@@ -370,15 +462,90 @@ class WriteOffBalance:
 class NotificationTgUser:
 
     @staticmethod
+    def _is_unreachable_user_error(exc: ApiTelegramException) -> bool:
+        description = str(exc).lower()
+        terminal_descriptions = (
+            "blocked by the user",
+            "user is deactivated",
+            "chat not found",
+            "bot can't initiate conversation with a user",
+        )
+        return any(item in description for item in terminal_descriptions)
+
+    @staticmethod
+    def _unlink_chat(chat_id: int) -> None:
+        tg_user = TgUser.query.filter(TgUser.tg_chat_id == chat_id).first()
+        if not tg_user:
+            return
+
+        try:
+            db.session.delete(tg_user)
+            db.session.commit()
+            logger.warning(
+                f"Отвязана telegram-привязка пользователя с chat_id={chat_id} после необратимой ошибки Telegram API"
+            )
+        except Exception:
+            db.session.rollback()
+            logger.exception(f"Не удалось отвязать telegram-привязку для chat_id={chat_id}")
+
+    @staticmethod
     @job(**NOTIFICATION_TG_JOB_PARAMS)
     def send_notification(chat_id: int, message: str) -> None:
         tb = telebot.TeleBot(settings.VERIFY_NOTIFICATION_BOT_API_TOKEN)
+        delay = TELEGRAM_RETRY_BACKOFF_SEC
 
-        tb.send_message(
-            chat_id=chat_id,
-            text=message,
-            parse_mode='HTML',
-        )
+        for attempt in range(1, TELEGRAM_SEND_RETRIES + 1):
+            try:
+                tb.send_message(
+                    chat_id=chat_id,
+                    text=message,
+                    parse_mode='HTML',
+                    timeout=TELEGRAM_READ_TIMEOUT_SEC,
+                )
+                return
+            except ApiTelegramException as exc:
+                if NotificationTgUser._is_unreachable_user_error(exc):
+                    NotificationTgUser._unlink_chat(chat_id=chat_id)
+                    logger.warning(
+                        f"Пропущена отправка telegram-уведомления для chat_id={chat_id}: {exc}"
+                    )
+                    return
+
+                is_last_try = attempt == TELEGRAM_SEND_RETRIES
+                if is_last_try or not _is_transient_telegram_error(exc):
+                    logger.error(
+                        f"{settings.Messages.TELEGRAM_SEND_ERROR}: send_notification chat_id={chat_id}; "
+                        f"attempt={attempt}/{TELEGRAM_SEND_RETRIES}; error={exc}"
+                    )
+                    return
+
+                logger.warning(
+                    f"Временная ошибка Telegram API: send_notification chat_id={chat_id}; "
+                    f"attempt={attempt}/{TELEGRAM_SEND_RETRIES}; retry_in={delay:.1f}s; error={exc}"
+                )
+                time.sleep(delay)
+                delay = min(delay * TELEGRAM_RETRY_BACKOFF_FACTOR, TELEGRAM_RETRY_MAX_DELAY_SEC)
+            except RequestException as exc:
+                is_last_try = attempt == TELEGRAM_SEND_RETRIES
+                if is_last_try:
+                    logger.error(
+                        f"{settings.Messages.TELEGRAM_SEND_ERROR}: send_notification chat_id={chat_id}; "
+                        f"attempt={attempt}/{TELEGRAM_SEND_RETRIES}; error={exc}"
+                    )
+                    return
+
+                logger.warning(
+                    f"Сетевая ошибка Telegram API: send_notification chat_id={chat_id}; "
+                    f"attempt={attempt}/{TELEGRAM_SEND_RETRIES}; retry_in={delay:.1f}s; error={exc}"
+                )
+                time.sleep(delay)
+                delay = min(delay * TELEGRAM_RETRY_BACKOFF_FACTOR, TELEGRAM_RETRY_MAX_DELAY_SEC)
+            except Exception as exc:
+                logger.error(
+                    f"{settings.Messages.TELEGRAM_SEND_ERROR}: send_notification chat_id={chat_id}; "
+                    f"attempt={attempt}/{TELEGRAM_SEND_RETRIES}; error={exc}"
+                )
+                return
 
 
 class MarkinerisInform:
@@ -397,14 +564,17 @@ class MarkinerisInform:
     def send_message_tg(order_idn: str,
                         group_id: str = settings.Telegram.TELEGRAMM_ORDER_INFO_SERVICE,
                         problem_order_flag: bool = False) -> None:
+        tg_bot = telebot.TeleBot(settings.TELEGRAM_BOT_TOKEN)
 
-        try:
-            tg_bot = telebot.TeleBot(settings.TELEGRAM_BOT_TOKEN)
-
-            tg_bot.send_message(chat_id=group_id,
-                                text=MarkinerisInform.make_message(order_idn=order_idn,
-                                                                   problem_order_flag=problem_order_flag),
-                                parse_mode='HTML')
-
-        except Exception as e:
-            logger.error(f"{settings.Messages.TELEGRAM_SEND_ERROR}: {e}")
+        _send_telegram_with_retry(
+            send_action=lambda: tg_bot.send_message(
+                chat_id=group_id,
+                text=MarkinerisInform.make_message(
+                    order_idn=order_idn,
+                    problem_order_flag=problem_order_flag,
+                ),
+                parse_mode='HTML',
+                timeout=TELEGRAM_READ_TIMEOUT_SEC,
+            ),
+            context=f"markineris_inform chat_id={group_id} order_idn={order_idn}",
+        )

@@ -338,6 +338,13 @@ class Settings(BaseSettings):
         WO_GROUP: str = "-1002092657810"  # group for sending messages about new refillments checkout
         TELEGRAM_ALERTS_GROUP_ID: str = "-1001969475944"
         TELEGRAMM_ORDER_INFO_SERVICE: str = os.environ.get('TELEGRAMM_ORDER_INFO_SERVICE')  # orig is "-1002124706398" # channel for service admin notifications
+        PROXY: str = os.environ.get('TELEGRAM_PROXY', '').strip()
+        CONNECT_TIMEOUT_SEC: int = int(os.environ.get('TELEGRAM_CONNECT_TIMEOUT_SEC', 25))
+        READ_TIMEOUT_SEC: int = int(os.environ.get('TELEGRAM_READ_TIMEOUT_SEC', 60))
+        SEND_RETRIES: int = int(os.environ.get('TELEGRAM_SEND_RETRIES', 3))
+        RETRY_BACKOFF_SEC: float = float(os.environ.get('TELEGRAM_RETRY_BACKOFF_SEC', 2.0))
+        RETRY_BACKOFF_FACTOR: float = float(os.environ.get('TELEGRAM_RETRY_BACKOFF_FACTOR', 1.7))
+        RETRY_MAX_DELAY_SEC: float = float(os.environ.get('TELEGRAM_RETRY_MAX_DELAY_SEC', 20.0))
         SPEC_SYMBOLS_LIST: tuple = (('&', '&amp;'), ('<', '&lt;'), ('>', '&gt;'))
 
     class Process:

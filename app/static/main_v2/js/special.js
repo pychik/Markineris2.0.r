@@ -1122,17 +1122,20 @@ function perform_wo_transactions(url, csrf){
     headers:{"X-CSRFToken": csrf},
     method:"POST",
     data:{},
-    success:function(data)
-    {
-        // console.log(data);
-        if(data.status === 1){
-            document.getElementById('ServerBalance').innerHTML = `Баланс сервиса: <span class="link-warning"><b>${data.server_balance} р.</b></span>`;
-        }
-        else if(data.status === 0 && data.server_balance){
-            setTimeout(function() {make_message(data.server_balance, 'warning');}, 1500);
-        }
-        else{
-            setTimeout(function() {make_message('Ошибка обновления БД. Посмотрите логи', 'danger');}, 1500);
+    success: function (data) {
+        console.log(data);
+        if (data.status === 1) {
+            setTimeout(function () {
+                make_message(data.message || 'Заказы пользователей успешно проведены', 'success');
+            }, 1500);
+        } else if (data.status === 0 && data.message) {
+            setTimeout(function () {
+                make_message(data.message, 'warning');
+            }, 1500);
+        } else {
+            setTimeout(function () {
+                make_message('Ошибка обновления БД. Посмотрите логи', 'danger');
+            }, 1500);
         }
 
     },

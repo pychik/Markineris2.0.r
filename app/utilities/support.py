@@ -1554,8 +1554,7 @@ def helper_get_user_balance(u_id: int) -> tuple[int, int]:
 
 
 def helper_get_server_balance() -> tuple[int, int, int, int, int]:
-    serv_res = db.session.execute(text("""SELECT sp.balance as balance,
-                                             sp.pending_balance_rf as pending_balance_rf
+    serv_res = db.session.execute(text("""SELECT sp.pending_balance_rf as pending_balance_rf
                                       FROM public.server_params sp;
                                       """)).fetchone()
     if not serv_res:
@@ -1570,7 +1569,7 @@ def helper_get_server_balance() -> tuple[int, int, int, int, int]:
     summ_at_2 = db.session.execute(text("""SELECT SUM(u.balance) AS at_2_summ FROM public.users u WHERE u.role != 'ordinary_user' and is_at2=True""")).fetchone()
     summ_client = db.session.execute(text(
         """SELECT SUM(u.balance) AS client_summ FROM public.users u WHERE u.role = 'ordinary_user';""")).fetchone()
-    return (serv_res.balance, serv_res.pending_balance_rf,
+    return (serv_res.pending_balance_rf,
             summ_at_1.at_1_summ if summ_at_1 else 0, summ_at_2.at_2_summ if summ_at_2 else 0,
             summ_client.client_summ if summ_client else 0)
 
@@ -2147,9 +2146,7 @@ def helper_refill_transaction(amount: int, status: int, promo_info: str, transac
             """ if not only_promo else \
         f"""INSERT into public.user_transactions (type, status, amount, transaction_type, promo_info, user_id, sa_id, bill_path, created_at)
                 VALUES(True, {status}, {amount}, '{transaction_type}', '{promo_info}', {user_id}, {sa_id}, '{bill_path}', '{created_at}');
-                UPDATE public.users SET balance=balance + {amount} WHERE public.users.id = {user_id};
-                UPDATE public.server_params SET balance=balance + {amount};
-            """
+                UPDATE public.users SET balance=balance + {amount} WHERE public.users.id = {user_id};"""
     try:
         db.session.execute(text(query))
         db.session.commit()
@@ -2252,8 +2249,7 @@ def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: in
         case TransactionStatuses.success.value:
             if operation_type:
                 sp_query = f"""UPDATE public.server_params SET pending_balance_rf=pending_balance_rf - 
-                       {amount},
-                       balance=balance + {amount};"""
+                       {amount};"""
                 u_query = f"""UPDATE public.users SET pending_balance_rf=
                       pending_balance_rf -  
                       {amount}, balance=balance + {amount} WHERE id={u_id};"""
@@ -3030,18 +3026,13 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
                 db.session.commit()
 
         if total_amount:
-            update_server_balance_stmt = f"""UPDATE public.server_params set balance=balance-{total_amount} RETURNING balance;"""
-            server_balance = db.session.execute(text(update_server_balance_stmt)).fetchone().balance
-
-            db.session.commit()
-
-            return 1, server_balance
+            return 1, 'Orders were successfully written off'
         else:
-            return 0, 0
+            return 0, 'No orders to write off'
     except Exception as e:
         logger.exception(f"An error occured during transaction write off perform: {str(e)}")
         db.session.rollback()
-        return 0, 0
+        return 0, 'Database update error'
 
 
 def helper_get_user_at2(user: User) -> bool:
