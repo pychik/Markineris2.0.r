@@ -19,6 +19,16 @@ class Setting(BaseSettings):
     ALLOWED_BILL_EXTENSIONS: tuple = ('png', 'jpg', 'jpeg', 'pdf',)
 
     BOT_API_TOKEN: SecretStr = Field(..., alias="VERIFY_NOTIFICATION_BOT_API_TOKEN")
+    TELEGRAM_PROXY: str | None = None
+    TELEGRAM_REQUEST_TIMEOUT_SEC: float = 90.0
+    TELEGRAM_POLLING_TIMEOUT_SEC: int = 30
+    TELEGRAM_STARTUP_RETRIES: int = 5
+    TELEGRAM_STARTUP_RETRY_DELAY_SEC: float = 3.0
+    TELEGRAM_BACKOFF_MIN_DELAY_SEC: float = 1.0
+    TELEGRAM_BACKOFF_MAX_DELAY_SEC: float = 30.0
+    TELEGRAM_BACKOFF_FACTOR: float = 1.5
+    TELEGRAM_BACKOFF_JITTER: float = 0.2
+    TELEGRAM_DROP_PENDING_UPDATES_ON_STARTUP: bool = True
 
     REDIS_HOST: str
     REDIS_PORT: int

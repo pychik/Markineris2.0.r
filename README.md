@@ -13,6 +13,43 @@ make help
 ### Виртуальное окружение и переменные среды 
 - <h4>Переименуй .env.example в .env и заполни переменные своими значениями</h4>
 
+### Telegram через proxy (если есть таймауты из РФ)
+- Основная переменная: TELEGRAM_PROXY
+- Поддерживаемый формат:
+```dotenv
+TELEGRAM_PROXY=http://login:password@proxy-host:port
+```
+- Пример дополнительных настроек устойчивости:
+```dotenv
+TELEGRAM_CONNECT_TIMEOUT_SEC=25
+TELEGRAM_READ_TIMEOUT_SEC=60
+TELEGRAM_SEND_RETRIES=3
+TELEGRAM_RETRY_BACKOFF_SEC=2.0
+TELEGRAM_RETRY_BACKOFF_FACTOR=1.7
+TELEGRAM_RETRY_MAX_DELAY_SEC=20.0
+```
+- Для bot_notifications можно отдельно регулировать polling/startup:
+```dotenv
+TELEGRAM_REQUEST_TIMEOUT_SEC=90
+TELEGRAM_POLLING_TIMEOUT_SEC=30
+TELEGRAM_STARTUP_RETRIES=5
+TELEGRAM_STARTUP_RETRY_DELAY_SEC=3.0
+TELEGRAM_BACKOFF_MIN_DELAY_SEC=1.0
+TELEGRAM_BACKOFF_MAX_DELAY_SEC=30.0
+TELEGRAM_BACKOFF_FACTOR=1.5
+TELEGRAM_BACKOFF_JITTER=0.2
+TELEGRAM_DROP_PENDING_UPDATES_ON_STARTUP=true
+```
+- Проверка подключения из контейнера flask_app:
+```shell
+docker exec flask_app python -c "from telebot import apihelper; print('proxy=', apihelper.proxy, 'connect=', apihelper.CONNECT_TIMEOUT, 'read=', apihelper.READ_TIMEOUT)"
+docker exec flask_app curl -I --max-time 20 https://api.telegram.org
+```
+- Проверка подключения из контейнера bot_notification:
+```shell
+docker exec bot_notification curl -I --max-time 20 https://api.telegram.org
+```
+
 ### Запуск elk
 - Для формирования секретных ключей и сертификатов elk
 ```shell
