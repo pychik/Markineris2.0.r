@@ -1337,7 +1337,6 @@ def h_bck_user_delete(u_id: int) -> Response:
         user.promos = []
         db.session.delete(user)
         db.session.commit()
-        db.session.commit()
 
         message = f"{settings.Messages.DELETE_USER} {user.login_name}"
         status = 'success'
