@@ -753,8 +753,13 @@ function get_genders(url, csrf, subcategory, preferGender) {
 
     const cl_type = (typeEl.value || '').trim();
 
-    // если подкатегория не требует пола — сразу выключаем селект и выходим
-    if (!['', 'common', 'underwear', null, 'None'].includes(subcategory)) {
+    const needsDynamicGender = ['', 'common', 'underwear', null, 'None'].includes(subcategory);
+
+    // для подкатегорий со статичным набором полов просто применяем сохранённое значение
+    if (!needsDynamicGender) {
+        if (preferGender) {
+            applyPreferredGender(preferGender);
+        }
         return;
     }
 
