@@ -505,7 +505,12 @@ def h_update_product_card(crm_: bool = False):
         db.session.rollback()
         return jsonify(status="error", message=str(e))
 
-    return jsonify(status="success", message="Карточка обновлена")
+    return jsonify(
+        status="success",
+        message="Карточка обновлена",
+        card_id=card.id,
+        article_or_trademark=new_identity,
+    )
 
 
 def h_get_created_cards():

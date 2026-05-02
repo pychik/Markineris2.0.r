@@ -213,18 +213,28 @@ function product_card_submit(category = null) {
 
                 // Редирект на список карточек
                 if (CRM_FLAG) {
+                    const crmUpdatePayload = {
+                        type: "pc_card_updated",
+                        card_id: data.card_id,
+                        article_or_trademark: data.article_or_trademark || ""
+                    };
 
-                    // 1️⃣ Обновить CRM вкладку
-                    if (window.opener) {
-                        window.opener.location.reload();
+                    // 1) Синхронизация между вкладками того же origin
+                    try {
+                        localStorage.setItem("pc_card_updated_event", JSON.stringify({
+                            ...crmUpdatePayload,
+                            ts: Date.now()
+                        }));
+                    } catch (e) {
+                        console.warn("pc_card_updated_event localStorage failed", e);
                     }
 
-                    // 2️⃣ Пытаемся закрыть текущую
+                    // 2) Пытаемся закрыть текущую
                     setTimeout(() => {
                         window.close();
                     }, 800);
 
-                    // 3️⃣ Fallback — если браузер не дал закрыть
+                    // 3) Fallback — если браузер не дал закрыть
                     setTimeout(() => {
                         window.location.href = CRM_REDIRECT_URL;
                     }, 1000);

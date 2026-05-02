@@ -76,3 +76,46 @@
   width: 150px;       /* фиксированная ширина */
   min-width: 150px;
 }
+
+
+.order.order--card-updated,
+.order.order--card-updated:hover,
+.order.order--card-updated.active {
+  border: 2px solid rgba(255, 193, 7, 0.72);
+  animation: pc-card-updated-glow 2.3s ease-out 1;
+}
+
+@keyframes pc-card-updated-glow {
+  0% {
+    border-color: rgba(255, 193, 7, 0.14);
+    box-shadow:
+      inset 0 0 0 0 rgba(255, 193, 7, 0),
+      inset 0 0 0 0 rgba(255, 193, 7, 0),
+      inset 0 0 0 0 rgba(255, 193, 7, 0),
+      inset 0 0 0 0 rgba(255, 193, 7, 0);
+  }
+  24% {
+    border-color: rgba(255, 193, 7, 0.88);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 193, 7, 0.82),
+      inset 0 0 10px rgba(255, 193, 7, 0.24),
+      inset 0 0 20px rgba(255, 193, 7, 0.14),
+      inset 0 0 34px rgba(255, 193, 7, 0.08);
+  }
+  62% {
+    border-color: rgba(255, 193, 7, 0.46);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 193, 7, 0.34),
+      inset 0 0 8px rgba(255, 193, 7, 0.12),
+      inset 0 0 16px rgba(255, 193, 7, 0.06),
+      inset 0 0 26px rgba(255, 193, 7, 0.03);
+  }
+  100% {
+    border-color: transparent;
+    box-shadow:
+      inset 0 0 0 0 rgba(255, 193, 7, 0),
+      inset 0 0 0 0 rgba(255, 193, 7, 0),
+      inset 0 0 0 0 rgba(255, 193, 7, 0),
+      inset 0 0 0 0 rgba(255, 193, 7, 0);
+  }
+}

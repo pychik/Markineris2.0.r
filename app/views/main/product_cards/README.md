@@ -117,6 +117,34 @@
 
 Изменение `article` для вещевых категорий и `trademark` для parfum пишется в `card_log`.
 
+### Возврат в CRM после редактирования
+
+- CRM-редактирование открывается в отдельной вкладке по ссылке `crm_card_edit`.
+- После успешного `crm_update_product_card` backend возвращает:
+  - `card_id`
+  - `article_or_trademark`
+- Полный reload CRM-доски после редактирования больше не используется.
+- Вместо этого вкладка редактирования пишет короткое событие в `localStorage` по ключу:
+  - `pc_card_updated_event`
+- Payload события:
+  - `type='pc_card_updated'`
+  - `card_id`
+  - `article_or_trademark`
+  - `ts`
+- CRM-вкладки того же origin ловят `storage`-событие в [cards.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/crm/js/cards.js) и точечно обновляют только карточку с DOM-id:
+  - `cardCommonBlock_<card_id>`
+- Если нужной карточки в текущей колонке или вкладке нет, событие просто игнорируется без ошибки.
+- Важно: `storage` приходит в другие вкладки, а не в ту, которая делает `setItem`. Для этого сценария это корректно.
+- Ключ `pc_card_updated_event` не является накопительным журналом: каждое новое сохранение просто перезаписывает последнее значение.
+- Для копирования обновленного значения в CRM-шаблоне используется span с маркером:
+  - `data-pc-article-value="1"`
+- Если меняется логика межвкладочной синхронизации, надо проверять сразу:
+  - [handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/handlers.py)
+  - [common.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/users/common.js)
+  - [cards.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/crm/js/cards.js)
+  - [card_bottom_info_common.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/templates/product_cards/crm/helpers/card_bottom_info_common.html)
+
+
 ## Где завязана уникальность товара
 
 Если меняется правило "что считать тем же товаром", надо проверять сразу несколько мест:

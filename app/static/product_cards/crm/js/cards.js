@@ -44,6 +44,43 @@ function pcGetAssignManagerUrl(cardId) {
   return pcUrlFromTemplate(tpl, cardId);
 }
 
+function pcUpdateCardArticleValue(cardId, articleOrTrademark) {
+  if (!cardId) return;
+  const cardEl = document.getElementById(`cardCommonBlock_${cardId}`);
+  if (!cardEl) return;
+
+  const articleEl = cardEl.querySelector("[data-pc-article-value]");
+  if (!articleEl) return;
+
+  const value = String(articleOrTrademark || "").trim() || "-";
+  articleEl.textContent = value;
+  articleEl.dataset.copy = value;
+
+  cardEl.classList.remove("order--card-updated");
+  void cardEl.offsetWidth;
+  cardEl.classList.add("order--card-updated");
+
+  window.clearTimeout(cardEl.__pcUpdatedFxTimer);
+  cardEl.__pcUpdatedFxTimer = window.setTimeout(() => {
+    cardEl.classList.remove("order--card-updated");
+  }, 2400);
+}
+
+function pcApplyExternalCardUpdate(data) {
+  if (!data || data.type !== "pc_card_updated") return;
+  pcUpdateCardArticleValue(data.card_id, data.article_or_trademark);
+}
+
+window.addEventListener("storage", (event) => {
+  if (event.key !== "pc_card_updated_event" || !event.newValue) return;
+
+  try {
+    pcApplyExternalCardUpdate(JSON.parse(event.newValue));
+  } catch (e) {
+    console.warn("pc_card_updated_event parse failed", e);
+  }
+});
+
 /* =========================
    ANIMATION
 ========================= */
