@@ -6,6 +6,7 @@ from sqlalchemy import create_engine, MetaData
 from sqlalchemy import delete, select, and_, or_
 from sqlalchemy.orm import sessionmaker
 
+from redis_queue.connection import conn
 from config import settings
 from logger import logger
 from models import db, RestoreLink, OrderFile, Order, OrderMessage, OrderMessageAttachment
@@ -236,3 +237,33 @@ def write_table_data(session, f, table):
         values = ', '.join(values_list)
         insert_stmt = f"INSERT INTO {table.name} ({columns}) VALUES ({values});\n"
         f.write(insert_stmt)
+
+
+def sync_tezaurus_cache() -> dict[str, object]:
+    if not settings.TEZAURUS_SYNC_ENABLED:
+        return {
+            "ok": True,
+            "skipped": True,
+            "reason": "disabled_by_config",
+        }
+
+    if not settings.TEZAURUS_BASE_URL or not settings.TEZAURUS_API_TOKEN:
+        logger.warning("Tezaurus sync skipped: TEZAURUS_BASE_URL or TEZAURUS_API_TOKEN is not configured")
+        return {
+            "ok": False,
+            "skipped": True,
+            "reason": "missing_tezaurus_config",
+        }
+
+    try:
+        from tezaurus.sync_service import build_default_tezaurus_sync_service
+
+        sync_service = build_default_tezaurus_sync_service(redis_client=conn)
+        return sync_service.sync()
+    except Exception:
+        logger.exception("Tezaurus sync task failed")
+        return {
+            "ok": False,
+            "skipped": False,
+            "reason": "unexpected_sync_error",
+        }

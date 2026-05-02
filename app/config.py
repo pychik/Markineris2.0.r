@@ -35,6 +35,10 @@ from utilities.param_lists import (SHOE_GENDERS, SHOE_MATERIALS_UP_LINEN, SHOE_M
 CUR_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
+def _env_flag(name: str, default: str = "0") -> bool:
+    return os.getenv(name, default).strip().lower() not in {"0", "false", "no", "off"}
+
+
 class Settings(BaseSettings):
     LOG_PATH: str = Path('/var/log/flask-app/').resolve().as_posix()
     LOG_FORMAT: str = '{time} | [{level}] | {name}::{function}: line {line} | {message}'
@@ -168,6 +172,14 @@ class Settings(BaseSettings):
     REDIS_HOST: str = os.getenv('REDIS_HOST', 'localhost')
     REDIS_PORT: int = os.getenv('REDIS_PORT', 6379)
     REDIS_TG_NOTIFY_DB_NUMBER: int = os.getenv('REDIS_BOT_STORAGE_DB', 5)
+    TEZAURUS_BASE_URL: str = os.getenv('TEZAURUS_BASE_URL', '')
+    TEZAURUS_API_TOKEN: str = os.getenv('TEZAURUS_API_TOKEN', '')
+    TEZAURUS_TIMEOUT: float = float(os.getenv('TEZAURUS_TIMEOUT', '30'))
+    TEZAURUS_VERIFY_SSL: bool = _env_flag('TEZAURUS_VERIFY_SSL', '1')
+    TEZAURUS_CA_CERT: str = os.getenv('TEZAURUS_CA_CERT', '')
+    TEZAURUS_REDIS_PREFIX: str = os.getenv('TEZAURUS_REDIS_PREFIX', 'tezaurus:v1')
+    TEZAURUS_SYNC_CRON: str = os.getenv('TEZAURUS_SYNC_CRON', '*/5 * * * *')
+    TEZAURUS_SYNC_ENABLED: bool = _env_flag('TEZAURUS_SYNC_ENABLED', '1')
     QUEUES: list = ['default']
     REPORT_EXCEL_FILENAME: str = f"{CUR_PATH}/"
     SHEET_NAME_2: str = "Доп. информация"
