@@ -7,7 +7,7 @@ from config import settings
 from redis_queue.callbacks import on_success_periodic_task, on_failure_periodic_task
 from redis_queue.connection import conn
 from redis_queue.tasks import (daily_tasks, delete_order_files_from_server, delete_restore_link_periodic_task,
-                               backup_database)
+                               backup_database, sync_tezaurus_cache)
 from views.crm.helpers import helpers_crm_mpo_so_task, helper_auto_problem_cancel_order
 
 warnings.filterwarnings("ignore")
@@ -88,6 +88,13 @@ scheduler_dynamic.cron(
     queue_name=settings.RQ_DYNSCHEDULER_QUEUE_NAME
 )
 
+scheduler.cron(
+    settings.TEZAURUS_SYNC_CRON,
+    func=sync_tezaurus_cache,
+    on_success=on_success_periodic_task,
+    on_failure=on_failure_periodic_task,
+    queue_name=settings.RQ_SCHEDULER_QUEUE_NAME,
+)
 
 if __name__ == '__main__':
     scheduler.run()
