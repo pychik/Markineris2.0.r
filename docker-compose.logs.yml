@@ -1,5 +1,11 @@
 version: '3.8'
 
+x-logging-default: &logging-default
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 networks:
   elk_shared_network:
     external: true
@@ -13,6 +19,9 @@ services:
     restart: always
     command: -e --strict.perms=false
     user: root
+    depends_on:
+      logstash:
+        condition: service_healthy
     environment:
       ELASTIC_USERNAME: ${ELASTIC_USERNAME}
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
@@ -27,3 +36,4 @@ services:
       - /var/log/flask-app/:/var/log/flask-app/:ro
     networks:
       - elk_shared_network
+    logging: *logging-default

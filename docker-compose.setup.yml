@@ -1,5 +1,11 @@
 version: '3.8'
 
+x-logging-default: &logging-default
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   keystore:
     image: elasticsearch:${ELK_VERSION}
@@ -14,6 +20,7 @@ services:
         - ./elk/setup/:/setup/
     environment:
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+    logging: *logging-default
 
   certs:
     image: elasticsearch:${ELK_VERSION}
@@ -26,3 +33,4 @@ services:
     volumes:
       - ./elk/secrets:/secrets
       - ./elk/setup/:/setup
+    logging: *logging-default
