@@ -18,7 +18,7 @@ else
 endif
 
 # --------------------------
-.PHONY: flask-local-run maintenance-on maintenance-off service-logs service-start service-stop flask-up flask-down set-vm elk-setup elk-up collect-logs elk-down elk-stop elk-restart elk-rm elk-logs elk-images elk-prune ps minio-up minio-down run-static-synchronize help
+.PHONY: flask-local-run maintenance-on maintenance-off service-logs service-start service-stop flask-up flask-down set-vm elk elk-setup elk-up collect-logs elk-down elk-stop elk-restart elk-rm elk-logs elk-images elk-prune ps minio-up minio-down run-static-synchronize help
 
 
 up-all:				## Запуск всего сервиса и elk-stack.
@@ -76,6 +76,13 @@ flask-down:						## Остановка контейнера Flask app.
 
 set-vm:							## Установка максиального объема памяти виртуальной машины для корректного запуска ELK Stack.
 	sudo sysctl -w vm.max_map_count=262144
+
+
+elk:							## Полный запуск ELK одной командой строго поочередно: elk-down -> elk-setup -> elk-up -> collect-logs.
+	@$(MAKE) elk-down
+	@$(MAKE) elk-setup
+	@$(MAKE) elk-up
+	@$(MAKE) collect-logs
 
 
 keystore:
