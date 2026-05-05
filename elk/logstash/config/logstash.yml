@@ -1,5 +1,9 @@
 http.host: "0.0.0.0"
 
+queue.type: persisted
+queue.max_bytes: 512mb
+dead_letter_queue.enable: true
+
 xpack.monitoring.elasticsearch.hosts: ${ELASTICSEARCH_HOST_PORT}
 xpack.monitoring.enabled: true
 xpack.monitoring.elasticsearch.username: ${ELASTIC_USERNAME}

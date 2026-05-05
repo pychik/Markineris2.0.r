@@ -1,5 +1,11 @@
 version: '3.8'
 
+x-logging-default: &logging-default
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 networks:
   elk_shared_network:
     name: elk_shared_network
@@ -7,6 +13,7 @@ networks:
 
 volumes:
   elasticsearch-data:
+  logstash-data:
 
 secrets:
   elasticsearch.keystore:
@@ -79,6 +86,7 @@ services:
       test: ["CMD", "sh", "-c", "curl -sf --insecure https://$ELASTIC_USERNAME:$ELASTIC_PASSWORD@localhost:$ELASTICSEARCH_PORT/_cat/health | grep -ioE 'green|yellow' || echo 'not green/yellow cluster status'"]
       timeout: 5s
       retries: 5
+    logging: *logging-default
 
   ilm-setup:
     image: curlimages/curl
@@ -94,6 +102,7 @@ services:
     command: sh /init-ilm.sh
     networks:
       - elk_shared_network
+    logging: *logging-default
 
   logstash:
     image: logstash:${ELK_VERSION}
@@ -106,6 +115,7 @@ services:
       - ./elk/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
       - ./elk/logstash/config/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro
       - ./elk/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - logstash-data:/usr/share/logstash/data
       - /var/log/nginx/:/var/log/nginx/:ro
       - /var/log/flask-app/:/var/log/flask-app/:ro
     secrets:
@@ -124,6 +134,7 @@ services:
       - elk_shared_network
     healthcheck:
       test: ["CMD", "curl", "-s", "-XGET", "http://127.0.0.1:9600"]
+    logging: *logging-default
 
   kibana:
     image: kibana:${ELK_VERSION}
@@ -153,6 +164,7 @@ services:
         target: /certs/kibana.key
     ports:
       - "${KIBANA_PORT}:${KIBANA_PORT}"
+    logging: *logging-default
 
   apm-server:
     image: elastdocker/apm-server:${ELK_VERSION}
@@ -180,3 +192,4 @@ services:
         target: /certs/apm-server.crt
       - source: apm-server.key
         target: /certs/apm-server.key
+    logging: *logging-default

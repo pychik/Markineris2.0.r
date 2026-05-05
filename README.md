@@ -64,6 +64,34 @@ make elk-up
 make collect-logs
 ```
 
+### Проверка, почему не приходят логи Nginx
+- Проверить, что запущены сервисы приложения и ELK:
+```shell
+make service-up
+make elk-up
+make collect-logs
+```
+- Проверить, что Nginx пишет в файлы на хосте:
+```shell
+ls -lah /var/log/nginx
+tail -n 50 /var/log/nginx/access.log
+tail -n 50 /var/log/nginx/error.log
+```
+- Проверить, что Filebeat и Logstash живы и без ошибок:
+```shell
+docker compose -f docker-compose.elk.yml -f docker-compose.logs.yml ps
+docker compose -f docker-compose.elk.yml -f docker-compose.logs.yml logs --tail=200 filebeat logstash
+```
+
+### Ротация и lifecycle логов
+- ILM для индексов nginx/flask-app создается автоматически контейнером `ilm-setup` (горячая фаза + удаление).
+- Ротация контейнерных логов включена в compose через `json-file` (`max-size=10m`, `max-file=5`).
+- Для ротации файловых логов на хосте (`/var/log/nginx/*.log`, `/var/log/flask-app/*.log`):
+```shell
+make logrotate-install
+make logrotate-check
+```
+
 ### Запуск основного приложения(flask_app) и вспомогательных сервисов(nginx, postgres, redis, rq-dashboard)
 - Запуск сервисов
 ```shell
