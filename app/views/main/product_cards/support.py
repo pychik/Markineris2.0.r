@@ -10,6 +10,7 @@ from typing import Union, Any
 from sqlalchemy import event
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
+from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries
 from werkzeug.datastructures import ImmutableMultiDict
 
 from config import settings
@@ -187,7 +188,8 @@ ALLOWED_CARDS_DELETE_STATUSES = {
 }
 
 
-def helper_clothes_info(subcategory: str | None) -> Union[Response, dict[str, Any]]:
+def helper_clothes_info(subcategory: str | None) -> Union[Response,  dict[str, Any]]:
+
     # Формируем набор глобальных переменных для категории одежда и ее подкатегорий
 
     price_description = settings.PRICE_DESCRIPTION
@@ -200,13 +202,13 @@ def helper_clothes_info(subcategory: str | None) -> Union[Response, dict[str, An
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = settings.COUNTRIES_LIST
-    rd_countries = settings.CLOTHES_COUNTRIES_RD
+    countries = get_all_countries()
+    rd_countries = get_rd_countries(settings.Clothes.CATEGORY_PROCESS)
 
     clothes_content = settings.Clothes.CLOTHES_CONTENT
     clothes_nat_content = settings.Clothes.CLOTHES_NAT_CONTENT
     # colors = settings.Clothes.COLORS
-    colors = settings.ALL_COLORS
+    colors = get_colors()
     genders = settings.Clothes.GENDERS
 
     clothes_size_description = settings.Clothes.CLOTHES_SIZE_DESC
@@ -231,8 +233,8 @@ def helper_shoes_info(subcategory: str | None) -> Union[Response, dict[str, Any]
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = settings.COUNTRIES_LIST
-    rd_countries = settings.CLOTHES_COUNTRIES_RD
+    countries = get_all_countries()
+    rd_countries = get_rd_countries(settings.Shoes.CATEGORY_PROCESS)
     shoe_tnved = settings.Shoes.TNVED_CODE
     shoe_al = settings.Shoes.SHOE_AL
     shoe_ot = settings.Shoes.SHOE_OT
@@ -241,7 +243,7 @@ def helper_shoes_info(subcategory: str | None) -> Union[Response, dict[str, Any]
     shoe_size_description = settings.Shoes.SHOE_SIZE_DESC
 
     # colors = settings.Shoes.COLORS
-    colors = settings.ALL_COLORS
+    colors = get_colors()
     genders = settings.Shoes.GENDERS
     materials_up_linen = settings.Shoes.MATERIALS_UP_LINEN
     materials_bottom = settings.Shoes.MATERIALS_BOTTOM
@@ -253,7 +255,8 @@ def helper_shoes_info(subcategory: str | None) -> Union[Response, dict[str, Any]
     return locals()
 
 
-def helper_socks_info(subcategory: str | None) -> Union[Response, dict[str, Any]]:
+def helper_socks_info(subcategory: str | None) -> Union[Response,  dict[str, Any]]:
+
     price_description = settings.PRICE_DESCRIPTION
     tnved_description = settings.TNVED_DESCRIPTION
     socks_all_tnved = settings.Socks.TNVED_ALL
@@ -265,8 +268,8 @@ def helper_socks_info(subcategory: str | None) -> Union[Response, dict[str, Any]
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = settings.COUNTRIES_LIST
-    rd_countries = settings.CLOTHES_COUNTRIES_RD
+    countries = get_all_countries()
+    rd_countries = get_rd_countries(settings.Socks.CATEGORY_PROCESS)
     socks_content = settings.Socks.CLOTHES_CONTENT
     socks_types_sizes_dict = settings.Socks.SIZE_ALL_DICT
 
@@ -275,7 +278,7 @@ def helper_socks_info(subcategory: str | None) -> Union[Response, dict[str, Any]
 
     types = settings.Socks.TYPES
     # colors = settings.Clothes.COLORS
-    colors = settings.ALL_COLORS
+    colors = get_colors()
     genders = settings.Socks.GENDERS
     subcategory = request.args.get('subcategory', '')
     if subcategory:
@@ -285,6 +288,7 @@ def helper_socks_info(subcategory: str | None) -> Union[Response, dict[str, Any]
 
 
 def helper_linen_info(subcategory: str | None) -> Union[Response, dict[str, Any]]:
+
     category = settings.Linen.CATEGORY
     category_process_name = settings.Linen.CATEGORY_PROCESS
 
@@ -298,12 +302,12 @@ def helper_linen_info(subcategory: str | None) -> Union[Response, dict[str, Any]
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = settings.COUNTRIES_LIST
-    rd_countries = settings.CLOTHES_COUNTRIES_RD
+    countries = get_all_countries()
+    rd_countries = get_rd_countries(settings.Linen.CATEGORY_PROCESS)
 
     types = settings.Linen.TYPES_CARDS
     # colors = settings.Linen.COLORS
-    colors = settings.ALL_COLORS
+    colors = get_colors()
     textile_types = settings.Linen.TEXTILE_TYPES
     customer_ages = settings.Linen.CUSTOMER_AGES
     box_quantity_description = settings.Linen.BOX_QUANTITY_DESCRIPTION
@@ -326,8 +330,8 @@ def helper_parfum_info(subcategory: str | None) -> Union[Response, dict[str, Any
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = settings.COUNTRIES_LIST
-    rd_countries = settings.CLOTHES_COUNTRIES_RD
+    countries = get_all_countries()
+    rd_countries = get_rd_countries(settings.Parfum.CATEGORY_PROCESS)
 
     category = settings.Parfum.CATEGORY
     category_process_name = settings.Parfum.CATEGORY_PROCESS

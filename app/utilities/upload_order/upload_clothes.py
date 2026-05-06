@@ -7,6 +7,7 @@ from typing import Optional, Union
 
 from config import settings
 from logger import logger
+from tezaurus.runtime_catalogs import is_allowed_color, is_allowed_country
 from utilities.categories_data.accessories_data import HATS_TYPES, GLOVES_TYPES, SHAWLS_TYPES
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TYPES
@@ -89,7 +90,7 @@ class ValidateClothesMixin:
         color_value = value.upper()
         order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = color_value
         # value is shoe_color
-        if color_value not in settings.ALL_COLORS:
+        if not is_allowed_color(color_value):
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_COLOR_ERROR}"
 
     @staticmethod
@@ -215,8 +216,7 @@ class ValidateClothesMixin:
         """
         country_value = value.upper().strip()
         order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = country_value
-
-        if country_value not in settings.COUNTRIES_LIST:
+        if not is_allowed_country(country_value):
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_COUNTRY_ERROR}"
         # if has_rd:
         #     allowed = settings.COUNTRIES_LIST

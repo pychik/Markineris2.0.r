@@ -5,6 +5,7 @@ from typing import Optional
 
 from config import settings
 from models import ExceptionDataUsers, Order
+from tezaurus.runtime_catalogs import is_allowed_color
 from utilities.categories_data.accessories_data import HATS_TNVEDS, GLOVES_TNVEDS, SHAWLS_TNVEDS
 from utilities.categories_data.clothes_common.clothes_common_tnved_by_gender import CLOTHES_TNVED_DICT
 from utilities.categories_data.clothes_common.types_genders import CLOTHES_TYPE_GENDERS
@@ -281,7 +282,7 @@ class ValidatorProcessor:
 
     @staticmethod
     def check_colors(color: str) -> bool:
-        return color not in settings.ALL_COLORS
+        return not is_allowed_color(color)
 
     @staticmethod
     def validate_aggr_order_completeness(order: Order) -> bool:

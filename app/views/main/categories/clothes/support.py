@@ -4,6 +4,7 @@ from flask import flash, jsonify, render_template, request, Response, redirect, 
 from flask_login import current_user
 from config import settings
 from settings.start import db
+from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries
 from utilities.categories_data.subcategories_data import ClothesSubcategories, Category
 from utilities.categories_data.underwear_data import UNDERWEAR_TYPE_GENDERS
 from utilities.support import helper_get_order_notification, helper_category_common_index
@@ -29,12 +30,12 @@ def helper_clothes_index(o_id: int, p_id: int = None, update_flag: int = None,
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = settings.COUNTRIES_LIST
-    rd_countries = settings.CLOTHES_COUNTRIES_RD
+    countries = get_all_countries()
+    rd_countries = get_rd_countries(settings.Clothes.CATEGORY_PROCESS)
     clothes_content = settings.Clothes.CLOTHES_CONTENT
     clothes_nat_content = settings.Clothes.CLOTHES_NAT_CONTENT
     # colors = settings.Clothes.COLORS
-    colors = settings.ALL_COLORS
+    colors = get_colors()
     genders = settings.Clothes.GENDERS
 
     clothes_size_description = settings.Clothes.CLOTHES_SIZE_DESC

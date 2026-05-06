@@ -15,11 +15,27 @@
 
 - реализовано: синхронизация, сохранение в Redis и read API из кэша
 - реализовано: периодическая задача планировщика для обновления кэша
-- пока не реализовано: замена существующих источников данных TNVED/colors/countries в UI и бизнес-логике Marka Service
+- реализовано: переключение цветов и стран Markineris на чтение из Redis-кэша Tezaurus
+- пока не реализовано: полная замена существующих источников TNVED в UI и бизнес-логике Markineris
 
-## Планируемый охват
+## Что уже переведено на Redis
 
-Модуль специально подготовлен для ближайшей интеграции. Позже места в Marka Service, где сейчас читаются TNVED/colors/countries, будут переключены на использование `TezaurusCacheService`.
+Для цветов и стран в основном приложении `app/` прямое чтение из `settings.ALL_COLORS` и `settings.COUNTRIES_LIST` в рабочих сценариях заменено на слой `runtime_catalogs.py`.
+
+Сейчас через Redis-кэш Tezaurus идут:
+
+- обычные пользовательские формы категорий;
+- формы одежды;
+- карточки товаров;
+- серверная валидация цветов;
+- серверная проверка стран с учетом РД;
+- Excel upload-валидация для основных upload-потоков;
+- legacy `bp` upload-валидаторы.
+
+## Что еще не переведено
+
+- TNVED-справочники все еще читаются из старых источников и локальных структур;
+- fallback на старые `settings` оставлен в `runtime_catalogs.py`, если Redis пустой или недоступен.
 
 ## Структура модуля
 
@@ -27,6 +43,7 @@
 - `redis_repository.py` - хранение JSON в Redis и управление ключами
 - `sync_service.py` - оркестрация синхронизации по ревизиям с fallback-поведением
 - `cache_service.py` - read API для цветов, стран и TNVED из Redis
+- `runtime_catalogs.py` - runtime-адаптер для Markineris с fallback на старые `settings`
 - `key_builder.py` - нормализация ключей и алиасы для категорий/подкатегорий
 - `exceptions.py` - исключения модуля
 
@@ -75,6 +92,8 @@
 
 ## Использование во время выполнения
 
+Низкоуровневый доступ к кэшу:
+
 ```python
 from tezaurus.cache_service import TezaurusCacheService
 
@@ -112,6 +131,31 @@ tnved_codes = service.get_tnved(
     gender="Женский",
 )
 ```
+
+Рекомендуемый runtime-слой для основного приложения:
+
+```python
+from tezaurus.runtime_catalogs import (
+    get_all_countries,
+    get_colors,
+    get_rd_countries,
+    is_allowed_color,
+    is_allowed_country,
+)
+
+colors = get_colors()
+countries = get_all_countries()
+clothes_rd_countries = get_rd_countries("clothes")
+
+is_valid_color = is_allowed_color("ЧЕРНЫЙ")
+is_valid_country = is_allowed_country("РОССИЯ")
+```
+
+`runtime_catalogs.py` сейчас используется как единая точка доступа для цветов и стран в `app/`, чтобы:
+
+- не размазывать прямую работу с Redis по бизнес-логике;
+- держать единый fallback на старые `settings`;
+- централизованно нормализовать значения к верхнему регистру.
 
 Алиасы фильтров нормализуются для совместимости с реальными значениями payload:
 
