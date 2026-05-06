@@ -310,9 +310,6 @@ class ValidatorProcessor:
         diff = all_size_ids - used_size_ids
 
         return not diff
-    @staticmethod
-    def check_colors(color: str) -> bool:
-        return color not in settings.ALL_COLORS
 
 
 def validate_and_build_contact_info(contact_type_raw: Optional[str],
