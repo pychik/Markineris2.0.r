@@ -22,6 +22,8 @@ TNVED_SUBCATEGORY_ALIASES = {
 COUNTRIES_CATEGORY_ALIASES = {
     "clothes": "clothes",
     "одежда": "clothes",
+    "socks": "clothes",
+    "носки": "clothes",
     "shoes": "shoes",
     "обувь": "shoes",
     "linen": "linen",

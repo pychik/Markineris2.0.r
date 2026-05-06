@@ -29,8 +29,7 @@
 - карточки товаров;
 - серверная валидация цветов;
 - серверная проверка стран с учетом РД;
-- Excel upload-валидация для основных upload-потоков;
-- legacy `bp` upload-валидаторы.
+- Excel upload-валидация для основных upload-потоков.
 
 ## Что еще не переведено
 
@@ -109,6 +108,7 @@ countries_our_rd = service.get_countries(our_rd=True)
 
 # только одна категория our_rd
 countries_our_clothes = service.get_countries(category="clothes", our_rd=True)
+countries_our_socks = service.get_countries(category="socks", our_rd=True)
 
 # полный payload категории tnved
 tnved_clothes = service.get_tnved(category="clothes")
@@ -146,6 +146,7 @@ from tezaurus.runtime_catalogs import (
 colors = get_colors()
 countries = get_all_countries()
 clothes_rd_countries = get_rd_countries("clothes")
+socks_rd_countries = get_rd_countries("socks")
 
 is_valid_color = is_allowed_color("ЧЕРНЫЙ")
 is_valid_country = is_allowed_country("РОССИЯ")
@@ -159,7 +160,7 @@ is_valid_country = is_allowed_country("РОССИЯ")
 
 Алиасы фильтров нормализуются для совместимости с реальными значениями payload:
 
-- countries category: `одежда -> clothes`, `обувь -> shoes`, `белье -> linen`, `парфюм -> parfum`
+- countries category: `одежда -> clothes`, `носки -> clothes`, `обувь -> shoes`, `белье -> linen`, `парфюм -> parfum`
 - tnved gender: `Жен.`, `Женский` -> `female`; `Муж.`, `Мужской` -> `male`; `Без указания пола`, `унисекс` -> `no_gender`
 
 ## Интеграция с планировщиком
