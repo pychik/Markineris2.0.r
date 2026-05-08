@@ -5,13 +5,14 @@ from typing import Optional
 
 from config import settings
 from models import ExceptionDataUsers, Order
-from tezaurus.runtime_catalogs import is_allowed_color
+from tezaurus.runtime_catalogs import (
+    get_clothes_tnved_codes,
+    is_allowed_color,
+)
 from utilities.categories_data.accessories_data import HATS_TNVEDS, GLOVES_TNVEDS, SHAWLS_TNVEDS
-from utilities.categories_data.clothes_common.clothes_common_tnved_by_gender import CLOTHES_TNVED_DICT
-from utilities.categories_data.clothes_common.types_genders import CLOTHES_TYPE_GENDERS
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVEDS
-from utilities.categories_data.underwear_data import UNDERWEAR_TNVEDS, UNDERWEAR_TYPE_GENDERS, UNDERWEAR_TNVED_DICT
+from utilities.categories_data.underwear_data import UNDERWEAR_TNVEDS
 
 ALLOWED_MARK_TYPES_FULL = (
     "11 макет 58*40",
@@ -160,20 +161,12 @@ class ValidatorProcessor:
         clothes_type = form.get('type')
         gender = form.get('gender')
 
-        # если чего-то базового нет — сразу считаем ошибкой
         if not (clothes_type and gender and tnved_str):
             return True
 
-        # безопасно достаем допустимые гендеры
-        correct_genders = CLOTHES_TYPE_GENDERS.get(clothes_type) or ()
-        if gender not in correct_genders:
+        correct_tnveds = get_clothes_tnved_codes(ClothesSubcategories.common.value, clothes_type, gender)
+        if not correct_tnveds:
             return True
-
-        # безопасно достаем TNVED по типу и гендеру
-        type_tnveds = CLOTHES_TNVED_DICT.get(clothes_type) or {}
-
-        tnved_entry = type_tnveds.get(gender) or ([],)
-        correct_tnveds = tnved_entry[0] or []
 
         return tnved_str not in correct_tnveds
 
@@ -211,19 +204,12 @@ class ValidatorProcessor:
         clothes_type = form.get('type')
         gender = form.get('gender')
 
-        # если чего-то базового нет — сразу считаем ошибкой
         if not (clothes_type and gender and tnved_str):
             return True
 
-        # безопасно достаем допустимые гендеры
-        correct_genders = UNDERWEAR_TYPE_GENDERS.get(clothes_type) or ()
-        if gender not in correct_genders:
+        correct_tnveds = get_clothes_tnved_codes(ClothesSubcategories.underwear.value, clothes_type, gender)
+        if not correct_tnveds:
             return True
-
-        # безопасно достаем TNVED по типу и гендеру
-        type_tnveds = UNDERWEAR_TNVED_DICT.get(clothes_type) or {}
-        tnved_entry = type_tnveds.get(gender) or ([],)
-        correct_tnveds = tnved_entry[0] or []
 
         return tnved_str not in correct_tnveds
 

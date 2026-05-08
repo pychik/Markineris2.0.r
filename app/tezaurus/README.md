@@ -29,7 +29,8 @@
 - карточки товаров;
 - серверная валидация цветов;
 - серверная проверка стран с учетом РД;
-- Excel upload-валидация для основных upload-потоков.
+- Excel upload-валидация для основных upload-потоков;
+- legacy `bp` upload-валидаторы.
 
 ## Что еще не переведено
 
@@ -91,6 +92,44 @@
 
 ## Использование во время выполнения
 
+## Как теперь забирается информация
+
+Во время работы `Markineris` больше не должен напрямую ходить в API `Tezaurus` из пользовательских сценариев.
+
+Текущая цепочка такая:
+
+1. Фоновая задача `sync_tezaurus_cache` периодически вызывает `TezaurusSyncService.sync()`.
+2. `sync_service.py` сравнивает ревизии словарей в API `Tezaurus` и в Redis.
+3. Если ревизия изменилась, `redis_repository.py` пересохраняет свежие JSON-снимки и фильтрованные ключи.
+4. Рабочий код основного приложения читает данные только из Redis через `TezaurusCacheService`.
+5. Бизнес-логика `app/` использует не `cache_service.py` напрямую, а `runtime_catalogs.py`.
+6. Если Redis пустой, недоступен или в нем нет нужного фильтра, `runtime_catalogs.py` делает fallback на старые локальные `settings` и Python-структуры.
+
+То есть фактический runtime-путь сейчас такой:
+
+`Tezaurus API -> sync_service.py -> Redis -> cache_service.py -> runtime_catalogs.py -> формы / upload / validators / views`
+
+Для одежды это работает так:
+
+- список типов для `common` и `underwear` читается через `get_clothes_tnved_types()`;
+- список полов для выбранного типа читается через `get_clothes_tnved_genders()`;
+- список кодов ТН ВЭД для пары `тип + пол` читается через `get_clothes_tnved_codes()` или `get_clothes_tnved_pairs()`;
+- полный список кодов по подкатегории читается через `get_clothes_all_tnved()`.
+
+Эти вызовы уже используются в рабочих местах:
+
+- `app/utilities/upload_order/upload_clothes.py`
+- `app/utilities/validators.py`
+- `app/utilities/check_tnved.py`
+- `app/views/main/categories/clothes/subcategories.py`
+- `app/views/main/categories/clothes/support.py`
+
+Важно:
+
+- для `common` и `underwear` приоритетным источником считается Redis-кэш `Tezaurus`;
+- для `swimming_accessories`, `hats`, `gloves`, `shawls` пока продолжают использоваться локальные Python-словарики;
+- fallback на старые структуры оставлен специально, чтобы приложение не падало при пустом Redis или неполной синхронизации.
+
 Низкоуровневый доступ к кэшу:
 
 ```python
@@ -108,7 +147,6 @@ countries_our_rd = service.get_countries(our_rd=True)
 
 # только одна категория our_rd
 countries_our_clothes = service.get_countries(category="clothes", our_rd=True)
-countries_our_socks = service.get_countries(category="socks", our_rd=True)
 
 # полный payload категории tnved
 tnved_clothes = service.get_tnved(category="clothes")
@@ -146,7 +184,6 @@ from tezaurus.runtime_catalogs import (
 colors = get_colors()
 countries = get_all_countries()
 clothes_rd_countries = get_rd_countries("clothes")
-socks_rd_countries = get_rd_countries("socks")
 
 is_valid_color = is_allowed_color("ЧЕРНЫЙ")
 is_valid_country = is_allowed_country("РОССИЯ")
@@ -160,7 +197,7 @@ is_valid_country = is_allowed_country("РОССИЯ")
 
 Алиасы фильтров нормализуются для совместимости с реальными значениями payload:
 
-- countries category: `одежда -> clothes`, `носки -> clothes`, `обувь -> shoes`, `белье -> linen`, `парфюм -> parfum`
+- countries category: `одежда -> clothes`, `обувь -> shoes`, `белье -> linen`, `парфюм -> parfum`
 - tnved gender: `Жен.`, `Женский` -> `female`; `Муж.`, `Мужской` -> `male`; `Без указания пола`, `унисекс` -> `no_gender`
 
 ## Интеграция с планировщиком

@@ -7,7 +7,12 @@ from typing import Optional, Union
 
 from config import settings
 from logger import logger
-from tezaurus.runtime_catalogs import is_allowed_color, is_allowed_country
+from tezaurus.runtime_catalogs import (
+    get_clothes_tnved_genders,
+    get_clothes_tnved_types,
+    is_allowed_color,
+    is_allowed_country,
+)
 from utilities.categories_data.accessories_data import HATS_TYPES, GLOVES_TYPES, SHAWLS_TYPES
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TYPES
@@ -66,15 +71,24 @@ class ValidateClothesMixin:
 
         message_ending = ''
 
+        dynamic_subcategories = {
+            ClothesSubcategories.common.value,
+            ClothesSubcategories.underwear.value,
+            "",
+            None,
+        }
         subcategory_types_map = {
-            ClothesSubcategories.underwear.value: UNDERWEAR_TYPES,
+            ClothesSubcategories.underwear.value: get_clothes_tnved_types(ClothesSubcategories.underwear.value),
             ClothesSubcategories.swimming_accessories.value: SWIMMING_ACCESSORIES_TYPES,
             ClothesSubcategories.hats.value: HATS_TYPES,
             ClothesSubcategories.gloves.value: GLOVES_TYPES,
             ClothesSubcategories.shawls.value: SHAWLS_TYPES,
         }
 
-        types_list = subcategory_types_map.get(subcategory, settings.Clothes.TYPES)
+        if subcategory in dynamic_subcategories:
+            types_list = get_clothes_tnved_types(subcategory)
+        else:
+            types_list = subcategory_types_map.get(subcategory, settings.Clothes.TYPES)
 
         if subcategory in subcategory_types_map:
             message_ending = f', подкатегория {subcategory}'
@@ -190,10 +204,10 @@ class ValidateClothesMixin:
 
     @staticmethod
     @empty_value
-    def _gender(value: str, row_num: int, col: str, subcategory: str = None, cl_type: str = None,) -> Optional[str]:
+    def _gender(value: str, row_num: int, col: str, subcategory: str = None, cl_type: str = None, ) -> Optional[str]:
         # value is gender
-        if subcategory in ['common', '', None]:
-            correct_genders = settings.Clothes.CLOTHES_TYPE_GENDERS.get(cl_type.upper(), [])
+        if subcategory in [ClothesSubcategories.common.value, ClothesSubcategories.underwear.value, '', None]:
+            correct_genders = get_clothes_tnved_genders(subcategory, cl_type)
             if value not in correct_genders:
                 return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_GENDER_ERROR} Для {cl_type} есть только {correct_genders}"
         if value not in settings.Clothes.GENDERS:
