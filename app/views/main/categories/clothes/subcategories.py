@@ -1,8 +1,12 @@
 from config import settings
 from models import ClothesSubcategories
+from tezaurus.runtime_catalogs import (
+    get_clothes_all_tnved,
+    get_clothes_tnved_pairs,
+    get_clothes_tnved_types,
+)
 from utilities.categories_data.accessories_data import HATS_TNVED_DICT, HATS_TYPES, HATS_NAME, GLOVES_TNVED_DICT, \
     GLOVES_TYPES, GLOVES_NAME, SHAWLS_TNVED_DICT, SHAWLS_TYPES, SHAWLS_NAME, HATS_TNVEDS, GLOVES_TNVEDS, SHAWLS_TNVEDS
-from utilities.categories_data.clothes_common.tnved_processor import get_tnved_gender_clothes_common
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVED_DICT, \
     SWIMMING_ACCESSORIES_TYPES, SWIMMING_ACCESSORIES_NAME, SWIMMING_ACCESSORIES_TNVEDS
 from views.main.categories.clothes.schemas import SubCategoriesCreds
@@ -30,10 +34,10 @@ class ClothesSubcategoryProcessor:
     def get_creds(self) -> SubCategoriesCreds:
         match self.subcategory:
             case ClothesSubcategories.underwear.value:
-                scc = SubCategoriesCreds(clothes_all_tnved=UNDERWEAR_TNVEDS,
+                scc = SubCategoriesCreds(clothes_all_tnved=get_clothes_all_tnved(self.subcategory),
                                          clothes_sizes=settings.Clothes.SIZES_ALL,
                                          clothes_types_sizes_dict=settings.Clothes.SIZE_ALL_DICT,
-                                         types=UNDERWEAR_TYPES_CARDS if self._is_cards else UNDERWEAR_TYPES,
+                                         types=get_clothes_tnved_types(self.subcategory, is_cards=self._is_cards),
                                          subcategory_name=UNDERWEAR_NAME)
             case ClothesSubcategories.swimming_accessories.value:
                 scc = SubCategoriesCreds(clothes_all_tnved=SWIMMING_ACCESSORIES_TNVEDS,
@@ -62,25 +66,21 @@ class ClothesSubcategoryProcessor:
                                          types=SHAWLS_TYPES,
                                          subcategory_name=SHAWLS_NAME)
             case _:  # case ClothesSubcategories.common.value:
-                scc = SubCategoriesCreds(clothes_all_tnved=settings.Clothes.TNVED_ALL,
+                scc = SubCategoriesCreds(clothes_all_tnved=get_clothes_all_tnved(self.subcategory),
                                          clothes_sizes=settings.Clothes.SIZES_ALL,
                                          clothes_types_sizes_dict=settings.Clothes.SIZE_ALL_DICT,
-                                         types=settings.Clothes.TYPES,
+                                         types=get_clothes_tnved_types(self.subcategory, is_cards=self._is_cards),
                                          subcategory_name='')
         return scc
 
     @staticmethod
     def get_tnveds(subcategory: str = ClothesSubcategories.common.value, cl_type: str = '', cl_gender: str = '') -> tuple | None:
-        # print(f"{subcategory=}, {cl_type=}")
+
         match subcategory:
             case ClothesSubcategories.underwear.value:
-                tnved_dict = UNDERWEAR_TNVED_DICT
-                if cl_type in UNDERWEAR_TYPES:
-                    # tnved_dict = settings.Clothes.CLOTHES_TNVED_DICT
-                    # print(get_tnved_gender_clothes_common(type_name=cl_type, gender=cl_gender))
-                    return get_tnved_gender_clothes_common(type_name=cl_type, gender=cl_gender, data=tnved_dict)
-                else:
+                if cl_type not in get_clothes_tnved_types(subcategory):
                     return
+                return tuple(get_clothes_tnved_pairs(subcategory, cl_type, cl_gender))
             case ClothesSubcategories.swimming_accessories.value:
                 tnved_dict = SWIMMING_ACCESSORIES_TNVED_DICT
             case ClothesSubcategories.hats.value:
@@ -90,10 +90,8 @@ class ClothesSubcategoryProcessor:
             case ClothesSubcategories.shawls.value:
                 tnved_dict = SHAWLS_TNVED_DICT
             case _:  # case ClothesSubcategories.common.value:
-                if cl_type in settings.Clothes.TYPES:
-                    # tnved_dict = settings.Clothes.CLOTHES_TNVED_DICT
-                    # print(get_tnved_gender_clothes_common(type_name=cl_type, gender=cl_gender))
-                    return get_tnved_gender_clothes_common(type_name=cl_type, gender=cl_gender)
-                else:
+                if cl_type not in get_clothes_tnved_types(subcategory):
                     return
+                return tuple(get_clothes_tnved_pairs(subcategory, cl_type, cl_gender))
+
         return tnved_dict.get(cl_type)[1]

@@ -8,6 +8,7 @@ from typing import Optional, Union
 
 from config import settings
 from logger import logger
+from tezaurus.runtime_catalogs import is_allowed_color, is_allowed_country
 from utilities.check_tnved import TnvedChecker
 from utilities.upload_order.upload_common import empty_value, val_error_start, UploadCategory, handle_upload_exceptions, \
     check_article_value
@@ -54,7 +55,7 @@ class ValidateSocksMixin:
         color_value = value.upper()
         order_list[row_num - settings.Socks.UPLOAD_STANDART_ROW][pos] = color_value
         # value is shoe_color
-        if color_value not in settings.ALL_COLORS:
+        if not is_allowed_color(color_value):
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Socks.UPLOAD_COLOR_ERROR}"
 
     @staticmethod
@@ -75,7 +76,6 @@ class ValidateSocksMixin:
             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = 'МЕЖДУНАРОДНЫЙ'
         else:
             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = 'РОССИЯ'
-
 
     @staticmethod
     @empty_value
@@ -142,7 +142,7 @@ class ValidateSocksMixin:
         country_value = value.upper().strip()
         order_list[row_num - settings.Socks.UPLOAD_STANDART_ROW][pos] = country_value
 
-        if country_value not in settings.COUNTRIES_LIST:
+        if not is_allowed_country(country_value):
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Socks.UPLOAD_COUNTRY_ERROR}"
         # if has_rd:
         #     allowed = settings.COUNTRIES_LIST

@@ -4,10 +4,27 @@ from flask import flash, jsonify, render_template, request, Response, redirect, 
 from flask_login import current_user
 from config import settings
 from settings.start import db
+from tezaurus.runtime_catalogs import (
+    get_all_countries,
+    get_clothes_tnved_types,
+    get_clothes_tnved_genders,
+    get_colors,
+    get_rd_countries,
+)
 from utilities.categories_data.subcategories_data import ClothesSubcategories, Category
-from utilities.categories_data.underwear_data import UNDERWEAR_TYPE_GENDERS
 from utilities.support import helper_get_order_notification, helper_category_common_index
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
+
+
+def _allowed_clothes_types(subcategory: str | None) -> list[str]:
+    subcategory_value = subcategory if subcategory not in ("", None, "None") else ClothesSubcategories.common.value
+    dynamic_subcategories = {
+        ClothesSubcategories.common.value,
+        ClothesSubcategories.underwear.value,
+    }
+    if subcategory_value in dynamic_subcategories:
+        return get_clothes_tnved_types(subcategory_value)
+    return settings.Clothes.ALL_TYPES_WITH_SUBCATEGORIES
 
 
 def helper_clothes_index(o_id: int, p_id: int = None, update_flag: int = None,
@@ -29,12 +46,12 @@ def helper_clothes_index(o_id: int, p_id: int = None, update_flag: int = None,
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = settings.COUNTRIES_LIST
-    rd_countries = settings.CLOTHES_COUNTRIES_RD
+    countries = get_all_countries()
+    rd_countries = get_rd_countries(settings.Clothes.CATEGORY_PROCESS)
     clothes_content = settings.Clothes.CLOTHES_CONTENT
     clothes_nat_content = settings.Clothes.CLOTHES_NAT_CONTENT
     # colors = settings.Clothes.COLORS
-    colors = settings.ALL_COLORS
+    colors = get_colors()
     genders = settings.Clothes.GENDERS
 
     clothes_size_description = settings.Clothes.CLOTHES_SIZE_DESC
@@ -64,15 +81,16 @@ def h_bck_clothes_tnved() -> Response:
     status = settings.ERROR
     message = settings.Messages.MANUAL_TNVED_ERROR
     cl_type = request.form.get('cl_type', '').replace('--', '')
+    subcategory = request.args.get('subcategory', ClothesSubcategories.common.value)
     cl_gender = request.form.get('gender', '').replace('--', '')
 
-    if not cl_type or cl_type not in settings.Clothes.ALL_TYPES_WITH_SUBCATEGORIES:
+    if not cl_type or cl_type not in _allowed_clothes_types(subcategory):
         return jsonify(dict(status=status, message=message + settings.Messages.STRANGE_REQUESTS))
 
-    subcategory = request.args.get('subcategory', ClothesSubcategories.common.value)
     # tnved_list: tuple = settings.Clothes.CLOTHES_TNVED_DICT.get(cl_type)[1]
 
     tnved_list = ClothesSubcategoryProcessor.get_tnveds(subcategory=subcategory, cl_type=cl_type, cl_gender=cl_gender)
+
     if not tnved_list:
         return jsonify(dict(status=status, message=message + f" {subcategory=}, {cl_type=}"))
     status = settings.SUCCESS
@@ -92,8 +110,7 @@ def h_bck_clothes_genders():
     # в GET, как в вашем примере
     subcategory = request.args.get('subcategory', ClothesSubcategories.common.value)
 
-    # валидация типа
-    if not cl_type or cl_type not in settings.Clothes.ALL_TYPES_WITH_SUBCATEGORIES:
+    if not cl_type or cl_type not in _allowed_clothes_types(subcategory):
         return jsonify(dict(
             status=status,
             message=message + settings.Messages.STRANGE_REQUESTS
@@ -101,13 +118,7 @@ def h_bck_clothes_genders():
 
     # если для подкатегории пол требуется — отдаём список, иначе — пустой список
     if _needs_gender(subcategory):
-
-        match subcategory:
-            case ClothesSubcategories.underwear.value:
-                genders = UNDERWEAR_TYPE_GENDERS.get(cl_type, [])
-            case _:
-                genders = settings.Clothes.CLOTHES_TYPE_GENDERS.get(cl_type, [])
-
+        genders = get_clothes_tnved_genders(subcategory, cl_type)
         if not genders:
             return jsonify(dict(status=settings.ERROR, message=f'Для типа {cl_type} не найден список полов.'))
         return jsonify(dict(status=settings.SUCCESS, genders=genders, needs_gender=True))

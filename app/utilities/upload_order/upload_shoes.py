@@ -7,6 +7,7 @@ from typing import Optional, Union
 
 from config import settings
 from logger import logger
+from tezaurus.runtime_catalogs import is_allowed_color, is_allowed_country
 from utilities.check_tnved import TnvedChecker
 from utilities.download import ShoesProcessor
 from utilities.support import upload_divide_sizes_quantities
@@ -55,7 +56,7 @@ class ValidateShoesMixin:
         color_value = value.upper()
         order_list[row_num - settings.Shoes.UPLOAD_STANDART_ROW][pos] = color_value
         # value is shoe_color
-        if color_value not in settings.ALL_COLORS:
+        if not is_allowed_color(color_value):
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Shoes.UPLOAD_COLOR_ERROR}"
 
     @staticmethod
@@ -164,8 +165,9 @@ class ValidateShoesMixin:
         country_value = value.upper().strip()
         order_list[row_num - settings.Shoes.UPLOAD_STANDART_ROW][pos] = country_value
 
-        if country_value not in settings.COUNTRIES_LIST:
+        if not is_allowed_country(country_value):
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Shoes.UPLOAD_COUNTRY_ERROR}"
+
         # if has_rd:
         #     allowed = settings.COUNTRIES_LIST
         #     if country_value not in allowed:
@@ -208,6 +210,7 @@ class ValidateShoesMixin:
         for i in range(12, 15):
             order_list[row_num - settings.Shoes.UPLOAD_STANDART_ROW][i] = \
                 order_list[row_num - settings.Shoes.UPLOAD_STANDART_ROW][i].replace('nan', '')
+
         if res != 0 and rz_gender_condition:
             return (val_error_start(row_num=row_num) + ' ' +
                     settings.Messages.UPLOAD_RD_GENERAL_REQUIRED_ERROR.format(gender=gender),
@@ -364,7 +367,8 @@ class UploadShoes(UploadCategory):
 
                 bq_error = self._quantity(value=data_group[7].strip(), row_num=row_num, col='J')
 
-                size_quantity_error, pos_quantity = self._sizes_quantities(value=data_group[8].strip(), row_num=row_num, col='L')
+                size_quantity_error, pos_quantity = self._sizes_quantities(value=data_group[8].strip(), row_num=row_num,
+                                                                           col='L')
 
                 country_error = self._country(value=data_group[9].strip(), row_num=row_num, col='M',
                                               pos=9, order_list=order_list, has_rd=has_rd)

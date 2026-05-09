@@ -1,5 +1,6 @@
 from config import settings
 from models import Shoe, Linen, Parfum, Socks, Clothes
+from tezaurus.runtime_catalogs import get_all_countries, get_rd_countries
 from utilities.categories_data.clothes_common.tnved_processor import get_tnved_codes_for_gender
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.underwear_data import UNDERWEAR_TYPE_GENDERS, UNDERWEAR_TNVED_DICT
@@ -23,21 +24,21 @@ def _get_countries_without_rd(item) -> list[str]:
     Ограниченные страны БЕЗ РД — по категории (по классу модели).
     """
     if isinstance(item, Clothes) or isinstance(item, Socks):
-        return list(settings.CLOTHES_COUNTRIES_RD)
+        return get_rd_countries(settings.Clothes.CATEGORY_PROCESS)
 
     if isinstance(item, Shoe):
-        return list(settings.SHOES_COUNTRIES_RD)
+        return get_rd_countries(settings.Shoes.CATEGORY_PROCESS)
 
     if isinstance(item, Linen):
-        return list(settings.LINEN_COUNTRIES_RD)
+        return get_rd_countries(settings.Linen.CATEGORY_PROCESS)
 
     if isinstance(item, Parfum):
-        return list(settings.PARFUM_COUNTRIES_RD)
+        return get_rd_countries(settings.Parfum.CATEGORY_PROCESS)
 
 
 
     # если вдруг неизвестная модель — безопасный дефолт
-    return list(settings.COUNTRIES_LIST)
+    return get_all_countries()
 
 
 def _check_country_by_rd(item) -> str | bool:
@@ -55,7 +56,7 @@ def _check_country_by_rd(item) -> str | bool:
 
     has_rd = _has_rd_fields(item)
 
-    allowed = list(settings.COUNTRIES_LIST) if has_rd else _get_countries_without_rd(item)
+    allowed = get_all_countries() if has_rd else _get_countries_without_rd(item)
     allowed_up = {str(c).upper().strip() for c in allowed}
 
     if country_value in allowed_up:

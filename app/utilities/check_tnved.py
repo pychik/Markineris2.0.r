@@ -1,11 +1,10 @@
 from typing import Optional
 
 from config import settings
-from utilities.categories_data.accessories_data import HATS_TNVED_DICT, SHAWLS_TNVED_DICT, GLOVES_TNVED_DICT
-from utilities.categories_data.clothes_common.tnved_processor import get_tnved_codes_for_gender
+from tezaurus.runtime_catalogs import get_clothes_tnved_codes
+from utilities.categories_data.accessories_data import HATS_TNVED_DICT, GLOVES_TNVED_DICT, SHAWLS_TNVED_DICT
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVED_DICT
-from utilities.categories_data.underwear_data import UNDERWEAR_TNVED_DICT
 
 
 class TnvedChecker:
@@ -35,8 +34,7 @@ class TnvedChecker:
         return result_status, answer
 
     @staticmethod
-    def tnved_clothes_parse(cloth_type: str, tnved_code, subcategory: str = None, gender: str = None) -> tuple[
-        int, Optional[str]]:
+    def tnved_clothes_parse(cloth_type: str, tnved_code, subcategory: str = None, gender: str = None) -> tuple[int, Optional[str]]:
         result_status = 1
         # simple checks
         if len(tnved_code) != 10:
@@ -48,11 +46,15 @@ class TnvedChecker:
         # good checks
         match subcategory:
             case ClothesSubcategories.underwear.value:
-                tnved_dict = UNDERWEAR_TNVED_DICT
-                if gender not in settings.Clothes.GENDERS:
+                big_tnved_tuple = get_clothes_tnved_codes(
+                    ClothesSubcategories.underwear.value,
+                    cloth_type,
+                    gender,
+                )
+                if not big_tnved_tuple:
                     answer = f"{settings.Messages.TNVED_INPUT_ERROR_CG.format(gender=gender)}"
                     return result_status, answer
-                big_tnved_tuple = get_tnved_codes_for_gender(type_name=cloth_type, gender=gender, data=tnved_dict)
+                tnved_dict = {cloth_type.upper(): True}
             case ClothesSubcategories.swimming_accessories.value:
                 tnved_dict = SWIMMING_ACCESSORIES_TNVED_DICT
                 big_tnved_tuple = tnved_dict.get(cloth_type, [''])[0]
@@ -66,19 +68,22 @@ class TnvedChecker:
                 tnved_dict = SHAWLS_TNVED_DICT
                 big_tnved_tuple = tnved_dict.get(cloth_type, [''])[0]
             case _:
-                tnved_dict = settings.Clothes.CLOTHES_TNVED_DICT
-                if gender not in settings.Clothes.GENDERS:
+                big_tnved_tuple = get_clothes_tnved_codes(
+                    ClothesSubcategories.common.value,
+                    cloth_type,
+                    gender,
+                )
+                if not big_tnved_tuple:
                     answer = f"{settings.Messages.TNVED_INPUT_ERROR_CG.format(gender=gender)}"
                     return result_status, answer
-                big_tnved_tuple = get_tnved_codes_for_gender(type_name=cloth_type, gender=gender, data=tnved_dict)
+                tnved_dict = {cloth_type.upper(): True}
 
         if cloth_type.upper() not in tnved_dict.keys():
             answer = f"{tnved_code}{settings.Messages.TNVED_INPUT_ERROR_CT.format(category='одежды')}"
             return result_status, answer
 
         # big_tnved_tuple = tnved_dict.get(cloth_type)[0]
-        if tnved_code in big_tnved_tuple or (
-                subcategory not in [ClothesSubcategories.common.value, ClothesSubcategories.underwear.value, '', None] and tnved_code in settings.Tnved.BIG_TNVED_LIST):
+        if tnved_code in big_tnved_tuple or (subcategory not in [ClothesSubcategories.common.value, ClothesSubcategories.underwear.value, None] and tnved_code in settings.Tnved.BIG_TNVED_LIST):
             result_status = 5
             answer = f"{settings.Messages.TNVED_INPUT_SUCCESS}"
         else:

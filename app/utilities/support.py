@@ -48,6 +48,7 @@ from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
 from utilities.pdf_processor import get_first_page_as_image
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.validators import ValidatorProcessor, is_valid_mark_type_full
+from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries
 from views.crm.schema import CrmDefaults
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
 from .categories_data.subcategories_data import ClothesSubcategories, Category
@@ -516,8 +517,8 @@ def helper_shoes_index(o_id: int, p_id: int = None, update_flag: int = None,
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = settings.COUNTRIES_LIST
-    rd_countries = settings.SHOES_COUNTRIES_RD
+    countries = get_all_countries()
+    rd_countries = get_rd_countries(settings.Shoes.CATEGORY_PROCESS)
     shoe_tnved = settings.Shoes.TNVED_CODE
     shoe_al = settings.Shoes.SHOE_AL
     shoe_ot = settings.Shoes.SHOE_OT
@@ -526,7 +527,7 @@ def helper_shoes_index(o_id: int, p_id: int = None, update_flag: int = None,
     shoe_size_description = settings.Shoes.SHOE_SIZE_DESC
 
     # colors = settings.Shoes.COLORS
-    colors = settings.ALL_COLORS
+    colors = get_colors()
     genders = settings.Shoes.GENDERS
     materials_up_linen = settings.Shoes.MATERIALS_UP_LINEN
     materials_bottom = settings.Shoes.MATERIALS_BOTTOM
@@ -557,8 +558,8 @@ def helper_socks_index(o_id: int, p_id: int = None, update_flag: int = None,
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = settings.COUNTRIES_LIST
-    rd_countries = settings.CLOTHES_COUNTRIES_RD
+    countries = get_all_countries()
+    rd_countries = get_rd_countries(settings.Socks.CATEGORY_PROCESS)
     socks_content = settings.Socks.CLOTHES_CONTENT
     socks_types_sizes_dict = settings.Socks.SIZE_ALL_DICT
 
@@ -567,7 +568,7 @@ def helper_socks_index(o_id: int, p_id: int = None, update_flag: int = None,
 
     types = settings.Socks.TYPES
     # colors = settings.Clothes.COLORS
-    colors = settings.ALL_COLORS
+    colors = get_colors()
     genders = settings.Socks.GENDERS
 
     subcategory = request.args.get('subcategory', '')
@@ -599,12 +600,12 @@ def helper_linen_index(o_id: int, p_id: int = None, update_flag: int = None,
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = settings.COUNTRIES_LIST
-    rd_countries = settings.LINEN_COUNTRIES_RD
+    countries = get_all_countries()
+    rd_countries = get_rd_countries(settings.Linen.CATEGORY_PROCESS)
 
     types = settings.Linen.TYPES
     # colors = settings.Linen.COLORS
-    colors = settings.ALL_COLORS
+    colors = get_colors()
     textile_types = settings.Linen.TEXTILE_TYPES
     customer_ages = settings.Linen.CUSTOMER_AGES
     size_units = LinenSizesUnits.choices()
@@ -636,8 +637,8 @@ def helper_parfum_index(o_id: int, p_id: int = None, update_flag: int = None,
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = settings.COUNTRIES_LIST
-    rd_countries = settings.PARFUM_COUNTRIES_RD
+    countries = get_all_countries()
+    rd_countries = get_rd_countries(settings.Parfum.CATEGORY_PROCESS)
 
     category = settings.Parfum.CATEGORY
     category_process_name = settings.Parfum.CATEGORY_PROCESS
