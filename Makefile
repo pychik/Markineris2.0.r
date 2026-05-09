@@ -18,7 +18,7 @@ else
 endif
 
 # --------------------------
-.PHONY: flask-local-run maintenance-on maintenance-off service-logs service-start service-stop flask-up flask-down set-vm elk elk-setup elk-up collect-logs elk-down elk-stop elk-restart elk-rm elk-logs elk-images elk-prune ps minio-up minio-down run-static-synchronize help
+.PHONY: flask-local-run maintenance-on maintenance-off service-logs service-start service-stop flask-up flask-down set-vm elk elk-setup elk-up collect-logs elk-down elk-stop elk-restart elk-rm elk-logs elk-images elk-prune ps minio-up minio-down run-static-synchronize logrotate-install logrotate-check help
 
 
 up-all:				## Запуск всего сервиса и elk-stack.
@@ -136,6 +136,12 @@ minio-down:						## Остановить контейнеры сервиса Min
 
 minio-logs:						## Логи сервиса Minio(minio, create_buckets)
 	$(DOCKER_COMPOSE_COMMAND) $(COMPOSE_S3_STORAGE) logs -f
+
+logrotate-install:				## Установить logrotate-конфиг для nginx/flask-app логов на хосте.
+	install -D -m 0644 deploy/logrotate/markineris /etc/logrotate.d/markineris
+
+logrotate-check:				## Принудительно проверить и выполнить ротацию логов по конфигу проекта.
+	logrotate -dv /etc/logrotate.d/markineris
 
 help:       					## Показать все команды.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m (default: help)\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
