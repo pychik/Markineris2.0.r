@@ -1017,6 +1017,14 @@ def h_make_pc_basket_order():
 
         card_ids = [int(it["card_id"]) for it in items if it.get("card_id")]
         cards_map = _load_cards_for_order(card_ids, category=category)
+        missing_card_ids = sorted({card_id for card_id in card_ids if card_id not in cards_map})
+        if missing_card_ids:
+            raise ValueError(
+                {
+                    "message": "Некоторые карточки больше недоступны. Корзина будет обновлена.",
+                    "missing_card_ids": missing_card_ids,
+                }
+            )
 
         for it in items:
             card_id = int(it["card_id"])
@@ -1040,6 +1048,13 @@ def h_make_pc_basket_order():
         return _json_error(str(pe), 403)
     except ValueError as ve:
         db.session.rollback()
+        if isinstance(ve.args[0] if ve.args else None, dict):
+            payload = ve.args[0]
+            return _json_error(
+                payload.get("message", "Ошибка валидации"),
+                400,
+                missing_card_ids=payload.get("missing_card_ids", []),
+            )
         return _json_error(str(ve), 400)
     except Exception as e:
         db.session.rollback()

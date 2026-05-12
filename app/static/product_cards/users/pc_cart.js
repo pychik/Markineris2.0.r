@@ -365,6 +365,37 @@ function oBCartClear() {
   oBCartSave([]);
 }
 
+function oBCartRemoveMissingCardIds(missingCardIds) {
+  if (!Array.isArray(missingCardIds) || !missingCardIds.length) return false;
+
+  const missing = new Set(
+    missingCardIds
+      .map(id => oBNormalizeCardId(id))
+      .filter(Boolean)
+  );
+  if (!missing.size) return false;
+
+  const orders = oBCartLoad();
+  if (!orders.length) return false;
+
+  let changed = false;
+  const nextOrders = orders
+    .map(order => {
+      const nextItems = (order.items || []).filter(item => {
+        const keep = !missing.has(oBNormalizeCardId(item.card_id));
+        if (!keep) changed = true;
+        return keep;
+      });
+      return { ...order, items: nextItems };
+    })
+    .filter(order => (order.items || []).length > 0);
+
+  if (!changed) return false;
+
+  oBCartSave(nextOrders);
+  return true;
+}
+
 // --- render ---
 function oBCartRender() {
 
@@ -701,7 +732,7 @@ async function oBCartSubmitToBackend(postUrl, csrfToken) {
 
   const built = oBCartBuildPayloadOrError();
   if (built.error) {
-    make_message(built.error, "error");
+    make_cart_message(built.error, "error");
     return;
   }
 
@@ -718,7 +749,7 @@ async function oBCartSubmitToBackend(postUrl, csrfToken) {
 
     const data = await resp.json().catch(() => ({}));
     if (data.status === "success") {
-        make_message(data.message, "success");
+        make_cart_message(data.message, "success");
         oBCartClearAll();
 
         if (data.redirect_url) {
@@ -728,6 +759,13 @@ async function oBCartSubmitToBackend(postUrl, csrfToken) {
         }
       }
     else {
+      if (oBCartRemoveMissingCardIds(data.missing_card_ids)) {
+        make_cart_message(
+          data.message || "Некоторые карточки были удалены или объединены. Корзина обновлена.",
+          "error"
+        );
+        return;
+      }
       make_cart_message(data.message || "Ошибка при создании заказа", "error");
     }
   } catch (e) {
