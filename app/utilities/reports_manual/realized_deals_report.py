@@ -71,6 +71,7 @@ def _realized_deals_sql(date_from=None, date_to=None):
                     CASE WHEN o.stage = :crm_processed_stage THEN o.closed_at END
               ) < :date_to
         """
+    category_group_expr = _category_group_expr("po")
     sql = text(
         f"""
         WITH paid_orders AS (
@@ -78,7 +79,6 @@ def _realized_deals_sql(date_from=None, date_to=None):
                 o.id AS order_id,
                 o.order_idn,
                 o.category,
-                o.has_aggr,
                 COALESCE(os.marks_count, 0) AS order_marks_count,
                 COALESCE(os.op_cost, ut.op_cost, 0) AS op_cost,
                 COALESCE(
@@ -116,7 +116,6 @@ def _realized_deals_sql(date_from=None, date_to=None):
             FROM paid_orders po
             JOIN public.clothes cl ON cl.order_id = po.order_id
             JOIN public.cl_quantity_sizes cl_qs ON cl_qs.cl_id = cl.id
-            WHERE COALESCE(po.has_aggr, FALSE) IS NOT TRUE
             GROUP BY cl.order_id, COALESCE(NULLIF(BTRIM(cl.country), ''), 'НЕ УКАЗАНО')
             UNION ALL
             SELECT
@@ -126,7 +125,6 @@ def _realized_deals_sql(date_from=None, date_to=None):
             FROM paid_orders po
             JOIN public.socks sk ON sk.order_id = po.order_id
             JOIN public.socks_quantity_sizes sk_qs ON sk_qs.socks_id = sk.id
-            WHERE COALESCE(po.has_aggr, FALSE) IS NOT TRUE
             GROUP BY sk.order_id, COALESCE(NULLIF(BTRIM(sk.country), ''), 'НЕ УКАЗАНО')
             UNION ALL
             SELECT
@@ -145,30 +143,6 @@ def _realized_deals_sql(date_from=None, date_to=None):
             FROM paid_orders po
             JOIN public.parfum p ON p.order_id = po.order_id
             GROUP BY p.order_id, COALESCE(NULLIF(BTRIM(p.country), ''), 'НЕ УКАЗАНО')
-            UNION ALL
-            SELECT
-                ao.order_id,
-                COALESCE(NULLIF(BTRIM(cl.country), ''), 'НЕ УКАЗАНО') AS country,
-                SUM(COALESCE(acs.total_quantity, 0))::bigint AS marks_count
-            FROM paid_orders po
-            JOIN public.aggr_orders ao ON ao.order_id = po.order_id
-            JOIN public.aggr_clothes_sizes acs ON acs.aggr_order_id = ao.id
-            JOIN public.cl_quantity_sizes cqs ON cqs.id = acs.cqs_id
-            JOIN public.clothes cl ON cl.id = cqs.cl_id
-            WHERE COALESCE(po.has_aggr, FALSE) IS TRUE
-            GROUP BY ao.order_id, COALESCE(NULLIF(BTRIM(cl.country), ''), 'НЕ УКАЗАНО')
-            UNION ALL
-            SELECT
-                ao.order_id,
-                COALESCE(NULLIF(BTRIM(sk.country), ''), 'НЕ УКАЗАНО') AS country,
-                SUM(COALESCE(ass.total_quantity, 0))::bigint AS marks_count
-            FROM paid_orders po
-            JOIN public.aggr_orders ao ON ao.order_id = po.order_id
-            JOIN public.aggr_socks_sizes ass ON ass.aggr_order_id = ao.id
-            JOIN public.socks_quantity_sizes sqs ON sqs.id = ass.sqs_id
-            JOIN public.socks sk ON sk.id = sqs.socks_id
-            WHERE COALESCE(po.has_aggr, FALSE) IS TRUE
-            GROUP BY ao.order_id, COALESCE(NULLIF(BTRIM(sk.country), ''), 'НЕ УКАЗАНО')
         ),
         country_marks_agg AS (
             SELECT
@@ -187,20 +161,13 @@ def _realized_deals_sql(date_from=None, date_to=None):
         ),
         category_order_totals AS (
             SELECT
-                {_category_group_expr("po")} AS category_group,
+                {category_group_expr} AS category_group,
                 COUNT(DISTINCT po.order_id)::bigint AS orders_count
             FROM paid_orders po
             GROUP BY 1
         )
         SELECT
-            CASE
-                WHEN LOWER(TRIM(po.category)) IN ('одежда', 'clothes') THEN 'Одежда'
-                WHEN LOWER(TRIM(po.category)) IN ('обувь', 'shoes') THEN 'Обувь'
-                WHEN LOWER(TRIM(po.category)) IN ('белье', 'linen') THEN 'Белье'
-                WHEN LOWER(TRIM(po.category)) IN ('парфюм', 'parfum') THEN 'Парфюм'
-                WHEN LOWER(TRIM(po.category)) IN ('носки', 'socks') THEN 'Носки'
-                ELSE 'Прочее'
-            END AS category_group,
+            {category_group_expr} AS category_group,
             CASE
                 WHEN UPPER(TRIM(cma.country)) IN ('РОССИЯ', 'РФ', 'RUSSIA', 'RU') THEN 'РФ'
                 ELSE 'Остальные страны'
@@ -224,57 +191,15 @@ def _realized_deals_sql(date_from=None, date_to=None):
         JOIN country_marks_agg cma ON cma.order_id = po.order_id
         JOIN order_country_totals oct ON oct.order_id = po.order_id
         JOIN category_order_totals cot
-            ON cot.category_group = CASE
-                WHEN LOWER(TRIM(po.category)) IN ('одежда', 'clothes') THEN 'Одежда'
-                WHEN LOWER(TRIM(po.category)) IN ('обувь', 'shoes') THEN 'Обувь'
-                WHEN LOWER(TRIM(po.category)) IN ('белье', 'linen') THEN 'Белье'
-                WHEN LOWER(TRIM(po.category)) IN ('парфюм', 'parfum') THEN 'Парфюм'
-                WHEN LOWER(TRIM(po.category)) IN ('носки', 'socks') THEN 'Носки'
-                ELSE 'Прочее'
-            END
+            ON cot.category_group = {category_group_expr}
         GROUP BY 1, 2
         ORDER BY
             CASE
-                WHEN CASE
-                    WHEN LOWER(TRIM(po.category)) IN ('одежда', 'clothes') THEN 'Одежда'
-                    WHEN LOWER(TRIM(po.category)) IN ('обувь', 'shoes') THEN 'Обувь'
-                    WHEN LOWER(TRIM(po.category)) IN ('белье', 'linen') THEN 'Белье'
-                    WHEN LOWER(TRIM(po.category)) IN ('парфюм', 'parfum') THEN 'Парфюм'
-                    WHEN LOWER(TRIM(po.category)) IN ('носки', 'socks') THEN 'Носки'
-                    ELSE 'Прочее'
-                END = 'Носки' THEN 1
-                WHEN CASE
-                    WHEN LOWER(TRIM(po.category)) IN ('одежда', 'clothes') THEN 'Одежда'
-                    WHEN LOWER(TRIM(po.category)) IN ('обувь', 'shoes') THEN 'Обувь'
-                    WHEN LOWER(TRIM(po.category)) IN ('белье', 'linen') THEN 'Белье'
-                    WHEN LOWER(TRIM(po.category)) IN ('парфюм', 'parfum') THEN 'Парфюм'
-                    WHEN LOWER(TRIM(po.category)) IN ('носки', 'socks') THEN 'Носки'
-                    ELSE 'Прочее'
-                END = 'Белье' THEN 2
-                WHEN CASE
-                    WHEN LOWER(TRIM(po.category)) IN ('одежда', 'clothes') THEN 'Одежда'
-                    WHEN LOWER(TRIM(po.category)) IN ('обувь', 'shoes') THEN 'Обувь'
-                    WHEN LOWER(TRIM(po.category)) IN ('белье', 'linen') THEN 'Белье'
-                    WHEN LOWER(TRIM(po.category)) IN ('парфюм', 'parfum') THEN 'Парфюм'
-                    WHEN LOWER(TRIM(po.category)) IN ('носки', 'socks') THEN 'Носки'
-                    ELSE 'Прочее'
-                END = 'Обувь' THEN 3
-                WHEN CASE
-                    WHEN LOWER(TRIM(po.category)) IN ('одежда', 'clothes') THEN 'Одежда'
-                    WHEN LOWER(TRIM(po.category)) IN ('обувь', 'shoes') THEN 'Обувь'
-                    WHEN LOWER(TRIM(po.category)) IN ('белье', 'linen') THEN 'Белье'
-                    WHEN LOWER(TRIM(po.category)) IN ('парфюм', 'parfum') THEN 'Парфюм'
-                    WHEN LOWER(TRIM(po.category)) IN ('носки', 'socks') THEN 'Носки'
-                    ELSE 'Прочее'
-                END = 'Парфюм' THEN 4
-                WHEN CASE
-                    WHEN LOWER(TRIM(po.category)) IN ('одежда', 'clothes') THEN 'Одежда'
-                    WHEN LOWER(TRIM(po.category)) IN ('обувь', 'shoes') THEN 'Обувь'
-                    WHEN LOWER(TRIM(po.category)) IN ('белье', 'linen') THEN 'Белье'
-                    WHEN LOWER(TRIM(po.category)) IN ('парфюм', 'parfum') THEN 'Парфюм'
-                    WHEN LOWER(TRIM(po.category)) IN ('носки', 'socks') THEN 'Носки'
-                    ELSE 'Прочее'
-                END = 'Одежда' THEN 5
+                WHEN {category_group_expr} = 'Носки' THEN 1
+                WHEN {category_group_expr} = 'Белье' THEN 2
+                WHEN {category_group_expr} = 'Обувь' THEN 3
+                WHEN {category_group_expr} = 'Парфюм' THEN 4
+                WHEN {category_group_expr} = 'Одежда' THEN 5
                 ELSE 6
             END,
             2
@@ -301,8 +226,7 @@ def _category_group_expr(alias):
             WHEN LOWER(TRIM({alias}.category)) IN ('обувь', 'shoes') THEN 'Обувь'
             WHEN LOWER(TRIM({alias}.category)) IN ('белье', 'linen') THEN 'Белье'
             WHEN LOWER(TRIM({alias}.category)) IN ('парфюм', 'parfum') THEN 'Парфюм'
-            WHEN LOWER(TRIM({alias}.category)) IN ('носки', 'socks', 'носки и прочее') THEN 'Носки'
-            ELSE 'Прочее'
+            ELSE 'Носки и прочее'
         END
     """
 
@@ -393,7 +317,7 @@ def realized_deals_report(date_from=None, date_to=None):
     - считаем реализованными только заказы в статусах SENT / CRM_PROCESSED;
     - для периода используем только sent_at / closed_at по факту реализации;
     - сумму считаем как op_cost * количество марок;
-    - разбиваем по категориям: Одежда / Обувь / Белье / Парфюм / Носки / Прочее;
+    - разбиваем по категориям: Одежда / Обувь / Белье / Парфюм / Носки и прочее;
     - внутри разбиваем по странам: РФ / Остальные страны;
     - если в одном заказе несколько стран, сумма делится по странам
       пропорционально количеству марок.
@@ -401,7 +325,18 @@ def realized_deals_report(date_from=None, date_to=None):
     sql, params = _realized_deals_sql(date_from=date_from, date_to=date_to)
     raw_rows = [dict(row) for row in db.session.execute(sql, params).mappings().all()]
     summary = _realized_deals_summary(date_from=date_from, date_to=date_to)
-    rows_by_category = {}
+    rows_by_category = {
+        category_group: {
+            "category_group": category_group,
+            "marks_rf": 0,
+            "marks_other": 0,
+            "orders_count": int(category_summary.get("orders_count", 0)),
+            "marks_count": int(category_summary.get("marks_count", 0)),
+            "amount": round(_to_float(category_summary.get("amount", 0)), 2),
+        }
+        for category_group, category_summary in summary.items()
+        if category_group != "ВСЕГО"
+    }
     for row in raw_rows:
         category_group = row["category_group"]
         category_row = rows_by_category.setdefault(
@@ -419,11 +354,6 @@ def realized_deals_report(date_from=None, date_to=None):
             category_row["marks_rf"] += int(row["marks_count"] or 0)
         else:
             category_row["marks_other"] += int(row["marks_count"] or 0)
-    for category_group, category_row in rows_by_category.items():
-        category_summary = summary.get(category_group, {})
-        category_row["orders_count"] = int(category_summary.get("orders_count", 0))
-        category_row["marks_count"] = int(category_summary.get("marks_count", 0))
-        category_row["amount"] = round(_to_float(category_summary.get("amount", 0)), 2)
     ordered_rows = sorted(rows_by_category.values(), key=_category_sort_key)
     return ordered_rows
 
@@ -435,13 +365,12 @@ def realized_deals_totals(date_from=None, date_to=None):
 
 def _category_sort_key(row):
     order_map = {
-        "Носки": 1,
+        "Носки и прочее": 1,
         "Белье": 2,
         "Обувь": 3,
         "Парфюм": 4,
         "Одежда": 5,
-        "Прочее": 6,
-        "ВСЕГО": 7,
+        "ВСЕГО": 6,
     }
     return order_map.get(row["category_group"], 99)
 
