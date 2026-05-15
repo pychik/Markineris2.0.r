@@ -188,6 +188,20 @@ ALLOWED_CARDS_DELETE_STATUSES = {
 }
 
 
+def _is_russia_country(value: str | None) -> bool:
+    return (value or "").strip().upper() == "РОССИЯ"
+
+
+# Temporary product-cards-only restriction: hide and reject RUSSIA
+# without changing shared Redis/Tezaurus country dictionaries.
+def _get_product_cards_countries() -> list[str]:
+    return [country for country in get_all_countries() if not _is_russia_country(country)]
+
+
+def _get_product_cards_rd_countries(category_process: str) -> list[str]:
+    return [country for country in get_rd_countries(category_process) if not _is_russia_country(country)]
+
+
 def helper_clothes_info(subcategory: str | None) -> Union[Response,  dict[str, Any]]:
 
     # Формируем набор глобальных переменных для категории одежда и ее подкатегорий
@@ -202,8 +216,8 @@ def helper_clothes_info(subcategory: str | None) -> Union[Response,  dict[str, A
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = get_all_countries()
-    rd_countries = get_rd_countries(settings.Clothes.CATEGORY_PROCESS)
+    countries = _get_product_cards_countries()
+    rd_countries = _get_product_cards_rd_countries(settings.Clothes.CATEGORY_PROCESS)
 
     clothes_content = settings.Clothes.CLOTHES_CONTENT
     clothes_nat_content = settings.Clothes.CLOTHES_NAT_CONTENT
@@ -233,8 +247,8 @@ def helper_shoes_info(subcategory: str | None) -> Union[Response, dict[str, Any]
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = get_all_countries()
-    rd_countries = get_rd_countries(settings.Shoes.CATEGORY_PROCESS)
+    countries = _get_product_cards_countries()
+    rd_countries = _get_product_cards_rd_countries(settings.Shoes.CATEGORY_PROCESS)
     shoe_tnved = settings.Shoes.TNVED_CODE
     shoe_al = settings.Shoes.SHOE_AL
     shoe_ot = settings.Shoes.SHOE_OT
@@ -268,8 +282,8 @@ def helper_socks_info(subcategory: str | None) -> Union[Response,  dict[str, Any
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = get_all_countries()
-    rd_countries = get_rd_countries(settings.Socks.CATEGORY_PROCESS)
+    countries = _get_product_cards_countries()
+    rd_countries = _get_product_cards_rd_countries(settings.Socks.CATEGORY_PROCESS)
     socks_content = settings.Socks.CLOTHES_CONTENT
     socks_types_sizes_dict = settings.Socks.SIZE_ALL_DICT
 
@@ -302,8 +316,8 @@ def helper_linen_info(subcategory: str | None) -> Union[Response, dict[str, Any]
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = get_all_countries()
-    rd_countries = get_rd_countries(settings.Linen.CATEGORY_PROCESS)
+    countries = _get_product_cards_countries()
+    rd_countries = _get_product_cards_rd_countries(settings.Linen.CATEGORY_PROCESS)
 
     types = settings.Linen.TYPES_CARDS
     # colors = settings.Linen.COLORS
@@ -330,8 +344,8 @@ def helper_parfum_info(subcategory: str | None) -> Union[Response, dict[str, Any
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = get_all_countries()
-    rd_countries = get_rd_countries(settings.Parfum.CATEGORY_PROCESS)
+    countries = _get_product_cards_countries()
+    rd_countries = _get_product_cards_rd_countries(settings.Parfum.CATEGORY_PROCESS)
 
     category = settings.Parfum.CATEGORY
     category_process_name = settings.Parfum.CATEGORY_PROCESS
@@ -389,6 +403,10 @@ def validate_card_form(category_process: str, subcategory: str, form_data: Immut
         color = form_data.get("color")
         if ValidatorProcessor.check_colors(color=color):
             raise ValueError(settings.Messages.COLOR_INPUT_ERROR.format(color=color))
+
+    country = form_data.get("country")
+    if _is_russia_country(country):
+        raise ValueError("Страна РОССИЯ недоступна в разделе 'Мои карточки'.")
 
     # 3. TНВЭД
     if ValidatorProcessor.check_tnveds(
