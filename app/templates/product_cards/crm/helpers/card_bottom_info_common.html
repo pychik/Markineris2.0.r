@@ -11,7 +11,7 @@
        data-bs-toggle="tooltip"
        data-bs-html="true"
        data-bs-placement="right"
-       data-bs-title="Отправлено в CRM карточек: {{ c.sent_at.strftime('%d-%m-%Y %H:%M:%S') }}">
+       data-bs-title="{{ c.crm_stage_tooltip }}">
     {{ c.created_at | time_since_top }}
   </div>
 

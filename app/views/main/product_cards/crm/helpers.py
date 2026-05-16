@@ -188,6 +188,7 @@ def split_cards_by_status(cards: list[ProductCard]) -> dict[str, list[dict]]:
             "status": st,
             "created_at": card.created_at,
             "sent_at": card.sent_at,
+            "crm_stage_tooltip": crm_card_stage_tooltip(card),
             "processing_info": card.processing_info,
             "user_id": card.user_id,
 
@@ -282,6 +283,18 @@ def crm_card_subcategory_title(card: ProductCard) -> str | None:
     if not slug:
         return None
     return (CATEGORIES_COMMON.get("clothes", {}).get("subcategories") or {}).get(slug, slug)
+
+
+def crm_card_stage_tooltip(card: ProductCard) -> str:
+    if card.sent_at:
+        return f"Отправлено в CRM карточек: {card.sent_at.strftime('%d-%m-%Y %H:%M:%S')}"
+
+    if card.status == ModerationStatus.REJECTED:
+        if card.rejected_at:
+            return f"Отклонена без этапа отправки в CRM: {card.rejected_at.strftime('%d-%m-%Y %H:%M:%S')}"
+        return "Отклонена без этапа отправки в CRM"
+
+    return "Дата отправки в CRM карточек не указана"
 
 
 def product_card_download_common(user: User, pc_id: int):
@@ -548,6 +561,7 @@ def h_pc_move_pack_cards(cards: list[ProductCard]) -> list[dict]:
             "status": st,
             "created_at": card.created_at,
             "sent_at": card.sent_at,
+            "crm_stage_tooltip": crm_card_stage_tooltip(card),
             "processing_info": card.processing_info,
 
             "user_id": card.user_id,
