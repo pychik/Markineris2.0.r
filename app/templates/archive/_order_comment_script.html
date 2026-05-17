@@ -1,0 +1,18 @@
+<script>
+  document.addEventListener('click', function (event) {
+    const trigger = event.target.closest('.js-open-order-comment-modal');
+    if (!trigger) return;
+
+    const modalLabel = document.getElementById('orderCommentModalLabel');
+    const modalBody = document.getElementById('orderCommentModalBody');
+    if (!modalLabel || !modalBody) return;
+
+    const orderIdn = trigger.dataset.orderIdn || '';
+    const comment = trigger.dataset.comment || '';
+
+    modalLabel.textContent = orderIdn
+      ? `Комментарий к заказу ${orderIdn}`
+      : 'Комментарий к заказу';
+    modalBody.textContent = comment;
+  });
+</script>

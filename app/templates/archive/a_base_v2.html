@@ -286,6 +286,8 @@
       </div>
     </div>
 
+    {% include 'archive/_order_comment_modal.html' %}
+
 <script>
     $(window).on('load', function() {
         update_category('{{categories_dict[category]}}');
@@ -293,4 +295,5 @@
 
 </script>
 
+{% include 'archive/_order_comment_script.html' %}
 {% endblock %}

@@ -42,9 +42,18 @@
                                     </td>
                                     <td>
                                         {% if s.user_comment %}
-                                            <div class="alert alert-warning" style="width:150px; word-wrap: break-word; white-space: normal;">
-                                                {{ s.user_comment }}
+                                            <div class="archive-comment-preview">
+                                                <div class="js-open-order-comment-modal archive-comment-card"
+                                                     title="Нажмите, чтобы прочитать комментарий полностью"
+                                                     data-bs-toggle="modal"
+                                                     data-bs-target="#orderCommentModal"
+                                                     data-order-idn="{{ s.order_idn }}"
+                                                     data-comment="{{ s.user_comment }}">
+                                                    {{ s.user_comment[:120] }}{% if s.user_comment|length > 120 %}...{% endif %}
+                                                </div>
                                             </div>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
                                     <td>
