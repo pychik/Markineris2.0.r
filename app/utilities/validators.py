@@ -1,5 +1,5 @@
 import json
-from flask import request
+from flask import request, flash
 import re
 from typing import Optional
 
@@ -76,6 +76,14 @@ def normalize_mark_type_full(mark_type: str, category: str | None = None) -> str
             return normalized
 
     return value
+
+
+def validate_order_comment_length(order_comment: str, max_length: int = 450) -> bool:
+    if len((order_comment or "").strip()) <= max_length:
+        return True
+
+    flash(message=f"Комментарий к заказу не должен превышать {max_length} символов", category="error")
+    return False
 
 
 class ValidationError(Exception):

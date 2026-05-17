@@ -47,7 +47,7 @@ from utilities.daily_price import get_cocmd
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
 from utilities.pdf_processor import get_first_page_as_image
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
-from utilities.validators import ValidatorProcessor, is_valid_mark_type_full
+from utilities.validators import ValidatorProcessor, is_valid_mark_type_full, validate_order_comment_length
 from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries
 from views.crm.schema import CrmDefaults
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
@@ -1456,6 +1456,9 @@ def helper_process_category_order(user: User, order: Order, category: str, order
         flash(message=settings.Messages.EMPTY_ORDER, category='error')
         return redirect(url_for(f'{_category_name}.index'))
     o_id = order.id
+
+    if not validate_order_comment_length(order_comment=order_comment):
+        return redirect(url_for(f'{_category_name}.index', o_id=o_id))
 
     # check for company_idn exception
     company_idn = order.company_idn

@@ -171,6 +171,14 @@
 - Для обычного пользователя скрываются internal-сообщения.
 - Unread counters используются и в пользовательской таблице, и в CRM.
 
+## Rejected без sent_at
+
+- Карточка со статусом `rejected` не обязана иметь `sent_at`.
+- Это нормальный сценарий, если карточка была отклонена до пользовательской отправки на модерацию, например массовым служебным скриптом.
+- В таком кейсе у карточки обычно есть `rejected_at`, но нет этапа `sent -> in_progress -> ...`, поэтому CRM UI не должен считать дату отправки обязательной.
+- Любые CRM-шаблоны и partial, которые рендерят отмененные карточки, должны безопасно обрабатывать `sent_at is None` и использовать fallback по `rejected_at` или текст без даты.
+- Конкретно блок времени/tooltip для CRM-карточки сейчас завязан на [card_bottom_info_common.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/templates/product_cards/crm/helpers/card_bottom_info_common.html) и helper `crm_card_stage_tooltip(...)` в [crm/helpers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/crm/helpers.py).
+
 ## Логи карточки
 
 - Лог карточки хранится в `ProductCard.card_log`, новые строки добавляются через `h_append_card_log(...)`.

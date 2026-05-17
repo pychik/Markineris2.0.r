@@ -18,7 +18,7 @@ from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.support import check_forbidden_words, helper_preload_common, helper_check_uoabm, \
     helper_check_user_order_in_archive, check_order_pos, process_admin_order_num, process_order_start
 from utilities.telegram import MarkinerisInform
-from utilities.validators import ValidatorProcessor, validate_and_build_contact_info
+from utilities.validators import ValidatorProcessor, validate_order_comment_length
 from views.main.product_cards.chat.helpers import (
     USER_CHAT_WRITE_STATUSES,
     h_pc_chat_unread_count,
@@ -1551,6 +1551,9 @@ def h_pc_order_process(o_id: int):
         return _back_to_list()
 
     category = (order.category or "").strip()
+
+    if not validate_order_comment_length(order_comment=order_comment):
+        return _back_to_order_view()
 
     # ok, payload, vbci_err = validate_and_build_contact_info(
     #     request.form.get("contact_type"),
