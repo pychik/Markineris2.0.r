@@ -1,8 +1,10 @@
 from config import settings
 from models import Shoe, Linen, Parfum, Socks, Clothes
 from tezaurus.runtime_catalogs import get_all_countries, get_rd_countries
+from utilities.categories_data.accessories_data import HATS_TNVEDS, GLOVES_TNVEDS, SHAWLS_TNVEDS
 from utilities.categories_data.clothes_common.tnved_processor import get_tnved_codes_for_gender
 from utilities.categories_data.subcategories_data import ClothesSubcategories
+from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVEDS
 from utilities.categories_data.underwear_data import UNDERWEAR_TYPE_GENDERS, UNDERWEAR_TNVED_DICT
 
 
@@ -107,14 +109,26 @@ def _check_clothes_compatibility(clothes) -> str | bool:
                 data = settings.Clothes.CLOTHES_TNVED_DICT
     else:
         gender_ok = True
+        match cl_subcat:
+            case ClothesSubcategories.swimming_accessories.value:
+                allowed_tnveds = SWIMMING_ACCESSORIES_TNVEDS
+            case ClothesSubcategories.hats.value:
+                allowed_tnveds = HATS_TNVEDS
+            case ClothesSubcategories.gloves.value:
+                allowed_tnveds = GLOVES_TNVEDS
+            case ClothesSubcategories.shawls.value:
+                allowed_tnveds = SHAWLS_TNVEDS
+            case _:
+                allowed_tnveds = ()
 
     # --- Проверка ТНВЭД ---
     tnved_ok = True
     if cl_tnved:
-        try:
-            allowed_tnveds = get_tnved_codes_for_gender(type_name=cl_type, gender=cl_gender, data=data) or ()
-        except Exception:
-            allowed_tnveds = ()
+        if need_gender:
+            try:
+                allowed_tnveds = get_tnved_codes_for_gender(type_name=cl_type, gender=cl_gender, data=data) or ()
+            except Exception:
+                allowed_tnveds = ()
         allowed_tnveds = {_norm_tnved(x) for x in allowed_tnveds}
         tnved_ok = _norm_tnved(cl_tnved) in allowed_tnveds
 
@@ -153,7 +167,6 @@ def _check_clothes_compatibility(clothes) -> str | bool:
     # base = _append_err(base, country_err)
 
     return base
-
 
 def _check_socks_compatibility(sock: Socks) -> str | bool:
     country_err = _check_country_by_rd(sock)
