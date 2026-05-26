@@ -19,6 +19,14 @@ from utilities.validators import ValidatorProcessor
 auth = Blueprint('auth', __name__)
 
 
+def _create_captcha_payload() -> dict[str, str]:
+    full_captcha = SIMPLE_CAPTCHA.create()
+    return {
+        "captcha_img": full_captcha.get("img"),
+        "captcha_hash": full_captcha.get("hash"),
+    }
+
+
 def h_login() -> Union[Response, str]:
     if current_user.is_authenticated and current_user.status is True:
         flash(message=settings.Messages.USER_IS_AUTHENTICATED, category='warning')
@@ -96,9 +104,9 @@ def h_sign_up(p_link: str) -> Union[Response, str]:
 
     required_phone, required_email = True, True
 
-    full_captcha = SIMPLE_CAPTCHA.create()
-    captcha_img = full_captcha.get('img')
-    captcha_hash = full_captcha.get('hash')
+    captcha_payload = _create_captcha_payload()
+    captcha_img = captcha_payload["captcha_img"]
+    captcha_hash = captcha_payload["captcha_hash"]
     excepted_phone_numbers = ExceptionDataUsers.get_phones()
 
     return render_template('auth/sign_up_v2.html', **locals())
@@ -193,6 +201,10 @@ def h_sign_up_post() -> Union[Response, str]:
             flash(message=f"{settings.Messages.USER_SIGNUP_ERROR_UNKNOWN} {e}")
 
     return redirect(url_for('auth.login'))
+
+
+def h_refresh_captcha():
+        return jsonify({"status": settings.SUCCESS, **_create_captcha_payload()})
 
 
 def h_send_verification_code():

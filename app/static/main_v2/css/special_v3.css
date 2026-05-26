@@ -511,3 +511,18 @@ a[aria-expanded="true"] .nav-chevron {
     overflow: hidden;
     cursor: pointer;
 }
+
+.captcha-refresh-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #6c757d;
+  transition: color 0.2s ease;
+}
+
+.captcha-refresh-icon:hover {
+  color: #495057;
+}

@@ -243,12 +243,47 @@ function hideVerificationCodeInput() {
     }
 
   function showPasswordCaptcha() {
-     document.getElementById("captcha_text").value = '';
+     resetCaptchaInput();
      document.getElementById("passwordsAndCaptchaHide").style.display = "block";
 }
 
 function hidePasswordCaptcha() {
      document.getElementById("passwordsAndCaptchaHide").style.display = "none";
+}
+
+function resetCaptchaInput() {
+    const captchaInput = document.getElementById("captcha_text");
+    if (captchaInput) {
+        captchaInput.value = '';
+    }
+}
+
+function refreshCaptcha(url) {
+    $.ajax({
+        url: url,
+        type: "GET",
+        success: function (response) {
+            if (response.status !== "success") {
+                make_message("Не удалось обновить капчу. Попробуйте ещё раз.", "warning");
+                return;
+            }
+
+            const captchaImage = document.querySelector(".simple-captcha-img");
+            const captchaHash = document.getElementById("captcha_hash");
+
+            if (!captchaImage || !captchaHash) {
+                make_message("Не удалось найти элементы капчи на странице.", "warning");
+                return;
+            }
+
+            captchaImage.src = `data:image/jpeg;base64, ${response.captcha_img}`;
+            captchaHash.value = response.captcha_hash;
+            resetCaptchaInput();
+        },
+        error: function () {
+            make_message("Не удалось обновить капчу. Попробуйте ещё раз.", "danger");
+        }
+    });
 }
 async function verifySignUpCode(url) {
     try {

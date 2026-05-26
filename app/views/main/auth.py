@@ -1,7 +1,7 @@
 from flask import Blueprint, redirect, url_for
 from flask_login import login_required, logout_user
 from utilities.helpers.h_auth import (h_login, h_sign_up, h_login_post, h_sign_up_post, h_send_verification_code,
-                                      h_verify_sign_up_phone_code)
+                                      h_verify_sign_up_phone_code, h_refresh_captcha)
 
 auth = Blueprint('auth', __name__)
 
@@ -32,6 +32,11 @@ def sign_up(p_link: str = None):
 @auth.route('/sign_up', methods=['POST'])
 def sign_up_post():
     return h_sign_up_post()
+
+
+@auth.route("/captcha/refresh", methods=["GET"])
+def refresh_captcha():
+    return h_refresh_captcha()
 
 
 @auth.route('/send_verification_code', methods=['POST'])

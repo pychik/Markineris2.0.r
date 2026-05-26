@@ -10,7 +10,7 @@
 <div class="front text-center d-flex flex-column justify-content-center align-items-center">
     <h1 class="mb-5 fs-2">Пожалуйста, зарегистрируйтесь</h1>
 
-    <form method="POST" id="sign_up" onsubmit ="return verify_sign_up_form(`{{url_for('auth.verify_sign_up_phone_code')}}`, `{{ admin_info.admin_is_at2 }}`);" action="{{url_for('auth.sign_up_post')}}">
+    <form method="POST" id="sign_up" data-captcha-refresh-url="{{ url_for('auth.refresh_captcha') }}" onsubmit ="return verify_sign_up_form(`{{url_for('auth.verify_sign_up_phone_code')}}`, `{{ admin_info.admin_is_at2 }}`);" action="{{url_for('auth.sign_up_post')}}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <input type="hidden" name="p_link" value="{{ request.path }}">
         <input type="text" hidden id="admin_id" name="admin_id" class="form-control mt-3"
@@ -60,13 +60,7 @@
             </div>
 
             <div id = "message" style="color:#e75959"> </div>
-            <div class="form-group">
-                    <label for="captcha_text">Введите текст с картинки</label>
-                    <img class="simple-captcha-img rounded" width="180px" src="data:image/jpeg;base64, {{ captcha_img | safe }}">
-                    <input type="text" class="form-control" oninput="this.value=this.value.toUpperCase();"
-                           id="captcha_text" name="captcha-text" placeholder="Введите капчу" required>
-                    <input type="hidden" class="form-control" id="captcha_hash" name="captcha-hash" value="{{ captcha_hash | safe }}">
-            </div>
+             {% include 'auth/_captcha_block.html' %}
 
             {% include 'auth/agreement_processing.html' %}
 

@@ -1,0 +1,35 @@
+<div class="form-group">
+    <label for="captcha_text">Введите текст с картинки</label>
+    <div class="d-flex align-items-center gap-2">
+        <img
+            class="simple-captcha-img rounded"
+            width="180"
+            src="data:image/jpeg;base64, {{ captcha_img | safe }}"
+            alt="Капча"
+        >
+        <button
+            type="button"
+            class="captcha-refresh-icon"
+            onclick="refreshCaptcha(`{{ url_for('auth.refresh_captcha') }}`)"
+            aria-label="Обновить капчу"
+            title="Обновить капчу"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 5V9H16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M4 19V15H8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6.9 9A7 7 0 0 1 18.7 6.3L20 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M17.1 15A7 7 0 0 1 5.3 17.7L4 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+    </div>
+    <input
+        type="text"
+        class="form-control mt-2"
+        oninput="this.value=this.value.toUpperCase();"
+        id="captcha_text"
+        name="captcha-text"
+        placeholder="Введите капчу"
+        required
+    >
+    <input type="hidden" class="form-control" id="captcha_hash" name="captcha-hash" value="{{ captcha_hash | safe }}">
+</div>
