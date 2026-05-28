@@ -17,7 +17,6 @@ class RarZipPdfProcessor:
     def __init__(self, rar_file: bytes,  archive_type: str = "zip"):
         self.rar_archive_data = rar_file
         self.archive_type = archive_type
-        self.pdf_files = []
 
     @staticmethod
     def get_rar_archive_data(rar_file: str) -> bytes:
@@ -25,73 +24,59 @@ class RarZipPdfProcessor:
             rar_data = rar_file.read()
         return rar_data
 
+    @staticmethod
+    def _get_target_pdf_members(members):
+        pdf_files = [member for member in members if member.filename.endswith('.pdf')]
+
+        target_pdfs = [
+            member for member in pdf_files
+            if member.filename.startswith(f"{settings.Pdf.PDF_FOLDER_NAME}/")
+        ]
+
+        if target_pdfs:
+            return target_pdfs
+
+        return [
+            member for member in pdf_files
+            if '/' not in member.filename.rstrip('/')
+        ]
+
+    @staticmethod
+    def _add_pdf_to_writer(pdf_merger: PdfWriter, pdf_data: bytes) -> None:
+        pdf_reader = PdfReader(BytesIO(pdf_data))
+        for page in pdf_reader.pages:
+            pdf_merger.addpage(page)
+
     def get_extract_and_merge_pdfs(self):
         archive_bytes = BytesIO(self.rar_archive_data)
         archive_bytes.seek(0)
+        pdf_merger = PdfWriter()
+
         if self.archive_type == 'rar':
             with rarfile.RarFile(archive_bytes, 'r') as rf:
-                pdf_files = [
-                    f for f in rf.infolist() if f.filename.endswith('.pdf')
-                ]
-
-                # Сначала ищем PDF в папке ЭтикеткиPDF
-                target_pdfs = [
-                    f for f in pdf_files if f.filename.startswith(f"{settings.Pdf.PDF_FOLDER_NAME}/")
-                ]
-
-                # Если не нашли — берём PDF из корня архива
-                if not target_pdfs:
-                    target_pdfs = [
-                        f for f in pdf_files if '/' not in f.filename.rstrip('/')
-                    ]
-
+                target_pdfs = self._get_target_pdf_members(rf.infolist())
                 for file_info in target_pdfs:
-                    pdf_data = rf.read(file_info.filename)
-                    self.pdf_files.append(BytesIO(pdf_data))
+                    self._add_pdf_to_writer(pdf_merger, rf.read(file_info.filename))
 
         elif self.archive_type == 'zip':
             with zipfile.ZipFile(archive_bytes, 'r') as zf:
-                pdf_files = [
-                    f for f in zf.infolist() if f.filename.endswith('.pdf')
-                ]
-
-                target_pdfs = [
-                    f for f in pdf_files if f.filename.startswith(f"{settings.Pdf.PDF_FOLDER_NAME}/")
-                ]
-
-                if not target_pdfs:
-                    target_pdfs = [
-                        f for f in pdf_files if '/' not in f.filename.rstrip('/')
-                    ]
-
+                target_pdfs = self._get_target_pdf_members(zf.infolist())
                 for file_info in target_pdfs:
-                    pdf_data = zf.read(file_info.filename)
-                    self.pdf_files.append(BytesIO(pdf_data))
-
-        pdf_merger = PdfWriter()
-        for pdf_file in self.pdf_files:
-            pdf_reader = PdfReader(pdf_file)
-            for page in pdf_reader.pages:
-                pdf_merger.addpage(page)
+                    self._add_pdf_to_writer(pdf_merger, zf.read(file_info.filename))
 
         return self.add_page_numbers(pdf_merger)
 
-
     @staticmethod
     def add_page_numbers(pdf_merger: PdfWriter) -> BytesIO:
-        io_pdf = BytesIO()
-        pdf_merger.write(io_pdf)
-        io_pdf.seek(0)
+        pages = list(pdf_merger.pagearray)
+        total_pages = len(pages)
 
-        output = PdfReader(io_pdf)
-        for i, page in enumerate(output.pages, start=1):
-            page_number_text = f"{i} - {len(output.pages)}"
+        for i, page in enumerate(pages, start=1):
+            page_number_text = f"{i} - {total_pages}"
             RarZipPdfProcessor.add_text_to_page(page, page_number_text)
 
         io_pdf = BytesIO()
-        io_pdf_writer = PdfWriter()
-        io_pdf_writer.addpages(output.pages)
-        io_pdf_writer.write(io_pdf)
+        pdf_merger.write(io_pdf)
         io_pdf.seek(0)
 
         return io_pdf
@@ -110,7 +95,7 @@ class RarZipPdfProcessor:
 
         # Create a canvas with ReportLab
         can = canvas.Canvas(overlay_buffer, pagesize=(width, height))
-        can.setFontSize(size=6)  # Setting font size to 6
+        can.setFontSize(size=settings.Pdf.TEXT_FONT_SIZE)
 
         # Draw the text on the canvas
         can.drawString(tx_absolute, ty_absolute, text)

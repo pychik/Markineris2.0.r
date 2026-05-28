@@ -959,9 +959,9 @@ class Settings(BaseSettings):
 
     class Pdf:
         PDF_FOLDER_NAME = 'ЭтикеткиPDF'
-        TEXT_FONT_SIZE = 6.9
+        TEXT_FONT_SIZE = 5.5
         TEXT_TX = 73.2 / 100  # X position as a percentage absolete 135
-        TEXT_TY = 5 / 100  # Y position as a percentage absolete 10
+        TEXT_TY = 4 / 100  # Y position as a percentage absolete 10
 
     class Reports:
         UT_START_FILL: list = UT_REPORT_START_FILL
