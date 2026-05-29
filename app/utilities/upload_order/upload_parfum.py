@@ -11,7 +11,7 @@ from tezaurus.runtime_catalogs import is_allowed_country
 from utilities.check_tnved import TnvedChecker
 from utilities.download import ParfumProcessor
 from utilities.upload_order.upload_common import empty_value, val_error_start, UploadCategory, handle_upload_exceptions, \
-    check_article_value
+    check_article_value, normalize_trademark_placeholder
 
 
 class ValidateParfumMixin:
@@ -27,8 +27,9 @@ class ValidateParfumMixin:
     @staticmethod
     @check_article_value
     def _trademark(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
+        value = normalize_trademark_placeholder(value)
         if not value or value == 'nan' or isna(value) \
-                or len(value) < 1:
+                or len(value) < 1 or value == 'БЕЗ ТОВАРНОГО ЗНАКА':
             order_list[row_num - settings.Parfum.UPLOAD_STANDART_ROW][pos] = 'БЕЗ ТОВАРНОГО ЗНАКА'
         return
 

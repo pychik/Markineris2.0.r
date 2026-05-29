@@ -1,5 +1,13 @@
 <div class="row setup-content faded" id="step-2" {% if not o_id or 'page' in request.url %}style="display:none"{% endif %}>
-
+    <script>
+        function normalizeTrademarkPlaceholder(el) {
+            if (!el || typeof el.value !== "string") return;
+            const value = el.value;
+            if (/^\s*([^\p{L}\p{N}\s])(?:\s*\1)*\s*$/u.test(value)) {
+                el.value = "БЕЗ ТОВАРНОГО ЗНАКА";
+            }
+        }
+    </script>
     <div class="col-md-2">
         <div class="return mb-2">
             <div class="prevBtn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
@@ -40,7 +48,7 @@
 
                         <!-- Скрываемое поле, которое отправляется -->
                         <input type="text" name="trademark" id="trademark" class="form-control"
-                            onchange="check_article_word(this);check_valid(this);" minlength="1" maxlength="50" required
+                            onchange="normalizeTrademarkPlaceholder(this);check_article_word(this);check_valid(this);" minlength="1" maxlength="50" required
                             title="Вводимое значение не должно превышать 50 знаков"
                             {% if copied_order %} value="{{ copied_order.trademark }}" {% endif %}>
 

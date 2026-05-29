@@ -34,6 +34,18 @@ def process_input_str(value: str) -> str:
     return value.replace("\"", '').replace("\'", '').replace(":", '').replace("?", '').strip()
 
 
+def _normalize_trademark_placeholder(value: str) -> str:
+    cleaned = process_input_str(value or "")
+    if not cleaned:
+        return cleaned
+
+    compact = cleaned.replace(' ', '')
+    if compact and len(set(compact)) == 1 and not compact[0].isalnum():
+        return 'БЕЗ ТОВАРНОГО ЗНАКА'
+
+    return cleaned
+
+
 def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
     article = process_input_str(form_dict.get("article"))
@@ -284,7 +296,7 @@ def save_copy_order_shoes(order_category_list: list[Shoe], new_order: Order) -> 
             incompatible_items.append(result)
             continue
 
-        new_shoes = Shoe(trademark=shoe.trademark,
+        new_shoes = Shoe(trademark=_normalize_trademark_placeholder(shoe.trademark),
                                 article=shoe.article, type=shoe.type,
                                 color=shoe.color, box_quantity=shoe.box_quantity,
                                 material_top=shoe.material_top,
@@ -323,7 +335,7 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
             new_sizes.append(new_sq)
 
         new_order.clothes.append(Clothes(
-            trademark=clothes.trademark, article=clothes.article, type=clothes.type,
+            trademark=_normalize_trademark_placeholder(clothes.trademark), article=clothes.article, type=clothes.type,
             color=clothes.color, content=clothes.content, box_quantity=clothes.box_quantity,
             gender=clothes.gender, country=clothes.country, tnved_code=clothes.tnved_code,
             article_price=clothes.article_price, tax=clothes.tax,
@@ -352,7 +364,7 @@ def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) ->
         #     continue
 
         new_order.socks.append(Socks(
-            trademark=sock.trademark,
+            trademark=_normalize_trademark_placeholder(sock.trademark),
             article=sock.article,
             type=sock.type,
             color=sock.color,
@@ -399,7 +411,7 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
             incompatible_items.append(result)
             continue
 
-        new_linen = Linen(trademark=linen.trademark,
+        new_linen = Linen(trademark=_normalize_trademark_placeholder(linen.trademark),
                                      article=linen.article, type=linen.type,
                                      color=linen.color, with_packages=linen.with_packages,
                                      box_quantity=linen.box_quantity,
@@ -436,7 +448,7 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
         #     continue
 
         new_parfum = Parfum(
-            trademark=parfum.trademark,
+            trademark=_normalize_trademark_placeholder(parfum.trademark),
             volume_type=parfum.volume_type,
             volume=parfum.volume,
             package_type=parfum.package_type,

@@ -10,6 +10,23 @@ from config import settings
 from utilities.exceptions import ArticlesException
 
 
+def normalize_trademark_placeholder(value: str) -> str:
+    if value is None:
+        return value
+
+    normalized = str(value).strip()
+    if not normalized or normalized == 'nan':
+        return value
+
+    # Один и тот же спецсимвол с пробелами вокруг: "---", "% % %", "( ( (" -> placeholder.
+    if len(normalized) >= 1 and len(set(normalized.replace(' ', ''))) == 1:
+        candidate = normalized.replace(' ', '')
+        if candidate and not candidate[0].isalnum():
+            return 'БЕЗ ТОВАРНОГО ЗНАКА'
+
+    return value
+
+
 def val_error_start(row_num: int, col: str = None):
     return f"Строка {row_num} Столбец {col}" if col else f"Строка {row_num} "
 
