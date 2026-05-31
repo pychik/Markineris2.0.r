@@ -23,11 +23,14 @@ function socks_perform_pos_add(async_flag, url) {
         // console.log("good valid form")
         if (async_flag === 0) {
             console.log(pos_form.checkValidity, pos_form.checkValidity());
+            loadingCircle();
             pos_form.submit();
         } else {
+            loadingCircle();
             socks_load_upload_table(url)
         }
     } else {
+        close_Loading_circle();
         if (typeof window.clearPendingStep3TransitionAfterAsyncAdd === 'function') {
             window.clearPendingStep3TransitionAfterAsyncAdd();
         }
@@ -309,6 +312,7 @@ function socks_load_upload_table(url) {
         method: "POST",
         data: form,
         success: function (data) {
+            close_Loading_circle();
             // console.log(data);
             if (data.status === 'success') {
                 $('#step-3_update').html(data);
@@ -344,6 +348,7 @@ function socks_load_upload_table(url) {
             }
         },
         error: function () {
+            close_Loading_circle();
             if (typeof window.clearPendingStep3TransitionAfterAsyncAdd === 'function') {
                 window.clearPendingStep3TransitionAfterAsyncAdd();
             }

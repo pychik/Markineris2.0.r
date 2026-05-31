@@ -11,11 +11,13 @@ from config import settings
 from logger import logger
 from models import User, Order, Shoe, ShoeQuantitySize, Socks, SocksQuantitySize, Linen, LinenQuantitySize, Parfum, \
     Clothes, ClothesQuantitySize, db
-from utilities.categories_data.clothes_common.tnved_processor import get_tnved_codes_for_gender
+
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.helpers.helpers_checks import _check_linen_compatibility, _check_clothes_compatibility, \
     _check_shoes_compatibility, rd_name_clean
 from utilities.exceptions import SizeTypeException
+from utilities.saving_helpers import append_or_merge_position, get_clothes_size_type, normalize_trademark_placeholder, \
+    process_input_str
 from utilities.validators import normalize_mark_type_full
 
 
@@ -28,22 +30,6 @@ def time_count(func):
         logger.info(res)
         return result
     return wrapper
-
-
-def process_input_str(value: str) -> str:
-    return value.replace("\"", '').replace("\'", '').replace(":", '').replace("?", '').strip()
-
-
-def _normalize_trademark_placeholder(value: str) -> str:
-    cleaned = process_input_str(value or "")
-    if not cleaned:
-        return cleaned
-
-    compact = cleaned.replace(' ', '')
-    if compact and len(set(compact)) == 1 and not compact[0].isalnum():
-        return 'БЕЗ ТОВАРНОГО ЗНАКА'
-
-    return cleaned
 
 
 def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
@@ -66,63 +52,9 @@ def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
 
     extend_sq = (ShoeQuantitySize(size=el[0], quantity=el[1]) for el in sizes_quantities)
     new_shoe_order.sizes_quantities.extend(extend_sq)
-    order.shoes.append(new_shoe_order)
+    append_or_merge_position(order.shoes, new_shoe_order, settings.Shoes.CATEGORY)
 
     return order
-
-
-def get_clothes_size_type(size: str, provided_type: str) -> str:
-    if not provided_type:
-        raise SizeTypeException("Тип размера не указан.")
-
-    provided_type = provided_type.strip()
-    length_width_size_type = settings.Clothes.LENGTH_WIDTH_SIZE_TYPE
-
-    if provided_type == length_width_size_type:
-        normalized_size = (size or '').strip()
-        size_match = re.fullmatch(r'(\d+(?:[.,]\d+)?)\*(\d+(?:[.,]\d+)?)\s+(мм|см)', normalized_size)
-        if not size_match:
-            raise SizeTypeException(
-                f"Размер '{size}' не соответствует типу '{length_width_size_type}'."
-            )
-        length_value, width_value, unit_value = size_match.groups()
-        if unit_value not in {'мм', 'см'}:
-            raise SizeTypeException(
-                f"Размер '{size}' не соответствует типу '{length_width_size_type}'."
-            )
-        if float(length_value.replace(',', '.')) <= 0 or float(width_value.replace(',', '.')) <= 0:
-            raise SizeTypeException(
-                f"Размер '{size}' не соответствует типу '{length_width_size_type}'."
-            )
-        return length_width_size_type
-
-    valid_keys = settings.Clothes.SIZE_ALL_DICT.keys()
-    if provided_type not in valid_keys:
-        raise SizeTypeException(f"Неизвестный тип размера: '{provided_type}'.")
-
-    # 1. Проверка ТОЛЬКО для РОССИЯ
-    if provided_type == 'РОССИЯ':
-        valid_sizes = settings.Clothes.CLOTHES_ST_RUSSIA
-        if size not in valid_sizes:
-            raise SizeTypeException(
-                f"Размер '{size}' не соответствует типу 'РОССИЯ'."
-            )
-        return settings.Clothes.DEFAULT_SIZE_TYPE
-
-    # 2. МЕЖДУНАРОДНЫЙ → не проверяем список
-    if provided_type == 'МЕЖДУНАРОДНЫЙ':
-        return settings.Clothes.INTERNATIONAL_SIZE_TYPE
-
-    # 3. ОСОБЫЕ_РАЗМЕРЫ → всегда INTERNATIONAL_SIZE_TYPE, без проверок
-    if provided_type == 'ОСОБЫЕ_РАЗМЕРЫ':
-        return settings.Clothes.INTERNATIONAL_SIZE_TYPE
-
-    # 4. РОСТ → тоже без проверки
-    if provided_type == 'РОСТ':
-        return settings.Clothes.ROST_SIZE_TYPE
-
-    # fallback
-    raise SizeTypeException(f"Не удалось определить size_type для '{provided_type}'.")
 
 
 def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcategory: str = None) -> Order:
@@ -150,7 +82,7 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcateg
         for el in sizes_quantities
     )
     new_clothes_order.sizes_quantities.extend(extend_sq)
-    order.clothes.append(new_clothes_order)
+    append_or_merge_position(order.clothes, new_clothes_order, settings.Clothes.CATEGORY)
     return order
 
 
@@ -173,7 +105,7 @@ def save_socks(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
                                    size_type=el[2] if el[0] not in settings.Socks.UNITE_SIZE_VALUES
                                    else settings.Socks.DEFAULT_SIZE_TYPE) for el in sizes_quantities)
     new_socks_order.sizes_quantities.extend(extend_sq)
-    order.socks.append(new_socks_order)
+    append_or_merge_position(order.socks, new_socks_order, settings.Socks.CATEGORY)
     return order
 
 
@@ -206,7 +138,7 @@ def save_linen(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
         extend_sq = (LinenQuantitySize(size=el[0], unit=el[1], quantity=el[2]) for el in sizes_quantities)
         new_linen_order.sizes_quantities.extend(extend_sq)
 
-    order.linen.append(new_linen_order)
+    append_or_merge_position(order.linen, new_linen_order, settings.Linen.CATEGORY)
     return order
 
 
@@ -225,7 +157,7 @@ def save_parfum(order: Order, form_dict: dict) -> Order:
                               rd_name=form_dict.get("rd_name").replace('№', ''),
                               rd_date=rd_date)
 
-    order.parfum.append(new_parfum_order)
+    append_or_merge_position(order.parfum, new_parfum_order, settings.Parfum.CATEGORY)
     return order
 
 
@@ -296,7 +228,7 @@ def save_copy_order_shoes(order_category_list: list[Shoe], new_order: Order) -> 
             incompatible_items.append(result)
             continue
 
-        new_shoes = Shoe(trademark=_normalize_trademark_placeholder(shoe.trademark),
+        new_shoes = Shoe(trademark=normalize_trademark_placeholder(shoe.trademark),
                                 article=shoe.article, type=shoe.type,
                                 color=shoe.color, box_quantity=shoe.box_quantity,
                                 material_top=shoe.material_top,
@@ -308,7 +240,7 @@ def save_copy_order_shoes(order_category_list: list[Shoe], new_order: Order) -> 
                                 tax=shoe.tax, rd_type=shoe.rd_type, rd_name=shoe.rd_name.replace('№', ''), rd_date=shoe.rd_date,
                                 sizes_quantities=list((ShoeQuantitySize(size=sq.size, quantity=sq.quantity)
                                                                     for sq in shoe.sizes_quantities)))
-        new_order.shoes.append(new_shoes)
+        append_or_merge_position(new_order.shoes, new_shoes, settings.Shoes.CATEGORY)
         kept_linen_count += 1
     if kept_linen_count == 0:
         raise Exception("Не удалось скопировать ни одной позиции: все позиции не проходят новые правила ЧЗ."
@@ -320,6 +252,7 @@ def save_copy_order_shoes(order_category_list: list[Shoe], new_order: Order) -> 
 
 
 def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order) -> Order:
+    old_sq_map = {}
     incompatible_items = []
     kept_clothes_count = 0
     for clothes in order_category_list:
@@ -334,15 +267,19 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
             new_sq = ClothesQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
             new_sizes.append(new_sq)
 
-        new_order.clothes.append(Clothes(
-            trademark=_normalize_trademark_placeholder(clothes.trademark), article=clothes.article, type=clothes.type,
+        new_clothes = Clothes(
+            trademark=normalize_trademark_placeholder(clothes.trademark), article=clothes.article, type=clothes.type,
             color=clothes.color, content=clothes.content, box_quantity=clothes.box_quantity,
             gender=clothes.gender, country=clothes.country, tnved_code=clothes.tnved_code,
             article_price=clothes.article_price, tax=clothes.tax,
             rd_type=clothes.rd_type, rd_name=clothes.rd_name.replace('№', ''),
             rd_date=clothes.rd_date, subcategory=clothes.subcategory,
             sizes_quantities=new_sizes
-        ))
+        )
+        append_or_merge_position(new_order.clothes, new_clothes, settings.Clothes.CATEGORY,
+                                 old_sq_map=old_sq_map,
+                                 source_size_pairs=[(sq.id, new_sq) for sq, new_sq in
+                                                    zip(clothes.sizes_quantities, new_sizes)])
         kept_clothes_count += 1
     if kept_clothes_count == 0:
         raise Exception("Не удалось скопировать ни одной позиции: все позиции не проходят новые правила ЧЗ."
@@ -356,47 +293,31 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
 def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) -> Order:
     # incompatible_items = []
     # kept_socks_count = 0
-
+    old_sq_map = {}
     for sock in order_category_list:
         # result = _check_socks_compatibility(sock)
         # if result:  # несовместима — сохраняем сообщение
         #     incompatible_items.append(result)
         #     continue
 
-        new_order.socks.append(Socks(
-            trademark=_normalize_trademark_placeholder(sock.trademark),
-            article=sock.article,
-            type=sock.type,
-            color=sock.color,
-            content=sock.content,
-            box_quantity=sock.box_quantity,
-            gender=sock.gender,
-            country=sock.country,
-            tnved_code=sock.tnved_code,
-            article_price=sock.article_price,
-            tax=sock.tax,
-            rd_type=sock.rd_type,
-            rd_name=sock.rd_name.replace('№', ''),
-            rd_date=sock.rd_date,
-            sizes_quantities=[
-                SocksQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
-                for sq in sock.sizes_quantities
-            ]
-        ))
-        # kept_socks_count += 1
+        new_sizes = []
+        for sq in sock.sizes_quantities:
+            new_sq = SocksQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
+            new_sizes.append(new_sq)
 
-    # if kept_socks_count == 0:
-    #     raise Exception(
-    #         "Не удалось скопировать ни одной позиции: все позиции не проходят новые правила ЧЗ."
-    #         + (" Подробности: " + ", ".join(incompatible_items) if incompatible_items else "")
-    #     )
-    #
-    # if incompatible_items:
-    #     flash(
-    #         message="Из скопированного заказа были удалены позиции согласно новым правилам ЧЗ."
-    #                 " Обратите внимание:" + ", ".join(incompatible_items),
-    #         category="warning"
-    #     )
+        new_socks = Socks(
+            trademark=normalize_trademark_placeholder(sock.trademark), article=sock.article, type=sock.type,
+            color=sock.color, content=sock.content, box_quantity=sock.box_quantity,
+            gender=sock.gender, country=sock.country, tnved_code=sock.tnved_code,
+            article_price=sock.article_price, tax=sock.tax,
+            rd_type=sock.rd_type, rd_name=rd_name_clean(sock.rd_name),
+            rd_date=sock.rd_date,
+            sizes_quantities=new_sizes
+        )
+        append_or_merge_position(new_order.socks, new_socks, settings.Socks.CATEGORY,
+                                 old_sq_map=old_sq_map,
+                                 source_size_pairs=[(sq.id, new_sq) for sq, new_sq in
+                                                    zip(sock.sizes_quantities, new_sizes)])
 
     return new_order
 
@@ -411,7 +332,7 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
             incompatible_items.append(result)
             continue
 
-        new_linen = Linen(trademark=_normalize_trademark_placeholder(linen.trademark),
+        new_linen = Linen(trademark=normalize_trademark_placeholder(linen.trademark),
                                      article=linen.article, type=linen.type,
                                      color=linen.color, with_packages=linen.with_packages,
                                      box_quantity=linen.box_quantity,
@@ -426,7 +347,7 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
                 for sq in linen.sizes_quantities
             ],
         )
-        new_order.linen.append(new_linen)
+        append_or_merge_position(new_order.linen, new_linen, settings.Linen.CATEGORY)
         kept_linen_count += 1
     if kept_linen_count == 0:
         raise Exception("Не удалось скопировать ни одной позиции: все позиции не проходят новые правила ЧЗ."
@@ -448,7 +369,7 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
         #     continue
 
         new_parfum = Parfum(
-            trademark=_normalize_trademark_placeholder(parfum.trademark),
+            trademark=normalize_trademark_placeholder(parfum.trademark),
             volume_type=parfum.volume_type,
             volume=parfum.volume,
             package_type=parfum.package_type,
@@ -465,7 +386,7 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
             rd_name=rd_name_clean(parfum.rd_name),
             rd_date=parfum.rd_date,
         )
-        new_order.parfum.append(new_parfum)
+        append_or_merge_position(new_order.parfum, new_parfum, settings.Parfum.CATEGORY)
         # kept_parfum_count += 1
 
     # if kept_parfum_count == 0:

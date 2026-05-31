@@ -184,7 +184,10 @@ def orders_list_common(category: str, user: User, new: bool = False, o_id: int =
 
     rd_exist, quantity_list_raw, pos_count, orders_pos_count = order_count(category, order_list=orders)
     if price_exist:
-        price_list = [item[0] * item[1]*item[2] for sublist in quantity_list_raw for item in sublist]
+        if category == settings.Parfum.CATEGORY:
+            price_list = [el.article_price * el.quantity for el in orders]
+        else:
+            price_list = [item[0] * item[1] * item[2] for sublist in quantity_list_raw for item in sublist]
         total_price = sum(price_list)
     else:
         total_price = 0

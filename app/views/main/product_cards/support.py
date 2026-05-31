@@ -19,7 +19,7 @@ from models import db, Clothes, LinenSizesUnits, ProductCard, ClothesQuantitySiz
     SocksQuantitySize, Linen, LinenQuantitySize, Parfum, UserProcessingCompany, ProcessingCompany, ModerationStatus
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.exceptions import SizeTypeException, CompanyPoolError
-from utilities.saving_uts import process_input_str, get_clothes_size_type
+from utilities.saving_helpers import get_clothes_size_type, process_input_str
 from utilities.support import check_forbidden_words
 from utilities.validators import ValidatorProcessor
 from views.crm.schema import CompanyLite, is_forbidden_pair_by_inn
