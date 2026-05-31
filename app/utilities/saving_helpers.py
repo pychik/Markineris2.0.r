@@ -195,25 +195,25 @@ def append_or_merge_position(order_positions: Any, new_item: Any, category: str,
                              source_size_pairs: list[tuple[int, object]] | None = None):
     """Append a new position or merge it into an existing matching one."""
     new_key = build_position_key(new_item, category)
-    logger.info(f"merge check category={category} new_key={new_key}")
+    # logger.info(f"merge check category={category} new_key={new_key}")
     for existing_item in order_positions:
         existing_key = build_position_key(existing_item, category)
-        logger.info(f"merge compare category={category} existing_key={existing_key}")
+        # logger.info(f"merge compare category={category} existing_key={existing_key}")
         if existing_key != new_key:
             continue
 
         if category == settings.Parfum.CATEGORY:
             existing_item.quantity = normalize_int_key(existing_item.quantity) + normalize_int_key(new_item.quantity)
-            logger.info(f"merge hit category={category} target=parfum key={new_key}")
+            # logger.info(f"merge hit category={category} target=parfum key={new_key}")
             return existing_item
 
         merge_size_quantities(existing_item, new_item, category, old_sq_map=old_sq_map,
                               source_size_pairs=source_size_pairs)
-        logger.info(f"merge hit category={category} target=sizes key={new_key}")
+        # logger.info(f"merge hit category={category} target=sizes key={new_key}")
         return existing_item
 
     order_positions.append(new_item)
-    logger.info(f"merge miss category={category} appended_key={new_key}")
+    # logger.info(f"merge miss category={category} appended_key={new_key}")
     if old_sq_map is not None:
         for old_sq_id, size_obj in (source_size_pairs or []):
             old_sq_map[old_sq_id] = size_obj
