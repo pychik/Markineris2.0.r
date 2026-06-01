@@ -2,27 +2,6 @@
 
 {% block categories_upper_part_upload %}
 
-<script>
-    window.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("btn_upload_1").addEventListener("click", function () {
-
-            if (document.getElementById('uploadForm').checkValidity() === true){
-                loadingCircle();
-                setTimeout(() => {reload_upload_page_with_params()}, 12000);
-            }
-
-        });
-        document.getElementById("btn_upload_2").addEventListener("click", function () {
-
-            if (document.getElementById('uploadForm').checkValidity() === true){
-                loadingCircle();
-                setTimeout(() => {reload_upload_page_with_params()}, 12000);
-            }
-
-        });
-    });
-</script>
-
 {% set category_name = category.capitalize() if category != 'одежда' or( category == 'одежда' and (not subcategory or subcategory == 'common')) else subcategories_dict[subcategory].capitalize() %}
 <div class="container-fluid pb-4 content-main">
 
@@ -93,80 +72,15 @@
 
 {% include 'helpers/modal_questions_org.html' %}
 
+<script src="{{ url_for('static', filename='main_v2/js/common_excel_upload.js') }}?v=2"></script>
 <script>
-const subcategories_dict = {{ (subcategories_dict.keys() | list)[: -1] | tojson }};
-const urlParams = new URLSearchParams(window.location.search);
-const subcategory = urlParams.get('subcategory');
-
-function upload_type_process(type_process){
-    document.getElementById('table_type').value = type_process;
-    check_upload_form();
-
-}
-
-function reload_upload_page_with_params() {
-    const company_type = document.getElementById('company_type').value;
-    const company_name = document.getElementById('company_name').value;
-    const company_idn = document.getElementById('company_idn').value;
-    const edo_type = document.getElementById('edo_type').value;
-    const mark_type = document.getElementById('mark_type').value;
-    const mark_type_hidden = document.getElementById('mark_type_hidden').value;
-
-    const urlParams = new URLSearchParams();
-    urlParams.set('company_type', company_type);
-    urlParams.set('company_name', company_name);
-    urlParams.set('company_idn', company_idn);
-    urlParams.set('edo_type', edo_type);
-    urlParams.set('mark_type', mark_type);
-    urlParams.set('mark_type_hidden', mark_type_hidden);
-
-    // Добавим subcategory, если она определена и не пустая
-    if (typeof subcategory !== 'undefined' && subcategory ) {
-        urlParams.set('subcategory', subcategory);
-    }
-
-    window.location = "{{ request.path }}?" + urlParams.toString();
-}
-
-function check_upload_form() {
-    var upload_form = document.getElementById('uploadForm');
-
-    if ((!upload_form.checkValidity || upload_form.checkValidity())) {
-        // Получаем параметр subcategory из URL
-
-
-        // Проверка: если subcategory есть и входит в subcategories_dict (кроме последнего)
-        if (subcategory && subcategories_dict.includes(subcategory)) {
-            // Добавим скрытое поле в форму с этим параметром
-            let hiddenInput = document.createElement("input");
-            hiddenInput.type = "hidden";
-            hiddenInput.name = "subcategory";
-            hiddenInput.value = subcategory;
-            upload_form.appendChild(hiddenInput);
-            // console.log(subcategory, hiddenInput);
-        }
-
-        // Отправляем форму
-        upload_form.submit();
-    } else {
-        var allInputs = $('#uploadForm input, #uploadForm select');
-        var errors_list = [];
-
-        allInputs.each(function(index) {
-            let error_field_id = check_valid(allInputs[index]);
-            if (error_field_id !== true) {
-                let label_text = jQuery(`#${error_field_id}`).closest(".form-group").find("label").text();
-                if (label_text) {
-                    errors_list.push(label_text);
-                }
-            }
-        });
-
-        show_form_errors(errors_list);
-        $('#form_errorModal').modal('show');
-    }
-}
-
+window.addEventListener("DOMContentLoaded", function () {
+    initCommonExcelUpload({
+        requestPath: {{ request.path | tojson }},
+        subcategories: {{ (subcategories_dict.keys() | list)[: -1] | tojson }},
+        subcategory: new URLSearchParams(window.location.search).get("subcategory"),
+    });
+});
 </script>
 {% include 'helpers/modal_questions_v2.html' %}
 {% endblock %}

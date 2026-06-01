@@ -1,6 +1,6 @@
 from typing import Union
 
-from flask import flash, redirect, url_for, request, Response, render_template, send_file
+from flask import flash, jsonify, redirect, url_for, request, Response, render_template, send_file
 from flask_login import current_user
 
 from config import settings
@@ -14,6 +14,16 @@ from utilities.upload_order.upload_saving_uts import upload_table_common
 from utilities.upload_order.upload_shoes import UploadShoes
 from utilities.upload_order.upload_socks import UploadSocks
 from utilities.validators import is_valid_mark_type_full
+
+
+def _is_upload_fetch_request() -> bool:
+    return request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+
+def _upload_redirect_response(redirect_url: str):
+    if _is_upload_fetch_request():
+        return jsonify({'status': 'redirect', 'redirect_url': redirect_url})
+    return redirect(redirect_url)
 
 
 def helper_upload_common_get(category: str, category_process_name: str) -> Union[Response, str]:
@@ -82,15 +92,15 @@ def helper_upload_common_post(category: str, category_process_name: str,
 
     if not mark_type_hidden:
         flash(message="не указан тип маркировки", category='error')
-        return redirect(url_for(f'{category_process_name}.upload', **params))
+        return _upload_redirect_response(url_for(f'{category_process_name}.upload', **params))
 
     if not is_valid_mark_type_full(mark_type_hidden):
         flash(message="некорректный тип маркировки", category='error')
-        return redirect(url_for(f'{category_process_name}.upload', **params))
+        return _upload_redirect_response(url_for(f'{category_process_name}.upload', **params))
 
     if table_file is None or table_file is False or check_file_extension(filename=table_file.filename) is False:
         flash(message=settings.Messages.UPLOAD_FILE_EXTENSION_ERROR, category='error')
-        return redirect(url_for(f'{category_process_name}.upload', **params))
+        return _upload_redirect_response(url_for(f'{category_process_name}.upload', **params))
 
     try:
         us = upload_model(table_obj=table_file, type_upload=table_type, subcategory=params.get('subcategory'))
@@ -98,11 +108,11 @@ def helper_upload_common_post(category: str, category_process_name: str,
 
         if not order_list:
             flash(message=settings.Messages.UPLOAD_FILE_POS_ERROR, category='error')
-            return redirect(url_for(f'{category_process_name}.upload', **params))
+            return _upload_redirect_response(url_for(f'{category_process_name}.upload', **params))
         # process limit pos error
         if order_list[0] == settings.ORDER_LIMIT_ARTICLES:
             flash(message=f"{settings.Messages.ORDER_UPLOAD_POS_LIMIT} {order_list[1]}", category='error')
-            return redirect(url_for(f'{category_process_name}.upload', **params))
+            return _upload_redirect_response(url_for(f'{category_process_name}.upload', **params))
         if not error_list:
             order_id = upload_table_common(user=current_user, company_type=company_type, company_name=company_name,
                                            company_idn=company_idn, edo_type=edo_type, edo_id=edo_id,
@@ -112,11 +122,11 @@ def helper_upload_common_post(category: str, category_process_name: str,
             match order_id:
                 case None:
                     flash(message=f"{settings.Messages.ORDER_UPLOAD_CONFLICT}", category='error')
-                    return redirect(url_for(f'{category_process_name}.index'))
+                    return _upload_redirect_response(url_for(f'{category_process_name}.index'))
                 case _:
                     flash(message=f"{settings.Messages.ORDER_UPLOAD_SUCCESS}")
 
-                    return redirect(url_for(f'{category_process_name}.index', o_id=order_id))
+                    return _upload_redirect_response(url_for(f'{category_process_name}.index', o_id=order_id))
 
         else:
             flash(message=settings.Messages.UPLOAD_FILES_ERROR, category='error')
@@ -138,4 +148,4 @@ def helper_upload_common_post(category: str, category_process_name: str,
         flash(message=message, category='error')
         logger.error(message)
 
-    return redirect(url_for(f'{category_process_name}.upload', **params))
+    return _upload_redirect_response(url_for(f'{category_process_name}.upload', **params))
