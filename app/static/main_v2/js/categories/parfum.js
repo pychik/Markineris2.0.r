@@ -16,13 +16,16 @@ function parfum_perform_pos_add(async_flag, url){
         // console.log(pos_form.checkValidity());
         // console.log("good valid form")
         if (async_flag===0){
+            loadingCircle();
             pos_form.submit();
         }
         else{
+            loadingCircle();
             parfum_load_upload_table(url)
         }
     }
     else{
+        close_Loading_circle();
         if (typeof window.clearPendingStep3TransitionAfterAsyncAdd === 'function') {
             window.clearPendingStep3TransitionAfterAsyncAdd();
         }
@@ -282,6 +285,7 @@ async function async_parfum_delete_pos(url, csrf,block){
     data: form,
     success:function(data)
     {
+        close_Loading_circle();
         if(data.status==='success'){
           $('#step-3_update').html(data);
           $("#step-3_update").append(data.htmlresponse);
@@ -314,6 +318,7 @@ async function async_parfum_delete_pos(url, csrf,block){
         }
     },
     error: function() {
+        close_Loading_circle();
         if (typeof window.clearPendingStep3TransitionAfterAsyncAdd === 'function') {
             window.clearPendingStep3TransitionAfterAsyncAdd();
         }

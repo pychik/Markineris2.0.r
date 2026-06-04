@@ -10,7 +10,8 @@ from logger import logger
 from models import db, Order, ProductCard, Clothes, Parfum, ClothesQuantitySize, Socks, SocksQuantitySize, Shoe, \
     ShoeQuantitySize, Linen, LinenQuantitySize, User
 from utilities.categories_data.subcategories_data import ClothesSubcategories
-from utilities.saving_uts import get_clothes_size_type, save_copy_order_shoes, save_copy_order_clothes, \
+from utilities.saving_helpers import get_clothes_size_type
+from utilities.saving_uts import save_copy_order_shoes, save_copy_order_clothes, \
     save_copy_order_socks, save_copy_order_linen, save_copy_order_parfum
 
 ALLOWED_CARD_DATA_STATUSES: set[str] = {"approved", "partially_approved"}

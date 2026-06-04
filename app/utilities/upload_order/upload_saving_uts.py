@@ -8,6 +8,7 @@ from logger import logger
 from models import User, Order, Shoe, ShoeQuantitySize, Clothes, ClothesQuantitySize, Parfum, Linen, LinenQuantitySize, \
     db, Socks, SocksQuantitySize
 from utilities.categories_data.subcategories_data import ClothesSubcategories
+from utilities.saving_helpers import append_or_merge_position
 
 
 def upload_shoe_st(order_list: list, order: Order) -> Order:
@@ -27,7 +28,7 @@ def upload_shoe_st(order_list: list, order: Order) -> Order:
         new_size_quantity = ShoeQuantitySize(size=el[4].strip(), quantity=el[10].strip())
         new_shoe_order.sizes_quantities.append(new_size_quantity)
 
-        order.shoes.append(new_shoe_order)
+        append_or_merge_position(order.shoes, new_shoe_order, settings.Shoes.CATEGORY)
     return order
 
 
@@ -50,7 +51,7 @@ def upload_shoe_ext(order_list: list, order: Order) -> Order:
         sizes_quantities = zip(sizes, quantities)
 
         new_shoe_order.sizes_quantities.extend((ShoeQuantitySize(size=el[0], quantity=el[1]) for el in sizes_quantities))
-        order.shoes.append(new_shoe_order)
+        append_or_merge_position(order.shoes, new_shoe_order, settings.Shoes.CATEGORY)
     return order
 
 
@@ -76,7 +77,7 @@ def upload_clothes_st(order_list: list, order: Order, subcategory: str = None) -
         new_size_quantity = ClothesQuantitySize(size=el[6].strip(), quantity=el[9].strip(), size_type=el[5].strip())
         new_clothes_order.sizes_quantities.append(new_size_quantity)
 
-        order.clothes.append(new_clothes_order)
+        append_or_merge_position(order.clothes, new_clothes_order, settings.Clothes.CATEGORY)
     return order
 
 
@@ -96,32 +97,33 @@ def upload_socks_st(order_list: list, order: Order) -> Order:
         new_size_quantity = SocksQuantitySize(size=el[6].strip(), quantity=el[9].strip(), size_type=el[5].strip())
         new_socks_order.sizes_quantities.append(new_size_quantity)
 
-        order.socks.append(new_socks_order)
+        append_or_merge_position(order.socks, new_socks_order, settings.Socks.CATEGORY)
     return order
 
 
 def upload_parfum_st(order_list: list, order: Order) -> Order:
 
-    new_parfum_order = [Parfum(trademark=el[0].strip(), volume_type=el[1].strip(), volume=el[2].strip(),
-                               package_type=el[3].strip(), material_package=el[4].strip(), type=el[5].strip(),
-                               with_packages="нет", box_quantity=1, quantity=el[7].strip(), country=el[8].strip(),
-                               rd_type=el[9].strip(), rd_name=el[10].replace('№', ''),
-                               rd_date=datetime.strptime(el[11].strip(), '%d.%m.%Y').date() if el[11].strip() else None,
-                               tnved_code=el[6].strip(), article_price=0, tax=0) for el in order_list]
-    order.parfum.extend(new_parfum_order)
+    for el in order_list:
+        new_parfum_order = Parfum(trademark=el[0].strip(), volume_type=el[1].strip(), volume=el[2].strip(),
+                                  package_type=el[3].strip(), material_package=el[4].strip(), type=el[5].strip(),
+                                  with_packages="нет", box_quantity=1, quantity=el[7].strip(), country=el[8].strip(),
+                                  rd_type=el[9].strip(), rd_name=el[10].replace('№', ''),
+                                  rd_date=datetime.strptime(el[11].strip(), '%d.%m.%Y').date() if el[11].strip() else None,
+                                  tnved_code=el[6].strip(), article_price=0, tax=0)
+        append_or_merge_position(order.parfum, new_parfum_order, settings.Parfum.CATEGORY)
     return order
 
 
 def upload_parfum_ext(order_list: list, order: Order) -> Order:
-    new_parfum_order = [Parfum(trademark=el[0].strip(), volume_type=el[1].strip(), volume=el[2].strip(),
-                               package_type=el[3].strip(), material_package=el[4].strip(), type=el[5].strip(),
-                               with_packages="да", box_quantity=el[7].strip(), quantity=el[8].strip(),
-                               country=el[9].strip(),
-                               rd_type=el[10].strip(), rd_name=el[11].replace('№', ''),
-                               rd_date=datetime.strptime(el[12].strip(), '%d.%m.%Y').date() if el[12].strip() else None,
-                               tnved_code=el[6].strip(), article_price=0, tax=0)
-                        for el in order_list]
-    order.parfum.extend(new_parfum_order)
+    for el in order_list:
+        new_parfum_order = Parfum(trademark=el[0].strip(), volume_type=el[1].strip(), volume=el[2].strip(),
+                                  package_type=el[3].strip(), material_package=el[4].strip(), type=el[5].strip(),
+                                  with_packages="да", box_quantity=el[7].strip(), quantity=el[8].strip(),
+                                  country=el[9].strip(),
+                                  rd_type=el[10].strip(), rd_name=el[11].replace('№', ''),
+                                  rd_date=datetime.strptime(el[12].strip(), '%d.%m.%Y').date() if el[12].strip() else None,
+                                  tnved_code=el[6].strip(), article_price=0, tax=0)
+        append_or_merge_position(order.parfum, new_parfum_order, settings.Parfum.CATEGORY)
     return order
 
 
@@ -142,7 +144,7 @@ def upload_linen_st(order_list: list, order: Order) -> Order:
         new_size_quantity = LinenQuantitySize(size=f"{el[7].strip()}*{el[8].strip()}", quantity=el[10].strip())
         new_linen_order.sizes_quantities.append(new_size_quantity)
 
-        order.linen.append(new_linen_order)
+        append_or_merge_position(order.linen, new_linen_order, settings.Linen.CATEGORY)
     return order
 
 
@@ -163,7 +165,7 @@ def upload_linen_ext(order_list: list, order: Order) -> Order:
         new_size_quantity = LinenQuantitySize(size=f"{el[7].strip()}*{el[8].strip()}", quantity=el[11].strip())
         new_linen_order.sizes_quantities.append(new_size_quantity)
 
-        order.linen.append(new_linen_order)
+        append_or_merge_position(order.linen, new_linen_order, settings.Linen.CATEGORY)
     return order
 
 
