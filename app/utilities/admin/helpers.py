@@ -221,7 +221,7 @@ def helper_get_clients_os(admin_id: int, client: User) -> Response:
                                 os.marks_count as marks_count,
                                 os.op_cost as op_cost,
                                 os.category as category,
-                                os.created_at as created_at,
+                                os.crm_created_at as crm_created_at,
                                 MAX(u.login_name) as user_name,
                                 MAX(u.phone) as phone,
                                 MAX(pc.code) as partner_code
@@ -230,8 +230,8 @@ def helper_get_clients_os(admin_id: int, client: User) -> Response:
                              LEFT JOIN public.users_partners up on up.user_id =u.id
                              LEFT JOIN public.partner_codes pc on pc.id = up.partner_code_id
                              WHERE os.user_id=:client_id
-                             GROUP BY os.id, os.created_at
-                             ORDER BY os.created_at DESC
+                             GROUP BY os.id, os.crm_created_at
+                             ORDER BY os.crm_created_at DESC
                          """).bindparams(client_id=client.id)
 
     order_stats = db.session.execute(order_stmt).fetchall()

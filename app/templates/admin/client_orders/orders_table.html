@@ -57,7 +57,7 @@
 <!--                    <td class="tablesaw-cell-content">{{ loop.index }}</td>-->
                     <td class="tablesaw-cell-content">
 
-                        {{o.created_at.strftime('%d.%m.%Y %H:%M')}}
+                        {{ o.crm_created_at.strftime('%d.%m.%Y %H:%M') if o.crm_created_at else '' }}
                     </td>
                     <td>
                         {{ o.order_idn}}
