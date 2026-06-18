@@ -1,4 +1,3 @@
-import requests
 from typing import Union
 
 from flask import flash, jsonify, redirect, render_template, request, Response, url_for
@@ -7,92 +6,11 @@ from flask_login import current_user
 from config import settings
 from logger import logger
 from models import db, Telegram, Order, ExceptionDataUsers
-from utilities.check_idn import IdnGetter
 from utilities.check_tnved import TnvedChecker
+from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.support import check_file_extension, send_file_tg, \
     orders_list_common, helper_check_useroragent_balance, helper_check_uoabm, helper_check_user_order_in_archive
 from utilities.validators import is_valid_mark_type_full
-
-
-def h_dadata_party_by_inn():
-    _dadata_url = "https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/party"
-    q = (request.args.get("q") or "").strip()
-    if len(q) < 3:
-        return jsonify({"ok": True, "items": []})
-
-    headers = {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "Authorization": f"Token {settings.DADATA_TOKEN}",
-    }
-
-    body = {
-        "query": q,
-        "count": 7,
-        # можно так ограничивать:
-        # "status": ["ACTIVE"],
-    }
-
-    try:
-        r = requests.post(_dadata_url, headers=headers, json=body, timeout=10)
-
-        # если снова 400 — вернём текст DaData для диагностики
-        if r.status_code == 400:
-            return jsonify({"ok": False, "error": "dadata_400", "details": r.text}), 502
-
-        r.raise_for_status()
-        data = r.json()
-
-    except requests.Timeout:
-        return jsonify({"ok": False, "error": "timeout"}), 504
-    except requests.RequestException:
-        logger.exception("DaData suggest failed")
-        return jsonify({"ok": False, "error": "dadata_unavailable"}), 502
-
-    items = []
-    for s in data.get("suggestions", []):
-        d = s.get("data") or {}
-
-        state = d.get("state") or {}
-        items.append({
-            "inn": d.get("inn"),
-            "kpp": d.get("kpp"),
-            "opf": (d.get("opf") or {}).get("short"),
-            "name": (d.get("name") or {}).get("full") or s.get("value"),
-            "address": (d.get("address") or {}).get("value"),
-            "status": state.get("status"),  # <-- ACTIVE / LIQUIDATING / LIQUIDATED и т.п.
-        })
-
-    return jsonify({"ok": True, "items": items})
-
-
-def h_get_company_data(u_id: int, from_category: str, idn: str) -> str:
-    if u_id != current_user.id or from_category not in settings.CATEGORIES_PROCESS_NAMES:
-        result_status = 0
-        answer_list = []
-    else:
-        result_status, answer_list = IdnGetter.get_company(idn=idn)
-
-    return f"{result_status};{';'.join(answer_list)}"
-
-
-def h_process_idn_error(from_category: str, message: str) -> Response:
-    if from_category not in settings.CATEGORIES_PROCESS_NAMES:
-        flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
-        return redirect(url_for('main.enter'))
-    if message == 'error_0':
-        flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
-        return redirect(url_for('main.enter'))
-    if message == 'error_1':
-        flash(message=settings.Messages.AUTO_IDN_ERROR_CON, category='error')
-        return redirect(url_for(f"{from_category}.index"))
-    if message == 'error_2':
-        flash(message=settings.Messages.AUTO_IDN_ERROR_DATA, category='error')
-        redirect(url_for(f"{from_category}.index"))
-        return redirect(url_for(f"{from_category}.index"))
-    else:
-        flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
-        return redirect(url_for('main.enter'))
 
 
 def h_check_tnved_code_data(u_id: int, from_category: str, tnved_code: str) -> str:
@@ -153,23 +71,18 @@ def h_send_table_order() -> Response:
     edo_type = form_dict.get("edo_type")
     edo_id = form_dict.get("edo_id")
     mark_type = form_dict.get("mark_type")
-    mark_type_hidden = form_dict.get("mark_type_hidden")
+    mark_type_hidden = form_dict.get("mark_type_hidden") or mark_type
 
     table_file = request.files.get('table_upload')
-    redirect_params = dict(company_type=company_type, company_name=company_name, company_idn=company_idn,
-                           edo_type=edo_type, edo_id=edo_id, mark_type=mark_type,
-                           mark_type_hidden=mark_type_hidden)
 
     # print(not table_file, check_file_extension(filename=table_file.filename))
     if table_file is False or check_file_extension(filename=table_file.filename) is False:
         flash(message=settings.Messages.UPLOAD_FILE_EXTENSION_ERROR, category='error')
-        return redirect(url_for('requests_common.send_table', **redirect_params))
+        return redirect(url_for('requests_common.send_table', company_type=company_type, company_name=company_name,
+                                    company_idn=company_idn, edo_type=edo_type, edo_id=edo_id,
+                                    mark_type=mark_type, mark_type_hidden=mark_type_hidden))
 
-    if not mark_type_hidden:
-        flash(message="не указан тип маркировки", category='error')
-        return redirect(url_for('requests_common.send_table', **redirect_params))
-
-    if not all([company_type, company_name, company_idn, edo_type, mark_type]):
+    if not all([company_type, company_name, company_idn, edo_type, mark_type_hidden]):
         flash(message=f"{settings.Messages.SEND_FILE_EXTEXSION_ERROR}", category='error')
     elif not is_valid_mark_type_full(mark_type_hidden):
         flash(message="Произошла ошибка заполнения заказа. Указан некорректный тип маркировки.", category='error')
@@ -186,12 +99,18 @@ def h_send_table_order() -> Response:
             flash(message=message, category='error')
             logger.error(message)
 
-    return redirect(url_for('requests_common.send_table', **redirect_params))
+    return redirect(url_for('requests_common.send_table', company_type=company_type, company_name=company_name,
+                            company_idn=company_idn, edo_type=edo_type, edo_id=edo_id,
+                            mark_type=mark_type, mark_type_hidden=mark_type_hidden))
 
 
 def h_change_order_org_param(o_id: int) -> Union[str, Response]:
-    order = (Order.query.filter_by(id=o_id, processed=False, user_id=current_user.id)
-             .filter(~Order.to_delete).first())
+    order = (
+        Order.query
+        .filter_by(id=o_id, user_id=current_user.id, processed=False)
+        .filter(~Order.to_delete)
+        .first()
+    )
     if not order:
         flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
         return redirect(url_for('main.enter'))
@@ -214,8 +133,19 @@ def h_change_order_org_param(o_id: int) -> Union[str, Response]:
 
 
 def h_change_order_org_param_form(o_id: int) -> Response:
-    order = (Order.query.filter_by(id=o_id, processed=False, user_id=current_user.id)
-             .filter(~Order.to_delete).first())
+    def _build_order_redirect() -> Response:
+        url_kwargs = dict(o_id=o_id)
+        subcategory = get_subcategory(order_id=o_id, category=order.category)
+        if subcategory:
+            url_kwargs["subcategory"] = subcategory
+        return redirect(url_for(category + '.index', **url_kwargs))
+
+    order = (
+        Order.query
+        .filter_by(id=o_id, user_id=current_user.id, processed=False)
+        .filter(~Order.to_delete)
+        .first()
+    )
     if not order:
         flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
         return redirect(url_for('main.enter'))
@@ -229,29 +159,27 @@ def h_change_order_org_param_form(o_id: int) -> Response:
 
     # form_dict = request.form.to_dict()
     category = form_dict.get("category_hidden")
-    mark_type = form_dict.get("mark_type_hidden") or form_dict.get("mark_type")
-    if not mark_type:
-        flash(message="не указан тип маркировки", category='error')
-        return redirect(url_for(category + '.index', o_id=o_id))
-    if not is_valid_mark_type_full(mark_type):
-        flash(message="некорректный тип маркировки", category='error')
-        return redirect(url_for(category + '.index', o_id=o_id))
+    if not is_valid_mark_type_full(form_dict.get("mark_type_hidden") or form_dict.get("mark_type")):
+        flash(message="Произошла ошибка заполнения заказа. Указан некорректный тип маркировки.", category='error')
+        return _build_order_redirect()
     try:
         order.company_type = form_dict.get("company_type")
         order.company_name = form_dict.get("company_name")
         order.edo_type = form_dict.get("edo_type")
         order.edo_id = form_dict.get("edo_id")
         order.company_idn = new_company_idn
-        order.mark_type = mark_type
+        order.mark_type = form_dict.get("mark_type_hidden") or form_dict.get("mark_type")
 
         db.session.commit()
         flash(message=settings.Messages.UPDATE_ORG_SUCCESS)
     except Exception as e:
+
         db.session.rollback()
         message = f"{settings.Messages.UPDATE_ORG_ERROR} {e}"
         flash(message=message, category='error')
         logger.error(message)
-    return redirect(url_for(category + '.index', o_id=o_id))
+
+    return _build_order_redirect()
 
 
 def h_cubaa():

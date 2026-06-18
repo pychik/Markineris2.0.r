@@ -2,10 +2,11 @@ from flask import Blueprint, send_from_directory
 from flask_login import login_required
 
 from config import settings
+from utilities.helpers.dadata import h_dadata_party_by_inn
 
-from utilities.helpers.h_requests_common import h_process_idn_error, h_check_tnved_code_data, \
+from utilities.helpers.h_requests_common import h_check_tnved_code_data, \
     h_get_tg_user_data, h_send_table, h_send_table_order, h_change_order_org_param, h_change_order_org_param_form, \
-    h_cubaa, h_dadata_party_by_inn
+    h_cubaa
 from utilities.support import user_activated, user_is_send_check, helper_check_user_order_in_archive, su_required
 
 requests_common = Blueprint('requests_common', __name__)
@@ -16,13 +17,6 @@ requests_common = Blueprint('requests_common', __name__)
 @user_activated
 def dadata_party_by_inn():
     return h_dadata_party_by_inn()
-
-
-@requests_common.route('process_idn_error/<from_category>/<message>')
-@login_required
-@user_activated
-def process_idn_error(from_category: str, message: str):
-    return h_process_idn_error(from_category=from_category, message=message)
 
 
 @requests_common.route('/download/<path:filename>', methods=['GET'])

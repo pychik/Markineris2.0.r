@@ -7,7 +7,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const companyName = document.getElementById("company_name");
 
   const MIN_LEN = 7;
+  const DEBOUNCE_MS = 450;
   let timer = null;
+  let activeController = null;
+  let lastRequestedQuery = "";
 
   function normalize(v) {
     return v.replace(/\D/g, "");
@@ -16,6 +19,13 @@ document.addEventListener("DOMContentLoaded", () => {
   function hide() {
     box.style.display = "none";
     box.innerHTML = "";
+  }
+
+  function showError(message) {
+    hide();
+    if (typeof make_message === "function") {
+      make_message(message, "danger");
+    }
   }
 
   function render(items) {
@@ -70,9 +80,13 @@ document.addEventListener("DOMContentLoaded", () => {
   async function fetchSuggest(q) {
     const url = new URL(dadataByInnUrl, location.origin);
     url.searchParams.set("q", q);
-    const r = await fetch(url);
+    activeController?.abort();
+    activeController = new AbortController();
+    const r = await fetch(url, { signal: activeController.signal });
     const j = await r.json();
-    return j.ok ? j.items : [];
+    if (j.ok) return { items: j.items, error: null };
+
+    return { items: [], error: "Ошибка получения ответа от сервиса информации по юр лицам" };
   }
 
   input.addEventListener("input", () => {
@@ -83,18 +97,28 @@ document.addEventListener("DOMContentLoaded", () => {
     if (raw !== q) input.value = q;
 
     if (q.length < MIN_LEN) {
+      lastRequestedQuery = "";
+      activeController?.abort();
       hide();
       return;
     }
 
     timer = setTimeout(async () => {
+      if (q === lastRequestedQuery) return;
+      lastRequestedQuery = q;
+
       try {
-        const items = await fetchSuggest(q);
-        render(items);
-      } catch {
-        hide();
+        const result = await fetchSuggest(q);
+        if (result.error) {
+          showError(result.error);
+          return;
+        }
+        render(result.items);
+      } catch (error) {
+        if (error.name === "AbortError") return;
+        showError("Ошибка получения ответа от сервиса информации по юр лицам");
       }
-    }, 250);
+    }, DEBOUNCE_MS);
   });
 
   document.addEventListener("click", e => {
