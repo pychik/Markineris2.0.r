@@ -1,20 +1,22 @@
-"""Manual XLSX report for agent type 2 transactions.
+"""Ручной XLSX-отчет по транзакциям агента type2.
 
-Usage in ``flask shell``:
+Что делает:
+- находит агента по email;
+- проверяет, что агент относится к type2;
+- собирает успешные транзакции самого агента и всех его прямых пользователей;
+- для списаний за заказы и возвратов по отмененным заказам подтягивает связанные ``order_idn``;
+- формирует Excel-файл с двумя листами:
+  1. ``Успешные транзакции``
+  2. ``Отмененные заказы``
+- фиксирует актуальный баланс агента на момент построения отчета;
+- записывает колонку ``Сумма транзакции`` как числовую, чтобы в Excel по ней можно было считать;
+- добавляет итоговую строку ``Итого`` под колонкой суммы.
+
+Запуск в ``flask shell``:
 
     from utilities.reports_manual.at2_transactions_report import export_at2_transactions_report
 
     export_at2_transactions_report("ruznak@agentsm2r.com")
-
-What the report does:
-- finds an agent by email;
-- checks that the agent is type 2;
-- collects successful transactions for the agent and all direct users;
-- attaches order ids for order write-offs and order cancellations;
-- writes two sheets:
-  1. ``Успешные транзакции``
-  2. ``Отмененные заказы``
-- fixes the current agent balance in report metadata at generation time.
 """
 
 from __future__ import annotations
@@ -46,15 +48,18 @@ class AgentContext:
 
 
 def _normalize_email(email: str) -> str:
+    """Normalize email for stable lookup."""
     return (email or "").strip().lower()
 
 
 def _sanitize_file_chunk(value: str) -> str:
+    """Prepare a safe filename fragment."""
     cleaned = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in value)
     return cleaned.strip("_") or "agent"
 
 
 def _load_agent(email: str) -> AgentContext:
+    """Load type2 agent by email and return minimal report context."""
     agent = (
         User.query.with_entities(User.id, User.email, User.login_name, User.balance, User.is_at2)
         .filter(User.email == _normalize_email(email))
@@ -73,6 +78,14 @@ def _load_agent(email: str) -> AgentContext:
 
 
 def _transaction_rows(agent_id: int) -> list[dict[str, Any]]:
+    """Fetch successful transactions for a type2 agent and all direct users.
+
+    Notes:
+    - for agent's own write-offs we use the agent transaction user;
+    - for client write-offs under type2 the transaction also belongs to the agent balance;
+    - for order payments order ids are resolved via ``orders_stats.transaction_id``;
+    - for refunds on cancelled orders fallback goes through ``wo_account_info``.
+    """
     sql = text(
         """
         WITH scoped_users AS (
@@ -159,23 +172,28 @@ def _transaction_rows(agent_id: int) -> list[dict[str, Any]]:
 
 
 def _status_label(status: int) -> str:
+    """Translate transaction status to human-readable text."""
     return settings.Transactions.TRANSACTIONS.get(status, str(status))
 
 
 def _transaction_type_label(transaction_type: str) -> str:
+    """Translate transaction type to human-readable text."""
     return settings.Transactions.TRANSACTION_TYPES.get(transaction_type, transaction_type)
 
 
 def _operation_label(operation_type: bool) -> str:
+    """Translate refill/write-off flag to human-readable text."""
     return settings.Transactions.TRANSACTION_OPERATION_TYPES.get(int(bool(operation_type)), str(operation_type))
 
 
 def _signed_amount(amount: int | None, operation_type: bool) -> int:
+    """Return numeric signed amount for Excel calculations."""
     raw_amount = int(amount or 0)
     return raw_amount if operation_type else -raw_amount
 
 
 def _comment(row: dict[str, Any]) -> str:
+    """Build a compact diagnostic comment from optional transaction fields."""
     parts = [
         row.get("promo_info") or "",
         row.get("wo_account_info") or "",
@@ -185,6 +203,7 @@ def _comment(row: dict[str, Any]) -> str:
 
 
 def _report_row(row: dict[str, Any]) -> list[Any]:
+    """Convert raw SQL row into final Excel row."""
     signed_amount = _signed_amount(row.get("amount"), row.get("operation_type"))
     return [
         row.get("created_at"),
@@ -199,6 +218,7 @@ def _report_row(row: dict[str, Any]) -> list[Any]:
 
 
 def _metadata(agent: AgentContext, generated_at: datetime, rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Build report header metadata shown above each worksheet."""
     client_count = User.query.filter(User.admin_parent_id == agent.id).count()
     return {
         "Дата формирования": generated_at.strftime("%d.%m.%Y %H:%M:%S"),
@@ -213,6 +233,7 @@ def _metadata(agent: AgentContext, generated_at: datetime, rows: list[dict[str, 
 
 
 def _set_column_widths(sheet, rows: list[list[Any]], headers: list[str], metadata: dict[str, Any]) -> None:
+    """Auto-fit worksheet columns based on metadata, headers and data."""
     col_widths: dict[int, int] = {}
     all_rows = list(zip(metadata.keys(), metadata.values())) + [headers] + rows
     for row in all_rows:
@@ -225,6 +246,7 @@ def _set_column_widths(sheet, rows: list[list[Any]], headers: list[str], metadat
 
 
 def _write_sheet(workbook: Workbook, sheet_name: str, rows: list[list[Any]], metadata: dict[str, Any]) -> None:
+    """Write one worksheet with metadata, table body and total row."""
     sheet = workbook.add_worksheet(sheet_name)
     header_format = workbook.add_format({"bold": True, "bg_color": "#D9EAD3", "border": 1})
     meta_key_format = workbook.add_format({"bold": True})
@@ -296,7 +318,15 @@ def _write_sheet(workbook: Workbook, sheet_name: str, rows: list[list[Any]], met
 
 
 def export_at2_transactions_report(agent_email: str, output_path: str | Path | None = None) -> dict[str, Any]:
-    """Build an XLSX report for a type2 agent and save it to disk."""
+    """Build XLSX report for a type2 agent and save it to disk.
+
+    Args:
+        agent_email: Email of the target agent type2.
+        output_path: Optional explicit path for resulting xlsx file.
+
+    Returns:
+        Dict with generated file path and basic counters for quick verification.
+    """
     agent = _load_agent(agent_email)
     generated_at = datetime.now()
     raw_rows = _transaction_rows(agent.id)
@@ -345,6 +375,7 @@ def export_at2_transactions_report(agent_email: str, output_path: str | Path | N
 
 
 def help_at2_transactions_report() -> None:
+    """Print short usage help for flask shell."""
     print("Usage in flask shell:")
     print("from utilities.reports_manual.at2_transactions_report import export_at2_transactions_report")
     print('export_at2_transactions_report("ruznak@agentsm2r.com")')
