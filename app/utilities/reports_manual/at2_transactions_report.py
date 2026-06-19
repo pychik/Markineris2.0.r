@@ -382,3 +382,4 @@ def help_at2_transactions_report() -> None:
 
 # from utilities.reports_manual.at2_transactions_report import export_at2_transactions_report
 # export_at2_transactions_report("ruznak@agentsmarkineris.com")
+# export_at2_transactions_report("ruznak@agentsm2r.com")
