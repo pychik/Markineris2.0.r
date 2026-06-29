@@ -1,0 +1,34 @@
+# Правило: любое исключение в APM (traceback от Flask/Python)
+# Реальный data stream: .ds-logs-apm.error-default-*
+# ElastAlert2 обращается через write alias: logs-apm.error-default
+name: "APM Python exceptions"
+type: any
+
+index: "logs-apm.error-default"
+
+filter:
+  - term:
+      processor.event: "error"
+
+realert:
+  minutes: 10
+
+# culprit — строка верхнего уровня, указывает на функцию-источник ошибки.
+# Группируем по ней: одна и та же точка входа не будет спамить чаще раза в 10 минут.
+query_key: "culprit"
+
+alert: telegram
+telegram_bot_token: "${HEALTHCHECK_BOT}"
+telegram_room_id: "${TELEGRAM_ALERTS_GROUP_ID}"
+
+# Используем только top-level поля — error.exception является массивом,
+# поэтому берём culprit + url + метод. Полный traceback доступен в Kibana APM.
+alert_text: |
+  🔴 <b>APM Exception — Marka Service</b>
+
+  <b>Culprit:</b> <code>{culprit}</code>
+  <b>URL:</b> <code>{http.request.method} {url.full}</code>
+
+  Откройте Kibana APM → Errors для полного traceback.
+alert_text_type: alert_text_only
+telegram_parse_mode: html
