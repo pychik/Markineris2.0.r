@@ -908,11 +908,12 @@ function process_post_attach_file(file_input_id, file_url, csrf, o_id){
                         let cardFileBlock = cardBlocks[i].querySelector(`#orderFile_${o_id}`);
                         let cardFooterBlock = cardBlocks[i].querySelector(`#footer_card_btns${o_id}`);
 
-                        // Apply actions to the subblocks
-                        // cardFileBlock.innerHTML = data;
-                        cardFileBlock.innerHTML = data.htmlresponse_file; // Equivalent of append
-                        // cardFooterBlock.innerHTML = data;
-                        cardFooterBlock.innerHTML = data.htmlresponse_footer; // Equivalent of append
+                        if (cardFileBlock) {
+                            cardFileBlock.innerHTML = data.htmlresponse_file;
+                        }
+                        if (cardFooterBlock) {
+                            cardFooterBlock.innerHTML = data.htmlresponse_footer;
+                        }
                         init_tooltip(cardBlocks[i]);
                     }
 
@@ -980,8 +981,12 @@ function process_post_attach_link(link_input_id, link_url, csrf, o_id){
                     for (let i = 0; i < cardBlocks.length; i++) {
                         let cardFileBlock = cardBlocks[i].querySelector(`#orderFile_${o_id}`);
                         let cardFooterBlock = cardBlocks[i].querySelector(`#footer_card_btns${o_id}`);
-                        cardFileBlock.innerHTML = data.htmlresponse_file; // Equivalent of append
-                        cardFooterBlock.innerHTML = data.htmlresponse_footer; // Equivalent of append
+                        if (cardFileBlock) {
+                            cardFileBlock.innerHTML = data.htmlresponse_file;
+                        }
+                        if (cardFooterBlock) {
+                            cardFooterBlock.innerHTML = data.htmlresponse_footer;
+                        }
                         init_tooltip(cardBlocks[i]);
                     }
 
@@ -1025,8 +1030,12 @@ function process_post_delete_file(url, csrf, o_id){
                     for (let i = 0; i < cardBlocks.length; i++) {
                         let cardFileBlock = cardBlocks[i].querySelector(`#orderFile_${o_id}`);
                         let cardFooterBlock = cardBlocks[i].querySelector(`#footer_card_btns${o_id}`);
-                        cardFileBlock.innerHTML = data.htmlresponse_file; // Equivalent of append
-                        cardFooterBlock.innerHTML = data.htmlresponse_footer; // Equivalent of append
+                        if (cardFileBlock) {
+                            cardFileBlock.innerHTML = data.htmlresponse_file;
+                        }
+                        if (cardFooterBlock) {
+                            cardFooterBlock.innerHTML = data.htmlresponse_footer;
+                        }
                         init_tooltip(cardBlocks[i]);
                     }
                 make_message(data.message, 'success')
