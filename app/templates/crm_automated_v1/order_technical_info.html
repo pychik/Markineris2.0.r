@@ -1,0 +1,50 @@
+{% set status_bg = '#eef2f7' %}
+{% set status_color = '#334155' %}
+
+{% if external_status_meta.tone == 'warning' %}
+    {% set status_bg = '#fff3cd' %}
+    {% set status_color = '#9a3412' %}
+{% elif external_status_meta.tone == 'success' %}
+    {% set status_bg = '#dcfce7' %}
+    {% set status_color = '#166534' %}
+{% elif external_status_meta.tone == 'danger' %}
+    {% set status_bg = '#fee2e2' %}
+    {% set status_color = '#b91c1c' %}
+{% elif external_status_meta.tone == 'info' %}
+    {% set status_bg = '#dbeafe' %}
+    {% set status_color = '#1d4ed8' %}
+{% endif %}
+
+<div class="mb-4 rounded-3 p-3" style="background:{{ status_bg }}; border:1px solid rgba(0,0,0,.08);">
+    <div class="small text-muted mb-1">Внешний статус</div>
+    <div class="fw-semibold" style="font-size:20px; color:{{ status_color }};">{{ external_status_meta.label }}</div>
+    <div class="small mt-2" style="color:{{ status_color }};">{{ external_status_meta.detail }}</div>
+</div>
+
+<div class="row g-3">
+    <div class="col-12 col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="fw-semibold mb-3">Маршрутизация и доставка</div>
+                <div class="small mb-2"><span class="text-muted">Dispatch token:</span> {{ n.dispatch_token or '-' }}</div>
+                <div class="small mb-2"><span class="text-muted">Object key:</span> {{ n.object_key or '-' }}</div>
+                <div class="small mb-2"><span class="text-muted">Подтвержден:</span> {{ n.confirmed_at.strftime('%d-%m-%Y %H:%M:%S') if n.confirmed_at else '-' }}</div>
+                <div class="small mb-2"><span class="text-muted">Установил стадию:</span> {{ n.stage_setter_name or '-' }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="fw-semibold mb-3">Комментарии и этапы</div>
+                <div class="small mb-2"><span class="text-muted">Комментарий проблемы:</span> {{ n.comment_problem or '-' }}</div>
+                <div class="small mb-2"><span class="text-muted">Комментарий отмены:</span> {{ n.comment_cancel or '-' }}</div>
+                <div class="small mb-2"><span class="text-muted">CRM создан:</span> {{ n.crm_created_at.strftime('%d-%m-%Y %H:%M:%S') if n.crm_created_at else '-' }}</div>
+                <div class="small mb-2"><span class="text-muted">Взят в работу:</span> {{ n.m_started.strftime('%d-%m-%Y %H:%M:%S') if n.m_started else '-' }}</div>
+                <div class="small mb-2"><span class="text-muted">Проблема создана:</span> {{ n.cp_created.strftime('%d-%m-%Y %H:%M:%S') if n.cp_created else '-' }}</div>
+                <div class="small mb-2"><span class="text-muted">Отменен:</span> {{ n.cc_created.strftime('%d-%m-%Y %H:%M:%S') if n.cc_created else '-' }}</div>
+                <div class="small"><span class="text-muted">Закрыт:</span> {{ n.closed_at.strftime('%d-%m-%Y %H:%M:%S') if n.closed_at else '-' }}</div>
+            </div>
+        </div>
+    </div>
+</div>

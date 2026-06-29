@@ -8,7 +8,7 @@ from flask_login import current_user
 from redis import Redis
 from rq import Queue
 from rq_scheduler.scheduler import Scheduler
-from sqlalchemy import text
+from sqlalchemy import text, func, or_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, aliased
@@ -25,11 +25,30 @@ from utilities.minio_service.services import get_s3_service, download_file_from_
 from utilities.pdf_processor import helper_check_attached_file
 from utilities.saving_uts import get_rows_marks
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
-from utilities.support import (helper_get_at2_pending_balance, helper_get_limits, orders_list_common)
+from utilities.support import (helper_get_at2_pending_balance, helper_get_limits, orders_list_common,
+                               is_automated_crm_order)
 from utilities.telegram import MarkinerisInform
 from .crm_support import h_cancel_order_process_payment
 from .order_chat import h_order_chat_unread_map
 from .schema import CompaniesOperators
+
+LEGACY_CRM_ORDER_FILTER_SQL = " AND NOT (o.is_moderation IS TRUE AND o.is_automated_crm IS TRUE)"
+
+
+def legacy_crm_order_filter_expr(model=None):
+    from models import Order as _Order
+    m = model or _Order
+    return or_(
+        m.is_moderation.isnot(True),
+        m.is_automated_crm.isnot(True),
+    )
+
+
+def is_automated_moderation_order(order) -> bool:
+    return bool(order and is_automated_crm_order(
+        getattr(order, 'is_moderation', False),
+        getattr(order, 'is_automated_crm', False),
+    ))
 
 
 def _attach_order_chat_unread(rows, viewer_user_id: Optional[int]):
@@ -65,7 +84,7 @@ def _attach_order_chat_unread(rows, viewer_user_id: Optional[int]):
 def helper_get_agent_orders(user: User, category: str | None = None) -> list:
     category_stmt = f" AND o.category=\'{category}\'" if category in settings.CATEGORIES_UPLOAD else ""
 
-    conditional_stmt = f"o.stage>{settings.OrderStage.CREATING}  AND o.stage < {settings.OrderStage.SENT}{category_stmt}"
+    conditional_stmt = f"o.stage>{settings.OrderStage.CREATING}  AND o.stage < {settings.OrderStage.SENT}{category_stmt}{LEGACY_CRM_ORDER_FILTER_SQL}"
     additional_stmt = """
                                  o.comment_problem as comment_problem,
                                  o.comment_cancel as comment_cancel,
@@ -292,7 +311,7 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                   LEFT JOIN public.order_files orf ON o.id=orf.order_id 
                                   {SQLQueryCategoriesAll.get_joins()} 
                                   LEFT JOIN public.users managers ON o.manager_id = managers.id
-                              WHERE  o.stage=:stage {time_stmt} AND o.to_delete != True {category_stmt}
+                              WHERE  o.stage=:stage {time_stmt} AND o.to_delete != True {category_stmt} {LEGACY_CRM_ORDER_FILTER_SQL}
                               GROUP BY u.id, o.id, o.crm_created_at
                               ORDER BY o.crm_created_at ASC
                                """.format(time_stmt=time_stmt)).bindparams(stage=stage)
@@ -360,7 +379,7 @@ def helper_get_manager_orders(
                                  LEFT JOIN public.order_files orf ON o.id=orf.order_id
                                  {SQLQueryCategoriesAll.get_joins()} 
                                  LEFT JOIN public.users managers ON o.manager_id = managers.id
-                           WHERE {conditional_stmt} AND o.to_delete != True
+                           WHERE {conditional_stmt} AND o.to_delete != True {LEGACY_CRM_ORDER_FILTER_SQL}
                            GROUP BY u.id, o.id, o.crm_created_at
                           ORDER BY o.p_started ASC NULLS LAST, o.crm_created_at ASC
                           """).bindparams(manager_id=manager_id)
@@ -403,7 +422,7 @@ def helper_get_manager_orders(
                                   LEFT JOIN public.order_files orf ON o.id=orf.order_id
                                   {SQLQueryCategoriesAll.get_joins()}
                                   LEFT JOIN public.users managers ON o.manager_id = managers.id 
-                              WHERE  {conditional_stmt}{vsoc} AND o.to_delete != True
+                              WHERE  {conditional_stmt}{vsoc} AND o.to_delete != True {LEGACY_CRM_ORDER_FILTER_SQL}
                               GROUP BY u.id, o.id, o.crm_created_at
                               ORDER BY o.p_started ASC NULLS LAST, o.crm_created_at ASC
                                """)

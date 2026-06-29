@@ -1,0 +1,93 @@
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="table-responsive faded" data-current-page="{{ page|default(1) }}">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Обработчик</th>
+                        <th>Доступ</th>
+                        <th>MinIO</th>
+                        <th>Лимиты</th>
+                        <th>Статус</th>
+                        <th class="text-end">Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for processor in processors %}
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">{{ processor.name }}</div>
+                                <div class="small text-muted">{{ processor.source_label }}</div>
+                                <div class="small text-muted">{{ processor.key_id }}</div>
+                            </td>
+                            <td>
+                                <div class="small">TTL: {{ processor.ttl_seconds }} c</div>
+                                <div class="small">Nonce: {{ processor.nonce_ttl_seconds }} c</div>
+                                <div class="small text-muted">
+                                    {% if processor.allowed_ips %}
+                                        {{ processor.allowed_ips|join(', ') }}
+                                    {% else %}
+                                        Без IP-ограничений
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="small">{{ processor.minio_bucket_name }}</div>
+                                <div class="small text-muted">{{ processor.minio_prefix or '/' }}</div>
+                            </td>
+                            <td>
+                                <div class="small">Batch: {{ processor.batch_size }}</div>
+                                <div class="small">Timeout: {{ processor.confirmation_timeout_seconds }} c</div>
+                            </td>
+                            <td>
+                                {% if processor.is_active %}
+                                    <span class="badge bg-success">Активен</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Отключен</span>
+                                {% endif %}
+                                <div class="small text-muted mt-1">{{ processor.updated_at or processor.created_at or 'n/a' }}</div>
+                            </td>
+                            <td class="text-end external-processors-actions-cell">
+                                <div class="external-processor-action-buttons">
+                                <button class="btn btn-sm btn-outline-primary external-processor-action-button js-copy-external-processor" type="button" data-id="{{ processor.id }}" title="Скопировать настройки обработчика" aria-label="Скопировать настройки обработчика">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                                        <path d="M10 1.5v1A1.5 1.5 0 0 0 11.5 4h1a.5.5 0 0 1 .5.5v8A1.5 1.5 0 0 1 11.5 14h-7A1.5 1.5 0 0 1 3 12.5v-8A1.5 1.5 0 0 1 4.5 3h1a.5.5 0 0 0 0-1h-1A2.5 2.5 0 0 0 2 4.5v8A2.5 2.5 0 0 0 4.5 15h7A2.5 2.5 0 0 0 14 12.5v-8A1.5 1.5 0 0 0 12.5 3h-1a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 0-1 0"/>
+                                        <path d="M7.5 1A1.5 1.5 0 0 0 6 2.5v6A1.5 1.5 0 0 0 7.5 10h4A1.5 1.5 0 0 0 13 8.5v-6A1.5 1.5 0 0 0 11.5 1zm0 1h4a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-.5.5h-4A.5.5 0 0 1 7 8.5v-6a.5.5 0 0 1 .5-.5"/>
+                                    </svg>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary external-processor-action-button js-edit-external-processor" type="button" data-id="{{ processor.id }}" title="Изменить обработчика" aria-label="Изменить обработчика">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                                        <path d="M12.854.146a.5.5 0 0 1 .707 0l1.586 1.586a.5.5 0 0 1 0 .707l-10 10L3 13l.56-2.146z"/>
+                                        <path fill-rule="evenodd" d="M1 13.5V16h2.5l7.793-7.793-2.5-2.5zM15 2.207l-1-1L12.5 2.707l1 1z"/>
+                                    </svg>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger external-processor-action-button js-delete-external-processor" type="button" data-id="{{ processor.id }}" data-name="{{ processor.name }}" title="Удалить обработчика" aria-label="Удалить обработчика">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0A.5.5 0 0 1 8.5 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                                        <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H5V1a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1h2.5a1 1 0 0 1 1 1M6 1v1h4V1zm-2 3v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4z"/>
+                                    </svg>
+                                </button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">Внешние обработчики пока не созданы.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination-page-info text-center mt-3">
+            На этой странице <b>{{ offset + 1 }} - {{ offset + processors|length }}</b> Всего: <b>{{ pagination.total }}</b>
+        </div>
+        <div class="pagination_section my-1">
+            <div class="d-flex">
+                <div class="col-3"></div>
+                <div class="col-md-1"></div>
+                <div class="col-5" style="margin-left: 3%;">{{ pagination.links }}</div>
+            </div>
+        </div>
+    </div>
+</div>

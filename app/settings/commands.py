@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 
 from config import settings
 from logger import logger
+from utilities.support import resolve_automated_crm_flag
 
 
 # adding custom command for creating superuser
@@ -76,3 +77,65 @@ def set_server_default_params():
     except IntegrityError as e:
         logger.error(e)
         db.session.rollback()
+
+
+@click.command(name="backfill_is_automated_crm")
+@click.option("--dry-run", is_flag=True, help="Только показать, что будет изменено, без сохранения в БД.")
+@click.option("--limit", default=0, type=int, help="Ограничить число обрабатываемых заказов (0 = без ограничений).")
+@with_appcontext
+def backfill_is_automated_crm(dry_run: bool, limit: int):
+    from models import Order
+    from .start import db
+
+    query = (
+        Order.query
+        .filter(Order.is_moderation.is_(True), Order.to_delete.isnot(True))
+        .order_by(Order.id.asc())
+    )
+
+    if limit and limit > 0:
+        query = query.limit(limit)
+
+    orders = query.all()
+    if not orders:
+        click.echo("Подходящие moderation-заказы не найдены.")
+        return
+
+    scanned = 0
+    changed = 0
+    unchanged = 0
+
+    for order in orders:
+        scanned += 1
+        target_value = resolve_automated_crm_flag(order.is_moderation, order.user_comment)
+
+        if bool(order.is_automated_crm) == target_value:
+            unchanged += 1
+            continue
+
+        changed += 1
+        click.echo(
+            f"[{'DRY-RUN' if dry_run else 'UPDATE'}] "
+            f"order_id={order.id} order_idn={order.order_idn or '-'} "
+            f"comment={'yes' if (order.user_comment or '').strip() else 'no'} "
+            f"is_automated_crm: {bool(order.is_automated_crm)} -> {target_value}"
+        )
+
+        if not dry_run:
+            order.is_automated_crm = target_value
+
+    if dry_run:
+        click.echo(
+            f"Готово (DRY-RUN). scanned={scanned}, changed={changed}, unchanged={unchanged}"
+        )
+        return
+
+    try:
+        db.session.commit()
+        click.echo(
+            f"Готово (APPLY). scanned={scanned}, changed={changed}, unchanged={unchanged}"
+        )
+    except Exception as exc:
+        db.session.rollback()
+        logger.exception("Ошибка при backfill is_automated_crm")
+        click.echo(f"Ошибка при сохранении изменений: {exc}")

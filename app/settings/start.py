@@ -7,7 +7,7 @@ from config import settings
 from settings.initialization import create_app
 from settings.blueprints import register_blueprints
 from settings.handlers import register_handlers, setup_login
-from .commands import create_superuser, create_superuser_custom, set_server_default_params
+from .commands import create_superuser, create_superuser_custom, set_server_default_params, backfill_is_automated_crm
 from .jinja_filters import count_quantity, time_since, time_since_top
 
 urllib3.disable_warnings()
@@ -30,6 +30,7 @@ SIMPLE_CAPTCHA.init_app(app)
 app.cli.add_command(create_superuser)
 app.cli.add_command(create_superuser_custom)
 app.cli.add_command(set_server_default_params)
+app.cli.add_command(backfill_is_automated_crm)
 
 
 if __name__ == '__main__':

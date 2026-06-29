@@ -1,0 +1,67 @@
+{% extends "crm_automated_v1/base_crm.html" %}
+
+{% block crm_dashboard %}
+<div id="update_all_info">
+    {% include 'crm_automated_v1/main_block.html' %}
+</div>
+
+<div class="modal fade" id="problem_orderModal" tabindex="-1" data-bs-backdrop="static" role="dialog" aria-labelledby="problem_orderModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="problem_orderModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div id="order_problem_block"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="cancel_orderModal" tabindex="-1" data-bs-backdrop="static" role="dialog" aria-labelledby="cancel_orderModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancel_orderModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div id="order_cancel_block"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="automated_stage_commentModal" tabindex="-1" data-bs-backdrop="static" role="dialog" aria-labelledby="automatedStageCommentModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="automatedStageCommentModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div id="automated_stage_comment_block"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="automatedOrderLogsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="automatedOrderLogsModalLabel">Логи заказа</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body" id="automated_order_logs_modal_body"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="automatedOrderTechnicalInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="automatedOrderTechnicalInfoModalLabel">Техническая информация</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body" id="automated_order_technical_info_modal_body"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

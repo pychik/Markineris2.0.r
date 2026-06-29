@@ -1,0 +1,159 @@
+<div class="orders__item order{% if n.to_delete %} div-disabled{% endif %}{% if n.is_moderation %} order--moderation{% endif %}" data-order-id="{{ n.id }}" id="cardCommonBlock_{{ n.id }}">
+    <div class="order__header">
+        <div class="order__name">
+            {{ n.order_idn }} {% if n.is_at2 %}<span>(Агент тип 2)</span>{% endif %}
+        </div>
+        <div class="automated-order-header-icons d-flex align-items-center">
+            {% include 'crm_mod_v1/helpers/order_chat_icon.html' %}
+            <span class="automated-order-logs-wrap">
+                <img src="{{ url_for('static', filename='crm_mod/img/icons/logs.svg') }}"
+                    role="button"
+                    class="automated-order-logs-btn"
+                    onclick="automatedOpenOrderLogs(this, event)"
+                    data-order-id="{{ n.id }}"
+                    data-order-idn="{{ n.order_idn }}"
+                    data-bs-toggle="tooltip"
+                    data-bs-title="Логи заказа">
+            </span>
+            <span class="automated-order-tech-wrap">
+                <img src="{{ url_for('static', filename='crm_mod/img/icons/document-circle.svg') }}"
+                    role="button"
+                    class="automated-order-tech-btn"
+                    onclick="automatedOpenOrderTechnicalInfo(this, event)"
+                    data-order-id="{{ n.id }}"
+                    data-order-idn="{{ n.order_idn }}"
+                    data-bs-toggle="tooltip"
+                    data-bs-title="Техническая информация">
+            </span>
+            {% include 'crm_mod_v1/helpers/order_category.html' %}
+        </div>
+    </div>
+    <div class="order__body">
+        <div class="order__info">
+            <div class="order__small-text">
+                <div class="order__num">КС: {{ n.row_count }} КМ: {{ n.pos_count }}</div>
+                <div class="order__time" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right"
+                    data-bs-title="CRM: {{ n.crm_created_at.strftime('%d-%m-%Y %H:%M:%S') if n.crm_created_at else '-' }}{% if n.p_started %}<br>POOL: {{ n.p_started.strftime('%d-%m-%Y %H:%M:%S') }}{% endif %}{% if n.m_started %}<br>MS: {{ n.m_started.strftime('%d-%m-%Y %H:%M:%S') }}{% endif %}{% if n.cp_created %}<br>PR: {{ n.cp_created.strftime('%d-%m-%Y %H:%M:%S') }}{% endif %}{% if n.closed_at %}<br>CL: {{ n.closed_at.strftime('%d-%m-%Y %H:%M:%S') }}{% endif %}{% if n.cc_created %}<br>CC: {{ n.cc_created.strftime('%d-%m-%Y %H:%M:%S') }}{% endif %}">
+                    {% if n.p_started %}{{ n.p_started | time_since_top }}{% elif n.crm_created_at %}{{ n.crm_created_at | time_since_top }}{% else %}-{% endif %}
+                </div>
+            </div>
+            <div class="order__icons icons">
+                {% include 'crm_mod_v1/crmm/special_alerts.html' %}
+                {% if n.external_status_meta and n.external_status_meta.visible and n.stage in [order_stage.MANAGER_START, order_stage.MANAGER_PROBLEM] and current_user.role in ['superuser', 'supermanager'] %}
+                    <span class="automated-external-indicator automated-external-indicator--{{ n.external_status_meta.tone }}{% if n.external_status_meta.blink %} blink_me{% endif %}"
+                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                        data-bs-title="{{ n.external_status_meta.tooltip }}">
+                        {{ n.external_status_meta.short_label }}
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="order__all">
+            <div class="order__details" data-loaded="0"></div>
+
+            {% if n.order_file or n.order_file_link or n.stage == order_stage.MANAGER_PROBLEM %}
+                <div id="orderFile_{{ n.id }}" class="file">
+                    {% if n.order_file %}
+                        <img src="{{url_for('static', filename='crm_mod/img/icons/check-circle-fill.svg')}}" alt="Файл прикреплен" width="24" height="24" class="img-fluid">
+                        <b>Файл прикреплен</b><br>
+                        <span class="ms-4 font-10">{{ n.order_file }}</span>
+                        {% if n.stage == order_stage.MANAGER_PROBLEM %}
+                            <img src="{{url_for('static', filename='crm_mod/img/icons/x-circle-fill.svg')}}" alt="Удалить файл"
+                                data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Удалить файл"
+                                class="img-fluid ms-3" width="14" height="14"
+                                onclick="process_post_delete_file(`{{ url_for('crm_automated.delete_file', o_id=n.id) }}`, '{{ csrf_token() }}', '{{ n.id }}', '{{ n.manager_id or current_user.id }}')">
+                        {% endif %}
+                    {% elif n.order_file_link %}
+                        <img src="{{url_for('static', filename='crm_mod/img/icons/check-circle-fill.svg')}}" alt="Ссылка прикреплена" width="24" height="24" class="img-fluid">
+                        <b>Прикреплена ссылка на файл</b>
+                        <span class="ms-4 font-10" onclick="copy_buffer('{{ n.order_file_link }}')">{{ n.order_file_link }}</span>
+                        {% if n.stage == order_stage.MANAGER_PROBLEM %}
+                            <img src="{{url_for('static', filename='crm_mod/img/icons/x-circle-fill.svg')}}" alt="Удалить файл"
+                                data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Удалить файл"
+                                class="img-fluid ms-3" width="14" height="14"
+                                onclick="process_post_delete_file(`{{ url_for('crm_automated.delete_file', o_id=n.id) }}`, '{{ csrf_token() }}', '{{ n.id }}', '{{ n.manager_id or current_user.id }}')">
+                        {% endif %}
+                    {% elif n.stage == order_stage.MANAGER_PROBLEM %}
+                        <span onclick="process_attach_file(`{{ url_for('crm_automated.attach_file', o_id=n.id) }}`,
+                            `{{ url_for('crm_automated.attach_link', o_id=n.id) }}`,
+                            `{{ csrf_token() }}`, '{{ n.id }}', '{{ n.order_idn }}', '{{ n.manager_id or current_user.id }}')">
+                            <img src="{{url_for('static', filename='crm_mod/img/icons/paperclip.svg')}}" alt="Прикрепите архив файлов заказа" class="img-fluid" width="25" height="25">
+                            <b>Прикрепите файл заказа</b>
+                        </span>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <div class="order__footer mt-2">
+                <div class="order__icons icons">
+                    {% if n.order_file %}
+                        <form method="POST" action="{{ url_for('crm_automated.download_file', o_id=n.id) }}" style="cursor:pointer" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <img class="icons__item" src="{{url_for('static', filename='crm_mod/img/icons/download.svg')}}"
+                                width="24" height="24" data-bs-toggle="tooltip" data-bs-placement="top"
+                                data-bs-title="Скачать файл заказа" onclick="this.closest('form').submit();">
+                        </form>
+                    {% endif %}
+                </div>
+                <div id="footer_card_btns{{ n.id }}">
+                    {% set move_url = url_for('crm_automated.move_stage', o_id=n.id) %}
+                    {% set has_left_options = n.stage in [order_stage.MANAGER_START, order_stage.MANAGER_PROBLEM, order_stage.CRM_PROCESSED] %}
+                    {% set has_right_options = n.stage in [order_stage.POOL, order_stage.MANAGER_START, order_stage.MANAGER_PROBLEM] %}
+                    {% set has_cancel_option = n.stage == order_stage.MANAGER_PROBLEM %}
+
+                    {% if has_left_options or has_right_options or has_cancel_option %}
+                        <div class="steps ms-3">
+                            {% if has_left_options %}
+                                <div class="btn-group dropup me-2">
+                                    <img src="{{url_for('static', filename='crm_mod/img/icons/arrow-left-circle-fill.svg')}}" alt="Сместить влево"
+                                        class="icons__item dropdown-toggle" width="24" height="24" data-bs-toggle="dropdown" aria-expanded="false"
+                                        data-bs-placement="top" data-bs-title="Выбрать стадию левее">
+                                    <ul class="dropdown-menu">
+                                        {% if n.stage in [order_stage.MANAGER_START, order_stage.MANAGER_PROBLEM, order_stage.CRM_PROCESSED] %}
+                                            <li><button type="button" class="dropdown-item" onclick="automatedMoveStageDirect('{{ move_url }}', '{{ csrf_token() }}', '{{ n.order_idn }}', '{{ order_stage.POOL }}')">В пул</button></li>
+                                        {% endif %}
+                                        {% if n.stage in [order_stage.CRM_PROCESSED] %}
+                                            <li><button type="button" class="dropdown-item" onclick="automatedMoveStageDirect('{{ move_url }}', '{{ csrf_token() }}', '{{ n.order_idn }}', '{{ order_stage.MANAGER_PROBLEM }}')">В проблему</button></li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+
+                            {% if has_right_options %}
+                                <div class="btn-group dropup me-2">
+                                    <img src="{{url_for('static', filename='crm_mod/img/icons/arrow-right-circle-fill.svg')}}" alt="Сместить вправо"
+                                        class="icons__item dropdown-toggle" width="24" height="24" data-bs-toggle="dropdown" aria-expanded="false"
+                                        data-bs-placement="top" data-bs-title="Выбрать стадию правее">
+                                    <ul class="dropdown-menu">
+                                        {% if n.stage == order_stage.POOL %}
+                                            <li><button type="button" class="dropdown-item" onclick="automatedMoveStageDirect('{{ move_url }}', '{{ csrf_token() }}', '{{ n.order_idn }}', '{{ order_stage.MANAGER_PROBLEM }}')">В проблему</button></li>
+                                            <li><button type="button" class="dropdown-item" onclick="automatedMoveStageDirect('{{ move_url }}', '{{ csrf_token() }}', '{{ n.order_idn }}', '{{ order_stage.CRM_PROCESSED }}')">В обработано</button></li>
+                                        {% elif n.stage == order_stage.MANAGER_START %}
+                                            <li><button type="button" class="dropdown-item" onclick="automatedMoveStageDirect('{{ move_url }}', '{{ csrf_token() }}', '{{ n.order_idn }}', '{{ order_stage.MANAGER_PROBLEM }}')">В проблему</button></li>
+                                            <li><button type="button" class="dropdown-item" onclick="automatedMoveStageDirect('{{ move_url }}', '{{ csrf_token() }}', '{{ n.order_idn }}', '{{ order_stage.CRM_PROCESSED }}')">В обработано</button></li>
+                                        {% elif n.stage == order_stage.MANAGER_PROBLEM %}
+                                            <li><button type="button" class="dropdown-item" onclick="automatedMoveStageDirect('{{ move_url }}', '{{ csrf_token() }}', '{{ n.order_idn }}', '{{ order_stage.CRM_PROCESSED }}')">В обработано</button></li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+
+                            {% if has_cancel_option %}
+                                <img src="{{url_for('static', filename='crm_mod/img/icons/x-circle-fill.svg')}}" alt="Отменить"
+                                    class="icons__item" width="24" height="24" data-bs-toggle="tooltip" data-bs-placement="top"
+                                    data-bs-title="Перевести в отменено"
+                                    onclick="automatedMoveStageDirect('{{ move_url }}', '{{ csrf_token() }}', '{{ n.order_idn }}', '{{ order_stage.CANCELLED }}')">
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="order__roll">
+                Свернуть
+                <img src="{{url_for('static', filename='crm_mod/img/icons/roll.svg')}}" alt="Свернуть" class="img-fluid" width="19" height="19">
+            </div>
+        </div>
+    </div>
+</div>

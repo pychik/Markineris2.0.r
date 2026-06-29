@@ -13,6 +13,7 @@ from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.saving_helpers import get_clothes_size_type
 from utilities.saving_uts import save_copy_order_shoes, save_copy_order_clothes, \
     save_copy_order_socks, save_copy_order_linen, save_copy_order_parfum
+from utilities.support import resolve_automated_crm_flag
 
 ALLOWED_CARD_DATA_STATUSES: set[str] = {"approved", "partially_approved"}
 
@@ -429,6 +430,7 @@ def common_save_copy_pc_order(user: User, category: str, order: Order) -> int | 
 
             # ✅ pc-поля
             is_moderation=True,
+            is_automated_crm=resolve_automated_crm_flag(True, None),
             stage=settings.OrderStage.CREATING,
             to_delete=False,
             payment=False,

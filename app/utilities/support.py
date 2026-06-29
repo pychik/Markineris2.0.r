@@ -89,6 +89,14 @@ def sql_count(func):
     return wrapper
 
 
+def resolve_automated_crm_flag(is_moderation, order_comment) -> bool:
+    return bool(is_moderation is True and not (order_comment or '').strip())
+
+
+def is_automated_crm_order(is_moderation, is_automated_crm) -> bool:
+    return bool(is_moderation is True and is_automated_crm is True)
+
+
 def order_count(category: str, order_list) -> tuple:
 
     match category:
@@ -3101,6 +3109,29 @@ def bck_susmu_required(func):
             return func(*args, **kwargs)
         else:
 
+            return jsonify(dict(status='danger', message=settings.Messages.SUPERUM_REQUIRED))
+
+    return wrapper
+
+
+def su_sm_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.status is True and current_user.role in [settings.SUPER_USER, settings.SUPER_MANAGER]:
+            return func(*args, **kwargs)
+        else:
+            flash(message=settings.Messages.SUPERUM_REQUIRED, category='error')
+            return redirect(url_for('main.index'))
+
+    return wrapper
+
+
+def bck_su_sm_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.status is True and current_user.role in [settings.SUPER_USER, settings.SUPER_MANAGER]:
+            return func(*args, **kwargs)
+        else:
             return jsonify(dict(status='danger', message=settings.Messages.SUPERUM_REQUIRED))
 
     return wrapper
