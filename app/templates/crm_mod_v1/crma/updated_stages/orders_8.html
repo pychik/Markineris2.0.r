@@ -58,7 +58,7 @@
                         <img src="{{url_for('static', filename='crm_mod/img/icons/arrow-left-circle-fill.svg')}}" alt="Переместить заказ в статус В ОБРАБОТКЕ У МЕНЕДЖЕРА"
                                     class="img-fluid" width="24" height="24" data-bs-toggle="tooltip"
                                     data-bs-placement="top" data-bs-title="Переместить заказ в статус В ОБРАБОТКЕ У МЕНЕДЖЕРА"
-                                    onclick="update_spec_block_info(`{{ url_for('crm_d.a_order_order_bp', o_id = n.id, manager_id=n.manager_id) }}`,
+                                    onclick="update_spec_block_info(`{{ url_for('crm_d.a_order_manager_bp', o_id = n.id, manager_id=n.manager_id) }}`,
                                                                     'm_start_ordersMainDiv', 3, '{{csrf_token()}}',
                                                                      this, `{{n.id}}`,`{{n.order_idn}}`, 'sentOrdersMainDiv_quantity')">
 

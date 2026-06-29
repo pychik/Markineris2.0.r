@@ -10,7 +10,7 @@ from utilities.download import orders_download_common
 from utilities.support import (bck_sumausmumu_required, user_activated, sumausmumu_required, susmumu_required,
                                susmu_required,
                                aus_required, ausumsuu_required, suausmumu_required, aus_mod_required,
-                               bck_not_ordinary_user_required, su_mod_required, bck_su_mod_required)
+                               bck_not_ordinary_user_required, su_mod_required, bck_su_mod_required, bck_susmu_required)
 from .crm_support import get_weekly_order_summary
 
 from .helpers import (helper_get_agent_orders, helper_get_manager_orders, helper_m_order_processed, helper_m_order_ps,
@@ -362,8 +362,8 @@ def m_order_order_bp(o_id: int, manager_id: int):
 @crm_d.route('/a_order_manager_bp/<int:o_id>/<int:manager_id>', methods=["POST"])
 @login_required
 @user_activated
-@ausumsuu_required
-def a_order_order_bp(o_id: int, manager_id: int):
+@bck_susmu_required
+def a_order_manager_bp(o_id: int, manager_id: int):
     """
         change stage of order PROBLEM SOLVED or PROCESSED back to order PROCESSING by manager/ Only for SUPERMANAGER AND SUPERUSER
     :param o_id:
