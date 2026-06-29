@@ -1165,7 +1165,6 @@ def _get_order_desc_row(order_id: int):
             Order.user_comment,
             Order.is_moderation,
             Order.is_automated_crm,
-            Order.contact_info,
             Order.processing_info,
             Order.comment_problem,
             Order.comment_cancel,
