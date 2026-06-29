@@ -683,11 +683,11 @@ def helper_a_order_bp(user: User, o_id: int, manager_id: int, f_manager_id: int 
         message = settings.Messages.ORDER_MANAGER_PS_ABS_ERROR
         return jsonify({'status': status, 'message': message})
 
-    # todo: КТО МОЖЕТ ВОЗВРАЩАТЬ ЗАКАЗ МЕНЕДЖЕРАМ И ЧТО ВОЗВРАЩАТЬ JSON ИЛИ РЕДИРЕКТ
-    if (user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MARKINERIS_ADMIN_USER, settings.ADMIN_USER]
-            or order_info.stage not in [settings.OrderStage.MANAGER_PROCESSED, settings.OrderStage.MANAGER_SOLVED, settings.OrderStage.SENT]):
-        return redirect(url_for('crm_d.agents')) if user.role not in [settings.MANAGER_USER, settings.SUPER_MANAGER]\
-            else redirect(url_for('crm_d.managers', filtered_manager_id=f_manager_id))
+    if user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER,
+                         settings.MARKINERIS_ADMIN_USER] or order_info.stage not in [
+        settings.OrderStage.MANAGER_PROCESSED, settings.OrderStage.MANAGER_SOLVED, settings.OrderStage.SENT]:
+        message = settings.Messages.STRANGE_REQUESTS
+        return jsonify({'status': status, 'message': message})
 
     stmt = text(f"""UPDATE public.orders 
                     SET stage={settings.OrderStage.MANAGER_START}, cp_created=NULL, sent_at=NULL, m_finished=NULL
