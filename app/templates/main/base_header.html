@@ -88,6 +88,12 @@
                                 title="Модерация CRM">Модерация CRM</a>
                         </li>
                     {%endif%}
+                    {% if current_user.role in ['superuser', 'supermanager'] %}
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_automated.orders') }}"
+                               title="Перейти в CRM автоматизированных заказов">Автоматизированные заказы CRM</a>
+                        </li>
+                    {% endif %}
                     {% if current_user.role == 'admin' and current_user.is_at2%}
                             <li>
                                 <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.at2_new_orders') }}"
@@ -188,6 +194,12 @@
                             title="Модерация CRM">Модерация CRM</a>
                     </li>
                 {%endif%}
+                {% if current_user.role in ['superuser', 'supermanager'] %}
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_automated.orders') }}"
+                           title="Перейти в CRM автоматизированных заказов">Автоматизированные заказы CRM</a>
+                    </li>
+                {% endif %}
                 {% if current_user.role == 'admin' and current_user.is_at2%}
                         <li>
                             <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('admin_control.at2_new_orders') }}"

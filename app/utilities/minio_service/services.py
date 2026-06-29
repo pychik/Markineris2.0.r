@@ -44,6 +44,14 @@ class S3Service:
         with self.get_client() as client:
             return client.get_presigned_url(method="GET", bucket_name=bucket_name, object_name=object_name)
 
+    def object_exists(self, object_name: str, bucket_name: str) -> bool:
+        with self.get_client() as client:
+            try:
+                client.stat_object(bucket_name=bucket_name, object_name=object_name)
+                return True
+            except S3Error:
+                return False
+
     def upload_file(
             self,
             file_data: IO[bytes],

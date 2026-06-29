@@ -66,6 +66,10 @@ def create_app() -> tuple[Flask, SQLAlchemy]:
     csrf.init_app(app)
     csrf.exempt('views.api.transactions.create_transaction')
     csrf.exempt('views.api.transactions.check_promo_code')
+    csrf.exempt('views.api.integrations.api_claim_orders')
+    csrf.exempt('views.api.integrations.api_accept_orders')
+    csrf.exempt('views.api.integrations.api_update_order_status')
+    csrf.exempt('views.api.integrations.api_update_order_result')
     csrf.exempt('views.main.auth.send_verification_code')
     csrf.exempt('views.main.auth.verify_sign_up_phone_code')
 

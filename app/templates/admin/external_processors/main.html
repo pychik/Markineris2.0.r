@@ -1,0 +1,238 @@
+{% extends "main/base_v2.html" %}
+
+{% block fc_panel %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/admin/external_processors.css') }}?v=2">
+
+<div class="container">
+    <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-4">
+        <div class="breadcrumbs">
+            <a href="{{ url_for('admin_control.index') }}">Панель администратора</a>
+            /
+            <span>Внешние обработчики</span>
+        </div>
+    </div>
+
+    <div
+        id="external-processors-page"
+        data-collection-url="{{ url_for('external_processors_admin.external_processors_list') }}"
+        data-page-url="{{ url_for('admin_control.external_processors_main') }}"
+        data-csrf-token="{{ csrf_token() }}"
+    >
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card bg-light border-0 h-100">
+                    <div class="card-body">
+                        <div class="text-muted small mb-2">Всего обработчиков</div>
+                        <div class="fs-3 fw-bold" id="external-processors-total">{{ total_processors_count }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-light border-0 h-100">
+                    <div class="card-body">
+                        <div class="text-muted small mb-2">Активных</div>
+                        <div class="fs-3 fw-bold" id="external-processors-active">{{ active_processors_count }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-light border-0 h-100">
+                    <div class="card-body">
+                        <div class="text-muted small mb-2">TTL / batch по умолчанию</div>
+                        <div class="fw-semibold">{{ create_config.ttl_seconds }}s / {{ create_config.batch_size }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <a class="btn btn-outline-secondary mb-3" data-bs-toggle="collapse" href="#create_external_processor_collapse" role="button" aria-expanded="true" aria-controls="create_external_processor_collapse">
+            Добавить обработчик
+        </a>
+
+        <div class="collapse" id="create_external_processor_collapse">
+            <div class="card card-body mb-4">
+                <form id="external-processor-create-form">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Название</label>
+                                <input class="form-control" name="name" maxlength="120" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Source label</label>
+                                <input class="form-control" name="source_label" maxlength="100" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Key ID</label>
+                                <input class="form-control" name="key_id" maxlength="128" placeholder="Сгенерируется автоматически, если оставить пустым">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Shared secret</label>
+                                <input class="form-control" name="shared_secret" maxlength="255" placeholder="Сгенерируется автоматически, если оставить пустым">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Bucket MinIO</label>
+                                <input class="form-control" name="minio_bucket_name" maxlength="255" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Префикс MinIO</label>
+                                <input class="form-control" name="minio_prefix" maxlength="255" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Разрешенные IP</label>
+                                <input class="form-control" name="allowed_ips" placeholder="1.2.3.4, 5.6.7.8 или пусто для любого IP">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">TTL timestamp</label>
+                                <input class="form-control" type="number" min="1" max="86400" name="ttl_seconds" value="{{ create_config.ttl_seconds }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">TTL nonce</label>
+                                <input class="form-control" type="number" min="1" max="604800" name="nonce_ttl_seconds" value="{{ create_config.nonce_ttl_seconds }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Batch size</label>
+                                <input class="form-control" type="number" min="1" max="1000" name="batch_size" value="{{ create_config.batch_size }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Timeout подтверждения</label>
+                                <input class="form-control" type="number" min="1" max="604800" name="confirmation_timeout_seconds" value="{{ create_config.confirmation_timeout_seconds }}">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="create-is-active" checked>
+                                <label class="form-check-label" for="create-is-active">Активен</label>
+                            </div>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end">
+                            <button class="btn btn-primary btn-accent border-0 text-dark" type="submit">Создать</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="external_processors_table"
+             data-update-url-base="{{ url_for('admin_control.external_processors_data') }}?bck=1&page=">
+            {% include 'admin/external_processors/table.html' %}
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="externalProcessorEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Редактирование обработчика</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="external-processor-edit-form">
+                <div class="modal-body">
+                    <input type="hidden" name="id">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Название</label>
+                                <input class="form-control" name="name" maxlength="120" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Source label</label>
+                                <input class="form-control" name="source_label" maxlength="100">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Key ID</label>
+                                <input class="form-control" name="key_id" maxlength="128">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Shared secret</label>
+                                <input class="form-control" name="shared_secret" maxlength="255" placeholder="Оставьте пустым, чтобы не менять">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Bucket MinIO</label>
+                                <input class="form-control" name="minio_bucket_name" maxlength="255">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Префикс MinIO</label>
+                                <input class="form-control" name="minio_prefix" maxlength="255">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Разрешенные IP</label>
+                                <input class="form-control" name="allowed_ips" placeholder="1.2.3.4, 5.6.7.8">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">TTL timestamp</label>
+                                <input class="form-control" type="number" min="1" max="86400" name="ttl_seconds">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">TTL nonce</label>
+                                <input class="form-control" type="number" min="1" max="604800" name="nonce_ttl_seconds">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Batch size</label>
+                                <input class="form-control" type="number" min="1" max="1000" name="batch_size">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="external-processor-form-field">
+                                <label class="form-label">Timeout подтверждения</label>
+                                <input class="form-control" type="number" min="1" max="604800" name="confirmation_timeout_seconds">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="edit-is-active">
+                                <label class="form-check-label" for="edit-is-active">Активен</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary btn-accent border-0 text-dark">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='main_v2/js/admin/external_processors.js') }}?v=1"></script>
+{% endblock %}

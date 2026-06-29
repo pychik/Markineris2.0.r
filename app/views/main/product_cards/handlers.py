@@ -16,7 +16,8 @@ from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
 from utilities.saving_uts import get_rows_marks
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.support import check_forbidden_words, helper_preload_common, helper_check_uoabm, \
-    helper_check_user_order_in_archive, check_order_pos, process_admin_order_num, process_order_start
+    helper_check_user_order_in_archive, check_order_pos, process_admin_order_num, process_order_start, \
+    resolve_automated_crm_flag
 from utilities.telegram import MarkinerisInform
 from utilities.validators import ValidatorProcessor, validate_order_comment_length
 from views.main.product_cards.chat.helpers import (
@@ -1002,6 +1003,7 @@ def h_make_pc_basket_order():
             user_id=current_user.id,
             stage=0,
             is_moderation=True,
+            is_automated_crm=True,
         )
 
         # company поля
@@ -1565,6 +1567,7 @@ def h_pc_order_process(o_id: int):
     #     return _back_to_order_view()
 
     # order.contact_info = payload
+    order.is_automated_crm = resolve_automated_crm_flag(order.is_moderation, order_comment)
 
     # 1) company_idn exception
     company_idn = order.company_idn

@@ -6,7 +6,9 @@ from config import settings
 from data_migrations.etl_service import ETLMigrateUserData, run_migration
 from data_migrations.instance import etl_service
 from data_migrations.utils import make_password
-from models import User, db
+from models import User, ExternalProcessor, db
+from external_processors.config import get_external_processor_create_config
+from external_processors.service import serialize_external_processor
 from utilities.admin.h_admin_control import h_bck_agent_reanimate, h_exception_user_data_main, \
     h_add_exception_user_data, h_delete_exception_user_data, h_admins_table
 from utilities.admin.h_admin_control import (
@@ -106,6 +108,7 @@ from utilities.support import (
     su_mod_required,
     bck_at2_required,
     bck_su_mod_required, reanimate_user_required,
+    helper_paginate_query,
 )
 from validators.admin_control import UpdateBalanceSchema
 
@@ -977,3 +980,88 @@ def add_exception_user_data(kind):
 @bck_su_required
 def delete_exception_user_data(kind, item_id):
     return h_delete_exception_user_data(kind, item_id)
+
+
+@admin_control.route('/external_processors_main', methods=['GET'])
+@login_required
+@su_required
+def external_processors_main():
+    link = (
+            "javascript:bck_get_external_processors('"
+            + url_for('admin_control.external_processors_data')
+            + "?bck=1&"
+            + "page={0}');"
+    )
+    base_query = db.session.query(ExternalProcessor).order_by(
+        ExternalProcessor.created_at.desc(),
+        ExternalProcessor.id.desc(),
+    )
+    page, per_page, offset, pagination, processor_models = helper_paginate_query(
+        base_query,
+        per_page=settings.PAGINATION_PER_PROMOS,
+        href=link,
+        record_name='external_processors',
+        anchor='external_processors_table',
+        css_framework='semantic',
+    )
+    processors = [serialize_external_processor(item) for item in processor_models]
+    active_processors_count = db.session.query(ExternalProcessor.id).filter(ExternalProcessor.is_active.is_(True)).count()
+    total_processors_count = pagination.total
+    create_config = get_external_processor_create_config()
+    return render_template(
+        'admin/external_processors/main.html',
+        processors=processors,
+        pagination=pagination,
+        offset=offset,
+        page=page,
+        per_page=per_page,
+        link=link,
+        total_processors_count=total_processors_count,
+        active_processors_count=active_processors_count,
+        create_config=create_config,
+    )
+
+
+@admin_control.route('/external_processors_data', methods=['GET'])
+@login_required
+@bck_su_required
+def external_processors_data():
+    link = (
+            "javascript:bck_get_external_processors('"
+            + url_for('admin_control.external_processors_data')
+            + "?bck=1&"
+            + "page={0}');"
+    )
+    base_query = db.session.query(ExternalProcessor).order_by(
+        ExternalProcessor.created_at.desc(),
+        ExternalProcessor.id.desc(),
+    )
+    page, per_page, offset, pagination, processor_models = helper_paginate_query(
+        base_query,
+        per_page=settings.PAGINATION_PER_PROMOS,
+        href=link,
+        record_name='external_processors',
+        anchor='external_processors_table',
+        css_framework='semantic',
+    )
+    processors = [serialize_external_processor(item) for item in processor_models]
+    active_processors_count = db.session.query(ExternalProcessor.id).filter(ExternalProcessor.is_active.is_(True)).count()
+
+    html = render_template(
+        'admin/external_processors/table.html',
+        processors=processors,
+        pagination=pagination,
+        offset=offset,
+        page=page,
+        per_page=per_page,
+        link=link,
+    )
+    return jsonify({
+        'status': 'success',
+        'message': '',
+        'html': html,
+        'data': {
+            'total': pagination.total,
+            'active': active_processors_count,
+        },
+    })
