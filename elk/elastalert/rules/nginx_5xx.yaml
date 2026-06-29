@@ -1,0 +1,41 @@
+# Правило: 5+ ответов 5xx от nginx за 5 минут
+name: "Nginx 5xx errors"
+type: frequency
+
+index: nginx-*
+num_events: 5
+timeframe:
+  minutes: 5
+
+# Фильтр по статус-коду >= 500
+# Nginx пишет лог в формате: '... "GET /path HTTP/1.1" 500 ...'
+# Logstash кладёт сырую строку в поле message
+filter:
+  - query:
+      bool:
+        should:
+          - match_phrase:
+              message: '" 500 '
+          - match_phrase:
+              message: '" 502 '
+          - match_phrase:
+              message: '" 503 '
+          - match_phrase:
+              message: '" 504 '
+
+realert:
+  minutes: 10
+
+alert: telegram
+telegram_bot_token: "${HEALTHCHECK_BOT}"
+telegram_room_id: "${TELEGRAM_ALERTS_GROUP_ID}"
+
+alert_text: |
+  🟠 <b>Nginx 5xx Spike — Marka Service</b>
+
+  За последние 5 минут зафиксировано 5+ ответов 5xx.
+
+  Проверьте: <code>/var/log/nginx/error.log</code>
+  или Kibana → Discover → <code>nginx-*</code>
+alert_text_type: alert_text_only
+telegram_parse_mode: html

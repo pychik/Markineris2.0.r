@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     APM_IS_DEBUG: str = False
     ELASTIC_APM_SECRET_TOKEN: str
     APM_SERVER_URL: str
+    HEALTH_CHECK_TOKEN: str = ''
 
     MINIO_API_URL: str
     MINIO_ACCESS_KEY: str

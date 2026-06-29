@@ -1,0 +1,34 @@
+# Правило: любая упавшая транзакция Flask → алерт
+# Источник: traces-apm-* — транзакции с event.outcome = "failure" (HTTP 5xx)
+# Кулдаун 15 минут на endpoint: если один и тот же endpoint продолжает падать,
+# не спамим — ждём 15 минут до следующего алерта по нему.
+name: "APM Failed transactions"
+type: any
+
+index: "traces-apm-*"
+
+filter:
+  - term:
+      event.outcome: "failure"
+  - term:
+      processor.event: "transaction"
+
+query_key: "transaction.name"
+
+realert:
+  minutes: 15
+
+alert: telegram
+telegram_bot_token: "${HEALTHCHECK_BOT}"
+telegram_room_id: "${TELEGRAM_ALERTS_GROUP_ID}"
+
+alert_text: |
+  🟠 <b>Failed Transaction — Marka Service</b>
+
+  <b>Endpoint:</b> <code>{transaction.name}</code>
+  <b>Тип:</b> <code>{transaction.type}</code>
+  <b>Результат:</b> <code>{transaction.result}</code>
+
+  Откройте Kibana APM → Transactions для деталей.
+alert_text_type: alert_text_only
+telegram_parse_mode: html

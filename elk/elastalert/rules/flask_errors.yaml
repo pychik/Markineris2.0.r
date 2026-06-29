@@ -1,0 +1,41 @@
+# Правило: 3+ ошибки ERROR/CRITICAL в логах Flask за 5 минут
+name: "Flask ERROR/CRITICAL logs"
+type: frequency
+
+index: flask-app*
+num_events: 3
+timeframe:
+  minutes: 5
+
+# Смотрим только на ERROR и CRITICAL из loguru
+filter:
+  - query:
+      bool:
+        should:
+          - match_phrase:
+              message: "ERROR"
+          - match_phrase:
+              message: "CRITICAL"
+          - match_phrase:
+              message: "| ERROR |"
+          - match_phrase:
+              message: "| CRITICAL |"
+
+# Не слать один и тот же алерт чаще раза в 10 минут
+realert:
+  minutes: 10
+
+# Telegram
+alert: telegram
+telegram_bot_token: "${HEALTHCHECK_BOT}"
+telegram_room_id: "${TELEGRAM_ALERTS_GROUP_ID}"
+
+alert_text: |
+  🔴 <b>Flask App Errors — Marka Service</b>
+
+  За последние 5 минут зафиксировано 3+ ошибок ERROR/CRITICAL.
+
+  Проверьте: <code>/var/log/flask-app/error.log</code>
+  или Kibana → Discover → <code>flask-app-*</code>
+alert_text_type: alert_text_only
+telegram_parse_mode: html
