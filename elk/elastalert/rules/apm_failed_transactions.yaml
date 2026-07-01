@@ -25,10 +25,14 @@ telegram_room_id: "${TELEGRAM_ALERTS_GROUP_ID}"
 alert_text: |
   🟠 <b>Failed Transaction — Marka Service</b>
 
-  <b>Endpoint:</b> <code>{transaction.name}</code>
-  <b>Тип:</b> <code>{transaction.type}</code>
-  <b>Результат:</b> <code>{transaction.result}</code>
+  <b>Endpoint:</b> <code>{0}</code>
+  <b>Тип:</b> <code>{1}</code>
+  <b>Результат:</b> <code>{2}</code>
 
   Откройте Kibana APM → Transactions для деталей.
+alert_text_args:
+  - transaction.name
+  - transaction.type
+  - transaction.result
 alert_text_type: alert_text_only
 telegram_parse_mode: html

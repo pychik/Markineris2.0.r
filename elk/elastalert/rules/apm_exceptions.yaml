@@ -21,14 +21,16 @@ alert: telegram
 telegram_bot_token: "${HEALTHCHECK_BOT}"
 telegram_room_id: "${TELEGRAM_ALERTS_GROUP_ID}"
 
-# Используем только top-level поля — error.exception является массивом,
-# поэтому берём culprit + url + метод. Полный traceback доступен в Kibana APM.
 alert_text: |
   🔴 <b>APM Exception — Marka Service</b>
 
-  <b>Culprit:</b> <code>{culprit}</code>
-  <b>URL:</b> <code>{http.request.method} {url.full}</code>
+  <b>Culprit:</b> <code>{0}</code>
+  <b>URL:</b> <code>{1} {2}</code>
 
   Откройте Kibana APM → Errors для полного traceback.
+alert_text_args:
+  - culprit
+  - http.request.method
+  - url.full
 alert_text_type: alert_text_only
 telegram_parse_mode: html
