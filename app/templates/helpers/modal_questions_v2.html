@@ -50,7 +50,7 @@
             После того, как вы подтвердите, накладная полностью очистится! Подтверждаете?
           </div>
           <div class="modal-footer d-grid gap-2">
-            <button onclick="$('#clean_ordersModal').modal('hide');loadingCircle();location.href='{{url_for(category_process_name + '.clean_orders', o_id=o_id)}}'" class="btn btn-danger " type="button">Да. Очистить накладную</button>
+            <button onclick="$('#clean_ordersModal').modal('hide');loadingCircle();location.href='{% if subcategory %}{{ url_for(category_process_name + '.clean_orders', subcategory=subcategory, o_id=o_id) }}{% else %}{{ url_for(category_process_name + '.clean_orders', o_id=o_id) }}{% endif %}'" class="btn btn-danger " type="button">Да. Очистить накладную</button>
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Нет</button>
 
           </div>
@@ -125,4 +125,3 @@
 
 
 {% include 'helpers/error_modal.html' %}
-

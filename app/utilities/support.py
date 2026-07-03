@@ -249,12 +249,14 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
     # socks_tnved_condition = category == settings.Socks.CATEGORY and \
     #         ValidatorProcessor.socks_pre_validate_tnved(tnved_str=form_data_raw.get('tnved_code'))
     subcategory = request.args.get('subcategory', '')
+    if not subcategory and request.view_args:
+        subcategory = request.view_args.get('subcategory', '')
     if not Category.check_subcategory(category=category, subcategory=subcategory):
         return jsonify(dict(status='error', message=settings.Messages.STRANGE_REQUESTS + 'нет такой подкатегории'))
 
     # optimise it
     color = form_data_raw.get('color')
-    check_color = (category != settings.Parfum.CATEGORY
+    check_color = (category not in [settings.Parfum.CATEGORY, settings.Cosmetics.CATEGORY]
                    and ValidatorProcessor.check_colors(color=color))
     if check_color:
         message = settings.Messages.COLOR_INPUT_ERROR.format(color=color)
@@ -375,8 +377,10 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
             sizes_units = form_data_raw.getlist("sizeUnit")
             quantities = form_data_raw.getlist("quantity")
             sizes_quantities = sorted(list(zip(sizes, sizes_units,  quantities)), key=lambda x: x[0])
+        elif category == settings.Cosmetics.CATEGORY:
+            sizes_quantities = []
         else:
-            raise IntegrityError('Выбрана некорректная категория')
+            raise ValueError('Выбрана некорректная категория')
 
         updated_order = common_save_db(order=order, form_dict=form_dict,
                                        category=category, subcategory=subcategory, sizes_quantities=sizes_quantities)
@@ -398,6 +402,10 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
         logger.error(e)
         db.session.rollback()
         return (None,)*3
+    except ValueError as ve:
+        logger.error(ve)
+        db.session.rollback()
+        return (None,) * 3
     sort_type, sort_order = helper_get_sort_order(sort_type_order=form_dict.get("sort_type_order"))
     o_id = updated_order.id
 

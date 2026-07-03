@@ -135,7 +135,8 @@ def h_category(category: str = 'все', upload_flag: int = None):
             Order.closed_at,
             Order.processing_info,
             Order.is_moderation,
-            Clothes.subcategory
+            Clothes.subcategory,
+            Cosmetics.subcategory
         )
         .order_by(desc(Order.crm_created_at))
     )
@@ -173,18 +174,24 @@ def h_category(category: str = 'все', upload_flag: int = None):
         s_dict = s._asdict() if hasattr(s, '_asdict') else dict(s)
 
         display_category = ''
+        display_subcategory = ''
+        row_category = s_dict.get('category', '')
+        row_subcategory = s_dict.get('subcategory')
 
         if category in ['', 'все']:
-            if s_dict.get('category') == 'одежда':
-                subcat = s_dict.get('subcategory')
-                if subcat and subcat != 'common':
-                    display_category = subcategories_dict.get(subcat, subcat)
+            if row_category == 'одежда':
+                if row_subcategory and row_subcategory != 'common':
+                    display_category = subcategories_dict.get(row_subcategory, row_subcategory)
                 else:
-                    display_category = s_dict.get('category', '')
+                    display_category = row_category
             else:
-                display_category = s_dict.get('category', '')
+                display_category = row_category
+
+        if row_category == settings.Cosmetics.CATEGORY and row_subcategory:
+            display_subcategory = subcategories_dict.get(row_subcategory, row_subcategory)
 
         s_dict['display_category'] = display_category
+        s_dict['display_subcategory'] = display_subcategory
         prepared_orders.append(s_dict)
 
     category_orders = prepared_orders
@@ -232,8 +239,10 @@ def h_copy_order(o_id: int, category: str) -> Response:
 
     if o_id:
         flash(message=f"{settings.Messages.ORDER_COPY_SUCCESS} {category}")
-        return redirect(url_for(f'{category_process_name}.index', o_id=o_id,
-                                copy_order_edit_org='edit_org_card'))
+        url_kwargs = dict(o_id=o_id, copy_order_edit_org='edit_org_card')
+        if category == settings.Cosmetics.CATEGORY and subcategory:
+            url_kwargs['subcategory'] = subcategory
+        return redirect(url_for(f'{category_process_name}.index', **url_kwargs))
     else:
         return redirect(url_for('orders_archive.index'))
 

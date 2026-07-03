@@ -165,7 +165,7 @@ def save_cosmetics(order: Order, form_dict: dict, subcategory: str) -> Order:
     quantity_raw = form_dict.get("quantity")
     nominal_quantity_raw = form_dict.get("nominal_quantity")
     blade_count_raw = form_dict.get("blade_count")
-    layers_characteristic = process_input_str(form_dict.get("layers_characteristic"))
+    layers_characteristic = process_input_str(form_dict.get("layers_characteristic") or "")
 
     try:
         quantity = int(quantity_raw)

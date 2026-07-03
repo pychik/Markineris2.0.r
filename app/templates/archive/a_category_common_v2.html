@@ -33,6 +33,9 @@
                                         {% if s.display_category %}
                                             <br><span style="font-size: 10px">{{ s.display_category }}</span>
                                         {% endif %}
+                                        {% if s.display_subcategory %}
+                                            <br><span style="font-size: 10px; color: #6c757d">{{ s.display_subcategory }}</span>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         {{ s.company_type }} {{ s.company_name }}

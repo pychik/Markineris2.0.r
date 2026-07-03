@@ -2,6 +2,7 @@ from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
 from config import settings
+from models import Order
 from tezaurus.runtime_catalogs import get_all_countries
 from utilities.support import (
     helper_get_order_notification,
@@ -138,7 +139,13 @@ def helper_cosmetics_index(
         offset = 0
     else:
         specific_order = True
-        order, orders, company_type, company_name, company_idn, edo_type, edo_id, mark_type, trademark, \
+        order = user.orders.filter_by(
+            category=category,
+            processed=False,
+            id=o_id,
+            stage=settings.OrderStage.CREATING,
+        ).filter(~Order.to_delete).first()
+        orders, company_type, company_name, company_idn, edo_type, edo_id, mark_type, trademark, \
             orders_pos_count, pos_count, total_price, price_exist, _ = orders_list_common(
                 category=category,
                 user=user,
