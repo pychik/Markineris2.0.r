@@ -1381,6 +1381,47 @@ def h_helper_get_clothes_p_orders(user: User, processed: bool, subcategory: str 
     ).order_by(desc(Order.created_at)).all()
 
 
+def h_helper_get_cosmetics_p_orders(user: User, processed: bool, subcategory: str | None = None) -> list:
+    subcategory_filter = subcategory or ""
+
+    CosmeticsAlias = aliased(Cosmetics)
+
+    base_query = user.orders.join(CosmeticsAlias).filter(CosmeticsAlias.subcategory == subcategory_filter)
+
+    if processed:
+        base_query = base_query.filter(
+            Order.category == settings.Cosmetics.CATEGORY_PROCESS,
+            Order.processed == True,
+            Order.is_moderation == False,
+        )
+    else:
+        base_query = base_query.filter(
+            Order.category == settings.Cosmetics.CATEGORY,
+            Order.processed == False,
+            Order.is_moderation == False,
+            Order.stage == settings.OrderStage.CREATING,
+        )
+
+    base_query = base_query.filter(~Order.to_delete)
+
+    return base_query.with_entities(
+        Order.id,
+        func.array_agg(Order.order_idn).label("order_idns"),
+        Order.category,
+        Order.company_type,
+        Order.company_name,
+        Order.company_idn,
+        Order.to_delete,
+        Order.created_at,
+        Order.stage,
+        Order.closed_at,
+        func.array_agg(CosmeticsAlias.subcategory).label("subcategories"),
+    ).group_by(
+        Order.id, Order.category, Order.company_type, Order.company_name, Order.company_idn,
+        Order.to_delete, Order.created_at, Order.stage, Order.closed_at
+    ).order_by(desc(Order.created_at)).all()
+
+
 def helper_get_p_order(user: User, category: str, processed: bool):
     match processed:
         case True:
@@ -1415,7 +1456,7 @@ def get_category_p_orders(user: User, category: str, processed: bool, subcategor
         case settings.Clothes.CATEGORY:
             return h_helper_get_clothes_p_orders(user=user, processed=processed, subcategory=subcategory)
         case settings.Cosmetics.CATEGORY:
-            return helper_get_p_order(user=user, category=category, processed=processed, subcategory=subcategory)
+            return h_helper_get_cosmetics_p_orders(user=user, processed=processed, subcategory=subcategory)
         case _:
             return helper_get_p_order(user=user, category=category, processed=processed)
 

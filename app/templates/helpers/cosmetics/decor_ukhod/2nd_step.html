@@ -146,21 +146,21 @@
                         </select>
                     </div>
                 </div>
+                {% set layers_characteristic_choices = subcategory_config.get("layers_characteristic_choices", ()) %}
+                {% if layers_characteristic_choices %}
+                    <div class="col-md-3">
 
-                <div class="col-md-3">
-                    {% set layers_characteristic_choices = subcategory_config.get("layers_characteristic_choices", ()) %}
-                    {% if layers_characteristic_choices %}
-                    <div class="form-group">
-                        <label for="layers_characteristic" class="control-label">Кол-во слоев</label>
-                        <select id="layers_characteristic" name="layers_characteristic" class="form-control search-select" required>
-                            <option value="" selected disabled>Выберите значение</option>
-                            {% for item in layers_characteristic_choices %}
-                                <option value="{{ item }}" {% if copied_order and copied_order.layers_characteristic == item %}selected{% endif %}>{{ item }}</option>
-                            {% endfor %}
-                        </select>
+                        <div class="form-group">
+                            <label for="layers_characteristic" class="control-label">Кол-во слоев</label>
+                            <select id="layers_characteristic" name="layers_characteristic" class="form-control search-select" required>
+                                <option value="" selected disabled>Выберите значение</option>
+                                {% for item in layers_characteristic_choices %}
+                                    <option value="{{ item }}" {% if copied_order and copied_order.layers_characteristic == item %}selected{% endif %}>{{ item }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
-                    {% endif %}
-                </div>
+                {% endif %}
 
                 <div class="col-md-3" id="for_children_block" {% if not subcategory_config.get("for_children_enabled", true) %}style="display:none"{% endif %}>
                     <div class="form-group">

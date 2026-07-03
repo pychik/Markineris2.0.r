@@ -111,8 +111,6 @@ def helper_cosmetics_index(
     tax_list = settings.TAX_LIST
     category = settings.Cosmetics.CATEGORY
     category_process_name = settings.Cosmetics.CATEGORY_PROCESS
-    order_aggregation_tnveds_list = settings.ORDER_AGGREGATION_TNVEDS_LIST
-    order_aggregation_tnveds_dict = settings.ORDER_AGGREGATION_TNVEDS_DICT
     with_packages = False
     has_aggr = False
 
