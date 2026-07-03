@@ -20,15 +20,16 @@ class SQLQueryCategoriesAll:
                 LEFT JOIN public.linen l ON o.category=\'{settings.Linen.CATEGORY}\' AND o.id = l.order_id
                 LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                 LEFT JOIN public.parfum p ON o.category=\'{settings.Parfum.CATEGORY}\' AND o.id = p.order_id
+                LEFT JOIN public.cosmetics co ON o.category=\'{settings.Cosmetics.CATEGORY}\' AND o.id = co.order_id
             """,
             "fields": {
-                "subcategory": "coalesce(max(cl.subcategory), 'common')",
-                "pos_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id))",
-                "marks_count": "SUM(COALESCE(sh.box_quantity * sh_qs.quantity, cl.box_quantity * cl_qs.quantity, sk.box_quantity * sk_qs.quantity, l.box_quantity * l_qs.quantity, p.quantity, 0))",
-                "rows_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id))",
-                "category_pos_type_max": "MAX(COALESCE(sh.type, cl.type, sk.type, l.type, p.type))",
-                "category_pos_type": "COALESCE(sh.type, cl.type, sk.type, l.type, p.type)",
-                "declar_doc": "COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date))",
+                "subcategory": "coalesce(max(cl.subcategory), max(co.subcategory), 'common')",
+                "pos_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id, co.id))",
+                "marks_count": "SUM(COALESCE(sh.box_quantity * sh_qs.quantity, cl.box_quantity * cl_qs.quantity, sk.box_quantity * sk_qs.quantity, l.box_quantity * l_qs.quantity, p.quantity, co.quantity, 0))",
+                "rows_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id, co.id))",
+                "category_pos_type_max": "MAX(COALESCE(sh.type, cl.type, sk.type, l.type, p.type, co.type))",
+                "category_pos_type": "COALESCE(sh.type, cl.type, sk.type, l.type, p.type, co.type)",
+                "declar_doc": "COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date, co.rd_date))",
                 "orders_count_utm": "COUNT(DISTINCT CASE WHEN o.stage >= 8 AND o.stage != 9 THEN o.id END)",
                 "marks_count_utm": """SUM(COALESCE(
                     CASE 
@@ -37,7 +38,8 @@ class SQLQueryCategoriesAll:
                             COALESCE(cl.box_quantity * cl_qs.quantity, 0) + 
                             COALESCE(sk.box_quantity * sk_qs.quantity, 0) + 
                             COALESCE(l.box_quantity * l_qs.quantity, 0) + 
-                            COALESCE(p.quantity, 0)
+                            COALESCE(p.quantity, 0) +
+                            COALESCE(co.quantity, 0)
                         ELSE 0 
                     END, 0))"""
             }
@@ -123,6 +125,19 @@ class SQLQueryFactory:
                 "category_pos_type": "p.type",
                 "declar_doc": "COUNT(p.rd_date)"
             }
+        },
+        "cosmetics": {
+            "join": """
+                LEFT JOIN public.cosmetics co ON o.id = co.order_id
+            """,
+            "fields": {
+                "pos_count": "COUNT(co.id)",
+                "marks_count": "SUM(co.quantity)",
+                "rows_count": "COUNT(co.id)",
+                "category_pos_type_max": "MAX(co.type)",
+                "category_pos_type": "co.type",
+                "declar_doc": "COUNT(co.rd_date)"
+            }
         }
     }
 
@@ -158,5 +173,4 @@ if __name__ == "__main__":
     print("JOINs для shoes:\n", SQLQueryFactory.get_joins(category="shoes"))
     print("\nЗапрос pos_count для shoes:\n", SQLQueryFactory.get_stmt(category="shoes", field="pos_count"))
     print("\nЗапрос category_pos_type_max для shoes:\n", SQLQueryFactory.get_stmt(category="shoes", field="category_pos_type_max"))
-
 

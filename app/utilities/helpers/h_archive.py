@@ -4,7 +4,7 @@ from sqlalchemy import desc, func, or_
 
 from loguru import logger
 from config import settings
-from models import Clothes, Order, OrderFile
+from models import Clothes, Cosmetics, Order, OrderFile
 from utilities.categories_data.subcategories_data import ClothesSubcategories, Category
 from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.minio_service.services import download_file_from_minio, get_s3_service
@@ -23,7 +23,7 @@ def h_index() -> tuple:
     order_notification, admin_name, crm = helper_get_order_notification(admin_id=admin_id if admin_id else user.id)
     all_orders = get_category_archive_all(user=user)
 
-    shoe_orders, clothes_orders, linen_orders, parfum_orders = helper_category_archive_orders(all_orders=all_orders)
+    shoe_orders, clothes_orders, linen_orders, parfum_orders, cosmetics_orders = helper_category_archive_orders(all_orders=all_orders)
 
     stages_description = settings.OrderStage.STAGES
     return render_template('archive/a_base_v2.html', **locals()), 200
@@ -46,7 +46,7 @@ def h_category(category: str = 'все', upload_flag: int = None):
     # all / пусто = все категории
     is_all_categories = category == 'все'
     # Проверку подкатегории делаем только для конкретной категории clothes
-    if not is_all_categories and category == settings.Clothes.CATEGORY:
+    if not is_all_categories and category in (settings.Clothes.CATEGORY, settings.Cosmetics.CATEGORY):
         if not Category.check_subcategory(category=category, subcategory=subcategory):
             message = settings.Messages.STRANGE_REQUESTS + ' нет такой подкатегории'
             if upload_flag:
@@ -88,11 +88,12 @@ def h_category(category: str = 'все', upload_flag: int = None):
             Order.closed_at,
             Order.processing_info,
             Order.is_moderation,
-            Clothes.subcategory.label('subcategory'),
+            func.coalesce(Clothes.subcategory, Cosmetics.subcategory, '').label('subcategory'),
             func.max(OrderFile.file_link).label('file_link')
         )
         .outerjoin(OrderFile, Order.order_zip_file)
         .outerjoin(Clothes, Order.id == Clothes.order_id)
+        .outerjoin(Cosmetics, Order.id == Cosmetics.order_id)
     )
 
     # Если выбрана конкретная категория — фильтруем по ней
@@ -112,6 +113,9 @@ def h_category(category: str = 'все', upload_flag: int = None):
             ))
         else:
             query = query.filter(Clothes.subcategory == subcategory)
+    elif not is_all_categories and category == settings.Cosmetics.CATEGORY:
+        if subcategory:
+            query = query.filter(Cosmetics.subcategory == subcategory)
 
     query = (
         query.group_by(

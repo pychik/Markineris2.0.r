@@ -1,0 +1,96 @@
+{% extends 'main/base_v2.html' %}
+
+{% block categories %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/service/jquery-ui.min.css')}}" integrity="sha512-ELV+xyi8IhEApPS/pSj66+Jiw+sOT1Mqkzlh8ExXihe4zfqbWkxPRi8wptXIO9g73FSlhmquFlUOuMSoXz5IRw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="{{ url_for('static', filename='main_v2/js/assets/jquery-ui.min.js')}}" integrity="sha512-57oZ/vW8ANMjR/KQ6Be9v/+/h6bq9/l3f0Oc7vn6qMqyhvPd1cvKBRWWpzu0QoneImqr2SkmO4MSqU+RpHom3Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="{{ url_for('static', filename='main_v2/js/datepicker-ru.js') }}"></script>
+
+    <div class="px-5">
+        <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
+            <div class="breadcrumbs">
+                <a href="{{ url_for('main.enter') }}">Категории</a>
+                /
+                <a href="{{ url_for('cosmetics.index') }}">Косметика</a>
+                /
+                <span>{{ subcategory_title }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="front text-center">
+        <h1 class="mb-5 fs-2">{% if not o_id %}Новая накладная{% else %}Накладная{% endif %}<br> <span class="fw-bolder">«{{ subcategory_title }}»</span></h1>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-3"></div>
+        <div class="col-6">
+            <div class="table__btn mx-auto">
+                {% if order_list %}
+                    <p>Просмотр заказа</p>
+                    <a class="btn btn-secondary" href="{{ url_for(category_process_name + '.preload', subcategory=subcategory, o_id=o_id, stage=order_stages.CREATING) }}">Смотреть<svg xmlns="http://www.w3.org/2000/svg" width="22" height="18" viewBox="0 0 22 18" fill="none" class="svg-eye">
+                        <path d="M8 1.46004C8.97019 1.15248 9.98223 0.997298 11 1.00004C15.182 1.00004 18.028 3.50004 19.725 5.70404C20.575 6.81004 21 7.36104 21 9.00004C21 10.64 20.575 11.191 19.725 12.296C18.028 14.5 15.182 17 11 17C6.818 17 3.972 14.5 2.275 12.296C1.425 11.192 1 10.639 1 9.00004C1 7.36004 1.425 6.80904 2.275 5.70404C2.79336 5.02674 3.37061 4.39662 4 3.82104" stroke-width="1.5" stroke-linecap="round"/>
+                        <path d="M14 9C14 9.79565 13.6839 10.5587 13.1213 11.1213C12.5587 11.6839 11.7956 12 11 12C10.2044 12 9.44129 11.6839 8.87868 11.1213C8.31607 10.5587 8 9.79565 8 9C8 8.20435 8.31607 7.44129 8.87868 6.87868C9.44129 6.31607 10.2044 6 11 6C11.7956 6 12.5587 6.31607 13.1213 6.87868C13.6839 7.44129 14 8.20435 14 9Z" stroke-width="1.5"/>
+                    </svg></a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-center mt-5 mb-4">
+        <div class="d-inline-flex align-items-center gap-2">
+            {% if not o_id %}
+            <h4 class="mb-0">Создать заказ</h4>
+            {% endif %}
+            {% if current_user.role == 'superuser' %}
+            <span
+                role="button"
+                tabindex="0"
+                class="small text-secondary d-inline-flex align-items-center"
+                style="cursor:pointer;"
+                title="Заполнить форму"
+                data-category="{{ category_process_name }}"
+                data-subcategory="{{ subcategory or '' }}"
+                onclick="ordinaryOrderTestFillStep2(this);"
+                onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); ordinaryOrderTestFillStep2(this); }"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M13.65 2.35A7 7 0 1 0 15 8h-1.5a5.5 5.5 0 1 1-1.61-3.89L9.5 6.5H15V1l-1.35 1.35Z" fill="currentColor"/>
+                    </svg>
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% include 'categories/order_step_control.html' %}
+
+    <input type="hidden" readonly="true" id="copy_order_edit_org" value="{{ copy_order_edit_org or '' }}">
+
+    <div class="px-5">
+        <form role="form"
+              id="form_process_main"
+              method="post"
+              action="{% if edit_order == 'edit_order' %}{{ url_for(category_process_name + '.preprocess_order', subcategory=subcategory, o_id=o_id, p_id=p_id) }}{% elif o_id %}{{ url_for(category_process_name + '.preprocess_order', subcategory=subcategory, o_id=o_id) }}{% else %}{{ url_for(category_process_name + '.preprocess_order', subcategory=subcategory) }}{% endif %}"
+              onsubmit="return false;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+            {% include 'categories/categories_1st_step.html' %}
+            {% include step_2_template %}
+        </form>
+
+        {% include step_3_template %}
+    </div>
+
+    <div id="ShowModalTable"></div>
+    {% set tnved_list = allowed_tnved_choices %}
+    <template id="cosmetics_tnved_report_template">
+        {% include 'helpers/cosmetics/manual_tnved_modal_report.html' %}
+    </template>
+    {% include 'helpers/cosmetics/manual_tc_modal.html' %}
+    {% include 'helpers/modal_questions_v2.html' %}
+    {% include 'helpers/modal_questions_org.html' %}
+    <div id="modals-container"></div>
+
+    <script src="{{url_for('static',filename='main_v2/js/perform_order.js')}}?v=7"></script>
+    <script src="{{url_for('static',filename='main_v2/js/categories/cosmetics.js')}}?v=12"></script>
+    <script src="{{url_for('static',filename='main_v2/js/ordinary_order_test_fill.js')}}?v=2"></script>
+{% endblock %}

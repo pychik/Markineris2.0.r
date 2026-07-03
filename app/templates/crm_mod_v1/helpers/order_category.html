@@ -39,4 +39,26 @@
                         data-bs-placement="top" data-bs-title="{{n.category}}">
             <img src="{{ url_for('static', filename='crm_mod/img/icons/04.svg')}}" alt="" class="img-fluid">
         </div>
+    {% elif n.category == 'косметика' %}
+        {% set cosmetics_icon_map = {
+            'decor_ukhod': 'crm_mod/img/icons/cosmetics_decor_ukhod.svg',
+            'cosmetics_aroma': 'crm_mod/img/icons/cosmetics_aroma.svg',
+            'cosmetics_cleaning_products': 'main_v2/img/icons/cosmetics_cleaning_products.svg',
+            'cosmetics_deodorants': 'main_v2/img/icons/cosmetics_deodorants.svg',
+            'cosmetics_nails': 'main_v2/img/icons/cosmetics_nails.svg',
+            'cosmetics_tooth': 'crm_mod/img/icons/cosmetics_tooth.svg',
+            'cosmetics_eye': 'crm_mod/img/icons/cosmetics_eye.svg',
+            'cosmetics_lips': 'crm_mod/img/icons/cosmetics_lips.svg',
+            'cosmetics_mochalki': 'crm_mod/img/icons/cosmetics_mochalki.svg',
+            'cosmetics_rascheski': 'crm_mod/img/icons/cosmetics_rascheski.svg',
+            'cosmetics_the_rest_hair': 'crm_mod/img/icons/cosmetics_the_rest_hair.svg',
+            'cosmetics_salt_bomb': 'crm_mod/img/icons/cosmetics_salt_bomb.svg',
+            'cosmetics_toilet_paper': 'crm_mod/img/icons/cosmetics_toilet_paper.svg',
+            'cosmetics_tweezers': 'main_v2/img/icons/cosmetics_tweezers.svg',
+            'razor_blades_and_cassettes': 'crm_mod/img/icons/cosmetics_razor.svg'
+        } %}
+        <div class="order__img order__img--lilac" data-bs-toggle="tooltip" style="user-select: none;"
+                        data-bs-placement="top" data-bs-title="{{ subcategories_dict.get(n.subcategory, n.category) }}">
+            <img src="{{ url_for('static', filename=cosmetics_icon_map.get(n.subcategory, 'crm_mod/img/icons/cosmetics_decor_ukhod.svg')) }}?v=20260630-toilet-paper-outline" alt="" class="img-fluid" style="width: 59%; height: 59%;">
+        </div>
     {% endif %}

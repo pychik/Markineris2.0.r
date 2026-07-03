@@ -360,6 +360,8 @@ class Order(db.Model, UserMixin):
                             foreign_keys='Linen.order_id')
     parfum = db.relationship('Parfum', backref='order', cascade="all,delete", lazy='joined',
                              foreign_keys='Parfum.order_id')
+    cosmetics = db.relationship('Cosmetics', backref='order', cascade="all,delete", lazy='joined',
+                                foreign_keys='Cosmetics.order_id')
     clothes = db.relationship('Clothes', backref='order', cascade="all,delete", lazy='joined',
                               foreign_keys='Clothes.order_id')
     socks = db.relationship('Socks', backref='order', cascade="all,delete", lazy='joined',
@@ -485,6 +487,13 @@ class ProductCard(db.Model, UserMixin):
         lazy='select',
         foreign_keys='Parfum.card_id',
     )
+    cosmetics = db.relationship(
+        'Cosmetics',
+        backref='product_card',
+        cascade="all,delete",
+        lazy='select',
+        foreign_keys='Cosmetics.card_id',
+    )
     clothes = db.relationship(
         'Clothes',
         backref='product_card',
@@ -527,6 +536,9 @@ class ProductCard(db.Model, UserMixin):
         if self.category == 'parfum':
             # здесь юнит – сама парфюмерная запись(и)
             return list(self.parfum)    # relationship к Parfum по card_id
+
+        if self.category == 'косметика':
+            return list(self.cosmetics)
 
         if self.category == 'socks':
             return [s for sk in self.socks for s in sk.sizes_quantities]     # как сделаешь
@@ -894,6 +906,47 @@ class Parfum(db.Model, UserMixin, CommonMixin):
     with_packages = db.Column(db.String(50), default="нет")
     box_quantity = db.Column(db.Integer(), default=1)
     quantity = db.Column(db.Integer())
+    order_id = db.Column(
+        db.Integer,
+        db.ForeignKey('orders.id', ondelete='CASCADE'),
+        index=True,
+        nullable=True
+    )
+
+    is_approved = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+    )
+
+    card_id = db.Column(
+        db.Integer,
+        db.ForeignKey('product_cards.id', ondelete='CASCADE'),
+        index=True,
+        nullable=True
+    )
+
+
+class Cosmetics(db.Model, UserMixin, CommonMixin):
+    __tablename__ = "cosmetics"
+
+    subcategory = db.Column(db.String(64), nullable=False, index=True)
+    full_name_extra = db.Column(db.String(255), default='')
+    nominal_quantity = db.Column(db.Integer())
+    nominal_quantity_type = db.Column(db.String(20))
+    quantity = db.Column(db.Integer())
+    blade_count = db.Column(db.Integer())
+    complectation = db.Column(db.String(500), nullable=False, default='', server_default='')
+    layers_characteristic = db.Column(db.String(50))
+    for_children = db.Column(db.Boolean, nullable=False, default=False, server_default="false")
+    usage_term_type = db.Column(db.String(100))
+    content_type = db.Column(db.String(20))
+    content = db.Column(db.Text)
+    service_life = db.Column(db.Integer())
+    sl_date_from = db.Column(db.Date())
+    sl_date_to = db.Column(db.Date(), index=True)
+
     order_id = db.Column(
         db.Integer,
         db.ForeignKey('orders.id', ondelete='CASCADE'),

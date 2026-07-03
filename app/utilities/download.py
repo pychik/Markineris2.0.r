@@ -25,6 +25,7 @@ from .telegram import TelegramProcessor
 
 class OrdersProcessor(ProcessorInterface, ABC):
     def __init__(self, category: str, company_idn: str, orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> None:
+        self.source_orders_list = orders_list
         (self._orders_list,
          self._orders_list_outer,
          self._orders_list_inner) = self.prepare_ext_data(orders_list=orders_list, flag_046=flag_046, has_aggr=has_aggr)
@@ -111,7 +112,7 @@ class OrdersProcessor(ProcessorInterface, ABC):
             worksheet_2 = workbook.add_worksheet(name=settings.SHEET_NAME_2)
 
             # Some data we want to write to the worksheet.
-            main_data = self.excel_start_data_ext(category=self.category, flag_046=self.flag_046)
+            main_data = self.get_excel_start_data_ext() if hasattr(self, 'get_excel_start_data_ext') else self.excel_start_data_ext(category=self.category, flag_046=self.flag_046)
             main_data.extend(el[0])
             OrdersProcessor.add_to_excel(worksheet=worksheet_1, data=main_data, row=0, col=0)
 
@@ -519,6 +520,128 @@ class ParfumProcessor(OrdersProcessor):
             return tnved_tuple[1]
 
 
+class CosmeticsProcessor(OrdersProcessor):
+    RAZOR_SUBCATEGORY = "razor_blades_and_cassettes"
+
+    @classmethod
+    def is_razor_subcategory(cls, subcategory: str | None) -> bool:
+        return str(subcategory or '').strip() == cls.RAZOR_SUBCATEGORY
+
+    @staticmethod
+    def get_subcategory_config(subcategory: str | None) -> dict | None:
+        from views.main.categories.cosmetics.subcategories import get_subcategory_config
+
+        return get_subcategory_config(subcategory)
+
+    @staticmethod
+    def build_full_name(el) -> str:
+        trademark = OrdersProcessor.eatp(str(el.trademark or '').strip(), "trademark").strip()
+        parts = [str(el.type or '').strip(), trademark, str(el.full_name_extra or '').strip()]
+        return " ".join(part for part in parts if part).strip()
+
+    @staticmethod
+    def get_children_value(el) -> str:
+        value = getattr(el, "for_children", False)
+        if isinstance(value, str):
+            return "ДА" if value.strip().upper() == "ДА" else "НЕТ"
+        return "ДА" if bool(value) else "НЕТ"
+
+    @classmethod
+    def get_category_code(cls, subcategory: str, tnved_code: str | None = None) -> str:
+        config = cls.get_subcategory_config(subcategory) or {}
+        category_code_by_tnved = config.get("category_code_by_tnved", {}) or {}
+        if tnved_code and category_code_by_tnved:
+            resolved = str(category_code_by_tnved.get(str(tnved_code).strip(), '') or '').strip()
+            if resolved:
+                return resolved
+        return str(config.get("category_code", "") or "")
+
+    @staticmethod
+    def get_certification(el) -> str:
+        if not el.rd_type or not el.rd_name or not el.rd_date:
+            return ''
+        return f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}"
+
+    def get_excel_start_data_ext(self):
+        first_subcategory = self.source_orders_list[0].subcategory if self.source_orders_list else None
+        if self.is_razor_subcategory(first_subcategory):
+            return copy(settings.Cosmetics.START_EXT_RAZOR)
+        return copy(settings.Cosmetics.START_EXT)
+
+    @staticmethod
+    def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
+        res_list_common = []
+        res_list_outer = []
+        res_list_inner = []
+
+        for el in orders_list:
+            full_name = CosmeticsProcessor.build_full_name(el)
+            category_code = CosmeticsProcessor.get_category_code(el.subcategory, el.tnved_code)
+            certification = CosmeticsProcessor.get_certification(el)
+            children_value = CosmeticsProcessor.get_children_value(el)
+
+            if CosmeticsProcessor.is_razor_subcategory(el.subcategory):
+                temp_list = [
+                    '', el.tnved_code, category_code, full_name, el.trademark,
+                    el.nominal_quantity_type, el.nominal_quantity, el.type, el.blade_count,
+                    el.complectation, el.usage_term_type, 'мес', el.service_life, el.tnved_code,
+                    '', '', el.sl_date_from.strftime('%d.%m.%Y') if el.sl_date_from else '',
+                    el.sl_date_to.strftime('%d.%m.%Y') if el.sl_date_to else '',
+                    el.quantity, el.country, certification,
+                ]
+            else:
+                temp_list = [
+                    '', el.tnved_code, category_code, full_name, el.trademark,
+                    el.nominal_quantity_type, el.nominal_quantity, el.type, children_value,
+                    el.usage_term_type, el.content_type, el.content, 'мес', el.service_life, el.tnved_code,
+                    '', '', el.sl_date_from.strftime('%d.%m.%Y') if el.sl_date_from else '',
+                    el.sl_date_to.strftime('%d.%m.%Y') if el.sl_date_to else '',
+                    '', el.quantity, el.country, certification,
+                ]
+
+            res_list_common.append(temp_list)
+            if (el.country or '').upper() in settings.COUNTRIES_INNER:
+                res_list_inner.append(temp_list)
+            else:
+                res_list_outer.append(temp_list)
+
+        return res_list_common, res_list_outer, res_list_inner
+
+    def get_preload_start(self) -> list:
+        first_subcategory = self.source_orders_list[0].subcategory if self.source_orders_list else None
+        if self.is_razor_subcategory(first_subcategory):
+            return copy(settings.Cosmetics.START_PRELOAD_RAZOR)
+        return copy(settings.Cosmetics.START_PRELOAD)
+
+    def prepare_preload_rows(self) -> list[list]:
+        rows = []
+        for el in self.source_orders_list:
+            full_name = self.build_full_name(el)
+            category_code = self.get_category_code(el.subcategory, el.tnved_code)
+            certification = self.get_certification(el)
+            if self.is_razor_subcategory(el.subcategory):
+                rows.append([
+                    el.tnved_code, category_code, full_name, el.trademark,
+                    el.nominal_quantity_type, el.nominal_quantity, el.type, el.blade_count,
+                    el.complectation, el.usage_term_type, 'мес', el.service_life,
+                    el.tnved_code,
+                    el.sl_date_from.strftime('%d.%m.%Y') if el.sl_date_from else '',
+                    el.sl_date_to.strftime('%d.%m.%Y') if el.sl_date_to else '',
+                    el.quantity, el.country, certification,
+                ])
+            else:
+                rows.append([
+                    el.tnved_code, category_code, full_name, el.trademark,
+                    el.nominal_quantity_type, el.nominal_quantity, el.type, self.get_children_value(el),
+                    el.usage_term_type, 'мес', el.service_life,
+                    el.tnved_code,
+                    el.sl_date_from.strftime('%d.%m.%Y') if el.sl_date_from else '',
+                    el.sl_date_to.strftime('%d.%m.%Y') if el.sl_date_to else '',
+                    el.quantity, el.country, certification,
+                ])
+        return rows
+
+
 class ClothesProcessor(OrdersProcessor):
 
     @staticmethod
@@ -770,6 +893,25 @@ def get_download_info(o_id, user: User, flag_046: bool = False) -> Union[Respons
         orders_pos_count = sum([el.quantity for el in order_list])
         category = settings.Parfum.CATEGORY
         op = ParfumProcessor(category=category, company_idn=company_idn, orders_list=order_list)
+    elif order.category == settings.Cosmetics.CATEGORY:
+        order_list = order.cosmetics
+        if not order_list:
+            flash(message=settings.Messages.EMPTY_ORDER, category='error')
+            return (None,) * 12
+
+        category = settings.Cosmetics.CATEGORY
+        from utilities.support import get_subcategory
+        subcategory = get_subcategory(order_id=o_id, category=category)
+        if subcategory:
+            order_list = [el for el in order_list if el.subcategory == subcategory]
+        if not order_list:
+            flash(message=settings.Messages.EMPTY_ORDER, category='error')
+            return (None,) * 12
+        rd_exist = True if [el.rd_type for el in order_list if el.rd_type] else False
+        pos_count = len(order_list)
+        orders_pos_count = sum([el.quantity for el in order_list])
+        category_name_excel = settings.SUB_CATEGORIES_DICT.get(subcategory, category)
+        op = CosmeticsProcessor(category=category, company_idn=company_idn, orders_list=order_list)
 
     else:
         flash(message=settings.Messages.CATEGORY_UNKNOWN_ERROR, category='error')
@@ -894,6 +1036,10 @@ def orders_common_preload(category: str, company_idn: str, orders_list: list) ->
         res_list_raw = p_proc.orders_list
         # res_list = list(map(lambda x: x[:9] + x[12:15] + x[17:], res_list_raw))
         res_list = list(map(lambda x: x[1:8] + x[12:15] + x[17:], res_list_raw))
+    elif category == settings.Cosmetics.CATEGORY:
+        c_proc = CosmeticsProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
+        start_list = c_proc.get_preload_start()
+        res_list = c_proc.prepare_preload_rows()
 
     page, per_page, offset, pagination, order_list = helper_paginate_data(data=res_list,
                                                                           per_page=settings.PAGINATION_PER_PAGE_PRELOAD)
@@ -930,6 +1076,10 @@ def crm_orders_common_preload(category: str, company_idn: str, orders_list: list
         p_proc = ParfumProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
         res_list_raw = p_proc.orders_list
         res_list = list(map(lambda x: x[1:8] + x[12:15] + x[17:], res_list_raw))
+    elif category == settings.Cosmetics.CATEGORY:
+        c_proc = CosmeticsProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
+        start_list = c_proc.get_preload_start()
+        res_list = c_proc.prepare_preload_rows()
 
     page, per_page, offset, pagination, order_list = helper_paginate_data(data=res_list,
                                                                           per_page=settings.PAGINATION_PER_PAGE_PRELOAD,

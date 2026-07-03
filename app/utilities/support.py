@@ -33,6 +33,7 @@ from models import (
     Socks,
     Linen,
     Parfum,
+    Cosmetics,
     Price,
     Promo,
     ServerParam,
@@ -94,6 +95,10 @@ def order_count(category: str, order_list) -> tuple:
     match category:
         case settings.Parfum.CATEGORY:
             quantity_list_raw = [el.box_quantity if el.with_packages == 'да' else el.quantity for el in order_list]
+            rd_exist = True if [el.rd_type for el in order_list if el.rd_type] else False
+            return rd_exist, quantity_list_raw, len(quantity_list_raw), sum(quantity_list_raw)
+        case settings.Cosmetics.CATEGORY:
+            quantity_list_raw = [el.quantity for el in order_list]
             rd_exist = True if [el.rd_type for el in order_list if el.rd_type] else False
             return rd_exist, quantity_list_raw, len(quantity_list_raw), sum(quantity_list_raw)
 
@@ -162,7 +167,7 @@ def parfum_orders(user: User, stage: int = settings.OrderStage.CREATING, o_id: i
 
 # for not processed orders
 def orders_list_common(category: str, user: User, new: bool = False, o_id: int = None,
-                       stage: int = settings.OrderStage.CREATING) -> Optional[Olc]:
+                       stage: int = settings.OrderStage.CREATING, subcategory: str = '') -> Optional[Olc]:
     if new is True:
         return OLC_NONE
 
@@ -170,6 +175,10 @@ def orders_list_common(category: str, user: User, new: bool = False, o_id: int =
 
     if not orders:
         return OLC_NONE
+    if category == settings.Cosmetics.CATEGORY and subcategory:
+        orders = [el for el in orders if el.subcategory == subcategory]
+        if not orders:
+            return OLC_NONE
     company_idn = order.company_idn
     company_type = order.company_type
     company_name = order.company_name
@@ -180,11 +189,11 @@ def orders_list_common(category: str, user: User, new: bool = False, o_id: int =
     # prepare vars for our template
     price_exist = True if orders[0].article_price != 0 else False
     trademark = orders[0].trademark
-    subcategory = orders[0].subcategory if category == settings.Clothes.CATEGORY else ''
+    subcategory = orders[0].subcategory if category in (settings.Clothes.CATEGORY, settings.Cosmetics.CATEGORY) else ''
 
     rd_exist, quantity_list_raw, pos_count, orders_pos_count = order_count(category, order_list=orders)
     if price_exist:
-        if category == settings.Parfum.CATEGORY:
+        if category in (settings.Parfum.CATEGORY, settings.Cosmetics.CATEGORY):
             price_list = [el.article_price * el.quantity for el in orders]
         else:
             price_list = [item[0] * item[1] * item[2] for sublist in quantity_list_raw for item in sublist]
@@ -215,6 +224,9 @@ def check_order_pos(category: str, order: Order) -> Optional[int]:
         case settings.Parfum.CATEGORY:
             rd_exist, quantity_list_raw, pos_count, order_pos_count = order_count(category=settings.Parfum.CATEGORY,
                                                                                   order_list=order.parfum)
+        case settings.Cosmetics.CATEGORY:
+            rd_exist, quantity_list_raw, pos_count, order_pos_count = order_count(category=settings.Cosmetics.CATEGORY,
+                                                                                  order_list=order.cosmetics)
         case _:
             pos_count = settings.ORDER_LIMIT_ARTICLES
 
@@ -238,7 +250,7 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
     #         ValidatorProcessor.socks_pre_validate_tnved(tnved_str=form_data_raw.get('tnved_code'))
     subcategory = request.args.get('subcategory', '')
     if not Category.check_subcategory(category=category, subcategory=subcategory):
-        return jsonify(dict(status='error', message=settings.Messages.STRANGE_REQUESTS + 'у одежды нет такой подкатегории'))
+        return jsonify(dict(status='error', message=settings.Messages.STRANGE_REQUESTS + 'нет такой подкатегории'))
 
     # optimise it
     color = form_data_raw.get('color')
@@ -263,6 +275,17 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
 
         else:
             flash(message=settings.Messages.TNVED_ABSENCE_ERROR, category='error')
+            return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=o_id, subcategory=subcategory))
+
+    if category == settings.Cosmetics.CATEGORY:
+        cosmetics_payload_error = ValidatorProcessor.validate_cosmetics_subcategory_payload(
+            subcategory=subcategory,
+            form_data=form_data_raw,
+        )
+        if cosmetics_payload_error:
+            if o_id and not p_id:
+                return jsonify(dict(status='error', message=cosmetics_payload_error))
+            flash(message=cosmetics_payload_error, category='error')
             return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=o_id, subcategory=subcategory))
 
     order_id, sort_type, sort_order = preprocess_order_common(user=current_user, form_data_raw=form_data_raw,
@@ -707,7 +730,8 @@ def helper_preload_common(o_id: int, stage: int, category: str, category_process
 
     if not orders:
         flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
-        return redirect(url_for(f'{category_process_name}.index'))
+        redirect_kwargs = {'subcategory': subcategory} if category == settings.Cosmetics.CATEGORY and subcategory else {}
+        return redirect(url_for(f'{category_process_name}.index', **redirect_kwargs))
 
     from utilities.download import orders_common_preload
     start_list, page, per_page, offset, pagination, order_list = orders_common_preload(category=category,
@@ -901,6 +925,8 @@ def common_process_delete_order(o_id: int, stage: int,) -> Optional[str]:
         subcategory = ''
         if order.category == settings.Clothes.CATEGORY:
             subcategory = get_subcategory(order_id=o_id, category=settings.Clothes.CATEGORY)
+        elif order.category == settings.Cosmetics.CATEGORY:
+            subcategory = get_subcategory(order_id=o_id, category=settings.Cosmetics.CATEGORY)
 
         try:
 
@@ -1145,6 +1171,9 @@ def get_category_orders(user: User, category: str, o_id: int, stage: int) -> tup
         case settings.Parfum.CATEGORY:
             sort_model = helper_get_sort_model(category=category)
             order_list = Parfum.query.filter_by(order_id=o_id).order_by(sort_model).all()
+        case settings.Cosmetics.CATEGORY:
+            sort_model = helper_get_sort_model(category=category)
+            order_list = Cosmetics.query.filter_by(order_id=o_id).order_by(sort_model).all()
         case _:
             order, order_list = None, None
     return order, order_list
@@ -1161,7 +1190,8 @@ def helper_get_sort_model(category: str) -> db.Model:
     models_default: dict = {"обувь": Shoe.id,
                             "одежда": Clothes.id,
                             "белье": Linen.id,
-                            "парфюм": Parfum.id, }
+                            "парфюм": Parfum.id,
+                            "косметика": Cosmetics.id, }
     sort_model = sort_dict.get(sort_type_request, models_default.get(category)) if sort_order_request else desc(
         sort_dict.get(sort_type_request, models_default.get(category)))
 
@@ -1384,6 +1414,8 @@ def get_category_p_orders(user: User, category: str, processed: bool, subcategor
     match category:
         case settings.Clothes.CATEGORY:
             return h_helper_get_clothes_p_orders(user=user, processed=processed, subcategory=subcategory)
+        case settings.Cosmetics.CATEGORY:
+            return helper_get_p_order(user=user, category=category, processed=processed, subcategory=subcategory)
         case _:
             return helper_get_p_order(user=user, category=category, processed=processed)
 
@@ -1405,7 +1437,9 @@ def helper_category_archive_orders(all_orders: list) -> tuple:
 
     parfum_orders = list(filter(lambda x: x.category == settings.Parfum.CATEGORY and x.processed == True, all_orders))
 
-    return shoe_orders, clothes_orders, linen_orders, parfum_orders
+    cosmetics_orders = list(filter(lambda x: x.category == settings.Cosmetics.CATEGORY and x.processed == True, all_orders))
+
+    return shoe_orders, clothes_orders, linen_orders, parfum_orders, cosmetics_orders
 
 
 def helper_category_archive_orders_crm(all_orders: list) -> tuple:
@@ -1423,7 +1457,10 @@ def helper_category_archive_orders_crm(all_orders: list) -> tuple:
     parfum_co = list(
         filter(lambda x: x.category == settings.Parfum.CATEGORY and
                          (settings.OrderStage.CREATING < x.stage < settings.OrderStage.TELEGRAM_PROCESSED), all_orders))
-    return shoe_co, clothes_co, linen_co, parfum_co
+    cosmetics_co = list(
+        filter(lambda x: x.category == settings.Cosmetics.CATEGORY and
+                         (settings.OrderStage.CREATING < x.stage < settings.OrderStage.TELEGRAM_PROCESSED), all_orders))
+    return shoe_co, clothes_co, linen_co, parfum_co, cosmetics_co
 
 
 def helper_get_cat_models_sort_dict(category: str) -> Optional[dict]:
@@ -1448,6 +1485,10 @@ def helper_get_cat_models_sort_dict(category: str) -> Optional[dict]:
         case settings.Socks.CATEGORY:
             cat_models_dict: dict = {"id": Socks.id,
                                      "trademark": Socks.trademark,
+                                     }
+        case settings.Cosmetics.CATEGORY:
+            cat_models_dict: dict = {"id": Cosmetics.id,
+                                     "trademark": Cosmetics.trademark,
                                      }
     return cat_models_dict
 
