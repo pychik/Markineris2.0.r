@@ -32,7 +32,7 @@
                       stroke-linecap="round"/>
             </svg>
 
-            <span class="ms-2">Быстрый заказ<br><span style="font-size: 10px" class="badge bg-success rounded-1 p-1">Новинка</span></span>
+            <span class="ms-2">Быстрый заказ&nbsp;<span style="font-size: 10px" class="badge bg-success rounded-1 p-1">New</span></span>
             <svg class="ms-auto nav-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"
                  xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path d="M4.5 6l3.5 4 3.5-4" stroke="white" stroke-width="1.8"
@@ -74,10 +74,10 @@
         </a>
     </li>
     <li class="nav-item nav-item--sub ps-5 {% if 'cosmetics' in request.path %}active{% endif %}">
-        <a href="{{ url_for('cosmetics.index') }}" class="nav-link text-light" aria-current="page">
-            Косметика
-        </a>
-    </li>
+                <a href="{{ url_for('cosmetics.index') }}" class="nav-link text-light" aria-current="page">
+                    Косметика <span class="badge bg-success rounded-1 p-1">New</span>
+                </a>
+            </li>
     <li class="nav-item dropdown ps-5">
         <a class="nav-link dropdown-toggle text-light {% if subcategory in ['underwear', 'swimming_accessories', 'hats', 'gloves', 'shawls']  %}active{%endif%}"
            href="#" id="accessoriesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
