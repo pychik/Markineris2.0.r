@@ -20,7 +20,7 @@
     <link rel="stylesheet" href="{{url_for('static', filename='index_v2/css/materialdesignicons.min.css')}}" type="text/css" />
 
     <!-- css -->
-    <link rel="stylesheet" href="{{url_for('static', filename='index_v2/css/style.css')}}?v=6" type="text/css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='index_v2/css/style.css', v='6') }}" type="text/css" />
     <link rel="stylesheet" href="{{url_for('static',filename='main_v2/css/update_1.css')}}  ">
 
 
@@ -800,7 +800,7 @@
     <script src="{{url_for('static',filename='main_v2/js/new_messages.js')}}"></script>
 
     <!-- App Js -->
-    <script src="{{url_for('static', filename='index_v2/js/app.js')}}?v=1"></script>
+    <script src="{{ url_for('static', filename='index_v2/js/app.js', v='1') }}"></script>
 
     <script>
          const message_icon_error = `{{url_for('static',filename='main_v2/img/icons/error.svg')}}`;

@@ -59,6 +59,6 @@
         } %}
         <div class="order__img order__img--lilac" data-bs-toggle="tooltip" style="user-select: none;"
                         data-bs-placement="top" data-bs-title="{{ subcategories_dict.get(n.subcategory, n.category) }}">
-            <img src="{{ url_for('static', filename=cosmetics_icon_map.get(n.subcategory, 'crm_mod/img/icons/cosmetics_decor_ukhod.svg')) }}?v=20260630-toilet-paper-outline" alt="" class="img-fluid" style="width: 59%; height: 59%;">
+            <img src="{{ url_for('static', filename=cosmetics_icon_map.get(n.subcategory, 'crm_mod/img/icons/cosmetics_decor_ukhod.svg'), v='20260630-toilet-paper-outline') }}" alt="" class="img-fluid" style="width: 59%; height: 59%;">
         </div>
     {% endif %}

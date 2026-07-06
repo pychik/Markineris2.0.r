@@ -20,8 +20,8 @@
     <link rel="stylesheet" href="{{url_for('static', filename='index_v3/css/materialdesignicons.min.css')}}" type="text/css" />
 
     <!-- css -->
-    <link rel="stylesheet" href="{{url_for('static', filename='index_v3/css/style.css')}}?v=12" type="text/css" />
-    <link rel="stylesheet" href="{{url_for('static', filename='index_v3/css/style20240605.css')}}?v=1" type="text/css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='index_v3/css/style.css', v='12') }}" type="text/css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='index_v3/css/style20240605.css', v='1') }}" type="text/css" />
     <link rel="stylesheet" href="{{url_for('static',filename='index_v3/css/reviews.css')}}" type="text/css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <link rel="stylesheet" href="{{url_for('static',filename='main_v2/css/update_v2.css')}}  ">
@@ -66,7 +66,7 @@
          const message_icon_success = `{{url_for('static',filename='main_v2/img/icons/success.svg')}}`;
     </script>
     <!-- App Js -->
-    <script src="{{url_for('static', filename='index_v3/js/app.js')}}?v=6"></script>
+    <script src="{{ url_for('static', filename='index_v3/js/app.js', v='6') }}"></script>
     <script src="{{url_for('static',filename='main_v2/js/new_messages.js')}}"></script>
 
     <script src="//code.jivo.ru/widget/bdahTCJAyN" async></script>

@@ -1,7 +1,7 @@
 {% extends 'main/base_v2.html' %}
 
 {% block main %}
-<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/categories/cosmetics.css') }}?v=2">
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/categories/cosmetics.css', v='2') }}">
 
 <div class="container pb-4">
     <div class="front text-center">
@@ -31,7 +31,7 @@
             <div class="category-item cosmetics-category-disabled text-center h-100" aria-disabled="true">
                 <span class="btn btn-accent border-0 text-dark cosmetics-category-disabled__badge">{{ subcategory_item.badge }}</span>
                 <div class="d-flex justify-content-center align-items-center">
-                    <img src="{{ url_for('static', filename=subcategory_item.icon) }}?v=20260623-cosmetics-teasers-2" width="92" height="92" alt="" aria-hidden="true">
+                    <img src="{{ url_for('static', filename=subcategory_item.icon, v='20260623-cosmetics-teasers-2') }}" width="92" height="92" alt="" aria-hidden="true">
                 </div>
                 <div class="category-item__name text-center">
                     {{ subcategory_item.title }}
@@ -40,7 +40,7 @@
             {% else %}
             <a href="{{ url_for('cosmetics.index', subcategory=subcategory_item.slug) }}" class="category-item text-center h-100">
                 <div class="d-flex justify-content-center align-items-center">
-                    <img src="{{ url_for('static', filename=subcategory_item.icon) }}?v=20260623-cosmetics-teasers-2" width="92" height="92" alt="" aria-hidden="true">
+                    <img src="{{ url_for('static', filename=subcategory_item.icon, v='20260623-cosmetics-teasers-2') }}" width="92" height="92" alt="" aria-hidden="true">
                 </div>
                 <div class="category-item__name text-center">
                     {{ subcategory_item.title }}
@@ -55,5 +55,5 @@
 <script>
     window.COSMETICS_SEARCH_INDEX = {{ cosmetics_search_index | tojson | safe }};
 </script>
-<script src="{{ url_for('static', filename='main_v2/js/categories/cosmetics.js') }}?v=13"></script>
+<script src="{{ url_for('static', filename='main_v2/js/categories/cosmetics.js', v='13') }}"></script>
 {% endblock %}
