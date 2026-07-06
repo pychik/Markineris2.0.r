@@ -7,6 +7,7 @@ from settings.start import app
 worker = Worker(
     queues=[
         settings.RQ_DEFAULT_QUEUE_NAME,
+        settings.RD_CHECK_QUEUE_NAME,
         settings.RQ_SCHEDULER_QUEUE_NAME,
         settings.RQ_DYNSCHEDULER_QUEUE_NAME,
         settings.NOTIFICATION_QUEUE_NAME,
