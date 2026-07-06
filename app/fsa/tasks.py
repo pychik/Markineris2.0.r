@@ -15,9 +15,9 @@ def check_rd_task(request_id: str, doc_type: str, number: str) -> None:
 
     try:
         result = check_rd(doc_type=doc_type, number=number)
-    except Exception as exc:
+    except Exception:
         logger.exception("Неожиданная ошибка при проверке РД {} ({})", number, doc_type)
-        job_store.mark_error(request_id, str(exc))
+        job_store.mark_error(request_id, "Внутренняя ошибка при проверке РД. Обратитесь к разработчику.")
         return
 
     job_store.mark_done(request_id, result)

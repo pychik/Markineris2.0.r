@@ -7,6 +7,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from config import settings
+from logger import logger
 from redis_queue.redis_instance import get_redis_client
 
 from .circuit_breaker import RedisCircuitBreaker
@@ -55,19 +56,24 @@ class BaseFsaClient:
         self.session = _build_session()
 
     def _login(self) -> str:
-        response = self.session.post(
-            f"{self.base_url}/login",
-            json={
-                "username": settings.FSA_LOGIN_USERNAME,
-                "password": settings.FSA_LOGIN_PASSWORD,
-            },
-            timeout=self.timeout,
-        )
-        response.raise_for_status()
+        try:
+            response = self.session.post(
+                f"{self.base_url}/login",
+                json={
+                    "username": settings.FSA_LOGIN_USERNAME,
+                    "password": settings.FSA_LOGIN_PASSWORD,
+                },
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+        except requests.RequestException as exc:
+            logger.error("Ошибка авторизации в ФСА (/login): {}", exc)
+            raise FsaApiError("Не удалось авторизоваться в ФСА. Попробуйте ещё раз позже.") from exc
 
         token = response.headers.get("Authorization")
         if not token:
-            raise FsaApiError("Authorization header not found in /login response")
+            logger.error("В ответе /login от ФСА отсутствует заголовок Authorization")
+            raise FsaApiError("Не удалось авторизоваться в ФСА. Попробуйте ещё раз позже.")
 
         return token
 
@@ -82,18 +88,28 @@ class BaseFsaClient:
             "orgId": "",
         }
 
+    def _send(self, method: str, path: str, **kwargs: Any) -> requests.Response:
+        return self.session.request(
+            method,
+            f"{self.base_url}{path}",
+            headers=self._headers(),
+            timeout=self.timeout,
+            **kwargs,
+        )
+
     def _request(self, method: str, path: str, **kwargs: Any) -> requests.Response:
         self.circuit_breaker.before_call()
         self.rate_limiter.acquire()
 
         try:
-            response = self.session.request(
-                method,
-                f"{self.base_url}{path}",
-                headers=self._headers(),
-                timeout=self.timeout,
-                **kwargs,
-            )
+            response = self._send(method, path, **kwargs)
+
+            if response.status_code in (401, 403):
+                # закешированный токен мог протухнуть или быть выпущен для другой сессии -
+                # обновляем его и пробуем один раз ещё, прежде чем считать это реальным сбоем
+                self.token_store.invalidate()
+                self.rate_limiter.acquire()
+                response = self._send(method, path, **kwargs)
 
             if response.status_code == 429:
                 self.circuit_breaker.on_failure()
@@ -102,7 +118,8 @@ class BaseFsaClient:
             response.raise_for_status()
         except requests.RequestException as exc:
             self.circuit_breaker.on_failure()
-            raise FsaApiError(f"Ошибка запроса к ФСА {path}: {exc}") from exc
+            logger.error("Ошибка запроса к ФСА ({} {}): {}", method, path, exc)
+            raise FsaApiError("Не удалось получить ответ от реестра ФСА. Попробуйте ещё раз позже.") from exc
         except FsaApiError:
             raise
         else:
@@ -158,7 +175,7 @@ class FsaCertificateClient(BaseFsaClient):
                 "idCertScheme": [],
                 "regDate": {"startDate": None, "endDate": None},
                 "endDate": {"startDate": None, "endDate": None},
-                "columnsSearch": [{"name": "number", "search": number, "type": 0}],
+                "columnsSearch": [{"column": "number", "search": number}],
             },
             "columnsSort": [{"column": "date", "sort": "DESC"}],
         }

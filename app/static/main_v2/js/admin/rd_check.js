@@ -15,6 +15,11 @@ const RD_CHECK_HEALTH_LABELS = {
     open: {text: 'недоступна', color: 'danger'}
 };
 
+const RD_CHECK_STATUS_LABELS = {
+    queued: 'в очереди',
+    processing: 'выполняется'
+};
+
 const RD_CHECK_GATE_POLL_MS = 300;
 
 function rdCheckBadgeHtml(text, color) {
@@ -129,7 +134,8 @@ function rdCheckPollStatus(statusUrl, startedAt, submitBtn) {
                     rdCheckRenderMessage(resultBlock, 'Превышено время ожидания ответа. Попробуйте ещё раз позже.', 'warning');
                     return;
                 }
-                rdCheckRenderPending(resultBlock, 'Проверка выполняется (' + data.status + ')...');
+                var statusLabel = RD_CHECK_STATUS_LABELS[data.status] || data.status;
+                rdCheckRenderPending(resultBlock, 'Проверка ' + statusLabel + '...');
                 setTimeout(function () {
                     rdCheckPollStatus(statusUrl, startedAt, submitBtn);
                 }, RD_CHECK_POLL_INTERVAL_MS);
