@@ -1,4 +1,6 @@
-# Правило: 3+ ошибки ERROR/CRITICAL в логах Flask за 5 минут
+# Правило: 3+ ошибок ERROR/CRITICAL в логах Flask за 5 минут
+# Исключаем известный шум: Telegram API, mailer, tezaurus — внешние зависимости,
+# которые самовосстанавливаются и не требуют ручного вмешательства.
 name: "Flask ERROR/CRITICAL logs"
 type: frequency
 
@@ -7,25 +9,32 @@ num_events: 3
 timeframe:
   minutes: 5
 
-# Смотрим только на ERROR и CRITICAL из loguru
 filter:
   - query:
       bool:
         should:
+          # Структурированное поле после logstash grok
+          - terms:
+              log.level: ["ERROR", "CRITICAL"]
+          # Fallback: сырое поле message (traceback-строки, старые записи без grok)
           - match_phrase:
-              message: "ERROR"
+              message: "| [ERROR] |"
           - match_phrase:
-              message: "CRITICAL"
+              message: "| [CRITICAL] |"
+        minimum_should_match: 1
+        must_not:
           - match_phrase:
-              message: "| ERROR |"
+              log.logger: "utilities.telegram"
           - match_phrase:
-              message: "| CRITICAL |"
+              message: "telebot"
+          - match_phrase:
+              log.logger: "utilities.mailer"
+          - match_phrase:
+              log.logger: "tezaurus"
 
-# Не слать один и тот же алерт чаще раза в 10 минут
 realert:
-  minutes: 10
+  minutes: 30
 
-# Telegram
 alert: telegram
 telegram_bot_token: "${HEALTHCHECK_BOT}"
 telegram_room_id: "${TELEGRAM_ALERTS_GROUP_ID}"
@@ -35,7 +44,7 @@ alert_text: |
 
   За последние 5 минут зафиксировано 3+ ошибок ERROR/CRITICAL.
 
-  Проверьте: <code>/var/log/flask-app/error.log</code>
-  или Kibana → Discover → <code>flask-app-*</code>
+  Kibana → Discover → <code>flask-app-*</code>
+  Фильтры: <code>log.level: ERROR</code> или <code>log.level: CRITICAL</code>
 alert_text_type: alert_text_only
 telegram_parse_mode: html

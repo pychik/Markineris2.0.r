@@ -1,41 +1,31 @@
-# Правило: 5+ ответов 5xx от nginx за 5 минут
-name: "Nginx 5xx errors"
+# Правило: 3+ HTTP 500 (Internal Server Error) от nginx за 5 минут
+# Только статус 500 — реальные баги приложения.
+# 502/503 (gunicorn worker restart, gateway недоступен) — отдельное правило nginx_gateway_errors.yaml
+name: "Nginx 500 Internal Server Errors"
 type: frequency
 
 index: nginx-*
-num_events: 5
+num_events: 3
 timeframe:
   minutes: 5
 
-# Фильтр по статус-коду >= 500
-# Nginx пишет лог в формате: '... "GET /path HTTP/1.1" 500 ...'
-# Logstash кладёт сырую строку в поле message
 filter:
-  - query:
-      bool:
-        should:
-          - match_phrase:
-              message: '" 500 '
-          - match_phrase:
-              message: '" 502 '
-          - match_phrase:
-              message: '" 503 '
-          - match_phrase:
-              message: '" 504 '
+  - term:
+      http.response.status_code: 500
 
 realert:
-  minutes: 10
+  minutes: 30
 
 alert: telegram
 telegram_bot_token: "${HEALTHCHECK_BOT}"
 telegram_room_id: "${TELEGRAM_ALERTS_GROUP_ID}"
 
 alert_text: |
-  🟠 <b>Nginx 5xx Spike — Marka Service</b>
+  🔴 <b>Nginx 500 Errors — Marka Service</b>
 
-  За последние 5 минут зафиксировано 5+ ответов 5xx.
+  За последние 5 минут зафиксировано 3+ ответов HTTP 500 (Internal Server Error).
+  Это ошибки приложения — требуют проверки кода.
 
-  Проверьте: <code>/var/log/nginx/error.log</code>
-  или Kibana → Discover → <code>nginx-*</code>
+  Kibana → Discover → <code>flask-app-*</code>, фильтр: <code>log.level: ERROR</code>
 alert_text_type: alert_text_only
 telegram_parse_mode: html
