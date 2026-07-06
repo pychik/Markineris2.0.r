@@ -166,6 +166,14 @@ make service-down
 make flask-local-run
 ```
 
+## Cache Bust для static
+
+- Версия для `url_for('static', ...)` задается один раз на старте Flask-контейнера в `app.config['STATIC_VERSION']`.
+- Далее `@app.url_defaults` автоматически добавляет `?v=<STATIC_VERSION>` ко всем static URL, если `v` не передан вручную.
+- На проде это не зависит от локальной папки `static` внутри `flask_app`, поэтому схема работает вместе с MinIO.
+- После нового деплоя или рестарта `flask_app` значение `STATIC_VERSION` меняется, и браузер запрашивает новую статику.
+- Ручные `?v=...` в шаблонах добавлять не нужно.
+
 ## Порты
 ```
 9181 - rq-dashboard
@@ -179,5 +187,4 @@ make flask-local-run
 - [Kibana](https://0.0.0.0:5601)
 - [Web интерфейс для мониторинга фоновых задач](http://0.0.0.0:9181)
 - [Web интерфейс minio s3 хранилища](http://0.0.0.0:9001)
-
 

@@ -1,4 +1,5 @@
 from datetime import timedelta
+import time
 
 import urllib3
 from flask import Flask
@@ -30,6 +31,7 @@ def create_app() -> tuple[Flask, SQLAlchemy]:
     app.config['SESSION_COOKIE_NAME'] = settings.SESSION_COOKIE_NAME
     app.config['REMEMBER_COOKIE_NAME'] = settings.REMEMBER_COOKIE_NAME
     app.config['SECRET_KEY'] = settings.SECRET_KEY
+    app.config['STATIC_VERSION'] = str(int(time.time()))
     app.config['MAINTENANCE_MODE'] = False
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=5)
     app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=7)
