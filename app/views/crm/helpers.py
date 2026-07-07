@@ -504,9 +504,11 @@ def helper_m_order_processed(user: User, o_id: int, manager_id: int, f_manager_i
 
 
 # push to problem-solved stage
-def helper_m_order_ps(user: User, o_id: int, manager_id: int) -> Response:
+def helper_m_order_ps(user: User, o_id: int, manager_id: int, allowed_roles: list = None,
+                      rendered_group: str = None) -> Response:
     status = settings.ERROR
     message = ''
+    allowed_roles = allowed_roles or [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]
 
     stage = request.form.get("stage", -1, int)
     category = request.form.get("category", 'all')
@@ -554,7 +556,7 @@ def helper_m_order_ps(user: User, o_id: int, manager_id: int) -> Response:
     # if not order_info.processing_info:
     #     message = settings.Messages.ORDER_MANAGER_PROCESSED_ABS_PROCESSING_INFO
     #     return jsonify({'htmlresponse': None, 'status': status, 'message': message})
-    if user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MARKINERIS_ADMIN_USER]:
+    if user.role not in allowed_roles:
         message = settings.Messages.STRANGE_REQUESTS
         return jsonify({'htmlresponse': None, 'status': status, 'message': message})
 
@@ -582,7 +584,9 @@ def helper_m_order_ps(user: User, o_id: int, manager_id: int) -> Response:
     status = settings.SUCCESS
     update_orders = helper_get_manager_orders(user=user, filtered_manager_id=filtered_manager_id,
                                               category=category, stage=stage)
-    rendered_group = 'crma' if current_user.role not in [settings.SUPER_MANAGER, settings.MANAGER_USER] else 'crmm'
+    rendered_group = rendered_group or (
+        'crma' if current_user.role not in [settings.SUPER_MANAGER, settings.MANAGER_USER] else 'crmm'
+    )
     return jsonify({'htmlresponse': render_template(
         'crm_mod_v1/{rendered_group}/updated_stages/orders_{stage}.html'.format(rendered_group=rendered_group,
                                                                                 stage=stage), **locals()),
