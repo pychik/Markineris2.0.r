@@ -22,10 +22,10 @@ _RETRY_STATUSES = (500, 502, 503, 504)
 def _build_session() -> requests.Session:
     session = requests.Session()
     retry = Retry(
-        total=3,
-        connect=3,
-        read=3,
-        status=3,
+        total=2,
+        connect=0,
+        read=1,
+        status=1,
         backoff_factor=1,
         status_forcelist=_RETRY_STATUSES,
         allowed_methods=frozenset(["GET", "POST"]),
@@ -33,6 +33,10 @@ def _build_session() -> requests.Session:
     adapter = HTTPAdapter(max_retries=retry)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
+
+    if settings.FSA_HTTPS_PROXY:
+        session.proxies = {"https": settings.FSA_HTTPS_PROXY, "http": settings.FSA_HTTPS_PROXY}
+
     return session
 
 
@@ -49,7 +53,7 @@ class BaseFsaClient:
         token_store: FsaTokenStore,
     ) -> None:
         self.base_url = settings.FSA_BASE_URL.rstrip("/")
-        self.timeout = settings.FSA_TIMEOUT
+        self.timeout = (settings.FSA_CONNECT_TIMEOUT, settings.FSA_TIMEOUT)
         self.rate_limiter = rate_limiter
         self.circuit_breaker = circuit_breaker
         self.token_store = token_store
@@ -235,7 +239,7 @@ def _get_shared_circuit_breaker() -> RedisCircuitBreaker:
             failure_threshold=settings.FSA_CB_FAILURE_THRESHOLD,
             open_seconds=settings.FSA_CB_OPEN_SECONDS,
             max_open_seconds=settings.FSA_CB_MAX_OPEN_SECONDS,
-            trial_ttl_seconds=settings.FSA_TIMEOUT + 5,
+            trial_ttl_seconds=settings.FSA_CONNECT_TIMEOUT + settings.FSA_TIMEOUT + 5,
         )
     return _shared_circuit_breaker
 

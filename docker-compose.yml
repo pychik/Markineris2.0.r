@@ -122,6 +122,24 @@ services:
     networks:
       - markineris_r_network
 
+  proxy:
+    image: qmcgaw/gluetun
+    container_name: proxy
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - VPN_SERVICE_PROVIDER=custom
+      - VPN_TYPE=openvpn
+      - OPENVPN_CUSTOM_CONFIG=/gluetun/fsa.ovpn
+      - HTTPPROXY=on
+    volumes:
+      - ./proxy/fsa.ovpn:/gluetun/fsa.ovpn:ro
+    restart: always
+    networks:
+      - markineris_r_network
+
 volumes:
   static_volume:
   postgres_volume:

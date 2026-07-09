@@ -1,6 +1,6 @@
 const RD_CHECK_POLL_INTERVAL_MS = 1500;
-const RD_CHECK_POLL_TIMEOUT_MS = 60000;
-const RD_CHECK_HEALTH_INTERVAL_MS = 5000;
+const RD_CHECK_POLL_TIMEOUT_MS = 90000;
+const RD_CHECK_HEALTH_INTERVAL_MS = 15000;
 
 const RD_CHECK_VERDICT_LABELS = {
     active: {text: 'РД действителен', color: 'success'},

@@ -8,7 +8,7 @@ from .job_store import RdCheckJobStore
 from .service import check_rd
 
 
-@job(queue=settings.RD_CHECK_QUEUE_NAME, connection=conn, timeout=60, result_ttl=settings.FSA_JOB_RESULT_TTL)
+@job(queue=settings.RD_CHECK_QUEUE_NAME, connection=conn, timeout=90, result_ttl=settings.FSA_JOB_RESULT_TTL)
 def check_rd_task(request_id: str, doc_type: str, number: str) -> None:
     job_store = RdCheckJobStore()
     job_store.mark_processing(request_id)
