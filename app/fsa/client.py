@@ -19,6 +19,27 @@ from .token_store import FsaTokenStore
 _RETRY_STATUSES = (500, 502, 503, 504)
 
 
+def _extract_tnved_ids(card: dict[str, Any]) -> list[int]:
+    """Собирает внутренние id ТНВЭД из карточки РД (product.identifications[].idTnveds).
+
+    Сами по себе они ничего не значат - это ссылки на справочник, которые нужно
+    разрешить через /nsi/api/multi, чтобы получить настоящий 10-значный код.
+    """
+    ids: set[int] = set()
+    identifications = (card.get("product") or {}).get("identifications") or []
+    for identification in identifications:
+        for tnved_id in identification.get("idTnveds") or []:
+            ids.add(tnved_id)
+    return list(ids)
+
+
+def _extract_product_origin_oksm(card: dict[str, Any]) -> str | None:
+    """Код ОКСМ страны происхождения товара (product.idProductOrigin), тоже нужно
+    резолвить через /nsi/api/multi, чтобы получить название страны."""
+    origin = (card.get("product") or {}).get("idProductOrigin")
+    return str(origin) if origin else None
+
+
 def _build_session() -> requests.Session:
     session = requests.Session()
     retry = Retry(
@@ -101,6 +122,34 @@ class BaseFsaClient:
             **kwargs,
         )
 
+    def _resolve_references(self, *, tnved_ids: list[int], oksm_codes: list[str]) -> dict[str, Any]:
+        """Резолвит внутренние id ТНВЭД и коды ОКСМ страны в настоящие коды/названия одним
+        запросом к общему для деклараций и сертификатов справочнику /nsi/api/multi.
+
+        Страна возвращается как "shortName" (например "КИТАЙ") - это тот же формат, в котором
+        хранятся названия стран в справочнике countries этого приложения (см. get_all_countries),
+        так что сравнивать можно строка-в-строку, без отдельной таблицы ОКСМ-кодов.
+        """
+        items: dict[str, Any] = {}
+        if tnved_ids:
+            items["tnved"] = [{"id": tnved_ids, "fields": ["id", "code"]}]
+        if oksm_codes:
+            items["oksm"] = [{"id": oksm_codes, "fields": ["id", "shortName"]}]
+
+        if not items:
+            return {"tnved_codes": [], "country": None}
+
+        response = self._request("POST", "/nsi/api/multi", json={"items": items})
+        body = response.json()
+
+        tnved_entries = body.get("tnved") or []
+        oksm_entries = body.get("oksm") or []
+
+        return {
+            "tnved_codes": [entry["code"] for entry in tnved_entries if entry.get("code")],
+            "country": oksm_entries[0]["shortName"] if oksm_entries and oksm_entries[0].get("shortName") else None,
+        }
+
     def _request(self, method: str, path: str, **kwargs: Any) -> requests.Response:
         self.circuit_breaker.before_call()
         self.rate_limiter.acquire()
@@ -157,6 +206,10 @@ class FsaDeclarationClient(BaseFsaClient):
             return {"exists": False, "number": number}
 
         card = self.get_card(decl["id"])
+        refs = self._resolve_references(
+            tnved_ids=_extract_tnved_ids(card),
+            oksm_codes=[code] if (code := _extract_product_origin_oksm(card)) else [],
+        )
 
         return {
             "exists": True,
@@ -167,6 +220,8 @@ class FsaDeclarationClient(BaseFsaClient):
             "product": card["product"]["fullName"],
             "reg_date": card["declRegDate"],
             "end_date": card["declEndDate"],
+            "tnved_codes": refs["tnved_codes"],
+            "country": refs["country"],
         }
 
 
@@ -198,6 +253,10 @@ class FsaCertificateClient(BaseFsaClient):
             return {"exists": False, "number": number}
 
         card = self.get_card(cert["id"])
+        refs = self._resolve_references(
+            tnved_ids=_extract_tnved_ids(card),
+            oksm_codes=[code] if (code := _extract_product_origin_oksm(card)) else [],
+        )
 
         return {
             "exists": True,
@@ -208,6 +267,8 @@ class FsaCertificateClient(BaseFsaClient):
             "product": card["product"]["fullName"],
             "reg_date": card["certRegDate"],
             "end_date": card["certEndDate"],
+            "tnved_codes": refs["tnved_codes"],
+            "country": refs["country"],
         }
 
 
