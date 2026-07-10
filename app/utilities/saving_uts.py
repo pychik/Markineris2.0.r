@@ -557,6 +557,15 @@ def get_rows_marks(o_id: int, category: str) -> tuple[int, int]:
                     GROUP BY public.orders.id
                     """).bindparams(category=settings.Parfum.CATEGORY, o_id=o_id))
             row_count, mark_count = res.fetchall()[0]
+        case settings.Cosmetics.CATEGORY:
+            res = db.session.execute(text("""
+                SELECT COUNT(cosmetics.id), COALESCE(SUM(public.cosmetics.quantity), 0)
+                    FROM public.orders
+                        JOIN public.cosmetics ON public.orders.id = public.cosmetics.order_id
+                    WHERE public.orders.category=:category AND public.orders.id=:o_id
+                    GROUP BY public.orders.id
+                    """).bindparams(category=settings.Cosmetics.CATEGORY, o_id=o_id))
+            row_count, mark_count = res.fetchall()[0]
 
         case _:
             row_count, mark_count = 0, 0
@@ -638,6 +647,8 @@ def get_delete_pos_stmts(category: str, m_id: int, o_id: int) -> str:
             stmt = f"DELETE FROM public.linen WHERE public.linen.id={m_id} AND public.linen.order_id={o_id}"
         case settings.Parfum.CATEGORY:
             stmt = f"DELETE FROM public.parfum AS pm WHERE pm.id={m_id} AND pm.order_id={o_id}"
+        case settings.Cosmetics.CATEGORY:
+            stmt = f"DELETE FROM public.cosmetics AS cm WHERE cm.id={m_id} AND cm.order_id={o_id}"
         case _:
             flash(message=settings.Messages.ORDER_DELETE_ERROR)
             raise Exception

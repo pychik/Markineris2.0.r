@@ -140,7 +140,7 @@ class Settings(BaseSettings):
     ADMIN_USER_POSTFIX: str = "@agentsm2r.com"
     MM_PARTNER: str = "IAMMODERATOR"
     SQ_CATEGORIES: list = ['обувь', 'одежда', 'белье', 'косметика', 'носки и прочее']
-    CATEGORIES_PROCESS_NAMES: list = ['shoes', 'clothes', 'linen', 'parfum', 'socks', 'send_table']
+    CATEGORIES_PROCESS_NAMES: list = ['shoes', 'clothes', 'linen', 'parfum', 'cosmetics', 'socks', 'send_table']
     CATEGORIES_UPLOAD: tuple = ('обувь', 'одежда', 'парфюм', 'белье', 'косметика', 'носки и прочее')
     RZ_GENDERS_RD_LIST: tuple = ("Детские", "Мальчик", "Девочка", "Детск.",)
     COMPANY_TYPES: list = ["ИП", "ООО", "АО"]
