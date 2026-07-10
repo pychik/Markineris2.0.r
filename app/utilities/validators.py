@@ -299,7 +299,7 @@ class ValidatorProcessor:
         trademark = normalize_trademark_placeholder(str(form_data.get("trademark") or "").strip())
         full_name_extra = process_input_str(str(form_data.get("full_name_extra") or "").strip())
 
-        if product_type and (not trademark or trademark == "БЕЗ ТОВАРНОГО ЗНАКА") and not full_name_extra:
+        if product_type and (not trademark or trademark.upper() == "БЕЗ ТОВАРНОГО ЗНАКА") and not full_name_extra:
             return "Если выбран вариант 'БЕЗ ТОВАРНОГО ЗНАКА', заполните поле 'Дополнить полное наименование'."
 
         tnved_codes_by_product_type = subcategory_config.get("tnved_codes_by_product_type") or {}

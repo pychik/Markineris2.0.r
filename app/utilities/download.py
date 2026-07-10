@@ -376,9 +376,9 @@ class OrdersProcessor(ProcessorInterface, ABC):
         :return: Преобразованное значение в зависимости от условий.
         """
         match field_type:
-            case "article" if value == "ОТСУТСТВУЕТ":
+            case "article" if value.upper() == "ОТСУТСТВУЕТ":
                 return ""
-            case "trademark" if value == "БЕЗ ТОВАРНОГО ЗНАКА":
+            case "trademark" if value.upper() == "БЕЗ ТОВАРНОГО ЗНАКА":
                 return ""
             case "article":
                 return "арт. " + value
