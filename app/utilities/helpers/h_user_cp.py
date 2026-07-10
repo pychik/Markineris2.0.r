@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from flask import flash, jsonify, render_template, redirect, url_for, request, Response
 from flask_login import current_user
-from sqlalchemy import text, desc
+from sqlalchemy import text, desc, func
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -12,6 +12,7 @@ from config import settings
 from logger import logger
 from models import (
     Clothes,
+    Cosmetics,
     db,
     Order,
     User,
@@ -263,16 +264,20 @@ def h_order_book_detail(u_id: int):
                         "одежда": 'clothes',
                         "белье": 'linen',
                         "парфюм": 'parfum',
+                        settings.Cosmetics.CATEGORY: settings.Cosmetics.CATEGORY_PROCESS,
                         "носки и прочее": 'socks', }
+    cosmetics_category = settings.Cosmetics.CATEGORY
+    subcategories_dict = settings.SUB_CATEGORIES_DICT
     active_orders_raw = (
-        current_user.orders.filter_by(stage=settings.OrderStage.CREATING)
+        current_user.orders.filter_by(stage=settings.OrderStage.CREATING, is_moderation=False)
         .filter(~Order.processed, ~Order.to_delete)
-        .outerjoin(Clothes, (Order.id == Clothes.order_id) & (Order.category == settings.Clothes.CATEGORY))  # Join с Clothes
+        .outerjoin(Clothes, (Order.id == Clothes.order_id) & (Order.category == settings.Clothes.CATEGORY))
+        .outerjoin(Cosmetics, (Order.id == Cosmetics.order_id) & (Order.category == settings.Cosmetics.CATEGORY))
         .with_entities(
             Order.id,
             Order.order_idn,
             Order.category,
-            Clothes.subcategory,  # Добавляем подкатегорию
+            func.coalesce(Clothes.subcategory, Cosmetics.subcategory).label('subcategory'),
             Order.company_type,
             Order.company_name,
             Order.company_idn,
@@ -286,12 +291,11 @@ def h_order_book_detail(u_id: int):
     )
     active_orders = []
     for el in categories.keys():
-        if el == "одежда":  # Особый случай для категории "одежда"
+        if el in ("одежда", settings.Cosmetics.CATEGORY):
             orders_for_category = list(filter(lambda x: x.category == el, active_orders_raw))
-            # Группируем по подкатегориям
             subcategories = {}
             for order in orders_for_category:
-                subcat = order.subcategory or "общий"  # Если подкатегория не указана
+                subcat = order.subcategory or "общий"
                 if subcat not in subcategories:
                     subcategories[subcat] = []
                 subcategories[subcat].append(order)

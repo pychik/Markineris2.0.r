@@ -27,7 +27,7 @@ class ValidateLinenMixin:
     def _trademark(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
         value = normalize_trademark_placeholder(value)
         if not value or value == 'nan' or isna(value) \
-                or len(value) < 1 or value == 'БЕЗ ТОВАРНОГО ЗНАКА':
+                or len(value) < 1 or value.upper() == 'БЕЗ ТОВАРНОГО ЗНАКА':
             order_list[row_num - settings.Linen.UPLOAD_STANDART_ROW][pos] = 'БЕЗ ТОВАРНОГО ЗНАКА'
         return
 

@@ -4,17 +4,19 @@
             <div class="mb-4">
                 <h5 class="mb-3">{{ category_info[0].upper() }}</h5>
                 {% if category_info[1] %}
-                    {% if category_info[0] == "одежда" %}
-                        {# Особый случай для категории "одежда" #}
+                    {% if category_info[0] in ["одежда", cosmetics_category] %}
+                        {# Особый случай для категорий с подкатегориями #}
                         {% for subcategory, sub_orders in category_info[1].items() %}
                             <div class="ms-3 mb-3">
-                                <h6 class="mb-3">[{{ subcategories_dict[subcategory] }}]</h6>  {# Название подкатегории #}
+                                <h6 class="mb-3">[{{ subcategories_dict.get(subcategory, subcategory) }}]</h6>
                                 {% for ao in sub_orders %}
+                                    {% set order_link = url_for(categories[ao.category] + '.index', o_id=ao.id, subcategory=ao.subcategory) if ao.category == cosmetics_category else url_for(categories[ao.category] + '.index', o_id=ao.id) %}
+                                    {% set clean_link = url_for(categories[ao.category] + '.clean_orders', o_id=ao.id, subcategory=ao.subcategory) if ao.category == cosmetics_category else url_for(categories[ao.category] + '.clean_orders', o_id=ao.id) %}
                                     <div class="text-center mb-2 p-1 bg-light rounded shadow-sm">
                                         <div class="row">
                                             <div class="col-md-8 col-xs-12">
                                                 <p class="mb-0">
-                                                    <a href="{{ url_for(categories[ao.category] + '.index', o_id=ao.id) }}" style="text-decoration:none">
+                                                    <a href="{{ order_link }}" style="text-decoration:none">
                                                         {{ loop.index }}. {{ ao.company_type }} {{ ao.company_name }}
                                                         от {{ ao.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
                                                     </a>
@@ -22,7 +24,7 @@
                                             </div>
                                             <div class="col-md-4 col-xs-12">
                                                 <h5 class="mb-0">
-                                                    <a class="text-danger" href="{{ url_for(categories[ao.category] + '.clean_orders', o_id=ao.id) }}"
+                                                    <a class="text-danger" href="{{ clean_link }}"
                                                        onclick="javascript:loadingCircle();">
                                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                                                              class="bi bi-trash" viewBox="0 0 16 16">
@@ -40,11 +42,13 @@
                     {% else %}
                         {# Обычный вывод для других категорий #}
                         {% for ao in category_info[1] %}
+                            {% set order_link = url_for(categories[ao.category] + '.index', o_id=ao.id, subcategory=ao.subcategory) if ao.category == cosmetics_category else url_for(categories[ao.category] + '.index', o_id=ao.id) %}
+                            {% set clean_link = url_for(categories[ao.category] + '.clean_orders', o_id=ao.id, subcategory=ao.subcategory) if ao.category == cosmetics_category else url_for(categories[ao.category] + '.clean_orders', o_id=ao.id) %}
                             <div class="text-center mb-2 p-1 bg-light rounded shadow-sm">
                                 <div class="row">
                                     <div class="col-md-8 col-xs-12">
                                         <p class="mb-0">
-                                            <a href="{{ url_for(categories[ao.category] + '.index', o_id=ao.id) }}" style="text-decoration:none">
+                                            <a href="{{ order_link }}" style="text-decoration:none">
                                                 {{ loop.index }}. {{ ao.company_type }} {{ ao.company_name }}
                                                 от {{ ao.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
                                             </a>
@@ -52,7 +56,7 @@
                                     </div>
                                     <div class="col-md-4 col-xs-12">
                                         <h5 class="mb-0">
-                                            <a class="text-danger" href="{{ url_for(categories[ao.category] + '.clean_orders', o_id=ao.id) }}"
+                                            <a class="text-danger" href="{{ clean_link }}"
                                                onclick="javascript:loadingCircle();">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                                                      class="bi bi-trash" viewBox="0 0 16 16">

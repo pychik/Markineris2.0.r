@@ -1,0 +1,106 @@
+<div class="form-group">
+    <label class="control-label">Страна</label>
+    <select class="form-control search-select" id="country" name="country" required>
+        <option value="">------------</option>
+        {% for con in countries %}
+            <option value="{{ con }}" {% if copied_order and copied_order.country and copied_order.country.upper() == con %}selected{% endif %}>{{ con }}</option>
+        {% endfor %}
+    </select>
+</div>
+<div class="form-check form-switch mb-2 d-flex align-items-center gap-2">
+    <input class="form-check-input border border-warning"
+           type="checkbox"
+           role="switch"
+           id="has-rd-switch"
+           name="has_rd"
+           data-bs-toggle="tooltip"
+           data-bs-placement="bottom"
+           title="Включите, если у вас есть разрешительная документация"
+           {% if copied_order and (copied_order.rd_type or copied_order.rd_name or copied_order.rd_date) %}checked{% endif %}>
+    <label class="form-check-label small mb-0 text-dark" for="has-rd-switch">РД</label>
+</div>
+
+<script>
+  const COSMETICS_RD_COUNTRIES = {{ countries | tojson }};
+  const COSMETICS_COUNTRIES = {{ rd_countries | tojson }};
+
+  function cosmeticsClearRdFields() {
+    ["rd_type", "rd_name", "rd_date"].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.value = "";
+      el.classList.remove("is-valid", "is-invalid");
+    });
+  }
+
+  function cosmeticsRenderCountrySelect(selectEl, list, preserveSelected = true) {
+    const previousValue = preserveSelected ? selectEl.value : "";
+
+    selectEl.innerHTML = "";
+    const emptyOpt = document.createElement("option");
+    emptyOpt.value = "";
+    emptyOpt.textContent = "------------";
+    selectEl.appendChild(emptyOpt);
+
+    list.forEach(country => {
+      const opt = document.createElement("option");
+      opt.value = country;
+      opt.textContent = country;
+      selectEl.appendChild(opt);
+    });
+
+    if (preserveSelected && previousValue && list.includes(previousValue)) {
+      selectEl.value = previousValue;
+    } else {
+      selectEl.value = "";
+    }
+  }
+
+  function cosmeticsApplySwitchStyle(isOn) {
+    const rdSwitch = document.getElementById("has-rd-switch");
+    if (!rdSwitch) return;
+    rdSwitch.classList.toggle("bg-warning", isOn);
+  }
+
+  function cosmeticsToggleRdBlock(isOn) {
+    const wrap = document.getElementById("rd-wrapper");
+    if (!wrap) return;
+
+    wrap.style.display = isOn ? "" : "none";
+
+    ["rd_type", "rd_name", "rd_date"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.required = isOn;
+    });
+
+    if (!isOn) {
+      cosmeticsClearRdFields();
+    }
+  }
+
+  function cosmeticsApplyRdState(preserveSelected = true) {
+    const selectEl = document.getElementById("country");
+    const switchEl = document.getElementById("has-rd-switch");
+    if (!selectEl || !switchEl) return;
+
+    const isOn = switchEl.checked;
+    const list = isOn ? COSMETICS_COUNTRIES : COSMETICS_RD_COUNTRIES;
+
+    cosmeticsRenderCountrySelect(selectEl, list, preserveSelected);
+
+    if (!preserveSelected) {
+      selectEl.classList.remove("is-valid", "is-invalid");
+    }
+
+    cosmeticsApplySwitchStyle(isOn);
+    cosmeticsToggleRdBlock(isOn);
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const switchEl = document.getElementById("has-rd-switch");
+    if (!switchEl) return;
+
+    cosmeticsApplyRdState(true);
+    switchEl.addEventListener("change", () => cosmeticsApplyRdState(false));
+  });
+</script>

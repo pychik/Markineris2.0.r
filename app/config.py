@@ -19,6 +19,7 @@ from utilities.param_lists import (SHOE_GENDERS, SHOE_MATERIALS_UP_LINEN, SHOE_M
     LINEN_TNVED, LINEN_TYPES, LINEN_CUSTOMER_AGES, LINEN_START,
     LINEN_PRELOAD_START, LINEN_TEXTILE_TYPES, PARFUM_MATERIAL_PACKAGES, PARFUM_PACKAGE_TYPES,
     PARFUM_START, PARFUM_PRELOAD_START, PARFUM_TNVED, PARFUM_TYPES, PARFUM_VOLUMES,
+    COSMETICS_PRELOAD_START, COSMETICS_START_EXT, COSMETICS_RAZOR_PRELOAD_START, COSMETICS_RAZOR_START_EXT,
     CLOTHES_DICT, CLOTHES_GENDERS, CLOTHES_ST_RUSSIA, CLOTHES_SIZE_TYPES,
     CLOTHES_GENDERS_ORDER, CLOTHES_START, CLOTHES_PRELOAD_START, CLOTHES_TNVED, CLOTHES_TYPES,
     COUNTRIES_LIST, TEMPLATE_TABLES_DICT, ORDER_EDIT_DESCRIPTION,
@@ -139,9 +140,9 @@ class Settings(BaseSettings):
     )
     ADMIN_USER_POSTFIX: str = "@agentsm2r.com"
     MM_PARTNER: str = "IAMMODERATOR"
-    SQ_CATEGORIES: list = ['обувь', 'одежда', 'белье', 'носки и прочее']
-    CATEGORIES_PROCESS_NAMES: list = ['shoes', 'clothes', 'linen', 'parfum', 'socks', 'send_table']
-    CATEGORIES_UPLOAD: tuple = ('обувь', 'одежда', 'парфюм', 'белье', 'носки и прочее')
+    SQ_CATEGORIES: list = ['обувь', 'одежда', 'белье', 'косметика', 'носки и прочее']
+    CATEGORIES_PROCESS_NAMES: list = ['shoes', 'clothes', 'linen', 'parfum', 'cosmetics', 'socks', 'send_table']
+    CATEGORIES_UPLOAD: tuple = ('обувь', 'одежда', 'парфюм', 'белье', 'косметика', 'носки и прочее')
     RZ_GENDERS_RD_LIST: tuple = ("Детские", "Мальчик", "Девочка", "Детск.",)
     COMPANY_TYPES: list = ["ИП", "ООО", "АО"]
     CATEGORIES_DICT: dict = CATEGORIES_DICT
@@ -1116,6 +1117,16 @@ class Settings(BaseSettings):
         UPLOAD_PACKAGE_TYPE_ERROR: str = "Проверьте правильность указанного типа упаковки (посмотрите вкладку справочник)"
         UPLOAD_MATERIAL_PACKAGE_TYPE_ERROR: str = "Проверьте правильность указанного материала упаковки (посмотрите вкладку справочник)"
         UPLOAD_COUNTRY_ERROR: str = "Проверьте правильность указанной страны (посмотрите вкладку справочник)"
+
+    class Cosmetics:
+        CATEGORY: str = 'косметика'
+        CATEGORY_PROCESS: str = 'cosmetics'
+        START_EXT: list = COSMETICS_START_EXT
+        START_PRELOAD: list = COSMETICS_PRELOAD_START
+        START_EXT_RAZOR: list = COSMETICS_RAZOR_START_EXT
+        START_PRELOAD_RAZOR: list = COSMETICS_RAZOR_PRELOAD_START
+        NUMBER_STANDART: str = "ТР ТС 009/2011 \"О безопасности парфюмерно-косметической продукции\""
+        STATUS: str = "Черновик"
 
     class Clothes:
         CATEGORY: str = 'одежда'

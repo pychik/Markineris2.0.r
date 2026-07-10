@@ -229,6 +229,30 @@ function ordinaryOrderFillParfumStep2() {
     ordinaryOrderResetRd();
 }
 
+function ordinaryOrderFillCosmeticsStep2(subcategory) {
+    ordinaryOrderRevealTextField("noTMSwitch", "trademark");
+
+    ordinaryOrderSetValue("trademark", "AUTOBRAND");
+    ordinaryOrderSetSelect("type");
+    ordinaryOrderSetSelect("nominal_quantity_type", ["шт"]);
+    ordinaryOrderSetValue("nominal_quantity", "1");
+    ordinaryOrderSetSelect("for_children", ["no", "yes"]);
+    ordinaryOrderSetSelect("country", ["РОССИЯ", "КИТАЙ"]);
+    ordinaryOrderSetSelect("content_type");
+    ordinaryOrderSetValue("content", "ВОДА, ГЛИЦЕРИН");
+    ordinaryOrderSetSelect("usage_term_type");
+    ordinaryOrderSetValue("service_life", "36");
+    ordinaryOrderSetValue("sl_date_from", "01.01.2023");
+    ordinaryOrderSetValue("sl_date_to", "01.01.2026");
+    ordinaryOrderSetValue("quantity", "10");
+    ordinaryOrderSetPrice();
+    ordinaryOrderResetRd();
+
+    if (subcategory === "cosmetics_toilet_paper") {
+        ordinaryOrderSetSelect("layers_characteristic", ["ДВУХСЛОЙНОЕ"]);
+    }
+}
+
 window.ordinaryOrderTestFillStep2 = async function ordinaryOrderTestFillStep2(button) {
     const category = button?.dataset?.category || "";
     const subcategory = button?.dataset?.subcategory || "";
@@ -247,6 +271,8 @@ window.ordinaryOrderTestFillStep2 = async function ordinaryOrderTestFillStep2(bu
         ordinaryOrderFillLinenStep2();
     } else if (category === "parfum") {
         ordinaryOrderFillParfumStep2();
+    } else if (category === "cosmetics") {
+        ordinaryOrderFillCosmeticsStep2(subcategory);
     }
 
     if (typeof make_message === "function") {

@@ -257,6 +257,12 @@ class ValidatorProcessor:
             return ValidatorProcessor.linen_pre_validate_tnved(tnved_str=tnved_str)
         elif category == settings.Parfum.CATEGORY:
             return ValidatorProcessor.parfum_pre_validate_tnved(tnved_str=tnved_str)
+        elif category == settings.Cosmetics.CATEGORY:
+            from views.main.categories.cosmetics.subcategories import get_subcategory_config
+
+            subcategory_config = get_subcategory_config(subcategory)
+            allowed_tnved_codes = subcategory_config.get("allowed_tnved_codes", ()) if subcategory_config else ()
+            return not tnved_str or tnved_str not in allowed_tnved_codes
         elif category == settings.Shoes.CATEGORY:
             return ValidatorProcessor.shoes_pre_validate_tnved(tnved_str=tnved_str)
         else:
@@ -273,6 +279,49 @@ class ValidatorProcessor:
                     return ValidatorProcessor.shawls_pre_validate_tnved(tnved_str=tnved_str)
                 case _:
                     return ValidatorProcessor.clothes_pre_validate_tnved(tnved_str=tnved_str)
+
+    @staticmethod
+    def validate_cosmetics_subcategory_payload(subcategory: str, form_data) -> str | None:
+        if not subcategory:
+            return None
+
+        from views.main.categories.cosmetics.subcategories import get_subcategory_config
+        from utilities.saving_helpers import normalize_trademark_placeholder, process_input_str
+
+        subcategory_config = get_subcategory_config(subcategory)
+        if not subcategory_config:
+            return None
+
+        product_type = str(form_data.get("type") or "").strip()
+        tnved_code = str(form_data.get("tnved_code") or "").strip()
+        complectation = str(form_data.get("complectation") or "").strip()
+        layers_characteristic = str(form_data.get("layers_characteristic") or "").strip()
+        trademark = normalize_trademark_placeholder(str(form_data.get("trademark") or "").strip())
+        full_name_extra = process_input_str(str(form_data.get("full_name_extra") or "").strip())
+
+        if product_type and (not trademark or trademark.upper() == "БЕЗ ТОВАРНОГО ЗНАКА") and not full_name_extra:
+            return "Если выбран вариант 'БЕЗ ТОВАРНОГО ЗНАКА', заполните поле 'Дополнить полное наименование'."
+
+        tnved_codes_by_product_type = subcategory_config.get("tnved_codes_by_product_type") or {}
+        allowed_codes_for_type = tnved_codes_by_product_type.get(product_type) or ()
+        if allowed_codes_for_type and tnved_code not in allowed_codes_for_type:
+            return "Выбранный ТН ВЭД не подходит для указанного вида товара."
+
+        complectation_trigger_types = set(subcategory_config.get("complectation_trigger_product_types") or ())
+        complectation_trigger_tnveds = set(subcategory_config.get("complectation_trigger_tnved_codes") or ())
+        complectation_allowed = product_type in complectation_trigger_types or tnved_code in complectation_trigger_tnveds
+        if complectation_allowed and not complectation:
+            return "Для выбранного вида товара или ТН ВЭД необходимо заполнить поле 'Комплектация'."
+        if not complectation_allowed and complectation:
+            return "Поле 'Комплектация' допускается только для подходящих видов товара и ТН ВЭД."
+
+        allowed_layers_characteristics = tuple(subcategory_config.get("layers_characteristic_choices") or ())
+        if allowed_layers_characteristics and layers_characteristic not in allowed_layers_characteristics:
+            return "Выберите допустимое значение поля 'Кол-во слоев'."
+        if not allowed_layers_characteristics and layers_characteristic:
+            return "Поле 'Кол-во слоев' не используется для этой подкатегории."
+
+        return None
 
     @staticmethod
     def check_colors(color: str) -> bool:

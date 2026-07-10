@@ -6,7 +6,6 @@ import re
 from typing import Any
 
 from config import settings
-from logger import logger
 from utilities.exceptions import SizeTypeException
 
 
@@ -153,6 +152,23 @@ def build_position_key(item: Any, category: str) -> tuple:
                 normalize_key_value(item.package_type),
                 normalize_key_value(item.material_package),
             )
+        case settings.Cosmetics.CATEGORY:
+            return common + (
+                normalize_key_value(item.full_name_extra),
+                normalize_key_value(item.subcategory),
+                normalize_key_value(item.nominal_quantity_type),
+                normalize_int_key(item.nominal_quantity),
+                normalize_int_key(getattr(item, "blade_count", None)),
+                normalize_key_value(getattr(item, "complectation", None)),
+                normalize_key_value(getattr(item, "layers_characteristic", None)),
+                bool(item.for_children),
+                normalize_key_value(item.usage_term_type),
+                normalize_key_value(item.content_type),
+                normalize_key_value(item.content),
+                normalize_int_key(item.service_life),
+                item.sl_date_from,
+                item.sl_date_to,
+            )
     raise ValueError(f"Unsupported category for merge: {category}")
 
 
@@ -204,16 +220,17 @@ def append_or_merge_position(order_positions: Any, new_item: Any, category: str,
 
         if category == settings.Parfum.CATEGORY:
             existing_item.quantity = normalize_int_key(existing_item.quantity) + normalize_int_key(new_item.quantity)
-            # logger.info(f"merge hit category={category} target=parfum key={new_key}")
+            return existing_item
+
+        if category == settings.Cosmetics.CATEGORY:
+            existing_item.quantity = normalize_int_key(existing_item.quantity) + normalize_int_key(new_item.quantity)
             return existing_item
 
         merge_size_quantities(existing_item, new_item, category, old_sq_map=old_sq_map,
                               source_size_pairs=source_size_pairs)
-        # logger.info(f"merge hit category={category} target=sizes key={new_key}")
         return existing_item
 
     order_positions.append(new_item)
-    # logger.info(f"merge miss category={category} appended_key={new_key}")
     if old_sq_map is not None:
         for old_sq_id, size_obj in (source_size_pairs or []):
             old_sq_map[old_sq_id] = size_obj

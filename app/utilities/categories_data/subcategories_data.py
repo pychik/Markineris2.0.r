@@ -18,6 +18,10 @@ class Category(Enum):
             case settings.Clothes.CATEGORY:
 
                 return ClothesSubcategories.is_subcategory(subcategory=subcategory)
+            case settings.Cosmetics.CATEGORY:
+                from views.main.categories.cosmetics.subcategories import CosmeticsSubcategories
+
+                return CosmeticsSubcategories.has_value(subcategory)
             case _:
                 return False
 

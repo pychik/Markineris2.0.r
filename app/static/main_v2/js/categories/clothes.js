@@ -1025,32 +1025,6 @@ function create_size_blocks(sizes, clothingType) {
     return sizesBlock;
 }
 
-function check_gender_ruznak(gender) {
-    if (RZ_CONDITION === 'True' && !CHILDREN_GENDER_LIST.includes(gender)){
-        // console.log('нашли условине' + gender);
-        document.getElementById('rd_name').required = true;
-        document.getElementById('rd_type').required = true;
-        document.getElementById('rd_date').required = true;
-        // document.getElementById('collapseDocResolve').classList.add('show');
-        if (!document.getElementById('collapseDocResolve').classList.contains('show')){
-            document.getElementById('clickablerdblock').click();
-        }
-    }
-    else if((RZ_CONDITION === 'True' && CHILDREN_GENDER_LIST.includes(gender))){
-        document.getElementById('rd_name').required = false;
-        document.getElementById('rd_type').required = false;
-        document.getElementById('rd_date').required = false;
-        $('#rd_type').val('').trigger("change");
-        $('#rd_name').val("");
-        $('#rd_date').val("");
-        // document.getElementById('collapseDocResolve').classList.remove('show');
-        if (document.getElementById('collapseDocResolve').classList.contains('show')){
-            document.getElementById('clickablerdblock').click();
-        }
-    }
-
-}
-
 function deleteCell() {
     var cur = $(this).closest('div');
     cur.parent().remove();
@@ -1304,6 +1278,43 @@ function fillGenderSelect(genders, { keepValue = true, enabled = true, placehold
     }
 }
 
+function initGenderFieldBindings() {
+    const genderEl = document.getElementById('gender');
+    if (!genderEl || genderEl.dataset.bindingsInitialized === '1') return;
+
+    genderEl.dataset.bindingsInitialized = '1';
+    const $g = window.$ ? $('#gender') : null;
+
+    if ($g && $g.length) {
+        $g.on('change', function (e) {
+            if (!e.originalEvent) return;
+            clear_tnved_input();
+        });
+
+        $g.on('select2:select', function (e) {
+            if (e.params && e.params.originalEvent) {
+                clear_tnved_input();
+            }
+        });
+
+        $g.on('select2:opening', function (e) {
+            if (typeof getTypeValue === 'function' && !getTypeValue()) {
+                e.preventDefault();
+                genderClickGuard(e);
+                try {
+                    const typeEl = document.getElementById('type');
+                    if (typeEl) typeEl.focus();
+                } catch (err) {}
+            }
+        });
+    }
+
+    genderEl.addEventListener('mousedown', function (e) {
+        if (typeof getTypeValue === 'function' && !getTypeValue()) {
+            genderClickGuard(e);
+        }
+    });
+}
 
 function clothes_manual_tnved(){
     const m_tnved = (document.getElementById("manual_tnved_input").value || "").trim();
@@ -1402,3 +1413,8 @@ function selectTnved(code){
     clear_manual_tnved();
     $('#manualTnvedModal').modal('hide');
 }
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    initGenderFieldBindings();
+});
