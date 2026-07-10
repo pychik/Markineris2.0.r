@@ -2,173 +2,151 @@
 
 {% block crm_uoc %}
 
-<div class="mx-3">
-    {% if user.role == 'superuser' %} {% include 'crm_mod_v1/helpers/moderators.html'%} {%endif%}
+<div class="crm-uoc-page">
+    <div class="crm-uoc-shell">
+        <section class="crm-uoc-hero">
+            <h1 class="crm-uoc-title">Управление модераторы, менеджеры и CRM</h1>
+        </section>
 
-    {% include 'crm_mod_v1/helpers/managers.html'%}
+        {% if user.role == 'superuser' %}
+            {% include 'crm_mod_v1/helpers/moderators.html'%}
+        {% endif %}
 
-    <div class="container">
+        {% include 'crm_mod_v1/helpers/managers.html'%}
 
         {% if current_user.role == 'superuser' %}
-            <div class="card-header bg-light text-secondary text-center mt-3">
-                <h4>Изменить параметры автоматического переноса заказов в <b>ПУЛ</b> ФИРМЫ.
-                    <br>Установлено Строк: {{ crm_defaults.ap_rows }} Этикеток: {{ crm_defaults.ap_marks }}</h4>
-            </div>
-            <form method="post" action="{{ url_for('crm_uoc.change_auto_order_pool') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <div class="row text-center mt-3">
-                    <div class="col-md-1 text-left"></div>
-                    <div class="col-md-2 col-xs-12 text-right">
-                        <label for="po_limit"><font size="5">Строк</font></label>
+            <section class="crm-uoc-settings">
+                <article class="crm-uoc-setting">
+                    <div class="crm-uoc-setting__head">
+                        <div>
+                            <h2 class="crm-uoc-setting__title">Автоперенос заказов в пул фирмы</h2>
+                            <p class="crm-uoc-setting__desc">Настройка лимитов для автоматического переноса заказов в ПУЛ компании.</p>
+                        </div>
+                        <span class="crm-uoc-badge">Строк: {{ crm_defaults.ap_rows }} | Этикеток: {{ crm_defaults.ap_marks }}</span>
                     </div>
-                    <div class="col-md-3 col-xs-12 text-left">
-                        <input type="number" step="1" min="{{limits_defaults.ap_rows.min_limit}}" max="{{limits_defaults.ap_rows.max_limit}}"  id="ap_rows" name="ap_rows"
-                             placeholder="Укажите количество строк" class="form-control" required>
+                    <form method="post" action="{{ url_for('crm_uoc.change_auto_order_pool') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="crm-uoc-form-grid">
+                            <div class="crm-uoc-field">
+                                <label class="crm-uoc-label" for="ap_rows">Количество строк</label>
+                                <input type="number" step="1" min="{{limits_defaults.ap_rows.min_limit}}" max="{{limits_defaults.ap_rows.max_limit}}" id="ap_rows" name="ap_rows" placeholder="Укажите количество строк" class="form-control crm-uoc-input" required>
+                            </div>
+                            <div class="crm-uoc-field">
+                                <label class="crm-uoc-label" for="ap_marks">Количество этикеток</label>
+                                <input type="number" step="1" min="{{limits_defaults.ap_marks.min_limit}}" max="{{limits_defaults.ap_marks.max_limit}}" id="ap_marks" name="ap_marks" placeholder="Укажите количество этикеток" class="form-control crm-uoc-input" required>
+                            </div>
+                            <div class="crm-uoc-action">
+                                <button class="btn crm-uoc-btn crm-uoc-btn-primary w-100" title="Изменить" type="submit">Сохранить</button>
+                            </div>
+                        </div>
+                    </form>
+                </article>
 
+                <article class="crm-uoc-setting">
+                    <div class="crm-uoc-setting__head">
+                        <div>
+                            <h2 class="crm-uoc-setting__title">Автоперенос готовых заказов</h2>
+                            <p class="crm-uoc-setting__desc">Интервал в минутах для переноса заказов из статуса «Заказ готов» к агентам в статус «Заказ отправлен».</p>
+                        </div>
+                        <span class="crm-uoc-badge">{{ crm_defaults.as_minutes }} минут</span>
                     </div>
-                    <div class="col-md-2 col-xs-12 text-right">
-                        <label for="po_limit"><font size="5">Этикеток</font></label>
+                    <form method="post" action="{{ url_for('crm_uoc.change_auto_order_sent') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="crm-uoc-form-grid">
+                            <div class="crm-uoc-field">
+                                <label class="crm-uoc-label" for="as_minutes">Минут</label>
+                                <input type="number" step="1" min="{{limits_defaults.as_minutes.min_limit}}" max="{{limits_defaults.as_minutes.max_limit}}" id="as_minutes" name="as_minutes" placeholder="Укажите количество минут" class="form-control crm-uoc-input" onchange="if (this.value==='{{crm_defaults.as_minutes}}'){this.value='';}" required>
+                            </div>
+                            <div class="crm-uoc-action">
+                                <button class="btn crm-uoc-btn crm-uoc-btn-success w-100" title="Изменить" type="submit">Сохранить</button>
+                            </div>
+                        </div>
+                    </form>
+                </article>
+
+                <article class="crm-uoc-setting">
+                    <div class="crm-uoc-setting__head">
+                        <div>
+                            <h2 class="crm-uoc-setting__title">Лимит на устранение проблем</h2>
+                            <p class="crm-uoc-setting__desc">Время в минутах, доступное менеджеру на обработку проблемного заказа.</p>
+                        </div>
+                        <span class="crm-uoc-badge">{{ crm_defaults.ps_limit }} минут</span>
                     </div>
-                    <div class="col-md-3 col-xs-12 text-left">
-                        <input type="number" step="1" min="{{limits_defaults.ap_marks.min_limit}}" max="{{limits_defaults.ap_marks.max_limit}}"  id="ap_marks" name="ap_marks"
-                             placeholder="Укажите количество этикеток" class="form-control" required>
+                    <form method="post" action="{{ url_for('crm_uoc.change_manager_limit', limit_param='ps_limit') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="crm-uoc-form-grid">
+                            <div class="crm-uoc-field">
+                                <label class="crm-uoc-label" for="ps_limit">Лимит времени</label>
+                                <input type="number" step="1" min="{{limits_defaults.ps_limit.min_limit}}" max="{{limits_defaults.ps_limit.max_limit}}" id="ps_limit" name="ps_limit" placeholder="Укажите время в минутах" class="form-control crm-uoc-input" required>
+                            </div>
+                            <div class="crm-uoc-action">
+                                <button class="btn crm-uoc-btn crm-uoc-btn-dark w-100" type="submit">Сохранить</button>
+                            </div>
+                        </div>
+                    </form>
+                </article>
 
+                <article class="crm-uoc-setting">
+                    <div class="crm-uoc-setting__head">
+                        <div>
+                            <h2 class="crm-uoc-setting__title">Лимит заказов в работе</h2>
+                            <p class="crm-uoc-setting__desc">Максимальное количество активных заказов, находящихся в работе у менеджера.</p>
+                        </div>
+                        <span class="crm-uoc-badge">{{ crm_defaults.mo_limit }} заказов</span>
                     </div>
-                    <div class="col-md-1 col-xs-12 text-left">
-                        <button class="btn btn-sm bg-light text-grey" title="Изменить" type="submit">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16">
-                              <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
-                            </svg>
-                        </button>
+                    <form method="post" action="{{ url_for('crm_uoc.change_manager_limit', limit_param='mo_limit') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="crm-uoc-form-grid">
+                            <div class="crm-uoc-field">
+                                <label class="crm-uoc-label" for="mo_limit">Количество заказов</label>
+                                <input type="number" step="1" min="{{limits_defaults.mo_limit.min_limit}}" max="{{limits_defaults.mo_limit.max_limit}}" id="mo_limit" name="mo_limit" placeholder="Укажите количество заказов" class="form-control crm-uoc-input" required>
+                            </div>
+                            <div class="crm-uoc-action">
+                                <button class="btn crm-uoc-btn crm-uoc-btn-primary w-100" type="submit" title="Изменить">Сохранить</button>
+                            </div>
+                        </div>
+                    </form>
+                </article>
+
+                <article class="crm-uoc-setting crm-uoc-setting--warning">
+                    <div class="crm-uoc-setting__head">
+                        <div>
+                            <h2 class="crm-uoc-setting__title">Лимит проблемных заказов</h2>
+                            <p class="crm-uoc-setting__desc">Ограничение на число заказов со статусом проблемы, закреплённых за менеджером.</p>
+                        </div>
+                        <span class="crm-uoc-badge">{{ crm_defaults.po_limit }} заказов</span>
                     </div>
-                </div>
+                    <form method="post" action="{{ url_for('crm_uoc.change_manager_limit', limit_param='po_limit') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="crm-uoc-form-grid">
+                            <div class="crm-uoc-field">
+                                <label class="crm-uoc-label" for="po_limit">Количество заказов</label>
+                                <input type="number" step="1" min="{{limits_defaults.po_limit.min_limit}}" max="{{limits_defaults.po_limit.max_limit}}" id="po_limit" name="po_limit" placeholder="Укажите количество заказов" class="form-control crm-uoc-input" required>
+                            </div>
+                            <div class="crm-uoc-action">
+                                <button class="btn crm-uoc-btn crm-uoc-btn-warning w-100" title="Изменить" type="submit">Сохранить</button>
+                            </div>
+                        </div>
+                    </form>
+                </article>
 
-            </form>
-
-            <div class="card-header bg-light text-secondary text-center mt-3">
-                <h4>Изменить время в минутах для автоматического переноса заказов(5-1600)<br>
-                    <b>Операторы Заказ готов</b> &rarr; <b>Агенты Заказ отправлен</b>.
-                    <br>Установлено: {{ crm_defaults.as_minutes }} минут</h4>
-            </div>
-            <form method="post" action="{{ url_for('crm_uoc.change_auto_order_sent') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <div class="row text-center mt-3">
-                    <div class="col-md-1 text-left"></div>
-                    <div class="col-md-2 col-xs-12 text-right">
-                        <label for="as_minutes"><font size="5">Минут</font></label>
+                <article class="crm-uoc-setting crm-uoc-setting--danger">
+                    <div class="crm-uoc-setting__head">
+                        <div>
+                            <h2 class="crm-uoc-setting__title">Очистка отменённых заказов</h2>
+                            <p class="crm-uoc-setting__desc">Удаление всех отменённых заказов старше 7 дней.</p>
+                        </div>
+                        <span class="crm-uoc-badge">Всего: {{ cancelled_orders }}</span>
                     </div>
-                    <div class="col-md-3 col-xs-12 text-left">
-                        <input type="number" step="1" min="{{limits_defaults.as_minutes.min_limit}}" max="{{limits_defaults.as_minutes.max_limit}}"  id="as_minutes" name="as_minutes"
-                             placeholder="Укажите количество мин" class="form-control" onchange="if (this.value==='{{crm_defaults.as_minutes}}'){this.value='';}" required>
-
-                    </div>
-                    <div class="col-md-1 col-xs-12 text-left">
-                        <button class="btn btn-sm bg-light text-grey" title="Изменить" type="submit">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16">
-                              <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-            </form>
-
-            <div class="card-header bg-secondary text-center text-white mt-3">
-                <h4>Изменить лимит времени на устранение проблем в заказе. Установлен {{ crm_defaults.ps_limit }} мин.</h4>
-            </div>
-            <form method="post" action="{{ url_for('crm_uoc.change_manager_limit', limit_param='ps_limit') }}" class="form-group mt-3">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <div class="row text-center">
-                    <div class="col-md-2 text-left"></div>
-                    <div class="col-md-3 col-xs-12 text-right">
-                        <label for="ps_limit"><font size="5">Лимит времени</font></label>
-                    </div>
-                    <div class="col-md-3 col-xs-12 text-left">
-                        <input type="number" step="1" min="{{limits_defaults.ps_limit.min_limit}}" max="{{limits_defaults.ps_limit.max_limit}}"  id="ps_limit" name="ps_limit"
-                             placeholder="Укажите время в минутах" class="form-control" required>
-
-                    </div>
-                    <div class="col-md-3 col-xs-12 text-left">
-                        <button class="btn btn-sm btn-secondary" type="submit">
-                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16">
-                              <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-
-            </form>
-
-            <div class="card-header bg-info text-center text-white mt-3">
-                <h4>Изменить лимит количества заказов <b>в работе</b> для менеджеров. Установлен {{ crm_defaults.mo_limit }}</h4>
-            </div>
-            <form method="post" action="{{ url_for('crm_uoc.change_manager_limit', limit_param='mo_limit') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <div class="row text-center mt-3">
-                    <div class="col-md-2 text-left"></div>
-                    <div class="col-md-3 col-xs-12 text-right">
-                        <label for="mo_limit"><font size="5">Количество заказов</font></label>
-                    </div>
-                    <div class="col-md-3 col-xs-12 text-left">
-                        <input type="number" step="1" min="{{limits_defaults.mo_limit.min_limit}}" max="{{limits_defaults.mo_limit.max_limit}}"  id="mo_limit" name="mo_limit"
-                             placeholder="Укажите количество заказов" class="form-control" required>
-
-                    </div>
-                    <div class="col-md-3 col-xs-12 text-left">
-                        <button class="btn btn-sm btn-info" type="submit" title="Изменить">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16">
-                              <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-            </form>
-            <div class="card-header bg-error text-center text-white mt-3">
-                <h4>Изменить лимит количества заказов <b>с проблемой</b> для менеджеров. Установлен {{ crm_defaults.po_limit }} </h4>
-            </div>
-            <form method="post" action="{{ url_for('crm_uoc.change_manager_limit', limit_param='po_limit') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <div class="row text-center mt-3">
-                    <div class="col-md-2 text-left"></div>
-                    <div class="col-md-3 col-xs-12 text-right">
-                        <label for="po_limit"><font size="5">Количество заказов</font></label>
-                    </div>
-                    <div class="col-md-3 col-xs-12 text-left">
-                        <input type="number" step="1" min="{{limits_defaults.po_limit.min_limit}}" max="{{limits_defaults.po_limit.max_limit}}"  id="po_limit" name="po_limit"
-                             placeholder="Укажите количество заказов" class="form-control" required>
-
-                    </div>
-                    <div class="col-md-3 col-xs-12 text-left">
-                        <button class="btn btn-sm bg-error text-white" title="Изменить" type="submit">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16">
-                              <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-            </form>
-
-            <div class="card-header bg-secondary text-center text-white mt-3">
-                <h4 class="mt-3">Очистка отмененных заказов старше 7 дней. Всего ({{ cancelled_orders }})</h4>
-            </div>
-            <form method="post" action="{{ url_for('crm_uoc.clean_oco')}}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-
-
-                <div class="col text-center">
-
-                    <button class="btn btn-sm btn-secondary mt-3 mb-2" type="submit">
-                        <font size="2">-Очистить все отмененные заказы старше 7 дней</font>
-                    </button>
-                </div>
-            </form>
+                    <form method="post" action="{{ url_for('crm_uoc.clean_oco')}}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button class="btn crm-uoc-btn crm-uoc-btn-danger" type="submit">Очистить все отменённые заказы старше 7 дней</button>
+                    </form>
+                </article>
+            </section>
         {% endif %}
     </div>
 </div>
-
 
 <script>
 var Password = {
@@ -178,7 +156,6 @@ var Password = {
 
   _getRandomByte : function()
   {
-    // http://caniuse.com/#feat=getrandomvalues
     if(window.crypto && window.crypto.getRandomValues)
     {
       var result = new Uint8Array(1);
@@ -218,4 +195,4 @@ var Password = {
 };
 </script>
 
-   {% endblock %}
+{% endblock %}

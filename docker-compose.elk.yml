@@ -193,3 +193,36 @@ services:
       - source: apm-server.key
         target: /certs/apm-server.key
     logging: *logging-default
+
+  elastalert:
+    image: jertel/elastalert2:2.20.0
+    restart: unless-stopped
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      ELASTIC_USERNAME: ${ELASTIC_USERNAME}
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      HEALTHCHECK_BOT: ${HEALTHCHECK_BOT}
+      TELEGRAM_ALERTS_GROUP_ID: ${TELEGRAM_ALERTS_GROUP_ID}
+    entrypoint:
+      - sh
+      - -c
+      - |
+        set -e
+        python3 - << 'PYEOF'
+        import os
+        c = open('/opt/elastalert/config.yaml').read()
+        c = c.replace('$${ELASTIC_USERNAME}', os.environ['ELASTIC_USERNAME'])
+        c = c.replace('$${ELASTIC_PASSWORD}', os.environ['ELASTIC_PASSWORD'])
+        open('/tmp/ea.yaml', 'w').write(c)
+        PYEOF
+        elastalert-create-index --config /tmp/ea.yaml
+        exec elastalert --config /tmp/ea.yaml
+    volumes:
+      - ./elk/elastalert/config.yaml:/opt/elastalert/config.yaml:ro
+      - ./elk/elastalert/rules:/opt/elastalert/rules:ro
+    networks:
+      - default
+      - elk_shared_network
+    logging: *logging-default

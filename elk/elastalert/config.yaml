@@ -1,0 +1,25 @@
+es_host: elasticsearch
+es_port: 9200
+es_username: ${ELASTIC_USERNAME}
+es_password: ${ELASTIC_PASSWORD}
+
+use_ssl: true
+verify_certs: false
+ssl_show_warn: false
+
+rules_folder: /opt/elastalert/rules
+run_every:
+  minutes: 1
+buffer_time:
+  minutes: 15
+
+# Elasticsearch index для хранения состояния ElastAlert
+writeback_index: elastalert_status
+writeback_alias: elastalert_alerts
+
+# Если ES недоступен — не падать, ждать
+es_connection_timeout: 10
+max_query_size: 10000
+
+# Подавлять дублирующиеся ошибки ElastAlert самого по себе
+disable_rules_on_error: false

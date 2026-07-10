@@ -67,6 +67,15 @@
                         </div>
                         <div id="footer_card_btns{{n.id}}">
                             <div class="steps ms-3">
+                                {% if current_user.role in ['superuser', 'supermanager'] %}
+                                    <img src="{{url_for('static', filename='crm_mod/img/icons/arrow-right-circle-fill.svg')}}" alt="Вперед"
+                                        class="icons__item" width="24" height="24" data-bs-toggle="tooltip"
+                                        data-bs-placement="top" data-bs-title="Переместить заказ в проблема решена"
+                                        onclick="update_spec_block_info(`{{ url_for('crm_d.m_order_ps_managers', manager_id=n.manager_id, o_id=n.id, bck=1)}}`,
+                                                                         'm_solved_ordersMainDiv', 7, '{{csrf_token()}}',
+                                                                         this, `{{n.id}}`, `{{n.order_idn}}`,
+                                                                         'm_problem_ordersMainDiv_quantity')">
+                                {% endif %}
                                 {%if n.order_file%}
                                     <form method="POST" id="download_file_order{{ n.id }}" action="{{ url_for('crm_d.download_file', manager_id=n.manager_id, o_id=n.id) }}"
                                           style="cursor: pointer" enctype="multipart/form-data">

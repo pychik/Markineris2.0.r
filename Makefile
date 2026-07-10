@@ -5,7 +5,7 @@ FLASK_APP := -f docker-compose.yml
 COMPOSE_ALL_FILES := -f docker-compose.elk.yml -f docker-compose.logs.yml
 COMPOSE_LOGGING := -f docker-compose.elk.yml -f docker-compose.logs.yml
 COMPOSE_S3_STORAGE := -f docker-compose-minio.yml
-ELK_SERVICES := elasticsearch logstash kibana apm-server
+ELK_SERVICES := elasticsearch logstash kibana apm-server elastalert
 ELK_LOG_COLLECTION := filebeat
 ELK_MAIN_SERVICES := ${ELK_SERVICES}
 ELK_ALL_SERVICES := ${ELK_MAIN_SERVICES} ${ELK_LOG_COLLECTION}
@@ -75,7 +75,11 @@ flask-down:						## Остановка контейнера Flask app.
 	${DOCKER_COMPOSE_COMMAND} ${FLASK_APP} stop flask_app
 
 set-vm:							## Установка максиального объема памяти виртуальной машины для корректного запуска ELK Stack.
-	sudo sysctl -w vm.max_map_count=262144
+	@if [ "$$(uname)" = "Linux" ]; then \
+		sudo sysctl -w vm.max_map_count=262144; \
+	else \
+		echo "macOS: vm.max_map_count не нужен, Docker Desktop управляет VM автоматически."; \
+	fi
 
 
 elk:							## Полный запуск ELK одной командой строго поочередно: elk-down -> elk-setup -> elk-up -> collect-logs.

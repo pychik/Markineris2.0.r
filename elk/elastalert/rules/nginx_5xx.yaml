@@ -1,0 +1,31 @@
+# Правило: 3+ HTTP 500 (Internal Server Error) от nginx за 5 минут
+# Только статус 500 — реальные баги приложения.
+# 502/503 (gunicorn worker restart, gateway недоступен) — отдельное правило nginx_gateway_errors.yaml
+name: "Nginx 500 Internal Server Errors"
+type: frequency
+
+index: nginx-*
+num_events: 3
+timeframe:
+  minutes: 5
+
+filter:
+  - term:
+      http.response.status_code: 500
+
+realert:
+  minutes: 30
+
+alert: telegram
+telegram_bot_token: "${HEALTHCHECK_BOT}"
+telegram_room_id: "${TELEGRAM_ALERTS_GROUP_ID}"
+
+alert_text: |
+  🔴 <b>Nginx 500 Errors — Marka Service</b>
+
+  За последние 5 минут зафиксировано 3+ ответов HTTP 500 (Internal Server Error).
+  Это ошибки приложения — требуют проверки кода.
+
+  Kibana → Discover → <code>flask-app-*</code>, фильтр: <code>log.level: ERROR</code>
+alert_text_type: alert_text_only
+telegram_parse_mode: html

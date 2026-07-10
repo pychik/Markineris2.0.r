@@ -293,6 +293,29 @@ def m_order_ps(o_id: int, manager_id: int, f_manager_id: int = None):
     return helper_m_order_ps(user=user, o_id=o_id, manager_id=manager_id)
 
 
+@crm_d.route('/m_order_ps_managers/<int:o_id>/<int:manager_id>', methods=["POST"])
+@login_required
+@user_activated
+@susmu_required
+def m_order_ps_managers(o_id: int, manager_id: int, f_manager_id: int = None):
+    """
+        change stage of order manager problem solved from managers crm
+    :param o_id:
+    :param manager_id:
+    :param f_manager_id:
+    :return:
+    """
+    user = current_user
+
+    return helper_m_order_ps(
+        user=user,
+        o_id=o_id,
+        manager_id=manager_id,
+        allowed_roles=[settings.SUPER_USER, settings.SUPER_MANAGER],
+        rendered_group='crmm',
+    )
+
+
 @crm_d.route('/attach_file/<string:manager>/<int:manager_id>/<int:o_id>', methods=["POST"])
 @login_required
 @user_activated

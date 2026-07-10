@@ -1,0 +1,108 @@
+{% extends 'main/base_v2.html' %}
+
+{% block fc_panel %}
+
+<div class="container">
+    <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
+        <div class="breadcrumbs">
+            <a href="{{ url_for('main.enter') }}">Создать накладную</a>
+            /
+            <span>Тестирование РД</span>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-9">
+
+            <div class="card bg-transparent mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Проверка РД в реестре ФСА (категория «Одежда»)</h5>
+                        <span id="rdCheckHealthBadge" class="badge badge-soft bg-secondary bg-opacity-10 text-secondary">
+                            статус неизвестен
+                        </span>
+                    </div>
+                    <p class="text-muted mb-4">
+                        Заполните вид товара, пол и ТНВЭД — после этого станут доступны поля РД.
+                    </p>
+
+                    <form id="rdCheckForm" onsubmit="return false;">
+                        <input type="hidden" id="rdCheckCsrf" value="{{ csrf_token() }}"/>
+
+                        <div class="row g-4">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="control-label">Вид одежды</label>
+                                    <select class="form-control search-select" id="type" name="type"
+                                           onchange="if (window.__silenceReset) return;clear_gender_select();clear_tnved_input();get_genders(`{{ url_for('clothes.bck_clothes_genders', subcategory=subcategory) }}`,
+                                          `{{ csrf_token() }}`,
+                                          `{{ subcategory }}`)"
+                                        required>
+                                        <option disabled selected value="">Выберите из списка..</option>
+                                        {% for s in types %}
+                                        <option value="{{ s }}">{{ s }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                {% include 'helpers/clothes/genders_block.html' %}
+                            </div>
+                            <div class="col-md-4">
+                                {% include 'helpers/clothes/clothes_tnved_code_block.html' %}
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="row g-4">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="rd_type" class="control-label">Тип документа</label>
+                                    <select class="form-control search-select" id="rd_type" name="rd_type" required disabled>
+                                        <option disabled selected value="">Выберите тип документа</option>
+                                        {% for value, label in doc_type_options %}
+                                        <option value="{{ value }}">{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="form-group">
+                                    <label for="rd_name" class="control-label">Номер документа</label>
+                                    <input type="text" id="rd_name" name="rd_name" class="form-control"
+                                           minlength="3" maxlength="100" oninput="filter_symbols_rd(this)"
+                                           placeholder="Например: ЕАЭС N RU Д-CN.РА05.В.24337/26" required disabled>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button id="rdCheckSubmitBtn" type="button" class="btn btn-accent"
+                                    onclick="rdCheckSubmit(
+                                        '{{ url_for('admin_control.rd_check_submit') }}',
+                                        '{{ url_for('admin_control.rd_check_status', request_id='__id__') }}',
+                                        document.getElementById('rdCheckCsrf').value
+                                    );">Проверить РД</button>
+                            <a href="{{ url_for('main.enter') }}" class="btn btn-outline-secondary">Назад</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="rdCheckResult"></div>
+
+        </div>
+    </div>
+</div>
+
+{% include 'helpers/error_modal.html' %}
+{% include 'helpers/clothes/manual_tc_modal.html' %}
+
+<script src="{{ url_for('static', filename='main_v2/js/categories/clothes.js') }}?v=1"></script>
+<script src="{{ url_for('static', filename='main_v2/js/admin/rd_check.js') }}"></script>
+<script>
+    rdCheckStartHealthPolling('{{ url_for('admin_control.rd_check_health') }}');
+    rdCheckStartFieldGate();
+</script>
+{% endblock %}

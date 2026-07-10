@@ -1,4 +1,4 @@
-from flask import Blueprint
+from flask import Blueprint, flash, jsonify, redirect, request, url_for
 from flask_login import login_required
 
 
@@ -10,6 +10,28 @@ from views.main.product_cards.handlers import h_cards, h_cards_table, h_new_prod
     h_pc_order_process, h_update_product_card, h_edit_product_card, h_pc_order_copy, h_pc_order_draft_delete
 
 user_product_cards = Blueprint('user_product_cards', __name__)
+
+
+PC_MAINTENANCE_MESSAGE = (
+    "Проводятся технические работы в разделе «Быстрый заказ». "
+    "В ближайшее время данный раздел будет временно недоступен. "
+    "До завершения работ, пожалуйста, воспользуйтесь разделом «Обычный заказ»."
+)
+
+
+@user_product_cards.before_request
+@login_required
+@user_activated
+def product_cards_maintenance_guard():
+    if request.method == "GET":
+        flash(PC_MAINTENANCE_MESSAGE, "warning")
+        return redirect(url_for("main.enter"))
+
+    return jsonify(
+        status="error",
+        message=PC_MAINTENANCE_MESSAGE,
+        redirect_url=url_for("main.enter"),
+    ), 503
 
 
 @user_product_cards.route('/cards', methods=['GET'])
@@ -189,5 +211,4 @@ def create_card():
 #
 #     return helper_process_category_order(user=user, order=order, category=settings.Linen.CATEGORY,
 #                                          order_comment=order_comment)
-
 
