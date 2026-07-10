@@ -6,6 +6,8 @@ const RD_CHECK_VERDICT_LABELS = {
     active: {text: 'РД действителен', color: 'success'},
     expired: {text: 'РД недействителен: истёк срок действия', color: 'warning'},
     not_found: {text: 'РД недействителен: не найден в реестре', color: 'secondary'},
+    tnved_mismatch: {text: 'РД действителен, но ТНВЭД не совпадает — выберите подходящий ТНВЭД', color: 'warning'},
+    country_mismatch: {text: 'РД действителен, но страна не совпадает — выберите подходящую страну', color: 'warning'},
     error: {text: 'РД недействителен: ошибка проверки', color: 'danger'}
 };
 
@@ -35,7 +37,8 @@ function rdCheckSyncGate() {
     var type = document.getElementById('type').value;
     var gender = document.getElementById('gender').value;
     var tnved = document.getElementById('tnved_code').value;
-    var ready = !!(type && gender && tnved);
+    var country = document.getElementById('country').value;
+    var ready = !!(type && gender && tnved && country);
 
     var rdType = document.getElementById('rd_type');
     var rdName = document.getElementById('rd_name');
@@ -51,6 +54,7 @@ function rdCheckValidateFields() {
         {id: 'type', label: 'Вид одежды'},
         {id: 'gender', label: 'Пол'},
         {id: 'tnved_code', label: 'ТНВЭД'},
+        {id: 'country', label: 'Страна'},
         {id: 'rd_type', label: 'Тип документа'},
         {id: 'rd_name', label: 'Номер документа'}
     ];
@@ -82,6 +86,7 @@ function rdCheckSubmit(submitUrl, statusUrlTemplate, csrf) {
     var productType = document.getElementById('type').value;
     var gender = document.getElementById('gender').value;
     var tnvedCode = document.getElementById('tnved_code').value;
+    var country = document.getElementById('country').value;
     var resultBlock = document.getElementById('rdCheckResult');
     var submitBtn = document.getElementById('rdCheckSubmitBtn');
 
@@ -97,7 +102,8 @@ function rdCheckSubmit(submitUrl, statusUrlTemplate, csrf) {
             number: number,
             type: productType,
             gender: gender,
-            tnved_code: tnvedCode
+            tnved_code: tnvedCode,
+            country: country
         },
         success: function (data) {
             rdCheckPollStatus(statusUrlTemplate.replace('__id__', data.request_id), Date.now(), submitBtn);
@@ -163,6 +169,7 @@ function rdCheckContextHtml(data) {
         '<tr><th class="fw-normal">Вид товара</th><td>' + (data.product_type || '') + '</td></tr>' +
         '<tr><th class="fw-normal">Пол</th><td>' + (data.gender || '') + '</td></tr>' +
         '<tr><th class="fw-normal">ТНВЭД</th><td>' + (data.tnved_code || '') + '</td></tr>' +
+        '<tr><th class="fw-normal">Страна</th><td>' + (data.country || '') + '</td></tr>' +
         '<tr><th class="fw-normal">Документ</th><td>' + (data.number || '') + '</td></tr>' +
         '</table>';
 }
@@ -189,6 +196,9 @@ function rdCheckRenderResult(data) {
     }
 
     if (result.data) {
+        var rdTnveds = (result.data.tnved_codes || []).join(', ');
+        var tnvedRowClass = result.verdict === 'tnved_mismatch' ? ' class="table-warning"' : '';
+        var countryRowClass = result.verdict === 'country_mismatch' ? ' class="table-warning"' : '';
         html += '<table class="table table-bordered mb-0">' +
             '<tr><th>Номер</th><td>' + (result.data.number || '') + '</td></tr>' +
             '<tr><th>Заявитель</th><td>' + (result.data.applicant || '') + '</td></tr>' +
@@ -196,6 +206,8 @@ function rdCheckRenderResult(data) {
             '<tr><th>Товар</th><td>' + (result.data.product || '') + '</td></tr>' +
             '<tr><th>Дата регистрации</th><td>' + (result.data.reg_date || '') + '</td></tr>' +
             '<tr><th>Действует до</th><td>' + (result.data.end_date || '') + '</td></tr>' +
+            '<tr' + tnvedRowClass + '><th>ТНВЭД по РД</th><td>' + (rdTnveds || 'нет данных') + '</td></tr>' +
+            '<tr' + countryRowClass + '><th>Страна по РД</th><td>' + (result.data.country || 'нет данных') + '</td></tr>' +
             '</table>';
     }
 

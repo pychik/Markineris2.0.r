@@ -8,9 +8,11 @@ from .constants import (
     DOC_TYPE_CERTIFICATE,
     DOC_TYPE_DECLARATION,
     VERDICT_ACTIVE,
+    VERDICT_COUNTRY_MISMATCH,
     VERDICT_ERROR,
     VERDICT_EXPIRED,
     VERDICT_NOT_FOUND,
+    VERDICT_TNVED_MISMATCH,
 )
 from .exceptions import FsaApiError
 
@@ -40,6 +42,8 @@ def _verdict_for(raw: dict[str, Any]) -> tuple[str, dict[str, Any] | None]:
         "product": raw.get("product"),
         "reg_date": raw.get("reg_date"),
         "end_date": raw.get("end_date"),
+        "tnved_codes": raw.get("tnved_codes") or [],
+        "country": raw.get("country"),
     }
 
     end_date = _parse_end_date(raw.get("end_date"))
@@ -49,10 +53,23 @@ def _verdict_for(raw: dict[str, Any]) -> tuple[str, dict[str, Any] | None]:
     return VERDICT_ACTIVE, data
 
 
-def check_rd(doc_type: str, number: str) -> dict[str, Any]:
+def check_rd(
+    doc_type: str,
+    number: str,
+    tnved_code: str | None = None,
+    country: str | None = None,
+) -> dict[str, Any]:
     """Checks a declaration or certificate number against the FSA registry and returns a
-    result carrying an explicit verdict (found/active/expired), the same contract the future
-    order-creation RD check will rely on to accept/reject a document."""
+    result carrying an explicit verdict (found/active/expired/tnved_mismatch/country_mismatch),
+    the same contract the future order-creation RD check will rely on to accept/reject a document.
+
+    When `tnved_code`/`country` are given, they're compared against what FSA has on file for
+    this RD (resolved via the /nsi/api/multi reference lookup) - a document can be found and
+    still not valid for the position it's attached to if either doesn't match. Comparison is
+    skipped (not treated as a mismatch) when FSA didn't return data for that field - we can't
+    judge a mismatch we have no data for. TNVED is checked first; country is only checked if
+    TNVED already matched (a single verdict can only carry one problem at a time).
+    """
 
     if doc_type == DOC_TYPE_DECLARATION:
         client = get_fsa_declaration_client()
@@ -67,6 +84,16 @@ def check_rd(doc_type: str, number: str) -> dict[str, Any]:
         return {"ok": False, "found": False, "verdict": VERDICT_ERROR, "error": str(exc), "data": None}
 
     verdict, data = _verdict_for(raw)
+
+    if verdict == VERDICT_ACTIVE and tnved_code and data is not None:
+        rd_tnveds = data.get("tnved_codes") or []
+        if rd_tnveds and tnved_code not in rd_tnveds:
+            verdict = VERDICT_TNVED_MISMATCH
+
+    if verdict == VERDICT_ACTIVE and country and data is not None:
+        rd_country = data.get("country")
+        if rd_country and rd_country.strip().upper() != country.strip().upper():
+            verdict = VERDICT_COUNTRY_MISMATCH
 
     return {
         "ok": True,

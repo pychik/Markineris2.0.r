@@ -12,7 +12,7 @@ from fsa.constants import DOC_TYPE_CERTIFICATE, DOC_TYPE_DECLARATION
 from fsa.job_store import RdCheckJobStore
 from fsa.tasks import check_rd_task
 from redis_queue.connection import conn
-from tezaurus.runtime_catalogs import get_clothes_all_tnved, get_clothes_tnved_types
+from tezaurus.runtime_catalogs import get_all_countries, get_clothes_all_tnved, get_clothes_tnved_types
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 
 DOC_TYPE_OPTIONS = (
@@ -49,6 +49,7 @@ def h_rd_check_main():
         category_process_name=settings.Clothes.CATEGORY_PROCESS,
         types=get_clothes_tnved_types(CLOTHES_SUBCATEGORY),
         clothes_all_tnved=get_clothes_all_tnved(CLOTHES_SUBCATEGORY),
+        countries=get_all_countries(),
     )
 
 
@@ -58,13 +59,14 @@ def h_rd_check_submit():
     product_type = (request.form.get('type') or '').strip()
     gender = (request.form.get('gender') or '').strip()
     tnved_code = (request.form.get('tnved_code') or '').strip()
+    country = (request.form.get('country') or '').strip()
 
     valid_doc_types = {key for key, _ in DOC_TYPE_OPTIONS}
     if doc_type not in valid_doc_types or not number:
         return jsonify(status='error', message='Укажите тип документа и номер РД'), 400
 
-    if not product_type or not gender or not tnved_code:
-        return jsonify(status='error', message='Укажите вид товара, пол и ТНВЭД перед проверкой РД'), 400
+    if not product_type or not gender or not tnved_code or not country:
+        return jsonify(status='error', message='Укажите вид товара, пол, ТНВЭД и страну перед проверкой РД'), 400
 
     request_id = uuid.uuid4().hex
     job_store = RdCheckJobStore()
@@ -75,8 +77,15 @@ def h_rd_check_submit():
         product_type=product_type,
         gender=gender,
         tnved_code=tnved_code,
+        country=country,
     )
-    check_rd_task.delay(request_id=request_id, doc_type=doc_type, number=number)
+    check_rd_task.delay(
+        request_id=request_id,
+        doc_type=doc_type,
+        number=number,
+        tnved_code=tnved_code,
+        country=country,
+    )
 
     return jsonify(status='success', request_id=request_id), 200
 
