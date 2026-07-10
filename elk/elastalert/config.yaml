@@ -11,7 +11,7 @@ rules_folder: /opt/elastalert/rules
 run_every:
   minutes: 1
 buffer_time:
-  minutes: 15
+  minutes: 3
 
 # Elasticsearch index для хранения состояния ElastAlert
 writeback_index: elastalert_status

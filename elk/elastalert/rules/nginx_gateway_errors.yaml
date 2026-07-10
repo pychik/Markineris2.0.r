@@ -5,7 +5,7 @@ name: "Nginx Gateway Errors (502/503/504)"
 type: frequency
 
 index: nginx-*
-num_events: 15
+num_events: 30
 timeframe:
   minutes: 5
 
@@ -23,7 +23,7 @@ telegram_room_id: "${TELEGRAM_ALERTS_GROUP_ID}"
 alert_text: |
   🟠 <b>Nginx Gateway Errors — Marka Service</b>
 
-  За последние 5 минут зафиксировано 15+ ответов 502/503/504.
+  За последние 5 минут зафиксировано 30+ ответов 502/503/504.
   Gunicorn недоступен или перегружен.
 
   Проверьте: <code>docker ps</code>, <code>docker logs flask_app</code>
