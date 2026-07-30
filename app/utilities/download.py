@@ -20,7 +20,19 @@ from .support import order_count, helper_paginate_data, check_leather
 from .categories_data.underwear_data import UNDERWEAR_DEC_DICT, UNDERWEAR_TNVEDS
 from .categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_DEC_DICT
 from .categories_data.subcategories_logic import get_subcategory
+from .saving_helpers import (
+    NO_ARTICLE_PLACEHOLDERS,
+    NO_ARTICLE_VALUE,
+    NO_TRADEMARK_PLACEHOLDERS,
+    NO_TRADEMARK_VALUE,
+)
 from .telegram import TelegramProcessor
+
+
+PLACEHOLDER_EXPORTS = {
+    "article": (NO_ARTICLE_PLACEHOLDERS, NO_ARTICLE_VALUE),
+    "trademark": (NO_TRADEMARK_PLACEHOLDERS, NO_TRADEMARK_VALUE),
+}
 
 
 class OrdersProcessor(ProcessorInterface, ABC):
@@ -276,8 +288,8 @@ class OrdersProcessor(ProcessorInterface, ABC):
 
                 type_ = getattr(item, 'type', '') or ''
                 gender = getattr(item, 'gender', '') or ''  # ПОЛ
-                trademark = getattr(item, 'trademark', '') or ''  # ТОВАРНЫЙ ЗНАК
-                article = getattr(item, 'article', '') or ''  # АРТИКУЛ
+                trademark = OrdersProcessor.placeholder_export_value(getattr(item, 'trademark', ''), "trademark")
+                article = OrdersProcessor.placeholder_export_value(getattr(item, 'article', ''), "article")
                 color = getattr(item, 'color', '') or ''
                 size_val = getattr(size_obj, 'size', '') or ''
                 qty_val = getattr(s, 'quantity', None) or getattr(size_obj, 'quantity', '')
@@ -286,7 +298,7 @@ class OrdersProcessor(ProcessorInterface, ABC):
                 grouped.setdefault(type_, []).append((size_val, qty_val, color))
 
                 # Состав (строго по формуле)
-                chunk = f"{type_} {gender} {trademark} арт.  {article} {color} {size_val}"
+                chunk = f"{type_} {gender} {OrdersProcessor.eatp(trademark, 'trademark')} {OrdersProcessor.eatp(article, 'article')} {color} {size_val}"
                 composition_chunks.append(chunk)
 
                 # количества в наборе
@@ -313,7 +325,7 @@ class OrdersProcessor(ProcessorInterface, ABC):
             for s in sizes:
                 size_obj = s.cqs if aggr.category == 'clothes' else s.sqs
                 item = size_obj.clothes if aggr.category == 'clothes' else size_obj.socks
-                first_trademark = getattr(item, 'trademark', '') or ''
+                first_trademark = OrdersProcessor.placeholder_export_value(getattr(item, 'trademark', ''), "trademark")
                 if first_trademark:
                     break
 
@@ -376,14 +388,26 @@ class OrdersProcessor(ProcessorInterface, ABC):
         :return: Преобразованное значение в зависимости от условий.
         """
         match field_type:
-            case "article" if value.upper() == "ОТСУТСТВУЕТ":
+            case "article" if OrdersProcessor.is_placeholder(value, field_type):
                 return ""
-            case "trademark" if value.upper() == "БЕЗ ТОВАРНОГО ЗНАКА":
+            case "trademark" if OrdersProcessor.is_placeholder(value, field_type):
                 return ""
             case "article":
-                return "арт. " + value
+                return "арт. " + str(value or '')
             case _:
                 return value
+
+    @staticmethod
+    def is_placeholder(value: str | None, field_type: str) -> bool:
+        placeholders, _ = PLACEHOLDER_EXPORTS.get(field_type, (set(), ''))
+        return str(value or '').strip().upper() in placeholders
+
+    @staticmethod
+    def placeholder_export_value(value: str | None, field_type: str) -> str:
+        _, replacement = PLACEHOLDER_EXPORTS.get(field_type, (set(), ''))
+        if OrdersProcessor.is_placeholder(value, field_type):
+            return replacement
+        return str(value or '').strip()
 
 
 class ShoesProcessor(OrdersProcessor):
@@ -401,17 +425,19 @@ class ShoesProcessor(OrdersProcessor):
                 if not el.tnved_code else el.tnved_code
             declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
             for sq in el.sizes_quantities:
+                trademark = OrdersProcessor.placeholder_export_value(el.trademark, "trademark")
+                article = OrdersProcessor.placeholder_export_value(el.article, "article")
                 full_name = f'{el.type} {el.gender} {OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} ' \
                             f'{OrdersProcessor.eatp(value=el.article, field_type="article")} цвет. {el.color} р.{sq.size}'
 
                 temp_list = [tnved, full_name,
-                             el.trademark, "Артикул", el.article,
+                             trademark, "Артикул", article,
                              el.type, el.color, sq.size, el.material_top,
                              el.material_lining, el.material_bottom, tnved, '', '',
                              el.article_price, el.tax, el.box_quantity * sq.quantity, el.box_quantity,
                              sq.quantity, el.country, declar_doc,
                              ] if not flag_046 else \
-                    ['', '', '', el.article, actual_date, full_name, el.trademark, '',
+                    ['', '', '', article, actual_date, full_name, trademark, '',
                      settings.COUNTRIES_CODES.get(el.country), settings.Shoes.TYPES_CODES.get(el.type), el.material_top,
                              el.material_lining, el.material_bottom, el.color, settings.Shoes.SIZES_CODES.get(sq.size),
                      '' if sq.size in settings.Shoes.SIZES_ND else sq.size, tnved, '', sq.quantity, declar_doc, ]
@@ -453,6 +479,8 @@ class LinenProcessor(OrdersProcessor):
             declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
             table_type = el.type if el.type != 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ' else 'КОМПЛЕКТ'
             for sq in el.sizes_quantities:
+                trademark = OrdersProcessor.placeholder_export_value(el.trademark, "trademark")
+                article = OrdersProcessor.placeholder_export_value(el.article, "article")
                 if el.with_packages == 'да':
                     full_name = f'Комплект {el.type} {OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {sq.quantity} шт. ' \
                                 f'{OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color}, р.{sq.size} {sq.unit}'
@@ -462,7 +490,7 @@ class LinenProcessor(OrdersProcessor):
                                 f'{OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color}, р.{sq.size} {sq.unit}'
                     fin_quantity = sq.quantity * el.box_quantity
                 temp_list = [tnved, full_name,
-                             el.trademark, "Артикул", el.article,
+                             trademark, "Артикул", article,
                              table_type, el.color, el.customer_age, el.textile_type, el.content, sq.size,
                              tnved, settings.Linen.NUMBER_STANDART, '', '', el.article_price, el.tax,
                              fin_quantity, '', '', el.country, declar_doc, ]
@@ -484,6 +512,7 @@ class ParfumProcessor(OrdersProcessor):
         res_list_inner = []
 
         for el in orders_list:
+            trademark = OrdersProcessor.placeholder_export_value(el.trademark, "trademark")
             if el.with_packages == 'да':
                 full_name = f'Набор {el.type} {OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {el.quantity} шт., ' \
                             f'{el.volume} {el.volume_type}'
@@ -496,7 +525,7 @@ class ParfumProcessor(OrdersProcessor):
             tnved = ParfumProcessor.get_tnved(parfum_type=el.type) if not el.tnved_code else el.tnved_code
             declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
             temp_list = [tnved, full_name,
-                         el.trademark, el.volume_type, el.volume,
+                         trademark, el.volume_type, el.volume,
                          el.package_type, el.material_package, el.type,
                          tnved, settings.Parfum.NUMBER_STANDART,
                          settings.Parfum.STATUS, '',
@@ -575,6 +604,7 @@ class CosmeticsProcessor(OrdersProcessor):
         res_list_inner = []
 
         for el in orders_list:
+            trademark = OrdersProcessor.placeholder_export_value(el.trademark, "trademark")
             full_name = CosmeticsProcessor.build_full_name(el)
             category_code = CosmeticsProcessor.get_category_code(el.subcategory, el.tnved_code)
             certification = CosmeticsProcessor.get_certification(el)
@@ -582,7 +612,7 @@ class CosmeticsProcessor(OrdersProcessor):
 
             if CosmeticsProcessor.is_razor_subcategory(el.subcategory):
                 temp_list = [
-                    '', el.tnved_code, category_code, full_name, el.trademark,
+                    '', el.tnved_code, category_code, full_name, trademark,
                     el.nominal_quantity_type, el.nominal_quantity, el.type, el.blade_count,
                     el.complectation, el.usage_term_type, 'мес', el.service_life, el.tnved_code,
                     '', '', el.sl_date_from.strftime('%d.%m.%Y') if el.sl_date_from else '',
@@ -591,7 +621,7 @@ class CosmeticsProcessor(OrdersProcessor):
                 ]
             else:
                 temp_list = [
-                    '', el.tnved_code, category_code, full_name, el.trademark,
+                    '', el.tnved_code, category_code, full_name, trademark,
                     el.nominal_quantity_type, el.nominal_quantity, el.type, children_value,
                     el.usage_term_type, el.content_type, el.content, 'мес', el.service_life, el.tnved_code,
                     '', '', el.sl_date_from.strftime('%d.%m.%Y') if el.sl_date_from else '',
@@ -619,9 +649,10 @@ class CosmeticsProcessor(OrdersProcessor):
             full_name = self.build_full_name(el)
             category_code = self.get_category_code(el.subcategory, el.tnved_code)
             certification = self.get_certification(el)
+            trademark = OrdersProcessor.placeholder_export_value(el.trademark, "trademark")
             if self.is_razor_subcategory(el.subcategory):
                 rows.append([
-                    el.tnved_code, category_code, full_name, el.trademark,
+                    el.tnved_code, category_code, full_name, trademark,
                     el.nominal_quantity_type, el.nominal_quantity, el.type, el.blade_count,
                     el.complectation, el.usage_term_type, 'мес', el.service_life,
                     el.tnved_code,
@@ -631,7 +662,7 @@ class CosmeticsProcessor(OrdersProcessor):
                 ])
             else:
                 rows.append([
-                    el.tnved_code, category_code, full_name, el.trademark,
+                    el.tnved_code, category_code, full_name, trademark,
                     el.nominal_quantity_type, el.nominal_quantity, el.type, self.get_children_value(el),
                     el.usage_term_type, 'мес', el.service_life,
                     el.tnved_code,
@@ -658,6 +689,8 @@ class ClothesProcessor(OrdersProcessor):
             declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" \
                 if all([el.rd_date, el.rd_type, el.rd_name]) else ''
             for sq in el.sizes_quantities:
+                trademark = OrdersProcessor.placeholder_export_value(el.trademark, "trademark")
+                article = OrdersProcessor.placeholder_export_value(el.article, "article")
 
                 gender_dec = ClothesProcessor.get_gender_dec(clothes_type=el.type, gender=el.gender, subcategory=el.subcategory)
                 gender = ClothesProcessor.get_gender(gender=el.gender) if not flag_046 \
@@ -666,11 +699,11 @@ class ClothesProcessor(OrdersProcessor):
                             f'{OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color} р. {sq.size}'
 
                 temp_list = [tnved, category_code, full_name,
-                             el.trademark, 'Артикул', el.article, el.type, el.color, gender, sq.size_type, sq.size,
+                             trademark, 'Артикул', article, el.type, el.color, gender, sq.size_type, sq.size,
                              el.content, tnved, settings.Clothes.NUMBER_STANDART,
                              '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,
                              declar_doc, ] if not flag_046 else \
-                            ['', '', el.article, actual_date, full_name, el.trademark, settings.COUNTRIES_CODES.get(el.country), '',
+                            ['', '', article, actual_date, full_name, trademark, settings.COUNTRIES_CODES.get(el.country), '',
                              '', settings.Clothes.TYPES_CODES.get(el.type), '', tnved,
                              settings.Clothes.SYZE_TYPES_CODES.get(sq.size_type), sq.size, '', el.color, '', gender,
                              el.content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
@@ -750,6 +783,8 @@ class SocksProcessor(OrdersProcessor):
             declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" \
                 if all([el.rd_date, el.rd_type, el.rd_name]) else ''
             for sq in el.sizes_quantities:
+                trademark = OrdersProcessor.placeholder_export_value(el.trademark, "trademark")
+                article = OrdersProcessor.placeholder_export_value(el.article, "article")
 
                 gender_dec = SocksProcessor.get_gender_dec(clothes_type=el.type, gender=el.gender)
                 gender = SocksProcessor.get_gender(gender=el.gender) if not flag_046 \
@@ -758,11 +793,11 @@ class SocksProcessor(OrdersProcessor):
                             f'{OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color} р. {sq.size}'
 
                 temp_list = [tnved, category_code, full_name,
-                             el.trademark, 'Артикул', el.article, el.type, el.color, gender, sq.size_type, sq.size,
+                             trademark, 'Артикул', article, el.type, el.color, gender, sq.size_type, sq.size,
                              el.content, tnved, settings.Clothes.NUMBER_STANDART,
                              '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,
                              declar_doc, ] if not flag_046 else \
-                            ['', '', el.article, actual_date, full_name, el.trademark, settings.COUNTRIES_CODES.get(el.country), '',
+                            ['', '', article, actual_date, full_name, trademark, settings.COUNTRIES_CODES.get(el.country), '',
                              '', settings.Socks.TYPES_CODES.get(el.type), '', tnved,
                              settings.Socks.SYZE_TYPES_CODES.get(sq.size_type), sq.size, '', el.color, '', gender,
                              el.content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',

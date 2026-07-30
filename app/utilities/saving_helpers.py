@@ -8,9 +8,16 @@ from typing import Any
 from config import settings
 from utilities.exceptions import SizeTypeException
 
+NO_TRADEMARK_VALUE = 'без товарного знака'
+NO_ARTICLE_VALUE = 'отсутствует'
+NO_TRADEMARK_PLACEHOLDERS = {'БЕЗ ТОВАРНОГО ЗНАКА'}
+NO_ARTICLE_PLACEHOLDERS = {'БЕЗ АРТИКУЛА', 'ОТСУТСТВУЕТ'}
 
-def process_input_str(value: str) -> str:
+
+def process_input_str(value: str | None) -> str:
     """Normalize free-form text fields before they are stored or compared."""
+    if value is None:
+        return ""
     return value.replace("\"", '').replace("\'", '').replace(":", '').replace("?", '').strip()
 
 
@@ -22,9 +29,20 @@ def normalize_trademark_placeholder(value: str) -> str:
 
     compact = cleaned.replace(' ', '')
     if compact and len(set(compact)) == 1 and not compact[0].isalnum():
-        return 'БЕЗ ТОВАРНОГО ЗНАКА'
+        return NO_TRADEMARK_VALUE
 
     return cleaned
+
+
+def normalize_placeholder_value(value: Any, placeholders: set[str], replacement: str) -> Any:
+    normalized = normalize_key_value(value)
+    if isinstance(normalized, str) and normalized.upper() in placeholders:
+        return replacement
+    return normalized
+
+
+def normalize_article_placeholder(value: str | None) -> str:
+    return normalize_placeholder_value(process_input_str(value), NO_ARTICLE_PLACEHOLDERS, NO_ARTICLE_VALUE)
 
 
 def normalize_key_value(value: Any) -> Any:
@@ -101,7 +119,7 @@ def get_clothes_size_type(size: str, provided_type: str) -> str:
 def build_position_key(item: Any, category: str) -> tuple:
     """Build a stable comparison key for an order position."""
     common = (
-        normalize_key_value(item.trademark),
+        normalize_placeholder_value(item.trademark, NO_TRADEMARK_PLACEHOLDERS, NO_TRADEMARK_VALUE),
         normalize_key_value(item.tnved_code),
         normalize_key_value(item.country),
         normalize_key_value(item.rd_type),
@@ -115,7 +133,7 @@ def build_position_key(item: Any, category: str) -> tuple:
     match category:
         case settings.Shoes.CATEGORY:
             return common + (
-                normalize_key_value(item.article),
+                normalize_placeholder_value(item.article, NO_ARTICLE_PLACEHOLDERS, NO_ARTICLE_VALUE),
                 normalize_key_value(item.color),
                 normalize_key_value(item.material_top),
                 normalize_key_value(item.material_lining),
@@ -124,7 +142,7 @@ def build_position_key(item: Any, category: str) -> tuple:
             )
         case settings.Clothes.CATEGORY:
             return common + (
-                normalize_key_value(item.article),
+                normalize_placeholder_value(item.article, NO_ARTICLE_PLACEHOLDERS, NO_ARTICLE_VALUE),
                 normalize_key_value(item.color),
                 normalize_key_value(item.gender),
                 normalize_key_value(item.content),
@@ -132,14 +150,14 @@ def build_position_key(item: Any, category: str) -> tuple:
             )
         case settings.Socks.CATEGORY:
             return common + (
-                normalize_key_value(item.article),
+                normalize_placeholder_value(item.article, NO_ARTICLE_PLACEHOLDERS, NO_ARTICLE_VALUE),
                 normalize_key_value(item.color),
                 normalize_key_value(item.gender),
                 normalize_key_value(item.content),
             )
         case settings.Linen.CATEGORY:
             return common + (
-                normalize_key_value(item.article),
+                normalize_placeholder_value(item.article, NO_ARTICLE_PLACEHOLDERS, NO_ARTICLE_VALUE),
                 normalize_key_value(item.color),
                 normalize_key_value(item.customer_age),
                 normalize_key_value(item.textile_type),

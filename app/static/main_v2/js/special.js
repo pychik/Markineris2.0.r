@@ -693,11 +693,11 @@ function toggleArticleTrademarkField(checkbox, fieldId) {
 
         // Работа с полями
         if (fieldId === 'trademark') {
-            inputField.value = "БЕЗ ТОВАРНОГО ЗНАКА";
+            inputField.value = inputField.dataset.emptyValue || "БЕЗ ТОВАРНОГО ЗНАКА";
         } else if (fieldId === 'article') {
-            inputField.value = "ОТСУТСТВУЕТ";
+            inputField.value = inputField.dataset.emptyValue || "ОТСУТСТВУЕТ";
         } else {
-            inputField.value = "БЕЗ ДАННЫХ";
+            inputField.value = inputField.dataset.emptyValue || "БЕЗ ДАННЫХ";
         }
 
         inputField.style.display = "none";       // Скрыть оригинальное поле

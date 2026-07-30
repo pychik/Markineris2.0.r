@@ -16,8 +16,8 @@ from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.helpers.helpers_checks import _check_linen_compatibility, _check_clothes_compatibility, \
     _check_shoes_compatibility, rd_name_clean
 from utilities.exceptions import SizeTypeException
-from utilities.saving_helpers import append_or_merge_position, get_clothes_size_type, normalize_trademark_placeholder, \
-    process_input_str
+from utilities.saving_helpers import append_or_merge_position, get_clothes_size_type, normalize_article_placeholder, \
+    normalize_trademark_placeholder, process_input_str
 from utilities.validators import normalize_mark_type_full
 
 
@@ -34,8 +34,7 @@ def time_count(func):
 
 def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
-    article = process_input_str(form_dict.get("article"))
-    article = article if article.upper() != 'БЕЗ АРТИКУЛА' else 'ОТСУТСТВУЕТ'
+    article = normalize_article_placeholder(form_dict.get("article"))
 
     new_shoe_order = Shoe(trademark=process_input_str(form_dict.get("trademark")),
                           article=article, type=form_dict.get("type"),
@@ -59,8 +58,7 @@ def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
 
 def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcategory: str = None) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
-    article = process_input_str(form_dict.get("article"))
-    article = article if article.upper() != 'БЕЗ АРТИКУЛА' else 'ОТСУТСТВУЕТ'
+    article = normalize_article_placeholder(form_dict.get("article"))
 
     new_clothes_order = Clothes(trademark=process_input_str(form_dict.get("trademark")),
                                 article=article,
@@ -88,8 +86,7 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcateg
 
 def save_socks(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
-    article = process_input_str(form_dict.get("article"))
-    article = article if article.upper() != 'БЕЗ АРТИКУЛА' else 'ОТСУТСТВУЕТ'
+    article = normalize_article_placeholder(form_dict.get("article"))
 
     new_socks_order = Socks(trademark=process_input_str(form_dict.get("trademark")),
                               article=article,
@@ -113,8 +110,7 @@ def save_linen(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     # with_p = form_dict.get("with_packages")
     with_p = "False"
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
-    article = process_input_str(form_dict.get("article"))
-    article = article if article.upper() != 'БЕЗ АРТИКУЛА' else 'ОТСУТСТВУЕТ'
+    article = normalize_article_placeholder(form_dict.get("article"))
 
     new_linen_order = Linen(trademark=process_input_str(form_dict.get("trademark")),
                             article=article,
