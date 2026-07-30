@@ -74,9 +74,11 @@ def get_clothes_size_type(size: str, provided_type: str) -> str:
     provided_type = provided_type.strip()
     length_width_size_type = settings.Clothes.LENGTH_WIDTH_SIZE_TYPE
 
-    if provided_type == length_width_size_type:
+    legacy_length_width_size_type = 'ДЛИНА*ШИРИНА'
+
+    if provided_type in {length_width_size_type, legacy_length_width_size_type}:
         normalized_size = (size or '').strip()
-        size_match = re.fullmatch(r'(\d+(?:[.,]\d+)?)\*(\d+(?:[.,]\d+)?)\s+(мм|см)', normalized_size)
+        size_match = re.fullmatch(r'(\d+(?:[.,]\d+)?)\s*[-*xх]\s*(\d+(?:[.,]\d+)?)\s+(мм|см)', normalized_size)
         if not size_match:
             raise SizeTypeException(
                 f"Размер '{size}' не соответствует типу '{length_width_size_type}'."

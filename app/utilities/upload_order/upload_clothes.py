@@ -26,7 +26,7 @@ class ValidateClothesMixin:
     @staticmethod
     def _normalize_length_width_size(value: str) -> Optional[str]:
         size_match = re.fullmatch(
-            r'\s*(\d+(?:[.,]\d+)?)\s*[*xх]\s*(\d+(?:[.,]\d+)?)\s*(мм|см)\s*',
+            r'\s*(\d+(?:[.,]\d+)?)\s*[-*xх]\s*(\d+(?:[.,]\d+)?)\s*(мм|см)\s*',
             value or '',
             flags=re.IGNORECASE,
         )
@@ -37,7 +37,7 @@ class ValidateClothesMixin:
         if float(length_value.replace(',', '.')) <= 0 or float(width_value.replace(',', '.')) <= 0:
             return None
 
-        return f"{length_value}*{width_value} {unit_value.lower()}"
+        return f"{length_value}-{width_value} {unit_value.lower()}"
 
     @staticmethod
     def check_rows_cols(order_list: list) -> Optional[str]:
