@@ -17,7 +17,7 @@ from utilities.helpers.helpers_checks import _check_linen_compatibility, _check_
     _check_shoes_compatibility, rd_name_clean
 from utilities.exceptions import SizeTypeException
 from utilities.saving_helpers import append_or_merge_position, get_clothes_size_type, normalize_article_placeholder, \
-    normalize_trademark_placeholder, process_input_str
+    normalize_length_width_size_type, normalize_length_width_size_value, normalize_trademark_placeholder, process_input_str
 from utilities.validators import normalize_mark_type_full
 
 
@@ -324,7 +324,11 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
 
         new_sizes = []
         for sq in clothes.sizes_quantities:
-            new_sq = ClothesQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
+            new_sq = ClothesQuantitySize(
+                size=normalize_length_width_size_value(sq.size, sq.size_type),
+                quantity=sq.quantity,
+                size_type=normalize_length_width_size_type(sq.size_type),
+            )
             new_sizes.append(new_sq)
 
         new_clothes = Clothes(
@@ -362,7 +366,11 @@ def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) ->
 
         new_sizes = []
         for sq in sock.sizes_quantities:
-            new_sq = SocksQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
+            new_sq = SocksQuantitySize(
+                size=normalize_length_width_size_value(sq.size, sq.size_type),
+                quantity=sq.quantity,
+                size_type=normalize_length_width_size_type(sq.size_type),
+            )
             new_sizes.append(new_sq)
 
         new_socks = Socks(

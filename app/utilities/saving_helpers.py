@@ -12,6 +12,7 @@ NO_TRADEMARK_VALUE = 'без товарного знака'
 NO_ARTICLE_VALUE = 'отсутствует'
 NO_TRADEMARK_PLACEHOLDERS = {'БЕЗ ТОВАРНОГО ЗНАКА'}
 NO_ARTICLE_PLACEHOLDERS = {'БЕЗ АРТИКУЛА', 'ОТСУТСТВУЕТ'}
+LEGACY_LENGTH_WIDTH_SIZE_TYPE = 'ДЛИНА*ШИРИНА'
 
 
 def process_input_str(value: str | None) -> str:
@@ -45,6 +46,32 @@ def normalize_article_placeholder(value: str | None) -> str:
     return normalize_placeholder_value(process_input_str(value), NO_ARTICLE_PLACEHOLDERS, NO_ARTICLE_VALUE)
 
 
+def is_length_width_size_type(size_type: str | None) -> bool:
+    return str(size_type or '').strip() in {settings.Clothes.LENGTH_WIDTH_SIZE_TYPE, LEGACY_LENGTH_WIDTH_SIZE_TYPE}
+
+
+def normalize_length_width_size_type(size_type: str | None) -> str:
+    normalized_type = str(size_type or '').strip()
+    if is_length_width_size_type(normalized_type):
+        return settings.Clothes.LENGTH_WIDTH_SIZE_TYPE
+    return normalized_type
+
+
+def normalize_length_width_size_value(size: str | None, size_type: str | None) -> str:
+    normalized_size = str(size or '').strip()
+    if not is_length_width_size_type(size_type):
+        return normalized_size
+
+    return (
+        normalized_size
+        .replace('*', '-')
+        .replace('x', '-')
+        .replace('X', '-')
+        .replace('х', '-')
+        .replace('Х', '-')
+    )
+
+
 def normalize_key_value(value: Any) -> Any:
     """Trim string values before they participate in merge keys."""
     if isinstance(value, str):
@@ -74,9 +101,7 @@ def get_clothes_size_type(size: str, provided_type: str) -> str:
     provided_type = provided_type.strip()
     length_width_size_type = settings.Clothes.LENGTH_WIDTH_SIZE_TYPE
 
-    legacy_length_width_size_type = 'ДЛИНА*ШИРИНА'
-
-    if provided_type in {length_width_size_type, legacy_length_width_size_type}:
+    if is_length_width_size_type(provided_type):
         normalized_size = (size or '').strip()
         size_match = re.fullmatch(r'(\d+(?:[.,]\d+)?)\s*[-*xх]\s*(\d+(?:[.,]\d+)?)\s+(мм|см)', normalized_size)
         if not size_match:
@@ -198,7 +223,10 @@ def build_size_key(size_obj: Any, category: str) -> tuple:
         case settings.Shoes.CATEGORY:
             return (normalize_key_value(size_obj.size),)
         case settings.Clothes.CATEGORY | settings.Socks.CATEGORY:
-            return (normalize_key_value(size_obj.size), normalize_key_value(size_obj.size_type))
+            return (
+                normalize_length_width_size_value(size_obj.size, size_obj.size_type),
+                normalize_length_width_size_type(size_obj.size_type),
+            )
         case settings.Linen.CATEGORY:
             return (normalize_key_value(size_obj.size), normalize_key_value(getattr(size_obj, "unit", None)))
     raise ValueError(f"Unsupported category for size merge: {category}")

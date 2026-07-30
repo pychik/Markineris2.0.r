@@ -18,6 +18,7 @@ from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TYPES
 from utilities.categories_data.underwear_data import UNDERWEAR_TYPES
 from utilities.check_tnved import TnvedChecker
+from utilities.saving_helpers import is_length_width_size_type
 from utilities.upload_order.upload_common import empty_value, val_error_start, UploadCategory, handle_upload_exceptions, \
     check_article_value, normalize_trademark_placeholder
 
@@ -128,7 +129,7 @@ class ValidateClothesMixin:
         if size_value in settings.Clothes.UNITE_SIZE_VALUES:
             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = settings.Clothes.INTERNATIONAL_SIZE_TYPE
             return
-        if size_type == settings.Clothes.LENGTH_WIDTH_SIZE_TYPE:
+        if is_length_width_size_type(size_type):
             if subcategory == ClothesSubcategories.shawls.value:
                 order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = settings.Clothes.LENGTH_WIDTH_SIZE_TYPE
                 return
@@ -160,7 +161,7 @@ class ValidateClothesMixin:
         """
 
         # Нормализация / запись значения в order_list (как и раньше)
-        if size_type == settings.Clothes.LENGTH_WIDTH_SIZE_TYPE:
+        if is_length_width_size_type(size_type):
             normalized_size = ValidateClothesMixin._normalize_length_width_size(value)
             if not normalized_size:
                 return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_SIZE_ERROR}"

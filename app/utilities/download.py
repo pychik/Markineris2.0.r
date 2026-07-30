@@ -25,6 +25,8 @@ from .saving_helpers import (
     NO_ARTICLE_VALUE,
     NO_TRADEMARK_PLACEHOLDERS,
     NO_TRADEMARK_VALUE,
+    normalize_length_width_size_type,
+    normalize_length_width_size_value,
 )
 from .telegram import TelegramProcessor
 
@@ -291,7 +293,10 @@ class OrdersProcessor(ProcessorInterface, ABC):
                 trademark = OrdersProcessor.placeholder_export_value(getattr(item, 'trademark', ''), "trademark")
                 article = OrdersProcessor.placeholder_export_value(getattr(item, 'article', ''), "article")
                 color = getattr(item, 'color', '') or ''
-                size_val = getattr(size_obj, 'size', '') or ''
+                size_val = OrdersProcessor.normalize_length_width_size_for_export(
+                    getattr(size_obj, 'size', ''),
+                    getattr(size_obj, 'size_type', ''),
+                )
                 qty_val = getattr(s, 'quantity', None) or getattr(size_obj, 'quantity', '')
 
                 # Группировка по типу — для человекочитаемого имени набора
@@ -408,6 +413,14 @@ class OrdersProcessor(ProcessorInterface, ABC):
         if OrdersProcessor.is_placeholder(value, field_type):
             return replacement
         return str(value or '').strip()
+
+    @staticmethod
+    def normalize_length_width_size_for_export(size: str | None, size_type: str | None) -> str:
+        return normalize_length_width_size_value(size, size_type)
+
+    @staticmethod
+    def normalize_length_width_size_type_for_export(size_type: str | None) -> str:
+        return normalize_length_width_size_type(size_type)
 
 
 class ShoesProcessor(OrdersProcessor):
@@ -691,21 +704,23 @@ class ClothesProcessor(OrdersProcessor):
             for sq in el.sizes_quantities:
                 trademark = OrdersProcessor.placeholder_export_value(el.trademark, "trademark")
                 article = OrdersProcessor.placeholder_export_value(el.article, "article")
+                size_type = OrdersProcessor.normalize_length_width_size_type_for_export(sq.size_type)
+                size = OrdersProcessor.normalize_length_width_size_for_export(sq.size, sq.size_type)
 
                 gender_dec = ClothesProcessor.get_gender_dec(clothes_type=el.type, gender=el.gender, subcategory=el.subcategory)
                 gender = ClothesProcessor.get_gender(gender=el.gender) if not flag_046 \
                     else ClothesProcessor.get_gender_046(gender=el.gender)
                 full_name = f'{el.type} {gender_dec} ' \
-                            f'{OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color} р. {sq.size}'
+                            f'{OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color} р. {size}'
 
                 temp_list = [tnved, category_code, full_name,
-                             trademark, 'Артикул', article, el.type, el.color, gender, sq.size_type, sq.size,
+                             trademark, 'Артикул', article, el.type, el.color, gender, size_type, size,
                              el.content, tnved, settings.Clothes.NUMBER_STANDART,
                              '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,
                              declar_doc, ] if not flag_046 else \
                             ['', '', article, actual_date, full_name, trademark, settings.COUNTRIES_CODES.get(el.country), '',
                              '', settings.Clothes.TYPES_CODES.get(el.type), '', tnved,
-                             settings.Clothes.SYZE_TYPES_CODES.get(sq.size_type), sq.size, '', el.color, '', gender,
+                             settings.Clothes.SYZE_TYPES_CODES.get(size_type), size, '', el.color, '', gender,
                              el.content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
                              sq.quantity * el.box_quantity, declar_doc, ]
                 res_list_common.append(temp_list)
@@ -785,21 +800,23 @@ class SocksProcessor(OrdersProcessor):
             for sq in el.sizes_quantities:
                 trademark = OrdersProcessor.placeholder_export_value(el.trademark, "trademark")
                 article = OrdersProcessor.placeholder_export_value(el.article, "article")
+                size_type = OrdersProcessor.normalize_length_width_size_type_for_export(sq.size_type)
+                size = OrdersProcessor.normalize_length_width_size_for_export(sq.size, sq.size_type)
 
                 gender_dec = SocksProcessor.get_gender_dec(clothes_type=el.type, gender=el.gender)
                 gender = SocksProcessor.get_gender(gender=el.gender) if not flag_046 \
                     else SocksProcessor.get_gender_046(gender=el.gender)
                 full_name = f'{el.type} {gender_dec} ' \
-                            f'{OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color} р. {sq.size}'
+                            f'{OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color} р. {size}'
 
                 temp_list = [tnved, category_code, full_name,
-                             trademark, 'Артикул', article, el.type, el.color, gender, sq.size_type, sq.size,
+                             trademark, 'Артикул', article, el.type, el.color, gender, size_type, size,
                              el.content, tnved, settings.Clothes.NUMBER_STANDART,
                              '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,
                              declar_doc, ] if not flag_046 else \
                             ['', '', article, actual_date, full_name, trademark, settings.COUNTRIES_CODES.get(el.country), '',
                              '', settings.Socks.TYPES_CODES.get(el.type), '', tnved,
-                             settings.Socks.SYZE_TYPES_CODES.get(sq.size_type), sq.size, '', el.color, '', gender,
+                             settings.Socks.SYZE_TYPES_CODES.get(size_type), size, '', el.color, '', gender,
                              el.content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
                              sq.quantity * el.box_quantity, declar_doc, ]
                 res_list_common.append(temp_list)
