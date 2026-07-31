@@ -62,3 +62,13 @@
             <img src="{{ url_for('static', filename=cosmetics_icon_map.get(n.subcategory, 'crm_mod/img/icons/cosmetics_decor_ukhod.svg'), v='20260630-toilet-paper-outline') }}" alt="" class="img-fluid" style="width: 59%; height: 59%;">
         </div>
     {% endif %}
+    {% if n.is_rf_order %}
+        <span class="order-rf-badge" data-bs-toggle="tooltip" data-bs-placement="top"
+              data-bs-title="Все позиции заказа со страной РФ" aria-label="Все позиции заказа со страной РФ">
+            <svg class="order-rf-badge__flag" viewBox="0 0 36 36" aria-hidden="true" focusable="false" preserveAspectRatio="none">
+                <rect fill="#F2F4F7" width="36" height="12"/>
+                <rect fill="#3E6FB3" y="12" width="36" height="12"/>
+                <rect fill="#D84A42" y="24" width="36" height="12"/>
+            </svg>
+        </span>
+    {% endif %}

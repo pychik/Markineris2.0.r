@@ -27,6 +27,12 @@ class SQLQueryCategoriesAll:
                 "pos_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id, co.id))",
                 "marks_count": "SUM(COALESCE(sh.box_quantity * sh_qs.quantity, cl.box_quantity * cl_qs.quantity, sk.box_quantity * sk_qs.quantity, l.box_quantity * l_qs.quantity, p.quantity, co.quantity, 0))",
                 "rows_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id, co.id))",
+                "is_rf_order": f"""
+                                COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id, co.id)) > 0
+                                AND BOOL_AND(
+                                    UPPER(TRIM(COALESCE(sh.country, cl.country, sk.country, l.country, p.country, co.country, '')))
+                                    = '{settings.COUNTRY_RUSSIA}'
+                                )""",
                 "category_pos_type_max": "MAX(COALESCE(sh.type, cl.type, sk.type, l.type, p.type, co.type))",
                 "category_pos_type": "COALESCE(sh.type, cl.type, sk.type, l.type, p.type, co.type)",
                 "declar_doc": "COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date, co.rd_date))",
@@ -173,4 +179,3 @@ if __name__ == "__main__":
     print("JOINs для shoes:\n", SQLQueryFactory.get_joins(category="shoes"))
     print("\nЗапрос pos_count для shoes:\n", SQLQueryFactory.get_stmt(category="shoes", field="pos_count"))
     print("\nЗапрос category_pos_type_max для shoes:\n", SQLQueryFactory.get_stmt(category="shoes", field="category_pos_type_max"))
-

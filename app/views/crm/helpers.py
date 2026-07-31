@@ -117,6 +117,7 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   COUNT(o.id) as row_count,
                                   {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                   {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                  {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
                                   {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id
@@ -158,6 +159,7 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   COUNT(o.id) as row_count,
                                   {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                   {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                  {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
                                   {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id  
@@ -234,6 +236,7 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                           COUNT(o.id) as row_count,
                                           {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                           {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                          {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
                                           {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                                       FROM public.users u
                                           JOIN public.orders o ON o.user_id = u.id
@@ -285,6 +288,7 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                   COUNT(o.id) as row_count,
                                   {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                   {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                  {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
                                   {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id  
@@ -353,6 +357,7 @@ def helper_get_manager_orders(
                                  COUNT(o.id) as row_count,
                                  {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                  {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                 {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
                                  {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                              FROM public.users u
                                  JOIN public.orders o ON o.user_id = u.id
@@ -396,6 +401,7 @@ def helper_get_manager_orders(
                                   COUNT(o.id) as row_count,
                                   {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                   {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                  {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
                                   {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id
@@ -1798,6 +1804,7 @@ def h_get_agent_order_info(search_order_idn):
                                       COUNT(o.id) as row_count,
                                       {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                       {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                      {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
                                       {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                                   FROM public.users u
                                       JOIN public.orders o ON o.user_id = u.id  
@@ -1860,6 +1867,7 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                      COUNT(o.id) as row_count,
                                      {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                      {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                     {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
                                      {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                                  FROM public.users u
                                      JOIN public.orders o ON o.user_id = u.id
@@ -1903,6 +1911,7 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                       COUNT(o.id) as row_count,
                                       {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                       {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
+                                      {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
                                   {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                                   FROM public.users u
                                       JOIN public.orders o ON o.user_id = u.id
