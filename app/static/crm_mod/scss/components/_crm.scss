@@ -113,6 +113,8 @@
         font-size: 19px;
         color: var(--black);
         & span {
+            display: block;
+            line-height: 1.2;
             font-size: 16px;
             color: #737373;
         }
