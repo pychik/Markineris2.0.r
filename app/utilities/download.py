@@ -1,3 +1,4 @@
+import re
 import zipfile
 from abc import ABC
 from copy import copy
@@ -415,6 +416,26 @@ class OrdersProcessor(ProcessorInterface, ABC):
         return str(value or '').strip()
 
     @staticmethod
+    def normalize_export_content(value: str | None) -> str:
+        content = str(value or '').strip()
+        if not content:
+            return ''
+        if '\r' not in content and '\n' not in content and '_x000D_' not in content:
+            return content
+
+        normalized = content.replace('_x000D_', '\n').replace('\r\n', '\n').replace('\r', '\n')
+        parts = [part.strip() for part in normalized.split('\n') if part.strip()]
+        if not parts:
+            return ''
+
+        result = parts[0]
+        for part in parts[1:]:
+            separator = ' ' if result.rstrip().endswith(',') else ', '
+            result = f"{result.rstrip()}{separator}{part}"
+
+        return re.sub(r'\s+', ' ', result).strip()
+
+    @staticmethod
     def normalize_length_width_size_for_export(size: str | None, size_type: str | None) -> str:
         return normalize_length_width_size_value(size, size_type)
 
@@ -494,6 +515,7 @@ class LinenProcessor(OrdersProcessor):
             for sq in el.sizes_quantities:
                 trademark = OrdersProcessor.placeholder_export_value(el.trademark, "trademark")
                 article = OrdersProcessor.placeholder_export_value(el.article, "article")
+                content = OrdersProcessor.normalize_export_content(el.content)
                 if el.with_packages == 'да':
                     full_name = f'Комплект {el.type} {OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} {sq.quantity} шт. ' \
                                 f'{OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color}, р.{sq.size} {sq.unit}'
@@ -504,7 +526,7 @@ class LinenProcessor(OrdersProcessor):
                     fin_quantity = sq.quantity * el.box_quantity
                 temp_list = [tnved, full_name,
                              trademark, "Артикул", article,
-                             table_type, el.color, el.customer_age, el.textile_type, el.content, sq.size,
+                             table_type, el.color, el.customer_age, el.textile_type, content, sq.size,
                              tnved, settings.Linen.NUMBER_STANDART, '', '', el.article_price, el.tax,
                              fin_quantity, '', '', el.country, declar_doc, ]
                 res_list_common.append(temp_list)
@@ -564,16 +586,182 @@ class ParfumProcessor(OrdersProcessor):
 
 class CosmeticsProcessor(OrdersProcessor):
     RAZOR_SUBCATEGORY = "razor_blades_and_cassettes"
+    TOOTH_SUBCATEGORY = "cosmetics_tooth"
+    MATERIAL_WITH_CHILDREN_START_EXT = [
+        ['Код товара', 'Код ТНВЭД', 'Код категории', 'Полное наименование товара', 'Товарный знак',
+         'Номинальное количество', 'Номинальное количество', 'Вид товара', 'Предназначено для детей',
+         'Состав товара / материал изделия', 'Характеристика срока использования товара', 'Срок службы товара',
+         'Срок службы товара', 'Код ТНВЭД', 'Статус карточки товара в Каталоге',
+         'Результат обработки данных в Каталоге', '', '', '', '', '', ''],
+        ['GTIN', 'Tnved', 'k3', '2478', '2504', '23820', '23820', '12', '15823', '24341', '23513', '23515',
+         '23515', '13933', 'status', 'result', '', '', '', 'количество', 'страна', 'сертификация'],
+        ['value', 'value', 'value', 'value', 'value', 'type', 'value', 'value', 'value', 'value', 'value', 'type',
+         'value', 'value', 'value', 'value', '', '', '', 'количество', 'страна', 'сертификация'],
+        ['', '', 'Значение из справочника, id', 'Текстовое значение',
+         'Значение из справочника, Текстовое значение', 'Тип (из справочника)', 'Числовое значение',
+         'Значение из справочника, Текстовое значение', 'Значение из справочника, Текстовое значение',
+         'Текстовое значение', 'Значение из справочника, Текстовое значение', 'Тип (из справочника)',
+         'Числовое значение', 'Значение из справочника, Текстовое значение',
+         'Текстовое поле (Черновик или На модерации)', 'Заполняется автоматически при загрузке в систему',
+         '', '', '', 'количество', 'страна', 'сертификация']
+    ]
+    MATERIAL_WITH_CHILDREN_PRELOAD_START = [
+        'Код ТНВЭД',
+        'Код категории',
+        'Полное_наименование_товара',
+        'Товарный знак',
+        'Тип ном._кол-ва',
+        'Номинальное_количество',
+        'Вид товара',
+        'Для детей',
+        'Состав товара / материал изделия',
+        'Хар-ка срока использования',
+        'Ед. срока службы',
+        'Срок службы',
+        'Код ТНВЭД',
+        'Дата_от',
+        'Дата_до',
+        'Количество',
+        'Страна',
+        'Декларация соответствия',
+    ]
+    TOOTH_START_EXT = [
+        ['Код товара', 'Код ТНВЭД', 'Код категории', 'Полное наименование товара', 'Товарный знак',
+         'Номинальное количество', 'Номинальное количество', 'Вид товара', 'Предназначено для детей',
+         'Характеристика срока использования товара', 'Состав товара', 'Состав товара',
+         'Состав товара / материал изделия', 'Срок службы товара', 'Срок службы товара', 'Код ТНВЭД',
+         'Статус карточки товара в Каталоге', 'Результат обработки данных в Каталоге',
+         '', '', '', '', '', ''],
+        ['GTIN', 'Tnved', 'k3', '2478', '2504', '23820', '23820', '12', '15823', '23513',
+         '23847', '23847', '24341', '23515', '23515', '13933', 'status', 'result',
+         '', '', '', 'количество', 'страна', 'сертификация'],
+        ['value', 'value', 'value', 'value', 'value', 'type', 'value', 'value', 'value', 'value',
+         'type', 'value', 'value', 'type', 'value', 'value', 'value', 'value',
+         '', '', '', 'количество', 'страна', 'сертификация'],
+        ['', '', 'Значение из справочника, id', 'Текстовое значение',
+         'Значение из справочника, Текстовое значение', 'Тип (из справочника)', 'Числовое значение',
+         'Значение из справочника, Текстовое значение', 'Значение из справочника, Текстовое значение',
+         'Значение из справочника, Текстовое значение', 'Тип (из справочника)', 'Текстовое значение',
+         'Текстовое значение', 'Тип (из справочника)', 'Числовое значение',
+         'Значение из справочника, Текстовое значение', 'Текстовое поле (Черновик или На модерации)',
+         'Заполняется автоматически при загрузке в систему', '', '', '', 'количество', 'страна',
+         'сертификация']
+    ]
+    TOILET_PAPER_START_EXT = [
+        ['Код товара', 'Код ТНВЭД', 'Код категории', 'Полное наименование товара', 'Товарный знак',
+         'Номинальное количество', 'Номинальное количество', 'Вид товара', 'Характеристика слоев изделия',
+         'Предназначено для детей', 'Состав товара / материал изделия', 'Характеристика срока использования товара',
+         'Срок службы товара', 'Срок службы товара', 'Код ТНВЭД', 'Статус карточки товара в Каталоге',
+         'Результат обработки данных в Каталоге', '', '', '', '', '', ''],
+        ['GTIN', 'Tnved', 'k3', '2478', '2504', '23820', '23820', '12', '24342', '15823', '24341', '23513', '23515',
+         '23515', '13933', 'status', 'result', '', '', '', 'количество', 'страна', 'сертификация'],
+        ['value', 'value', 'value', 'value', 'value', 'type', 'value', 'value', 'value', 'value', 'value', 'value', 'type',
+         'value', 'value', 'value', 'value', '', '', '', 'количество', 'страна', 'сертификация'],
+        ['', '', 'Значение из справочника, id', 'Текстовое значение',
+         'Значение из справочника, Текстовое значение', 'Тип (из справочника)', 'Числовое значение',
+         'Значение из справочника, Текстовое значение', 'Значение из справочника, Текстовое значение',
+         'Значение из справочника, Текстовое значение', 'Текстовое значение', 'Значение из справочника, Текстовое значение',
+         'Тип (из справочника)', 'Числовое значение', 'Значение из справочника, Текстовое значение',
+         'Текстовое поле (Черновик или На модерации)', 'Заполняется автоматически при загрузке в систему',
+         '', '', '', 'количество', 'страна', 'сертификация']
+    ]
+    TOILET_PAPER_PRELOAD_START = [
+        'Код ТНВЭД',
+        'Код категории',
+        'Полное_наименование_товара',
+        'Товарный знак',
+        'Тип ном._кол-ва',
+        'Номинальное_количество',
+        'Вид товара',
+        'Характеристика слоев изделия',
+        'Для детей',
+        'Состав товара / материал изделия',
+        'Хар-ка срока использования',
+        'Ед. срока службы',
+        'Срок службы',
+        'Код ТНВЭД',
+        'Дата_от',
+        'Дата_до',
+        'Количество',
+        'Страна',
+        'Декларация соответствия',
+    ]
+    MATERIAL_NO_CHILDREN_START_EXT = [
+        ['Код товара', 'Код ТНВЭД', 'Код категории', 'Полное наименование товара', 'Товарный знак',
+         'Номинальное количество', 'Номинальное количество', 'Вид товара', 'Состав товара / материал изделия',
+         'Характеристика срока использования товара', 'Срок службы товара', 'Срок службы товара', 'Код ТНВЭД',
+         'Статус карточки товара в Каталоге', 'Результат обработки данных в Каталоге', '', '', '', '', ''],
+        ['GTIN', 'Tnved', 'k3', '2478', '2504', '23820', '23820', '12', '24341', '23513', '23515', '23515', '13933',
+         'status', 'result', '', '', 'количество', 'страна', 'сертификация'],
+        ['value', 'value', 'value', 'value', 'value', 'type', 'value', 'value', 'value', 'value', 'type', 'value', 'value',
+         'value', 'value', '', '', 'количество', 'страна', 'сертификация'],
+        ['', '', 'Значение из справочника, id', 'Текстовое значение',
+         'Значение из справочника, Текстовое значение', 'Тип (из справочника)', 'Числовое значение',
+         'Значение из справочника, Текстовое значение', 'Текстовое значение', 'Значение из справочника, Текстовое значение',
+         'Тип (из справочника)', 'Числовое значение', 'Значение из справочника, Текстовое значение',
+         'Текстовое поле (Черновик или На модерации)', 'Заполняется автоматически при загрузке в систему',
+         '', '', 'количество', 'страна', 'сертификация']
+    ]
+    MATERIAL_NO_CHILDREN_PRELOAD_START = [
+        'Код ТНВЭД',
+        'Код категории',
+        'Полное_наименование_товара',
+        'Товарный знак',
+        'Тип ном._кол-ва',
+        'Номинальное_количество',
+        'Вид товара',
+        'Состав товара / материал изделия',
+        'Хар-ка срока использования',
+        'Ед. срока службы',
+        'Срок службы',
+        'Код ТНВЭД',
+        'Дата_от',
+        'Дата_до',
+        'Количество',
+        'Страна',
+        'Декларация соответствия',
+    ]
 
     @classmethod
     def is_razor_subcategory(cls, subcategory: str | None) -> bool:
         return str(subcategory or '').strip() == cls.RAZOR_SUBCATEGORY
+
+    @classmethod
+    def is_tooth_subcategory(cls, subcategory: str | None) -> bool:
+        return str(subcategory or '').strip() == cls.TOOTH_SUBCATEGORY
 
     @staticmethod
     def get_subcategory_config(subcategory: str | None) -> dict | None:
         from views.main.categories.cosmetics.subcategories import get_subcategory_config
 
         return get_subcategory_config(subcategory)
+
+    @classmethod
+    def has_export_material_field(cls, subcategory: str | None) -> bool:
+        config = cls.get_subcategory_config(subcategory) or {}
+        return bool(config.get("export_has_material_field"))
+
+    @classmethod
+    def has_export_children_field(cls, subcategory: str | None) -> bool:
+        config = cls.get_subcategory_config(subcategory) or {}
+        return bool(config.get("export_has_children_field"))
+
+    @classmethod
+    def has_export_layers_field(cls, subcategory: str | None) -> bool:
+        config = cls.get_subcategory_config(subcategory) or {}
+        return bool(config.get("export_has_layers_field"))
+
+    @classmethod
+    def is_material_with_children_subcategory(cls, subcategory: str | None) -> bool:
+        return cls.has_export_material_field(subcategory) and cls.has_export_children_field(subcategory) and not cls.has_export_layers_field(subcategory)
+
+    @classmethod
+    def is_material_with_children_and_layers_subcategory(cls, subcategory: str | None) -> bool:
+        return cls.has_export_material_field(subcategory) and cls.has_export_children_field(subcategory) and cls.has_export_layers_field(subcategory)
+
+    @classmethod
+    def is_material_no_children_subcategory(cls, subcategory: str | None) -> bool:
+        return cls.has_export_material_field(subcategory) and not cls.has_export_children_field(subcategory) and not cls.has_export_layers_field(subcategory)
 
     @staticmethod
     def build_full_name(el) -> str:
@@ -590,13 +778,23 @@ class CosmeticsProcessor(OrdersProcessor):
 
     @classmethod
     def get_category_code(cls, subcategory: str, tnved_code: str | None = None) -> str:
-        config = cls.get_subcategory_config(subcategory) or {}
-        category_code_by_tnved = config.get("category_code_by_tnved", {}) or {}
-        if tnved_code and category_code_by_tnved:
-            resolved = str(category_code_by_tnved.get(str(tnved_code).strip(), '') or '').strip()
-            if resolved:
-                return resolved
-        return str(config.get("category_code", "") or "")
+        from views.main.categories.cosmetics.subcategories.registry import SUBCATEGORY_CONFIG
+
+        config = cls.get_subcategory_config(subcategory)
+        if config:
+            category_code_by_tnved = config.get("category_code_by_tnved", {}) or {}
+            if tnved_code and category_code_by_tnved:
+                resolved = str(category_code_by_tnved.get(str(tnved_code).strip(), '') or '').strip()
+                if resolved:
+                    return resolved
+            return str(config.get("category_code", "") or "")
+
+        # Fallback for legacy/invalid subcategory values to keep exports working.
+        default_config = next(iter(SUBCATEGORY_CONFIG.values()), None)
+        if not default_config:
+            return ""
+
+        return str(default_config.get("category_code", "") or "")
 
     @staticmethod
     def get_certification(el) -> str:
@@ -608,6 +806,14 @@ class CosmeticsProcessor(OrdersProcessor):
         first_subcategory = self.source_orders_list[0].subcategory if self.source_orders_list else None
         if self.is_razor_subcategory(first_subcategory):
             return copy(settings.Cosmetics.START_EXT_RAZOR)
+        if self.is_tooth_subcategory(first_subcategory):
+            return copy(self.TOOTH_START_EXT)
+        if self.is_material_with_children_and_layers_subcategory(first_subcategory):
+            return copy(self.TOILET_PAPER_START_EXT)
+        if self.is_material_no_children_subcategory(first_subcategory):
+            return copy(self.MATERIAL_NO_CHILDREN_START_EXT)
+        if self.is_material_with_children_subcategory(first_subcategory):
+            return copy(self.MATERIAL_WITH_CHILDREN_START_EXT)
         return copy(settings.Cosmetics.START_EXT)
 
     @staticmethod
@@ -622,26 +828,163 @@ class CosmeticsProcessor(OrdersProcessor):
             category_code = CosmeticsProcessor.get_category_code(el.subcategory, el.tnved_code)
             certification = CosmeticsProcessor.get_certification(el)
             children_value = CosmeticsProcessor.get_children_value(el)
+            content = OrdersProcessor.normalize_export_content(el.content)
 
             if CosmeticsProcessor.is_razor_subcategory(el.subcategory):
                 temp_list = [
-                    '', el.tnved_code, category_code, full_name, trademark,
-                    el.nominal_quantity_type, el.nominal_quantity, el.type, el.blade_count,
-                    el.complectation, el.usage_term_type, 'мес', el.service_life, el.tnved_code,
-                    '', '', el.sl_date_from.strftime('%d.%m.%Y') if el.sl_date_from else '',
+                    '',
+                    el.tnved_code,
+                    category_code,
+                    full_name,
+                    trademark,
+                    el.nominal_quantity_type,
+                    el.nominal_quantity,
+                    el.type,
+                    el.blade_count,
+                    el.complectation,
+                    el.usage_term_type,
+                    'мес',
+                    el.service_life,
+                    el.tnved_code,
+                    '',
+                    '',
+                    el.sl_date_from.strftime('%d.%m.%Y') if el.sl_date_from else '',
                     el.sl_date_to.strftime('%d.%m.%Y') if el.sl_date_to else '',
-                    el.quantity, el.country, certification,
+                    el.quantity,
+                    el.country,
+                    certification,
+                ]
+            elif CosmeticsProcessor.is_tooth_subcategory(el.subcategory):
+                tnved_code = str(el.tnved_code or '').strip()
+                content_type = el.content_type if tnved_code in ('3306100000', '3306900000') else ''
+                content_product = content if tnved_code in ('3306100000', '3306900000') else ''
+                content_material = content if tnved_code in ('3306200000', '9603210000') else ''
+                temp_list = [
+                    '',
+                    el.tnved_code,
+                    category_code,
+                    full_name,
+                    trademark,
+                    el.nominal_quantity_type,
+                    el.nominal_quantity,
+                    el.type,
+                    children_value,
+                    el.usage_term_type,
+                    content_type,
+                    content_product,
+                    content_material,
+                    'мес',
+                    el.service_life,
+                    el.tnved_code,
+                    '',
+                    '',
+                    el.sl_date_from.strftime('%d.%m.%Y') if el.sl_date_from else '',
+                    el.sl_date_to.strftime('%d.%m.%Y') if el.sl_date_to else '',
+                    '',
+                    el.quantity,
+                    el.country,
+                    certification,
+                ]
+            elif CosmeticsProcessor.is_material_with_children_subcategory(el.subcategory):
+                temp_list = [
+                    '',
+                    el.tnved_code,
+                    category_code,
+                    full_name,
+                    trademark,
+                    el.nominal_quantity_type,
+                    el.nominal_quantity,
+                    el.type,
+                    children_value,
+                    content,
+                    el.usage_term_type,
+                    'мес',
+                    el.service_life,
+                    el.tnved_code,
+                    '',
+                    '',
+                    el.sl_date_from.strftime('%d.%m.%Y') if el.sl_date_from else '',
+                    el.sl_date_to.strftime('%d.%m.%Y') if el.sl_date_to else '',
+                    '',
+                    el.quantity,
+                    el.country,
+                    certification,
+                ]
+            elif CosmeticsProcessor.is_material_with_children_and_layers_subcategory(el.subcategory):
+                temp_list = [
+                    '',
+                    el.tnved_code,
+                    category_code,
+                    full_name,
+                    trademark,
+                    el.nominal_quantity_type,
+                    el.nominal_quantity,
+                    el.type,
+                    el.layers_characteristic,
+                    children_value,
+                    content,
+                    el.usage_term_type,
+                    'мес',
+                    el.service_life,
+                    el.tnved_code,
+                    '',
+                    '',
+                    el.sl_date_from.strftime('%d.%m.%Y') if el.sl_date_from else '',
+                    el.sl_date_to.strftime('%d.%m.%Y') if el.sl_date_to else '',
+                    '',
+                    el.quantity,
+                    el.country,
+                    certification,
+                ]
+            elif CosmeticsProcessor.is_material_no_children_subcategory(el.subcategory):
+                temp_list = [
+                    '',
+                    el.tnved_code,
+                    category_code,
+                    full_name,
+                    trademark,
+                    el.nominal_quantity_type,
+                    el.nominal_quantity,
+                    el.type,
+                    content,
+                    el.usage_term_type,
+                    'мес',
+                    el.service_life,
+                    el.tnved_code,
+                    '',
+                    '',
+                    el.sl_date_from.strftime('%d.%m.%Y') if el.sl_date_from else '',
+                    el.sl_date_to.strftime('%d.%m.%Y') if el.sl_date_to else '',
+                    el.quantity,
+                    el.country,
+                    certification,
                 ]
             else:
                 temp_list = [
-                    '', el.tnved_code, category_code, full_name, trademark,
-                    el.nominal_quantity_type, el.nominal_quantity, el.type, children_value,
-                    el.usage_term_type, el.content_type, el.content, 'мес', el.service_life, el.tnved_code,
-                    '', '', el.sl_date_from.strftime('%d.%m.%Y') if el.sl_date_from else '',
+                    '',
+                    el.tnved_code,
+                    category_code,
+                    full_name,
+                    trademark,
+                    el.nominal_quantity_type,
+                    el.nominal_quantity,
+                    el.type,
+                    children_value,
+                    el.usage_term_type,
+                    el.content_type,
+                    content,
+                    'мес',
+                    el.service_life,
+                    el.tnved_code,
+                    '',
+                    '',
+                    el.sl_date_from.strftime('%d.%m.%Y') if el.sl_date_from else '',
                     el.sl_date_to.strftime('%d.%m.%Y') if el.sl_date_to else '',
-                    '', el.quantity, el.country, certification,
+                    '',
+                    el.quantity,
+                    el.country,
+                    certification,
                 ]
-
             res_list_common.append(temp_list)
             if (el.country or '').upper() in settings.COUNTRIES_INNER:
                 res_list_inner.append(temp_list)
@@ -649,41 +992,6 @@ class CosmeticsProcessor(OrdersProcessor):
                 res_list_outer.append(temp_list)
 
         return res_list_common, res_list_outer, res_list_inner
-
-    def get_preload_start(self) -> list:
-        first_subcategory = self.source_orders_list[0].subcategory if self.source_orders_list else None
-        if self.is_razor_subcategory(first_subcategory):
-            return copy(settings.Cosmetics.START_PRELOAD_RAZOR)
-        return copy(settings.Cosmetics.START_PRELOAD)
-
-    def prepare_preload_rows(self) -> list[list]:
-        rows = []
-        for el in self.source_orders_list:
-            full_name = self.build_full_name(el)
-            category_code = self.get_category_code(el.subcategory, el.tnved_code)
-            certification = self.get_certification(el)
-            trademark = OrdersProcessor.placeholder_export_value(el.trademark, "trademark")
-            if self.is_razor_subcategory(el.subcategory):
-                rows.append([
-                    el.tnved_code, category_code, full_name, trademark,
-                    el.nominal_quantity_type, el.nominal_quantity, el.type, el.blade_count,
-                    el.complectation, el.usage_term_type, 'мес', el.service_life,
-                    el.tnved_code,
-                    el.sl_date_from.strftime('%d.%m.%Y') if el.sl_date_from else '',
-                    el.sl_date_to.strftime('%d.%m.%Y') if el.sl_date_to else '',
-                    el.quantity, el.country, certification,
-                ])
-            else:
-                rows.append([
-                    el.tnved_code, category_code, full_name, trademark,
-                    el.nominal_quantity_type, el.nominal_quantity, el.type, self.get_children_value(el),
-                    el.usage_term_type, 'мес', el.service_life,
-                    el.tnved_code,
-                    el.sl_date_from.strftime('%d.%m.%Y') if el.sl_date_from else '',
-                    el.sl_date_to.strftime('%d.%m.%Y') if el.sl_date_to else '',
-                    el.quantity, el.country, certification,
-                ])
-        return rows
 
 
 class ClothesProcessor(OrdersProcessor):
@@ -706,6 +1014,7 @@ class ClothesProcessor(OrdersProcessor):
                 article = OrdersProcessor.placeholder_export_value(el.article, "article")
                 size_type = OrdersProcessor.normalize_length_width_size_type_for_export(sq.size_type)
                 size = OrdersProcessor.normalize_length_width_size_for_export(sq.size, sq.size_type)
+                content = OrdersProcessor.normalize_export_content(el.content)
 
                 gender_dec = ClothesProcessor.get_gender_dec(clothes_type=el.type, gender=el.gender, subcategory=el.subcategory)
                 gender = ClothesProcessor.get_gender(gender=el.gender) if not flag_046 \
@@ -715,13 +1024,13 @@ class ClothesProcessor(OrdersProcessor):
 
                 temp_list = [tnved, category_code, full_name,
                              trademark, 'Артикул', article, el.type, el.color, gender, size_type, size,
-                             el.content, tnved, settings.Clothes.NUMBER_STANDART,
+                             content, tnved, settings.Clothes.NUMBER_STANDART,
                              '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,
                              declar_doc, ] if not flag_046 else \
                             ['', '', article, actual_date, full_name, trademark, settings.COUNTRIES_CODES.get(el.country), '',
                              '', settings.Clothes.TYPES_CODES.get(el.type), '', tnved,
                              settings.Clothes.SYZE_TYPES_CODES.get(size_type), size, '', el.color, '', gender,
-                             el.content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
+                             content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
                              sq.quantity * el.box_quantity, declar_doc, ]
                 res_list_common.append(temp_list)
                 if el.country.upper() in settings.COUNTRIES_INNER:
@@ -802,6 +1111,7 @@ class SocksProcessor(OrdersProcessor):
                 article = OrdersProcessor.placeholder_export_value(el.article, "article")
                 size_type = OrdersProcessor.normalize_length_width_size_type_for_export(sq.size_type)
                 size = OrdersProcessor.normalize_length_width_size_for_export(sq.size, sq.size_type)
+                content = OrdersProcessor.normalize_export_content(el.content)
 
                 gender_dec = SocksProcessor.get_gender_dec(clothes_type=el.type, gender=el.gender)
                 gender = SocksProcessor.get_gender(gender=el.gender) if not flag_046 \
@@ -811,13 +1121,13 @@ class SocksProcessor(OrdersProcessor):
 
                 temp_list = [tnved, category_code, full_name,
                              trademark, 'Артикул', article, el.type, el.color, gender, size_type, size,
-                             el.content, tnved, settings.Clothes.NUMBER_STANDART,
+                             content, tnved, settings.Clothes.NUMBER_STANDART,
                              '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,
                              declar_doc, ] if not flag_046 else \
                             ['', '', article, actual_date, full_name, trademark, settings.COUNTRIES_CODES.get(el.country), '',
                              '', settings.Socks.TYPES_CODES.get(el.type), '', tnved,
                              settings.Socks.SYZE_TYPES_CODES.get(size_type), size, '', el.color, '', gender,
-                             el.content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
+                             content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
                              sq.quantity * el.box_quantity, declar_doc, ]
                 res_list_common.append(temp_list)
                 if el.country.upper() in settings.COUNTRIES_INNER:
@@ -1052,6 +1362,183 @@ def upload_errors_file(error_list: list) -> BytesIO:
     return output
 
 
+def _cosmetics_common_preload(company_idn: str, orders_list: list) -> tuple[list, list]:
+    is_razor_preload = bool(orders_list) and CosmeticsProcessor.is_razor_subcategory(orders_list[0].subcategory)
+    is_tooth_preload = bool(orders_list) and CosmeticsProcessor.is_tooth_subcategory(orders_list[0].subcategory)
+    is_material_with_children_and_layers_preload = bool(orders_list) and CosmeticsProcessor.is_material_with_children_and_layers_subcategory(orders_list[0].subcategory)
+    is_material_no_children_preload = bool(orders_list) and CosmeticsProcessor.is_material_no_children_subcategory(orders_list[0].subcategory)
+    is_material_with_children_preload = bool(orders_list) and CosmeticsProcessor.is_material_with_children_subcategory(orders_list[0].subcategory)
+    if is_razor_preload:
+        start_list = copy(settings.Cosmetics.START_PRELOAD_RAZOR)
+    elif is_tooth_preload:
+        start_list = [
+            'Код ТНВЭД',
+            'Код категории',
+            'Полное_наименование_товара',
+            'Товарный знак',
+            'Тип ном._кол-ва',
+            'Номинальное_количество',
+            'Вид товара',
+            'Для детей',
+            'Хар-ка срока использования',
+            'Тип состава',
+            'Состав товара',
+            'Состав товара / материал изделия',
+            'Ед. срока службы',
+            'Срок службы',
+            'Код ТНВЭД',
+            'Дата_от',
+            'Дата_до',
+            'Количество',
+            'Страна',
+            'Декларация соответствия',
+        ]
+    elif is_material_with_children_and_layers_preload:
+        start_list = copy(CosmeticsProcessor.TOILET_PAPER_PRELOAD_START)
+    elif is_material_no_children_preload:
+        start_list = copy(CosmeticsProcessor.MATERIAL_NO_CHILDREN_PRELOAD_START)
+    elif is_material_with_children_preload:
+        start_list = copy(CosmeticsProcessor.MATERIAL_WITH_CHILDREN_PRELOAD_START)
+    else:
+        start_list = copy(settings.Cosmetics.START_PRELOAD)
+
+    c_proc = CosmeticsProcessor(company_idn=company_idn, category=settings.Cosmetics.CATEGORY, orders_list=orders_list)
+    res_list_raw = c_proc.orders_list
+    if is_razor_preload:
+        res_list = list(map(lambda x: [
+            x[1],   # Код ТНВЭД
+            x[2],   # Код категории
+            x[3],   # Полное наименование
+            x[4],   # Товарный знак
+            x[5],   # Тип ед. в потреб. упаковке
+            x[6],   # Кол-во ед. в потреб. упаковке
+            x[7],   # Вид товара
+            x[8],   # Кол-во лезвий
+            x[9],   # Комплектация
+            x[10],  # Хар-ка срока использования
+            x[11],  # Ед. срока службы
+            x[12],  # Срок службы
+            x[13],  # Код ТНВЭД
+            x[16],  # Дата_от
+            x[17],  # Дата_до
+            x[18],  # Количество
+            x[19],  # Страна
+            x[20],  # Сертификация
+        ], res_list_raw))
+    elif is_tooth_preload:
+        def build_tooth_preload_row(x):
+            return [
+                x[1],   # Код ТНВЭД
+                x[2],   # Код категории
+                x[3],   # Полное наименование
+                x[4],   # Товарный знак
+                x[5],   # Тип ном. кол-ва
+                x[6],   # Номинальное количество
+                x[7],   # Вид товара
+                x[8],   # Для детей
+                x[9],   # Хар-ка срока использования
+                x[10],  # Тип состава
+                x[11],  # Состав товара
+                x[12],  # Состав товара / материал изделия
+                x[13],  # Ед. срока службы
+                x[14],  # Срок службы
+                x[15],  # Код ТНВЭД
+                x[18],  # Дата_от
+                x[19],  # Дата_до
+                x[21],  # Количество
+                x[22],  # Страна
+                x[23],  # Сертификация
+            ]
+        res_list = list(map(build_tooth_preload_row, res_list_raw))
+    elif is_material_with_children_and_layers_preload:
+        res_list = list(map(lambda x: [
+            x[1],   # Код ТНВЭД
+            x[2],   # Код категории
+            x[3],   # Полное наименование
+            x[4],   # Товарный знак
+            x[5],   # Тип ном. кол-ва
+            x[6],   # Номинальное количество
+            x[7],   # Вид товара
+            x[8],   # Характеристика слоев изделия
+            x[9],   # Для детей
+            x[10],  # Состав товара / материал изделия
+            x[11],  # Хар-ка срока использования
+            x[12],  # Ед. срока службы
+            x[13],  # Срок службы
+            x[14],  # Код ТНВЭД
+            x[17],  # Дата_от
+            x[18],  # Дата_до
+            x[20],  # Количество
+            x[21],  # Страна
+            x[22],  # Сертификация
+        ], res_list_raw))
+    elif is_material_no_children_preload:
+        res_list = list(map(lambda x: [
+            x[1],   # Код ТНВЭД
+            x[2],   # Код категории
+            x[3],   # Полное наименование
+            x[4],   # Товарный знак
+            x[5],   # Тип ном. кол-ва
+            x[6],   # Номинальное количество
+            x[7],   # Вид товара
+            x[8],   # Состав товара / материал изделия
+            x[9],   # Хар-ка срока использования
+            x[10],  # Ед. срока службы
+            x[11],  # Срок службы
+            x[12],  # Код ТНВЭД
+            x[15],  # Дата_от
+            x[16],  # Дата_до
+            x[17],  # Количество
+            x[18],  # Страна
+            x[19],  # Сертификация
+        ], res_list_raw))
+    elif is_material_with_children_preload:
+        res_list = list(map(lambda x: [
+            x[1],   # Код ТНВЭД
+            x[2],   # Код категории
+            x[3],   # Полное наименование
+            x[4],   # Товарный знак
+            x[5],   # Тип ном. кол-ва
+            x[6],   # Номинальное количество
+            x[7],   # Вид товара
+            x[8],   # Для детей
+            x[10],  # Хар-ка срока использования
+            x[9],   # Состав товара / материал изделия
+            x[11],  # Ед. срока службы
+            x[12],  # Срок службы
+            x[13],  # Код ТНВЭД
+            x[16],  # Дата_от
+            x[17],  # Дата_до
+            x[19],  # Количество
+            x[20],  # Страна
+            x[21],  # Сертификация
+        ], res_list_raw))
+    else:
+        res_list = list(map(lambda x: [
+            x[1],   # Код ТНВЭД
+            x[2],   # Код категории
+            x[3],   # Полное наименование
+            x[4],   # Товарный знак
+            x[5],   # Тип ном. кол-ва
+            x[6],   # Номинальное количество
+            x[7],   # Вид товара
+            x[8],   # Для детей
+            x[9],   # Хар-ка срока использования
+            x[10],  # Тип состава
+            x[11],  # Состав товара
+            x[12],  # Ед. срока службы
+            x[13],  # Срок службы
+            x[14],  # Код ТНВЭД
+            x[17],  # Дата_от
+            x[18],  # Дата_до
+            x[20],  # Количество
+            x[21],  # Страна
+            x[22],  # Сертификация
+        ], res_list_raw))
+
+    return start_list, res_list
+
+
 def orders_common_preload(category: str, company_idn: str, orders_list: list) -> tuple:
     start_list, res_list = [], []
 
@@ -1089,9 +1576,7 @@ def orders_common_preload(category: str, company_idn: str, orders_list: list) ->
         # res_list = list(map(lambda x: x[:9] + x[12:15] + x[17:], res_list_raw))
         res_list = list(map(lambda x: x[1:8] + x[12:15] + x[17:], res_list_raw))
     elif category == settings.Cosmetics.CATEGORY:
-        c_proc = CosmeticsProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
-        start_list = c_proc.get_preload_start()
-        res_list = c_proc.prepare_preload_rows()
+        start_list, res_list = _cosmetics_common_preload(company_idn=company_idn, orders_list=orders_list)
 
     page, per_page, offset, pagination, order_list = helper_paginate_data(data=res_list,
                                                                           per_page=settings.PAGINATION_PER_PAGE_PRELOAD)
@@ -1129,9 +1614,7 @@ def crm_orders_common_preload(category: str, company_idn: str, orders_list: list
         res_list_raw = p_proc.orders_list
         res_list = list(map(lambda x: x[1:8] + x[12:15] + x[17:], res_list_raw))
     elif category == settings.Cosmetics.CATEGORY:
-        c_proc = CosmeticsProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
-        start_list = c_proc.get_preload_start()
-        res_list = c_proc.prepare_preload_rows()
+        start_list, res_list = _cosmetics_common_preload(company_idn=company_idn, orders_list=orders_list)
 
     page, per_page, offset, pagination, order_list = helper_paginate_data(data=res_list,
                                                                           per_page=settings.PAGINATION_PER_PAGE_PRELOAD,
