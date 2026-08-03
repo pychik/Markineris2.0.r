@@ -899,6 +899,16 @@ SOCKS_SIZES_NO_GENDER: dict = {
         )
     }
 
+SOCKS_ST_SPECIAL: tuple = (('ONE SIZE', ''), )
+
+for _socks_sizes_dict in (
+    SOCKS_SIZES_WOMEN,
+    SOCKS_SIZES_MEN,
+    SOCKS_SIZES_CHILDREN,
+    SOCKS_SIZES_NO_GENDER,
+):
+    _socks_sizes_dict['ОСОБЫЕ_РАЗМЕРЫ'] = SOCKS_ST_SPECIAL
+
 SOCKS_TYPES_SIZES_DICT: dict = {'Жен.': SOCKS_SIZES_WOMEN, "Унисекс": SOCKS_SIZES_WOMEN, 'Муж.': SOCKS_SIZES_MEN,
                                 'Детск.': SOCKS_SIZES_CHILDREN, 'Без указания пола': SOCKS_SIZES_NO_GENDER }
 

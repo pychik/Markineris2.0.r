@@ -3,6 +3,21 @@ function socks_check_sizes_quantity_valid() {
     return sizes.length >= 1;
 }
 
+function socksSizeInputId(size) {
+    return `size_${String(size).replace(/[^0-9A-Za-zА-Яа-яЁё_-]/g, '_')}`;
+}
+
+function socksSizeCheckId(size) {
+    return `check_${String(size).replace(/[^0-9A-Za-zА-Яа-яЁё_-]/g, '_')}`;
+}
+
+function normalizeSocksSizeType(size, sizeType) {
+    if (size === 'ONE SIZE' || sizeType === 'ОСОБЫЕ_РАЗМЕРЫ') {
+        return 'МЕЖДУНАРОДНЫЙ';
+    }
+    return sizeType;
+}
+
 
 
 function socks_clear_pos() {
@@ -318,8 +333,8 @@ function chooseSizeSocks() {
 }
 
 function setQuantitySize(size) {
- let quantityInput = document.getElementById(`size_${size}`);
- let check = document.getElementById(`check_${size}`);
+ let quantityInput = document.getElementById(socksSizeInputId(size));
+ let check = document.getElementById(socksSizeCheckId(size));
      if (quantityInput.disabled) {
         // включили размер
         quantityInput.disabled = false;
@@ -349,10 +364,10 @@ function updateSizesQuantityBlock() {
     selectedSizes.forEach(input => {
 
 
-        let size = input.getAttribute('id').replace('size_', '');
+        let size = input.getAttribute('data-size-value') || input.getAttribute('id').replace('size_', '');
         let quantity = input.value;
         let sizeType = input.getAttribute('data-size-type'); // Get the size type}
-        if (size==='ЕДИНЫЙ РАЗМЕР'){sizeType = 'РОССИЯ';}
+        sizeType = normalizeSocksSizeType(size, sizeType);
 
 
         // Create HTML for the size, size type, and quantity
@@ -405,14 +420,17 @@ function create_size_blocks(sizes, clothingType){
 
     for (let i = 0; i < sizes.length; i++) {
         let size = sizes[i]; // [буквенный, обувной]
+        let inputId = socksSizeInputId(size[0]);
+        let checkId = socksSizeCheckId(size[0]);
+        let effectiveSizeType = normalizeSocksSizeType(size[0], clothingType);
         let sizeAlreadyExists = false;
         let quantity = 0;
 
         document.querySelectorAll('#sizes_quantity .important-card__size').forEach(item => {
-            let sizeTypeInCard = item.querySelector('#size_type_info').textContent;
-            let sizeInCard = item.querySelector('#size_info').textContent;
+            let sizeTypeInCard = item.querySelector('#size_type_info').textContent.trim();
+            let sizeInCard = item.querySelector('#size_info').textContent.trim();
 
-            if (sizeTypeInCard === clothingType && sizeInCard === size[0]) {
+            if (sizeTypeInCard === effectiveSizeType && sizeInCard === size[0]) {
                 sizeAlreadyExists = true;
                 quantity = parseInt(item.querySelector('#quantity_info').textContent, 10);
             }
@@ -427,15 +445,16 @@ function create_size_blocks(sizes, clothingType){
                 <div class="row align-items-center">
                     <div class="col-4 my-2" onclick="setQuantitySize('${size[0]}');" style="cursor:pointer">
                         <span>${size[0]}</span>
-                        <span id="check_${size[0]}" class="faded size-check ms-2 ${checkClass}">✓</span>
+                        <span id="${checkId}" class="faded size-check ms-2 ${checkClass}">✓</span>
                     </div>
 
                     <div class="col-6">
                         <input type="number" class="form-control ms-1 input-light-grey"
                             min="1" max="50000"
-                            id="size_${size[0]}" name="size_${size[0]}"
+                            id="${inputId}" name="${inputId}"
                             style="display:none;"
                             placeholder="0"
+                            data-size-value="${size[0]}"
                             data-size-type="${clothingType}"
                             ${inputValue}
                             ${inputDisabled}

@@ -16,7 +16,7 @@ from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.helpers.helpers_checks import _check_linen_compatibility, _check_clothes_compatibility, \
     _check_shoes_compatibility, rd_name_clean
 from utilities.exceptions import SizeTypeException
-from utilities.saving_helpers import append_or_merge_position, get_clothes_size_type, normalize_article_placeholder, \
+from utilities.saving_helpers import append_or_merge_position, get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, \
     normalize_length_width_size_type, normalize_length_width_size_value, normalize_trademark_placeholder, process_input_str
 from utilities.validators import normalize_mark_type_full
 
@@ -98,9 +98,10 @@ def save_socks(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
                               tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
                               rd_name=form_dict.get("rd_name").replace('№', ''),
                               rd_date=rd_date)
-    extend_sq = (SocksQuantitySize(size=el[0], quantity=el[1],
-                                   size_type=el[2] if el[0] not in settings.Socks.UNITE_SIZE_VALUES
-                                   else settings.Socks.DEFAULT_SIZE_TYPE) for el in sizes_quantities)
+    extend_sq = (
+        SocksQuantitySize(size=el[0], quantity=el[1], size_type=get_socks_size_type(el[0], el[2]))
+        for el in sizes_quantities
+    )
     new_socks_order.sizes_quantities.extend(extend_sq)
     append_or_merge_position(order.socks, new_socks_order, settings.Socks.CATEGORY)
     return order

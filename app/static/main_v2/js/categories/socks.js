@@ -3,6 +3,17 @@ function socks_check_sizes_quantity_valid() {
     return sizes.length >= 1;
 }
 
+function socksSizeInputId(size) {
+    return `size_${String(size).replace(/[^0-9A-Za-zА-Яа-яЁё_-]/g, '_')}`;
+}
+
+function normalizeSocksSizeType(size, sizeType) {
+    if (size === 'ONE SIZE' || sizeType === 'ОСОБЫЕ_РАЗМЕРЫ') {
+        return 'МЕЖДУНАРОДНЫЙ';
+    }
+    return sizeType;
+}
+
 function socks_perform_pos_add(async_flag, url) {
 
     var pos_form = document.getElementById('form_process_main');
@@ -691,12 +702,12 @@ function chooseSizeSocks() {
 }
 
 function setQuantitySize(size) {
- let quantityInput = document.getElementById(`size_${size}`);
+ let quantityInput = document.getElementById(socksSizeInputId(size));
 
     if (quantityInput.disabled) {
         quantityInput.classList.remove('input-light-grey');
         quantityInput.classList.add('input-white');
-        $(`#size_${size}`).fadeIn("slow").addClass("fadeInLeft");;
+        $(quantityInput).fadeIn("slow").addClass("fadeInLeft");;
         quantityInput.style.display = "block";
 
         quantityInput.value = 1;
@@ -725,10 +736,10 @@ function updateSizesQuantityBlock() {
     selectedSizes.forEach(input => {
 
 
-        let size = input.getAttribute('id').replace('size_', '');
+        let size = input.getAttribute('data-size-value') || input.getAttribute('id').replace('size_', '');
         let quantity = input.value;
         let sizeType = input.getAttribute('data-size-type'); // Get the size type}
-        if (size==='ЕДИНЫЙ РАЗМЕР'){sizeType = 'РОССИЯ';}
+        sizeType = normalizeSocksSizeType(size, sizeType);
 
 
         // Create HTML for the size, size type, and quantity
@@ -780,16 +791,18 @@ function create_size_blocks(sizes, clothingType){
     let sizesBlock = '';
     for (let i = 0; i < sizes.length; i++) {
         let size = sizes[i];
+        let inputId = socksSizeInputId(size[0]);
         let sizeAlreadyExists = false;
         let quantity = 0;
+        let effectiveSizeType = normalizeSocksSizeType(size[0], clothingType);
 
         // Iterate over each size in the item card to check if it matches the current size being iterated
         document.querySelectorAll('#sizes_quantity .important-card__size').forEach(item => {
-            let sizeTypeInCard = item.querySelector('#size_type_info').textContent;
-            let sizeInCard = item.querySelector('#size_info').textContent;
+            let sizeTypeInCard = item.querySelector('#size_type_info').textContent.trim();
+            let sizeInCard = item.querySelector('#size_info').textContent.trim();
 
             // If the size type and size are already present in the item card, set sizeAlreadyExists to true and retrieve the quantity
-            if (sizeTypeInCard === clothingType && sizeInCard === size[0]) {
+            if (sizeTypeInCard === effectiveSizeType && sizeInCard === size[0]) {
                 sizeAlreadyExists = true;
                 quantity = parseInt(item.querySelector('#quantity_info').textContent);
             }
@@ -807,8 +820,8 @@ function create_size_blocks(sizes, clothingType){
                         </div>
                         <div class="col-6">
                             <input type="number" class="form-control ms-1 input-light-grey"
-                                min="1" max="50000" id="size_${size[0]}" name="size_${size[0]}" style="display: none;"  placeholder="0"
-                                data-size-type="${clothingType}" disabled  onchange="check_socks_quantity_input(this);updateSizesQuantityBlock()">
+                                min="1" max="50000" id="${inputId}" name="${inputId}" style="display: none;"  placeholder="0"
+                                data-size-value="${size[0]}" data-size-type="${clothingType}" disabled  onchange="check_socks_quantity_input(this);updateSizesQuantityBlock()">
                         </div>
                         <div class="col-2">
                             <div data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Размер по &#34;обуви&#34; ${size[1]}">
@@ -830,8 +843,8 @@ function create_size_blocks(sizes, clothingType){
                     <div class="row">
                         <div class="col-4 my-2" onclick="setQuantitySize('${size[0]}');"><span style="cursor: pointer">${size[0]}</span></div>
                         <div class="col-6"><input type="number" class="form-control ms-1"
-                         min="1" max="50000" id="size_${size[0]}" name="size_${size[0]}" value="${quantity}" placeholder="0"
-                         data-size-type="${clothingType}" onchange="check_socks_quantity_input(this);updateSizesQuantityBlock()"></div>
+                         min="1" max="50000" id="${inputId}" name="${inputId}" value="${quantity}" placeholder="0"
+                         data-size-value="${size[0]}" data-size-type="${clothingType}" onchange="check_socks_quantity_input(this);updateSizesQuantityBlock()"></div>
                          <div class="col-2">
                             <div data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Размер по &#34;обуви&#34; ${size[1]}">
                                 <span style="color:#c49204" class="font-12" >

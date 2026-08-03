@@ -143,6 +143,26 @@ def get_clothes_size_type(size: str, provided_type: str) -> str:
     raise SizeTypeException(f"Не удалось определить size_type для '{provided_type}'.")
 
 
+def get_socks_size_type(size: str, provided_type: str) -> str:
+    """Validate a socks size value and map UI-only size groups to export size types."""
+    normalized_size = str(size or '').strip().upper()
+    normalized_type = str(provided_type or '').strip()
+
+    if normalized_size == settings.Socks.UNITE_SIZE_VALUE:
+        return settings.Socks.INTERNATIONAL_SIZE_TYPE
+
+    if normalized_size == 'ЕДИНЫЙ РАЗМЕР':
+        return settings.Socks.DEFAULT_SIZE_TYPE
+
+    if normalized_type == settings.Socks.SPECIAL_SIZE_TYPE:
+        return settings.Socks.INTERNATIONAL_SIZE_TYPE
+
+    if normalized_type in settings.Socks.SIZE_TYPES_ALL:
+        return normalized_type
+
+    raise SizeTypeException(f"Неизвестный тип размера носков: '{provided_type}'.")
+
+
 def build_position_key(item: Any, category: str) -> tuple:
     """Build a stable comparison key for an order position."""
     common = (
