@@ -9,6 +9,7 @@
   --green: #70e273;
   --pink: #feaec9;
   --lilac: #c8b6ff;
+  --toys-light: #ffe68a;
   --warning: #ffac0a;
 }
 
@@ -299,10 +300,22 @@ body {
 .order__img--lilac {
   background-color: var(--lilac);
 }
+.order__img--toys {
+  background-color: var(--toys-light);
+  overflow: hidden;
+}
 .order__img img {
   width: 70%;
   height: 70%;
   filter: brightness(0) invert(1);
+}
+.order__img--toys img {
+  width: 84%;
+  height: 84%;
+  object-fit: contain;
+  transform: scale(2.05);
+  transform-origin: center;
+  filter: none;
 }
 .order-rf-badge {
   display: inline-flex;

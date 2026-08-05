@@ -186,3 +186,6 @@ app/db_backups
 
 
 elk/secrets/
+
+app/views/main/categories/toys/*.xlsx
+app/views/main/categories/toys/.~lock.*#

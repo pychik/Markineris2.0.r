@@ -234,6 +234,24 @@ def build_position_key(item: Any, category: str) -> tuple:
                 item.sl_date_from,
                 item.sl_date_to,
             )
+        case settings.Toys.CATEGORY:
+            return common + (
+                normalize_key_value(item.full_name_extra),
+                normalize_key_value(item.subcategory),
+                normalize_key_value(item.category_code),
+                normalize_key_value(item.okpd2_code),
+                normalize_key_value(item.okpd2_name),
+                normalize_key_value(item.model_article_type),
+                normalize_placeholder_value(item.model_article, NO_ARTICLE_PLACEHOLDERS, NO_ARTICLE_VALUE),
+                normalize_key_value(item.material),
+                normalize_key_value(item.min_child_age),
+                normalize_key_value(item.usage_term_type),
+                normalize_key_value(item.content),
+                normalize_key_value(item.service_life_type),
+                normalize_int_key(item.service_life),
+                item.sl_date_from,
+                item.sl_date_to,
+            )
     raise ValueError(f"Unsupported category for merge: {category}")
 
 
@@ -286,11 +304,7 @@ def append_or_merge_position(order_positions: Any, new_item: Any, category: str,
         if existing_key != new_key:
             continue
 
-        if category == settings.Parfum.CATEGORY:
-            existing_item.quantity = normalize_int_key(existing_item.quantity) + normalize_int_key(new_item.quantity)
-            return existing_item
-
-        if category == settings.Cosmetics.CATEGORY:
+        if category in (settings.Parfum.CATEGORY, settings.Cosmetics.CATEGORY, settings.Toys.CATEGORY):
             existing_item.quantity = normalize_int_key(existing_item.quantity) + normalize_int_key(new_item.quantity)
             return existing_item
 

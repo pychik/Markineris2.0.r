@@ -1,4 +1,6 @@
 import json
+import calendar
+from datetime import date, datetime
 from flask import request, flash
 import re
 from typing import Optional
@@ -6,6 +8,7 @@ from typing import Optional
 from config import settings
 from models import ExceptionDataUsers, Order
 from tezaurus.runtime_catalogs import (
+    get_all_countries,
     get_clothes_tnved_codes,
     is_allowed_color,
 )
@@ -263,6 +266,12 @@ class ValidatorProcessor:
             subcategory_config = get_subcategory_config(subcategory)
             allowed_tnved_codes = subcategory_config.get("allowed_tnved_codes", ()) if subcategory_config else ()
             return not tnved_str or tnved_str not in allowed_tnved_codes
+        elif category == settings.Toys.CATEGORY:
+            from views.main.categories.toys.subcategories import get_subcategory_config
+
+            subcategory_config = get_subcategory_config(subcategory)
+            allowed_tnved_codes = subcategory_config.get("allowed_tnved_codes", ()) if subcategory_config else ()
+            return not tnved_str or tnved_str not in allowed_tnved_codes
         elif category == settings.Shoes.CATEGORY:
             return ValidatorProcessor.shoes_pre_validate_tnved(tnved_str=tnved_str)
         else:
@@ -300,7 +309,7 @@ class ValidatorProcessor:
         full_name_extra = process_input_str(str(form_data.get("full_name_extra") or "").strip())
 
         if product_type and (not trademark or trademark.upper() == "БЕЗ ТОВАРНОГО ЗНАКА") and not full_name_extra:
-            return "Если выбран вариант 'БЕЗ ТОВАРНОГО ЗНАКА', заполните поле 'Дополнить полное наименование'."
+            return "Если выбран вариант 'без товарного знака', заполните поле 'Дополнить полное наименование'."
 
         tnved_codes_by_product_type = subcategory_config.get("tnved_codes_by_product_type") or {}
         allowed_codes_for_type = tnved_codes_by_product_type.get(product_type) or ()
@@ -320,6 +329,86 @@ class ValidatorProcessor:
             return "Выберите допустимое значение поля 'Кол-во слоев'."
         if not allowed_layers_characteristics and layers_characteristic:
             return "Поле 'Кол-во слоев' не используется для этой подкатегории."
+
+        return None
+
+    @staticmethod
+    def validate_toys_subcategory_payload(subcategory: str, form_data) -> str | None:
+        if not subcategory:
+            return None
+
+        from views.main.categories.toys.subcategories import get_subcategory_config
+        from utilities.saving_helpers import normalize_trademark_placeholder, process_input_str
+
+        subcategory_config = get_subcategory_config(subcategory)
+        if not subcategory_config:
+            return None
+
+        product_type = str(form_data.get("type") or "").strip()
+        tnved_code = str(form_data.get("tnved_code") or "").strip()
+        okpd2_code = str(form_data.get("okpd2_code") or "").strip()
+        okpd2_name = str(form_data.get("okpd2_name") or "").strip()
+        country = str(form_data.get("country") or "").strip().upper()
+        trademark = normalize_trademark_placeholder(str(form_data.get("trademark") or "").strip())
+        full_name_extra = process_input_str(str(form_data.get("full_name_extra") or "").strip())
+
+        if product_type and (not trademark or trademark.upper() == "БЕЗ ТОВАРНОГО ЗНАКА") and not full_name_extra:
+            return (
+                "Если выбран вариант 'без товарного знака', "
+                "заполните поле 'Дополнить полное наименование'."
+            )
+
+        allowed_tnved_codes = tuple(subcategory_config.get("allowed_tnved_codes") or ())
+        if tnved_code not in allowed_tnved_codes:
+            return "Выбранный ТН ВЭД не подходит для указанной подкатегории."
+
+        okpd2_choices = subcategory_config.get("okpd2_choices_by_tnved", {}).get(tnved_code, ())
+        okpd2_names_by_code = {str(code).strip(): str(name).strip() for code, name in okpd2_choices}
+        allowed_okpd2_codes = set(okpd2_names_by_code)
+        if okpd2_code not in allowed_okpd2_codes:
+            return "Выбранный код ОКПД2 не подходит для указанного ТН ВЭД."
+        if okpd2_name and okpd2_name != okpd2_names_by_code.get(okpd2_code):
+            return "Наименование ОКПД2 не соответствует выбранному коду ОКПД2 и ТН ВЭД."
+
+        has_rd = str(form_data.get("has_rd") or "").strip().lower() in {"on", "1", "true", "yes"}
+        allowed_countries = (
+            {str(item).strip().upper() for item in get_all_countries()}
+            if has_rd
+            else {str(item).strip().upper() for item in subcategory_config.get("default_countries") or ()}
+        )
+        if country not in allowed_countries:
+            return "Выберите допустимое значение поля 'Страна'."
+
+        date_from_raw = str(form_data.get("sl_date_from") or "").strip()
+        date_to_raw = str(form_data.get("sl_date_to") or "").strip()
+        try:
+            date_from = datetime.strptime(date_from_raw, "%d.%m.%Y").date()
+            date_to = datetime.strptime(date_to_raw, "%d.%m.%Y").date()
+        except ValueError:
+            return "Заполните корректные даты периода годности."
+
+        today = date.today()
+        month = today.month + 1
+        year = today.year + (month - 1) // 12
+        month = ((month - 1) % 12) + 1
+        day = min(today.day, calendar.monthrange(year, month)[1])
+        min_date_to = date(year, month, day)
+        if date_to < min_date_to:
+            return "Дата до в периоде годности должна быть не раньше чем через месяц от текущей даты."
+        if date_to < date_from:
+            return "Дата до в периоде годности не может быть раньше даты от."
+
+        choice_checks = (
+            ("Вид товара", product_type, subcategory_config.get("product_types") or ()),
+            ("Материал изделия", str(form_data.get("material") or "").strip(), subcategory_config.get("material_choices") or ()),
+            ("Минимальный возраст ребенка", str(form_data.get("min_child_age") or "").strip(), subcategory_config.get("min_child_age_choices") or ()),
+            ("Характеристика срока использования товара", str(form_data.get("usage_term_type") or "").strip(), subcategory_config.get("usage_term_types") or ()),
+            ("Тип модели/артикула", str(form_data.get("model_article_type") or "").strip(), subcategory_config.get("model_article_types") or ()),
+            ("Ед. срока службы", str(form_data.get("service_life_type") or "").strip(), subcategory_config.get("service_life_types") or ()),
+        )
+        for label, value, allowed_values in choice_checks:
+            if value not in allowed_values:
+                return f"Выберите допустимое значение поля '{label}'."
 
         return None
 

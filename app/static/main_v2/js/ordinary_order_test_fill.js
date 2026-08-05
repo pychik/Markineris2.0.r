@@ -89,6 +89,18 @@ function ordinaryOrderSetPrice() {
     ordinaryOrderSetSelect("tax", ["20", "10", "0"]);
 }
 
+function ordinaryOrderFormatRuDate(date) {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    return `${day}.${month}.${date.getFullYear()}`;
+}
+
+function ordinaryOrderDateOneYearFromNow() {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() + 1);
+    return date;
+}
+
 function ordinaryOrderAppendWearSize(size, quantity, sizeType) {
     const block = document.getElementById("sizes_quantity");
     if (!block) return;
@@ -253,6 +265,44 @@ function ordinaryOrderFillCosmeticsStep2(subcategory) {
     }
 }
 
+function ordinaryOrderFillToysStep2(subcategory) {
+    ordinaryOrderRevealTextField("noTMSwitch", "trademark");
+    ordinaryOrderSetCheckbox("noModelArticleSwitch", false);
+    if (typeof toggleToysModelArticleField === "function") {
+        toggleToysModelArticleField(document.getElementById("noModelArticleSwitch"));
+    }
+
+    ordinaryOrderSetValue("trademark", "AUTOBRAND");
+    ordinaryOrderSetSelect("model_article_type", ["Артикул"]);
+    ordinaryOrderSetValue("model_article", `TOY-${Date.now().toString().slice(-6)}`);
+    ordinaryOrderSetSelect("type", ["ОДЕЖДА ДЛЯ КУКОЛ"]);
+    ordinaryOrderSetSelect("material", ["ПЛАСТМАССА", "ТКАНЬ"]);
+    ordinaryOrderSetSelect("min_child_age", ["ОТ 3 ЛЕТ"]);
+    ordinaryOrderSetSelect("usage_term_type", ["СРОК СЛУЖБЫ"]);
+    ordinaryOrderSetValue("content", "ПЛАСТМАССА, ТКАНЬ");
+    ordinaryOrderSetSelect("service_life_type", ["мес"]);
+    ordinaryOrderSetValue("service_life", "36");
+    ordinaryOrderSetValue("sl_date_from", ordinaryOrderFormatRuDate(new Date()));
+    ordinaryOrderSetValue("sl_date_to", ordinaryOrderFormatRuDate(ordinaryOrderDateOneYearFromNow()));
+    ordinaryOrderSetValue("quantity", "10");
+    ordinaryOrderSetPrice();
+    ordinaryOrderResetRd();
+    ordinaryOrderSetSelect("country", ["РОССИЯ", "КИТАЙ"]);
+
+    const tnved = window.TOYS_DEFAULT_TNVED_CODE || (window.TOYS_ALLOWED_TNVED_CODES || [])[0] || "";
+    if (tnved && typeof selectToysTnved === "function") {
+        selectToysTnved(tnved);
+    } else {
+        ordinaryOrderSetValue("tnved_code", tnved);
+    }
+
+    const choicesByTnved = window.TOYS_OKPD2_CHOICES_BY_TNVED || {};
+    const okpd2Choices = Array.isArray(choicesByTnved[tnved]) ? choicesByTnved[tnved] : [];
+    if (okpd2Choices.length && typeof selectToysOkpd2 === "function") {
+        selectToysOkpd2(okpd2Choices[0][0], okpd2Choices[0][1]);
+    }
+}
+
 window.ordinaryOrderTestFillStep2 = async function ordinaryOrderTestFillStep2(button) {
     const category = button?.dataset?.category || "";
     const subcategory = button?.dataset?.subcategory || "";
@@ -273,6 +323,8 @@ window.ordinaryOrderTestFillStep2 = async function ordinaryOrderTestFillStep2(bu
         ordinaryOrderFillParfumStep2();
     } else if (category === "cosmetics") {
         ordinaryOrderFillCosmeticsStep2(subcategory);
+    } else if (category === "toys") {
+        ordinaryOrderFillToysStep2(subcategory);
     }
 
     if (typeof make_message === "function") {

@@ -1,0 +1,388 @@
+<div class="row setup-content faded" id="step-2" {% if not o_id or 'page' in request.url %}style="display:none"{% endif %}>
+    <script>
+        function normalizeTrademarkPlaceholder(el, placeholder) {
+            if (!el || typeof el.value !== "string") return;
+            const value = el.value;
+            if (/^\s*([^\p{L}\p{N}\s])(?:\s*\1)*\s*$/u.test(value)) {
+                el.value = placeholder || "без товарного знака";
+            }
+        }
+
+        window.TOYS_ALLOWED_TNVED_CODES = {{ allowed_tnved_codes | tojson }};
+        window.TOYS_ALLOWED_TNVED_CHOICES = {{ allowed_tnved_choices | tojson }};
+        window.TOYS_DEFAULT_TNVED_CODE = {{ (allowed_tnved_codes[0] if allowed_tnved_codes|length == 1 else '') | tojson }};
+        window.TOYS_CATEGORY_CODE = {{ category_code | tojson }};
+        window.TOYS_OKPD2_CHOICES_BY_TNVED = {{ okpd2_choices_by_tnved | tojson }};
+    </script>
+    <div class="col-md-2">
+        <div class="return mb-2">
+            <div class="prevBtn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                    viewBox="0 0 24 24" fill="none">
+                    <path
+                        d="M10.7071 4.99998L4.20708 11.5H21.5V12.5H4.20708L10.7071 19L9.99995 19.7071L2.29285 12L2.99995 11.2929L10 4.29287L10.7071 4.99998Z"
+                        fill="#575757" />
+                </svg> Вернуться назад</div>
+        </div>
+    </div>
+    <div class="col-md-6"></div>
+    <div class="col-md-4"></div>
+
+    <div class="row justify-content-end g-3">
+        <div class="col-xl-8">
+            <div class="row g-4 mb-1 align-items-end">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <div class="d-flex align-items-center">
+                            <label for="generated_full_name" class="control-label d-block mb-0">Полное наименование</label>
+                            <div class="ms-3 form-check form-switch mb-0 d-flex align-items-center gap-2">
+                                <input class="form-check-input border border-warning"
+                                       type="checkbox"
+                                       role="switch"
+                                       id="fullNameExtraSwitch"
+                                       data-bs-toggle="tooltip"
+                                       data-bs-placement="bottom"
+                                       title="Включите, если нужно дополнить полное наименование"
+                                       onchange="toggleToysFullNameExtra(this);"
+                                       {% if copied_order and copied_order.full_name_extra %}checked{% endif %}>
+                                <label class="form-check-label small mb-0 text-dark" for="fullNameExtraSwitch">Доп.</label>
+                            </div>
+                        </div>
+                        <div id="generated_full_name"
+                             class="form-control bg-light text-secondary d-flex align-items-center"
+                             style="height: 38px; cursor: default; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;"
+                             aria-live="polite">
+                            Будет сформировано автоматически
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6" id="full_name_extra_block" {% if not copied_order or not copied_order.full_name_extra %}style="display:none"{% endif %}>
+                    <div class="form-group">
+                        <label for="full_name_extra" class="control-label">Дополнить полное наименование</label>
+                        <input id="full_name_extra"
+                               name="full_name_extra"
+                               type="text"
+                               class="form-control"
+                               placeholder="Введите дополнение"
+                               maxlength="255"
+                               oninput="updateToysFullName();"
+                               {% if copied_order and copied_order.full_name_extra %}value="{{ copied_order.full_name_extra }}"{% endif %}>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mb-1">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <div class="d-flex align-items-center">
+                            <label for="trademark" class="control-label d-block mb-0">Товарный знак</label>
+                            <div class="ms-3 form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="noTMSwitch"
+                                       data-bs-title="Нажмите, чтобы оставить поле пустым" data-bs-toggle="tooltip" data-bs-placement="top"
+                                       onchange="toggleArticleTrademarkField(this, 'trademark');updateToysFullName();"
+                                       {% if edit_order == 'edit_order' %}disabled{% endif %}>
+                            </div>
+                        </div>
+                        <input id="trademark"
+                               name="trademark"
+                               type="text"
+                               class="form-control"
+                               placeholder="Введите товарный знак"
+                               minlength="1"
+                               maxlength="50"
+                               title="Вводимое значение не должно превышать 50 знаков"
+                               data-empty-value="без товарного знака"
+                               oninput="updateToysFullName();"
+                               onchange="normalizeTrademarkPlaceholder(this, 'без товарного знака');check_article_word(this);check_valid(this);updateToysFullName();"
+                               {% if copied_order %}value="{{ copied_order.trademark }}"{% endif %}
+                               required>
+                        <input type="text" id="trademark_display" class="form-control"
+                               value="" disabled style="display: none;">
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="model_article_type" class="control-label">Тип модели/артикула</label>
+                        <select id="model_article_type" name="model_article_type" class="form-control search-select" required>
+                            <option value="" selected disabled>Выберите тип</option>
+                            {% for item in model_article_types %}
+                                <option value="{{ item }}" {% if (copied_order and copied_order.model_article_type == item) or ((not copied_order) and item == 'Артикул') %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-5">
+                    <div class="form-group">
+                        <div class="d-flex align-items-center">
+                            <label for="model_article" class="control-label d-block mb-0">Модель / артикул</label>
+                            <div class="ms-3 form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="noModelArticleSwitch"
+                                       name="no_model_article"
+                                       data-bs-title="Нажмите, если модели/артикула нет" data-bs-toggle="tooltip" data-bs-placement="top"
+                                       onchange="toggleToysModelArticleField(this);"
+                                       {% if copied_order and copied_order.model_article|upper == 'ОТСУТСТВУЕТ' %}checked{% endif %}>
+                            </div>
+                        </div>
+                        <input id="model_article"
+                               name="model_article"
+                               type="text"
+                               class="form-control"
+                               placeholder="Введите модель или артикул"
+                               maxlength="100"
+                               data-empty-value="отсутствует"
+                               value="{% if copied_order %}{{ copied_order.model_article }}{% endif %}"
+                               required>
+                        <input type="text" id="model_article_display" class="form-control"
+                               value="" disabled style="display: none;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mt-1">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="type" class="control-label">Вид товара</label>
+                        <select id="type" name="type" class="form-control search-select"
+                                oninput="updateToysFullName();"
+                                onchange="updateToysFullName();"
+                                required>
+                            <option value="" selected disabled>Выберите из списка..</option>
+                            {% for item in product_types %}
+                                <option value="{{ item }}" {% if copied_order and copied_order.type == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="material" class="control-label">Материал изделия</label>
+                        <select id="material" name="material" class="form-control search-select" required>
+                            <option value="" selected disabled>Выберите материал</option>
+                            {% for item in material_choices %}
+                                <option value="{{ item }}" {% if copied_order and copied_order.material == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mt-1">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="min_child_age" class="control-label">Минимальный возраст ребенка</label>
+                        <select id="min_child_age" name="min_child_age" class="form-control search-select" required>
+                            <option value="" selected disabled>Выберите возраст</option>
+                            {% for item in min_child_age_choices %}
+                                <option value="{{ item }}" {% if copied_order and copied_order.min_child_age == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="usage_term_type" class="control-label">Хар-ка срока исп-ния</label>
+                        <select id="usage_term_type" name="usage_term_type" class="form-control search-select" required>
+                            <option value="" selected disabled>Выберите значение</option>
+                            {% for item in usage_term_types %}
+                                <option value="{{ item }}" {% if copied_order and copied_order.usage_term_type == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    {% include 'helpers/cosmetics/countries_rd_switch.html' %}
+                </div>
+            </div>
+
+            <div class="row g-4 mt-1">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label for="content" class="control-label">
+                            Состав
+                            <a data-bs-toggle="tooltip" data-html="true" title="В поле можно вводить кириллицу, цифры и знаки препинания/служебные символы. Если введена латинская раскладка, текст будет автоматически преобразован в русскую.">
+                                <span class="badge badge-secondary">?</span>
+                            </a>
+                        </label>
+                        <textarea id="content" name="content" class="form-control" rows="4" placeholder="Введите состав" maxlength="2000" oninput="normalizeToysContentInput(this)" required>{% if copied_order %}{{ copied_order.content }}{% endif %}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mt-1">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="service_life_type" class="control-label">Ед. срока службы</label>
+                        <select id="service_life_type" name="service_life_type" class="form-control search-select" required>
+                            <option value="" selected disabled>Выберите тип</option>
+                            {% for item in service_life_types %}
+                                <option value="{{ item }}" {% if (copied_order and copied_order.service_life_type == item) or ((not copied_order) and item == 'мес') %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="service_life" class="control-label">Срок службы товара</label>
+                        <input id="service_life" name="service_life" type="number" min="0" max="1000" step="1" class="form-control" placeholder="36" value="{% if copied_order %}{{ copied_order.service_life }}{% else %}36{% endif %}" required>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="sl_date_from" class="control-label">Период годности: дата от</label>
+                        <input id="sl_date_from" name="sl_date_from" type="text" class="form-control"
+                               placeholder="Выберите дату"
+                               onpaste="return false;" oncopy="return false" oncut="return false"
+                               ondrag="return false" ondrop="return false" autocomplete="off" readonly value="{% if copied_order and copied_order.sl_date_from %}{{ copied_order.sl_date_from.strftime('%d.%m.%Y') }}{% endif %}" required>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="sl_date_to" class="control-label">Период годности: дата до</label>
+                        <input id="sl_date_to" name="sl_date_to" type="text" class="form-control"
+                               placeholder="Выберите дату"
+                               onpaste="return false;" oncopy="return false" oncut="return false"
+                               ondrag="return false" ondrop="return false" autocomplete="off" readonly value="{% if copied_order and copied_order.sl_date_to %}{{ copied_order.sl_date_to.strftime('%d.%m.%Y') }}{% endif %}" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mt-1 mb-5">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="quantity" class="control-label">Количество</label>
+                        <input id="quantity" name="quantity" type="number" min="1" step="1" class="form-control" placeholder="500" value="{% if copied_order %}{{ copied_order.quantity }}{% endif %}" required>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="tnved_code" class="control-label">Код ТН ВЭД</label>
+                        <input id="tnved_code" name="tnved_code" type="text" class="form-control"
+                               value="{% if copied_order and copied_order.tnved_code %}{{ copied_order.tnved_code }}{% elif allowed_tnved_codes|length == 1 %}{{ allowed_tnved_codes[0] }}{% endif %}"
+                               placeholder="Нажмите и выберите ТН ВЭД"
+                               title="Нажмите, чтобы выбрать ТН ВЭД из разрешенного списка"
+                               onclick="get_toys_tnveds();"
+                               autocomplete="off"
+                               readonly
+                               required>
+                        <div id="tnved_co_supressor" style="font-size: 12px;color: #ffffff">{% if copied_order %}&nbsp{% endif %}</div>
+                        <div id="tnved_valid_feedback" class="text-justify" style="font-size: 12px;color: #22d71c"></div>
+                        <div id="tnved_nv_feedback" class="text-justify" style="font-size: 12px;color: #f13131"></div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="okpd2_code" class="control-label">Код ОКПД2</label>
+                        <input id="okpd2_code" name="okpd2_code" type="text" class="form-control"
+                               value="{% if copied_order %}{{ copied_order.okpd2_code }}{% endif %}"
+                               placeholder="Нажмите и выберите ОКПД2"
+                               title="Нажмите, чтобы выбрать ОКПД2 по ТН ВЭД и виду товара"
+                               onclick="get_toys_okpd2s();"
+                               autocomplete="off"
+                               readonly
+                               required>
+                        <input type="hidden" id="okpd2_name" name="okpd2_name" value="{% if copied_order %}{{ copied_order.okpd2_name }}{% endif %}">
+                        <div id="okpd2_description" class="small text-muted mt-1">{% if copied_order and copied_order.okpd2_name %}{{ copied_order.okpd2_name }}{% endif %}</div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    {% include 'helpers/cosmetics/rd_block.html' %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="important-card text-light">
+                <div class="important-card__item">
+                    <div class="important-card__prop">
+                        Количество строк в накладной (макс.&nbsp;1600&nbsp;строк)
+                    </div>
+                    <div class="important-card__val" id="orders_row_count">
+                        {% if pos_count %}{{ pos_count }}{% else %}0{% endif %}
+                    </div>
+                </div>
+                <div class="important-card__item">
+                    <div class="important-card__prop">
+                        Общее количество по накладной
+                    </div>
+                    <div class="important-card__val" id="orders_pos_count">
+                        {% if orders_pos_count %}{{ orders_pos_count }}{% else %}0{% endif %}
+                    </div>
+                </div>
+                <div class="important-card__item">
+                    <div class="important-card__prop">
+                        Сумма по накладной
+                    </div>
+                    <div class="important-card__val" id="orders_total_price">
+                        {% if total_price %}{{ total_price }}{% else %}Не указано{% endif %}
+                    </div>
+                </div>
+                <div class="important-card__item">
+                    <div class="important-card__prop">
+                        Подкатегория
+                    </div>
+                    <div class="important-card__val ms-2">
+                        {{ subcategory_title }}
+                    </div>
+                </div>
+                <div class="important-card__item">
+                    <div class="important-card__prop">
+                        Код категории
+                    </div>
+                    <div class="important-card__val ms-2" id="toys_category_code_value">
+                        {{ category_code }}
+                    </div>
+                </div>
+                <div class="step-btns mt-4 d-flex flex-wrap justify-content-center">
+                    <button class="btn btn-sm btn-accent border-0 text-dark"
+                            onclick="toys_perform_pos_add({% if not o_id or edit_order == 'edit_order' %}0{% else %}1{% endif %}, '{{ url_for(category_process_name + '.preprocess_order', subcategory=subcategory, o_id=o_id) if o_id else url_for(category_process_name + '.preprocess_order', subcategory=subcategory) }}');"
+                            type="button">
+                        {% if edit_order == 'edit_order' %}Изменить{% else %}Добавить этот{% endif %} товар
+                    </button>
+                </div>
+            </div>
+            <input type="hidden" id="category_code" name="category_code" value="{{ category_code }}">
+
+            <script>
+                $(function () {
+                    const toysToday = new Date();
+                    const toysMinDateFrom = new Date(2023, 0, 1);
+                    const toysMinDateTo = new Date(toysToday);
+                    toysMinDateTo.setMonth(toysMinDateTo.getMonth() + 1);
+
+                    $("#sl_date_from").datepicker({
+                        dateFormat: "dd.mm.yy",
+                        changeMonth: true,
+                        changeYear: true,
+                        yearRange: "2023:2100",
+                        minDate: toysMinDateFrom
+                    });
+
+                    $("#sl_date_to").datepicker({
+                        dateFormat: "dd.mm.yy",
+                        changeMonth: true,
+                        changeYear: true,
+                        yearRange: "2023:2100",
+                        minDate: toysMinDateTo
+                    });
+                });
+            </script>
+            <button id="toysPreviewBtn"
+                    class="btn btn-accent border-0 text-dark mt-1 nextBtn"
+                    style="width: 100%;"
+                    onclick="goToStep3WithDraftCheck('toys', 'toys_perform_pos_add', {% if not o_id or edit_order == 'edit_order' %}0{% else %}1{% endif %}, '{{ url_for(category_process_name + '.preprocess_order', subcategory=subcategory, o_id=o_id) if o_id else url_for(category_process_name + '.preprocess_order', subcategory=subcategory) }}');"
+                    type="button">
+                Оформить заказ
+            </button>
+        </div>
+    </div>
+</div>

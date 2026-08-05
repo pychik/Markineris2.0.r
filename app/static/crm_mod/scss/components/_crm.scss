@@ -137,10 +137,25 @@
         &--pink {
             background-color: var(--pink);
         }
+        &--lilac {
+            background-color: var(--lilac);
+        }
+        &--toys {
+            background-color: var(--toys-light);
+            overflow: hidden;
+        }
         & img {
             width: 70%;
             height: 70%;
             filter: brightness(0) invert(1);
+        }
+        &--toys img {
+            width: 84%;
+            height: 84%;
+            object-fit: contain;
+            transform: scale(2.05);
+            transform-origin: center;
+            filter: none;
         }
     }
     &__info {

@@ -31,7 +31,7 @@ from utilities.param_lists import (SHOE_GENDERS, SHOE_MATERIALS_UP_LINEN, SHOE_M
     COMPLICATED_COLORS, ALL_COLORS, UT_REPORT_START_FILL, UT_REPORT_START_ELSE, CLOTHES_TYPES_CODES, CLOTHES_START_EXT_029, CLOTHES_START_EXT_046,
     CLOTHES_GENDERS_ORDER_046, ALL_SOCKS_TNVEDS, SOCKS_TYPES_SIZES_DICT, SOCKS_SIZE_TYPES, SOCKS_ST_DICT,
     SUB_CATEGORIES_DICT, BIG_LINEN_TNVED, BIG_SHOE_TNVED,CLOTHES_COUNTRIES_RD, SHOES_COUNTRIES_RD, LINEN_COUNTRIES_RD,
-    PARFUM_COUNTRIES_RD,)
+    PARFUM_COUNTRIES_RD, TOYS_DOLL_ACCESSORIES_START_EXT, TOYS_DOLL_ACCESSORIES_PRELOAD_START,)
 
 CUR_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -142,7 +142,7 @@ class Settings(BaseSettings):
     MM_PARTNER: str = "IAMMODERATOR"
     SQ_CATEGORIES: list = ['обувь', 'одежда', 'белье', 'косметика', 'носки и прочее']
     CATEGORIES_PROCESS_NAMES: list = ['shoes', 'clothes', 'linen', 'parfum', 'cosmetics', 'socks', 'send_table']
-    CATEGORIES_UPLOAD: tuple = ('обувь', 'одежда', 'парфюм', 'белье', 'косметика', 'носки и прочее')
+    CATEGORIES_UPLOAD: tuple = ('обувь', 'одежда', 'парфюм', 'белье', 'косметика', 'игрушки', 'носки и прочее')
     RZ_GENDERS_RD_LIST: tuple = ("Детские", "Мальчик", "Девочка", "Детск.",)
     COMPANY_TYPES: list = ["ИП", "ООО", "АО"]
     CATEGORIES_DICT: dict = CATEGORIES_DICT
@@ -657,7 +657,7 @@ class Settings(BaseSettings):
                                     f"к What's Up менеджеру {USER_WHATSAPP_LOGO_LINK}"
 
         USER_ORDERS_LIMIT: str = ("Пользователь может одновременно создавать не более 5 заказов на категорию! Вы "
-                                  "перенаправлены на ваш первый заказ. Оформите хотя бы один или удалите ненужные "
+                                  "перенаправлены на ваш самый свежий заказ. Оформите хотя бы один или удалите ненужные "
                                   "во вкладке «Черновик заказов»")
         USER_ORDERS_COPY_LIMIT: str = "Пользователь может одновременно создавать не более 5 заказов! " \
                                       "Выберите заказ из списка активных заказов .Удалите или оформите хотя бы один и" \
@@ -1126,6 +1126,13 @@ class Settings(BaseSettings):
         START_EXT_RAZOR: list = COSMETICS_RAZOR_START_EXT
         START_PRELOAD_RAZOR: list = COSMETICS_RAZOR_PRELOAD_START
         NUMBER_STANDART: str = "ТР ТС 009/2011 \"О безопасности парфюмерно-косметической продукции\""
+        STATUS: str = "Черновик"
+
+    class Toys:
+        CATEGORY: str = 'игрушки'
+        CATEGORY_PROCESS: str = 'toys'
+        START_EXT: list = TOYS_DOLL_ACCESSORIES_START_EXT
+        START_PRELOAD: list = TOYS_DOLL_ACCESSORIES_PRELOAD_START
         STATUS: str = "Черновик"
 
     class Clothes:

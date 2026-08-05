@@ -4,7 +4,7 @@ from sqlalchemy import desc, func, or_
 
 from loguru import logger
 from config import settings
-from models import Clothes, Cosmetics, Order, OrderFile
+from models import Clothes, Cosmetics, Order, OrderFile, Toys
 from utilities.categories_data.subcategories_data import ClothesSubcategories, Category
 from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.minio_service.services import download_file_from_minio, get_s3_service
@@ -45,8 +45,12 @@ def h_category(category: str = 'все', upload_flag: int = None):
 
     # all / пусто = все категории
     is_all_categories = category == 'все'
-    # Проверку подкатегории делаем только для конкретной категории clothes
-    if not is_all_categories and category in (settings.Clothes.CATEGORY, settings.Cosmetics.CATEGORY):
+    # Проверку подкатегории делаем только для категорий, у которых она есть
+    if not is_all_categories and category in (
+        settings.Clothes.CATEGORY,
+        settings.Cosmetics.CATEGORY,
+        settings.Toys.CATEGORY,
+    ):
         if not Category.check_subcategory(category=category, subcategory=subcategory):
             message = settings.Messages.STRANGE_REQUESTS + ' нет такой подкатегории'
             if upload_flag:
@@ -88,12 +92,13 @@ def h_category(category: str = 'все', upload_flag: int = None):
             Order.closed_at,
             Order.processing_info,
             Order.is_moderation,
-            func.coalesce(Clothes.subcategory, Cosmetics.subcategory, '').label('subcategory'),
+            func.coalesce(Clothes.subcategory, Cosmetics.subcategory, Toys.subcategory, '').label('subcategory'),
             func.max(OrderFile.file_link).label('file_link')
         )
         .outerjoin(OrderFile, Order.order_zip_file)
         .outerjoin(Clothes, Order.id == Clothes.order_id)
         .outerjoin(Cosmetics, Order.id == Cosmetics.order_id)
+        .outerjoin(Toys, Order.id == Toys.order_id)
     )
 
     # Если выбрана конкретная категория — фильтруем по ней
@@ -116,6 +121,9 @@ def h_category(category: str = 'все', upload_flag: int = None):
     elif not is_all_categories and category == settings.Cosmetics.CATEGORY:
         if subcategory:
             query = query.filter(Cosmetics.subcategory == subcategory)
+    elif not is_all_categories and category == settings.Toys.CATEGORY:
+        if subcategory:
+            query = query.filter(Toys.subcategory == subcategory)
 
     query = (
         query.group_by(
@@ -136,7 +144,8 @@ def h_category(category: str = 'все', upload_flag: int = None):
             Order.processing_info,
             Order.is_moderation,
             Clothes.subcategory,
-            Cosmetics.subcategory
+            Cosmetics.subcategory,
+            Toys.subcategory
         )
         .order_by(desc(Order.crm_created_at))
     )
@@ -187,7 +196,7 @@ def h_category(category: str = 'все', upload_flag: int = None):
             else:
                 display_category = row_category
 
-        if row_category == settings.Cosmetics.CATEGORY and row_subcategory:
+        if row_category in (settings.Cosmetics.CATEGORY, settings.Toys.CATEGORY) and row_subcategory:
             display_subcategory = subcategories_dict.get(row_subcategory, row_subcategory)
 
         s_dict['display_category'] = display_category
@@ -240,7 +249,7 @@ def h_copy_order(o_id: int, category: str) -> Response:
     if o_id:
         flash(message=f"{settings.Messages.ORDER_COPY_SUCCESS} {category}")
         url_kwargs = dict(o_id=o_id, copy_order_edit_org='edit_org_card')
-        if category == settings.Cosmetics.CATEGORY and subcategory:
+        if category in (settings.Cosmetics.CATEGORY, settings.Toys.CATEGORY) and subcategory:
             url_kwargs['subcategory'] = subcategory
         return redirect(url_for(f'{category_process_name}.index', **url_kwargs))
     else:

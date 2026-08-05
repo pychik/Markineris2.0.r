@@ -48,6 +48,12 @@
                     <p class="categories-item__text" style="line-height: 1">Косметика<br><span id="cosmetics_commonCounter" class="font-12">{{categories_counter['косметика']}}</span></p>
                 </div>
             </span>
+            <span onclick="update_category_crm_info(update_url, 'игрушки', this, '{{manager_flag}}')" class="categories__item" style="cursor:pointer; user-select: none;">
+                <img src="{{ url_for('static', filename='main_v2/img/icons/toy.svg') }}" class="img-fluid" alt="Игрушки">
+                <div class="categories-item__body">
+                    <p class="categories-item__text" style="line-height: 1">Игрушки<br><span id="toys_commonCounter" class="font-12">{{categories_counter['игрушки']}}</span></p>
+                </div>
+            </span>
             <span onclick="update_category_crm_info(update_url, 'носки и прочее', this, '{{manager_flag}}')" class="categories__item" style="cursor:pointer; user-select: none;">
                 <img src="{{url_for('static', filename='crm_mod/img/icons/socks.svg')}}" class="img-fluid" alt="Носки и прочее">
 <!--                                <span id="parfum_commonCounter" class="font-12">{{categories_counter['парфюм']}}</span>-->

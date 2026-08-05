@@ -10,7 +10,7 @@ from sqlalchemy.sql import desc, text
 from config import settings
 from logger import logger
 from models import User, Order, Shoe, ShoeQuantitySize, Socks, SocksQuantitySize, Linen, LinenQuantitySize, Parfum, \
-    Clothes, ClothesQuantitySize, Cosmetics, db
+    Clothes, ClothesQuantitySize, Cosmetics, Toys, db
 
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.helpers.helpers_checks import _check_linen_compatibility, _check_clothes_compatibility, \
@@ -187,7 +187,7 @@ def save_cosmetics(order: Order, form_dict: dict, subcategory: str) -> Order:
     sl_date_to = datetime.strptime(form_dict.get("sl_date_to"), '%d.%m.%Y').date() if form_dict.get("sl_date_to") else None
 
     new_cosmetics_order = Cosmetics(
-        trademark=process_input_str(form_dict.get("trademark")),
+        trademark=normalize_trademark_placeholder(form_dict.get("trademark")),
         type=form_dict.get("type"),
         full_name_extra=process_input_str(form_dict.get("full_name_extra")),
         country=form_dict.get("country"),
@@ -218,6 +218,71 @@ def save_cosmetics(order: Order, form_dict: dict, subcategory: str) -> Order:
     return order
 
 
+def save_toys(order: Order, form_dict: dict, subcategory: str) -> Order:
+    quantity_raw = form_dict.get("quantity")
+    service_life_raw = form_dict.get("service_life")
+    try:
+        quantity = int(quantity_raw)
+    except (TypeError, ValueError):
+        quantity = 1
+    if quantity < 1:
+        quantity = 1
+
+    try:
+        service_life = int(service_life_raw) if service_life_raw not in (None, "") else None
+    except (TypeError, ValueError):
+        service_life = None
+
+    rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
+    sl_date_from = datetime.strptime(form_dict.get("sl_date_from"), '%d.%m.%Y').date() if form_dict.get("sl_date_from") else None
+    sl_date_to = datetime.strptime(form_dict.get("sl_date_to"), '%d.%m.%Y').date() if form_dict.get("sl_date_to") else None
+    model_article = normalize_article_placeholder(form_dict.get("model_article"))
+    if form_dict.get("no_model_article") or not model_article:
+        model_article = "отсутствует"
+    okpd2_name = form_dict.get("okpd2_name")
+    try:
+        from views.main.categories.toys.subcategories import get_subcategory_config
+        subcategory_config = get_subcategory_config(subcategory) or {}
+        okpd2_choices = subcategory_config.get("okpd2_choices_by_tnved", {}).get(form_dict.get("tnved_code"), ())
+        okpd2_name = next(
+            (name for code, name in okpd2_choices if str(code).strip() == str(form_dict.get("okpd2_code") or "").strip()),
+            okpd2_name,
+        )
+    except (ImportError, ValueError, TypeError):
+        pass
+
+    new_toys_order = Toys(
+        trademark=normalize_trademark_placeholder(form_dict.get("trademark")),
+        type=form_dict.get("type"),
+        full_name_extra=process_input_str(form_dict.get("full_name_extra")),
+        country=form_dict.get("country"),
+        tnved_code=form_dict.get("tnved_code"),
+        article_price=form_dict.get("article_price"),
+        tax=form_dict.get("tax"),
+        rd_type=form_dict.get("rd_type"),
+        rd_name=(form_dict.get("rd_name") or "").replace('№', ''),
+        rd_date=rd_date,
+        subcategory=subcategory,
+        category_code=form_dict.get("category_code"),
+        okpd2_code=form_dict.get("okpd2_code"),
+        okpd2_name=okpd2_name,
+        model_article_type=form_dict.get("model_article_type"),
+        model_article=model_article,
+        material=form_dict.get("material"),
+        min_child_age=form_dict.get("min_child_age"),
+        usage_term_type=form_dict.get("usage_term_type"),
+        content=form_dict.get("content"),
+        service_life_type=form_dict.get("service_life_type"),
+        service_life=service_life,
+        sl_date_from=sl_date_from,
+        sl_date_to=sl_date_to,
+        quantity=quantity,
+    )
+
+    append_or_merge_position(order.toys, new_toys_order, settings.Toys.CATEGORY)
+    return order
+
+
 def common_save_db(order: Order, form_dict: dict, category: str, subcategory: str = None, sizes_quantities: list = None) -> Order:
     tnved_code_raw = form_dict.get("tnved_code")
 
@@ -239,6 +304,8 @@ def common_save_db(order: Order, form_dict: dict, category: str, subcategory: st
             order = save_parfum(order=order, form_dict=form_dict)
         case settings.Cosmetics.CATEGORY:
             order = save_cosmetics(order=order, form_dict=form_dict, subcategory=subcategory)
+        case settings.Toys.CATEGORY:
+            order = save_toys(order=order, form_dict=form_dict, subcategory=subcategory)
     return order
 
 
@@ -265,6 +332,8 @@ def common_save_copy_order(u_id: int, user: User, category: str, order: Order) -
                 new_order = save_copy_order_parfum(order_category_list=order.parfum, new_order=new_order)
             case settings.Cosmetics.CATEGORY:
                 new_order = save_copy_order_cosmetics(order_category_list=order.cosmetics, new_order=new_order)
+            case settings.Toys.CATEGORY:
+                new_order = save_copy_order_toys(order_category_list=order.toys, new_order=new_order)
 
         user.orders.append(new_order)
         db.session.commit()
@@ -507,6 +576,40 @@ def save_copy_order_cosmetics(order_category_list: list[Cosmetics], new_order: O
     return new_order
 
 
+def save_copy_order_toys(order_category_list: list[Toys], new_order: Order) -> Order:
+    for toy in order_category_list:
+        new_toys = Toys(
+            trademark=normalize_trademark_placeholder(toy.trademark),
+            type=toy.type,
+            full_name_extra=toy.full_name_extra,
+            country=toy.country,
+            tnved_code=toy.tnved_code,
+            article_price=toy.article_price,
+            tax=toy.tax,
+            rd_type=toy.rd_type,
+            rd_name=rd_name_clean(toy.rd_name),
+            rd_date=toy.rd_date,
+            rd_date_to=toy.rd_date_to,
+            subcategory=toy.subcategory,
+            category_code=toy.category_code,
+            okpd2_code=toy.okpd2_code,
+            okpd2_name=toy.okpd2_name,
+            model_article_type=toy.model_article_type,
+            model_article=toy.model_article,
+            material=toy.material,
+            min_child_age=toy.min_child_age,
+            usage_term_type=toy.usage_term_type,
+            content=toy.content,
+            service_life_type=toy.service_life_type,
+            service_life=toy.service_life,
+            sl_date_from=toy.sl_date_from,
+            sl_date_to=toy.sl_date_to,
+            quantity=toy.quantity,
+        )
+        append_or_merge_position(new_order.toys, new_toys, settings.Toys.CATEGORY)
+    return new_order
+
+
 def get_rows_marks(o_id: int, category: str) -> tuple[int, int]:
     match category:
         case settings.Shoes.CATEGORY:
@@ -633,6 +736,13 @@ def get_delete_stmts(category: str, o_id: int) -> list:
                                                 """
             stmt2 = f"""DELETE FROM public.orders AS o WHERE o.id={o_id}"""
             stmts.extend((stmt1, stmt2))
+        case settings.Toys.CATEGORY:
+            stmt1 = f"""DELETE FROM public.toys AS ty
+                                                USING public.orders AS o
+                                                WHERE ty.order_id={o_id}
+                                                """
+            stmt2 = f"""DELETE FROM public.orders AS o WHERE o.id={o_id}"""
+            stmts.extend((stmt1, stmt2))
         case _:
             flash(message=settings.Messages.ORDER_DELETE_ERROR)
             raise Exception
@@ -654,6 +764,8 @@ def get_delete_pos_stmts(category: str, m_id: int, o_id: int) -> str:
             stmt = f"DELETE FROM public.parfum AS pm WHERE pm.id={m_id} AND pm.order_id={o_id}"
         case settings.Cosmetics.CATEGORY:
             stmt = f"DELETE FROM public.cosmetics AS cm WHERE cm.id={m_id} AND cm.order_id={o_id}"
+        case settings.Toys.CATEGORY:
+            stmt = f"DELETE FROM public.toys AS ty WHERE ty.id={m_id} AND ty.order_id={o_id}"
         case _:
             flash(message=settings.Messages.ORDER_DELETE_ERROR)
             raise Exception

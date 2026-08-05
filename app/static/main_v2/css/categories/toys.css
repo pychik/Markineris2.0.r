@@ -1,0 +1,13 @@
+.toys-category-icon-frame {
+  width: 108px;
+  height: 108px;
+  overflow: hidden;
+}
+
+.toys-category-icon {
+  display: block;
+  width: 250px;
+  height: auto;
+  max-width: none;
+  transform: translate(-71px, -27px);
+}

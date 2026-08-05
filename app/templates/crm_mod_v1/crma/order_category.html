@@ -19,6 +19,14 @@
                         data-bs-placement="top" data-bs-title="{{n.category}}">
             <img src="{{ url_for('static', filename='crm_mod/img/icons/04.svg')}}" alt="" class="img-fluid">
         </div>
+    {% elif n.category == 'игрушки' %}
+        {% set toys_icon_map = {
+            'doll_accessories': 'main_v2/img/icons/toys/doll_accessories.png'
+        } %}
+        <div class="order__img order__img--toys" data-bs-toggle="tooltip" style="user-select: none;"
+                        data-bs-placement="top" data-bs-title="{{ subcategories_dict.get(n.subcategory, n.category) }}">
+            <img src="{{ url_for('static', filename=toys_icon_map.get(n.subcategory, 'main_v2/img/icons/toy.svg')) }}" alt="" class="img-fluid">
+        </div>
     {% endif %}
     {% if n.is_rf_order %}
         <span class="order-rf-badge" data-bs-toggle="tooltip" data-bs-placement="top"

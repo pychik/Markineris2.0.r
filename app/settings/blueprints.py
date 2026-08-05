@@ -13,6 +13,7 @@ def register_blueprints(app: Flask) -> None:
     from views.main.categories.clothes.main import clothes as clothes_blueprint
     from views.main.categories.socks import socks as socks_blueprint
     from views.main.categories.cosmetics.main import cosmetics as cosmetics_blueprint
+    from views.main.categories.toys.main import toys as toys_blueprint
     from views.main.requests_common import requests_common as requests_common_blueprint
     from views.crm.crm_dash import crm_d as crm_d_blueprint
     from views.crm.crm_uoc import crm_uoc as crm_uoc_blueprint
@@ -32,6 +33,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(clothes_blueprint, url_prefix='/clothes')
     app.register_blueprint(socks_blueprint, url_prefix='/socks')
     app.register_blueprint(cosmetics_blueprint, url_prefix='/cosmetics')
+    app.register_blueprint(toys_blueprint, url_prefix='/toys')
     app.register_blueprint(user_product_cards_blueprint, url_prefix='/user_product_cards')
     app.register_blueprint(crm_product_cards_blueprint, url_prefix='/crm_product_cards')
     app.register_blueprint(chat_product_cards_blueprint, url_prefix='/chat_product_cards')

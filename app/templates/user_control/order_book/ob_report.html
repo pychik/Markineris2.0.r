@@ -4,14 +4,14 @@
             <div class="mb-4">
                 <h5 class="mb-3">{{ category_info[0].upper() }}</h5>
                 {% if category_info[1] %}
-                    {% if category_info[0] in ["одежда", cosmetics_category] %}
+                    {% if category_info[0] in ["одежда", cosmetics_category, "игрушки"] %}
                         {# Особый случай для категорий с подкатегориями #}
                         {% for subcategory, sub_orders in category_info[1].items() %}
                             <div class="ms-3 mb-3">
                                 <h6 class="mb-3">[{{ subcategories_dict.get(subcategory, subcategory) }}]</h6>
                                 {% for ao in sub_orders %}
-                                    {% set order_link = url_for(categories[ao.category] + '.index', o_id=ao.id, subcategory=ao.subcategory) if ao.category == cosmetics_category else url_for(categories[ao.category] + '.index', o_id=ao.id) %}
-                                    {% set clean_link = url_for(categories[ao.category] + '.clean_orders', o_id=ao.id, subcategory=ao.subcategory) if ao.category == cosmetics_category else url_for(categories[ao.category] + '.clean_orders', o_id=ao.id) %}
+                                    {% set order_link = url_for(categories[ao.category] + '.index', o_id=ao.id, subcategory=ao.subcategory) if ao.category in [cosmetics_category, "игрушки"] else url_for(categories[ao.category] + '.index', o_id=ao.id) %}
+                                    {% set clean_link = url_for(categories[ao.category] + '.clean_orders', o_id=ao.id, subcategory=ao.subcategory) if ao.category in [cosmetics_category, "игрушки"] else url_for(categories[ao.category] + '.clean_orders', o_id=ao.id) %}
                                     <div class="text-center mb-2 p-1 bg-light rounded shadow-sm">
                                         <div class="row">
                                             <div class="col-md-8 col-xs-12">
@@ -42,8 +42,8 @@
                     {% else %}
                         {# Обычный вывод для других категорий #}
                         {% for ao in category_info[1] %}
-                            {% set order_link = url_for(categories[ao.category] + '.index', o_id=ao.id, subcategory=ao.subcategory) if ao.category == cosmetics_category else url_for(categories[ao.category] + '.index', o_id=ao.id) %}
-                            {% set clean_link = url_for(categories[ao.category] + '.clean_orders', o_id=ao.id, subcategory=ao.subcategory) if ao.category == cosmetics_category else url_for(categories[ao.category] + '.clean_orders', o_id=ao.id) %}
+                            {% set order_link = url_for(categories[ao.category] + '.index', o_id=ao.id, subcategory=ao.subcategory) if ao.category in [cosmetics_category, "игрушки"] else url_for(categories[ao.category] + '.index', o_id=ao.id) %}
+                            {% set clean_link = url_for(categories[ao.category] + '.clean_orders', o_id=ao.id, subcategory=ao.subcategory) if ao.category in [cosmetics_category, "игрушки"] else url_for(categories[ao.category] + '.clean_orders', o_id=ao.id) %}
                             <div class="text-center mb-2 p-1 bg-light rounded shadow-sm">
                                 <div class="row">
                                     <div class="col-md-8 col-xs-12">

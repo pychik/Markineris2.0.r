@@ -362,6 +362,7 @@ class Order(db.Model, UserMixin):
                              foreign_keys='Parfum.order_id')
     cosmetics = db.relationship('Cosmetics', backref='order', cascade="all,delete", lazy='joined',
                                 foreign_keys='Cosmetics.order_id')
+    toys = db.relationship('Toys', backref='order', cascade="all,delete", lazy='joined', foreign_keys='Toys.order_id')
     clothes = db.relationship('Clothes', backref='order', cascade="all,delete", lazy='joined',
                               foreign_keys='Clothes.order_id')
     socks = db.relationship('Socks', backref='order', cascade="all,delete", lazy='joined',
@@ -493,6 +494,13 @@ class ProductCard(db.Model, UserMixin):
         cascade="all,delete",
         lazy='select',
         foreign_keys='Cosmetics.card_id',
+    )
+    toys = db.relationship(
+        'Toys',
+        backref='product_card',
+        cascade="all,delete",
+        lazy='select',
+        foreign_keys='Toys.card_id',
     )
     clothes = db.relationship(
         'Clothes',
@@ -946,6 +954,48 @@ class Cosmetics(db.Model, UserMixin, CommonMixin):
     service_life = db.Column(db.Integer())
     sl_date_from = db.Column(db.Date())
     sl_date_to = db.Column(db.Date(), index=True)
+
+    order_id = db.Column(
+        db.Integer,
+        db.ForeignKey('orders.id', ondelete='CASCADE'),
+        index=True,
+        nullable=True
+    )
+
+    is_approved = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+    )
+
+    card_id = db.Column(
+        db.Integer,
+        db.ForeignKey('product_cards.id', ondelete='CASCADE'),
+        index=True,
+        nullable=True
+    )
+
+
+class Toys(db.Model, UserMixin, CommonMixin):
+    __tablename__ = "toys"
+
+    subcategory = db.Column(db.String(64), nullable=False, index=True)
+    full_name_extra = db.Column(db.String(255), default='')
+    category_code = db.Column(db.String(32), default='')
+    okpd2_code = db.Column(db.String(32), default='')
+    okpd2_name = db.Column(db.String(255), default='')
+    model_article_type = db.Column(db.String(32), default='')
+    model_article = db.Column(db.String(100), default='')
+    material = db.Column(db.String(100), default='')
+    min_child_age = db.Column(db.String(32), default='')
+    usage_term_type = db.Column(db.String(100), default='')
+    content = db.Column(db.Text)
+    service_life_type = db.Column(db.String(20), default='')
+    service_life = db.Column(db.Integer())
+    sl_date_from = db.Column(db.Date())
+    sl_date_to = db.Column(db.Date(), index=True)
+    quantity = db.Column(db.Integer())
 
     order_id = db.Column(
         db.Integer,

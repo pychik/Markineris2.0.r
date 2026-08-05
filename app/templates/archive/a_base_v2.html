@@ -128,6 +128,19 @@
                     </button>
                 </li>
             </a>
+            <a href="javascript:get_category_history(`{{ url_for('orders_archive.index', category='игрушки', upload_flag=111)}}`, 'toys')">
+                <li class="nav-link" id="pills-toys-tab"
+                    type="button" role="tab">
+                    <button class="text-center border-0">
+                        <img src="{{ url_for('static', filename='main_v2/img/icons/toy.svg') }}"
+                             width="50" height="50" alt="Игрушки"
+                             style="display:block; margin:0 auto; object-fit:contain;">
+                        <div class="category-item__name text-center">
+                            Игрушки
+                        </div>
+                    </button>
+                </li>
+            </a>
             <a href="javascript:get_category_history(`{{ url_for('orders_archive.index', category='носки и прочее', upload_flag=111)}}`, 'socks')">
                 <li class="nav-link" id="pills-socks-tab"
                     type="button" role="tab">
