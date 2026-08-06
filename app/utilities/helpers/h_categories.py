@@ -60,7 +60,7 @@ def order_table_update(user: User, o_id: int, category: str, jsonify_flag: bool 
         total_price, price_exist, subcategory = orders_list_common(category=category, user=user, o_id=o_id)
     category_process_name = settings.CATEGORIES_DICT[category]
     url_kwargs = {'o_id': o_id, 'update_flag': 1}
-    if category == settings.Cosmetics.CATEGORY:
+    if category in (settings.Cosmetics.CATEGORY, settings.Toys.CATEGORY):
         url_kwargs['subcategory'] = subcategory
     link = f"javascript:{category_process_name}_update_table('" + url_for(f'{category_process_name}.index', **url_kwargs) + "?page={0}');"
     page, per_page, offset, pagination, order_list = helper_paginate_data(data=orders, href=link)

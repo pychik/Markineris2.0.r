@@ -3,17 +3,29 @@ from views.main.categories.toys.subcategories.data import ToysSubcategories
 
 SUBCATEGORY_SLUG = ToysSubcategories.doll_accessories.value
 SUBCATEGORY_TITLE = "Аксессуары и принадлежности для кукол"
-SUBCATEGORY_CATEGORY_CODE = "237033"
+SUBCATEGORY_CATEGORY_CODE = "237033 / 551734"
 
-ALLOWED_TNVED_CODES = ("9503002900",)
+ACCESSORIES_TNVED_CODE = "9503002900"
+STROLLERS_TNVED_CODE = "9503001001"
+
+ALLOWED_TNVED_CODES = (ACCESSORIES_TNVED_CODE, STROLLERS_TNVED_CODE)
 ALLOWED_TNVED_CHOICES = (
-    ("9503002900", "Части и принадлежности кукол, изображающих только людей"),
+    (ACCESSORIES_TNVED_CODE, "Части и принадлежности кукол, изображающих только людей"),
+    (STROLLERS_TNVED_CODE, "Коляски для кукол"),
 )
 
+CATEGORY_CODE_BY_TNVED = {
+    ACCESSORIES_TNVED_CODE: "237033",
+    STROLLERS_TNVED_CODE: "551734",
+}
+
 OKPD2_CHOICES_BY_TNVED = {
-    "9503002900": (
+    ACCESSORIES_TNVED_CODE: (
         ("32.40.13.111", "Одежда и ее принадлежности, обувь и головные уборы для кукол, изображающих людей"),
         ("32.40.13.119", "Аксессуары для кукол, изображающих людей, прочие"),
+    ),
+    STROLLERS_TNVED_CODE: (
+        ("32.40.31.110", "Коляски для кукол"),
     ),
 }
 
@@ -26,8 +38,22 @@ PRODUCT_TYPES = (
     "ПРИНАДЛЕЖНОСТИ ОДЕЖДЫ ДЛЯ КУКОЛ",
     "ОБУВЬ ДЛЯ КУКОЛ",
     "ГОЛОВНЫЕ УБОРЫ ДЛЯ КУКОЛ",
+    "КОЛЯСКА ДЛЯ КУКОЛ",
+    "КОЛЯСКА-ТРОСТЬ ДЛЯ КУКОЛ",
     "НЕТ В СПРАВОЧНИКЕ",
 )
+
+ALLOWED_TNVED_CODES_BY_PRODUCT_TYPE = {
+    "ЧАСТИ ДЛЯ КУКОЛ": (ACCESSORIES_TNVED_CODE,),
+    "ПРИНАДЛЕЖНОСТИ ДЛЯ КУКОЛ": (ACCESSORIES_TNVED_CODE,),
+    "ОДЕЖДА ДЛЯ КУКОЛ": (ACCESSORIES_TNVED_CODE,),
+    "ПРИНАДЛЕЖНОСТИ ОДЕЖДЫ ДЛЯ КУКОЛ": (ACCESSORIES_TNVED_CODE,),
+    "ОБУВЬ ДЛЯ КУКОЛ": (ACCESSORIES_TNVED_CODE,),
+    "ГОЛОВНЫЕ УБОРЫ ДЛЯ КУКОЛ": (ACCESSORIES_TNVED_CODE,),
+    "КОЛЯСКА ДЛЯ КУКОЛ": (STROLLERS_TNVED_CODE,),
+    "КОЛЯСКА-ТРОСТЬ ДЛЯ КУКОЛ": (STROLLERS_TNVED_CODE,),
+    "НЕТ В СПРАВОЧНИКЕ": ALLOWED_TNVED_CODES,
+}
 
 MATERIAL_CHOICES = (
     "БАРХАТ",

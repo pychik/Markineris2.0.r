@@ -33,10 +33,25 @@ def helper_toys_index(
                 "slug": config["slug"],
                 "title": config["title"],
                 "icon": config["icon"],
+                "icon_class": "toys-category-icon--doll-accessories",
                 "is_disabled": False,
             }
             for config in SUBCATEGORY_CONFIG.values()
         }
+        toys_upcoming_category_tiles = (
+            {
+                "title": "Головоломки",
+                "icon": "main_v2/img/icons/toys/puzzles.svg",
+                "icon_class": "toys-category-icon--svg",
+                "badge": "Скоро",
+            },
+            {
+                "title": "Гоночные автомобили для соревновательных игр",
+                "icon": "main_v2/img/icons/toys/competition_cars.svg",
+                "icon_class": "toys-category-icon--svg",
+                "badge": "Скоро",
+            },
+        )
         toys_category_tiles = tuple(
             tile
             for tile in (
@@ -75,8 +90,10 @@ def helper_toys_index(
 
     subcategory_title = subcategory_config["title"]
     category_code = subcategory_config["category_code"]
+    category_code_by_tnved = subcategory_config.get("category_code_by_tnved", {})
     allowed_tnved_codes = subcategory_config["allowed_tnved_codes"]
     allowed_tnved_choices = subcategory_config["allowed_tnved_choices"]
+    allowed_tnved_codes_by_product_type = subcategory_config.get("allowed_tnved_codes_by_product_type", {})
     okpd2_choices_by_tnved = subcategory_config["okpd2_choices_by_tnved"]
     model_article_types = subcategory_config["model_article_types"]
     product_types = subcategory_config["product_types"]

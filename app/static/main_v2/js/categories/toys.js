@@ -169,11 +169,50 @@ function toys_clear_tnved_feedback() {
     if (invalidEl) invalidEl.textContent = '';
 }
 
+function toysGetProductType() {
+    const typeEl = document.getElementById('type');
+    return typeEl ? String(typeEl.value || '').trim() : '';
+}
+
+function toysGetAllowedTnvedCodesForType(productType) {
+    const allAllowed = Array.isArray(window.TOYS_ALLOWED_TNVED_CODES)
+        ? window.TOYS_ALLOWED_TNVED_CODES.map((code) => String(code || '').trim()).filter(Boolean)
+        : [];
+    const mapping = window.TOYS_ALLOWED_TNVED_CODES_BY_PRODUCT_TYPE || {};
+    const mapped = Array.isArray(mapping[productType])
+        ? mapping[productType].map((code) => String(code || '').trim()).filter(Boolean)
+        : [];
+    return mapped.length ? mapped : allAllowed;
+}
+
+function toysUpdateCategoryCodeByTnved() {
+    const tnvedEl = document.getElementById('tnved_code');
+    const categoryCodeEl = document.getElementById('category_code');
+    const tnved = tnvedEl ? String(tnvedEl.value || '').trim() : '';
+    const categoryCodeByTnved = window.TOYS_CATEGORY_CODE_BY_TNVED || {};
+    const categoryCode = tnved ? String(categoryCodeByTnved[tnved] || '').trim() : '';
+
+    if (categoryCodeEl) {
+        categoryCodeEl.value = categoryCode;
+    }
+}
+
+function handleToysProductTypeChange() {
+    const tnvedEl = document.getElementById('tnved_code');
+    if (tnvedEl) {
+        tnvedEl.value = '';
+    }
+    toys_clear_tnved_feedback();
+    toysClearOkpd2();
+    toysUpdateCategoryCodeByTnved();
+    updateToysFullName();
+}
+
 function toys_check_tnved() {
     const tnvedEl = document.getElementById('tnved_code');
     const invalidEl = document.getElementById('tnved_nv_feedback');
     const validEl = document.getElementById('tnved_valid_feedback');
-    const allowed = Array.isArray(window.TOYS_ALLOWED_TNVED_CODES) ? window.TOYS_ALLOWED_TNVED_CODES : [];
+    const allowed = toysGetAllowedTnvedCodesForType(toysGetProductType());
 
     if (!tnvedEl) {
         return true;
@@ -185,7 +224,7 @@ function toys_check_tnved() {
     if (!code || !allowed.includes(code)) {
         tnvedEl.classList.add('is-invalid');
         if (invalidEl) {
-            invalidEl.textContent = code ? 'Код ТН ВЭД не разрешен для этой подкатегории.' : 'Выберите ТН ВЭД из списка.';
+            invalidEl.textContent = code ? 'Код ТН ВЭД не подходит для выбранного вида товара.' : 'Выберите ТН ВЭД из списка.';
         }
         return false;
     }
@@ -199,10 +238,12 @@ function toys_check_tnved() {
 
 function get_toys_tnveds() {
     const insertEl = document.getElementById('manual_tnved_insert');
-    const choices = Array.isArray(window.TOYS_ALLOWED_TNVED_CHOICES) ? window.TOYS_ALLOWED_TNVED_CHOICES : [];
+    const allChoices = Array.isArray(window.TOYS_ALLOWED_TNVED_CHOICES) ? window.TOYS_ALLOWED_TNVED_CHOICES : [];
+    const allowedForType = toysGetAllowedTnvedCodesForType(toysGetProductType());
+    const choices = allChoices.filter((tnved) => allowedForType.includes(String(tnved[0] || '').trim()));
 
     if (!insertEl || !choices.length) {
-        show_form_errors(['Обновите страницу и попробуйте снова']);
+        show_form_errors(['Для выбранного вида товара нет доступного ТН ВЭД.']);
         $('#form_errorModal').modal('show');
         return;
     }
@@ -240,6 +281,7 @@ function selectToysTnved(code) {
     if (previousCode !== tnvedEl.value) {
         toysClearOkpd2();
     }
+    toysUpdateCategoryCodeByTnved();
     toys_check_tnved();
     clear_manual_tnved();
     $('#manualTnvedModal').modal('hide');
@@ -752,6 +794,7 @@ function toys_clear_pos() {
     }
 
     toys_clear_tnved_feedback();
+    toysUpdateCategoryCodeByTnved();
     const tnvedEl = document.getElementById('tnved_code');
     if (tnvedEl && tnvedEl.value) {
         toys_check_tnved();
@@ -835,5 +878,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (okpd2El) {
         toysRefreshOkpd2State();
     }
+    toysUpdateCategoryCodeByTnved();
     updateToysFullName();
 });

@@ -240,9 +240,16 @@ def save_toys(order: Order, form_dict: dict, subcategory: str) -> Order:
     if form_dict.get("no_model_article") or not model_article:
         model_article = "отсутствует"
     okpd2_name = form_dict.get("okpd2_name")
+    category_code = form_dict.get("category_code")
     try:
         from views.main.categories.toys.subcategories import get_subcategory_config
         subcategory_config = get_subcategory_config(subcategory) or {}
+        tnved_code = str(form_dict.get("tnved_code") or "").strip()
+        category_code = (
+            (subcategory_config.get("category_code_by_tnved") or {}).get(tnved_code)
+            or category_code
+            or subcategory_config.get("category_code")
+        )
         okpd2_choices = subcategory_config.get("okpd2_choices_by_tnved", {}).get(form_dict.get("tnved_code"), ())
         okpd2_name = next(
             (name for code, name in okpd2_choices if str(code).strip() == str(form_dict.get("okpd2_code") or "").strip()),
@@ -263,7 +270,7 @@ def save_toys(order: Order, form_dict: dict, subcategory: str) -> Order:
         rd_name=(form_dict.get("rd_name") or "").replace('№', ''),
         rd_date=rd_date,
         subcategory=subcategory,
-        category_code=form_dict.get("category_code"),
+        category_code=category_code,
         okpd2_code=form_dict.get("okpd2_code"),
         okpd2_name=okpd2_name,
         model_article_type=form_dict.get("model_article_type"),

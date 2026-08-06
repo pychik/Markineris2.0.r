@@ -12,6 +12,8 @@
         window.TOYS_ALLOWED_TNVED_CHOICES = {{ allowed_tnved_choices | tojson }};
         window.TOYS_DEFAULT_TNVED_CODE = {{ (allowed_tnved_codes[0] if allowed_tnved_codes|length == 1 else '') | tojson }};
         window.TOYS_CATEGORY_CODE = {{ category_code | tojson }};
+        window.TOYS_CATEGORY_CODE_BY_TNVED = {{ category_code_by_tnved | tojson }};
+        window.TOYS_ALLOWED_TNVED_CODES_BY_PRODUCT_TYPE = {{ allowed_tnved_codes_by_product_type | tojson }};
         window.TOYS_OKPD2_CHOICES_BY_TNVED = {{ okpd2_choices_by_tnved | tojson }};
     </script>
     <div class="col-md-2">
@@ -145,7 +147,7 @@
                         <label for="type" class="control-label">Вид товара</label>
                         <select id="type" name="type" class="form-control search-select"
                                 oninput="updateToysFullName();"
-                                onchange="updateToysFullName();"
+                                onchange="handleToysProductTypeChange();"
                                 required>
                             <option value="" selected disabled>Выберите из списка..</option>
                             {% for item in product_types %}
@@ -284,7 +286,7 @@
                         <input id="okpd2_code" name="okpd2_code" type="text" class="form-control"
                                value="{% if copied_order %}{{ copied_order.okpd2_code }}{% endif %}"
                                placeholder="Нажмите и выберите ОКПД2"
-                               title="Нажмите, чтобы выбрать ОКПД2 по ТН ВЭД и виду товара"
+                               title="Нажмите, чтобы выбрать ОКПД2 по ТН ВЭД"
                                onclick="get_toys_okpd2s();"
                                autocomplete="off"
                                readonly
@@ -320,14 +322,6 @@
                 </div>
                 <div class="important-card__item">
                     <div class="important-card__prop">
-                        Сумма по накладной
-                    </div>
-                    <div class="important-card__val" id="orders_total_price">
-                        {% if total_price %}{{ total_price }}{% else %}Не указано{% endif %}
-                    </div>
-                </div>
-                <div class="important-card__item">
-                    <div class="important-card__prop">
                         Подкатегория
                     </div>
                     <div class="important-card__val ms-2">
@@ -350,7 +344,7 @@
                     </button>
                 </div>
             </div>
-            <input type="hidden" id="category_code" name="category_code" value="{{ category_code }}">
+            <input type="hidden" id="category_code" name="category_code" value="{% if copied_order and copied_order.category_code %}{{ copied_order.category_code }}{% elif allowed_tnved_codes|length == 1 %}{{ category_code }}{% endif %}">
 
             <script>
                 $(function () {

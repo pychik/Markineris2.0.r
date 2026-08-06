@@ -6,8 +6,30 @@
 
 .toys-category-icon {
   display: block;
+}
+
+.toys-category-icon--doll-accessories {
   width: 250px;
   height: auto;
   max-width: none;
   transform: translate(-71px, -27px);
+}
+
+.toys-category-icon--svg {
+  width: 100px;
+  height: 100px;
+  margin: 4px auto;
+  object-fit: contain;
+}
+
+.toys-category-disabled {
+  position: relative;
+  background: #fff;
+  color: inherit;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.toys-category-disabled .category-item__name {
+  color: #9a9a9a;
 }

@@ -362,6 +362,21 @@ class ValidatorProcessor:
         if tnved_code not in allowed_tnved_codes:
             return "Выбранный ТН ВЭД не подходит для указанной подкатегории."
 
+        allowed_tnved_codes_by_product_type = subcategory_config.get("allowed_tnved_codes_by_product_type") or {}
+        allowed_tnved_codes_for_type = tuple(
+            allowed_tnved_codes_by_product_type.get(product_type) or allowed_tnved_codes
+        )
+        if tnved_code not in allowed_tnved_codes_for_type:
+            return "Выбранный ТН ВЭД не подходит для выбранного вида товара."
+
+        category_code = str(form_data.get("category_code") or "").strip()
+        category_code_by_tnved = subcategory_config.get("category_code_by_tnved") or {}
+        expected_category_code = str(
+            category_code_by_tnved.get(tnved_code) or subcategory_config.get("category_code") or ""
+        ).strip()
+        if category_code and category_code != expected_category_code:
+            return "Код категории не соответствует выбранному ТН ВЭД."
+
         okpd2_choices = subcategory_config.get("okpd2_choices_by_tnved", {}).get(tnved_code, ())
         okpd2_names_by_code = {str(code).strip(): str(name).strip() for code, name in okpd2_choices}
         allowed_okpd2_codes = set(okpd2_names_by_code)
