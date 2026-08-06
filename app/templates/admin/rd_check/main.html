@@ -17,7 +17,7 @@
             <div class="card bg-transparent mb-3">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="mb-0">Проверка РД в реестре ФСА (категория «Одежда»)</h5>
+                        <h5 class="mb-0">Проверка РД в реестре ФСА</h5>
                         <span id="rdCheckHealthBadge" class="badge badge-soft bg-secondary bg-opacity-10 text-secondary">
                             статус неизвестен
                         </span>
@@ -29,38 +29,137 @@
                     <form id="rdCheckForm" onsubmit="return false;">
                         <input type="hidden" id="rdCheckCsrf" value="{{ csrf_token() }}"/>
 
-                        <div class="row g-4">
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label class="control-label">Вид одежды</label>
-                                    <select class="form-control search-select" id="type" name="type"
-                                           onchange="if (window.__silenceReset) return;clear_gender_select();clear_tnved_input();get_genders(`{{ url_for('clothes.bck_clothes_genders', subcategory=subcategory) }}`,
-                                          `{{ csrf_token() }}`,
-                                          `{{ subcategory }}`)"
-                                        required>
-                                        <option disabled selected value="">Выберите из списка..</option>
-                                        {% for s in types %}
-                                        <option value="{{ s }}">{{ s }}</option>
-                                        {% endfor %}
-                                    </select>
+                        <ul class="nav nav-tabs mb-4" id="rdCheckCategoryTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="rdCheckTabClothes" data-bs-toggle="tab"
+                                        data-bs-target="#rdCheckPaneClothes" type="button" role="tab">Одежда</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="rdCheckTabShoes" data-bs-toggle="tab"
+                                        data-bs-target="#rdCheckPaneShoes" type="button" role="tab">Обувь</button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content" id="rdCheckCategoryTabContent">
+                            <div class="tab-pane fade show active" id="rdCheckPaneClothes" role="tabpanel">
+                                <div class="row g-4">
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label class="control-label">Вид одежды</label>
+                                            <select class="form-control search-select" id="type" name="type"
+                                                   onchange="if (window.__silenceReset) return;clear_gender_select();clear_tnved_input();get_genders(`{{ url_for('clothes.bck_clothes_genders', subcategory=subcategory) }}`,
+                                                  `{{ csrf_token() }}`,
+                                                  `{{ subcategory }}`)"
+                                                required>
+                                                <option disabled selected value="">Выберите из списка..</option>
+                                                {% for s in types %}
+                                                <option value="{{ s }}">{{ s }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        {% include 'helpers/clothes/genders_block.html' %}
+                                    </div>
+                                    <div class="col-md-3">
+                                        {% include 'helpers/clothes/clothes_tnved_code_block.html' %}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label class="control-label">Страна</label>
+                                            <select class="form-control search-select" id="country" name="country">
+                                                <option value="">------------</option>
+                                                {% for c in countries %}
+                                                <option value="{{ c }}">{{ c }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                {% include 'helpers/clothes/genders_block.html' %}
-                            </div>
-                            <div class="col-md-3">
-                                {% include 'helpers/clothes/clothes_tnved_code_block.html' %}
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label class="control-label">Страна</label>
-                                    <select class="form-control search-select" id="country" name="country" required>
-                                        <option value="">------------</option>
-                                        {% for c in countries %}
-                                        <option value="{{ c }}">{{ c }}</option>
-                                        {% endfor %}
-                                    </select>
+
+                            <div class="tab-pane fade" id="rdCheckPaneShoes" role="tabpanel">
+                                <div class="row g-4">
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label class="control-label">Вид обуви</label>
+                                            <select class="form-control search-select" id="type_shoe" name="type_shoe">
+                                                <option disabled selected value="">Выберите из списка..</option>
+                                                {% for s in shoes_types %}
+                                                <option value="{{ s }}">{{ s }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label class="control-label">Материал верха</label>
+                                            <select class="form-control search-select" id="material_top_shoe" name="material_top_shoe"
+                                                    onchange="rdCheckSetShoeTnved();">
+                                                <option disabled selected value="">Выберите материал..</option>
+                                                {% for m in shoes_materials_top %}
+                                                <option value="{{ m }}">{{ m }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label class="control-label">Пол</label>
+                                            <select class="form-control search-select" id="gender_shoe" name="gender_shoe"
+                                                    onchange="rdCheckSetShoeTnved();">
+                                                <option disabled selected value="">Выберите пол...</option>
+                                                {% for el in shoes_genders %}
+                                                <option value="{{ el }}">{{ el }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label class="control-label">Код ТНВЭД</label>
+                                            <input type="text" minlength="10" maxlength="10"
+                                                   placeholder="Определится автоматически или введите вручную"
+                                                   name="tnved_code_shoe" id="tnved_code_shoe" class="form-control"
+                                                   autocomplete="off">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label class="control-label">Страна</label>
+                                            <select class="form-control search-select" id="country_shoe" name="country_shoe">
+                                                <option value="">------------</option>
+                                                {% for c in countries %}
+                                                <option value="{{ c }}">{{ c }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
+
+                                <script>
+                                function rdCheckSetShoeTnved() {
+                                    const tnvedList = [{% for s in shoe_tnved %}'{{ s }}',{% endfor %}];
+                                    const shoeAl = [{% for s in shoe_al %}'{{ s }}',{% endfor %}];
+                                    const shoeOt = [{% for s in shoe_ot %}'{{ s }}',{% endfor %}];
+                                    const shoeNl = [{% for s in shoe_nl %}'{{ s }}',{% endfor %}];
+                                    const genderList = [{% for g in shoes_genders %}'{{ g }}',{% endfor %}];
+                                    var gender = document.getElementById('gender_shoe').value;
+                                    var material = document.getElementById('material_top_shoe').value;
+                                    var tnved = document.getElementById('tnved_code_shoe');
+
+                                    tnved.value = tnvedList[0];
+                                    if (shoeNl.includes(material) && gender === genderList[1]) {
+                                        tnved.value = tnvedList[2];
+                                    } else if (shoeNl.includes(material)) {
+                                        tnved.value = tnvedList[1];
+                                    } else if (shoeAl.includes(material)) {
+                                        tnved.value = tnvedList[0];
+                                    } else if (shoeOt.includes(material)) {
+                                        tnved.value = tnvedList[3];
+                                    }
+                                }
+                                </script>
                             </div>
                         </div>
 

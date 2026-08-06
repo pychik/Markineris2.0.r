@@ -24,6 +24,16 @@ const RD_CHECK_STATUS_LABELS = {
 
 const RD_CHECK_GATE_POLL_MS = 300;
 
+const RD_CHECK_CATEGORY_FIELDS = {
+    clothes: {type: 'type', gender: 'gender', tnved: 'tnved_code', country: 'country', label: 'Вид одежды'},
+    shoes: {type: 'type_shoe', gender: 'gender_shoe', tnved: 'tnved_code_shoe', country: 'country_shoe', label: 'Вид обуви'}
+};
+
+function rdCheckActiveCategory() {
+    var shoesTab = document.getElementById('rdCheckTabShoes');
+    return (shoesTab && shoesTab.classList.contains('active')) ? 'shoes' : 'clothes';
+}
+
 function rdCheckBadgeHtml(text, color) {
     return '<span class="badge badge-soft bg-' + color + ' bg-opacity-10 text-' + color + '">' + text + '</span>';
 }
@@ -34,10 +44,11 @@ function rdCheckStartFieldGate() {
 }
 
 function rdCheckSyncGate() {
-    var type = document.getElementById('type').value;
-    var gender = document.getElementById('gender').value;
-    var tnved = document.getElementById('tnved_code').value;
-    var country = document.getElementById('country').value;
+    var f = RD_CHECK_CATEGORY_FIELDS[rdCheckActiveCategory()];
+    var type = document.getElementById(f.type).value;
+    var gender = document.getElementById(f.gender).value;
+    var tnved = document.getElementById(f.tnved).value;
+    var country = document.getElementById(f.country).value;
     var ready = !!(type && gender && tnved && country);
 
     var rdType = document.getElementById('rd_type');
@@ -50,11 +61,12 @@ function rdCheckSyncGate() {
 }
 
 function rdCheckValidateFields() {
+    var f = RD_CHECK_CATEGORY_FIELDS[rdCheckActiveCategory()];
     const fields = [
-        {id: 'type', label: 'Вид одежды'},
-        {id: 'gender', label: 'Пол'},
-        {id: 'tnved_code', label: 'ТНВЭД'},
-        {id: 'country', label: 'Страна'},
+        {id: f.type, label: f.label},
+        {id: f.gender, label: 'Пол'},
+        {id: f.tnved, label: 'ТНВЭД'},
+        {id: f.country, label: 'Страна'},
         {id: 'rd_type', label: 'Тип документа'},
         {id: 'rd_name', label: 'Номер документа'}
     ];
@@ -81,12 +93,13 @@ function rdCheckSubmit(submitUrl, statusUrlTemplate, csrf) {
         return;
     }
 
+    var f = RD_CHECK_CATEGORY_FIELDS[rdCheckActiveCategory()];
     var docType = document.getElementById('rd_type').value;
     var number = document.getElementById('rd_name').value.trim();
-    var productType = document.getElementById('type').value;
-    var gender = document.getElementById('gender').value;
-    var tnvedCode = document.getElementById('tnved_code').value;
-    var country = document.getElementById('country').value;
+    var productType = document.getElementById(f.type).value;
+    var gender = document.getElementById(f.gender).value;
+    var tnvedCode = document.getElementById(f.tnved).value;
+    var country = document.getElementById(f.country).value;
     var resultBlock = document.getElementById('rdCheckResult');
     var submitBtn = document.getElementById('rdCheckSubmitBtn');
 
