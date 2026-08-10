@@ -9,17 +9,45 @@
 }
 
 .toys-category-icon--doll-accessories {
-  width: 250px;
+  width: 196px;
   height: auto;
   max-width: none;
-  transform: translate(-71px, -27px);
+  transform: translate(-44px, -40px);
 }
 
 .toys-category-icon--svg {
-  width: 100px;
-  height: 100px;
-  margin: 4px auto;
+  width: 70%;
+  height: 70%;
+  max-width: 96px;
   object-fit: contain;
+}
+
+.toys-category-icon--puzzles {
+  width: 134px;
+  height: auto;
+  max-width: none;
+  transform: translate(-13px, -13px);
+}
+
+.toys-category-icon--competition-cars {
+  width: 132px;
+  height: auto;
+  max-width: none;
+  transform: translate(-10px, -7px);
+}
+
+.toys-category-icon--sets-kits {
+  width: 172px;
+  height: auto;
+  max-width: none;
+  transform: translate(-32px, -33px);
+}
+
+.toys-category-icon--animal-creature {
+  width: 171px;
+  height: auto;
+  max-width: none;
+  transform: translate(-36px, -30px);
 }
 
 .toys-category-disabled {

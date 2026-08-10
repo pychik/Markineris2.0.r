@@ -30,7 +30,7 @@
         <div class="col-12 col-md-6 col-lg-4">
             <a href="{{ url_for('toys.index', subcategory=subcategory_item.slug) }}" class="category-item text-center h-100">
                 <div class="toys-category-icon-frame mx-auto" aria-hidden="true">
-                    <img class="toys-category-icon {{ subcategory_item.icon_class }}" src="{{ url_for('static', filename=subcategory_item.icon, v='20260804-toys-doll-accessories') }}" alt="">
+                    <img class="toys-category-icon {{ subcategory_item.icon_class }}" src="{{ url_for('static', filename=subcategory_item.icon, v='20260810-toys-subcategories') }}" alt="">
                 </div>
                 <div class="category-item__name text-center">
                     {{ subcategory_item.title }}
@@ -43,7 +43,7 @@
             <div class="category-item cosmetics-category-disabled toys-category-disabled text-center h-100">
                 <span class="badge bg-secondary rounded-1 p-1 cosmetics-category-disabled__badge">{{ subcategory_item.badge }}</span>
                 <div class="toys-category-icon-frame mx-auto" aria-hidden="true">
-                    <img class="toys-category-icon {{ subcategory_item.icon_class }}" src="{{ url_for('static', filename=subcategory_item.icon, v='20260806-toys-puzzles') }}" alt="">
+                    <img class="toys-category-icon {{ subcategory_item.icon_class }}" src="{{ url_for('static', filename=subcategory_item.icon, v='20260810-toys-upcoming') }}" alt="">
                 </div>
                 <div class="category-item__name text-center">
                     {{ subcategory_item.title }}

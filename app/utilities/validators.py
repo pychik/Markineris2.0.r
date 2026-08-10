@@ -351,12 +351,16 @@ class ValidatorProcessor:
         country = str(form_data.get("country") or "").strip().upper()
         trademark = normalize_trademark_placeholder(str(form_data.get("trademark") or "").strip())
         full_name_extra = process_input_str(str(form_data.get("full_name_extra") or "").strip())
+        content = str(form_data.get("content") or "")
 
         if product_type and (not trademark or trademark.upper() == "БЕЗ ТОВАРНОГО ЗНАКА") and not full_name_extra:
             return (
                 "Если выбран вариант 'без товарного знака', "
                 "заполните поле 'Дополнить полное наименование'."
             )
+
+        if re.search(r"[A-Za-z]", content):
+            return "Поле 'Состав' не должно содержать латиницу."
 
         allowed_tnved_codes = tuple(subcategory_config.get("allowed_tnved_codes") or ())
         if tnved_code not in allowed_tnved_codes:

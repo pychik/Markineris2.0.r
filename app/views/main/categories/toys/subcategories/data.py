@@ -3,6 +3,7 @@ from enum import Enum
 
 class ToysSubcategories(str, Enum):
     doll_accessories = "doll_accessories"
+    puzzles = "puzzles"
 
     @classmethod
     def has_value(cls, value: str | None) -> bool:

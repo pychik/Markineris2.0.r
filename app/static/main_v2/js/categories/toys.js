@@ -600,14 +600,8 @@ function normalizeToysContentInput(el) {
         return;
     }
 
-    const value = el.value;
-    const latinCount = (value.match(/[A-Za-z]/g) || []).length;
-    const cyrillicCount = (value.match(/[А-Яа-яЁё]/g) || []).length;
-    if (!latinCount || cyrillicCount >= latinCount) {
-        return;
-    }
-
-    el.value = value.split('').map((char) => {
+    let value = el.value;
+    value = value.split('').map((char) => {
         const lower = char.toLowerCase();
         const mapped = TOYS_KEYBOARD_LAYOUT_RU[lower];
         if (!mapped) {
@@ -615,6 +609,8 @@ function normalizeToysContentInput(el) {
         }
         return char === lower ? mapped : mapped.toUpperCase();
     }).join('');
+    value = value.replace(/[^А-Яа-яЁё0-9\s,.;:!?()%+\-/"'№@#&*_=\\|[\]{}<>«»\n\r]/g, '');
+    el.value = value;
 }
 
 function toys_check_rd_docs() {

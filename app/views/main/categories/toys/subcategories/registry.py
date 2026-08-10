@@ -1,4 +1,5 @@
 import views.main.categories.toys.subcategories.doll_accessories as doll_accessories
+import views.main.categories.toys.subcategories.puzzles as puzzles
 
 
 SUBCATEGORY_CONFIG = {
@@ -19,6 +20,27 @@ SUBCATEGORY_CONFIG = {
         "usage_term_types": doll_accessories.USAGE_TERM_TYPES,
         "service_life_types": doll_accessories.SERVICE_LIFE_TYPES,
         "default_countries": doll_accessories.DEFAULT_COUNTRIES,
+        "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
+        "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
+    },
+    puzzles.SUBCATEGORY_SLUG: {
+        "slug": puzzles.SUBCATEGORY_SLUG,
+        "title": puzzles.SUBCATEGORY_TITLE,
+        "icon": "main_v2/img/icons/toys/puzzles.png",
+        "icon_class": "toys-category-icon--puzzles",
+        "category_code": puzzles.SUBCATEGORY_CATEGORY_CODE,
+        "category_code_by_tnved": puzzles.CATEGORY_CODE_BY_TNVED,
+        "allowed_tnved_codes": puzzles.ALLOWED_TNVED_CODES,
+        "allowed_tnved_choices": puzzles.ALLOWED_TNVED_CHOICES,
+        "allowed_tnved_codes_by_product_type": puzzles.ALLOWED_TNVED_CODES_BY_PRODUCT_TYPE,
+        "okpd2_choices_by_tnved": puzzles.OKPD2_CHOICES_BY_TNVED,
+        "model_article_types": puzzles.MODEL_ARTICLE_TYPES,
+        "product_types": puzzles.PRODUCT_TYPES,
+        "material_choices": puzzles.MATERIAL_CHOICES,
+        "min_child_age_choices": puzzles.MIN_CHILD_AGE_CHOICES,
+        "usage_term_types": puzzles.USAGE_TERM_TYPES,
+        "service_life_types": puzzles.SERVICE_LIFE_TYPES,
+        "default_countries": puzzles.DEFAULT_COUNTRIES,
         "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
         "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
     },

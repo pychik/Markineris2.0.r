@@ -33,22 +33,28 @@ def helper_toys_index(
                 "slug": config["slug"],
                 "title": config["title"],
                 "icon": config["icon"],
-                "icon_class": "toys-category-icon--doll-accessories",
+                "icon_class": config.get("icon_class", "toys-category-icon--doll-accessories"),
                 "is_disabled": False,
             }
             for config in SUBCATEGORY_CONFIG.values()
         }
         toys_upcoming_category_tiles = (
             {
-                "title": "Головоломки",
-                "icon": "main_v2/img/icons/toys/puzzles.svg",
-                "icon_class": "toys-category-icon--svg",
+                "title": "Гоночные автомобили для соревновательных игр",
+                "icon": "main_v2/img/icons/toys/competition_cars.png",
+                "icon_class": "toys-category-icon--competition-cars",
                 "badge": "Скоро",
             },
             {
-                "title": "Гоночные автомобили для соревновательных игр",
-                "icon": "main_v2/img/icons/toys/competition_cars.svg",
-                "icon_class": "toys-category-icon--svg",
+                "title": "Игрушки в наборах, комплектах",
+                "icon": "main_v2/img/icons/toys/sets_kits.png",
+                "icon_class": "toys-category-icon--sets-kits",
+                "badge": "Скоро",
+            },
+            {
+                "title": "Игрушки, изображающие животных или других существ",
+                "icon": "main_v2/img/icons/toys/animal_creature.png",
+                "icon_class": "toys-category-icon--animal-creature",
                 "badge": "Скоро",
             },
         )
@@ -56,6 +62,7 @@ def helper_toys_index(
             tile
             for tile in (
                 toys_subcategories.get("doll_accessories"),
+                toys_subcategories.get("puzzles"),
             )
             if tile
         )

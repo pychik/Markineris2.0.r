@@ -313,9 +313,24 @@ body {
   width: 84%;
   height: 84%;
   object-fit: contain;
-  transform: scale(2.05);
+  transform: none;
   transform-origin: center;
   filter: none;
+}
+.order__img--toys-doll-accessories img {
+  transform: scale(1.97);
+}
+.order__img--toys-puzzles img {
+  transform: scale(1.35);
+}
+.order__img--toys-sets-kits img {
+  transform: scale(1.73);
+}
+.order__img--toys-animal-creature img {
+  transform: scale(1.72);
+}
+.order__img--toys-competition-cars img {
+  transform: scale(1.33);
 }
 .order-rf-badge {
   display: inline-flex;

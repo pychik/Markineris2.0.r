@@ -21,9 +21,13 @@
         </div>
     {% elif n.category == 'игрушки' %}
         {% set toys_icon_map = {
-            'doll_accessories': 'main_v2/img/icons/toys/doll_accessories.png'
+            'doll_accessories': 'main_v2/img/icons/toys/doll_accessories.png',
+            'puzzles': 'main_v2/img/icons/toys/puzzles.png',
+            'competition_cars': 'main_v2/img/icons/toys/competition_cars.png',
+            'sets_kits': 'main_v2/img/icons/toys/sets_kits.png',
+            'animal_creature': 'main_v2/img/icons/toys/animal_creature.png'
         } %}
-        <div class="order__img order__img--toys" data-bs-toggle="tooltip" style="user-select: none;"
+        <div class="order__img order__img--toys order__img--toys-{{ (n.subcategory or '')|replace('_', '-') }}" data-bs-toggle="tooltip" style="user-select: none;"
                         data-bs-placement="top" data-bs-title="{{ subcategories_dict.get(n.subcategory, n.category) }}">
             <img src="{{ url_for('static', filename=toys_icon_map.get(n.subcategory, 'main_v2/img/icons/toy.svg')) }}" alt="" class="img-fluid">
         </div>

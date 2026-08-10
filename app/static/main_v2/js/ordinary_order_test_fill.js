@@ -275,11 +275,15 @@ function ordinaryOrderFillToysStep2(subcategory) {
     ordinaryOrderSetValue("trademark", "AUTOBRAND");
     ordinaryOrderSetSelect("model_article_type", ["Артикул"]);
     ordinaryOrderSetValue("model_article", `TOY-${Date.now().toString().slice(-6)}`);
-    ordinaryOrderSetSelect("type", ["ОДЕЖДА ДЛЯ КУКОЛ"]);
-    ordinaryOrderSetSelect("material", ["ПЛАСТМАССА", "ТКАНЬ"]);
+    const toysTypePreference = subcategory === "puzzles" ? ["ГОЛОВОЛОМКА"] : ["ОДЕЖДА ДЛЯ КУКОЛ"];
+    const toysMaterialPreference = subcategory === "puzzles" ? ["ДЕРЕВО"] : ["ПЛАСТМАССА", "ТКАНЬ"];
+    const toysContent = subcategory === "puzzles" ? "ДЕРЕВО" : "ПЛАСТМАССА, ТКАНЬ";
+
+    ordinaryOrderSetSelect("type", toysTypePreference);
+    ordinaryOrderSetSelect("material", toysMaterialPreference);
     ordinaryOrderSetSelect("min_child_age", ["ОТ 3 ЛЕТ"]);
     ordinaryOrderSetSelect("usage_term_type", ["СРОК СЛУЖБЫ"]);
-    ordinaryOrderSetValue("content", "ПЛАСТМАССА, ТКАНЬ");
+    ordinaryOrderSetValue("content", toysContent);
     ordinaryOrderSetSelect("service_life_type", ["мес"]);
     ordinaryOrderSetValue("service_life", "36");
     ordinaryOrderSetValue("sl_date_from", ordinaryOrderFormatRuDate(new Date()));
