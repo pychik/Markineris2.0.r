@@ -628,7 +628,7 @@ function toys_check_rd_docs() {
 }
 
 function show_toys_pos(index, full_name, trademark, type, okpd2_code, okpd2_name, model_article_type,
-                       model_article, model_article_replace, material, min_child_age, usage_term_type,
+                       model_article, model_article_replace, drive_type, material, min_child_age, usage_term_type,
                        content, service_life_type, service_life, sl_date_from, sl_date_to, quantity, country, tnved_code, rd_name,
                        editUrl, copyUrl, deleteUrl, csrf) {
     const main = document.getElementById('ShowModalTable');
@@ -698,6 +698,7 @@ function show_toys_pos(index, full_name, trademark, type, okpd2_code, okpd2_name
                         ${item('ОКПД2', okpd2Value)}
                         ${item('Модель / артикул', modelArticleValue)}
                         ${item('Заменить модель/артикул', model_article_replace)}
+                        ${drive_type ? item('Тип привода в движение', drive_type) : ''}
                         ${item('Материал', material)}
                         ${item('Минимальный возраст', min_child_age)}
                         ${item('Хар-ка срока использования', usage_term_type)}
@@ -739,6 +740,7 @@ function toys_clear_pos() {
 
     $('#full_name_extra').val('');
     $('#type').val('').trigger('change');
+    $('#drive_type').val('').trigger('change');
     $('#material').val('').trigger('change');
     $('#min_child_age').val('').trigger('change');
     $('#usage_term_type').val('').trigger('change');

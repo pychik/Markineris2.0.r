@@ -1037,6 +1037,10 @@ SUB_CATEGORIES_DICT: dict = {"underwear": "нижнее белье",
                              "razor_blades_and_cassettes": "бритвы и лезвия",
                              "doll_accessories": "аксессуары и принадлежности для кукол",
                              "puzzles": "головоломки",
+                             "competition_cars": "гоночные автомобили для соревновательных игр",
+                             "sets_kits": "игрушки в наборах, комплектах",
+                             "motorized_toys": "игрушки и модели со встроенным двигателем",
+                             "animal_creature": "игрушки, изображающие животных или других существ",
                              "common": "общее"}
 
 BIG_TNVED_LIST: tuple = SHOE_TNVED + ALL_CLOTHES_TNVED + (LINEN_TNVED, '', ) + PARFUM_TNVED + ALL_SOCKS_TNVEDS

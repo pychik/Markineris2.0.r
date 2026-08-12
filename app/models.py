@@ -987,6 +987,7 @@ class Toys(db.Model, UserMixin, CommonMixin):
     okpd2_name = db.Column(db.String(255), default='')
     model_article_type = db.Column(db.String(32), default='')
     model_article = db.Column(db.String(100), default='')
+    drive_type = db.Column(db.String(100), default='')
     material = db.Column(db.String(100), default='')
     min_child_age = db.Column(db.String(32), default='')
     usage_term_type = db.Column(db.String(100), default='')

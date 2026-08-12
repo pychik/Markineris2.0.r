@@ -326,6 +326,9 @@ body {
 .order__img--toys-sets-kits img {
   transform: scale(1.73);
 }
+.order__img--toys-motorized-toys img {
+  transform: scale(1.42);
+}
 .order__img--toys-animal-creature img {
   transform: scale(1.72);
 }

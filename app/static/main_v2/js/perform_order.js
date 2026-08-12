@@ -43,6 +43,13 @@ function get_filled_value_count(ids) {
     }, 0);
 }
 
+function has_filled_value(ids) {
+    return ids.some((id) => {
+        const element = document.getElementById(id);
+        return element && (element.value || "").trim();
+    });
+}
+
 function has_sizes_quantity_draft() {
     const block = document.getElementById("sizes_quantity");
     if (!block) {
@@ -74,6 +81,54 @@ function should_warn_about_unsaved_position(category) {
         const strongCount = get_filled_value_count(["trademark", "volume", "type"]);
         const softCount = get_filled_value_count(["trademark", "volume", "type", "country", "tnved_code", "article_price"]);
         return strongCount === 3 && softCount >= 4;
+    }
+
+    if (category === "cosmetics") {
+        const cosmeticsIds = [
+            "trademark",
+            "full_name_extra",
+            "type",
+            "nominal_quantity_type",
+            "nominal_quantity",
+            "for_children",
+            "usage_term_type",
+            "content_type",
+            "content",
+            "service_life",
+            "sl_date_from",
+            "sl_date_to",
+            "quantity",
+            "country",
+            "tnved_code",
+            "article_price",
+        ];
+        return has_filled_value(["type", "tnved_code", "content", "quantity", "trademark"])
+            && get_filled_value_count(cosmeticsIds) >= 4;
+    }
+
+    if (category === "toys") {
+        const toysIds = [
+            "trademark",
+            "full_name_extra",
+            "model_article_type",
+            "model_article",
+            "type",
+            "drive_type",
+            "material",
+            "min_child_age",
+            "usage_term_type",
+            "content",
+            "service_life",
+            "sl_date_from",
+            "sl_date_to",
+            "quantity",
+            "country",
+            "tnved_code",
+            "okpd2_code",
+            "article_price",
+        ];
+        return has_filled_value(["type", "tnved_code", "okpd2_code", "content", "quantity", "trademark", "model_article"])
+            && get_filled_value_count(toysIds) >= 4;
     }
 
     return false;

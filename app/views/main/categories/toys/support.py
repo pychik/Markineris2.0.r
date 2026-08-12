@@ -40,21 +40,15 @@ def helper_toys_index(
         }
         toys_upcoming_category_tiles = (
             {
-                "title": "Гоночные автомобили для соревновательных игр",
-                "icon": "main_v2/img/icons/toys/competition_cars.png",
-                "icon_class": "toys-category-icon--competition-cars",
+                "title": "Инструменты и устройства музыкальные игрушечные",
+                "icon": "main_v2/img/icons/toys/musical_toy_instruments.png",
+                "icon_class": "toys-category-icon--musical-toy-instruments",
                 "badge": "Скоро",
             },
             {
-                "title": "Игрушки в наборах, комплектах",
-                "icon": "main_v2/img/icons/toys/sets_kits.png",
-                "icon_class": "toys-category-icon--sets-kits",
-                "badge": "Скоро",
-            },
-            {
-                "title": "Игрушки, изображающие животных или других существ",
-                "icon": "main_v2/img/icons/toys/animal_creature.png",
-                "icon_class": "toys-category-icon--animal-creature",
+                "title": "Игрушки прочие и модели в масштабе",
+                "icon": "main_v2/img/icons/toys/scale_models_other_plastic.png",
+                "icon_class": "toys-category-icon--scale-models",
                 "badge": "Скоро",
             },
         )
@@ -63,6 +57,10 @@ def helper_toys_index(
             for tile in (
                 toys_subcategories.get("doll_accessories"),
                 toys_subcategories.get("puzzles"),
+                toys_subcategories.get("competition_cars"),
+                toys_subcategories.get("sets_kits"),
+                toys_subcategories.get("motorized_toys"),
+                toys_subcategories.get("animal_creature"),
             )
             if tile
         )
@@ -104,6 +102,7 @@ def helper_toys_index(
     okpd2_choices_by_tnved = subcategory_config["okpd2_choices_by_tnved"]
     model_article_types = subcategory_config["model_article_types"]
     product_types = subcategory_config["product_types"]
+    drive_type_choices = subcategory_config.get("drive_type_choices", ())
     material_choices = subcategory_config["material_choices"]
     min_child_age_choices = subcategory_config["min_child_age_choices"]
     usage_term_types = subcategory_config["usage_term_types"]

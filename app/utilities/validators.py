@@ -349,6 +349,7 @@ class ValidatorProcessor:
         okpd2_code = str(form_data.get("okpd2_code") or "").strip()
         okpd2_name = str(form_data.get("okpd2_name") or "").strip()
         country = str(form_data.get("country") or "").strip().upper()
+        drive_type = str(form_data.get("drive_type") or "").strip()
         trademark = normalize_trademark_placeholder(str(form_data.get("trademark") or "").strip())
         full_name_extra = process_input_str(str(form_data.get("full_name_extra") or "").strip())
         content = str(form_data.get("content") or "")
@@ -428,6 +429,12 @@ class ValidatorProcessor:
         for label, value, allowed_values in choice_checks:
             if value not in allowed_values:
                 return f"Выберите допустимое значение поля '{label}'."
+
+        drive_type_choices = tuple(subcategory_config.get("drive_type_choices") or ())
+        if drive_type_choices and drive_type not in drive_type_choices:
+            return "Выберите допустимое значение поля 'Тип привода в движение'."
+        if not drive_type_choices and drive_type:
+            return "Поле 'Тип привода в движение' не используется для этой подкатегории."
 
         return None
 

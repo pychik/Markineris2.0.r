@@ -16,9 +16,9 @@
 }
 
 .toys-category-icon--svg {
-  width: 70%;
-  height: 70%;
-  max-width: 96px;
+  width: 100px;
+  height: 100px;
+  margin: 4px auto;
   object-fit: contain;
 }
 
@@ -48,6 +48,27 @@
   height: auto;
   max-width: none;
   transform: translate(-36px, -30px);
+}
+
+.toys-category-icon--motorized-toys {
+  width: 122px;
+  height: auto;
+  max-width: none;
+  transform: translate(-14px, -19px);
+}
+
+.toys-category-icon--musical-toy-instruments {
+  width: 134px;
+  height: auto;
+  max-width: none;
+  transform: translate(-15px, -15px);
+}
+
+.toys-category-icon--scale-models {
+  width: 114px;
+  height: auto;
+  max-width: none;
+  transform: translate(-5px, -4px);
 }
 
 .toys-category-disabled {

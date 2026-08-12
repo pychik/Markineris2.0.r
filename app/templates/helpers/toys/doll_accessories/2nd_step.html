@@ -142,7 +142,7 @@
             </div>
 
             <div class="row g-4 mt-1">
-                <div class="col-md-6">
+                <div class="{% if drive_type_choices %}col-md-4{% else %}col-md-6{% endif %}">
                     <div class="form-group">
                         <label for="type" class="control-label">Вид товара</label>
                         <select id="type" name="type" class="form-control search-select"
@@ -157,7 +157,23 @@
                     </div>
                 </div>
 
-                <div class="col-md-6">
+                {% if drive_type_choices %}
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="drive_type" class="control-label">Тип привода в движение</label>
+                        <select id="drive_type" name="drive_type" class="form-control search-select" required>
+                            <option value="" selected disabled>Выберите тип привода</option>
+                            {% for item in drive_type_choices %}
+                                <option value="{{ item }}" {% if copied_order and copied_order.drive_type == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                {% else %}
+                <input type="hidden" id="drive_type" name="drive_type" value="">
+                {% endif %}
+
+                <div class="{% if drive_type_choices %}col-md-4{% else %}col-md-6{% endif %}">
                     <div class="form-group">
                         <label for="material" class="control-label">Материал изделия</label>
                         <select id="material" name="material" class="form-control search-select" required>
@@ -178,18 +194,6 @@
                             <option value="" selected disabled>Выберите возраст</option>
                             {% for item in min_child_age_choices %}
                                 <option value="{{ item }}" {% if copied_order and copied_order.min_child_age == item %}selected{% endif %}>{{ item }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label for="usage_term_type" class="control-label">Хар-ка срока исп-ния</label>
-                        <select id="usage_term_type" name="usage_term_type" class="form-control search-select" required>
-                            <option value="" selected disabled>Выберите значение</option>
-                            {% for item in usage_term_types %}
-                                <option value="{{ item }}" {% if copied_order and copied_order.usage_term_type == item %}selected{% endif %}>{{ item }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -227,13 +231,15 @@
             </div>
 
             <div class="row g-4 mt-1">
+                <input type="hidden" id="service_life_type" name="service_life_type" value="мес">
+
                 <div class="col-md-3">
                     <div class="form-group">
-                        <label for="service_life_type" class="control-label">Ед. срока службы</label>
-                        <select id="service_life_type" name="service_life_type" class="form-control search-select" required>
-                            <option value="" selected disabled>Выберите тип</option>
-                            {% for item in service_life_types %}
-                                <option value="{{ item }}" {% if (copied_order and copied_order.service_life_type == item) or ((not copied_order) and item == 'мес') %}selected{% endif %}>{{ item }}</option>
+                        <label for="usage_term_type" class="control-label">Хар-ка срока исп-ния</label>
+                        <select id="usage_term_type" name="usage_term_type" class="form-control search-select" required>
+                            <option value="" selected disabled>Выберите значение</option>
+                            {% for item in usage_term_types %}
+                                <option value="{{ item }}" {% if copied_order and copied_order.usage_term_type == item %}selected{% endif %}>{{ item }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -241,7 +247,7 @@
 
                 <div class="col-md-3">
                     <div class="form-group">
-                        <label for="service_life" class="control-label">Срок службы товара</label>
+                        <label for="service_life" class="control-label">Срок годности, мес.</label>
                         <input id="service_life" name="service_life" type="number" min="0" max="1000" step="1" class="form-control" placeholder="36" value="{% if copied_order %}{{ copied_order.service_life }}{% else %}36{% endif %}" required>
                     </div>
                 </div>

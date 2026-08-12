@@ -275,15 +275,51 @@ function ordinaryOrderFillToysStep2(subcategory) {
     ordinaryOrderSetValue("trademark", "AUTOBRAND");
     ordinaryOrderSetSelect("model_article_type", ["Артикул"]);
     ordinaryOrderSetValue("model_article", `TOY-${Date.now().toString().slice(-6)}`);
-    const toysTypePreference = subcategory === "puzzles" ? ["ГОЛОВОЛОМКА"] : ["ОДЕЖДА ДЛЯ КУКОЛ"];
-    const toysMaterialPreference = subcategory === "puzzles" ? ["ДЕРЕВО"] : ["ПЛАСТМАССА", "ТКАНЬ"];
-    const toysContent = subcategory === "puzzles" ? "ДЕРЕВО" : "ПЛАСТМАССА, ТКАНЬ";
+    const toysTestProfiles = {
+        puzzles: {
+            type: ["ГОЛОВОЛОМКА"],
+            material: ["ДЕРЕВО"],
+            content: "ДЕРЕВО",
+        },
+        competition_cars: {
+            type: ["НАБОР ЭЛЕКТРИЧЕСКИХ ГОНОЧНЫХ АВТОМОБИЛЕЙ ДЛЯ СОРЕВНОВАТЕЛЬНЫХ ИГР"],
+            material: ["ПЛАСТМАССА"],
+            content: "ПЛАСТМАССА",
+        },
+        sets_kits: {
+            type: ["НАБОР ИГРУШЕК"],
+            material: ["ПЛАСТМАССА"],
+            content: "ПЛАСТМАССА",
+        },
+        motorized_toys: {
+            type: ["ИГРУШКА ТРАНСПОРТНАЯ"],
+            drive_type: ["МИКРОЭЛЕКТРОДВИГАТЕЛЬ"],
+            material: ["ПЛАСТМАССА"],
+            content: "ПЛАСТМАССА",
+        },
+        animal_creature: {
+            type: ["ФИГУРКА"],
+            drive_type: ["БЕЗ МЕХАНИЗМА"],
+            material: ["ПЛАСТМАССА"],
+            content: "ПЛАСТМАССА",
+        },
+    };
+    const toysTestProfile = toysTestProfiles[subcategory] || {
+        type: ["ОДЕЖДА ДЛЯ КУКОЛ"],
+        material: ["ПЛАСТМАССА", "ТКАНЬ"],
+        content: "ПЛАСТМАССА, ТКАНЬ",
+    };
 
-    ordinaryOrderSetSelect("type", toysTypePreference);
-    ordinaryOrderSetSelect("material", toysMaterialPreference);
+    ordinaryOrderSetSelect("type", toysTestProfile.type);
+    if (toysTestProfile.drive_type) {
+        ordinaryOrderSetSelect("drive_type", toysTestProfile.drive_type);
+    } else {
+        ordinaryOrderSetValue("drive_type", "");
+    }
+    ordinaryOrderSetSelect("material", toysTestProfile.material);
     ordinaryOrderSetSelect("min_child_age", ["ОТ 3 ЛЕТ"]);
     ordinaryOrderSetSelect("usage_term_type", ["СРОК СЛУЖБЫ"]);
-    ordinaryOrderSetValue("content", toysContent);
+    ordinaryOrderSetValue("content", toysTestProfile.content);
     ordinaryOrderSetSelect("service_life_type", ["мес"]);
     ordinaryOrderSetValue("service_life", "36");
     ordinaryOrderSetValue("sl_date_from", ordinaryOrderFormatRuDate(new Date()));

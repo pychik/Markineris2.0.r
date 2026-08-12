@@ -998,6 +998,31 @@ class CosmeticsProcessor(OrdersProcessor):
 
 class ToysProcessor(OrdersProcessor):
     DOLL_ACCESSORIES_SUBCATEGORY = "doll_accessories"
+    DRIVE_TYPE_SUBCATEGORIES = {"motorized_toys", "animal_creature"}
+    DRIVE_TYPE_START_EXT_COLUMN = (
+        "Тип привода в движение",
+        "15453",
+        "value",
+        "Значение из справочника, Текстовое значение",
+    )
+    DRIVE_TYPE_PRELOAD_COLUMN = "Тип привода в движение"
+
+    @staticmethod
+    def has_drive_type_subcategory(orders_list: list) -> bool:
+        return any(getattr(el, "subcategory", None) in ToysProcessor.DRIVE_TYPE_SUBCATEGORIES for el in orders_list)
+
+    @staticmethod
+    def get_drive_type_start_ext() -> list:
+        start_ext = [list(row) for row in settings.Toys.START_EXT]
+        for row, value in zip(start_ext, ToysProcessor.DRIVE_TYPE_START_EXT_COLUMN):
+            row.insert(10, value)
+        return start_ext
+
+    @staticmethod
+    def get_drive_type_preload_start() -> list:
+        start_preload = copy(settings.Toys.START_PRELOAD)
+        start_preload.insert(9, ToysProcessor.DRIVE_TYPE_PRELOAD_COLUMN)
+        return start_preload
 
     @staticmethod
     def build_full_name(el) -> str:
@@ -1012,6 +1037,8 @@ class ToysProcessor(OrdersProcessor):
         return f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}"
 
     def get_excel_start_data_ext(self):
+        if ToysProcessor.has_drive_type_subcategory(self.source_orders_list):
+            return ToysProcessor.get_drive_type_start_ext()
         return copy(settings.Toys.START_EXT)
 
     @staticmethod
@@ -1036,6 +1063,10 @@ class ToysProcessor(OrdersProcessor):
                 el.model_article,
                 'нет',
                 el.type,
+            ]
+            if ToysProcessor.has_drive_type_subcategory(orders_list):
+                temp_list.append(el.drive_type or '')
+            temp_list.extend([
                 el.material,
                 el.min_child_age,
                 el.usage_term_type,
@@ -1051,7 +1082,7 @@ class ToysProcessor(OrdersProcessor):
                 el.quantity,
                 el.country,
                 certification,
-            ]
+            ])
             res_list_common.append(temp_list)
             if (el.country or '').upper() in settings.COUNTRIES_INNER:
                 res_list_inner.append(temp_list)
@@ -1664,9 +1695,15 @@ def orders_common_preload(category: str, company_idn: str, orders_list: list) ->
     elif category == settings.Cosmetics.CATEGORY:
         start_list, res_list = _cosmetics_common_preload(company_idn=company_idn, orders_list=orders_list)
     elif category == settings.Toys.CATEGORY:
-        start_list = copy(settings.Toys.START_PRELOAD)
-        res_list = [
-            [
+        has_drive_type = ToysProcessor.has_drive_type_subcategory(orders_list)
+        start_list = (
+            ToysProcessor.get_drive_type_preload_start()
+            if has_drive_type
+            else copy(settings.Toys.START_PRELOAD)
+        )
+        res_list = []
+        for el in orders_list:
+            row = [
                 el.tnved_code,
                 el.category_code,
                 ToysProcessor.build_full_name(el),
@@ -1676,6 +1713,10 @@ def orders_common_preload(category: str, company_idn: str, orders_list: list) ->
                 el.model_article,
                 'нет',
                 el.type,
+            ]
+            if has_drive_type:
+                row.append(el.drive_type or '')
+            row.extend([
                 el.material,
                 el.min_child_age,
                 el.usage_term_type,
@@ -1688,9 +1729,8 @@ def orders_common_preload(category: str, company_idn: str, orders_list: list) ->
                 el.quantity,
                 el.country,
                 ToysProcessor.get_certification(el),
-            ]
-            for el in orders_list
-        ]
+            ])
+            res_list.append(row)
 
     page, per_page, offset, pagination, order_list = helper_paginate_data(data=res_list,
                                                                           per_page=settings.PAGINATION_PER_PAGE_PRELOAD)
