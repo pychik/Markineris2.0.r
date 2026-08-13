@@ -303,6 +303,12 @@ function ordinaryOrderFillToysStep2(subcategory) {
             material: ["ПЛАСТМАССА"],
             content: "ПЛАСТМАССА",
         },
+        scale_models_other: {
+            tnved: "9503009500",
+            type: ["ТРАНСПОРТ ЛЕГКОВОЙ"],
+            material: ["ПЛАСТМАССА"],
+            content: "ПЛАСТМАССА",
+        },
     };
     const toysTestProfile = toysTestProfiles[subcategory] || {
         type: ["ОДЕЖДА ДЛЯ КУКОЛ"],
@@ -311,6 +317,9 @@ function ordinaryOrderFillToysStep2(subcategory) {
     };
 
     ordinaryOrderSetSelect("type", toysTestProfile.type);
+    if (toysTestProfile.tnved_group) {
+        ordinaryOrderSetSelect("tnved_group", toysTestProfile.tnved_group);
+    }
     if (toysTestProfile.drive_type) {
         ordinaryOrderSetSelect("drive_type", toysTestProfile.drive_type);
     } else {
@@ -329,7 +338,7 @@ function ordinaryOrderFillToysStep2(subcategory) {
     ordinaryOrderResetRd();
     ordinaryOrderSetSelect("country", ["РОССИЯ", "КИТАЙ"]);
 
-    const tnved = window.TOYS_DEFAULT_TNVED_CODE || (window.TOYS_ALLOWED_TNVED_CODES || [])[0] || "";
+    const tnved = toysTestProfile.tnved || window.TOYS_DEFAULT_TNVED_CODE || (window.TOYS_ALLOWED_TNVED_CODES || [])[0] || "";
     if (tnved && typeof selectToysTnved === "function") {
         selectToysTnved(tnved);
     } else {

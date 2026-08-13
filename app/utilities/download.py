@@ -998,6 +998,7 @@ class CosmeticsProcessor(OrdersProcessor):
 
 class ToysProcessor(OrdersProcessor):
     DOLL_ACCESSORIES_SUBCATEGORY = "doll_accessories"
+    NO_CATEGORY_CODE_SUBCATEGORIES = {"scale_models_other"}
     DRIVE_TYPE_SUBCATEGORIES = {"motorized_toys", "animal_creature"}
     DRIVE_TYPE_START_EXT_COLUMN = (
         "Тип привода в движение",
@@ -1010,6 +1011,21 @@ class ToysProcessor(OrdersProcessor):
     @staticmethod
     def has_drive_type_subcategory(orders_list: list) -> bool:
         return any(getattr(el, "subcategory", None) in ToysProcessor.DRIVE_TYPE_SUBCATEGORIES for el in orders_list)
+
+    @staticmethod
+    def has_category_code_subcategory(orders_list: list) -> bool:
+        return any(
+            getattr(el, "subcategory", None) not in ToysProcessor.NO_CATEGORY_CODE_SUBCATEGORIES
+            for el in orders_list
+        )
+
+    @staticmethod
+    def remove_start_column(start_rows: list, column_index: int) -> list:
+        rows = [list(row) for row in start_rows]
+        for row in rows:
+            if len(row) > column_index:
+                row.pop(column_index)
+        return rows
 
     @staticmethod
     def get_drive_type_start_ext() -> list:
@@ -1038,14 +1054,19 @@ class ToysProcessor(OrdersProcessor):
 
     def get_excel_start_data_ext(self):
         if ToysProcessor.has_drive_type_subcategory(self.source_orders_list):
-            return ToysProcessor.get_drive_type_start_ext()
-        return copy(settings.Toys.START_EXT)
+            start_ext = ToysProcessor.get_drive_type_start_ext()
+        else:
+            start_ext = copy(settings.Toys.START_EXT)
+        if not ToysProcessor.has_category_code_subcategory(self.source_orders_list):
+            return ToysProcessor.remove_start_column(start_ext, 2)
+        return start_ext
 
     @staticmethod
     def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
+        include_category_code = ToysProcessor.has_category_code_subcategory(orders_list)
 
         for el in orders_list:
             trademark = OrdersProcessor.placeholder_export_value(el.trademark, "trademark")
@@ -1055,7 +1076,6 @@ class ToysProcessor(OrdersProcessor):
             temp_list = [
                 '',
                 el.tnved_code,
-                el.category_code,
                 full_name,
                 trademark,
                 el.okpd2_code,
@@ -1064,6 +1084,8 @@ class ToysProcessor(OrdersProcessor):
                 'нет',
                 el.type,
             ]
+            if include_category_code:
+                temp_list.insert(2, el.category_code)
             if ToysProcessor.has_drive_type_subcategory(orders_list):
                 temp_list.append(el.drive_type or '')
             temp_list.extend([
@@ -1701,11 +1723,13 @@ def orders_common_preload(category: str, company_idn: str, orders_list: list) ->
             if has_drive_type
             else copy(settings.Toys.START_PRELOAD)
         )
+        include_category_code = ToysProcessor.has_category_code_subcategory(orders_list)
+        if not include_category_code and len(start_list) > 1:
+            start_list.pop(1)
         res_list = []
         for el in orders_list:
             row = [
                 el.tnved_code,
-                el.category_code,
                 ToysProcessor.build_full_name(el),
                 OrdersProcessor.placeholder_export_value(el.trademark, "trademark"),
                 el.okpd2_code,
@@ -1714,6 +1738,8 @@ def orders_common_preload(category: str, company_idn: str, orders_list: list) ->
                 'нет',
                 el.type,
             ]
+            if include_category_code:
+                row.insert(1, el.category_code)
             if has_drive_type:
                 row.append(el.drive_type or '')
             row.extend([

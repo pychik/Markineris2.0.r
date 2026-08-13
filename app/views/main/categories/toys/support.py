@@ -40,15 +40,21 @@ def helper_toys_index(
         }
         toys_upcoming_category_tiles = (
             {
-                "title": "Инструменты и устройства музыкальные игрушечные",
-                "icon": "main_v2/img/icons/toys/musical_toy_instruments.png",
-                "icon_class": "toys-category-icon--musical-toy-instruments",
+                "title": "Куклы, изображающие людей",
+                "icon": "main_v2/img/icons/toys/dolls_human_figures.png",
+                "icon_class": "toys-category-icon--dolls-human-figures",
                 "badge": "Скоро",
             },
             {
-                "title": "Игрушки прочие и модели в масштабе",
-                "icon": "main_v2/img/icons/toys/scale_models_other_plastic.png",
-                "icon_class": "toys-category-icon--scale-models",
+                "title": "Карточные игры",
+                "icon": "main_v2/img/icons/toys/card_games.png",
+                "icon_class": "toys-category-icon--card-games",
+                "badge": "Скоро",
+            },
+            {
+                "title": "Инструменты и устройства музыкальные игрушечные",
+                "icon": "main_v2/img/icons/toys/musical_toy_instruments.png",
+                "icon_class": "toys-category-icon--musical-toy-instruments",
                 "badge": "Скоро",
             },
         )
@@ -61,6 +67,7 @@ def helper_toys_index(
                 toys_subcategories.get("sets_kits"),
                 toys_subcategories.get("motorized_toys"),
                 toys_subcategories.get("animal_creature"),
+                toys_subcategories.get("scale_models_other"),
             )
             if tile
         )
@@ -99,6 +106,7 @@ def helper_toys_index(
     allowed_tnved_codes = subcategory_config["allowed_tnved_codes"]
     allowed_tnved_choices = subcategory_config["allowed_tnved_choices"]
     allowed_tnved_codes_by_product_type = subcategory_config.get("allowed_tnved_codes_by_product_type", {})
+    tnved_group_choices = subcategory_config.get("tnved_group_choices", ())
     okpd2_choices_by_tnved = subcategory_config["okpd2_choices_by_tnved"]
     model_article_types = subcategory_config["model_article_types"]
     product_types = subcategory_config["product_types"]

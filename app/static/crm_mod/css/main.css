@@ -332,6 +332,9 @@ body {
 .order__img--toys-animal-creature img {
   transform: scale(1.72);
 }
+.order__img--toys-scale-models-other img {
+  transform: scale(1.12);
+}
 .order__img--toys-competition-cars img {
   transform: scale(1.33);
 }

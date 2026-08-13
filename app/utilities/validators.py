@@ -374,6 +374,18 @@ class ValidatorProcessor:
         if tnved_code not in allowed_tnved_codes_for_type:
             return "Выбранный ТН ВЭД не подходит для выбранного вида товара."
 
+        tnved_group_choices = tuple(subcategory_config.get("tnved_group_choices") or ())
+        if tnved_group_choices:
+            tnved_group = str(form_data.get("tnved_group") or "").strip()
+            group_codes_by_id = {
+                str(group_id).strip(): tuple(str(code).strip() for code in codes)
+                for group_id, _, codes in tnved_group_choices
+            }
+            if tnved_group not in group_codes_by_id:
+                return "Выберите допустимую группу ТН ВЭД."
+            if tnved_code not in group_codes_by_id[tnved_group]:
+                return "Выбранный ТН ВЭД не подходит для выбранной группы."
+
         category_code = str(form_data.get("category_code") or "").strip()
         category_code_by_tnved = subcategory_config.get("category_code_by_tnved") or {}
         expected_category_code = str(

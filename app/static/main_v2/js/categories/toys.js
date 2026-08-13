@@ -185,6 +185,32 @@ function toysGetAllowedTnvedCodesForType(productType) {
     return mapped.length ? mapped : allAllowed;
 }
 
+function toysGetSelectedTnvedGroupCodes() {
+    const groupEl = document.getElementById('tnved_group');
+    const groups = Array.isArray(window.TOYS_TNVED_GROUP_CHOICES) ? window.TOYS_TNVED_GROUP_CHOICES : [];
+    const selectedGroup = groupEl ? String(groupEl.value || '').trim() : '';
+
+    if (!selectedGroup || !groups.length) {
+        return null;
+    }
+
+    const group = groups.find((item) => String(item[0] || '').trim() === selectedGroup);
+    if (!group || !Array.isArray(group[2])) {
+        return [];
+    }
+
+    return group[2].map((code) => String(code || '').trim()).filter(Boolean);
+}
+
+function toysGetAllowedTnvedCodes() {
+    const allowedForType = toysGetAllowedTnvedCodesForType(toysGetProductType());
+    const groupCodes = toysGetSelectedTnvedGroupCodes();
+    if (groupCodes === null) {
+        return allowedForType;
+    }
+    return allowedForType.filter((code) => groupCodes.includes(code));
+}
+
 function toysUpdateCategoryCodeByTnved() {
     const tnvedEl = document.getElementById('tnved_code');
     const categoryCodeEl = document.getElementById('category_code');
@@ -208,11 +234,22 @@ function handleToysProductTypeChange() {
     updateToysFullName();
 }
 
+function handleToysTnvedGroupChange() {
+    const tnvedEl = document.getElementById('tnved_code');
+    if (tnvedEl) {
+        tnvedEl.value = '';
+    }
+    toys_clear_tnved_feedback();
+    toysClearOkpd2();
+    toysUpdateCategoryCodeByTnved();
+}
+
 function toys_check_tnved() {
     const tnvedEl = document.getElementById('tnved_code');
+    const groupEl = document.getElementById('tnved_group');
     const invalidEl = document.getElementById('tnved_nv_feedback');
     const validEl = document.getElementById('tnved_valid_feedback');
-    const allowed = toysGetAllowedTnvedCodesForType(toysGetProductType());
+    const allowed = toysGetAllowedTnvedCodes();
 
     if (!tnvedEl) {
         return true;
@@ -221,10 +258,18 @@ function toys_check_tnved() {
     const code = String(tnvedEl.value || '').trim();
     toys_clear_tnved_feedback();
 
+    if (groupEl && !String(groupEl.value || '').trim()) {
+        tnvedEl.classList.add('is-invalid');
+        if (invalidEl) {
+            invalidEl.textContent = 'Сначала выберите группу ТН ВЭД.';
+        }
+        return false;
+    }
+
     if (!code || !allowed.includes(code)) {
         tnvedEl.classList.add('is-invalid');
         if (invalidEl) {
-            invalidEl.textContent = code ? 'Код ТН ВЭД не подходит для выбранного вида товара.' : 'Выберите ТН ВЭД из списка.';
+            invalidEl.textContent = code ? 'Код ТН ВЭД не подходит для выбранных параметров.' : 'Выберите ТН ВЭД из списка.';
         }
         return false;
     }
@@ -238,9 +283,16 @@ function toys_check_tnved() {
 
 function get_toys_tnveds() {
     const insertEl = document.getElementById('manual_tnved_insert');
+    const groupEl = document.getElementById('tnved_group');
+    if (groupEl && !String(groupEl.value || '').trim()) {
+        show_form_errors(['Сначала выберите группу ТН ВЭД.']);
+        $('#form_errorModal').modal('show');
+        return;
+    }
+
     const allChoices = Array.isArray(window.TOYS_ALLOWED_TNVED_CHOICES) ? window.TOYS_ALLOWED_TNVED_CHOICES : [];
-    const allowedForType = toysGetAllowedTnvedCodesForType(toysGetProductType());
-    const choices = allChoices.filter((tnved) => allowedForType.includes(String(tnved[0] || '').trim()));
+    const allowed = toysGetAllowedTnvedCodes();
+    const choices = allChoices.filter((tnved) => allowed.includes(String(tnved[0] || '').trim()));
 
     if (!insertEl || !choices.length) {
         show_form_errors(['Для выбранного вида товара нет доступного ТН ВЭД.']);

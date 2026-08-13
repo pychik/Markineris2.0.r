@@ -157,6 +157,9 @@
             transform-origin: center;
             filter: none;
         }
+        &--toys-scale-models-other img {
+            transform: scale(1.12);
+        }
     }
     &__info {
         padding: 15px 0 0;

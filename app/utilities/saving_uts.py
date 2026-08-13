@@ -245,11 +245,12 @@ def save_toys(order: Order, form_dict: dict, subcategory: str) -> Order:
         from views.main.categories.toys.subcategories import get_subcategory_config
         subcategory_config = get_subcategory_config(subcategory) or {}
         tnved_code = str(form_dict.get("tnved_code") or "").strip()
-        category_code = (
-            (subcategory_config.get("category_code_by_tnved") or {}).get(tnved_code)
-            or category_code
-            or subcategory_config.get("category_code")
-        )
+        if subcategory_config:
+            category_code = (
+                (subcategory_config.get("category_code_by_tnved") or {}).get(tnved_code)
+                or subcategory_config.get("category_code")
+                or ""
+            )
         okpd2_choices = subcategory_config.get("okpd2_choices_by_tnved", {}).get(form_dict.get("tnved_code"), ())
         okpd2_name = next(
             (name for code, name in okpd2_choices if str(code).strip() == str(form_dict.get("okpd2_code") or "").strip()),

@@ -64,6 +64,20 @@
   transform: translate(-15px, -15px);
 }
 
+.toys-category-icon--dolls-human-figures {
+  width: 116px;
+  height: auto;
+  max-width: none;
+  transform: translate(-5px, -3px);
+}
+
+.toys-category-icon--card-games {
+  width: 118px;
+  height: auto;
+  max-width: none;
+  transform: translate(-5px, -4px);
+}
+
 .toys-category-icon--scale-models {
   width: 114px;
   height: auto;

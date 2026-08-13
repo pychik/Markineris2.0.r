@@ -4,6 +4,7 @@ import views.main.categories.toys.subcategories.competition_cars as competition_
 import views.main.categories.toys.subcategories.sets_kits as sets_kits
 import views.main.categories.toys.subcategories.motorized_toys as motorized_toys
 import views.main.categories.toys.subcategories.animal_creature as animal_creature
+import views.main.categories.toys.subcategories.scale_models_other as scale_models_other
 
 
 SUBCATEGORY_CONFIG = {
@@ -131,6 +132,27 @@ SUBCATEGORY_CONFIG = {
         "usage_term_types": animal_creature.USAGE_TERM_TYPES,
         "service_life_types": animal_creature.SERVICE_LIFE_TYPES,
         "default_countries": animal_creature.DEFAULT_COUNTRIES,
+        "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
+        "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
+    },
+    scale_models_other.SUBCATEGORY_SLUG: {
+        "slug": scale_models_other.SUBCATEGORY_SLUG,
+        "title": scale_models_other.SUBCATEGORY_TITLE,
+        "icon": "main_v2/img/icons/toys/scale_models_other_plastic.png",
+        "icon_class": "toys-category-icon--scale-models",
+        "category_code": scale_models_other.SUBCATEGORY_CATEGORY_CODE,
+        "category_code_by_tnved": scale_models_other.CATEGORY_CODE_BY_TNVED,
+        "allowed_tnved_codes": scale_models_other.ALLOWED_TNVED_CODES,
+        "allowed_tnved_choices": scale_models_other.ALLOWED_TNVED_CHOICES,
+        "allowed_tnved_codes_by_product_type": scale_models_other.ALLOWED_TNVED_CODES_BY_PRODUCT_TYPE,
+        "okpd2_choices_by_tnved": scale_models_other.OKPD2_CHOICES_BY_TNVED,
+        "model_article_types": scale_models_other.MODEL_ARTICLE_TYPES,
+        "product_types": scale_models_other.PRODUCT_TYPES,
+        "material_choices": scale_models_other.MATERIAL_CHOICES,
+        "min_child_age_choices": scale_models_other.MIN_CHILD_AGE_CHOICES,
+        "usage_term_types": scale_models_other.USAGE_TERM_TYPES,
+        "service_life_types": scale_models_other.SERVICE_LIFE_TYPES,
+        "default_countries": scale_models_other.DEFAULT_COUNTRIES,
         "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
         "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
     },
