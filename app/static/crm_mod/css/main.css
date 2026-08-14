@@ -144,6 +144,9 @@ body {
      object-fit: contain;
   margin: auto;
 }
+.categories__item-img--toys {
+  transform: scale(1.12);
+}
 .categories-item__text {
   color: #7d7d7d;
 }
@@ -334,6 +337,12 @@ body {
 }
 .order__img--toys-scale-models-other img {
   transform: scale(1.12);
+}
+.order__img--toys-musical-toy-instruments img {
+  transform: scale(1.35);
+}
+.order__img--toys-card-games img {
+  transform: scale(1.18);
 }
 .order__img--toys-competition-cars img {
   transform: scale(1.33);

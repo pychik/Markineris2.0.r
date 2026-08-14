@@ -999,7 +999,7 @@ class CosmeticsProcessor(OrdersProcessor):
 class ToysProcessor(OrdersProcessor):
     DOLL_ACCESSORIES_SUBCATEGORY = "doll_accessories"
     NO_CATEGORY_CODE_SUBCATEGORIES = {"scale_models_other"}
-    DRIVE_TYPE_SUBCATEGORIES = {"motorized_toys", "animal_creature"}
+    DRIVE_TYPE_SUBCATEGORIES = {"motorized_toys", "animal_creature", "musical_toy_instruments"}
     DRIVE_TYPE_START_EXT_COLUMN = (
         "Тип привода в движение",
         "15453",

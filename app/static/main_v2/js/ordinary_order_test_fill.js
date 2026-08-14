@@ -309,6 +309,19 @@ function ordinaryOrderFillToysStep2(subcategory) {
             material: ["ПЛАСТМАССА"],
             content: "ПЛАСТМАССА",
         },
+        musical_toy_instruments: {
+            tnved: "9503005500",
+            type: ["ИГРУШКА МУЗЫКАЛЬНАЯ"],
+            drive_type: ["ЭЛЕКТРОННЫЙ"],
+            material: ["ПЛАСТМАССА"],
+            content: "ПЛАСТМАССА",
+        },
+        card_games: {
+            tnved: "9504400000",
+            type: ["ИГРА КАРТОЧНАЯ"],
+            material: ["КАРТОН"],
+            content: "КАРТОН",
+        },
     };
     const toysTestProfile = toysTestProfiles[subcategory] || {
         type: ["ОДЕЖДА ДЛЯ КУКОЛ"],

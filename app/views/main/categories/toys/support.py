@@ -45,18 +45,6 @@ def helper_toys_index(
                 "icon_class": "toys-category-icon--dolls-human-figures",
                 "badge": "Скоро",
             },
-            {
-                "title": "Карточные игры",
-                "icon": "main_v2/img/icons/toys/card_games.png",
-                "icon_class": "toys-category-icon--card-games",
-                "badge": "Скоро",
-            },
-            {
-                "title": "Инструменты и устройства музыкальные игрушечные",
-                "icon": "main_v2/img/icons/toys/musical_toy_instruments.png",
-                "icon_class": "toys-category-icon--musical-toy-instruments",
-                "badge": "Скоро",
-            },
         )
         toys_category_tiles = tuple(
             tile
@@ -68,6 +56,8 @@ def helper_toys_index(
                 toys_subcategories.get("motorized_toys"),
                 toys_subcategories.get("animal_creature"),
                 toys_subcategories.get("scale_models_other"),
+                toys_subcategories.get("musical_toy_instruments"),
+                toys_subcategories.get("card_games"),
             )
             if tile
         )

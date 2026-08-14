@@ -5,6 +5,8 @@ import views.main.categories.toys.subcategories.sets_kits as sets_kits
 import views.main.categories.toys.subcategories.motorized_toys as motorized_toys
 import views.main.categories.toys.subcategories.animal_creature as animal_creature
 import views.main.categories.toys.subcategories.scale_models_other as scale_models_other
+import views.main.categories.toys.subcategories.musical_toy_instruments as musical_toy_instruments
+import views.main.categories.toys.subcategories.card_games as card_games
 
 
 SUBCATEGORY_CONFIG = {
@@ -153,6 +155,49 @@ SUBCATEGORY_CONFIG = {
         "usage_term_types": scale_models_other.USAGE_TERM_TYPES,
         "service_life_types": scale_models_other.SERVICE_LIFE_TYPES,
         "default_countries": scale_models_other.DEFAULT_COUNTRIES,
+        "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
+        "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
+    },
+    musical_toy_instruments.SUBCATEGORY_SLUG: {
+        "slug": musical_toy_instruments.SUBCATEGORY_SLUG,
+        "title": musical_toy_instruments.SUBCATEGORY_TITLE,
+        "icon": "main_v2/img/icons/toys/musical_toy_instruments.png",
+        "icon_class": "toys-category-icon--musical-toy-instruments",
+        "category_code": musical_toy_instruments.SUBCATEGORY_CATEGORY_CODE,
+        "category_code_by_tnved": musical_toy_instruments.CATEGORY_CODE_BY_TNVED,
+        "allowed_tnved_codes": musical_toy_instruments.ALLOWED_TNVED_CODES,
+        "allowed_tnved_choices": musical_toy_instruments.ALLOWED_TNVED_CHOICES,
+        "allowed_tnved_codes_by_product_type": musical_toy_instruments.ALLOWED_TNVED_CODES_BY_PRODUCT_TYPE,
+        "okpd2_choices_by_tnved": musical_toy_instruments.OKPD2_CHOICES_BY_TNVED,
+        "model_article_types": musical_toy_instruments.MODEL_ARTICLE_TYPES,
+        "product_types": musical_toy_instruments.PRODUCT_TYPES,
+        "drive_type_choices": musical_toy_instruments.DRIVE_TYPE_CHOICES,
+        "material_choices": musical_toy_instruments.MATERIAL_CHOICES,
+        "min_child_age_choices": musical_toy_instruments.MIN_CHILD_AGE_CHOICES,
+        "usage_term_types": musical_toy_instruments.USAGE_TERM_TYPES,
+        "service_life_types": musical_toy_instruments.SERVICE_LIFE_TYPES,
+        "default_countries": musical_toy_instruments.DEFAULT_COUNTRIES,
+        "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
+        "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
+    },
+    card_games.SUBCATEGORY_SLUG: {
+        "slug": card_games.SUBCATEGORY_SLUG,
+        "title": card_games.SUBCATEGORY_TITLE,
+        "icon": "main_v2/img/icons/toys/card_games.png",
+        "icon_class": "toys-category-icon--card-games",
+        "category_code": card_games.SUBCATEGORY_CATEGORY_CODE,
+        "category_code_by_tnved": card_games.CATEGORY_CODE_BY_TNVED,
+        "allowed_tnved_codes": card_games.ALLOWED_TNVED_CODES,
+        "allowed_tnved_choices": card_games.ALLOWED_TNVED_CHOICES,
+        "allowed_tnved_codes_by_product_type": card_games.ALLOWED_TNVED_CODES_BY_PRODUCT_TYPE,
+        "okpd2_choices_by_tnved": card_games.OKPD2_CHOICES_BY_TNVED,
+        "model_article_types": card_games.MODEL_ARTICLE_TYPES,
+        "product_types": card_games.PRODUCT_TYPES,
+        "material_choices": card_games.MATERIAL_CHOICES,
+        "min_child_age_choices": card_games.MIN_CHILD_AGE_CHOICES,
+        "usage_term_types": card_games.USAGE_TERM_TYPES,
+        "service_life_types": card_games.SERVICE_LIFE_TYPES,
+        "default_countries": card_games.DEFAULT_COUNTRIES,
         "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
         "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
     },

@@ -9,6 +9,8 @@ class ToysSubcategories(str, Enum):
     motorized_toys = "motorized_toys"
     animal_creature = "animal_creature"
     scale_models_other = "scale_models_other"
+    musical_toy_instruments = "musical_toy_instruments"
+    card_games = "card_games"
 
     @classmethod
     def has_value(cls, value: str | None) -> bool:
