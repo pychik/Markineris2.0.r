@@ -316,6 +316,13 @@ function ordinaryOrderFillToysStep2(subcategory) {
             material: ["ПЛАСТМАССА"],
             content: "ПЛАСТМАССА",
         },
+        dolls_human_figures: {
+            tnved: "9503002100",
+            type: ["КУКЛА"],
+            drive_type: ["БЕЗ МЕХАНИЗМА"],
+            material: ["ПЛАСТМАССА"],
+            content: "ПЛАСТМАССА",
+        },
         card_games: {
             tnved: "9504400000",
             type: ["ИГРА КАРТОЧНАЯ"],

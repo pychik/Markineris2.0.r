@@ -85,6 +85,20 @@
   transform: translate(-5px, -4px);
 }
 
+.toys-category-icon--construction-sets {
+  width: 128px;
+  height: auto;
+  max-width: none;
+  transform: translate(-10px, -10px);
+}
+
+.toys-category-icon--board-room-games-inventory {
+  width: 126px;
+  height: auto;
+  max-width: none;
+  transform: translate(-9px, -9px);
+}
+
 .toys-category-disabled {
   position: relative;
   background: #fff;

@@ -1043,6 +1043,7 @@ SUB_CATEGORIES_DICT: dict = {"underwear": "нижнее белье",
                              "animal_creature": "игрушки, изображающие животных или других существ",
                              "scale_models_other": "игрушки прочие и модели в масштабе",
                              "musical_toy_instruments": "инструменты и устройства музыкальные игрушечные",
+                             "dolls_human_figures": "куклы, изображающие людей",
                              "card_games": "карточные игры",
                              "common": "общее"}
 

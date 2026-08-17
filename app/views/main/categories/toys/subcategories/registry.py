@@ -6,6 +6,7 @@ import views.main.categories.toys.subcategories.motorized_toys as motorized_toys
 import views.main.categories.toys.subcategories.animal_creature as animal_creature
 import views.main.categories.toys.subcategories.scale_models_other as scale_models_other
 import views.main.categories.toys.subcategories.musical_toy_instruments as musical_toy_instruments
+import views.main.categories.toys.subcategories.dolls_human_figures as dolls_human_figures
 import views.main.categories.toys.subcategories.card_games as card_games
 
 
@@ -177,6 +178,28 @@ SUBCATEGORY_CONFIG = {
         "usage_term_types": musical_toy_instruments.USAGE_TERM_TYPES,
         "service_life_types": musical_toy_instruments.SERVICE_LIFE_TYPES,
         "default_countries": musical_toy_instruments.DEFAULT_COUNTRIES,
+        "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
+        "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
+    },
+    dolls_human_figures.SUBCATEGORY_SLUG: {
+        "slug": dolls_human_figures.SUBCATEGORY_SLUG,
+        "title": dolls_human_figures.SUBCATEGORY_TITLE,
+        "icon": "main_v2/img/icons/toys/dolls_human_figures.png",
+        "icon_class": "toys-category-icon--dolls-human-figures",
+        "category_code": dolls_human_figures.SUBCATEGORY_CATEGORY_CODE,
+        "category_code_by_tnved": dolls_human_figures.CATEGORY_CODE_BY_TNVED,
+        "allowed_tnved_codes": dolls_human_figures.ALLOWED_TNVED_CODES,
+        "allowed_tnved_choices": dolls_human_figures.ALLOWED_TNVED_CHOICES,
+        "allowed_tnved_codes_by_product_type": dolls_human_figures.ALLOWED_TNVED_CODES_BY_PRODUCT_TYPE,
+        "okpd2_choices_by_tnved": dolls_human_figures.OKPD2_CHOICES_BY_TNVED,
+        "model_article_types": dolls_human_figures.MODEL_ARTICLE_TYPES,
+        "product_types": dolls_human_figures.PRODUCT_TYPES,
+        "drive_type_choices": dolls_human_figures.DRIVE_TYPE_CHOICES,
+        "material_choices": dolls_human_figures.MATERIAL_CHOICES,
+        "min_child_age_choices": dolls_human_figures.MIN_CHILD_AGE_CHOICES,
+        "usage_term_types": dolls_human_figures.USAGE_TERM_TYPES,
+        "service_life_types": dolls_human_figures.SERVICE_LIFE_TYPES,
+        "default_countries": dolls_human_figures.DEFAULT_COUNTRIES,
         "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
         "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
     },

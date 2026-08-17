@@ -10,6 +10,7 @@ class ToysSubcategories(str, Enum):
     animal_creature = "animal_creature"
     scale_models_other = "scale_models_other"
     musical_toy_instruments = "musical_toy_instruments"
+    dolls_human_figures = "dolls_human_figures"
     card_games = "card_games"
 
     @classmethod
