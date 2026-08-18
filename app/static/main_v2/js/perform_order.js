@@ -152,8 +152,7 @@ function ensure_unsaved_position_modal() {
                         У вас осталась недобавленная заполненная позиция. Добавить ее в накладную перед переходом к оформлению?
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-accent border-0 text-dark" id="unsavedPositionAddBtn">Да, добавить</button>
-                        <button type="button" class="btn btn-outline-secondary" id="unsavedPositionSkipBtn">Нет</button>
+                        <button type="button" class="btn btn-accent border-0 text-dark" id="unsavedPositionAddBtn">Добавить к заказу</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
                     </div>
                 </div>
@@ -164,20 +163,14 @@ function ensure_unsaved_position_modal() {
     return document.getElementById("unsavedPositionModal");
 }
 
-function open_unsaved_position_modal(onAdd, onSkip) {
+function open_unsaved_position_modal(onAdd) {
     const modalEl = ensure_unsaved_position_modal();
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     const addBtn = document.getElementById("unsavedPositionAddBtn");
-    const skipBtn = document.getElementById("unsavedPositionSkipBtn");
 
     addBtn.onclick = () => {
         modal.hide();
         onAdd();
-    };
-
-    skipBtn.onclick = () => {
-        modal.hide();
-        onSkip();
     };
 
     modal.show();
@@ -204,24 +197,19 @@ window.goToStep3WithDraftCheck = function (category, addFnName, asyncFlag, url) 
         return;
     }
 
-    open_unsaved_position_modal(
-        () => {
-            const addFn = window[addFnName];
-            if (typeof addFn !== "function") {
-                navigate_to_step3();
-                return;
-            }
-
-            if (Number(asyncFlag) === 1) {
-                window.__pendingStep3AfterAsyncAdd = navigate_to_step3;
-            } else {
-                ensure_after_add_step3_flag(true);
-            }
-
-            addFn(asyncFlag, url);
-        },
-        () => {
+    open_unsaved_position_modal(() => {
+        const addFn = window[addFnName];
+        if (typeof addFn !== "function") {
             navigate_to_step3();
+            return;
         }
-    );
+
+        if (Number(asyncFlag) === 1) {
+            window.__pendingStep3AfterAsyncAdd = navigate_to_step3;
+        } else {
+            ensure_after_add_step3_flag(true);
+        }
+
+        addFn(asyncFlag, url);
+    });
 };

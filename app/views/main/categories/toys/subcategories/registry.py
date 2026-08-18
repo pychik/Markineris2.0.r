@@ -7,6 +7,7 @@ import views.main.categories.toys.subcategories.animal_creature as animal_creatu
 import views.main.categories.toys.subcategories.scale_models_other as scale_models_other
 import views.main.categories.toys.subcategories.musical_toy_instruments as musical_toy_instruments
 import views.main.categories.toys.subcategories.dolls_human_figures as dolls_human_figures
+import views.main.categories.toys.subcategories.construction_sets as construction_sets
 import views.main.categories.toys.subcategories.card_games as card_games
 
 
@@ -200,6 +201,27 @@ SUBCATEGORY_CONFIG = {
         "usage_term_types": dolls_human_figures.USAGE_TERM_TYPES,
         "service_life_types": dolls_human_figures.SERVICE_LIFE_TYPES,
         "default_countries": dolls_human_figures.DEFAULT_COUNTRIES,
+        "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
+        "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
+    },
+    construction_sets.SUBCATEGORY_SLUG: {
+        "slug": construction_sets.SUBCATEGORY_SLUG,
+        "title": construction_sets.SUBCATEGORY_TITLE,
+        "icon": "main_v2/img/icons/toys/construction_sets.png",
+        "icon_class": "toys-category-icon--construction-sets",
+        "category_code": construction_sets.SUBCATEGORY_CATEGORY_CODE,
+        "category_code_by_tnved": construction_sets.CATEGORY_CODE_BY_TNVED,
+        "allowed_tnved_codes": construction_sets.ALLOWED_TNVED_CODES,
+        "allowed_tnved_choices": construction_sets.ALLOWED_TNVED_CHOICES,
+        "allowed_tnved_codes_by_product_type": construction_sets.ALLOWED_TNVED_CODES_BY_PRODUCT_TYPE,
+        "okpd2_choices_by_tnved": construction_sets.OKPD2_CHOICES_BY_TNVED,
+        "model_article_types": construction_sets.MODEL_ARTICLE_TYPES,
+        "product_types": construction_sets.PRODUCT_TYPES,
+        "material_choices": construction_sets.MATERIAL_CHOICES,
+        "min_child_age_choices": construction_sets.MIN_CHILD_AGE_CHOICES,
+        "usage_term_types": construction_sets.USAGE_TERM_TYPES,
+        "service_life_types": construction_sets.SERVICE_LIFE_TYPES,
+        "default_countries": construction_sets.DEFAULT_COUNTRIES,
         "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
         "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
     },

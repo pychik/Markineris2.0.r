@@ -323,6 +323,12 @@ function ordinaryOrderFillToysStep2(subcategory) {
             material: ["ПЛАСТМАССА"],
             content: "ПЛАСТМАССА",
         },
+        construction_sets: {
+            tnved: "9503003500",
+            type: ["КОНСТРУКТОР"],
+            material: ["ПЛАСТМАССА"],
+            content: "ПЛАСТМАССА",
+        },
         card_games: {
             tnved: "9504400000",
             type: ["ИГРА КАРТОЧНАЯ"],

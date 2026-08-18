@@ -344,6 +344,9 @@ body {
 .order__img--toys-dolls-human-figures img {
   transform: scale(1.18);
 }
+.order__img--toys-construction-sets img {
+  transform: scale(1.23);
+}
 .order__img--toys-card-games img {
   transform: scale(1.18);
 }

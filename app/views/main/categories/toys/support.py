@@ -40,15 +40,15 @@ def helper_toys_index(
         }
         toys_upcoming_category_tiles = (
             {
-                "title": "Наборы конструкторские, игрушки для конструирования",
-                "icon": "main_v2/img/icons/toys/construction_sets.png",
-                "icon_class": "toys-category-icon--construction-sets",
-                "badge": "Скоро",
-            },
-            {
                 "title": "Настольные и комнатные игры, инвентарь",
                 "icon": "main_v2/img/icons/toys/board_room_games_inventory.png",
                 "icon_class": "toys-category-icon--board-room-games-inventory",
+                "badge": "Скоро",
+            },
+            {
+                "title": "Оружие игрушечное",
+                "icon": "main_v2/img/icons/toys/toy_weapons.png",
+                "icon_class": "toys-category-icon--toy-weapons",
                 "badge": "Скоро",
             },
         )
@@ -64,6 +64,7 @@ def helper_toys_index(
                 toys_subcategories.get("scale_models_other"),
                 toys_subcategories.get("musical_toy_instruments"),
                 toys_subcategories.get("dolls_human_figures"),
+                toys_subcategories.get("construction_sets"),
                 toys_subcategories.get("card_games"),
             )
             if tile

@@ -99,6 +99,13 @@
   transform: translate(-9px, -9px);
 }
 
+.toys-category-icon--toy-weapons {
+  width: 126px;
+  height: auto;
+  max-width: none;
+  transform: translate(-9px, -9px);
+}
+
 .toys-category-disabled {
   position: relative;
   background: #fff;
