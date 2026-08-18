@@ -10,8 +10,8 @@ from utilities.exceptions import SizeTypeException
 
 NO_TRADEMARK_VALUE = 'без товарного знака'
 NO_ARTICLE_VALUE = 'отсутствует'
-NO_TRADEMARK_PLACEHOLDERS = {'БЕЗ ТОВАРНОГО ЗНАКА'}
-NO_ARTICLE_PLACEHOLDERS = {'БЕЗ АРТИКУЛА', 'ОТСУТСТВУЕТ'}
+NO_TRADEMARK_PLACEHOLDERS = {'БЕЗ ТОВАРНОГО ЗНАКА', 'БЕЗ БРЕНДА'}
+NO_ARTICLE_PLACEHOLDERS = {'БЕЗ АРТИКУЛА', 'НЕТ АРТИКУЛА', 'БЕЗ БРЕНДА', 'ОТСУТСТВУЕТ'}
 LEGACY_LENGTH_WIDTH_SIZE_TYPE = 'ДЛИНА*ШИРИНА'
 
 
@@ -27,6 +27,9 @@ def normalize_trademark_placeholder(value: str) -> str:
     cleaned = process_input_str(value or "")
     if not cleaned:
         return cleaned
+
+    if cleaned.upper() in NO_TRADEMARK_PLACEHOLDERS:
+        return NO_TRADEMARK_VALUE
 
     compact = cleaned.replace(' ', '')
     if compact and len(set(compact)) == 1 and not compact[0].isalnum():

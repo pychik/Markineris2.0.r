@@ -290,7 +290,7 @@ def save_copy_order_shoes(order_category_list: list[Shoe], new_order: Order) -> 
             continue
 
         new_shoes = Shoe(trademark=normalize_trademark_placeholder(shoe.trademark),
-                                article=shoe.article, type=shoe.type,
+                                article=normalize_article_placeholder(shoe.article), type=shoe.type,
                                 color=shoe.color, box_quantity=shoe.box_quantity,
                                 material_top=shoe.material_top,
                                 material_lining=shoe.material_lining,
@@ -333,7 +333,8 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
             new_sizes.append(new_sq)
 
         new_clothes = Clothes(
-            trademark=normalize_trademark_placeholder(clothes.trademark), article=clothes.article, type=clothes.type,
+            trademark=normalize_trademark_placeholder(clothes.trademark),
+            article=normalize_article_placeholder(clothes.article), type=clothes.type,
             color=clothes.color, content=clothes.content, box_quantity=clothes.box_quantity,
             gender=clothes.gender, country=clothes.country, tnved_code=clothes.tnved_code,
             article_price=clothes.article_price, tax=clothes.tax,
@@ -375,7 +376,8 @@ def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) ->
             new_sizes.append(new_sq)
 
         new_socks = Socks(
-            trademark=normalize_trademark_placeholder(sock.trademark), article=sock.article, type=sock.type,
+            trademark=normalize_trademark_placeholder(sock.trademark),
+            article=normalize_article_placeholder(sock.article), type=sock.type,
             color=sock.color, content=sock.content, box_quantity=sock.box_quantity,
             gender=sock.gender, country=sock.country, tnved_code=sock.tnved_code,
             article_price=sock.article_price, tax=sock.tax,
@@ -402,7 +404,7 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
             continue
 
         new_linen = Linen(trademark=normalize_trademark_placeholder(linen.trademark),
-                                     article=linen.article, type=linen.type,
+                                     article=normalize_article_placeholder(linen.article), type=linen.type,
                                      color=linen.color, with_packages=linen.with_packages,
                                      box_quantity=linen.box_quantity,
                                      customer_age=linen.customer_age, textile_type=linen.textile_type,
