@@ -11,11 +11,15 @@
     </li>
     <hr>
     <li class="nav-item">
-        <a class="nav-link d-flex text-white align-items-center {% if 'user_product_cards' in request.path %}active{% endif %}"
-           data-bs-toggle="collapse"
-           href="#userProductCardsMenu"
+        {% set quick_order_maintenance_message = 'Проводятся технические работы в разделе «Быстрый заказ». В ближайшее время данный раздел будет временно недоступен. До завершения работ, пожалуйста, воспользуйтесь разделом «Обычный заказ».' %}
+        <a class="nav-link d-flex text-white align-items-center no-link"
+           href="#"
            role="button"
-           aria-expanded="{% if 'user_product_cards' in request.path %}true{%else%}false{% endif %}">
+           aria-disabled="true"
+           title="{{ quick_order_maintenance_message }}"
+           data-bs-toggle="modal"
+           data-bs-target="#quickOrderMaintenanceModal"
+           style="opacity: .55; filter: grayscale(1);">
 
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
                  xmlns="http://www.w3.org/2000/svg">
@@ -32,30 +36,8 @@
                       stroke-linecap="round"/>
             </svg>
 
-            <span class="ms-2">Быстрый заказ<br><span style="font-size: 10px" class="badge bg-success rounded-1 p-1">Новинка</span></span>
-            <svg class="ms-auto nav-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"
-                 xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path d="M4.5 6l3.5 4 3.5-4" stroke="white" stroke-width="1.8"
-                      stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <span class="ms-2">Быстрый заказ</span>
         </a>
-
-        <div class="collapse {% if 'user_product_cards' in request.path %}show{% endif %}"
-             id="userProductCardsMenu">
-            <ul class="nav flex-column">
-                <li class="nav-item nav-item--sub ps-5 {% if request.endpoint == 'user_product_cards.cards' %}active{% endif %}">
-                    <a href="{{ url_for('user_product_cards.cards') }}" class="nav-link text-light" aria-current="page">
-                        Мои карточки
-                    </a>
-                </li>
-
-                <li class="nav-item nav-item--sub ps-5 {% if request.endpoint == 'user_product_cards.pc_orders_drafts' %}active{% endif %}">
-                    <a href="{{ url_for('user_product_cards.pc_orders_drafts') }}" class="nav-link text-light" aria-current="page">
-                        Черновики заказов (М)
-                    </a>
-                </li>
-            </ul>
-        </div>
     </li>
 
     <li class="nav-item">
@@ -124,7 +106,24 @@
     <li class="nav-item nav-item--sub {% if 'parfum' in request.path %}active{%endif%} ps-5">
         <a href="{{url_for('parfum.index')}}" class="nav-link text-light" aria-current="page">Духи</a>
     </li>
+    <li class="nav-item nav-item--sub {% if 'parfum' in request.path %}active{%endif%} ps-5">
+        <a href="{{ url_for('cosmetics.index') }}" class="nav-link text-light" aria-current="page">Косметика <span class="badge bg-success rounded-1 p-1">New</span></a>
+    </li>
 <!--                                <li class="nav-item nav-item&#45;&#45;sub {% if 'toys' in request.path %}active{%endif%} ps-5">-->
 <!--                                    <a href="#" class="nav-link text-light" aria-current="page">Игрушки</a>-->
 <!--                                </li>-->
 </ul>
+<div class="modal fade" id="quickOrderMaintenanceModal" tabindex="-1" aria-labelledby="quickOrderMaintenanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:#fff; color:#212529;">
+            <div class="modal-header" style="color:#212529;">
+                <h5 class="modal-title" id="quickOrderMaintenanceModalLabel" style="color:#212529;">Уведомление</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть" style="filter:none; opacity:.8;"></button>
+            </div>
+            <div class="modal-body" style="color:#212529;">
+                <p class="mb-3" style="color:#212529;">Проводятся технические работы в разделе «Быстрый заказ». В ближайшее время данный раздел будет временно недоступен.</p>
+                <p class="mb-0" style="color:#212529;">До завершения работ, пожалуйста, воспользуйтесь разделом «Обычный заказ».</p>
+            </div>
+        </div>
+    </div>
+</div>

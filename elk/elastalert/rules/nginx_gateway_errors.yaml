@@ -1,0 +1,32 @@
+# Правило: устойчивая недоступность gunicorn — 15+ ответов 502/503/504 за 5 минут
+# Порог 15 — фильтрует нормальный рестарт воркеров Gunicorn (max-requests=1000),
+# который даёт 1-3 ошибки за секунду. 15+ означает настоящий продолжительный сбой.
+name: "Nginx Gateway Errors (502/503/504)"
+type: frequency
+
+index: nginx-*
+num_events: 30
+timeframe:
+  minutes: 5
+
+filter:
+  - terms:
+      http.response.status_code: [502, 503, 504]
+
+realert:
+  minutes: 30
+
+alert: telegram
+telegram_bot_token: "${HEALTHCHECK_BOT}"
+telegram_room_id: "${TELEGRAM_ALERTS_GROUP_ID}"
+
+alert_text: |
+  🟠 <b>Nginx Gateway Errors — Marka Service</b>
+
+  За последние 5 минут зафиксировано 30+ ответов 502/503/504.
+  Gunicorn недоступен или перегружен.
+
+  Проверьте: <code>docker ps</code>, <code>docker logs flask_app</code>
+  Kibana → Discover → <code>nginx-*</code>, фильтр: <code>http.response.status_code >= 500</code>
+alert_text_type: alert_text_only
+telegram_parse_mode: html

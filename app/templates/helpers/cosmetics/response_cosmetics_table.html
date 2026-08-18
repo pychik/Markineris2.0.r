@@ -1,0 +1,71 @@
+{% if o_id %}
+    <div class="col-md-12 mt-3">
+        <div class="table-right mb-4 d-flex justify-content-end">
+            <div class="d-flex align-items-center">
+                <div class="table-quantity me-2">
+                    Добавлено {{ pagination.total }} шт
+                </div>
+                <div class="table-add-item">
+                    <span style="cursor: pointer" onclick="make_2_step()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34" fill="none">
+                            <rect width="34" height="34" rx="5" fill="#00A958" />
+                            <path d="M17 24.0833V9.91666" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+                            <path d="M9.9165 17H24.0832" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+                        </svg>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <table class="table mt-5 table-result tablesaw-stack" id="orders_table_info">
+            <thead class="text-dark">
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col"><font size="2">Полное наименование</font></th>
+                    {% if subcategory == 'razor_blades_and_cassettes' %}
+                    <th scope="col"><font size="2">Код категории</font></th>
+                    <th scope="col"><font size="2">Лезвий</font></th>
+                    <th scope="col"><font size="2">Комплектация</font></th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody id="order_table_body_info">
+            {% for t in order_list %}
+                {% set trademark = '' if (t.trademark or '') == 'БЕЗ ТОВАРНОГО ЗНАКА' else (t.trademark or '') %}
+                {% set full_name = (((t.type or '') ~ ' ' ~ trademark ~ ' ' ~ (t.full_name_extra or '')) | trim) %}
+                {% if subcategory == 'razor_blades_and_cassettes' %}
+                    {% set razor_category_code = '30958' if (t.tnved_code or '') == '8212101000' else '30957' if (t.tnved_code or '') == '8212109000' else '231207' if (t.tnved_code or '') == '8212200000' else '' %}
+                    {% set razor_category_label = 'Одноразовые' if (t.tnved_code or '') == '8212101000' else 'Многоразовые' if (t.tnved_code or '') == '8212109000' else 'Лезвия / кассеты' if (t.tnved_code or '') == '8212200000' else '' %}
+                {% endif %}
+                <tr>
+                    <td class="tablesaw-cell-content">{{ offset + loop.index }}</td>
+                    <td>{{ full_name }}</td>
+                    {% if subcategory == 'razor_blades_and_cassettes' %}
+                    <td>
+                        {{ razor_category_code }}
+                        {% if razor_category_label %}
+                        <div class="small text-muted">{{ razor_category_label }}</div>
+                        {% endif %}
+                    </td>
+                    <td>{{ t.blade_count or '' }}</td>
+                    <td>{{ t.complectation or '' }}</td>
+                    {% endif %}
+                    <td class="text-end actions">
+                        {% include 'helpers/cosmetics/table_actions.html' %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <div class="pagination-page-info text-center">На этой странице <b>{{ offset + 1 }} - {{ offset + order_list|length }}</b> Всего: <b>{{ pagination.total }}</b></div>
+    </div>
+
+    <div class="pagination_section my-1">
+        <div class="d-flex">
+            <div class="col-3"></div>
+            <div class="col-md-2"></div>
+            <div class="col-5" style="margin-left: 3%;">{{ pagination.links }}</div>
+        </div>
+    </div>
+{% else %}
+<h3 class="text-center"> Накладная не заполнялась</h3>
+{% endif %}

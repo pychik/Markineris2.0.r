@@ -1,0 +1,59 @@
+{% extends 'main/base_v2.html' %}
+
+{% block main %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/categories/cosmetics.css', v='2') }}">
+
+<div class="container pb-4">
+    <div class="front text-center">
+        <h1 class="mb-5 fs-2">{{ page_title }}</h1>
+    </div>
+
+    <div class="row justify-content-center mb-5">
+        <div class="col-12 col-lg-8">
+            <label for="cosmetics-category-search" class="form-label fw-semibold">
+                Введите ТНВЭД или вид товара для определения категории
+            </label>
+            <input
+                id="cosmetics-category-search"
+                type="text"
+                class="form-control form-control-lg"
+                placeholder="{{ search_placeholder }}"
+                autocomplete="off"
+            >
+            <div id="cosmetics-search-result" class="cosmetics-search-result is-empty" aria-live="polite"></div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        {% for subcategory_item in cosmetics_category_tiles %}
+        <div class="col-12 col-md-6 col-lg-4">
+            {% if subcategory_item.is_disabled %}
+            <div class="category-item cosmetics-category-disabled text-center h-100" aria-disabled="true">
+                <span class="btn btn-accent border-0 text-dark cosmetics-category-disabled__badge">{{ subcategory_item.badge }}</span>
+                <div class="d-flex justify-content-center align-items-center">
+                    <img src="{{ url_for('static', filename=subcategory_item.icon, v='20260623-cosmetics-teasers-2') }}" width="92" height="92" alt="" aria-hidden="true">
+                </div>
+                <div class="category-item__name text-center">
+                    {{ subcategory_item.title }}
+                </div>
+            </div>
+            {% else %}
+            <a href="{{ url_for('cosmetics.index', subcategory=subcategory_item.slug) }}" class="category-item text-center h-100">
+                <div class="d-flex justify-content-center align-items-center">
+                    <img src="{{ url_for('static', filename=subcategory_item.icon, v='20260623-cosmetics-teasers-2') }}" width="92" height="92" alt="" aria-hidden="true">
+                </div>
+                <div class="category-item__name text-center">
+                    {{ subcategory_item.title }}
+                </div>
+            </a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    window.COSMETICS_SEARCH_INDEX = {{ cosmetics_search_index | tojson | safe }};
+</script>
+<script src="{{ url_for('static', filename='main_v2/js/categories/cosmetics.js', v='13') }}"></script>
+{% endblock %}

@@ -19,7 +19,7 @@ from models import db, Clothes, LinenSizesUnits, ProductCard, ClothesQuantitySiz
     SocksQuantitySize, Linen, LinenQuantitySize, Parfum, UserProcessingCompany, ProcessingCompany, ModerationStatus
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.exceptions import SizeTypeException, CompanyPoolError
-from utilities.saving_helpers import get_clothes_size_type, process_input_str
+from utilities.saving_helpers import get_clothes_size_type, get_socks_size_type, process_input_str
 from utilities.support import check_forbidden_words
 from utilities.validators import ValidatorProcessor
 from views.crm.schema import CompanyLite, is_forbidden_pair_by_inn
@@ -598,11 +598,7 @@ def filter_new_sizes(category: str,
     elif category == settings.Socks.CATEGORY_PROCESS:
         # [(size, qty, size_type_raw)]
         for size, qty, size_type_raw in sizes_quantities:
-            # логика как в save_socks
-            if size in settings.Socks.UNITE_SIZE_VALUES:
-                eff_type = settings.Socks.DEFAULT_SIZE_TYPE
-            else:
-                eff_type = size_type_raw
+            eff_type = get_socks_size_type(size, size_type_raw)
             key = (size, eff_type)
             if key in existing_keys:
                 skipped_labels.append(f"{size} ({size_type_raw})")
@@ -804,11 +800,7 @@ def save_socks_card(
         SocksQuantitySize(
             size=el[0],
             quantity=1,
-            size_type=(
-                el[2]
-                if el[0] not in settings.Socks.UNITE_SIZE_VALUES
-                else settings.Socks.DEFAULT_SIZE_TYPE
-            ),
+            size_type=get_socks_size_type(el[0], el[2]),
         )
         for el in sizes_quantities
     )
@@ -1395,10 +1387,7 @@ def build_size_keys_for_incoming(category: str, sizes_quantities: list) -> set:
 
     elif category == settings.Socks.CATEGORY_PROCESS:
         for size, qty, size_type_raw in sizes_quantities:
-            if size in settings.Socks.UNITE_SIZE_VALUES:
-                eff_type = settings.Socks.DEFAULT_SIZE_TYPE
-            else:
-                eff_type = size_type_raw
+            eff_type = get_socks_size_type(size, size_type_raw)
             keys.add((size, eff_type))
 
     elif category == settings.Shoes.CATEGORY_PROCESS:

@@ -8,6 +8,7 @@
   --blue: #17a2b8;
   --green: #70e273;
   --pink: #feaec9;
+  --lilac: #c8b6ff;
   --warning: #ffac0a;
 }
 
@@ -172,6 +173,7 @@ body {
   position: relative;
   max-height: 100%;
 }
+
 .crm__col {
   max-width: 335px;
   /*height:  90vh;*/
@@ -271,6 +273,8 @@ body {
   color: var(--black);
 }
 .order__name span {
+  display: block;
+  line-height: 1.2;
   font-size: 16px;
   color: #737373;
 }
@@ -292,10 +296,30 @@ body {
 .order__img--pink {
   background-color: var(--pink);
 }
+.order__img--lilac {
+  background-color: var(--lilac);
+}
 .order__img img {
   width: 70%;
   height: 70%;
   filter: brightness(0) invert(1);
+}
+.order-rf-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex: 0 0 32px;
+  align-self: center;
+  overflow: hidden;
+  user-select: none;
+}
+.order-rf-badge__flag {
+  display: block;
+  width: 32px;
+  height: 32px;
 }
 .order__info {
   padding: 15px 0 0;
@@ -457,6 +481,215 @@ body {
 
 .order--moderation {
     background-color: rgb(236, 253, 236); /* очень легкий зелёный */
+}
+
+.crm-uoc-page {
+  --uoc-bg: linear-gradient(180deg, #f4f7fb 0%, #edf3f8 100%);
+  --uoc-surface: rgba(255, 255, 255, 0.96);
+  --uoc-border: rgba(102, 134, 168, 0.18);
+  --uoc-text: #213547;
+  --uoc-muted: #66788a;
+  --uoc-primary: #2f6fed;
+  --uoc-success: #1f9d73;
+  --uoc-warning: #cc8a17;
+  --uoc-danger: #d24f45;
+  --uoc-shadow: 0 18px 50px rgba(31, 51, 73, 0.08);
+  padding: 18px 28px 40px;
+  color: var(--uoc-text);
+}
+
+.crm-uoc-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.crm-uoc-hero,
+.crm-uoc-block,
+.crm-uoc-setting {
+  background: var(--uoc-surface);
+  border: 1px solid var(--uoc-border);
+  border-radius: 24px;
+  box-shadow: var(--uoc-shadow);
+}
+
+.crm-uoc-hero {
+  padding: 18px 24px;
+  background: var(--uoc-surface);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(31, 51, 73, 0.05);
+}
+
+.crm-uoc-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(47, 111, 237, 0.1);
+  color: var(--uoc-primary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.crm-uoc-kicker--green {
+  background: rgba(76, 145, 112, 0.12);
+  color: #42795e;
+}
+
+.crm-uoc-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.crm-uoc-settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.crm-uoc-setting {
+  padding: 22px;
+}
+
+.crm-uoc-setting--danger {
+  background: linear-gradient(180deg, rgba(210, 79, 69, 0.05) 0%, rgba(255, 255, 255, 0.98) 100%);
+}
+
+.crm-uoc-setting--warning {
+  background: linear-gradient(180deg, rgba(204, 138, 23, 0.06) 0%, rgba(255, 255, 255, 0.98) 100%);
+}
+
+.crm-uoc-setting__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.crm-uoc-setting__title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.crm-uoc-setting__desc {
+  margin: 0;
+  color: var(--uoc-muted);
+  line-height: 1.5;
+}
+
+.crm-uoc-badge {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(33, 53, 71, 0.06);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--uoc-text);
+}
+
+.crm-uoc-form-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+
+.crm-uoc-field {
+  grid-column: span 4;
+}
+
+.crm-uoc-field--wide {
+  grid-column: span 12;
+}
+
+.crm-uoc-action {
+  grid-column: span 4;
+}
+
+.crm-uoc-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--uoc-text);
+}
+
+.crm-uoc-input {
+  min-height: 46px;
+  border-radius: 14px;
+  border: 1px solid rgba(102, 134, 168, 0.25);
+  background: #fff;
+  box-shadow: none;
+}
+
+.crm-uoc-input:focus {
+  border-color: rgba(47, 111, 237, 0.5);
+  box-shadow: 0 0 0 0.2rem rgba(47, 111, 237, 0.14);
+}
+
+.crm-uoc-btn {
+  min-height: 46px;
+  min-width: 140px;
+  border: 0;
+  border-radius: 14px;
+  padding: 10px 18px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.crm-uoc-btn-primary {
+  background: linear-gradient(135deg, #2f6fed 0%, #5287f2 100%);
+  color: #fff;
+}
+
+.crm-uoc-btn-success {
+  background: linear-gradient(135deg, #1f9d73 0%, #3fb48a 100%);
+  color: #fff;
+}
+
+.crm-uoc-btn-warning {
+  background: linear-gradient(135deg, #d09a28 0%, #e0b353 100%);
+  color: #fff;
+}
+
+.crm-uoc-btn-danger {
+  background: linear-gradient(135deg, #d24f45 0%, #e56d63 100%);
+  color: #fff;
+}
+
+.crm-uoc-btn-dark {
+  background: linear-gradient(135deg, #314355 0%, #506579 100%);
+  color: #fff;
+}
+
+.crm-uoc-btn-outline {
+  background: transparent;
+  border: 1px solid rgba(102, 134, 168, 0.3);
+  color: var(--uoc-text);
+}
+
+@media (max-width: 991.98px) {
+  .crm-uoc-page {
+    padding: 16px 18px 32px;
+  }
+  .crm-uoc-title {
+    font-size: 22px;
+  }
+  .crm-uoc-settings {
+    grid-template-columns: 1fr;
+  }
+  .crm-uoc-field,
+  .crm-uoc-field--wide,
+  .crm-uoc-action {
+    grid-column: span 12;
+  }
 }
 
 /*# sourceMappingURL=main.css.map */

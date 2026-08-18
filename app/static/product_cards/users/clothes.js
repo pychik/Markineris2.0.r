@@ -227,7 +227,7 @@ function createLengthWidthSizeBlock(clothingType) {
                        min="0.01" step="any" placeholder="Длина" style="width: 120px; flex: 0 0 120px;"
                        onkeydown="preventNegativeDimensionInput(event)"
                        oninput="normalizePositiveDimensionInput(this)">
-                <span class="pt-2 fw-bold">*</span>
+                <span class="pt-2 fw-bold">-</span>
                 <input type="number" class="form-control" id="lengthWidthWidth${typeId}"
                        min="0.01" step="any" placeholder="Ширина" style="width: 120px; flex: 0 0 120px;"
                        onkeydown="preventNegativeDimensionInput(event)"
@@ -267,7 +267,7 @@ function addLengthWidthClothesSize(clothingType) {
 
     errorBlock.textContent = "";
     const unitValue = unitInput.value || 'мм';
-    const size = `${lengthValue}*${widthValue} ${unitValue}`;
+    const size = `${lengthValue}-${widthValue} ${unitValue}`;
     const sizesQuantityBlock = document.getElementById('sizes_quantity');
     const existingSizeBlocks = sizesQuantityBlock.getElementsByClassName('important-card__item');
 

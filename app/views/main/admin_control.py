@@ -97,6 +97,13 @@ from utilities.admin.h_finance_control import (
     update_user_balance,
 )
 from utilities.admin.h_notifications_control import h_tg_notification_main
+from utilities.admin.h_rd_check import (
+    h_rd_check_health,
+    h_rd_check_main,
+    h_rd_check_status,
+    h_rd_check_submit,
+    rd_check_access_required,
+)
 from utilities.exceptions import UserNotFoundError, NegativeBalanceError, BalanceUpdateError
 from utilities.support import (
     au_required,
@@ -1065,3 +1072,48 @@ def external_processors_data():
             'active': active_processors_count,
         },
     })
+
+
+@admin_control.route('/rd_check', methods=['GET'])
+@login_required
+@rd_check_access_required
+def rd_check_main():
+    """
+        test page for checking РД (declarations/certificates) against the FSA registry
+    :return:
+    """
+    return h_rd_check_main()
+
+
+@admin_control.route('/rd_check/submit', methods=['POST'])
+@login_required
+@rd_check_access_required
+def rd_check_submit():
+    """
+        enqueues an РД check job and returns its request_id for polling
+    :return:
+    """
+    return h_rd_check_submit()
+
+
+@admin_control.route('/rd_check/status/<request_id>', methods=['GET'])
+@login_required
+@rd_check_access_required
+def rd_check_status(request_id: str):
+    """
+        polls the status/result of a previously submitted РД check job
+    :param request_id:
+    :return:
+    """
+    return h_rd_check_status(request_id)
+
+
+@admin_control.route('/rd_check/health', methods=['GET'])
+@login_required
+@rd_check_access_required
+def rd_check_health():
+    """
+        current circuit breaker state and queue length for the РД check page
+    :return:
+    """
+    return h_rd_check_health()

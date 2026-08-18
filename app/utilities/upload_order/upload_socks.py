@@ -29,7 +29,7 @@ class ValidateSocksMixin:
     def _trademark(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
         value = normalize_trademark_placeholder(value)
         if not value or value == 'nan' or isna(value) \
-                or len(value) < 1 or value == 'БЕЗ ТОВАРНОГО ЗНАКА':
+                or len(value) < 1 or value.upper() == 'БЕЗ ТОВАРНОГО ЗНАКА':
             order_list[row_num - settings.Socks.UPLOAD_STANDART_ROW][pos] = 'БЕЗ ТОВАРНОГО ЗНАКА'
         return
 
@@ -82,6 +82,10 @@ class ValidateSocksMixin:
     @empty_value
     def _size(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
         order_list[row_num - settings.Socks.UPLOAD_STANDART_ROW][pos] = value
+
+        if value.upper() == settings.Socks.UNITE_SIZE_VALUE:
+            order_list[row_num - settings.Socks.UPLOAD_STANDART_ROW][pos] = settings.Socks.UNITE_SIZE_VALUE
+            return
 
         if len(value) > 100:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Socks.UPLOAD_SIZE_ERROR}"

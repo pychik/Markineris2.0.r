@@ -19,6 +19,7 @@ from utilities.param_lists import (SHOE_GENDERS, SHOE_MATERIALS_UP_LINEN, SHOE_M
     LINEN_TNVED, LINEN_TYPES, LINEN_CUSTOMER_AGES, LINEN_START,
     LINEN_PRELOAD_START, LINEN_TEXTILE_TYPES, PARFUM_MATERIAL_PACKAGES, PARFUM_PACKAGE_TYPES,
     PARFUM_START, PARFUM_PRELOAD_START, PARFUM_TNVED, PARFUM_TYPES, PARFUM_VOLUMES,
+    COSMETICS_PRELOAD_START, COSMETICS_START_EXT, COSMETICS_RAZOR_PRELOAD_START, COSMETICS_RAZOR_START_EXT,
     CLOTHES_DICT, CLOTHES_GENDERS, CLOTHES_ST_RUSSIA, CLOTHES_SIZE_TYPES,
     CLOTHES_GENDERS_ORDER, CLOTHES_START, CLOTHES_PRELOAD_START, CLOTHES_TNVED, CLOTHES_TYPES,
     COUNTRIES_LIST, TEMPLATE_TABLES_DICT, ORDER_EDIT_DESCRIPTION,
@@ -46,6 +47,7 @@ class Settings(BaseSettings):
     APM_IS_DEBUG: str = False
     ELASTIC_APM_SECRET_TOKEN: str
     APM_SERVER_URL: str
+    HEALTH_CHECK_TOKEN: str = ''
 
     MINIO_API_URL: str
     MINIO_ACCESS_KEY: str
@@ -138,9 +140,9 @@ class Settings(BaseSettings):
     )
     ADMIN_USER_POSTFIX: str = "@agentsm2r.com"
     MM_PARTNER: str = "IAMMODERATOR"
-    SQ_CATEGORIES: list = ['обувь', 'одежда', 'белье', 'носки и прочее']
-    CATEGORIES_PROCESS_NAMES: list = ['shoes', 'clothes', 'linen', 'parfum', 'socks', 'send_table']
-    CATEGORIES_UPLOAD: tuple = ('обувь', 'одежда', 'парфюм', 'белье', 'носки и прочее')
+    SQ_CATEGORIES: list = ['обувь', 'одежда', 'белье', 'косметика', 'носки и прочее']
+    CATEGORIES_PROCESS_NAMES: list = ['shoes', 'clothes', 'linen', 'parfum', 'cosmetics', 'socks', 'send_table']
+    CATEGORIES_UPLOAD: tuple = ('обувь', 'одежда', 'парфюм', 'белье', 'косметика', 'носки и прочее')
     RZ_GENDERS_RD_LIST: tuple = ("Детские", "Мальчик", "Девочка", "Детск.",)
     COMPANY_TYPES: list = ["ИП", "ООО", "АО"]
     CATEGORIES_DICT: dict = CATEGORIES_DICT
@@ -180,6 +182,20 @@ class Settings(BaseSettings):
     TEZAURUS_REDIS_PREFIX: str = os.getenv('TEZAURUS_REDIS_PREFIX', 'tezaurus:v1')
     TEZAURUS_SYNC_CRON: str = os.getenv('TEZAURUS_SYNC_CRON', '*/5 * * * *')
     TEZAURUS_SYNC_ENABLED: bool = _env_flag('TEZAURUS_SYNC_ENABLED', '1')
+    FSA_BASE_URL: str = os.getenv('FSA_BASE_URL', 'https://pub.fsa.gov.ru')
+    FSA_LOGIN_USERNAME: str = os.getenv('FSA_LOGIN_USERNAME', 'anonymous')
+    FSA_LOGIN_PASSWORD: str = os.getenv('FSA_LOGIN_PASSWORD', 'hrgesf7HDR67Bd')
+    FSA_CONNECT_TIMEOUT: float = float(os.getenv('FSA_CONNECT_TIMEOUT', '5'))
+    FSA_TIMEOUT: float = float(os.getenv('FSA_TIMEOUT', '15'))
+    FSA_HTTPS_PROXY: str = os.getenv('FSA_HTTPS_PROXY', '')
+    FSA_RATE_LIMIT_RPS: float = float(os.getenv('FSA_RATE_LIMIT_RPS', '2'))
+    FSA_RATE_LIMIT_MAX_WAIT_SEC: float = float(os.getenv('FSA_RATE_LIMIT_MAX_WAIT_SEC', '30'))
+    FSA_CB_FAILURE_THRESHOLD: int = int(os.getenv('FSA_CB_FAILURE_THRESHOLD', '5'))
+    FSA_CB_OPEN_SECONDS: int = int(os.getenv('FSA_CB_OPEN_SECONDS', '30'))
+    FSA_CB_MAX_OPEN_SECONDS: int = int(os.getenv('FSA_CB_MAX_OPEN_SECONDS', '300'))
+    FSA_TOKEN_CACHE_TTL: int = int(os.getenv('FSA_TOKEN_CACHE_TTL', '600'))
+    FSA_JOB_RESULT_TTL: int = int(os.getenv('FSA_JOB_RESULT_TTL', '3600'))
+    RD_CHECK_QUEUE_NAME: str = "rd_check"
     QUEUES: list = ['default']
     REPORT_EXCEL_FILENAME: str = f"{CUR_PATH}/"
     SHEET_NAME_2: str = "Доп. информация"
@@ -1102,6 +1118,16 @@ class Settings(BaseSettings):
         UPLOAD_MATERIAL_PACKAGE_TYPE_ERROR: str = "Проверьте правильность указанного материала упаковки (посмотрите вкладку справочник)"
         UPLOAD_COUNTRY_ERROR: str = "Проверьте правильность указанной страны (посмотрите вкладку справочник)"
 
+    class Cosmetics:
+        CATEGORY: str = 'косметика'
+        CATEGORY_PROCESS: str = 'cosmetics'
+        START_EXT: list = COSMETICS_START_EXT
+        START_PRELOAD: list = COSMETICS_PRELOAD_START
+        START_EXT_RAZOR: list = COSMETICS_RAZOR_START_EXT
+        START_PRELOAD_RAZOR: list = COSMETICS_RAZOR_PRELOAD_START
+        NUMBER_STANDART: str = "ТР ТС 009/2011 \"О безопасности парфюмерно-косметической продукции\""
+        STATUS: str = "Черновик"
+
     class Clothes:
         CATEGORY: str = 'одежда'
         CATEGORY_PROCESS: str = 'clothes'
@@ -1124,7 +1150,7 @@ class Settings(BaseSettings):
         DEFAULT_SIZE_TYPE: str = "РОССИЯ"
         INTERNATIONAL_SIZE_TYPE: str = "МЕЖДУНАРОДНЫЙ"
         ROST_SIZE_TYPE: str = "РОСТ"
-        LENGTH_WIDTH_SIZE_TYPE: str = "ДЛИНА*ШИРИНА"
+        LENGTH_WIDTH_SIZE_TYPE: str = "ДЛИНА-ШИРИНА"
         UNITE_SIZE_VALUE: str = "ONE SIZE"
         UNITE_SIZE_VALUES: tuple = ("ЕДИНЫЙ РАЗМЕР", "ONE SIZE", )
         CLOTHES_ST_RUSSIA: tuple = CLOTHES_ST_RUSSIA
@@ -1178,8 +1204,10 @@ class Settings(BaseSettings):
 
         SIZE_ALL_DICT: dict = SOCKS_TYPES_SIZES_DICT
         DEFAULT_SIZE_TYPE: str = "РОССИЯ"
-        UNITE_SIZE_VALUE: str = "ЕДИНЫЙ РАЗМЕР"
-        UNITE_SIZE_VALUES: tuple = ("ЕДИНЫЙ РАЗМЕР", "ONE SIZE",)
+        INTERNATIONAL_SIZE_TYPE: str = "МЕЖДУНАРОДНЫЙ"
+        SPECIAL_SIZE_TYPE: str = "ОСОБЫЕ_РАЗМЕРЫ"
+        UNITE_SIZE_VALUE: str = "ONE SIZE"
+        UNITE_SIZE_VALUES: tuple = ("ONE SIZE", "ЕДИНЫЙ РАЗМЕР",)
         SYZE_TYPES_CODES: dict = SOCKS_ST_DICT
         SIZE_TYPES_ALL: list = SOCKS_SIZE_TYPES  # temporary before all types are ok to use
         # TNVED_CODE: tuple = CLOTHES_TNVED  # "6202900001"

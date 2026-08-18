@@ -1,7 +1,7 @@
 from logger import logger
 
 from config import settings
-from models import Clothes
+from models import Clothes, Cosmetics
 
 
 def get_subcategory(order_id: int, category: str) -> str | None:
@@ -10,6 +10,9 @@ def get_subcategory(order_id: int, category: str) -> str | None:
             case settings.Clothes.CATEGORY:
                 return Clothes.query.filter(
                         Clothes.order_id == order_id).first().subcategory
+            case settings.Cosmetics.CATEGORY:
+                cosmetics = Cosmetics.query.filter(Cosmetics.order_id == order_id).first()
+                return cosmetics.subcategory if cosmetics else None
             case _:
                 return None
     except Exception:

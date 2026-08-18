@@ -1,0 +1,22 @@
+DOC_TYPE_DECLARATION = "declaration"
+DOC_TYPE_CERTIFICATE = "certificate"
+DOC_TYPES = (DOC_TYPE_DECLARATION, DOC_TYPE_CERTIFICATE)
+
+VERDICT_ACTIVE = "active"
+VERDICT_EXPIRED = "expired"
+VERDICT_NOT_FOUND = "not_found"
+VERDICT_TNVED_MISMATCH = "tnved_mismatch"
+VERDICT_COUNTRY_MISMATCH = "country_mismatch"
+VERDICT_ERROR = "error"
+
+JOB_STATUS_QUEUED = "queued"
+JOB_STATUS_PROCESSING = "processing"
+JOB_STATUS_DONE = "done"
+JOB_STATUS_ERROR = "error"
+
+REDIS_PREFIX = "fsa:v1"
+REDIS_KEY_TOKEN = f"{REDIS_PREFIX}:token"
+REDIS_KEY_TOKEN_LOCK = f"{REDIS_PREFIX}:token:lock"
+REDIS_KEY_RATE_LIMIT = f"{REDIS_PREFIX}:ratelimit:pub_fsa_gov_ru"
+REDIS_KEY_CIRCUIT = f"{REDIS_PREFIX}:circuit:pub_fsa_gov_ru"
+REDIS_KEY_JOB_PREFIX = f"{REDIS_PREFIX}:job"

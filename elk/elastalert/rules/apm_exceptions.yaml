@@ -1,0 +1,38 @@
+# Правило: любое Python-исключение в APM → алерт
+# Реальный data stream: .ds-logs-apm.error-default-*
+# ElastAlert2 обращается через write alias: logs-apm.error-default
+name: "APM Python exceptions"
+type: any
+
+index: "logs-apm.error-default"
+
+filter:
+  - term:
+      processor.event: "error"
+
+realert:
+  minutes: 10
+
+# Группируем по culprit: одна точка входа не будет спамить чаще раза в 10 минут
+query_key: "culprit"
+
+alert: telegram
+telegram_bot_token: "${HEALTHCHECK_BOT}"
+telegram_room_id: "${TELEGRAM_ALERTS_GROUP_ID}"
+
+alert_text: |
+  🔴 <b>APM Exception — Marka Service</b>
+
+  <b>Culprit:</b> <code>{0}</code>
+  <b>Тип:</b> <code>{1}</code>
+  <b>Сообщение:</b> <code>{2}</code>
+  <b>URL:</b> <code>{3}</code>
+
+  Kibana APM → Errors для полного traceback.
+alert_text_args:
+  - culprit
+  - error.exception.0.type
+  - error.exception.0.message
+  - url.original
+alert_text_type: alert_text_only
+telegram_parse_mode: html

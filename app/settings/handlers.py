@@ -8,6 +8,12 @@ from models import User
 
 
 def register_handlers(app: Flask) -> None:
+    @app.url_defaults
+    def add_static_cache_buster(endpoint: str, values: dict) -> None:
+        if endpoint != 'static' or 'filename' not in values:
+            return
+        values['v'] = app.config.get('STATIC_VERSION')
+
     @app.before_request
     def check_maintenance():
         if app.config['MAINTENANCE_MODE']:

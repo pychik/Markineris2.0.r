@@ -10,14 +10,14 @@ from sqlalchemy.sql import desc, text
 from config import settings
 from logger import logger
 from models import User, Order, Shoe, ShoeQuantitySize, Socks, SocksQuantitySize, Linen, LinenQuantitySize, Parfum, \
-    Clothes, ClothesQuantitySize, db
+    Clothes, ClothesQuantitySize, Cosmetics, db
 
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.helpers.helpers_checks import _check_linen_compatibility, _check_clothes_compatibility, \
     _check_shoes_compatibility, rd_name_clean
 from utilities.exceptions import SizeTypeException
-from utilities.saving_helpers import append_or_merge_position, get_clothes_size_type, normalize_trademark_placeholder, \
-    process_input_str
+from utilities.saving_helpers import append_or_merge_position, get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, \
+    normalize_length_width_size_type, normalize_length_width_size_value, normalize_trademark_placeholder, process_input_str
 from utilities.validators import normalize_mark_type_full
 
 
@@ -34,8 +34,7 @@ def time_count(func):
 
 def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
-    article = process_input_str(form_dict.get("article"))
-    article = article if article.upper() != 'БЕЗ АРТИКУЛА' else 'ОТСУТСТВУЕТ'
+    article = normalize_article_placeholder(form_dict.get("article"))
 
     new_shoe_order = Shoe(trademark=process_input_str(form_dict.get("trademark")),
                           article=article, type=form_dict.get("type"),
@@ -59,8 +58,7 @@ def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
 
 def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcategory: str = None) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
-    article = process_input_str(form_dict.get("article"))
-    article = article if article.upper() != 'БЕЗ АРТИКУЛА' else 'ОТСУТСТВУЕТ'
+    article = normalize_article_placeholder(form_dict.get("article"))
 
     new_clothes_order = Clothes(trademark=process_input_str(form_dict.get("trademark")),
                                 article=article,
@@ -88,8 +86,7 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcateg
 
 def save_socks(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
-    article = process_input_str(form_dict.get("article"))
-    article = article if article.upper() != 'БЕЗ АРТИКУЛА' else 'ОТСУТСТВУЕТ'
+    article = normalize_article_placeholder(form_dict.get("article"))
 
     new_socks_order = Socks(trademark=process_input_str(form_dict.get("trademark")),
                               article=article,
@@ -101,9 +98,10 @@ def save_socks(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
                               tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
                               rd_name=form_dict.get("rd_name").replace('№', ''),
                               rd_date=rd_date)
-    extend_sq = (SocksQuantitySize(size=el[0], quantity=el[1],
-                                   size_type=el[2] if el[0] not in settings.Socks.UNITE_SIZE_VALUES
-                                   else settings.Socks.DEFAULT_SIZE_TYPE) for el in sizes_quantities)
+    extend_sq = (
+        SocksQuantitySize(size=el[0], quantity=el[1], size_type=get_socks_size_type(el[0], el[2]))
+        for el in sizes_quantities
+    )
     new_socks_order.sizes_quantities.extend(extend_sq)
     append_or_merge_position(order.socks, new_socks_order, settings.Socks.CATEGORY)
     return order
@@ -113,8 +111,7 @@ def save_linen(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     # with_p = form_dict.get("with_packages")
     with_p = "False"
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
-    article = process_input_str(form_dict.get("article"))
-    article = article if article.upper() != 'БЕЗ АРТИКУЛА' else 'ОТСУТСТВУЕТ'
+    article = normalize_article_placeholder(form_dict.get("article"))
 
     new_linen_order = Linen(trademark=process_input_str(form_dict.get("trademark")),
                             article=article,
@@ -161,6 +158,66 @@ def save_parfum(order: Order, form_dict: dict) -> Order:
     return order
 
 
+def save_cosmetics(order: Order, form_dict: dict, subcategory: str) -> Order:
+    quantity_raw = form_dict.get("quantity")
+    nominal_quantity_raw = form_dict.get("nominal_quantity")
+    blade_count_raw = form_dict.get("blade_count")
+    layers_characteristic = process_input_str(form_dict.get("layers_characteristic") or "")
+
+    try:
+        quantity = int(quantity_raw)
+    except (TypeError, ValueError):
+        quantity = 1
+    if quantity < 1:
+        quantity = 1
+
+    try:
+        nominal_quantity = int(nominal_quantity_raw) if nominal_quantity_raw not in (None, "") else None
+    except (TypeError, ValueError):
+        nominal_quantity = None
+
+    try:
+        blade_count = int(blade_count_raw) if blade_count_raw not in (None, "") else None
+    except (TypeError, ValueError):
+        blade_count = None
+
+    rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
+    rd_date_to = datetime.strptime(form_dict.get("rd_date_to"), '%d.%m.%Y').date() if form_dict.get("rd_date_to") else None
+    sl_date_from = datetime.strptime(form_dict.get("sl_date_from"), '%d.%m.%Y').date() if form_dict.get("sl_date_from") else None
+    sl_date_to = datetime.strptime(form_dict.get("sl_date_to"), '%d.%m.%Y').date() if form_dict.get("sl_date_to") else None
+
+    new_cosmetics_order = Cosmetics(
+        trademark=process_input_str(form_dict.get("trademark")),
+        type=form_dict.get("type"),
+        full_name_extra=process_input_str(form_dict.get("full_name_extra")),
+        country=form_dict.get("country"),
+        tnved_code=form_dict.get("tnved_code"),
+        article_price=form_dict.get("article_price"),
+        tax=form_dict.get("tax"),
+        rd_type=form_dict.get("rd_type"),
+        rd_name=(form_dict.get("rd_name") or "").replace('№', ''),
+        rd_date=rd_date,
+        rd_date_to=rd_date_to,
+        subcategory=subcategory,
+        nominal_quantity=nominal_quantity,
+        nominal_quantity_type=form_dict.get("nominal_quantity_type"),
+        quantity=quantity,
+        blade_count=blade_count,
+        complectation=process_input_str(form_dict.get("complectation")),
+        layers_characteristic=layers_characteristic,
+        for_children=form_dict.get("for_children") == "yes",
+        usage_term_type=form_dict.get("usage_term_type"),
+        content_type=form_dict.get("content_type"),
+        content=form_dict.get("content"),
+        service_life=form_dict.get("service_life") or None,
+        sl_date_from=sl_date_from,
+        sl_date_to=sl_date_to,
+    )
+
+    append_or_merge_position(order.cosmetics, new_cosmetics_order, settings.Cosmetics.CATEGORY)
+    return order
+
+
 def common_save_db(order: Order, form_dict: dict, category: str, subcategory: str = None, sizes_quantities: list = None) -> Order:
     tnved_code_raw = form_dict.get("tnved_code")
 
@@ -180,6 +237,8 @@ def common_save_db(order: Order, form_dict: dict, category: str, subcategory: st
             order = save_linen(order=order, form_dict=form_dict, sizes_quantities=sizes_quantities)
         case settings.Parfum.CATEGORY:
             order = save_parfum(order=order, form_dict=form_dict)
+        case settings.Cosmetics.CATEGORY:
+            order = save_cosmetics(order=order, form_dict=form_dict, subcategory=subcategory)
     return order
 
 
@@ -204,6 +263,8 @@ def common_save_copy_order(u_id: int, user: User, category: str, order: Order) -
                 new_order = save_copy_order_linen(order_category_list=order.linen, new_order=new_order)
             case settings.Parfum.CATEGORY:
                 new_order = save_copy_order_parfum(order_category_list=order.parfum, new_order=new_order)
+            case settings.Cosmetics.CATEGORY:
+                new_order = save_copy_order_cosmetics(order_category_list=order.cosmetics, new_order=new_order)
 
         user.orders.append(new_order)
         db.session.commit()
@@ -264,7 +325,11 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
 
         new_sizes = []
         for sq in clothes.sizes_quantities:
-            new_sq = ClothesQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
+            new_sq = ClothesQuantitySize(
+                size=normalize_length_width_size_value(sq.size, sq.size_type),
+                quantity=sq.quantity,
+                size_type=normalize_length_width_size_type(sq.size_type),
+            )
             new_sizes.append(new_sq)
 
         new_clothes = Clothes(
@@ -302,7 +367,11 @@ def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) ->
 
         new_sizes = []
         for sq in sock.sizes_quantities:
-            new_sq = SocksQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
+            new_sq = SocksQuantitySize(
+                size=normalize_length_width_size_value(sq.size, sq.size_type),
+                quantity=sq.quantity,
+                size_type=normalize_length_width_size_type(sq.size_type),
+            )
             new_sizes.append(new_sq)
 
         new_socks = Socks(
@@ -405,6 +474,39 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
     return new_order
 
 
+def save_copy_order_cosmetics(order_category_list: list[Cosmetics], new_order: Order) -> Order:
+    for cosmetics in order_category_list:
+        new_cosmetics = Cosmetics(
+            trademark=normalize_trademark_placeholder(cosmetics.trademark),
+            type=cosmetics.type,
+            full_name_extra=cosmetics.full_name_extra,
+            country=cosmetics.country,
+            tnved_code=cosmetics.tnved_code,
+            article_price=cosmetics.article_price,
+            tax=cosmetics.tax,
+            rd_type=cosmetics.rd_type,
+            rd_name=cosmetics.rd_name.replace('№', '') if cosmetics.rd_name else cosmetics.rd_name,
+            rd_date=cosmetics.rd_date,
+            rd_date_to=cosmetics.rd_date_to,
+            subcategory=cosmetics.subcategory,
+            nominal_quantity=cosmetics.nominal_quantity,
+            nominal_quantity_type=cosmetics.nominal_quantity_type,
+            quantity=cosmetics.quantity,
+            blade_count=cosmetics.blade_count,
+            complectation=cosmetics.complectation,
+            layers_characteristic=cosmetics.layers_characteristic,
+            for_children=cosmetics.for_children,
+            usage_term_type=cosmetics.usage_term_type,
+            content_type=cosmetics.content_type,
+            content=cosmetics.content,
+            service_life=cosmetics.service_life,
+            sl_date_from=cosmetics.sl_date_from,
+            sl_date_to=cosmetics.sl_date_to,
+        )
+        append_or_merge_position(new_order.cosmetics, new_cosmetics, settings.Cosmetics.CATEGORY)
+    return new_order
+
+
 def get_rows_marks(o_id: int, category: str) -> tuple[int, int]:
     match category:
         case settings.Shoes.CATEGORY:
@@ -459,6 +561,15 @@ def get_rows_marks(o_id: int, category: str) -> tuple[int, int]:
                     WHERE public.orders.category=:category AND public.orders.id=:o_id
                     GROUP BY public.orders.id
                     """).bindparams(category=settings.Parfum.CATEGORY, o_id=o_id))
+            row_count, mark_count = res.fetchall()[0]
+        case settings.Cosmetics.CATEGORY:
+            res = db.session.execute(text("""
+                SELECT COUNT(cosmetics.id), COALESCE(SUM(public.cosmetics.quantity), 0)
+                    FROM public.orders
+                        JOIN public.cosmetics ON public.orders.id = public.cosmetics.order_id
+                    WHERE public.orders.category=:category AND public.orders.id=:o_id
+                    GROUP BY public.orders.id
+                    """).bindparams(category=settings.Cosmetics.CATEGORY, o_id=o_id))
             row_count, mark_count = res.fetchall()[0]
 
         case _:
@@ -541,6 +652,8 @@ def get_delete_pos_stmts(category: str, m_id: int, o_id: int) -> str:
             stmt = f"DELETE FROM public.linen WHERE public.linen.id={m_id} AND public.linen.order_id={o_id}"
         case settings.Parfum.CATEGORY:
             stmt = f"DELETE FROM public.parfum AS pm WHERE pm.id={m_id} AND pm.order_id={o_id}"
+        case settings.Cosmetics.CATEGORY:
+            stmt = f"DELETE FROM public.cosmetics AS cm WHERE cm.id={m_id} AND cm.order_id={o_id}"
         case _:
             flash(message=settings.Messages.ORDER_DELETE_ERROR)
             raise Exception

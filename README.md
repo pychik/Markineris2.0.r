@@ -8,6 +8,10 @@ Markineris2.0.r for special agents
 make help
 ```
 
+### CRM-флаг РФ-заказа
+- В CRM карточках обычных заказов значок флага показывает, что все позиции заказа имеют страну `РОССИЯ`.
+- Флаг считается в общем SQL-агрегаторе `app/utilities/sql_categories_aggregations.py` и протаскивается через `app/views/crm/helpers.py`; отдельной колонки и миграции в `orders` нет.
+
 ## Инструкция по развертыванию
 
 ### Виртуальное окружение и переменные среды 
@@ -48,6 +52,32 @@ docker exec flask_app curl -I --max-time 20 https://api.telegram.org
 - Проверка подключения из контейнера bot_notification:
 ```shell
 docker exec bot_notification curl -I --max-time 20 https://api.telegram.org
+```
+
+### Алерты в Telegram
+
+ElastAlert2 живёт в `docker-compose.elk.yml` как отдельный контейнер, поднимается вместе с `make elk-up`. Раз в минуту опрашивает Elasticsearch, при срабатывании правила шлёт в Telegram.
+
+Правила в `elk/elastalert/rules/`:
+- `flask_errors.yaml` — 3+ строки ERROR/CRITICAL в логах Flask за 5 минут
+- `nginx_5xx.yaml` — 5+ ответов 500/502/503/504 от nginx за 5 минут
+- `apm_exceptions.yaml` — любое Python-исключение через APM-агент (то же что Kibana APM → Errors), группировка по culprit, кулдаун 10 минут
+- `apm_failed_transactions.yaml` — любая упавшая транзакция, кулдаун 15 минут на endpoint
+
+Переменные окружения которые нужны:
+```dotenv
+HEALTHCHECK_BOT=...               # токен Telegram-бота
+TELEGRAM_ALERTS_GROUP_ID=...      # chat_id канала с алертами
+```
+
+### Health check эндпоинт
+
+`GET /app/health` — проверяет `SELECT 1` к PostgreSQL и `PING` к Redis. Возвращает 200 если всё ок, 503 если что-то упало. Во время тех. обслуживания возвращает `200 {"status":"maintenance"}` — так внешний мониторинг не сходит с ума при плановых деплоях.
+
+Закрыт токеном — без заголовка `X-Health-Token` вернёт 403.
+
+```dotenv
+HEALTH_CHECK_TOKEN=...   # одинаковый в .env и в мониторинге
 ```
 
 ### Запуск elk
@@ -140,6 +170,14 @@ make service-down
 make flask-local-run
 ```
 
+## Cache Bust для static
+
+- Версия для `url_for('static', ...)` задается один раз на старте Flask-контейнера в `app.config['STATIC_VERSION']`.
+- Далее `@app.url_defaults` автоматически добавляет `?v=<STATIC_VERSION>` ко всем static URL, если `v` не передан вручную.
+- На проде это не зависит от локальной папки `static` внутри `flask_app`, поэтому схема работает вместе с MinIO.
+- После нового деплоя или рестарта `flask_app` значение `STATIC_VERSION` меняется, и браузер запрашивает новую статику.
+- Ручные `?v=...` в шаблонах добавлять не нужно.
+
 ## Порты
 ```
 9181 - rq-dashboard
@@ -153,5 +191,3 @@ make flask-local-run
 - [Kibana](https://0.0.0.0:5601)
 - [Web интерфейс для мониторинга фоновых задач](http://0.0.0.0:9181)
 - [Web интерфейс minio s3 хранилища](http://0.0.0.0:9001)
-
-

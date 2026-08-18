@@ -6,12 +6,19 @@ import re
 from typing import Any
 
 from config import settings
-from logger import logger
 from utilities.exceptions import SizeTypeException
 
+NO_TRADEMARK_VALUE = 'без товарного знака'
+NO_ARTICLE_VALUE = 'отсутствует'
+NO_TRADEMARK_PLACEHOLDERS = {'БЕЗ ТОВАРНОГО ЗНАКА'}
+NO_ARTICLE_PLACEHOLDERS = {'БЕЗ АРТИКУЛА', 'ОТСУТСТВУЕТ'}
+LEGACY_LENGTH_WIDTH_SIZE_TYPE = 'ДЛИНА*ШИРИНА'
 
-def process_input_str(value: str) -> str:
+
+def process_input_str(value: str | None) -> str:
     """Normalize free-form text fields before they are stored or compared."""
+    if value is None:
+        return ""
     return value.replace("\"", '').replace("\'", '').replace(":", '').replace("?", '').strip()
 
 
@@ -23,9 +30,46 @@ def normalize_trademark_placeholder(value: str) -> str:
 
     compact = cleaned.replace(' ', '')
     if compact and len(set(compact)) == 1 and not compact[0].isalnum():
-        return 'БЕЗ ТОВАРНОГО ЗНАКА'
+        return NO_TRADEMARK_VALUE
 
     return cleaned
+
+
+def normalize_placeholder_value(value: Any, placeholders: set[str], replacement: str) -> Any:
+    normalized = normalize_key_value(value)
+    if isinstance(normalized, str) and normalized.upper() in placeholders:
+        return replacement
+    return normalized
+
+
+def normalize_article_placeholder(value: str | None) -> str:
+    return normalize_placeholder_value(process_input_str(value), NO_ARTICLE_PLACEHOLDERS, NO_ARTICLE_VALUE)
+
+
+def is_length_width_size_type(size_type: str | None) -> bool:
+    return str(size_type or '').strip() in {settings.Clothes.LENGTH_WIDTH_SIZE_TYPE, LEGACY_LENGTH_WIDTH_SIZE_TYPE}
+
+
+def normalize_length_width_size_type(size_type: str | None) -> str:
+    normalized_type = str(size_type or '').strip()
+    if is_length_width_size_type(normalized_type):
+        return settings.Clothes.LENGTH_WIDTH_SIZE_TYPE
+    return normalized_type
+
+
+def normalize_length_width_size_value(size: str | None, size_type: str | None) -> str:
+    normalized_size = str(size or '').strip()
+    if not is_length_width_size_type(size_type):
+        return normalized_size
+
+    return (
+        normalized_size
+        .replace('*', '-')
+        .replace('x', '-')
+        .replace('X', '-')
+        .replace('х', '-')
+        .replace('Х', '-')
+    )
 
 
 def normalize_key_value(value: Any) -> Any:
@@ -57,9 +101,9 @@ def get_clothes_size_type(size: str, provided_type: str) -> str:
     provided_type = provided_type.strip()
     length_width_size_type = settings.Clothes.LENGTH_WIDTH_SIZE_TYPE
 
-    if provided_type == length_width_size_type:
+    if is_length_width_size_type(provided_type):
         normalized_size = (size or '').strip()
-        size_match = re.fullmatch(r'(\d+(?:[.,]\d+)?)\*(\d+(?:[.,]\d+)?)\s+(мм|см)', normalized_size)
+        size_match = re.fullmatch(r'(\d+(?:[.,]\d+)?)\s*[-*xх]\s*(\d+(?:[.,]\d+)?)\s+(мм|см)', normalized_size)
         if not size_match:
             raise SizeTypeException(
                 f"Размер '{size}' не соответствует типу '{length_width_size_type}'."
@@ -99,10 +143,30 @@ def get_clothes_size_type(size: str, provided_type: str) -> str:
     raise SizeTypeException(f"Не удалось определить size_type для '{provided_type}'.")
 
 
+def get_socks_size_type(size: str, provided_type: str) -> str:
+    """Validate a socks size value and map UI-only size groups to export size types."""
+    normalized_size = str(size or '').strip().upper()
+    normalized_type = str(provided_type or '').strip()
+
+    if normalized_size == settings.Socks.UNITE_SIZE_VALUE:
+        return settings.Socks.INTERNATIONAL_SIZE_TYPE
+
+    if normalized_size == 'ЕДИНЫЙ РАЗМЕР':
+        return settings.Socks.DEFAULT_SIZE_TYPE
+
+    if normalized_type == settings.Socks.SPECIAL_SIZE_TYPE:
+        return settings.Socks.INTERNATIONAL_SIZE_TYPE
+
+    if normalized_type in settings.Socks.SIZE_TYPES_ALL:
+        return normalized_type
+
+    raise SizeTypeException(f"Неизвестный тип размера носков: '{provided_type}'.")
+
+
 def build_position_key(item: Any, category: str) -> tuple:
     """Build a stable comparison key for an order position."""
     common = (
-        normalize_key_value(item.trademark),
+        normalize_placeholder_value(item.trademark, NO_TRADEMARK_PLACEHOLDERS, NO_TRADEMARK_VALUE),
         normalize_key_value(item.tnved_code),
         normalize_key_value(item.country),
         normalize_key_value(item.rd_type),
@@ -116,7 +180,7 @@ def build_position_key(item: Any, category: str) -> tuple:
     match category:
         case settings.Shoes.CATEGORY:
             return common + (
-                normalize_key_value(item.article),
+                normalize_placeholder_value(item.article, NO_ARTICLE_PLACEHOLDERS, NO_ARTICLE_VALUE),
                 normalize_key_value(item.color),
                 normalize_key_value(item.material_top),
                 normalize_key_value(item.material_lining),
@@ -125,7 +189,7 @@ def build_position_key(item: Any, category: str) -> tuple:
             )
         case settings.Clothes.CATEGORY:
             return common + (
-                normalize_key_value(item.article),
+                normalize_placeholder_value(item.article, NO_ARTICLE_PLACEHOLDERS, NO_ARTICLE_VALUE),
                 normalize_key_value(item.color),
                 normalize_key_value(item.gender),
                 normalize_key_value(item.content),
@@ -133,14 +197,14 @@ def build_position_key(item: Any, category: str) -> tuple:
             )
         case settings.Socks.CATEGORY:
             return common + (
-                normalize_key_value(item.article),
+                normalize_placeholder_value(item.article, NO_ARTICLE_PLACEHOLDERS, NO_ARTICLE_VALUE),
                 normalize_key_value(item.color),
                 normalize_key_value(item.gender),
                 normalize_key_value(item.content),
             )
         case settings.Linen.CATEGORY:
             return common + (
-                normalize_key_value(item.article),
+                normalize_placeholder_value(item.article, NO_ARTICLE_PLACEHOLDERS, NO_ARTICLE_VALUE),
                 normalize_key_value(item.color),
                 normalize_key_value(item.customer_age),
                 normalize_key_value(item.textile_type),
@@ -153,6 +217,23 @@ def build_position_key(item: Any, category: str) -> tuple:
                 normalize_key_value(item.package_type),
                 normalize_key_value(item.material_package),
             )
+        case settings.Cosmetics.CATEGORY:
+            return common + (
+                normalize_key_value(item.full_name_extra),
+                normalize_key_value(item.subcategory),
+                normalize_key_value(item.nominal_quantity_type),
+                normalize_int_key(item.nominal_quantity),
+                normalize_int_key(getattr(item, "blade_count", None)),
+                normalize_key_value(getattr(item, "complectation", None)),
+                normalize_key_value(getattr(item, "layers_characteristic", None)),
+                bool(item.for_children),
+                normalize_key_value(item.usage_term_type),
+                normalize_key_value(item.content_type),
+                normalize_key_value(item.content),
+                normalize_int_key(item.service_life),
+                item.sl_date_from,
+                item.sl_date_to,
+            )
     raise ValueError(f"Unsupported category for merge: {category}")
 
 
@@ -162,7 +243,10 @@ def build_size_key(size_obj: Any, category: str) -> tuple:
         case settings.Shoes.CATEGORY:
             return (normalize_key_value(size_obj.size),)
         case settings.Clothes.CATEGORY | settings.Socks.CATEGORY:
-            return (normalize_key_value(size_obj.size), normalize_key_value(size_obj.size_type))
+            return (
+                normalize_length_width_size_value(size_obj.size, size_obj.size_type),
+                normalize_length_width_size_type(size_obj.size_type),
+            )
         case settings.Linen.CATEGORY:
             return (normalize_key_value(size_obj.size), normalize_key_value(getattr(size_obj, "unit", None)))
     raise ValueError(f"Unsupported category for size merge: {category}")
@@ -204,16 +288,17 @@ def append_or_merge_position(order_positions: Any, new_item: Any, category: str,
 
         if category == settings.Parfum.CATEGORY:
             existing_item.quantity = normalize_int_key(existing_item.quantity) + normalize_int_key(new_item.quantity)
-            # logger.info(f"merge hit category={category} target=parfum key={new_key}")
+            return existing_item
+
+        if category == settings.Cosmetics.CATEGORY:
+            existing_item.quantity = normalize_int_key(existing_item.quantity) + normalize_int_key(new_item.quantity)
             return existing_item
 
         merge_size_quantities(existing_item, new_item, category, old_sq_map=old_sq_map,
                               source_size_pairs=source_size_pairs)
-        # logger.info(f"merge hit category={category} target=sizes key={new_key}")
         return existing_item
 
     order_positions.append(new_item)
-    # logger.info(f"merge miss category={category} appended_key={new_key}")
     if old_sq_map is not None:
         for old_sq_id, size_obj in (source_size_pairs or []):
             old_sq_map[old_sq_id] = size_obj
