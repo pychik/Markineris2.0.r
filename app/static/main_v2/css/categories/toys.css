@@ -106,6 +106,13 @@
   transform: translate(-9px, -9px);
 }
 
+.toys-category-icon--train-set {
+  width: 126px;
+  height: auto;
+  max-width: none;
+  transform: translate(-9px, -9px);
+}
+
 .toys-category-disabled {
   position: relative;
   background: #fff;

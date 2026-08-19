@@ -51,6 +51,12 @@ def helper_toys_index(
                 "icon_class": "toys-category-icon--toy-weapons",
                 "badge": "Скоро",
             },
+            {
+                "title": "Поезда электрические и наборы элементов для сборки моделей",
+                "icon": "main_v2/img/icons/toys/train_set.png",
+                "icon_class": "toys-category-icon--train-set",
+                "badge": "Скоро",
+            },
         )
         toys_category_tiles = tuple(
             tile
