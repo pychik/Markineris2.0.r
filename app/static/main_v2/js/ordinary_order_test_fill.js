@@ -335,6 +335,18 @@ function ordinaryOrderFillToysStep2(subcategory) {
             material: ["КАРТОН"],
             content: "КАРТОН",
         },
+        board_room_games_inventory: {
+            tnved: "9504908009",
+            type: ["ИГРА НАСТОЛЬНАЯ"],
+            material: ["КАРТОН"],
+            content: "КАРТОН",
+        },
+        toy_weapons: {
+            tnved: "9503008100",
+            type: ["ОРУЖИЕ ИГРУШЕЧНОЕ"],
+            material: ["ПЛАСТМАССА"],
+            content: "ПЛАСТМАССА",
+        },
     };
     const toysTestProfile = toysTestProfiles[subcategory] || {
         type: ["ОДЕЖДА ДЛЯ КУКОЛ"],

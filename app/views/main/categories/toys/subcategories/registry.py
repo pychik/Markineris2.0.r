@@ -9,6 +9,8 @@ import views.main.categories.toys.subcategories.musical_toy_instruments as music
 import views.main.categories.toys.subcategories.dolls_human_figures as dolls_human_figures
 import views.main.categories.toys.subcategories.construction_sets as construction_sets
 import views.main.categories.toys.subcategories.card_games as card_games
+import views.main.categories.toys.subcategories.board_room_games_inventory as board_room_games_inventory
+import views.main.categories.toys.subcategories.toy_weapons as toy_weapons
 
 
 SUBCATEGORY_CONFIG = {
@@ -243,6 +245,48 @@ SUBCATEGORY_CONFIG = {
         "usage_term_types": card_games.USAGE_TERM_TYPES,
         "service_life_types": card_games.SERVICE_LIFE_TYPES,
         "default_countries": card_games.DEFAULT_COUNTRIES,
+        "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
+        "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
+    },
+    board_room_games_inventory.SUBCATEGORY_SLUG: {
+        "slug": board_room_games_inventory.SUBCATEGORY_SLUG,
+        "title": board_room_games_inventory.SUBCATEGORY_TITLE,
+        "icon": "main_v2/img/icons/toys/board_room_games_inventory.png",
+        "icon_class": "toys-category-icon--board-room-games-inventory",
+        "category_code": board_room_games_inventory.SUBCATEGORY_CATEGORY_CODE,
+        "category_code_by_tnved": board_room_games_inventory.CATEGORY_CODE_BY_TNVED,
+        "allowed_tnved_codes": board_room_games_inventory.ALLOWED_TNVED_CODES,
+        "allowed_tnved_choices": board_room_games_inventory.ALLOWED_TNVED_CHOICES,
+        "allowed_tnved_codes_by_product_type": board_room_games_inventory.ALLOWED_TNVED_CODES_BY_PRODUCT_TYPE,
+        "okpd2_choices_by_tnved": board_room_games_inventory.OKPD2_CHOICES_BY_TNVED,
+        "model_article_types": board_room_games_inventory.MODEL_ARTICLE_TYPES,
+        "product_types": board_room_games_inventory.PRODUCT_TYPES,
+        "material_choices": board_room_games_inventory.MATERIAL_CHOICES,
+        "min_child_age_choices": board_room_games_inventory.MIN_CHILD_AGE_CHOICES,
+        "usage_term_types": board_room_games_inventory.USAGE_TERM_TYPES,
+        "service_life_types": board_room_games_inventory.SERVICE_LIFE_TYPES,
+        "default_countries": board_room_games_inventory.DEFAULT_COUNTRIES,
+        "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
+        "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
+    },
+    toy_weapons.SUBCATEGORY_SLUG: {
+        "slug": toy_weapons.SUBCATEGORY_SLUG,
+        "title": toy_weapons.SUBCATEGORY_TITLE,
+        "icon": "main_v2/img/icons/toys/toy_weapons.png",
+        "icon_class": "toys-category-icon--toy-weapons",
+        "category_code": toy_weapons.SUBCATEGORY_CATEGORY_CODE,
+        "category_code_by_tnved": toy_weapons.CATEGORY_CODE_BY_TNVED,
+        "allowed_tnved_codes": toy_weapons.ALLOWED_TNVED_CODES,
+        "allowed_tnved_choices": toy_weapons.ALLOWED_TNVED_CHOICES,
+        "allowed_tnved_codes_by_product_type": toy_weapons.ALLOWED_TNVED_CODES_BY_PRODUCT_TYPE,
+        "okpd2_choices_by_tnved": toy_weapons.OKPD2_CHOICES_BY_TNVED,
+        "model_article_types": toy_weapons.MODEL_ARTICLE_TYPES,
+        "product_types": toy_weapons.PRODUCT_TYPES,
+        "material_choices": toy_weapons.MATERIAL_CHOICES,
+        "min_child_age_choices": toy_weapons.MIN_CHILD_AGE_CHOICES,
+        "usage_term_types": toy_weapons.USAGE_TERM_TYPES,
+        "service_life_types": toy_weapons.SERVICE_LIFE_TYPES,
+        "default_countries": toy_weapons.DEFAULT_COUNTRIES,
         "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
         "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
     },

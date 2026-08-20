@@ -350,6 +350,12 @@ body {
 .order__img--toys-card-games img {
   transform: scale(1.18);
 }
+.order__img--toys-board-room-games-inventory img {
+  transform: scale(1.08);
+}
+.order__img--toys-toy-weapons img {
+  transform: scale(1.08);
+}
 .order__img--toys-competition-cars img {
   transform: scale(1.33);
 }

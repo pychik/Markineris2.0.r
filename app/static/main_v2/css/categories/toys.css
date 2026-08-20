@@ -113,6 +113,13 @@
   transform: translate(-9px, -9px);
 }
 
+.toys-category-icon--play-tents {
+  width: 174px;
+  height: auto;
+  max-width: none;
+  transform: translate(-37px, -31px);
+}
+
 .toys-category-disabled {
   position: relative;
   background: #fff;
