@@ -40,12 +40,6 @@ def helper_toys_index(
         }
         toys_upcoming_category_tiles = (
             {
-                "title": "Палатки для игр",
-                "icon": "main_v2/img/icons/toys/play_tents.png",
-                "icon_class": "toys-category-icon--play-tents",
-                "badge": "Скоро",
-            },
-            {
                 "title": "Поезда электрические и наборы элементов для сборки моделей",
                 "icon": "main_v2/img/icons/toys/train_set.png",
                 "icon_class": "toys-category-icon--train-set",
@@ -68,6 +62,7 @@ def helper_toys_index(
                 toys_subcategories.get("card_games"),
                 toys_subcategories.get("board_room_games_inventory"),
                 toys_subcategories.get("toy_weapons"),
+                toys_subcategories.get("play_tents"),
             )
             if tile
         )

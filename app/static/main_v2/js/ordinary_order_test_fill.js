@@ -347,6 +347,12 @@ function ordinaryOrderFillToysStep2(subcategory) {
             material: ["ПЛАСТМАССА"],
             content: "ПЛАСТМАССА",
         },
+        play_tents: {
+            tnved: "9503009901",
+            type: ["ПАЛАТКА ДЛЯ ИГР"],
+            material: ["ТКАНЬ", "ПЛАСТМАССА"],
+            content: "ТКАНЬ, ПЛАСТМАССА",
+        },
     };
     const toysTestProfile = toysTestProfiles[subcategory] || {
         type: ["ОДЕЖДА ДЛЯ КУКОЛ"],

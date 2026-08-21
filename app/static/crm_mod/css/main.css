@@ -356,6 +356,9 @@ body {
 .order__img--toys-toy-weapons img {
   transform: scale(1.08);
 }
+.order__img--toys-play-tents img {
+  transform: scale(1.74);
+}
 .order__img--toys-competition-cars img {
   transform: scale(1.33);
 }

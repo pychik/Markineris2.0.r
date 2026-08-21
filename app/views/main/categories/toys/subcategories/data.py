@@ -15,6 +15,7 @@ class ToysSubcategories(str, Enum):
     card_games = "card_games"
     board_room_games_inventory = "board_room_games_inventory"
     toy_weapons = "toy_weapons"
+    play_tents = "play_tents"
 
     @classmethod
     def has_value(cls, value: str | None) -> bool:

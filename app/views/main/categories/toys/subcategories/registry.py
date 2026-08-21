@@ -11,6 +11,7 @@ import views.main.categories.toys.subcategories.construction_sets as constructio
 import views.main.categories.toys.subcategories.card_games as card_games
 import views.main.categories.toys.subcategories.board_room_games_inventory as board_room_games_inventory
 import views.main.categories.toys.subcategories.toy_weapons as toy_weapons
+import views.main.categories.toys.subcategories.play_tents as play_tents
 
 
 SUBCATEGORY_CONFIG = {
@@ -287,6 +288,27 @@ SUBCATEGORY_CONFIG = {
         "usage_term_types": toy_weapons.USAGE_TERM_TYPES,
         "service_life_types": toy_weapons.SERVICE_LIFE_TYPES,
         "default_countries": toy_weapons.DEFAULT_COUNTRIES,
+        "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
+        "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
+    },
+    play_tents.SUBCATEGORY_SLUG: {
+        "slug": play_tents.SUBCATEGORY_SLUG,
+        "title": play_tents.SUBCATEGORY_TITLE,
+        "icon": "main_v2/img/icons/toys/play_tents.png",
+        "icon_class": "toys-category-icon--play-tents",
+        "category_code": play_tents.SUBCATEGORY_CATEGORY_CODE,
+        "category_code_by_tnved": play_tents.CATEGORY_CODE_BY_TNVED,
+        "allowed_tnved_codes": play_tents.ALLOWED_TNVED_CODES,
+        "allowed_tnved_choices": play_tents.ALLOWED_TNVED_CHOICES,
+        "allowed_tnved_codes_by_product_type": play_tents.ALLOWED_TNVED_CODES_BY_PRODUCT_TYPE,
+        "okpd2_choices_by_tnved": play_tents.OKPD2_CHOICES_BY_TNVED,
+        "model_article_types": play_tents.MODEL_ARTICLE_TYPES,
+        "product_types": play_tents.PRODUCT_TYPES,
+        "material_choices": play_tents.MATERIAL_CHOICES,
+        "min_child_age_choices": play_tents.MIN_CHILD_AGE_CHOICES,
+        "usage_term_types": play_tents.USAGE_TERM_TYPES,
+        "service_life_types": play_tents.SERVICE_LIFE_TYPES,
+        "default_countries": play_tents.DEFAULT_COUNTRIES,
         "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
         "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
     },
