@@ -771,20 +771,37 @@ function show_toys_pos(index, full_name, trademark, type, okpd2_code, okpd2_name
 
 async function async_toys_delete_pos(url, csrf, block) {
     loadingCircle();
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {'X-CSRFToken': csrf}
-    });
-    const data = await response.json();
-    close_Loading_circle();
-    if (data.status === 'success') {
-        $('#step-3_update').html(data.htmlresponse);
-        $('#orders_pos_count').text(data.orders_pos_count);
-        $('#orders_row_count').text(data.pos_count);
-    } else {
-        show_form_errors(['Не удалось удалить позицию']);
-        $('#form_errorModal').modal('show');
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrf}
+        });
+        const data = await response.json();
+
+        if (data.status === 'success' && data.type === 'async') {
+            $('#step-3_update').html(data.htmlresponse);
+            $('#orders_pos_count').html(data.orders_pos_count);
+            $('#orders_row_count').html(data.pos_count);
+            $('#modal_orders_pos_count').html(`<span>${data.orders_pos_count}</span>шт.`);
+            make_message('Успешно удалена позиция', 'success');
+            setTimeout(function () {
+                clear_user_messages();
+            }, 15000);
+        } else if (data.status === 'success' && data.type === 'order_delete') {
+            $(block).closest('tr').remove();
+            window.location = data.url;
+        } else {
+            show_form_errors(['Не удалось удалить позицию']);
+            $('#form_errorModal').modal('show');
+        }
+    } catch (e) {
+        console.log(e);
+        make_connection_error_message('Произошла ошибка. Обратитесь к администратору', 'error');
+        setTimeout(function () {
+            clear_user_messages();
+        }, 5000);
     }
+    close_Loading_circle();
 }
 
 function toys_clear_pos() {

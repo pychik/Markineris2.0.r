@@ -38,14 +38,7 @@ def helper_toys_index(
             }
             for config in SUBCATEGORY_CONFIG.values()
         }
-        toys_upcoming_category_tiles = (
-            {
-                "title": "Поезда электрические и наборы элементов для сборки моделей",
-                "icon": "main_v2/img/icons/toys/train_set.png",
-                "icon_class": "toys-category-icon--train-set",
-                "badge": "Скоро",
-            },
-        )
+        toys_upcoming_category_tiles = ()
         toys_category_tiles = tuple(
             tile
             for tile in (
@@ -63,6 +56,7 @@ def helper_toys_index(
                 toys_subcategories.get("board_room_games_inventory"),
                 toys_subcategories.get("toy_weapons"),
                 toys_subcategories.get("play_tents"),
+                toys_subcategories.get("electric_train_sets"),
             )
             if tile
         )

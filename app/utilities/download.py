@@ -998,7 +998,7 @@ class CosmeticsProcessor(OrdersProcessor):
 
 class ToysProcessor(OrdersProcessor):
     DOLL_ACCESSORIES_SUBCATEGORY = "doll_accessories"
-    NO_CATEGORY_CODE_SUBCATEGORIES = {"scale_models_other"}
+    NO_CATEGORY_CODE_SUBCATEGORIES = {"scale_models_other", "electric_train_sets"}
     DRIVE_TYPE_SUBCATEGORIES = {
         "motorized_toys",
         "animal_creature",

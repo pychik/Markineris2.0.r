@@ -1015,7 +1015,7 @@ def helper_delete_order_pos(o_id: int, m_id: int, category: str, model: db.Model
                             async_type: int = None) -> Union[tuple, Response]:
     cat_list = model.query.with_entities(model.id).filter_by(order_id=o_id).all()
     pos_exists = model.query.with_entities(model.id).filter_by(id=m_id, order_id=o_id).first()
-    subcategory = request.args.get('subcategory', '')
+    subcategory = (request.view_args or {}).get('subcategory') or request.args.get('subcategory', '')
     if not Category.check_subcategory(category=category, subcategory=subcategory):
         return jsonify(
             dict(status='error', message=settings.Messages.STRANGE_REQUESTS + ' нет такой подкатегории'))

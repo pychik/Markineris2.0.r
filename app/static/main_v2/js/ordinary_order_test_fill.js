@@ -353,6 +353,12 @@ function ordinaryOrderFillToysStep2(subcategory) {
             material: ["ТКАНЬ", "ПЛАСТМАССА"],
             content: "ТКАНЬ, ПЛАСТМАССА",
         },
+        electric_train_sets: {
+            tnved: "9503003000",
+            type: ["ЖЕЛЕЗНАЯ ДОРОГА С ПОЕЗДАМИ"],
+            material: ["ПЛАСТМАССА"],
+            content: "ПЛАСТМАССА",
+        },
     };
     const toysTestProfile = toysTestProfiles[subcategory] || {
         type: ["ОДЕЖДА ДЛЯ КУКОЛ"],

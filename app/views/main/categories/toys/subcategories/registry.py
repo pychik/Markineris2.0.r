@@ -12,6 +12,7 @@ import views.main.categories.toys.subcategories.card_games as card_games
 import views.main.categories.toys.subcategories.board_room_games_inventory as board_room_games_inventory
 import views.main.categories.toys.subcategories.toy_weapons as toy_weapons
 import views.main.categories.toys.subcategories.play_tents as play_tents
+import views.main.categories.toys.subcategories.electric_train_sets as electric_train_sets
 
 
 SUBCATEGORY_CONFIG = {
@@ -309,6 +310,27 @@ SUBCATEGORY_CONFIG = {
         "usage_term_types": play_tents.USAGE_TERM_TYPES,
         "service_life_types": play_tents.SERVICE_LIFE_TYPES,
         "default_countries": play_tents.DEFAULT_COUNTRIES,
+        "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
+        "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
+    },
+    electric_train_sets.SUBCATEGORY_SLUG: {
+        "slug": electric_train_sets.SUBCATEGORY_SLUG,
+        "title": electric_train_sets.SUBCATEGORY_TITLE,
+        "icon": "main_v2/img/icons/toys/train_set.png",
+        "icon_class": "toys-category-icon--train-set",
+        "category_code": electric_train_sets.SUBCATEGORY_CATEGORY_CODE,
+        "category_code_by_tnved": electric_train_sets.CATEGORY_CODE_BY_TNVED,
+        "allowed_tnved_codes": electric_train_sets.ALLOWED_TNVED_CODES,
+        "allowed_tnved_choices": electric_train_sets.ALLOWED_TNVED_CHOICES,
+        "allowed_tnved_codes_by_product_type": electric_train_sets.ALLOWED_TNVED_CODES_BY_PRODUCT_TYPE,
+        "okpd2_choices_by_tnved": electric_train_sets.OKPD2_CHOICES_BY_TNVED,
+        "model_article_types": electric_train_sets.MODEL_ARTICLE_TYPES,
+        "product_types": electric_train_sets.PRODUCT_TYPES,
+        "material_choices": electric_train_sets.MATERIAL_CHOICES,
+        "min_child_age_choices": electric_train_sets.MIN_CHILD_AGE_CHOICES,
+        "usage_term_types": electric_train_sets.USAGE_TERM_TYPES,
+        "service_life_types": electric_train_sets.SERVICE_LIFE_TYPES,
+        "default_countries": electric_train_sets.DEFAULT_COUNTRIES,
         "step_2_template": "helpers/toys/doll_accessories/2nd_step.html",
         "step_3_template": "helpers/toys/doll_accessories/3rd_step.html",
     },
