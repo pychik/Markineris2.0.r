@@ -127,12 +127,15 @@ def h_category(category: str = 'все', upload_flag: int = None):
         .filter(Order.category.in_(supported_categories))
     )
 
-    # Если выбрана конкретная категория — фильтруем по ней
-    if not is_all_categories:
+    # Если выбрана одежда, показываем в этой вкладке одежду и носки.
+    if not is_all_categories and category == settings.Clothes.CATEGORY:
+        query = query.filter(Order.category.in_((settings.Clothes.CATEGORY, settings.Socks.CATEGORY)))
+    elif not is_all_categories:
         query = query.filter(Order.category == category)
 
     # Фильтр по подкатегории нужен только если подкатегория выбрана явно.
     if not is_all_categories and category == settings.Clothes.CATEGORY and subcategory:
+        query = query.filter(Order.category == settings.Clothes.CATEGORY)
         if subcategory == 'common':
             query = query.filter(or_(
                 Clothes.subcategory.is_(None),
@@ -209,7 +212,9 @@ def h_category(category: str = 'все', upload_flag: int = None):
         if category in ['', 'все']:
             display_category = row_category
 
-        if row_category in (settings.Clothes.CATEGORY, settings.Cosmetics.CATEGORY):
+        if category == settings.Clothes.CATEGORY and row_category == settings.Socks.CATEGORY:
+            display_subcategory = settings.Socks.CATEGORY
+        elif row_category in (settings.Clothes.CATEGORY, settings.Cosmetics.CATEGORY):
             if row_subcategory in (None, '', 'common') and row_category == settings.Clothes.CATEGORY:
                 display_subcategory = 'одежда основная'
             elif row_subcategory:
