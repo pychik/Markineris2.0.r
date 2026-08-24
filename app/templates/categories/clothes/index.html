@@ -1,0 +1,53 @@
+{% extends 'main/base_v2.html' %}
+
+{% block main %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/categories/cosmetics.css', v='2') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/categories/clothes.css', v='1') }}">
+
+<div class="container pb-4">
+    <div class="front text-center">
+        <h1 class="mb-5 fs-2">{{ page_title }}</h1>
+    </div>
+
+    <div class="row justify-content-center mb-5">
+        <div class="col-12 col-lg-8">
+            <label for="clothes-category-search" class="form-label fw-semibold">
+                Введите ТНВЭД или вид товара для определения категории
+            </label>
+            <input
+                id="clothes-category-search"
+                type="text"
+                class="form-control form-control-lg"
+                placeholder="{{ search_placeholder }}"
+                autocomplete="off"
+            >
+            <div id="clothes-search-result" class="cosmetics-search-result is-empty" aria-live="polite"></div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        {% for subcategory_item in clothes_category_tiles %}
+        <div class="col-12 col-md-6 col-lg-4">
+            <a href="{{ subcategory_item.url }}" class="category-item text-center h-100">
+                <div class="clothes-category-icon-frame mx-auto" aria-hidden="true">
+                    <img
+                        class="clothes-category-icon"
+                        src="{{ url_for('static', filename=subcategory_item.icon, v='20260824-clothes-index') }}"
+                        alt=""
+                        onerror="this.onerror=null;this.src='{{ url_for('static', filename='crm_mod/img/icons/clothes.svg', v='20260824-clothes-index') }}';"
+                    >
+                </div>
+                <div class="category-item__name text-center">
+                    {{ subcategory_item.title }}
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    window.CLOTHES_SEARCH_INDEX = {{ clothes_search_index | tojson | safe }};
+</script>
+<script src="{{ url_for('static', filename='main_v2/js/categories/clothes_index.js', v='1') }}"></script>
+{% endblock %}
