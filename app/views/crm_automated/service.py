@@ -36,6 +36,9 @@ from ..crm.helpers import check_order_file, helper_create_filename, of_delete_re
 
 
 AUTOMATED_ALLOWED_STAGES = (
+    # NEW обязателен: крупный заказ попадает сюда, а не в пул. Без этой стадии
+    # автоматизированный заказ не виден нигде - из обычной CRM он уже отфильтрован.
+    settings.OrderStage.NEW,
     settings.OrderStage.POOL,
     settings.OrderStage.MANAGER_START,
     settings.OrderStage.MANAGER_PROBLEM,
@@ -43,6 +46,7 @@ AUTOMATED_ALLOWED_STAGES = (
     settings.OrderStage.CRM_PROCESSED,
 )
 AUTOMATED_MOVE_TARGET_STAGES = (
+    settings.OrderStage.NEW,
     settings.OrderStage.POOL,
     settings.OrderStage.MANAGER_PROBLEM,
     settings.OrderStage.CANCELLED,
@@ -69,6 +73,7 @@ AUTOMATED_PER_PAGE_OPTIONS = (25, 50, 100, 200)
 AUTOMATED_DEFAULT_PER_PAGE = 50
 AUTOMATED_ALLOWED_STAGES_SQL = ','.join(map(str, AUTOMATED_ALLOWED_STAGES))
 AUTOMATED_BOARD_COLUMNS = (
+    {'stage': settings.OrderStage.NEW, 'column_id': 'new_ordersMainDiv', 'title': 'Новые'},
     {'stage': settings.OrderStage.POOL, 'column_id': 'pool_ordersMainDiv', 'title': 'Пул'},
     {'stage': settings.OrderStage.MANAGER_START, 'column_id': 'm_start_ordersMainDiv', 'title': 'В обработке'},
     {'stage': settings.OrderStage.MANAGER_PROBLEM, 'column_id': 'm_problem_ordersMainDiv', 'title': 'Проблема в заказе'},

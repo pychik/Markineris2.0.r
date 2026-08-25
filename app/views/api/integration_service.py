@@ -9,7 +9,7 @@ from config import settings
 from external_processors.config import EXTERNAL_PROCESSOR_CONFIG
 from logger import logger
 from markupsafe import escape
-from models import ExternalProcessor, Order, OrderProcessedLog, User, db
+from models import ExternalProcessor, Order, OrderProcessedLog, OrderStat, User, db
 from utilities.download import get_order_download_payload
 from utilities.minio_service.services import get_s3_service
 from views.crm.schema import format_upd_company, pick_upd_company
@@ -773,11 +773,43 @@ def prevalidate_order(order: Order) -> tuple[bool, str]:
     return True, 'Превалидация пройдена'
 
 
+def _promote_to_pool(order: Order) -> None:
+    """Перевести подготовленный заказ в пул - то же, что делает ручное действие «Новые → ПУЛ»."""
+    order.stage = settings.OrderStage.POOL
+    order.p_started = _now()
+
+    # строку статистики для NEW-заказов создаёт именно этот переход; у заказов,
+    # попавших в пул сразу при отправке, она уже есть, а order_idn там уникален
+    from utilities.support import create_order_stats
+
+    already = db.session.query(
+        db.session.query(OrderStat.id).filter(OrderStat.order_idn == order.order_idn).exists()
+    ).scalar()
+    if not already:
+        create_order_stats(order_info=order)
+
+
+def _notify_pool(order: Order) -> None:
+    """Уведомить клиента так же, как при ручном переводе в пул."""
+    try:
+        from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
+
+        helper_send_user_order_tg_notify(
+            user_id=order.user_id,
+            order_idn=order.order_idn,
+            order_stage=settings.OrderStage.POOL,
+        )
+    except Exception:
+        # уведомление не должно ломать конвейер
+        logger.exception('Не удалось отправить уведомление о переводе заказа в пул, order_id=%s', order.id)
+
+
 def prevalidate_pending_orders(limit: int = 100) -> int:
     """Прогнать превалидацию по заказам, которые её ещё не проходили."""
     orders = (
         db.session.query(Order)
-        .filter(Order.stage == settings.OrderStage.POOL)
+        # только NEW: заказ в пуле по определению уже готов к выдаче
+        .filter(Order.stage == settings.OrderStage.NEW)
         .filter(Order.prevalidated_at.is_(None))
         .filter(*_external_processing_order_filter(Order))
         .order_by(Order.crm_created_at.asc(), Order.id.asc())
@@ -789,36 +821,40 @@ def prevalidate_pending_orders(limit: int = 100) -> int:
 
     prepared = 0
     for order in orders:
+        # один сбойный заказ не должен останавливать всю пачку
         try:
             is_ready, message = prevalidate_order(order)
+
+            if not is_ready:
+                _mark_order_problem(
+                    order=order,
+                    external_processor=None,
+                    message=message,
+                    payload={'order_id': order.id},
+                    event_type='prevalidation_failed',
+                )
+                db.session.commit()
+                continue
+
+            order.prevalidated_at = _now()
+            _promote_to_pool(order)
+            log_order_event(
+                order=order,
+                event_type='prevalidated',
+                message=message,
+                payload={
+                    'order_id': order.id,
+                    'upd_company': order.upd_company_name,
+                    'upd_company_inn': order.upd_company_inn,
+                },
+            )
+            db.session.commit()
         except Exception:
             logger.exception('Ошибка превалидации заказа order_id=%s', order.id)
             db.session.rollback()
             continue
 
-        if not is_ready:
-            _mark_order_problem(
-                order=order,
-                external_processor=None,
-                message=message,
-                payload={'order_id': order.id},
-                event_type='prevalidation_failed',
-            )
-            db.session.commit()
-            continue
-
-        order.prevalidated_at = _now()
         prepared += 1
-        log_order_event(
-            order=order,
-            event_type='prevalidated',
-            message=message,
-            payload={
-                'order_id': order.id,
-                'upd_company': order.upd_company_name,
-                'upd_company_inn': order.upd_company_inn,
-            },
-        )
-        db.session.commit()
+        _notify_pool(order)
 
     return prepared

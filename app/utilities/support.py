@@ -883,7 +883,11 @@ def process_order_start(user: User, category: str, o_id: int, order_idn: str, or
         #         order.stage = settings.OrderStage.NEW
         #         order.crm_created_at = datetime.now()
 
-        _stage = get_process_stage(o_id=o_id, category=category)
+        is_automated = resolve_automated_crm_flag(order_comment)
+        # Автоматизированный заказ всегда проходит через NEW: там его подхватывает
+        # превалидация, закрепляет компанию и сама переводит в пул. Инвариант простой -
+        # в пуле не может быть заказа без пройденной превалидации.
+        _stage = settings.OrderStage.NEW if is_automated else get_process_stage(o_id=o_id, category=category)
         try:
             if check_new_tnved_in_list():
                 order.has_new_tnveds = True
@@ -894,7 +898,7 @@ def process_order_start(user: User, category: str, o_id: int, order_idn: str, or
             order.crm_created_at = dt
             order.order_idn = order_idn
             order.user_comment = order_comment
-            order.is_automated_crm = resolve_automated_crm_flag(order_comment)
+            order.is_automated_crm = is_automated
             if _stage == settings.OrderStage.POOL:
                 create_order_stats(order_info=order)
                 order.p_started = dt
