@@ -44,6 +44,39 @@ def _norm_inn(inn: Optional[str]) -> str:
     return (inn or "").strip()
 
 
+# Компания, от имени которой проводится заказ и от которой придёт УПД.
+#
+# Правила распределения по категориям ещё не согласованы. Когда придут - заполняем словарь
+# ниже (ключ - нормализованное название категории заказа, значение - элемент CompaniesOperators),
+# и больше ничего менять не нужно: вызывающий код обращается только к pick_upd_company().
+CATEGORY_UPD_COMPANY: dict = {}
+
+
+def pick_upd_company(category: Optional[str] = None, order_id: Optional[int] = None) -> CompaniesOperators:
+    """Выбрать компанию для УПД по заказу.
+
+    результат детерминированный, поэтому повторная выдача
+    заказа после таймаута даёт ту же компанию.
+    """
+    company = CATEGORY_UPD_COMPANY.get((category or "").strip().lower())
+    if company is not None:
+        return company
+
+    # ponytail: правил по категориям пока нет - раскладываем по id заказа, чтобы нагрузка
+    # не легла на одну фирму. Заменяется заполнением CATEGORY_UPD_COMPANY.
+    pool = list(CompaniesOperators)
+    return pool[(order_id or 0) % len(pool)]
+
+
+def format_upd_company(company_name: Optional[str], company_inn: Optional[str]) -> str:
+    """Строка компании в том же виде, в каком её выбирает оператор в модалке УПД."""
+    name = (company_name or "").strip()
+    inn = _norm_inn(company_inn)
+    if not name:
+        return ""
+    return f"{name} ({inn})" if inn else name
+
+
 # Запрещённые пары по ИНН (симметрично)
 FORBIDDEN_INN_PAIRS = {
     frozenset({"4400023137", "4400023120"}),      # Гренада + Аврора

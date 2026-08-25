@@ -12,6 +12,7 @@ class ExternalProcessorCreateSchema(BaseModel):
     nonce_ttl_seconds: int | None = Field(default=None, ge=1, le=604800)
     batch_size: int | None = Field(default=None, ge=1, le=1000)
     confirmation_timeout_seconds: int | None = Field(default=None, ge=1, le=604800)
+    processing_timeout_seconds: int | None = Field(default=None, ge=1, le=1209600)
     source_label: str = Field(min_length=1, max_length=100)
     is_active: bool = True
 
@@ -47,6 +48,7 @@ class ExternalProcessorUpdateSchema(BaseModel):
     nonce_ttl_seconds: int | None = Field(default=None, ge=1, le=604800)
     batch_size: int | None = Field(default=None, ge=1, le=1000)
     confirmation_timeout_seconds: int | None = Field(default=None, ge=1, le=604800)
+    processing_timeout_seconds: int | None = Field(default=None, ge=1, le=1209600)
     source_label: str | None = Field(default=None, max_length=100)
     is_active: bool | None = None
 

@@ -65,6 +65,7 @@ def serialize_external_processor(processor: ExternalProcessor, include_secret: b
         'nonce_ttl_seconds': processor.nonce_ttl_seconds,
         'batch_size': processor.batch_size,
         'confirmation_timeout_seconds': processor.confirmation_timeout_seconds,
+        'processing_timeout_seconds': processor.processing_timeout_seconds,
         'source_label': processor.source_label,
         'is_active': processor.is_active,
         'created_at': processor.created_at.isoformat() if processor.created_at else None,
@@ -132,6 +133,9 @@ def create_external_processor(data: dict) -> ExternalProcessor:
         confirmation_timeout_seconds=(
             data.get('confirmation_timeout_seconds') or EXTERNAL_PROCESSOR_CONFIG.confirmation_timeout_seconds
         ),
+        processing_timeout_seconds=(
+            data.get('processing_timeout_seconds') or EXTERNAL_PROCESSOR_CONFIG.processing_timeout_seconds
+        ),
         source_label=build_unique_source_label(data['source_label']),
         is_active=data.get('is_active', True),
     )
@@ -181,6 +185,8 @@ def update_external_processor(processor: ExternalProcessor, data: dict) -> Exter
         processor.batch_size = data['batch_size']
     if 'confirmation_timeout_seconds' in data and data['confirmation_timeout_seconds'] is not None:
         processor.confirmation_timeout_seconds = data['confirmation_timeout_seconds']
+    if 'processing_timeout_seconds' in data and data['processing_timeout_seconds'] is not None:
+        processor.processing_timeout_seconds = data['processing_timeout_seconds']
     if requested_source_label is not None:
         processor.source_label = build_unique_source_label(
             requested_source_label,

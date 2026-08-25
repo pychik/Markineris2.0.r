@@ -95,7 +95,7 @@
                 </a>
             </li>
         {% endif %}
-    {% if current_user.role in ['superuser', 'supermanager'] and 'crm_automated_orders' not in request.path %}
+    {% if current_user.role in ['superuser', 'supermanager', 'm2r_admin'] and 'crm_automated_orders' not in request.path %}
         <li>
             <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_automated.orders') }}"
                title="Перейти в автоматизированные заказы">

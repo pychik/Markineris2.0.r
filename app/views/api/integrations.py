@@ -17,9 +17,11 @@ from logger import logger
 from . import api
 from .integration_service import (
     accept_orders,
+    acknowledge_problem_order,
     apply_result_update,
     apply_status_update,
     claim_new_orders,
+    list_timeout_problem_orders,
 )
 
 MAX_REQUEST_RATE_LIMIT = 50
@@ -35,6 +37,18 @@ def _json_response(payload: dict, status_code: int = 200, headers: dict | None =
 
 
 def _error(message: str, code: str, status_code: int):
+    # Каждый отказ пишем в лог: без этого разбор "почему у нас не проходит запрос"
+    # на стороне партнёра упирается в пустоту - в order_processed_logs такие события
+    # не попадают, заказа у них ещё нет.
+    logger.warning(
+        'Webhook отклонён: code=%s status=%s key_id=%s ip=%s method=%s path=%s',
+        code,
+        status_code,
+        (request.headers.get('X-Integration-Key-Id') or '-').strip() or '-',
+        _remote_ip() or '-',
+        request.method,
+        request.path,
+    )
     return _json_response({'status': 'error', 'message': message, 'code': code}, status_code)
 
 
@@ -219,12 +233,12 @@ def api_update_order_result(order_id: int):
     try:
         success, result = apply_result_update(order_id=order_id, body=body, external_processor=processor)
         if not success:
+            # Несовпадение object_key, отсутствие файла в MinIO и отсутствие upd_number
+            # не отклоняют запрос: заказ помечается проблемным и отдаётся HTTP 200
+            # с data.status = "problem". Здесь остаются только настоящие отказы.
             code_map = {
                 'invalid dispatch token': ('invalid_dispatch_token', 404),
-                'object key mismatch': ('object_key_mismatch', 400),
-                'uploaded object not found': ('uploaded_object_not_found', 400),
                 'unsupported final status': ('unsupported_status', 400),
-                'object_key is required for processed result': ('invalid_payload', 400),
                 'dispatch_token is required': ('invalid_payload', 400),
             }
             code, status_code = code_map.get(result, ('invalid_payload', 400))
@@ -240,3 +254,50 @@ def api_update_order_result(order_id: int):
     except Exception:
         logger.exception('Ошибка обработки финального результата внешнего обработчика')
         return _error('Failed to accept result', 'result_update_failed', 500)
+
+
+@api.get('/webhook/orders/problems')
+def api_claim_problem_orders():
+    processor, auth_error = _resolve_processor_request()
+    if auth_error:
+        return auth_error
+
+    try:
+        orders = list_timeout_problem_orders(external_processor=processor)
+        return _json_response(
+            {
+                'status': 'ok',
+                'message': 'Problem orders listed successfully',
+                'data': {'orders': orders},
+            },
+            headers={'X-Orders-Returned': str(len(orders))},
+        )
+    except Exception:
+        logger.exception('Ошибка выдачи проблемных заказов внешнему обработчику')
+        return _error('Failed to list problem orders', 'problems_failed', 500)
+
+
+@api.post('/webhook/orders/<int:order_id>/problem-ack')
+def api_ack_problem_order(order_id: int):
+    processor, auth_error = _resolve_processor_request()
+    if auth_error:
+        return auth_error
+
+    body = request.get_json(silent=True) or {}
+    try:
+        success, result = acknowledge_problem_order(order_id=order_id, body=body, external_processor=processor)
+        if not success:
+            code = 'invalid_dispatch_token' if result == 'invalid dispatch token' else 'invalid_payload'
+            status_code = 404 if code == 'invalid_dispatch_token' else 400
+            return _error(result, code, status_code)
+
+        return _json_response(
+            {
+                'status': 'ok',
+                'message': 'Problem acknowledged',
+                'data': {'order_id': order_id, 'status': result},
+            }
+        )
+    except Exception:
+        logger.exception('Ошибка подтверждения снятия заказа внешним обработчиком')
+        return _error('Failed to acknowledge problem', 'problem_ack_failed', 500)

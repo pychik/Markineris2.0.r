@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify, render_template, request
 from flask_login import current_user, login_required
 
 from config import settings
-from utilities.support import su_sm_required, user_activated
+from utilities.support import automated_crm_required, user_activated
 
 from .service import (
     AUTOMATED_ALLOWED_STAGES,
@@ -45,7 +45,7 @@ crm_automated = Blueprint('crm_automated', __name__)
 @crm_automated.route('/orders', methods=['GET'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def orders():
     category = request.args.get('category')
     filtered_manager_id = request.args.get('filtered_manager_id', None, int)
@@ -82,7 +82,7 @@ def orders():
 @crm_automated.route('/orders/column', methods=['GET'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def orders_column():
     stage = request.args.get('stage', type=int)
     page = max(request.args.get('page', 1, int) or 1, 1)
@@ -120,7 +120,7 @@ def orders_column():
 @crm_automated.route('/orders/search', methods=['POST'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def search_order():
     search_order_idn = request.form.get('search_order_idn', '')
     if not search_order_idn:
@@ -139,7 +139,7 @@ def search_order():
 @crm_automated.route('/orders/<int:o_id>/take', methods=['POST'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def take(o_id: int):
     status, message = take_order(current_user, o_id)
     return jsonify({'status': settings.SUCCESS if status else settings.ERROR, 'message': message})
@@ -148,7 +148,7 @@ def take(o_id: int):
 @crm_automated.route('/orders/<int:o_id>/problem', methods=['POST'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def to_problem(o_id: int):
     problem_comment = request.form.get('problem_order_comment', '').replace('--', '').replace('#', '')
     status, message = mark_problem(current_user, o_id, problem_comment)
@@ -158,7 +158,7 @@ def to_problem(o_id: int):
 @crm_automated.route('/orders/<int:o_id>/process', methods=['POST'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def process(o_id: int):
     status, message = process_order(current_user, o_id)
     return jsonify({'status': settings.SUCCESS if status else settings.ERROR, 'message': message})
@@ -167,7 +167,7 @@ def process(o_id: int):
 @crm_automated.route('/orders/<int:o_id>/back-to-work', methods=['POST'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def back_to_work(o_id: int):
     status, message = move_problem_to_work(current_user, o_id)
     return jsonify({'status': settings.SUCCESS if status else settings.ERROR, 'message': message})
@@ -176,7 +176,7 @@ def back_to_work(o_id: int):
 @crm_automated.route('/orders/<int:o_id>/cancel', methods=['POST'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def cancel(o_id: int):
     cancel_comment = request.form.get('cancel_order_comment', '').replace('--', '').replace('#', '')
     status, message = cancel_order(current_user, o_id, cancel_comment)
@@ -186,7 +186,7 @@ def cancel(o_id: int):
 @crm_automated.route('/orders/<int:o_id>/move-stage', methods=['POST'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def move_stage(o_id: int):
     target_stage = request.form.get('target_stage', type=int)
     stage_comment = (request.form.get('stage_comment') or '').replace('--', '').replace('#', '')
@@ -197,7 +197,7 @@ def move_stage(o_id: int):
 @crm_automated.route('/orders/<int:o_id>/files/attach', methods=['POST'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def attach_file(o_id: int):
     order = get_automated_order_access_data(o_id)
     if not can_manage_automated_order_file(order, current_user):
@@ -209,7 +209,7 @@ def attach_file(o_id: int):
 @crm_automated.route('/orders/<int:o_id>/files/attach-link', methods=['POST'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def attach_link(o_id: int):
     order = get_automated_order_access_data(o_id)
     if not can_manage_automated_order_file(order, current_user):
@@ -221,7 +221,7 @@ def attach_link(o_id: int):
 @crm_automated.route('/orders/<int:o_id>/files/delete', methods=['POST'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def delete_file(o_id: int):
     order = get_automated_order_access_data(o_id)
     if not can_manage_automated_order_file(order, current_user):
@@ -233,7 +233,7 @@ def delete_file(o_id: int):
 @crm_automated.route('/orders/<int:o_id>/files/download', methods=['POST'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def download_file(o_id: int):
     return download_order_file_response(o_id)
 
@@ -241,7 +241,7 @@ def download_file(o_id: int):
 @crm_automated.route('/orders/<int:o_id>/chat/messages', methods=['GET'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def order_chat_get_messages(o_id: int):
     return get_automated_chat_messages_response(o_id)
 
@@ -249,7 +249,7 @@ def order_chat_get_messages(o_id: int):
 @crm_automated.route('/orders/<int:o_id>/chat/send', methods=['POST'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def order_chat_send(o_id: int):
     return send_automated_chat_message_response(o_id)
 
@@ -257,7 +257,7 @@ def order_chat_send(o_id: int):
 @crm_automated.route('/orders/<int:o_id>/chat/read', methods=['POST'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def order_chat_mark_read(o_id: int):
     return mark_automated_chat_read_response(o_id)
 
@@ -265,7 +265,7 @@ def order_chat_mark_read(o_id: int):
 @crm_automated.route('/order/details', methods=['GET'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def order_details():
     return get_automated_order_details_response()
 
@@ -273,7 +273,7 @@ def order_details():
 @crm_automated.route('/orders/<int:o_id>/logs', methods=['GET'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def order_logs(o_id: int):
     return get_automated_order_logs_response(o_id)
 
@@ -281,7 +281,7 @@ def order_logs(o_id: int):
 @crm_automated.route('/orders/<int:o_id>/technical-info', methods=['GET'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def order_technical_info(o_id: int):
     return get_automated_order_technical_info_response(o_id)
 
@@ -289,7 +289,7 @@ def order_technical_info(o_id: int):
 @crm_automated.route('/get_processing_order_info', methods=['GET'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def get_processing_order_info():
     return get_automated_processing_order_info_response()
 
@@ -297,6 +297,6 @@ def get_processing_order_info():
 @crm_automated.route('/update_processing_order_info', methods=['POST'])
 @login_required
 @user_activated
-@su_sm_required
+@automated_crm_required
 def update_processing_order_info():
     return update_automated_processing_order_info_response()

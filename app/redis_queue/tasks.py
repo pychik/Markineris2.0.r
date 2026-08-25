@@ -267,3 +267,30 @@ def sync_tezaurus_cache() -> dict[str, object]:
             "skipped": False,
             "reason": "unexpected_sync_error",
         }
+
+
+def external_processing_timeouts_task():
+    """Разбор зависших заказов внешней обработки.
+
+    Раньше обе проверки вызывались только внутри GET /orders. Это ровно тот случай, когда
+    механизм не срабатывает в нужный момент: если внешний обработчик перестал опрашивать нас,
+    заказы зависают навсегда, а именно от этого таймауты и защищают.
+    """
+    from views.api.integration_service import (
+        mark_stale_processing_orders_as_problem,
+        requeue_expired_unconfirmed_orders,
+    )
+
+    try:
+        requeued = requeue_expired_unconfirmed_orders()
+        stale = mark_stale_processing_orders_as_problem()
+    except Exception:
+        db.session.rollback()
+        logger.exception("External processing timeouts task failed")
+        return {"ok": False, "requeued": 0, "moved_to_problem": 0}
+
+    if requeued or stale:
+        logger.warning(
+            f"External processing timeouts: возвращено в пул {requeued}, снято по таймауту обработки {stale}"
+        )
+    return {"ok": True, "requeued": requeued, "moved_to_problem": stale}

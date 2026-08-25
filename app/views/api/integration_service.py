@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from random import choice
 from uuid import uuid4
 
 from sqlalchemy.orm import lazyload, selectinload
 
 from config import settings
 from external_processors.config import EXTERNAL_PROCESSOR_CONFIG
-from models import ExternalProcessor, Order, OrderProcessedLog, ProcessingCompany, User, UserProcessingCompany, db
+from logger import logger
+from markupsafe import escape
+from models import ExternalProcessor, Order, OrderProcessedLog, User, db
 from utilities.download import get_order_download_payload
 from utilities.minio_service.services import get_s3_service
+from views.crm.schema import format_upd_company, pick_upd_company
 
 DELIVERY_UNCONFIRMED_STATUS = 'delivery_unconfirmed'
 EXTERNAL_PROCESSING_SYSTEM_SOURCE = 'external_processor'
@@ -28,7 +30,6 @@ def _now() -> datetime:
 
 def _external_processing_order_filter(model=Order):
     return (
-        model.is_moderation.is_(True),
         model.is_automated_crm.is_(True),
         model.to_delete.isnot(True),
     )
@@ -73,30 +74,48 @@ def _load_claim_users(orders: list[Order]) -> dict[int, User]:
     return {user.id: user for user in rows}
 
 
-def _pick_processing_company_payload_map(orders: list[Order]) -> dict[int, dict]:
-    user_ids = {order.user_id for order in orders if order.user_id}
-    if not user_ids:
-        return {}
+# Честный Знак присылает очень объёмные тексты ошибок (десятки тысяч знаков).
+# В базе держим только хвост: полезное - в конце сообщения, начало это шапка.
+PROBLEM_COMMENT_LIMIT = 500
 
-    company_rows = (
-        db.session.query(UserProcessingCompany.user_id, ProcessingCompany.title, ProcessingCompany.inn)
-        .join(ProcessingCompany, UserProcessingCompany.company_id == ProcessingCompany.id)
-        .filter(UserProcessingCompany.user_id.in_(user_ids))
-        .filter(UserProcessingCompany.is_approved.is_(True))
-        .filter(ProcessingCompany.is_active.is_(True))
-        .order_by(UserProcessingCompany.user_id.asc(), UserProcessingCompany.slot.asc(), ProcessingCompany.id.asc())
-        .all()
-    )
 
-    grouped_companies: dict[int, list[dict]] = {}
-    for user_id, title, inn in company_rows:
-        grouped_companies.setdefault(user_id, []).append({'title': title, 'inn': inn})
+def problem_comment_tail(message: str | None) -> str:
+    """Хвост сообщения об ошибке - именно он несёт причину."""
+    text_value = (message or '').strip()
+    if len(text_value) <= PROBLEM_COMMENT_LIMIT:
+        return text_value
+    return text_value[-PROBLEM_COMMENT_LIMIT:]
 
-    return {
-        user_id: choice(companies)
-        for user_id, companies in grouped_companies.items()
-        if companies
-    }
+
+def ensure_upd_company(order: Order) -> None:
+    """Закрепить за заказом компанию, от которой он проводится и от которой придёт УПД.
+
+    Ставится один раз. При повторной выдаче после таймаута компания не меняется -
+    иначе УПД пришёл бы от другого юрлица, чем то, под которым шла модерация.
+    """
+    if order.upd_company_inn or order.upd_company_name:
+        return
+    company = pick_upd_company(category=order.category, order_id=order.id)
+    order.upd_company_name = company.display_name
+    order.upd_company_inn = company.inn
+
+
+# Номер УПД приходит извне и кладётся в String(100): длиннее - StringDataRightTruncation
+# и потеря всего финального результата, поэтому проверяем до записи.
+UPD_NUMBER_MAX_LENGTH = 100
+
+
+def build_processing_info(order: Order) -> str:
+    """Строка для карточки заказа - формат тот же, что набирает оператор руками.
+
+    Значения экранируются: строка рендерится в шаблонах через `| safe`, а номер УПД
+    приходит от внешнего сервиса, то есть из-за границы доверия.
+    """
+    company = escape(format_upd_company(order.upd_company_name, order.upd_company_inn))
+    upd_number = escape((order.upd_number or '').strip())
+    if company and upd_number:
+        return f'{company} <br> УПД: {upd_number}'
+    return str(company) or (f'УПД: {upd_number}' if upd_number else '')
 
 
 def _mark_order_problem(
@@ -116,7 +135,7 @@ def _mark_order_problem(
     order.m_finished = None
     order.processed = False
     order.external_problem = True
-    order.comment_problem = message[:230]
+    order.comment_problem = problem_comment_tail(message)
     order.stage_setter_name = external_processor.source_label if external_processor else EXTERNAL_PROCESSING_SYSTEM_SOURCE
 
     log_order_event(
@@ -131,12 +150,25 @@ def _mark_order_problem(
     )
 
 
-def _confirmation_timeout_map() -> dict[str, int]:
-    default_timeout = EXTERNAL_PROCESSOR_CONFIG.confirmation_timeout_seconds
-    rows = (
-        db.session.query(ExternalProcessor.source_label, ExternalProcessor.confirmation_timeout_seconds)
-        .all()
-    )
+# Два независимых таймаута: сколько ждём accept и сколько ждём финальный result.
+CONFIRMATION_TIMEOUT = 'confirmation'
+PROCESSING_TIMEOUT = 'processing'
+
+_TIMEOUT_COLUMNS = {
+    CONFIRMATION_TIMEOUT: (
+        ExternalProcessor.confirmation_timeout_seconds,
+        EXTERNAL_PROCESSOR_CONFIG.confirmation_timeout_seconds,
+    ),
+    PROCESSING_TIMEOUT: (
+        ExternalProcessor.processing_timeout_seconds,
+        EXTERNAL_PROCESSOR_CONFIG.processing_timeout_seconds,
+    ),
+}
+
+
+def _timeout_map(kind: str) -> dict[str, int]:
+    column, default_timeout = _TIMEOUT_COLUMNS[kind]
+    rows = db.session.query(ExternalProcessor.source_label, column).all()
     return {
         source_label: int(timeout_seconds or default_timeout)
         for source_label, timeout_seconds in rows
@@ -144,23 +176,22 @@ def _confirmation_timeout_map() -> dict[str, int]:
     }
 
 
-def _resolve_confirmation_timeout_seconds(source_label: str | None, timeout_map: dict[str, int]) -> int:
-    default_timeout = EXTERNAL_PROCESSOR_CONFIG.confirmation_timeout_seconds
+def _resolve_timeout_seconds(kind: str, source_label: str | None, timeout_map: dict[str, int]) -> int:
+    default_timeout = _TIMEOUT_COLUMNS[kind][1]
     if not source_label:
         return default_timeout
     return int(timeout_map.get(source_label, default_timeout))
 
 
-def _min_confirmation_timeout_seconds(timeout_map: dict[str, int]) -> int:
-    default_timeout = EXTERNAL_PROCESSOR_CONFIG.confirmation_timeout_seconds
-    candidate_values = [default_timeout]
+def _min_timeout_seconds(kind: str, timeout_map: dict[str, int]) -> int:
+    candidate_values = [_TIMEOUT_COLUMNS[kind][1]]
     candidate_values.extend(timeout_map.values())
     return min(value for value in candidate_values if value and value > 0)
 
 
 def requeue_expired_unconfirmed_orders(timeout_seconds: int | None = None) -> int:
-    timeout_map = {} if timeout_seconds is not None else _confirmation_timeout_map()
-    reference_timeout = int(timeout_seconds or _min_confirmation_timeout_seconds(timeout_map))
+    timeout_map = {} if timeout_seconds is not None else _timeout_map(CONFIRMATION_TIMEOUT)
+    reference_timeout = int(timeout_seconds or _min_timeout_seconds(CONFIRMATION_TIMEOUT, timeout_map))
     current_dt = _now()
     expires_before = current_dt - timedelta(seconds=reference_timeout)
     expired_orders = (
@@ -175,11 +206,16 @@ def requeue_expired_unconfirmed_orders(timeout_seconds: int | None = None) -> in
         .all()
     )
 
+    requeued_count = 0
     for order in expired_orders:
-        ttl_seconds = int(timeout_seconds or _resolve_confirmation_timeout_seconds(order.stage_setter_name, timeout_map))
+        ttl_seconds = int(
+            timeout_seconds
+            or _resolve_timeout_seconds(CONFIRMATION_TIMEOUT, order.stage_setter_name, timeout_map)
+        )
         if not order.sent_at or (current_dt - order.sent_at).total_seconds() < ttl_seconds:
             continue
 
+        requeued_count += 1
         expired_dispatch_token = order.dispatch_token
         expired_object_key = order.object_key
         order.stage = settings.OrderStage.POOL
@@ -206,12 +242,17 @@ def requeue_expired_unconfirmed_orders(timeout_seconds: int | None = None) -> in
             dispatch_token=expired_dispatch_token,
         )
 
-    return len(expired_orders)
+    # без commit изменения теряются: из планировщика эту функцию никто не коммитит
+    if requeued_count:
+        db.session.commit()
+    else:
+        db.session.rollback()
+    return requeued_count
 
 
 def mark_stale_processing_orders_as_problem(timeout_seconds: int | None = None) -> int:
-    timeout_map = {} if timeout_seconds is not None else _confirmation_timeout_map()
-    reference_timeout = int(timeout_seconds or _min_confirmation_timeout_seconds(timeout_map))
+    timeout_map = {} if timeout_seconds is not None else _timeout_map(PROCESSING_TIMEOUT)
+    reference_timeout = int(timeout_seconds or _min_timeout_seconds(PROCESSING_TIMEOUT, timeout_map))
     current_dt = _now()
     expires_before = current_dt - timedelta(seconds=reference_timeout)
     stale_orders = (
@@ -224,22 +265,39 @@ def mark_stale_processing_orders_as_problem(timeout_seconds: int | None = None) 
         .all()
     )
 
+    stale_count = 0
     for order in stale_orders:
-        ttl_seconds = int(timeout_seconds or _resolve_confirmation_timeout_seconds(order.stage_setter_name, timeout_map))
+        ttl_seconds = int(
+            timeout_seconds
+            or _resolve_timeout_seconds(PROCESSING_TIMEOUT, order.stage_setter_name, timeout_map)
+        )
         if not order.confirmed_at or (current_dt - order.confirmed_at).total_seconds() < ttl_seconds:
             continue
 
+        stale_count += 1
+        # запоминаем, какому обработчику заказ был выдан: по этой метке он потом
+        # получит его в /orders/problems и только он
+        owner_label = order.stage_setter_name
         _mark_order_problem(
             order=order,
             external_processor=None,
-            message='Истек таймаут ответа внешнего обработчика, заказ требует решения оператора CRM',
-            payload={'order_id': order.id},
+            message='Истек таймаут обработки, заказ снят с внешнего обработчика и требует решения оператора CRM',
+            payload={'order_id': order.id, 'processing_timeout_seconds': ttl_seconds},
             event_type='processor_timeout',
             dispatch_token=order.dispatch_token,
             object_key=order.object_key,
         )
+        # заказ подлежит уведомлению внешнего обработчика через GET /orders/problems
+        order.problem_notified_at = current_dt
+        order.problem_ack_at = None
+        if owner_label:
+            order.stage_setter_name = owner_label
 
-    return len(stale_orders)
+    if stale_count:
+        db.session.commit()
+    else:
+        db.session.rollback()
+    return stale_count
 
 
 def create_object_key(order_id: int, dispatch_token: str, external_processor: ExternalProcessor) -> str:
@@ -274,34 +332,10 @@ def log_order_event(
     )
 
 
-def _pick_processing_company_payload(order: Order) -> dict | None:
-    if not order or not order.user_id:
-        return None
-
-    company_rows = (
-        db.session.query(ProcessingCompany.title, ProcessingCompany.inn)
-        .join(UserProcessingCompany, UserProcessingCompany.company_id == ProcessingCompany.id)
-        .filter(UserProcessingCompany.user_id == order.user_id)
-        .filter(UserProcessingCompany.is_approved.is_(True))
-        .filter(ProcessingCompany.is_active.is_(True))
-        .order_by(UserProcessingCompany.slot.asc(), ProcessingCompany.id.asc())
-        .all()
-    )
-    if not company_rows:
-        return None
-
-    selected_company = choice(company_rows)
-    return {
-        'title': selected_company.title,
-        'inn': selected_company.inn,
-    }
-
-
 def serialize_order_for_api(
     order: Order,
     source_file: dict,
     external_processor: ExternalProcessor,
-    processing_company: dict | None = None,
 ) -> dict:
     payload = {
         'id': order.id,
@@ -312,8 +346,11 @@ def serialize_order_for_api(
             'object_key': order.object_key,
         },
     }
-    if processing_company:
-        payload['processing_company'] = processing_company
+    if order.upd_company_name:
+        payload['processing_company'] = {
+            'title': order.upd_company_name,
+            'inn': order.upd_company_inn or '',
+        }
     return payload
 
 
@@ -327,9 +364,10 @@ def claim_new_orders(external_processor: ExternalProcessor) -> tuple[list[dict],
 
     orders, has_more = _claim_candidate_orders(batch_size)
     claim_users = _load_claim_users(orders)
-    processing_company_map = _pick_processing_company_payload_map(orders)
 
     for order in orders:
+        # до сборки файла: компания попадает в доп. лист Excel
+        ensure_upd_company(order)
         source_file = get_order_download_payload(
             order.id,
             order=order,
@@ -349,7 +387,6 @@ def claim_new_orders(external_processor: ExternalProcessor) -> tuple[list[dict],
 
         dispatch_token = uuid4().hex
         object_key = create_object_key(order.id, dispatch_token, external_processor=external_processor)
-        processing_company = processing_company_map.get(order.user_id)
 
         order.stage = settings.OrderStage.MANAGER_START
         order.status = DELIVERY_UNCONFIRMED_STATUS
@@ -359,6 +396,8 @@ def claim_new_orders(external_processor: ExternalProcessor) -> tuple[list[dict],
         order.m_started = order.m_started or now
         order.sent_at = now
         order.stage_setter_name = external_processor.source_label
+        order.problem_notified_at = None
+        order.problem_ack_at = None
 
         log_order_event(
             order=order,
@@ -367,7 +406,10 @@ def claim_new_orders(external_processor: ExternalProcessor) -> tuple[list[dict],
             payload={
                 'order_id': order.id,
                 'object_key': object_key,
-                'processing_company': processing_company,
+                'processing_company': {
+                    'title': order.upd_company_name,
+                    'inn': order.upd_company_inn,
+                },
             },
             status=DELIVERY_UNCONFIRMED_STATUS,
             object_key=object_key,
@@ -380,7 +422,6 @@ def claim_new_orders(external_processor: ExternalProcessor) -> tuple[list[dict],
                 order,
                 source_file=source_file,
                 external_processor=external_processor,
-                processing_company=processing_company,
             )
         )
 
@@ -409,6 +450,13 @@ def accept_orders(orders_payload: list[dict], external_processor: ExternalProces
     rejected = []
     now = _now()
 
+    def reject(order_id, reason: str):
+        rejected.append({'order_id': order_id, 'reason': reason})
+        logger.warning(
+            'Отклонено подтверждение заказа: order_id=%s reason=%s source=%s',
+            order_id, reason, external_processor.source_label,
+        )
+
     for item in orders_payload:
         order_id = item.get('order_id')
         dispatch_token = (item.get('dispatch_token') or '').strip()
@@ -416,11 +464,11 @@ def accept_orders(orders_payload: list[dict], external_processor: ExternalProces
         message = (item.get('message') or 'Заказ подтвержден внешним обработчиком').strip()
 
         if not order_id or not dispatch_token:
-            rejected.append({'order_id': order_id, 'reason': 'order_id and dispatch_token are required'})
+            reject(order_id, 'order_id and dispatch_token are required')
             continue
 
         if status != 'accepted':
-            rejected.append({'order_id': order_id, 'reason': 'status must be accepted'})
+            reject(order_id, 'status must be accepted')
             continue
 
         order = _get_order_for_dispatch(
@@ -429,7 +477,7 @@ def accept_orders(orders_payload: list[dict], external_processor: ExternalProces
             allowed_stages=(settings.OrderStage.MANAGER_START,),
         )
         if not order:
-            rejected.append({'order_id': order_id, 'reason': 'invalid dispatch token'})
+            reject(order_id, 'invalid dispatch token')
             continue
 
         if order.confirmed_at is None:
@@ -495,6 +543,7 @@ def apply_result_update(order_id: int, body: dict, external_processor: ExternalP
     status = (body.get('status') or '').strip()
     message = (body.get('message') or '').strip()
     object_key = (body.get('object_key') or '').strip() or None
+    upd_number = (body.get('upd_number') or '').strip() or None
 
     if not dispatch_token:
         return False, 'dispatch_token is required'
@@ -510,6 +559,30 @@ def apply_result_update(order_id: int, body: dict, external_processor: ExternalP
         return False, 'invalid dispatch token'
 
     if status == 'processed':
+        if upd_number and len(upd_number) > UPD_NUMBER_MAX_LENGTH:
+            _mark_order_problem(
+                order=order,
+                external_processor=external_processor,
+                message=f'Номер УПД длиннее допустимых {UPD_NUMBER_MAX_LENGTH} символов',
+                payload=body,
+                event_type='result_invalid_upd_number',
+                dispatch_token=dispatch_token,
+                object_key=object_key,
+            )
+            db.session.commit()
+            return True, 'problem'
+        if not upd_number:
+            _mark_order_problem(
+                order=order,
+                external_processor=external_processor,
+                message='Внешний обработчик не передал номер УПД для финального результата',
+                payload=body,
+                event_type='result_missing_upd_number',
+                dispatch_token=dispatch_token,
+                object_key=object_key,
+            )
+            db.session.commit()
+            return True, 'problem'
         if not object_key:
             _mark_order_problem(
                 order=order,
@@ -559,6 +632,8 @@ def apply_result_update(order_id: int, body: dict, external_processor: ExternalP
         order.external_problem = False
         order.comment_problem = ''
         order.stage_setter_name = external_processor.source_label
+        order.upd_number = upd_number
+        order.processing_info = build_processing_info(order)
         log_order_event(
             order=order,
             event_type='result_processed',
@@ -579,7 +654,7 @@ def apply_result_update(order_id: int, body: dict, external_processor: ExternalP
     order.stage = settings.OrderStage.MANAGER_PROBLEM
     order.cp_created = _now()
     order.external_problem = True
-    order.comment_problem = message[:230] if message else order.comment_problem
+    order.comment_problem = problem_comment_tail(message) if message else order.comment_problem
     order.stage_setter_name = external_processor.source_label
     log_order_event(
         order=order,
@@ -592,3 +667,78 @@ def apply_result_update(order_id: int, body: dict, external_processor: ExternalP
     )
     db.session.commit()
     return True, status
+
+def list_timeout_problem_orders(external_processor: ExternalProcessor, limit: int | None = None) -> list[dict]:
+    """Заказы, снятые с обработчика по таймауту и ещё не подтверждённые им.
+
+    Push в сторону LiteMark невозможен - их контур закрыт снаружи, поэтому обмен построен
+    на опросе: они забирают список здесь и подтверждают через /orders/{id}/problem-ack.
+    """
+    batch_size = int(limit or external_processor.batch_size)
+    orders = (
+        db.session.query(Order)
+        .options(lazyload('*'))
+        .filter(Order.stage == settings.OrderStage.MANAGER_PROBLEM)
+        .filter(Order.problem_notified_at.isnot(None))
+        .filter(Order.problem_ack_at.is_(None))
+        .filter(Order.dispatch_token.isnot(None))
+        # только свои заказы: иначе второй обработчик увидит чужие dispatch-токены
+        .filter(Order.stage_setter_name == external_processor.source_label)
+        .filter(*_external_processing_order_filter(Order))
+        .order_by(Order.problem_notified_at.asc(), Order.id.asc())
+        .limit(batch_size)
+        .all()
+    )
+
+    if orders:
+        logger.warning(
+            'Проблемные заказы отданы обработчику %s: %s',
+            external_processor.source_label,
+            [order.id for order in orders],
+        )
+
+    return [
+        {
+            'id': order.id,
+            'dispatch_token': order.dispatch_token,
+            'reason': 'processing_timeout',
+            'message': order.comment_problem or 'Истек таймаут обработки, заказ снят с внешнего обработчика',
+            'happened_at': order.problem_notified_at.isoformat() if order.problem_notified_at else None,
+        }
+        for order in orders
+    ]
+
+
+def acknowledge_problem_order(order_id: int, body: dict, external_processor: ExternalProcessor) -> tuple[bool, str]:
+    """Обработчик подтвердил, что снял заказ с обработки и больше по нему ничего не пришлёт."""
+    dispatch_token = (body.get('dispatch_token') or '').strip()
+    message = (body.get('message') or 'Внешний обработчик подтвердил снятие заказа').strip()
+
+    if not dispatch_token:
+        return False, 'dispatch_token is required'
+
+    order = (
+        db.session.query(Order)
+        .filter(Order.id == order_id)
+        .filter(Order.dispatch_token == dispatch_token)
+        .filter(Order.problem_notified_at.isnot(None))
+        .filter(Order.stage_setter_name == external_processor.source_label)
+        .filter(*_external_processing_order_filter(Order))
+        .first()
+    )
+    if not order:
+        return False, 'invalid dispatch token'
+
+    if order.problem_ack_at is None:
+        order.problem_ack_at = _now()
+        log_order_event(
+            order=order,
+            event_type='problem_ack',
+            message=message,
+            payload=body,
+            dispatch_token=dispatch_token,
+            source=external_processor.source_label,
+        )
+        db.session.commit()
+
+    return True, 'acknowledged'

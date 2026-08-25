@@ -32,21 +32,17 @@ from .crm_support import h_cancel_order_process_payment
 from .order_chat import h_order_chat_unread_map
 from .schema import CompaniesOperators
 
-LEGACY_CRM_ORDER_FILTER_SQL = " AND NOT (o.is_moderation IS TRUE AND o.is_automated_crm IS TRUE)"
+LEGACY_CRM_ORDER_FILTER_SQL = " AND o.is_automated_crm IS NOT TRUE"
 
 
 def legacy_crm_order_filter_expr(model=None):
     from models import Order as _Order
     m = model or _Order
-    return or_(
-        m.is_moderation.isnot(True),
-        m.is_automated_crm.isnot(True),
-    )
+    return m.is_automated_crm.isnot(True)
 
 
 def is_automated_moderation_order(order) -> bool:
     return bool(order and is_automated_crm_order(
-        getattr(order, 'is_moderation', False),
         getattr(order, 'is_automated_crm', False),
     ))
 

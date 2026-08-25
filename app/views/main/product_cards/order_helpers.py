@@ -430,7 +430,7 @@ def common_save_copy_pc_order(user: User, category: str, order: Order) -> int | 
 
             # ✅ pc-поля
             is_moderation=True,
-            is_automated_crm=resolve_automated_crm_flag(True, None),
+            is_automated_crm=resolve_automated_crm_flag(None),
             stage=settings.OrderStage.CREATING,
             to_delete=False,
             payment=False,

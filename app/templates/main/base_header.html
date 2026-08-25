@@ -88,7 +88,7 @@
                                 title="Модерация CRM">Модерация CRM</a>
                         </li>
                     {%endif%}
-                    {% if current_user.role in ['superuser', 'supermanager'] %}
+                    {% if current_user.role in ['superuser', 'supermanager', 'm2r_admin'] %}
                         <li>
                             <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_automated.orders') }}"
                                title="Перейти в CRM автоматизированных заказов">Автоматизированные заказы CRM</a>
@@ -194,7 +194,7 @@
                             title="Модерация CRM">Модерация CRM</a>
                     </li>
                 {%endif%}
-                {% if current_user.role in ['superuser', 'supermanager'] %}
+                {% if current_user.role in ['superuser', 'supermanager', 'm2r_admin'] %}
                     <li>
                         <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_automated.orders') }}"
                            title="Перейти в CRM автоматизированных заказов">Автоматизированные заказы CRM</a>

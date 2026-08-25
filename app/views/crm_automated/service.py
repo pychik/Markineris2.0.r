@@ -30,6 +30,7 @@ from utilities.pdf_processor import helper_check_attached_file
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.telegram import MarkinerisInform
 from utilities.support import is_automated_crm_order
+from views.api.integration_service import log_order_event
 from ..crm.crm_support import h_cancel_order_process_payment
 from ..crm.helpers import check_order_file, helper_create_filename, of_delete_remove
 
@@ -55,10 +56,15 @@ AUTOMATED_WORK_STAGES = (
 AUTOMATED_ALLOWED_ROLES = {
     settings.SUPER_USER,
     settings.SUPER_MANAGER,
+    settings.MARKINERIS_ADMIN_USER,
 }
-AUTOMATED_CATEGORIES = ('одежда', 'обувь', 'белье', 'парфюм', 'носки и прочее')
+# Автоматизация распространяется на все категории загрузки: держим один источник,
+# иначе новая категория молча выпадает из счётчиков доски.
+AUTOMATED_CATEGORIES = tuple(settings.CATEGORIES_UPLOAD)
 AUTOMATED_EXTERNAL_CONFIRMATION_OVERDUE_SECONDS = 60 * 60
-AUTOMATED_ORDER_FILTER_SQL = "o.is_moderation IS TRUE AND o.is_automated_crm IS TRUE"
+# заказ подтверждён, но результата нет - подсвечиваем незадолго до трёхсуточного таймаута
+AUTOMATED_EXTERNAL_PROCESSING_OVERDUE_SECONDS = 60 * 60 * 60  # 2.5 суток
+AUTOMATED_ORDER_FILTER_SQL = "o.is_automated_crm IS TRUE"
 AUTOMATED_PER_PAGE_OPTIONS = (25, 50, 100, 200)
 AUTOMATED_DEFAULT_PER_PAGE = 50
 AUTOMATED_ALLOWED_STAGES_SQL = ','.join(map(str, AUTOMATED_ALLOWED_STAGES))
@@ -71,12 +77,12 @@ AUTOMATED_BOARD_COLUMNS = (
 )
 
 
-def _is_automated_order(is_moderation: Optional[bool], is_automated_crm: Optional[bool]) -> bool:
-    return is_automated_crm_order(is_moderation, is_automated_crm)
+def _is_automated_order(is_automated_crm: Optional[bool]) -> bool:
+    return is_automated_crm_order(is_automated_crm)
 
 
 def _automated_order_expr(model=Order):
-    return model.is_moderation.is_(True), model.is_automated_crm.is_(True)
+    return (model.is_automated_crm.is_(True),)
 
 
 def normalize_automated_per_page(per_page: Optional[int]) -> int:
@@ -153,6 +159,26 @@ def _build_external_status_meta(status, sent_at, confirmed_at, stage=None, now: 
 
     if confirmed_at or status == 'accepted':
         detail = f'Подтвержден внешним сервисом: {confirmed_at.strftime("%d-%m-%Y %H:%M:%S")}' if confirmed_at else 'Заказ подтвержден внешним сервисом'
+        processing_overdue = (
+            stage == settings.OrderStage.MANAGER_START
+            and confirmed_at is not None
+            and (current_dt - confirmed_at).total_seconds() >= AUTOMATED_EXTERNAL_PROCESSING_OVERDUE_SECONDS
+        )
+        if processing_overdue:
+            overdue_detail = (
+                f'Заказ подтвержден внешним сервисом {confirmed_at.strftime("%d-%m-%Y %H:%M:%S")}, '
+                'но результат до сих пор не получен. Скоро истечет таймаут обработки (3 суток), '
+                'после чего заказ уйдет в проблему'
+            )
+            return {
+                'label': 'Обработка затянулась',
+                'short_label': '!',
+                'tone': 'danger',
+                'blink': True,
+                'tooltip': overdue_detail,
+                'detail': overdue_detail,
+                'visible': True,
+            }
         return {
             'label': 'Подтвержден внешним сервисом',
             'short_label': '✓',
@@ -299,7 +325,6 @@ def get_automated_weekly_counters(filtered_manager_id: int | None = None) -> dic
         SELECT COUNT(*)
         FROM public.orders
         WHERE stage = :crm_processed
-          AND is_moderation IS TRUE
           AND is_automated_crm IS TRUE
           AND closed_at::date BETWEEN :start_date AND :end_date
           {manager_filter_sql}
@@ -314,7 +339,6 @@ def get_automated_weekly_counters(filtered_manager_id: int | None = None) -> dic
         SELECT COUNT(*)
         FROM public.orders
         WHERE stage = :cancelled
-          AND is_moderation IS TRUE
           AND is_automated_crm IS TRUE
           AND cc_created::date BETWEEN :start_date AND :end_date
           {manager_filter_sql}
@@ -329,7 +353,6 @@ def get_automated_weekly_counters(filtered_manager_id: int | None = None) -> dic
         SELECT COUNT(*)
         FROM public.orders
         WHERE stage = :problem_stage
-          AND is_moderation IS TRUE
           AND is_automated_crm IS TRUE
           AND cp_created::date BETWEEN :start_date AND :end_date
           {manager_filter_sql}
@@ -702,7 +725,7 @@ def can_access_automated_order(order_row, user: User) -> bool:
     return bool(
         order_row
         and not order_row.to_delete
-        and _is_automated_order(order_row.is_moderation, getattr(order_row, 'is_automated_crm', None))
+        and _is_automated_order(getattr(order_row, 'is_automated_crm', None))
         and user.role in AUTOMATED_ALLOWED_ROLES
     )
 
@@ -729,7 +752,7 @@ def log_automated_file_access_denied(action: str, o_id: int, order_row, user: Us
 
 def _get_automated_order_for_file(o_id: int) -> Optional[Order]:
     order = db.session.get(Order, o_id)
-    if not order or order.to_delete or not _is_automated_order(order.is_moderation, order.is_automated_crm):
+    if not order or order.to_delete or not _is_automated_order(order.is_automated_crm):
         return None
     return order
 
@@ -937,6 +960,11 @@ def move_automated_order_to_stage(user: User, o_id: int, target_stage: int, stag
             order.m_finished = None
             order.processed = False
 
+        _log_operator_action(
+            order, 'operator_stage_change',
+            f'Оператор перевел заказ со стадии {previous_stage} на стадию {target_stage}', user,
+            payload={'from_stage': previous_stage, 'to_stage': target_stage, 'comment': stage_comment or None},
+        )
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -1102,7 +1130,7 @@ def update_automated_processing_order_info_response():
         return jsonify({'status': 'error', 'message': 'Все поля обязательны к заполнению'}), 400
 
     order = db.session.get(Order, order_id)
-    if not order or not _is_automated_order(order.is_moderation, order.is_automated_crm):
+    if not order or not _is_automated_order(order.is_automated_crm):
         return jsonify({'status': 'error', 'message': 'Заказ не найден'}), 404
 
     try:
@@ -1131,6 +1159,9 @@ def update_automated_processing_order_info_response():
 
     try:
         order.processing_info = f'{company.title} ({company.inn}) <br> УПД: {upd_number}'
+        order.upd_number = upd_number
+        _log_operator_action(order, 'operator_upd_set', 'Оператор проставил компанию и номер УПД', current_user,
+                             payload={'company': company.title, 'inn': company.inn, 'upd_number': upd_number})
         db.session.commit()
         return jsonify({
             'status': 'success',
@@ -1286,9 +1317,31 @@ def get_automated_order_technical_info_response(o_id: int):
     return jsonify(status='success', html=html, title=f'Техническая информация заказа {order_row.order_idn}')
 
 
+def _log_operator_action(order: Order, event_type: str, message: str, user: User, payload: dict = None):
+    """Действия оператора попадают в ту же ленту, что и события внешнего обработчика.
+
+    Иначе во вкладке "Логи" видна только половина истории: что делал LiteMark - видно,
+    что делал человек - нет, и разобрать спорную ситуацию невозможно.
+    """
+    try:
+        log_order_event(
+            order=order,
+            event_type=event_type,
+            message=message,
+            payload=payload,
+            status=order.status,
+            object_key=order.object_key,
+            dispatch_token=order.dispatch_token,
+            source=getattr(user, 'login_name', None) or 'operator',
+        )
+    except Exception:
+        # аудит не должен ломать действие оператора
+        logger.exception('Не удалось записать событие оператора в историю заказа')
+
+
 def _load_order_for_action(o_id: int) -> Optional[Order]:
     order = db.session.get(Order, o_id)
-    if not order or order.to_delete or not _is_automated_order(order.is_moderation, order.is_automated_crm):
+    if not order or order.to_delete or not _is_automated_order(order.is_automated_crm):
         return None
     return order
 
@@ -1303,6 +1356,7 @@ def take_order(user: User, o_id: int) -> tuple[bool, str]:
         order.stage = settings.OrderStage.MANAGER_START
         order.m_started = datetime.now()
         order.stage_setter_name = user.login_name
+        _log_operator_action(order, 'operator_take', 'Оператор взял заказ в работу', user)
         db.session.commit()
         return True, settings.Messages.ORDER_MANAGER_TAKE
     except IntegrityError:
@@ -1323,6 +1377,8 @@ def mark_problem(user: User, o_id: int, problem_comment: str) -> tuple[bool, str
         order.cp_created = datetime.now()
         order.m_finished = None
         order.stage_setter_name = user.login_name
+        _log_operator_action(order, 'operator_problem', 'Оператор перевел заказ в проблему', user,
+                             payload={'comment_problem': problem_comment})
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
@@ -1345,6 +1401,13 @@ def move_problem_to_work(user: User, o_id: int) -> tuple[bool, str]:
         order.cp_created = None
         order.m_finished = None
         order.stage_setter_name = user.login_name
+        # заказ забрал оператор - снимаем отметки внешней обработки.
+        # без сброса confirmed_at проход по таймаутам через 5 минут снова выбросит
+        # заказ в проблему, и вытащить его будет невозможно.
+        order.confirmed_at = None
+        order.problem_notified_at = None
+        order.problem_ack_at = None
+        _log_operator_action(order, 'operator_back_to_work', 'Оператор вернул заказ из проблемы в работу', user)
         db.session.commit()
         helper_send_user_order_tg_notify(user_id=order.user_id, order_idn=order.order_idn, order_stage=settings.OrderStage.MANAGER_START)
         return True, settings.Messages.ORDER_MANAGER_BP.format(order_idn=order.order_idn)
@@ -1375,6 +1438,8 @@ def process_order(user: User, o_id: int) -> tuple[bool, str]:
         order.closed_at = now
         order.m_finished = now
         order.stage_setter_name = user.login_name
+        _log_operator_action(order, 'operator_processed', 'Оператор закрыл заказ как обработанный', user,
+                             payload={'processing_info': order.processing_info})
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
@@ -1399,7 +1464,7 @@ def cancel_order(user: User, o_id: int, cancel_comment: str) -> tuple[bool, str]
                orf.file_system_name as file_system_name
         FROM public.orders o
         LEFT JOIN public.order_files orf ON o.id=orf.order_id
-        WHERE o.id=:o_id AND o.to_delete IS NOT True AND o.is_moderation IS TRUE AND o.is_automated_crm IS TRUE;
+        WHERE o.id=:o_id AND o.to_delete IS NOT True AND o.is_automated_crm IS TRUE;
     """).bindparams(o_id=o_id)
     order_info = db.session.execute(order_stmt).fetchone()
     if not order_info or user.role not in AUTOMATED_ALLOWED_ROLES:
@@ -1428,6 +1493,10 @@ def cancel_order(user: User, o_id: int, cancel_comment: str) -> tuple[bool, str]
         db.session.execute(order_query)
         if order_info.payment:
             h_cancel_order_process_payment(order_idn=order_info.order_idn, user_id=order_info.user_id)
+        cancelled_order = db.session.get(Order, o_id)
+        if cancelled_order is not None:
+            _log_operator_action(cancelled_order, 'operator_cancelled', 'Оператор отменил заказ', user,
+                                 payload={'comment_cancel': cancel_comment})
         db.session.commit()
     except IntegrityError as exc:
         db.session.rollback()

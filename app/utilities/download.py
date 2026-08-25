@@ -102,7 +102,8 @@ class OrdersProcessor(ProcessorInterface, ABC):
 
     def excel_add_worksheet_data(self, company_idn: str, company_name: str, company_type: str, edo_type: str,
                                  edo_id: str, mark_type: str,
-                                 user_name: str, user_phone: str, user_email: str, partner: str) -> None:
+                                 user_name: str, user_phone: str, user_email: str, partner: str,
+                                 upd_company_name: str = '', upd_company_inn: str = '') -> None:
         # self.additional_info = [[user_name, user_phone, user_email],
         self.additional_info = [[user_name, ],
                                 ['Код партнера', partner],
@@ -110,6 +111,9 @@ class OrdersProcessor(ProcessorInterface, ABC):
                                 [edo_type, edo_id],
                                 ['Тип этикетки', mark_type],
                                 ]
+        # компания обработки: от неё проводится заказ и от неё же выставляется УПД
+        if upd_company_name:
+            self.additional_info.append(['Компания обработки', upd_company_name, upd_company_inn or ''])
 
     def process_to_excel(self, list_of_orders: Generator) -> list[tuple[BytesIO, str],]:
 
@@ -373,7 +377,9 @@ class OrdersProcessor(ProcessorInterface, ABC):
                                       company_type=company_type,
                                       edo_type=edo_type, edo_id=edo_id, mark_type=mark_type,
                                       user_name=c_name, user_phone=c_phone,
-                                      user_email=c_email, partner=c_partner_code)
+                                      user_email=c_email, partner=c_partner_code,
+                                      upd_company_name=getattr(order, 'upd_company_name', '') or '',
+                                      upd_company_inn=getattr(order, 'upd_company_inn', '') or '')
 
         excel_files = self.process_to_excel(list_of_orders=OrdersProcessor
                                             .prepare_batches(orders_divided=[(self.orders_list_outer, f"{e_name}_ВВЕЗЕН"),
