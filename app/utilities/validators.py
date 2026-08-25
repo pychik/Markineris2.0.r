@@ -1,6 +1,6 @@
 import json
 import calendar
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from flask import request, flash
 import re
 from typing import Optional
@@ -97,6 +97,12 @@ class ValidationError(Exception):
 
 
 class ValidatorProcessor:
+    @staticmethod
+    def validate_sl_date_from_not_future(date_from: date) -> str | None:
+        if date_from > date.today() + timedelta(days=1):
+            return "Дата от в периоде годности не может быть позже текущей даты более чем на 1 день."
+        return None
+
     @staticmethod
     def sign_up(form_dict: dict) -> tuple:
         def check_email(email_str: str) -> Optional[str]:
@@ -418,6 +424,10 @@ class ValidatorProcessor:
             date_to = datetime.strptime(date_to_raw, "%d.%m.%Y").date()
         except ValueError:
             return "Заполните корректные даты периода годности."
+
+        date_from_error = ValidatorProcessor.validate_sl_date_from_not_future(date_from)
+        if date_from_error:
+            return date_from_error
 
         today = date.today()
         month = today.month + 1
