@@ -19,7 +19,7 @@ from models import db, Clothes, LinenSizesUnits, ProductCard, ClothesQuantitySiz
     SocksQuantitySize, Linen, LinenQuantitySize, Parfum, UserProcessingCompany, ProcessingCompany, ModerationStatus
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.exceptions import SizeTypeException, CompanyPoolError
-from utilities.saving_helpers import get_clothes_size_type, get_socks_size_type, process_input_str
+from utilities.saving_helpers import get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, process_input_str
 from utilities.support import check_forbidden_words
 from utilities.validators import ValidatorProcessor
 from views.crm.schema import CompanyLite, is_forbidden_pair_by_inn
@@ -487,12 +487,7 @@ def parse_sizes_for_category(category: str, form_data_raw, subcategory: str | No
 
 def normalize_article_for_category(category: str, form_dict: dict) -> str:
     """Приводим артикул к тому виду, в котором он лежит в БД."""
-    raw = (form_dict.get("article") or "").strip()
-    article = process_input_str(raw)
-    # Во всех вещевых категориях такая же логика, как в save_*
-    if article.upper() == "БЕЗ АРТИКУЛА":
-        article = "ОТСУТСТВУЕТ"
-    return article
+    return normalize_article_placeholder(form_dict.get("article"))
 
 
 def normalize_color_for_category(form_dict: dict) -> str:
@@ -643,8 +638,7 @@ def save_shoes_card(
     rd_date = form_dict.get("_rd_date_obj")
     rd_date_to = form_dict.get("_rd_date_to_obj")
 
-    article = process_input_str(form_dict.get("article") or "")
-    article = article if article.upper() != 'БЕЗ АРТИКУЛА' else 'ОТСУТСТВУЕТ'
+    article = normalize_article_placeholder(form_dict.get("article"))
 
     shoe = Shoe(
         trademark=process_input_str(form_dict.get("trademark") or ""),
@@ -722,8 +716,7 @@ def save_clothes_card(
     rd_date = form_dict.get("_rd_date_obj")
     rd_date_to = form_dict.get("_rd_date_to_obj")
 
-    article = process_input_str(form_dict.get("article") or "")
-    article = article if article.upper() != 'БЕЗ АРТИКУЛА' else 'ОТСУТСТВУЕТ'
+    article = normalize_article_placeholder(form_dict.get("article"))
 
     clothes = Clothes(
         trademark=process_input_str(form_dict.get("trademark") or ""),
@@ -774,8 +767,7 @@ def save_socks_card(
     rd_date = form_dict.get("_rd_date_obj")
     rd_date_to = form_dict.get("_rd_date_to_obj")
 
-    article = process_input_str(form_dict.get("article") or "")
-    article = article if article.upper() != 'БЕЗ АРТИКУЛА' else 'ОТСУТСТВУЕТ'
+    article = normalize_article_placeholder(form_dict.get("article"))
 
     socks = Socks(
         trademark=process_input_str(form_dict.get("trademark") or ""),
@@ -827,8 +819,7 @@ def save_linen_card(
     rd_date = form_dict.get("_rd_date_obj")
     rd_date_to = form_dict.get("_rd_date_to_obj")
 
-    article = process_input_str(form_dict.get("article") or "")
-    article = article if article.upper() != 'БЕЗ АРТИКУЛА' else 'ОТСУТСТВУЕТ'
+    article = normalize_article_placeholder(form_dict.get("article"))
 
     linen = Linen(
         trademark=process_input_str(form_dict.get("trademark") or ""),

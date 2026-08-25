@@ -3,6 +3,11 @@
         function normalizeTrademarkPlaceholder(el) {
             if (!el || typeof el.value !== "string") return;
             const value = el.value;
+            const normalized = value.trim().replace(/\s+/g, " ").toLowerCase();
+            if (["без товарного знака", "без бренда"].includes(normalized)) {
+                el.value = "БЕЗ ТОВАРНОГО ЗНАКА";
+                return;
+            }
             if (/^\s*([^\p{L}\p{N}\s])(?:\s*\1)*\s*$/u.test(value)) {
                 el.value = "БЕЗ ТОВАРНОГО ЗНАКА";
             }

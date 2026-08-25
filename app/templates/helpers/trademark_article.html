@@ -2,6 +2,18 @@
     function normalizeTrademarkPlaceholder(el, placeholder) {
         if (!el || typeof el.value !== "string") return;
         const value = el.value;
+        const normalized = value.trim().replace(/\s+/g, " ").toLowerCase();
+        const normalizedPlaceholder = String(placeholder || "").trim().toLowerCase();
+        const trademarkValues = ["без товарного знака", "без бренда"];
+        const articleValues = ["без артикула", "нет артикула", "без бренда", "отсутствует"];
+        if (trademarkValues.includes(normalized) && normalizedPlaceholder !== "отсутствует") {
+            el.value = placeholder || "без товарного знака";
+            return;
+        }
+        if (articleValues.includes(normalized) && normalizedPlaceholder === "отсутствует") {
+            el.value = placeholder || "отсутствует";
+            return;
+        }
         if (/^\s*([^\p{L}\p{N}\s])(?:\s*\1)*\s*$/u.test(value)) {
             el.value = placeholder || "БЕЗ ТОВАРНОГО ЗНАКА";
         }
