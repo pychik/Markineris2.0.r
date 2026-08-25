@@ -45,6 +45,12 @@ def h_category(category: str = 'все', upload_flag: int = None):
 
     # all / пусто = все категории
     is_all_categories = category == 'все'
+
+    if not is_all_categories and category not in settings.CATEGORIES_DICT:
+        category = 'все'
+        subcategory = ''
+        is_all_categories = True
+
     # Проверку подкатегории делаем только для конкретной категории clothes
     if not is_all_categories and category in (settings.Clothes.CATEGORY, settings.Cosmetics.CATEGORY):
         if not Category.check_subcategory(category=category, subcategory=subcategory):

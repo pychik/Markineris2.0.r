@@ -585,8 +585,14 @@ function check_company_marks(){
 }
 
 function perform_process(){
+    if (typeof validate_client_mark_confirmation === "function" && !validate_client_mark_confirmation()) {
+        return;
+    }
      var user_comment = document.getElementById("order_comment_after").value
     document.getElementById("order_comment").setAttribute("value", user_comment);
+    if (typeof sync_client_mark_confirmation_input === "function") {
+        sync_client_mark_confirmation_input(document.getElementById("form_process"));
+    }
     document.getElementById('process_modal_footer').innerHTML=`<div class="col text-center"><b>Производится обработка</b><br>
       <div class="spinner-border text-warning" role="status">
         <span class="visually-hidden">Loading...</span>
@@ -621,6 +627,9 @@ function perfom_process_model_update(url, csrf, o_id, category){
 }
 
 function perform_balance_order_check(url, csrf, o_id, category){
+    if (typeof validate_client_mark_confirmation === "function" && !validate_client_mark_confirmation()) {
+        return;
+    }
     $.ajax({
     url:url,
     headers:{"X-CSRFToken": csrf},

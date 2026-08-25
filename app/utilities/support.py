@@ -1549,15 +1549,29 @@ def helper_process_category_order(user: User, order: Order, category: str, order
         flash(message=settings.Messages.EMPTY_ORDER, category='error')
         return redirect(url_for(f'{_category_name}.index'))
     o_id = order.id
+    subcategory = get_subcategory(order_id=o_id, category=category)
+    redirect_kwargs = {'subcategory': subcategory} if subcategory else {}
 
     if not validate_order_comment_length(order_comment=order_comment):
-        return redirect(url_for(f'{_category_name}.index', o_id=o_id))
+        return redirect(url_for(f'{_category_name}.index', o_id=o_id, **redirect_kwargs))
 
     # check for company_idn exception
     company_idn = order.company_idn
     if company_idn in ExceptionDataUsers.get_company_idns():
         flash(message=settings.ExceptionOrders.COMPANY_IDN_ERROR.format(company_idn=company_idn), category='error')
-        return redirect(url_for(f'{_category_name}.index', o_id=o_id))
+        return redirect(url_for(f'{_category_name}.index', o_id=o_id, **redirect_kwargs))
+
+    _, order_mark_count = get_rows_marks(o_id=o_id, category=category)
+    client_order_checked = request.form.get("client_order_checked") == "1"
+    if order_mark_count > settings.CLIENT_MARK_QUANTITY and not client_order_checked:
+        flash(
+            Markup(
+                "Заказ не передан на оформление. Для заказов больше "
+                f"{settings.CLIENT_MARK_QUANTITY} маркировок подтвердите, что заказ проверен."
+            ),
+            category='error',
+        )
+        return redirect(url_for(f'{_category_name}.index', o_id=o_id, **redirect_kwargs))
 
     status_balance, total_order_price, agent_at2, message_balance = helper_check_uoabm(user=current_user, o_id=o_id)
     if status_balance == 0:
@@ -1603,8 +1617,6 @@ def helper_process_category_order(user: User, order: Order, category: str, order
 
         # notify markineris common group
         MarkinerisInform.send_message_tg.delay(order_idn=order_idn)
-
-    subcategory = get_subcategory(order_id=o_id, category=category)
 
     return redirect(url_for(f'{_category_name}.index', subcategory=subcategory))
 

@@ -303,7 +303,7 @@
 
 <script>
     $(window).on('load', function() {
-        update_category('{{categories_dict[category]}}');
+        update_category('{{ categories_dict.get(category, "all") }}');
     })
 
 </script>

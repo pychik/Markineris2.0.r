@@ -77,8 +77,13 @@ def normalize_length_width_size_value(size: str | None, size_type: str | None) -
 
 def normalize_key_value(value: Any) -> Any:
     """Trim string values before they participate in merge keys."""
+    if value is None:
+        return ""
     if isinstance(value, str):
-        return value.strip()
+        cleaned = value.strip()
+        if cleaned.lower() in {"none", "null", "undefined"}:
+            return ""
+        return cleaned
     return value
 
 

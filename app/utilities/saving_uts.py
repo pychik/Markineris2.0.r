@@ -163,6 +163,15 @@ def save_cosmetics(order: Order, form_dict: dict, subcategory: str) -> Order:
     nominal_quantity_raw = form_dict.get("nominal_quantity")
     blade_count_raw = form_dict.get("blade_count")
     layers_characteristic = process_input_str(form_dict.get("layers_characteristic") or "")
+    content_type = process_input_str(form_dict.get("content_type"))
+    if content_type.lower() in {"none", "null", "undefined"}:
+        content_type = ""
+    content = process_input_str(form_dict.get("content"))
+    if content.lower() in {"none", "null", "undefined"}:
+        content = ""
+    complectation = process_input_str(form_dict.get("complectation"))
+    if complectation.lower() in {"none", "null", "undefined"}:
+        complectation = ""
 
     try:
         quantity = int(quantity_raw)
@@ -203,12 +212,12 @@ def save_cosmetics(order: Order, form_dict: dict, subcategory: str) -> Order:
         nominal_quantity_type=form_dict.get("nominal_quantity_type"),
         quantity=quantity,
         blade_count=blade_count,
-        complectation=process_input_str(form_dict.get("complectation")),
+        complectation=complectation,
         layers_characteristic=layers_characteristic,
         for_children=form_dict.get("for_children") == "yes",
         usage_term_type=form_dict.get("usage_term_type"),
-        content_type=form_dict.get("content_type"),
-        content=form_dict.get("content"),
+        content_type=content_type,
+        content=content,
         service_life=form_dict.get("service_life") or None,
         sl_date_from=sl_date_from,
         sl_date_to=sl_date_to,
