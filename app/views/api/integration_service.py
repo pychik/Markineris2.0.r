@@ -40,6 +40,9 @@ def _eligible_orders_query():
         db.session.query(Order)
         .options(lazyload('*'))
         .filter(Order.stage == settings.OrderStage.POOL)
+        # без пройденной превалидации заказ не выдаётся: у него может не быть РД
+        # и не закреплена компания обработки
+        .filter(Order.prevalidated_at.isnot(None))
         .filter(*_external_processing_order_filter(Order))
     )
 
@@ -366,8 +369,6 @@ def claim_new_orders(external_processor: ExternalProcessor) -> tuple[list[dict],
     claim_users = _load_claim_users(orders)
 
     for order in orders:
-        # до сборки файла: компания попадает в доп. лист Excel
-        ensure_upd_company(order)
         source_file = get_order_download_payload(
             order.id,
             order=order,
@@ -742,3 +743,82 @@ def acknowledge_problem_order(order_id: int, body: dict, external_processor: Ext
         db.session.commit()
 
     return True, 'acknowledged'
+
+
+def _order_positions_without_rd(order: Order) -> int:
+    """Сколько позиций заказа осталось без разрешительной документации."""
+    missing = 0
+    for category_attr in ('shoes', 'clothes', 'socks', 'linen', 'parfum', 'cosmetics'):
+        for position in getattr(order, category_attr, None) or ():
+            if not getattr(position, 'rd_name', None) and not getattr(position, 'rd_date', None):
+                missing += 1
+    return missing
+
+
+def prevalidate_order(order: Order) -> tuple[bool, str]:
+    """Подготовить заказ к выдаче: закрепить компанию и добить недостающую РД.
+
+    Возвращает (готов, сообщение). Заказ без отметки превалидации в выдачу не попадает.
+    """
+    ensure_upd_company(order)
+
+    missing_rd = _order_positions_without_rd(order)
+    if missing_rd:
+        # ponytail: подбор РД через Тезаурус ещё не подключён - у них нет такого метода,
+        # см. docs/litemark-todo.md, пункт 2. Пока фиксируем факт и пропускаем заказ дальше:
+        # блокировать выдачу до появления подбора значит остановить весь поток.
+        # Когда метод появится - здесь вызов подбора, а при неудаче return False.
+        return True, f'РД отсутствует у позиций: {missing_rd}. Автоподбор пока не подключен'
+
+    return True, 'Превалидация пройдена'
+
+
+def prevalidate_pending_orders(limit: int = 100) -> int:
+    """Прогнать превалидацию по заказам, которые её ещё не проходили."""
+    orders = (
+        db.session.query(Order)
+        .filter(Order.stage == settings.OrderStage.POOL)
+        .filter(Order.prevalidated_at.is_(None))
+        .filter(*_external_processing_order_filter(Order))
+        .order_by(Order.crm_created_at.asc(), Order.id.asc())
+        .limit(limit)
+        .all()
+    )
+    if not orders:
+        return 0
+
+    prepared = 0
+    for order in orders:
+        try:
+            is_ready, message = prevalidate_order(order)
+        except Exception:
+            logger.exception('Ошибка превалидации заказа order_id=%s', order.id)
+            db.session.rollback()
+            continue
+
+        if not is_ready:
+            _mark_order_problem(
+                order=order,
+                external_processor=None,
+                message=message,
+                payload={'order_id': order.id},
+                event_type='prevalidation_failed',
+            )
+            db.session.commit()
+            continue
+
+        order.prevalidated_at = _now()
+        prepared += 1
+        log_order_event(
+            order=order,
+            event_type='prevalidated',
+            message=message,
+            payload={
+                'order_id': order.id,
+                'upd_company': order.upd_company_name,
+                'upd_company_inn': order.upd_company_inn,
+            },
+        )
+        db.session.commit()
+
+    return prepared

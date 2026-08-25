@@ -294,3 +294,23 @@ def external_processing_timeouts_task():
             f"External processing timeouts: возвращено в пул {requeued}, снято по таймауту обработки {stale}"
         )
     return {"ok": True, "requeued": requeued, "moved_to_problem": stale}
+
+
+def prevalidate_automated_orders_task():
+    """Превалидация заказов перед выдачей внешнему обработчику.
+
+    Закрепляет компанию обработки и (когда подключат Тезаурус) добивает недостающую РД.
+    Без отметки превалидации заказ в выдачу не попадает.
+    """
+    from views.api.integration_service import prevalidate_pending_orders
+
+    try:
+        prepared = prevalidate_pending_orders()
+    except Exception:
+        db.session.rollback()
+        logger.exception("Automated orders prevalidation task failed")
+        return {"ok": False, "prepared": 0}
+
+    if prepared:
+        logger.warning(f"Превалидация заказов: подготовлено {prepared}")
+    return {"ok": True, "prepared": prepared}

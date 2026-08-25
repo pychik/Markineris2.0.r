@@ -26,6 +26,9 @@
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
                 <div class="fw-semibold mb-3">Маршрутизация и доставка</div>
+                <div class="small mb-2"><span class="text-muted">Превалидация:</span> {{ n.prevalidated_at.strftime('%d-%m-%Y %H:%M:%S') if n.prevalidated_at else 'не пройдена' }}</div>
+                <div class="small mb-2"><span class="text-muted">Компания обработки:</span> {{ n.upd_company_name or '-' }}{% if n.upd_company_inn %} ({{ n.upd_company_inn }}){% endif %}</div>
+                <div class="small mb-2"><span class="text-muted">Номер УПД:</span> {{ n.upd_number or '-' }}</div>
                 <div class="small mb-2"><span class="text-muted">Dispatch token:</span> {{ n.dispatch_token or '-' }}</div>
                 <div class="small mb-2"><span class="text-muted">Object key:</span> {{ n.object_key or '-' }}</div>
                 <div class="small mb-2"><span class="text-muted">Подтвержден:</span> {{ n.confirmed_at.strftime('%d-%m-%Y %H:%M:%S') if n.confirmed_at else '-' }}</div>

@@ -400,6 +400,10 @@ class Order(db.Model, UserMixin):
     problem_notified_at = db.Column(db.DateTime(), index=True)
     problem_ack_at = db.Column(db.DateTime())
 
+    # превалидация пройдена: подобрана РД и закреплена компания обработки.
+    # пока отметки нет, заказ не может быть выдан внешнему обработчику.
+    prevalidated_at = db.Column(db.DateTime(), index=True)
+
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), index=True)
     manager_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     stage_setter_name = db.Column(db.String(100))
