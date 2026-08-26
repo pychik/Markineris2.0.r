@@ -33,6 +33,39 @@
         <h1 class="mb-5 fs-2">Создать накладную</h1>
     </div>
     <h2 class="h3">Выберите категорию маркировки:</h2>
+    {% if enter_subcategory_notes %}
+        <div class="archive-subcategory-note mt-3" role="note">
+            <button class="archive-subcategory-note__toggle collapsed"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#enterSubcategoryNote"
+                    aria-expanded="false"
+                    aria-controls="enterSubcategoryNote">
+                <span class="archive-subcategory-note__icon" aria-hidden="true">!</span>
+                <span class="archive-subcategory-note__toggle-text">
+                    Подкатегории в обычном заказе
+                </span>
+                <span class="archive-subcategory-note__toggle-caption">
+                    Категории с подкатегориями имеют разные списки
+                </span>
+                <span class="archive-subcategory-note__chevron" aria-hidden="true"></span>
+            </button>
+            <div class="collapse" id="enterSubcategoryNote">
+                <div class="archive-subcategory-note__body">
+                    <div class="archive-subcategory-note__text">
+                        В этих категориях сначала выберите нужную подкатегорию.
+                    </div>
+                    <div class="archive-subcategory-note__groups">
+                        {% for note in enter_subcategory_notes %}
+                            <div class="archive-subcategory-note__group">
+                                <span>{{ note['category'] }}:</span> {{ note['items']|join(', ') }}.
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 </div>
 <div class="container">
 
