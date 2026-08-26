@@ -1,4 +1,86 @@
 window.__pendingStep3AfterAsyncAdd = null;
+window.CLIENT_MARK_QUANTITY = Number(window.CLIENT_MARK_QUANTITY || 30000);
+
+function get_client_mark_limit() {
+    const block = document.getElementById("client_mark_confirmation_block");
+    const blockLimit = Number(block?.dataset?.clientMarkLimit || 0);
+    return blockLimit || Number(window.CLIENT_MARK_QUANTITY || 30000);
+}
+
+function get_modal_mark_quantity() {
+    const countText = document.querySelector("#modal_orders_pos_count span")?.textContent || "0";
+    const normalized = countText.replace(/[^\d]/g, "");
+    return Number(normalized || 0);
+}
+
+function should_require_client_mark_confirmation() {
+    return get_modal_mark_quantity() > get_client_mark_limit();
+}
+
+function update_client_mark_confirmation_state() {
+    const block = document.getElementById("client_mark_confirmation_block");
+    const checkbox = document.getElementById("client_mark_confirmation");
+    const error = document.getElementById("client_mark_confirmation_error");
+
+    if (!block || !checkbox) {
+        return;
+    }
+
+    checkbox.classList.toggle("bg-warning", checkbox.checked);
+
+    const required = should_require_client_mark_confirmation();
+    block.style.display = required ? "" : "none";
+
+    if (!required) {
+        checkbox.checked = false;
+        checkbox.classList.remove("bg-warning");
+        if (error) error.textContent = "";
+        return;
+    }
+
+    if (checkbox.checked && error) {
+        error.textContent = "";
+    }
+}
+
+function sync_client_mark_confirmation_input(form) {
+    if (!form) {
+        return;
+    }
+
+    let input = document.getElementById("client_order_checked_input");
+    if (!input) {
+        input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "client_order_checked";
+        input.id = "client_order_checked_input";
+        form.appendChild(input);
+    }
+
+    const checkbox = document.getElementById("client_mark_confirmation");
+    input.value = checkbox && checkbox.checked ? "1" : "";
+}
+
+function validate_client_mark_confirmation() {
+    update_client_mark_confirmation_state();
+
+    if (!should_require_client_mark_confirmation()) {
+        return true;
+    }
+
+    const checkbox = document.getElementById("client_mark_confirmation");
+    const error = document.getElementById("client_mark_confirmation_error");
+
+    if (checkbox && checkbox.checked) {
+        if (error) error.textContent = "";
+        return true;
+    }
+
+    if (error) {
+        error.textContent = "Подтвердите, что заказ проверен.";
+    }
+    return false;
+}
 
 function navigate_to_step3() {
     const btn = document.getElementById("btn-step-3");
@@ -170,3 +252,23 @@ window.goToStep3WithDraftCheck = function (category, addFnName, asyncFlag, url) 
         }
     );
 };
+
+document.addEventListener("DOMContentLoaded", function () {
+    update_client_mark_confirmation_state();
+
+    const processModal = document.getElementById("processModal");
+    if (!processModal) {
+        return;
+    }
+
+    processModal.addEventListener("shown.bs.modal", function () {
+        update_client_mark_confirmation_state();
+    });
+    processModal.addEventListener("hidden.bs.modal", function () {
+        const checkbox = document.getElementById("client_mark_confirmation");
+        const error = document.getElementById("client_mark_confirmation_error");
+        if (checkbox) checkbox.checked = false;
+        if (error) error.textContent = "";
+        update_client_mark_confirmation_state();
+    });
+});

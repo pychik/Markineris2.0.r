@@ -36,12 +36,7 @@ function cosmetics_perform_pos_add(async_flag, url) {
         }
 
         if (serviceLifePeriodValid === false) {
-            const dateToEl = document.getElementById('sl_date_to');
-            if (dateToEl) {
-                dateToEl.classList.remove('is-valid');
-                dateToEl.classList.add('is-invalid');
-            }
-            errors_list.push('Период годности. Заполните "Дату от" и "Дату до". "Дата до" не может быть позже, чем "Дата от" плюс указанный срок годности в месяцах.');
+            errors_list.push('Период годности. Заполните "Дату от" и "Дату до". "Дата от" не может быть позже текущей даты более чем на 1 день; "Дата до" не может быть раньше "Дата от" или позже, чем "Дата от" плюс указанный срок годности в месяцах.');
         }
 
         if (tnvedValid === false) {
@@ -566,6 +561,13 @@ function cosmetics_parse_ru_date(dateStr) {
     return date;
 }
 
+function cosmetics_max_date_from() {
+    const date = new Date();
+    date.setHours(12, 0, 0, 0);
+    date.setDate(date.getDate() + 1);
+    return date;
+}
+
 function cosmetics_check_service_life_period() {
     const serviceLifeEl = document.getElementById('service_life');
     const dateFromEl = document.getElementById('sl_date_from');
@@ -578,6 +580,7 @@ function cosmetics_check_service_life_period() {
     const serviceLife = Number(serviceLifeEl.value);
     const dateFrom = cosmetics_parse_ru_date(dateFromEl.value);
     const dateTo = cosmetics_parse_ru_date(dateToEl.value);
+    const maxDateFrom = cosmetics_max_date_from();
 
     dateFromEl.classList.remove('is-invalid');
     dateToEl.classList.remove('is-invalid');
@@ -592,8 +595,8 @@ function cosmetics_check_service_life_period() {
         return false;
     }
 
-    if (!Number.isFinite(serviceLife) || serviceLife < 0 || !dateFrom || !dateTo) {
-        if (!dateFrom) {
+    if (!Number.isFinite(serviceLife) || serviceLife < 0 || !dateFrom || !dateTo || dateFrom > maxDateFrom) {
+        if (!dateFrom || dateFrom > maxDateFrom) {
             dateFromEl.classList.add('is-invalid');
         }
         if (!dateTo) {
@@ -605,7 +608,7 @@ function cosmetics_check_service_life_period() {
     const maxDate = new Date(dateFrom.getTime());
     maxDate.setMonth(maxDate.getMonth() + serviceLife);
 
-    if (dateTo > maxDate) {
+    if (dateTo < dateFrom || dateTo > maxDate) {
         dateToEl.classList.add('is-invalid');
         return false;
     }
@@ -804,6 +807,13 @@ function show_cosmetics_pos(index, full_name, trademark, type, nominal_quantity,
                             quantity, country, tnved_code, subcategory, rd_name, edit_link, copy_link, delete_link, csrf_token) {
     let main = document.getElementById('ShowModalTable');
     main.innerHTML = '';
+    const blankValue = function (value) {
+        const cleaned = String(value ?? '').trim();
+        return ['none', 'null', 'undefined'].includes(cleaned.toLowerCase()) ? '' : cleaned;
+    };
+    content_type = blankValue(content_type);
+    complectation = blankValue(complectation);
+    content = blankValue(content);
     const isRazorSubcategory = String(subcategory || '').trim() === 'razor_blades_and_cassettes';
     const contentLabel = cosmeticsResolveContentLabelForValues(type, tnved_code);
     const shouldShowForChildren = !isRazorSubcategory && window.COSMETICS_FOR_CHILDREN_ENABLED !== false;
