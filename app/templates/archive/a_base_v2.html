@@ -253,10 +253,43 @@
             </a>
         </ul>
         <div class="mb-2">
-          <div class="alert alert-warning" role="alert">
+          <div class="alert alert-warning archive-file-storage-note" role="alert">
             <strong>Внимание!</strong>
             Мы храним файлы заказа <strong>3 месяца (90 дней)</strong> с момента оформления. Скачайте их заранее — так вы точно ничего не потеряете.
           </div>
+          {% if archive_subcategory_notes %}
+              <div class="archive-subcategory-note" role="note">
+                  <button class="archive-subcategory-note__toggle collapsed"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#archiveSubcategoryNote"
+                          aria-expanded="false"
+                          aria-controls="archiveSubcategoryNote">
+                      <span class="archive-subcategory-note__icon" aria-hidden="true">!</span>
+                      <span class="archive-subcategory-note__toggle-text">
+                          Подкатегории в истории заказов
+                      </span>
+                      <span class="archive-subcategory-note__toggle-caption">
+                          Категории с подкатегориями имеют разные списки
+                      </span>
+                      <span class="archive-subcategory-note__chevron" aria-hidden="true"></span>
+                  </button>
+                  <div class="collapse" id="archiveSubcategoryNote">
+                      <div class="archive-subcategory-note__body">
+                          <div class="archive-subcategory-note__text">
+                              В строке заказа под номером отображается его конкретная подкатегория.
+                          </div>
+                          <div class="archive-subcategory-note__groups">
+                              {% for note in archive_subcategory_notes %}
+                                  <div class="archive-subcategory-note__group">
+                                      <span>{{ note['category'] }}:</span> {{ note['items']|join(', ') }}.
+                                  </div>
+                              {% endfor %}
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          {% endif %}
           <div class="alert alert-secondary" role="alert">
               <a href="{{ url_for('requests_common.download_file', filename='инструкция по упд.pdf') }}" class="link-secondary" target="_blank">
                   <strong>Важное!</strong> Инструкция по приемке УПД
