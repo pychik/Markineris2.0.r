@@ -26,6 +26,10 @@ def h_shoe_sba(o_id: int) -> Response:
 def h_category_sba(u_id: int, o_id: int, model_c: db.Model, category: str) -> Response:
     numrows = 0
     order_list = ''
+    subcategory = ''
+    if request.view_args:
+        subcategory = request.view_args.get('subcategory', '')
+    subcategory = subcategory or request.args.get('subcategory', '')
     if Order.query.with_entities(Order.id).filter(Order.user_id == u_id, Order.id == o_id, ~Order.to_delete).first():
         search_query = request.form.get('query', '').replace("--", "")
         if search_query:
@@ -35,7 +39,7 @@ def h_category_sba(u_id: int, o_id: int, model_c: db.Model, category: str) -> Re
             numrows = len(order_list)
 
     return jsonify({'htmlresponse': render_template(f'helpers/{category}/response_{category}_sba.html', o_id=o_id, order_list=order_list,
-                                                    numrows=numrows)})
+                                                    numrows=numrows, subcategory=subcategory)})
 
 
 def h_category_trademark_sba(u_id: int, o_id: int, model_c: db.Model, category: str) -> Response:
@@ -60,7 +64,7 @@ def order_table_update(user: User, o_id: int, category: str, jsonify_flag: bool 
         total_price, price_exist, subcategory = orders_list_common(category=category, user=user, o_id=o_id)
     category_process_name = settings.CATEGORIES_DICT[category]
     url_kwargs = {'o_id': o_id, 'update_flag': 1}
-    if category == settings.Cosmetics.CATEGORY:
+    if subcategory:
         url_kwargs['subcategory'] = subcategory
     link = f"javascript:{category_process_name}_update_table('" + url_for(f'{category_process_name}.index', **url_kwargs) + "?page={0}');"
     page, per_page, offset, pagination, order_list = helper_paginate_data(data=orders, href=link)

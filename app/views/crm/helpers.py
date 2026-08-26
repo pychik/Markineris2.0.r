@@ -2338,11 +2338,19 @@ def helper_crm_preload(o_id: int):
 
 
 def helper_categories_counter(all_cards: list | tuple) -> dict:
+    from collections import defaultdict
+
     all_cards_proc = list(filter(lambda x: x.stage < 8, all_cards))
-    categories: tuple = ('одежда', 'обувь', 'белье', 'парфюм', 'косметика', 'носки и прочее')
-    categories_counter: dict = {'all': len(all_cards_proc)}
-    for cat in categories:
-        categories_counter.update({cat: sum(1 for card in all_cards_proc if card.category == cat)})
+    categories_counter = defaultdict(int)
+    categories_counter['all'] = len(all_cards_proc)
+
+    for card in all_cards_proc:
+        category = getattr(card, 'category', None)
+        if category:
+            categories_counter[category] += 1
+
+    for cat in ('одежда', 'обувь', 'белье', 'парфюм', 'косметика', 'носки и прочее'):
+        categories_counter[cat] += 0
 
     return categories_counter
 

@@ -483,6 +483,8 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
 def helper_category_common_index(o_id: int, category: str, category_process_name: str, user: User,
                                  update_flag: int = None, **kwargs):
     with_packages = False
+    subcategory = kwargs.get('subcategory')
+    index_kwargs = {'subcategory': subcategory} if subcategory else {}
     active_orders = get_category_p_orders(user=user, category=category, subcategory=kwargs.get('subcategory'), processed=False)
 
     # if not specific order
@@ -491,9 +493,7 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
             specific_order = True
             o_id = active_orders[0].id
             flash(message=settings.Messages.USER_ORDERS_LIMIT, category='warning')
-            return redirect(url_for(f'{category_process_name}.index', o_id=o_id))
-
-        subcategory = kwargs.get('subcategory')
+            return redirect(url_for(f'{category_process_name}.index', o_id=o_id, **index_kwargs))
 
         # else:
         #     order_list, company_type, company_name, company_idn, \
@@ -509,15 +509,17 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
             edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
             total_price, price_exist, subcategory = orders_list_common(category=category, user=user, o_id=o_id)
         mark_type_hidden = mark_type
+        index_kwargs = {'subcategory': subcategory} if subcategory else {}
         if not orders:
             flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
-            return redirect(url_for(f'{category_process_name}.index'))
+            return redirect(url_for(f'{category_process_name}.index', **index_kwargs))
 
         if update_flag:
             return order_table_update(user=current_user, o_id=o_id, category=category)
 
         link = f'javascript:{category_process_name}_update_table(\'' + url_for(f'{category_process_name}.index', o_id=o_id,
-                                                            update_flag=1) + '?page={0}\');'
+                                                            update_flag=1,
+                                                            **index_kwargs) + '?page={0}\');'
         page, per_page, offset, pagination, order_list = helper_paginate_data(data=orders, href=link)
         with_packages = order_list[-1].with_packages if category not in [settings.Clothes.CATEGORY,
                                                                          settings.Socks.CATEGORY, ] \
@@ -992,6 +994,8 @@ def helper_delete_order_pos(o_id: int, m_id: int, category: str, model: db.Model
     cat_list = model.query.with_entities(model.id).filter_by(order_id=o_id).all()
     pos_exists = model.query.with_entities(model.id).filter_by(id=m_id, order_id=o_id).first()
     subcategory = request.args.get('subcategory', '')
+    if not subcategory and request.view_args:
+        subcategory = request.view_args.get('subcategory', '')
     if not Category.check_subcategory(category=category, subcategory=subcategory):
         return jsonify(
             dict(status='error', message=settings.Messages.STRANGE_REQUESTS + ' нет такой подкатегории'))
