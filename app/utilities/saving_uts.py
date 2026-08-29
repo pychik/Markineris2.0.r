@@ -46,7 +46,7 @@ def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
                           with_packages=True if form_dict.get("with_packages") == "True" else False,
                           tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                           tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
-                          rd_name=form_dict.get("rd_name").replace('№', ''),
+                          rd_name=rd_name_clean(form_dict.get("rd_name")),
                           rd_date=rd_date)
 
     extend_sq = (ShoeQuantitySize(size=el[0], quantity=el[1]) for el in sizes_quantities)
@@ -68,7 +68,7 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcateg
                                 gender=form_dict.get("gender"), country=form_dict.get("country"),
                                 tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                                 tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
-                                rd_name=form_dict.get("rd_name").replace('№', ''),
+                                rd_name=rd_name_clean(form_dict.get("rd_name")),
                                 rd_date=rd_date, subcategory=subcategory if subcategory else ClothesSubcategories.common.value)
 
     extend_sq = (
@@ -96,7 +96,7 @@ def save_socks(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
                               gender=form_dict.get("gender"), country=form_dict.get("country"),
                               tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                               tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
-                              rd_name=form_dict.get("rd_name").replace('№', ''),
+                              rd_name=rd_name_clean(form_dict.get("rd_name")),
                               rd_date=rd_date)
     extend_sq = (
         SocksQuantitySize(size=el[0], quantity=el[1], size_type=get_socks_size_type(el[0], el[2]))
@@ -123,7 +123,7 @@ def save_linen(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
                             content=form_dict.get("content"), country=form_dict.get("country"),
                             tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                             tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
-                            rd_name=form_dict.get("rd_name").replace('№', ''),
+                            rd_name=rd_name_clean(form_dict.get("rd_name")),
                             rd_date=rd_date)
 
     if with_p == "True":
@@ -151,7 +151,7 @@ def save_parfum(order: Order, form_dict: dict) -> Order:
                               quantity=form_dict.get("quantity"), country=form_dict.get("country"),
                               tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                               tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
-                              rd_name=form_dict.get("rd_name").replace('№', ''),
+                              rd_name=rd_name_clean(form_dict.get("rd_name")),
                               rd_date=rd_date)
 
     append_or_merge_position(order.parfum, new_parfum_order, settings.Parfum.CATEGORY)
@@ -204,7 +204,7 @@ def save_cosmetics(order: Order, form_dict: dict, subcategory: str) -> Order:
         article_price=form_dict.get("article_price"),
         tax=form_dict.get("tax"),
         rd_type=form_dict.get("rd_type"),
-        rd_name=(form_dict.get("rd_name") or "").replace('№', ''),
+        rd_name=rd_name_clean(form_dict.get("rd_name")),
         rd_date=rd_date,
         rd_date_to=rd_date_to,
         subcategory=subcategory,
