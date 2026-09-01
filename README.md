@@ -135,8 +135,9 @@ make service-logs
 ### Отличие Dockerfile MRS
 
 - В `app/Dockerfile` MRS базовый образ закреплен как `python:3.11-slim-bookworm`.
-- Перед `apt-get update` Debian sources переключаются с `deb.debian.org` на `mirror.selectel.ru`, потому что на сервере MRS были таймауты маршрута до Debian CDN.
-- Для `apt` включен `Acquire::ForceIPv4 "true";`, так как IPv6-маршрут до Debian CDN на сервере MRS может отсутствовать.
+- В сборке `flask_app` не выполняется `apt-get update`, потому что на сервере MRS были таймауты и обрывы при скачивании Debian package indexes.
+- Системный `unrar` устанавливается прямой загрузкой `.deb` через Python и `dpkg -i`.
+- `netcat`, `wget` и `tzdata` в `flask_app` не устанавливаются: текущий `entrypoint.sh` не использует `nc`, скачивание выполняется Python-ом, а `/etc/localtime` монтируется в контейнер из `docker-compose.yml`.
 - Это отличие нужно учитывать при переносе Dockerfile между MR и MRS: оно относится к деплой-окружению MRS, а не к бизнес-логике приложения.
 
 ### Запуск minio s3 хранилища и вспомогательных сервисов(minio, create_buckets)
