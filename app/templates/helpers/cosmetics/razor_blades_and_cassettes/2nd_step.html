@@ -25,9 +25,18 @@
         window.COSMETICS_ALLOWED_TNVED_CODES = {{ allowed_tnved_codes | tojson }};
         window.COSMETICS_ALLOWED_TNVED_CHOICES = {{ allowed_tnved_choices | tojson }};
         window.COSMETICS_DEFAULT_TNVED_CODE = {{ (copied_order.tnved_code if copied_order and copied_order.tnved_code else '') | tojson }};
+        window.COSMETICS_CATEGORY_CODE = {{ category_code | tojson }};
+        window.COSMETICS_CATEGORY_CODE_BY_TNVED = {{ subcategory_config.get("category_code_by_tnved", {}) | tojson }};
+        window.COSMETICS_CONTENT_TYPE_ENABLED = {{ subcategory_config.get("content_type_enabled", true) | tojson }};
+        window.COSMETICS_CONTENT_VALUE_ENABLED = {{ subcategory_config.get("content_value_enabled", true) | tojson }};
         window.COSMETICS_COMPLECTATION_TRIGGER_TYPES = {{ subcategory_config.get("complectation_trigger_product_types", ()) | tojson }};
         window.COSMETICS_COMPLECTATION_TRIGGER_TNVEDS = {{ subcategory_config.get("complectation_trigger_tnved_codes", ()) | tojson }};
         window.COSMETICS_TNVED_CODES_BY_PRODUCT_TYPE = {{ subcategory_config.get("tnved_codes_by_product_type", {}) | tojson }};
+        window.COSMETICS_IS_RAZOR_SUBCATEGORY = true;
+        window.COSMETICS_STANDARD_TNVED_CODES_BY_PRODUCT_TYPE = {{ subcategory_config.get("standard_tnved_codes_by_product_type", {}) | tojson }};
+        window.COSMETICS_REPLACEABLE_RAZOR_TNVED_CODE = {{ subcategory_config.get("replaceable_razor_tnved_code", "") | tojson }};
+        window.COSMETICS_STANDARD_RAZOR_PRODUCT_TYPES = {{ subcategory_config.get("standard_razor_product_types", ()) | tojson }};
+        window.COSMETICS_REPLACEABLE_RAZOR_PRODUCT_TYPES = {{ subcategory_config.get("replaceable_razor_product_types", ()) | tojson }};
     </script>
     <div class="col-md-2">
         <div class="return mb-2">
@@ -121,7 +130,10 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="type" class="control-label">Вид товара</label>
-                        <select id="type" name="type" class="form-control search-select" oninput="updateCosmeticsFullName(); cosmeticsUpdateNominalQuantityTypeOptions(); cosmeticsToggleComplectationBlock();" onchange="updateCosmeticsFullName(); cosmeticsUpdateNominalQuantityTypeOptions(); cosmeticsToggleComplectationBlock();" required>
+                        <select id="type" name="type" class="form-control search-select"
+                                oninput="updateCosmeticsFullName(); cosmeticsUpdateNominalQuantityTypeOptions(); cosmeticsToggleContentTypeBlock();"
+                                onchange="updateCosmeticsFullName(); cosmeticsUpdateNominalQuantityTypeOptions(); syncCosmeticsTnvedByProductType(true); cosmeticsUpdateCategoryCode(); cosmeticsToggleContentTypeBlock(); cosmeticsToggleComplectationBlock(); cosmeticsToggleRazorExtraFields();"
+                                required>
                             <option value="" selected disabled>Выберите из списка..</option>
                             {% for item in product_types %}
                                 <option value="{{ item }}" {% if copied_order and copied_order.type == item %}selected{% endif %}>{{ item }}</option>
@@ -132,14 +144,14 @@
             </div>
 
             <div class="row g-4 mt-1">
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="form-group">
                         <label for="nominal_quantity" class="control-label">Кол-во в потреб. упаковке</label>
                         <input id="nominal_quantity" name="nominal_quantity" type="number" min="0" step="1" class="form-control" placeholder="1" value="{% if copied_order %}{{ copied_order.nominal_quantity }}{% endif %}" required>
                     </div>
                 </div>
 
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="form-group">
                         <label for="nominal_quantity_type" class="control-label">Тип ед. в потреб. упаковке</label>
                         <select id="nominal_quantity_type" name="nominal_quantity_type" class="form-control search-select" required>
@@ -151,23 +163,49 @@
                     </div>
                 </div>
 
-                <div class="col-md-3">
+                <div class="col-md-4">
+                    {% include 'helpers/cosmetics/countries_rd_switch.html' %}
+                </div>
+            </div>
+
+            <div class="row g-4 mt-1">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <div class="form-check form-switch mb-2">
+                            <label class="d-inline-flex align-items-center gap-2 mb-0"
+                                   data-bs-toggle="tooltip"
+                                   data-bs-placement="bottom"
+                                   title="Включите для бритвы со сменными лезвиями / кассетами. Выключите для одноразовых бритв и лезвий / кассет."
+                                   style="cursor:pointer">
+                                <input class="form-check-input border border-warning mt-0"
+                                       type="checkbox"
+                                       role="switch"
+                                       id="replaceable_razor_switch"
+                                       name="replaceable_razor"
+                                       value="1"
+                                       onchange="cosmeticsApplyRazorSwitchState(true);"
+                                       {% if copied_order and copied_order.tnved_code == subcategory_config.get("replaceable_razor_tnved_code", "") %}checked{% endif %}>
+                                <span class="form-check-label small mb-0 text-dark">
+                                    Бритва со сменными лезвиями / кассетами
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mt-1" id="razor_extra_fields_row">
+                <div class="col-md-3" id="blade_count_block">
                     <div class="form-group">
                         <label for="blade_count" class="control-label">Кол-во лезвий в раб. части</label>
                         <input id="blade_count" name="blade_count" type="number" min="0" step="1" class="form-control" placeholder="1" value="{% if copied_order and copied_order.blade_count is not none %}{{ copied_order.blade_count }}{% else %}1{% endif %}" required>
                     </div>
                 </div>
 
-                <div class="col-md-3">
-                    {% include 'helpers/cosmetics/countries_rd_switch.html' %}
-                </div>
-            </div>
-
-            <div class="row g-4 mt-1">
-                <div class="col-md-12" id="complectation_block" {% if not copied_order or not copied_order.complectation %}style="display:none"{% endif %}>
+                <div class="col-md-9" id="complectation_block" {% if not copied_order or not copied_order.complectation %}style="display:none"{% endif %}>
                     <div class="form-group">
                         <label for="complectation" class="control-label">Комплектация (для многоразовых бритв и лезвий)</label>
-                        <textarea id="complectation" name="complectation" class="form-control" rows="4" maxlength="500" placeholder="Введите комплектацию">{% if copied_order and copied_order.complectation %}{{ copied_order.complectation }}{% endif %}</textarea>
+                        <textarea id="complectation" name="complectation" class="form-control" rows="2" maxlength="500" placeholder="Введите комплектацию">{% if copied_order and copied_order.complectation %}{{ copied_order.complectation }}{% endif %}</textarea>
                     </div>
                 </div>
             </div>
@@ -285,7 +323,7 @@
                     <div class="important-card__prop">
                         Коды категории
                     </div>
-                    <div class="important-card__val ms-2">
+                    <div class="important-card__val ms-2" id="cosmetics_category_code_value">
                         {{ category_code }}
                     </div>
                 </div>

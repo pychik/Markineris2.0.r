@@ -190,6 +190,10 @@ def save_cosmetics(order: Order, form_dict: dict, subcategory: str) -> Order:
     except (TypeError, ValueError):
         blade_count = None
 
+    if subcategory == "razor_blades_and_cassettes" and str(form_dict.get("tnved_code") or "").strip() != "8212109000":
+        blade_count = None
+        complectation = ""
+
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
     rd_date_to = datetime.strptime(form_dict.get("rd_date_to"), '%d.%m.%Y').date() if form_dict.get("rd_date_to") else None
     sl_date_from = datetime.strptime(form_dict.get("sl_date_from"), '%d.%m.%Y').date() if form_dict.get("sl_date_from") else None

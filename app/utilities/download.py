@@ -586,6 +586,7 @@ class ParfumProcessor(OrdersProcessor):
 
 class CosmeticsProcessor(OrdersProcessor):
     RAZOR_SUBCATEGORY = "razor_blades_and_cassettes"
+    RAZOR_REPLACEABLE_TNVED_CODE = "8212109000"
     TOOTH_SUBCATEGORY = "cosmetics_tooth"
     NAILS_SUBCATEGORY = "cosmetics_nails"
     BLANK_STRING_VALUES = {"none", "null", "undefined"}
@@ -892,6 +893,7 @@ class CosmeticsProcessor(OrdersProcessor):
             complectation = CosmeticsProcessor.clean_optional_value(el.complectation)
 
             if CosmeticsProcessor.is_razor_subcategory(el.subcategory):
+                is_replaceable_razor = str(el.tnved_code or '').strip() == CosmeticsProcessor.RAZOR_REPLACEABLE_TNVED_CODE
                 temp_list = [
                     '',
                     el.tnved_code,
@@ -901,8 +903,8 @@ class CosmeticsProcessor(OrdersProcessor):
                     el.nominal_quantity_type,
                     el.nominal_quantity,
                     el.type,
-                    el.blade_count,
-                    complectation,
+                    el.blade_count if is_replaceable_razor else '',
+                    complectation if is_replaceable_razor else '',
                     el.usage_term_type,
                     'мес',
                     el.service_life,

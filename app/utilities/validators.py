@@ -317,6 +317,7 @@ class ValidatorProcessor:
 
         product_type = str(form_data.get("type") or "").strip()
         tnved_code = str(form_data.get("tnved_code") or "").strip()
+        blade_count_raw = str(form_data.get("blade_count") or "").strip()
         complectation = str(form_data.get("complectation") or "").strip()
         if complectation.lower() in {"none", "null", "undefined"}:
             complectation = ""
@@ -361,6 +362,38 @@ class ValidatorProcessor:
         allowed_codes_for_type = tnved_codes_by_product_type.get(product_type) or ()
         if allowed_codes_for_type and tnved_code not in allowed_codes_for_type:
             return "Выбранный ТН ВЭД не подходит для указанного вида товара."
+
+        replaceable_razor_tnved_code = str(subcategory_config.get("replaceable_razor_tnved_code") or "").strip()
+        if replaceable_razor_tnved_code:
+            replaceable_razor_enabled = str(form_data.get("replaceable_razor") or "").strip().lower() in {
+                "1",
+                "on",
+                "true",
+                "yes",
+            }
+            replaceable_razor_product_types = set(subcategory_config.get("replaceable_razor_product_types") or ())
+            standard_razor_product_types = set(subcategory_config.get("standard_razor_product_types") or ())
+            try:
+                blade_count = int(blade_count_raw) if blade_count_raw else None
+            except ValueError:
+                return "Заполните корректное значение поля 'Кол-во лезвий в рабочей части'."
+
+            if replaceable_razor_enabled:
+                if tnved_code != replaceable_razor_tnved_code:
+                    return "Для бритвы со сменными лезвиями / кассетами выберите ТН ВЭД 8212109000."
+                if replaceable_razor_product_types and product_type not in replaceable_razor_product_types:
+                    return "Выбранный вид товара не подходит для бритвы со сменными лезвиями / кассетами."
+                if blade_count is None or blade_count <= 0:
+                    return "Для бритвы со сменными лезвиями / кассетами заполните количество лезвий."
+                if not complectation:
+                    return "Для бритвы со сменными лезвиями / кассетами заполните комплектацию."
+            else:
+                if tnved_code == replaceable_razor_tnved_code:
+                    return "Для ТН ВЭД 8212109000 включите переключатель 'Бритва со сменными лезвиями / кассетами'."
+                if standard_razor_product_types and product_type not in standard_razor_product_types:
+                    return "Выбранный вид товара доступен только для бритвы со сменными лезвиями / кассетами."
+                if complectation:
+                    return "Комплектация заполняется только для бритвы со сменными лезвиями / кассетами."
 
         complectation_trigger_types = set(subcategory_config.get("complectation_trigger_product_types") or ())
         complectation_trigger_tnveds = set(subcategory_config.get("complectation_trigger_tnved_codes") or ())
