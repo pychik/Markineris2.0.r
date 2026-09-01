@@ -1,27 +1,22 @@
-FROM python:3.11-slim-bookworm
+FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ="Europe/Moscow"
 
 ARG ROOT_DIR=/
 
 WORKDIR /app
 
-RUN set -eux; \
-    printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' > /etc/apt/apt.conf.d/80-retries; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends netcat-traditional tzdata wget ca-certificates; \
-    wget --tries=5 --retry-connrefused --waitretry=5 --timeout=30 \
-        -O /tmp/unrar_5.0.10-1_amd64.deb \
-        http://archive.ubuntu.com/ubuntu/pool/multiverse/u/unrar-nonfree/unrar_5.0.10-1_amd64.deb; \
-    dpkg -i /tmp/unrar_5.0.10-1_amd64.deb || apt-get -y --no-install-recommends -f install; \
-    rm -f /tmp/unrar_5.0.10-1_amd64.deb; \
+RUN apt-get update && apt-get install -y netcat-traditional && \
+    apt-get install -yq tzdata && \
+    apt-get install -y wget && \
+    wget http://archive.ubuntu.com/ubuntu/pool/multiverse/u/unrar-nonfree/unrar_5.0.10-1_amd64.deb && \
+    dpkg -i unrar_5.0.10-1_amd64.deb && \
+    apt-get install -f && \
     ln -fs /usr/share/zoneinfo/Europe/Moscow /etc/localtime && \
-    dpkg-reconfigure -f noninteractive tzdata; \
-    rm -rf /var/lib/apt/lists/*
+    dpkg-reconfigure -f noninteractive tzdata
 
+ENV TZ="Europe/Moscow"
 COPY ./requirements.txt /app/requirements.txt
 RUN python -m pip install --upgrade pip && pip install -r /app/requirements.txt
 COPY . /app
