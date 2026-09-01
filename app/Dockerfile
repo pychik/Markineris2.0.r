@@ -12,16 +12,16 @@ WORKDIR /app
 RUN set -eux; \
     if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
         sed -i \
-            -e 's|http://deb.debian.org/debian-security|http://mirror.selectel.ru/debian-security|g' \
-            -e 's|http://security.debian.org/debian-security|http://mirror.selectel.ru/debian-security|g' \
-            -e 's|http://deb.debian.org/debian|http://mirror.selectel.ru/debian|g' \
+            -e 's|http://deb.debian.org/debian-security|http://mirror.yandex.ru/debian-security|g' \
+            -e 's|http://security.debian.org/debian-security|http://mirror.yandex.ru/debian-security|g' \
+            -e 's|http://deb.debian.org/debian|http://mirror.yandex.ru/debian|g' \
             /etc/apt/sources.list.d/debian.sources; \
     fi; \
     if [ -f /etc/apt/sources.list ]; then \
         sed -i \
-            -e 's|http://deb.debian.org/debian-security|http://mirror.selectel.ru/debian-security|g' \
-            -e 's|http://security.debian.org/debian-security|http://mirror.selectel.ru/debian-security|g' \
-            -e 's|http://deb.debian.org/debian|http://mirror.selectel.ru/debian|g' \
+            -e 's|http://deb.debian.org/debian-security|http://mirror.yandex.ru/debian-security|g' \
+            -e 's|http://security.debian.org/debian-security|http://mirror.yandex.ru/debian-security|g' \
+            -e 's|http://deb.debian.org/debian|http://mirror.yandex.ru/debian|g' \
             /etc/apt/sources.list; \
     fi; \
     printf 'Acquire::Retries "5";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' > /etc/apt/apt.conf.d/80-retries; \

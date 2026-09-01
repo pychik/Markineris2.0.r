@@ -135,7 +135,7 @@ make service-logs
 ### Отличие Dockerfile MRS
 
 - В `app/Dockerfile` MRS базовый образ закреплен как `python:3.11-slim-bookworm`.
-- Перед `apt-get update` Debian sources переключаются с `deb.debian.org` на `mirror.selectel.ru`, потому что на сервере MRS были таймауты маршрута до Debian CDN.
+- Перед `apt-get update` Debian sources переключаются с `deb.debian.org` на `mirror.yandex.ru`, потому что на сервере MRS были таймауты маршрута до Debian CDN.
 - Для `apt` включен `Acquire::ForceIPv4 "true";`, так как IPv6-маршрут до Debian CDN на сервере MRS может отсутствовать.
 - Это отличие нужно учитывать при переносе Dockerfile между MR и MRS: оно относится к деплой-окружению MRS, а не к бизнес-логике приложения.
 
