@@ -77,7 +77,10 @@ def create_app() -> tuple[Flask, SQLAlchemy]:
     csrf.exempt('views.main.auth.send_verification_code')
     csrf.exempt('views.main.auth.verify_sign_up_phone_code')
 
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+    # x_for=1: перед flask ровно один прокси - nginx, он добавляет клиента в X-Forwarded-For.
+    # Без этого request.remote_addr возвращает адрес nginx, и IP-allowlist внешних
+    # обработчиков не работает: заполненный список блокирует вообще всё.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     if not app.debug:
         ElasticAPM().init_app(app)
     return app, db

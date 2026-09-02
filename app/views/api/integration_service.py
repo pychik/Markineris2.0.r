@@ -12,7 +12,9 @@ from markupsafe import escape
 from models import ExternalProcessor, Order, OrderProcessedLog, OrderStat, User, db
 from utilities.download import get_order_download_payload
 from utilities.minio_service.services import get_s3_service
-from views.crm.schema import format_upd_company, pick_upd_company
+from tezaurus.api_client import TezaurusApiError, TezaurusConfigurationError
+from tezaurus.order_matching import match_order_rd, select_company_for_order
+from views.crm.schema import format_upd_company
 
 DELIVERY_UNCONFIRMED_STATUS = 'delivery_unconfirmed'
 EXTERNAL_PROCESSING_SYSTEM_SOURCE = 'external_processor'
@@ -90,17 +92,25 @@ def problem_comment_tail(message: str | None) -> str:
     return text_value[-PROBLEM_COMMENT_LIMIT:]
 
 
-def ensure_upd_company(order: Order) -> None:
+def ensure_upd_company(order: Order) -> bool:
     """Закрепить за заказом компанию, от которой он проводится и от которой придёт УПД.
 
     Ставится один раз. При повторной выдаче после таймаута компания не меняется -
     иначе УПД пришёл бы от другого юрлица, чем то, под которым шла модерация.
+
+    Компанию выдаёт Тезаурус по кругу, и каждый вызов сдвигает очередь раздачи,
+    поэтому запрашиваем строго при первой подготовке заказа.
     """
     if order.upd_company_inn or order.upd_company_name:
-        return
-    company = pick_upd_company(category=order.category, order_id=order.id)
-    order.upd_company_name = company.display_name
-    order.upd_company_inn = company.inn
+        return True
+
+    company = select_company_for_order(order)
+    if company is None:
+        return False
+
+    order.upd_company_name = company.get("title")
+    order.upd_company_inn = company.get("inn") or ""
+    return True
 
 
 # Номер УПД приходит извне и кладётся в String(100): длиннее - StringDataRightTruncation
@@ -745,63 +755,40 @@ def acknowledge_problem_order(order_id: int, body: dict, external_processor: Ext
     return True, 'acknowledged'
 
 
-def _order_positions_without_rd(order: Order) -> int:
-    """Сколько позиций заказа осталось без разрешительной документации."""
-    missing = 0
-    for category_attr in ('shoes', 'clothes', 'socks', 'linen', 'parfum', 'cosmetics'):
-        for position in getattr(order, category_attr, None) or ():
-            if not getattr(position, 'rd_name', None) and not getattr(position, 'rd_date', None):
-                missing += 1
-    return missing
-
-
 def prevalidate_order(order: Order) -> tuple[bool, str]:
-    """Подготовить заказ к выдаче: закрепить компанию и добить недостающую РД.
+    """Подготовить заказ к выдаче: подобрать РД, затем закрепить компанию.
+
+    Порядок обязателен. Подбор РД повторять безопасно, а выбор компании сдвигает
+    очередь раздачи на стороне Тезауруса - поэтому его вызываем только после того,
+    как заказ полностью укомплектован документами. Заказ, ушедший в проблему
+    из-за РД, компанию не тратит.
 
     Возвращает (готов, сообщение). Заказ без отметки превалидации в выдачу не попадает.
     """
-    ensure_upd_company(order)
-
-    missing_rd = _order_positions_without_rd(order)
-    if missing_rd:
-        # ponytail: подбор РД через Тезаурус ещё не подключён - у них нет такого метода,
-        # см. docs/litemark-todo.md, пункт 2. Пока фиксируем факт и пропускаем заказ дальше:
-        # блокировать выдачу до появления подбора значит остановить весь поток.
-        # Когда метод появится - здесь вызов подбора, а при неудаче return False.
-        return True, f'РД отсутствует у позиций: {missing_rd}. Автоподбор пока не подключен'
-
-    return True, 'Превалидация пройдена'
-
-
-def _promote_to_pool(order: Order) -> None:
-    """Перевести подготовленный заказ в пул - то же, что делает ручное действие «Новые → ПУЛ»."""
-    order.stage = settings.OrderStage.POOL
-    order.p_started = _now()
-
-    # строку статистики для NEW-заказов создаёт именно этот переход; у заказов,
-    # попавших в пул сразу при отправке, она уже есть, а order_idn там уникален
-    from utilities.support import create_order_stats
-
-    already = db.session.query(
-        db.session.query(OrderStat.id).filter(OrderStat.order_idn == order.order_idn).exists()
-    ).scalar()
-    if not already:
-        create_order_stats(order_info=order)
-
-
-def _notify_pool(order: Order) -> None:
-    """Уведомить клиента так же, как при ручном переводе в пул."""
     try:
-        from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
+        rd_ready, rd_message = match_order_rd(order)
+    except TezaurusConfigurationError as exc:
+        # Тезаурус не настроен - это проблема развёртывания, а не заказа
+        logger.error("Подбор РД недоступен: %s", exc)
+        return False, f"Подбор РД недоступен: {exc}"
+    except TezaurusApiError as exc:
+        logger.exception("Ошибка подбора РД в Тезаурусе, order_id=%s", order.id)
+        return False, f"Тезаурус не смог подобрать РД: {exc}"
 
-        helper_send_user_order_tg_notify(
-            user_id=order.user_id,
-            order_idn=order.order_idn,
-            order_stage=settings.OrderStage.POOL,
-        )
-    except Exception:
-        # уведомление не должно ломать конвейер
-        logger.exception('Не удалось отправить уведомление о переводе заказа в пул, order_id=%s', order.id)
+    if not rd_ready:
+        return False, rd_message
+
+    try:
+        company_ready = ensure_upd_company(order)
+    except (TezaurusApiError, TezaurusConfigurationError) as exc:
+        logger.exception("Ошибка выбора компании в Тезаурусе, order_id=%s", order.id)
+        return False, f"Не удалось выбрать компанию обработки: {exc}"
+
+    if not company_ready:
+        return False, ("Тезаурус не нашёл компанию обработки под категорию и происхождение "
+                       "заказа. Нужна настройка компаний на стороне Тезауруса")
+
+    return True, rd_message
 
 
 def prevalidate_pending_orders(limit: int = 100) -> int:

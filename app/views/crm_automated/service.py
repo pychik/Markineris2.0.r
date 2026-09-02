@@ -30,6 +30,7 @@ from utilities.pdf_processor import helper_check_attached_file
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.telegram import MarkinerisInform
 from utilities.support import is_automated_crm_order
+from tezaurus.order_matching import collect_positions_without_rd
 from views.api.integration_service import log_order_event
 from ..crm.crm_support import h_cancel_order_process_payment
 from ..crm.helpers import check_order_file, helper_create_filename, of_delete_remove
@@ -890,6 +891,25 @@ def delete_automated_file_response(o_id: int):
         return jsonify({'status': settings.ERROR, 'message': settings.Messages.ORDER_DELETE_FILE_ERROR})
 
 
+def _pool_transition_blocker(order: Order) -> Optional[str]:
+    """Почему заказ нельзя вернуть в пул. None - можно.
+
+    Ровно те же требования, что и у автоматической превалидации: РД на каждой
+    позиции и закреплённая компания обработки.
+    """
+    missing_rd = collect_positions_without_rd(order)
+    if missing_rd:
+        names = ', '.join(sorted({(p.type or str(p.id)) for p in missing_rd})[:5])
+        return (f'Нельзя вернуть в пул: не проставлена РД у {len(missing_rd)} позиций ({names}). '
+                'Заполните документацию по всем позициям заказа')
+
+    if not order.upd_company_name:
+        return ('Нельзя вернуть в пул: не закреплена компания обработки. '
+                'Укажите ее через кнопку УПД в карточке заказа')
+
+    return None
+
+
 def move_automated_order_to_stage(user: User, o_id: int, target_stage: int, stage_comment: str = '') -> tuple[bool, str]:
     if target_stage not in AUTOMATED_MOVE_TARGET_STAGES:
         return False, f'{settings.Messages.ORDER_CHANGE_STAGE_ERROR} Invalid stage: {target_stage}'
@@ -913,6 +933,14 @@ def move_automated_order_to_stage(user: User, o_id: int, target_stage: int, stag
     if target_stage == settings.OrderStage.CRM_PROCESSED:
         if not order.order_zip_file or (not order.order_zip_file.file_system_name and not order.order_zip_file.file_link):
             return False, 'В обработано нельзя перевести заказ без прикрепленного файла'
+
+    if target_stage == settings.OrderStage.POOL:
+        # В пуле не бывает неукомплектованного заказа: внешний обработчик забирает
+        # его как есть и без РД упрётся на регистрации карточек, а без компании
+        # неизвестно, от какого юрлица выставлять УПД.
+        blocker = _pool_transition_blocker(order)
+        if blocker:
+            return False, blocker
 
     try:
         if target_stage == settings.OrderStage.CANCELLED and previous_stage != settings.OrderStage.CANCELLED and order.payment:
@@ -939,6 +967,10 @@ def move_automated_order_to_stage(user: User, o_id: int, target_stage: int, stag
             order.object_key = None
             order.confirmed_at = None
             order.sent_at = None
+            order.problem_notified_at = None
+            order.problem_ack_at = None
+            # заказ укомплектован вручную - ставим отметку, иначе выдача его не увидит
+            order.prevalidated_at = order.prevalidated_at or now
         elif target_stage == settings.OrderStage.MANAGER_PROBLEM:
             order.manager_id = order.manager_id or user.id
             order.external_problem = True
