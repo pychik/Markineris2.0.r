@@ -4,8 +4,9 @@ function cosmetics_perform_pos_add(async_flag, url) {
     var serviceLifePeriodValid = cosmetics_check_service_life_period();
     var tnvedValid = cosmetics_check_tnved();
     var fullNameValid = cosmetics_validate_full_name_requirements();
+    var razorSwitchValid = cosmetics_validate_razor_switch();
 
-    if ((pos_form.checkValidity === true || pos_form.checkValidity()) && crd && serviceLifePeriodValid && tnvedValid && fullNameValid) {
+    if ((pos_form.checkValidity === true || pos_form.checkValidity()) && crd && serviceLifePeriodValid && tnvedValid && fullNameValid && razorSwitchValid) {
         if (async_flag === 0) {
             loadingCircle();
             pos_form.submit();
@@ -36,12 +37,7 @@ function cosmetics_perform_pos_add(async_flag, url) {
         }
 
         if (serviceLifePeriodValid === false) {
-            const dateToEl = document.getElementById('sl_date_to');
-            if (dateToEl) {
-                dateToEl.classList.remove('is-valid');
-                dateToEl.classList.add('is-invalid');
-            }
-            errors_list.push('Период годности. Заполните "Дату от" и "Дату до". "Дата до" не может быть позже, чем "Дата от" плюс указанный срок годности в месяцах.');
+            errors_list.push('Период годности. Заполните "Дату от" и "Дату до". "Дата от" не может быть позже текущей даты более чем на 1 день; "Дата до" не может быть раньше "Дата от" или позже, чем "Дата от" плюс указанный срок годности в месяцах.');
         }
 
         if (tnvedValid === false) {
@@ -50,6 +46,10 @@ function cosmetics_perform_pos_add(async_flag, url) {
 
         if (fullNameValid === false) {
             errors_list.push('Полное наименование. Если выбран вариант "БЕЗ ТОВАРНОГО ЗНАКА", заполните поле "Дополнить полное наименование". Иначе полное наименование состоит только из вида товара, так нельзя.');
+        }
+
+        if (razorSwitchValid === false) {
+            errors_list.push('Бритвы и лезвия. Проверьте положение переключателя "Бритва со сменными лезвиями / кассетами", ТН ВЭД, количество лезвий и комплектацию.');
         }
 
         show_form_errors(errors_list);
@@ -233,6 +233,24 @@ function cosmetics_check_tnved() {
 function getCurrentCosmeticsAllowedTnvedCodes() {
     const typeEl = document.getElementById('type');
     const productType = typeEl ? String(typeEl.value || '').trim() : '';
+    if (cosmeticsIsRazorSubcategory()) {
+        const replaceableTnvedCode = String(window.COSMETICS_REPLACEABLE_RAZOR_TNVED_CODE || '').trim();
+        const replaceableSwitchEl = document.getElementById('replaceable_razor_switch');
+        const standardMapping = window.COSMETICS_STANDARD_TNVED_CODES_BY_PRODUCT_TYPE || {};
+        const standardCodes = Array.isArray(standardMapping[productType]) ? standardMapping[productType] : null;
+
+        if (replaceableSwitchEl && replaceableSwitchEl.checked && replaceableTnvedCode) {
+            return [replaceableTnvedCode];
+        }
+
+        if (standardCodes && standardCodes.length) {
+            return standardCodes;
+        }
+
+        return (Array.isArray(window.COSMETICS_ALLOWED_TNVED_CODES) ? window.COSMETICS_ALLOWED_TNVED_CODES : [])
+            .filter((code) => String(code || '').trim() !== replaceableTnvedCode);
+    }
+
     const mapping = window.COSMETICS_TNVED_CODES_BY_PRODUCT_TYPE || {};
     const mappedCodes = Array.isArray(mapping[productType]) ? mapping[productType] : null;
 
@@ -566,6 +584,13 @@ function cosmetics_parse_ru_date(dateStr) {
     return date;
 }
 
+function cosmetics_max_date_from() {
+    const date = new Date();
+    date.setHours(12, 0, 0, 0);
+    date.setDate(date.getDate() + 1);
+    return date;
+}
+
 function cosmetics_check_service_life_period() {
     const serviceLifeEl = document.getElementById('service_life');
     const dateFromEl = document.getElementById('sl_date_from');
@@ -578,6 +603,7 @@ function cosmetics_check_service_life_period() {
     const serviceLife = Number(serviceLifeEl.value);
     const dateFrom = cosmetics_parse_ru_date(dateFromEl.value);
     const dateTo = cosmetics_parse_ru_date(dateToEl.value);
+    const maxDateFrom = cosmetics_max_date_from();
 
     dateFromEl.classList.remove('is-invalid');
     dateToEl.classList.remove('is-invalid');
@@ -592,8 +618,8 @@ function cosmetics_check_service_life_period() {
         return false;
     }
 
-    if (!Number.isFinite(serviceLife) || serviceLife < 0 || !dateFrom || !dateTo) {
-        if (!dateFrom) {
+    if (!Number.isFinite(serviceLife) || serviceLife < 0 || !dateFrom || !dateTo || dateFrom > maxDateFrom) {
+        if (!dateFrom || dateFrom > maxDateFrom) {
             dateFromEl.classList.add('is-invalid');
         }
         if (!dateTo) {
@@ -605,7 +631,7 @@ function cosmetics_check_service_life_period() {
     const maxDate = new Date(dateFrom.getTime());
     maxDate.setMonth(maxDate.getMonth() + serviceLife);
 
-    if (dateTo > maxDate) {
+    if (dateTo < dateFrom || dateTo > maxDate) {
         dateToEl.classList.add('is-invalid');
         return false;
     }
@@ -747,6 +773,11 @@ function cosmeticsUpdateNominalQuantityTypeOptions() {
 }
 
 function cosmeticsShouldShowComplectation() {
+    if (cosmeticsIsRazorSubcategory()) {
+        const switchEl = document.getElementById('replaceable_razor_switch');
+        return Boolean(switchEl && switchEl.checked);
+    }
+
     const typeEl = document.getElementById('type');
     const tnvedEl = document.getElementById('tnved_code');
     const triggerTypes = Array.isArray(window.COSMETICS_COMPLECTATION_TRIGGER_TYPES)
@@ -778,6 +809,152 @@ function cosmeticsToggleComplectationBlock() {
     }
 }
 
+function cosmeticsIsRazorSubcategory() {
+    return window.COSMETICS_IS_RAZOR_SUBCATEGORY === true || Boolean(document.getElementById('replaceable_razor_switch'));
+}
+
+function cosmeticsTriggerSelectChange(selectEl) {
+    if (!selectEl || typeof window.jQuery === 'undefined') {
+        return;
+    }
+
+    const $selectEl = window.jQuery(selectEl);
+    $selectEl.trigger('change');
+    $selectEl.trigger('change.select2');
+}
+
+function cosmeticsSetProductTypeOptions(allowedTypes) {
+    const typeEl = document.getElementById('type');
+    if (!typeEl || !Array.isArray(allowedTypes) || !allowedTypes.length) {
+        return;
+    }
+
+    const currentValue = String(typeEl.value || '').trim();
+    typeEl.innerHTML = '';
+
+    const placeholderOpt = document.createElement('option');
+    placeholderOpt.value = '';
+    placeholderOpt.textContent = 'Выберите из списка..';
+    placeholderOpt.disabled = true;
+    placeholderOpt.selected = true;
+    typeEl.appendChild(placeholderOpt);
+
+    allowedTypes.forEach((item) => {
+        const option = document.createElement('option');
+        option.value = item;
+        option.textContent = item;
+        if (currentValue === item) {
+            option.selected = true;
+            placeholderOpt.selected = false;
+        }
+        typeEl.appendChild(option);
+    });
+
+    if (!allowedTypes.includes(currentValue)) {
+        typeEl.value = '';
+    }
+
+    cosmeticsTriggerSelectChange(typeEl);
+}
+
+function cosmeticsToggleRazorExtraFields() {
+    if (!cosmeticsIsRazorSubcategory()) {
+        return;
+    }
+
+    const switchEl = document.getElementById('replaceable_razor_switch');
+    const extraRowEl = document.getElementById('razor_extra_fields_row');
+    const bladeCountBlockEl = document.getElementById('blade_count_block');
+    const bladeCountEl = document.getElementById('blade_count');
+    const shouldShow = Boolean(switchEl && switchEl.checked);
+
+    if (extraRowEl) {
+        extraRowEl.style.display = shouldShow ? '' : 'none';
+    }
+
+    if (bladeCountBlockEl) {
+        bladeCountBlockEl.style.display = shouldShow ? '' : 'none';
+    }
+
+    if (bladeCountEl) {
+        bladeCountEl.required = shouldShow;
+        if (shouldShow && !String(bladeCountEl.value || '').trim()) {
+            bladeCountEl.value = '1';
+        }
+        if (!shouldShow) {
+            bladeCountEl.value = '';
+            bladeCountEl.classList.remove('is-valid', 'is-invalid');
+            bladeCountEl.setCustomValidity('');
+        }
+    }
+
+    cosmeticsToggleComplectationBlock();
+}
+
+function cosmeticsApplyRazorSwitchState(forceTnved = false) {
+    if (!cosmeticsIsRazorSubcategory()) {
+        return;
+    }
+
+    const switchEl = document.getElementById('replaceable_razor_switch');
+    const tnvedEl = document.getElementById('tnved_code');
+    const replaceableTnvedCode = String(window.COSMETICS_REPLACEABLE_RAZOR_TNVED_CODE || '').trim();
+    const isReplaceable = Boolean(switchEl && switchEl.checked);
+    const allowedTypes = isReplaceable
+        ? window.COSMETICS_REPLACEABLE_RAZOR_PRODUCT_TYPES
+        : window.COSMETICS_STANDARD_RAZOR_PRODUCT_TYPES;
+
+    if (switchEl) {
+        switchEl.classList.toggle('bg-warning', isReplaceable);
+    }
+
+    cosmeticsSetProductTypeOptions(allowedTypes);
+
+    if (tnvedEl && replaceableTnvedCode) {
+        const currentCode = String(tnvedEl.value || '').trim();
+        if (isReplaceable && (forceTnved || !currentCode || currentCode !== replaceableTnvedCode)) {
+            tnvedEl.value = replaceableTnvedCode;
+        }
+        if (!isReplaceable && currentCode === replaceableTnvedCode) {
+            tnvedEl.value = '';
+        }
+    }
+
+    syncCosmeticsTnvedByProductType(forceTnved);
+    cosmeticsUpdateCategoryCode();
+    cosmeticsToggleRazorExtraFields();
+    cosmetics_validate_razor_switch();
+}
+
+function cosmetics_validate_razor_switch() {
+    if (!cosmeticsIsRazorSubcategory()) {
+        return true;
+    }
+
+    const switchEl = document.getElementById('replaceable_razor_switch');
+    const tnvedEl = document.getElementById('tnved_code');
+    const bladeCountEl = document.getElementById('blade_count');
+    const complectationEl = document.getElementById('complectation');
+    const replaceableTnvedCode = String(window.COSMETICS_REPLACEABLE_RAZOR_TNVED_CODE || '').trim();
+    const isReplaceable = Boolean(switchEl && switchEl.checked);
+    const tnvedCode = tnvedEl ? String(tnvedEl.value || '').trim() : '';
+    const bladeCount = bladeCountEl ? Number(bladeCountEl.value) : 0;
+    const complectation = complectationEl ? String(complectationEl.value || '').trim() : '';
+    let valid = true;
+
+    if (switchEl) {
+        switchEl.classList.remove('is-invalid');
+    }
+
+    if (isReplaceable) {
+        valid = tnvedCode === replaceableTnvedCode && Number.isFinite(bladeCount) && bladeCount > 0 && Boolean(complectation);
+    } else {
+        valid = tnvedCode !== replaceableTnvedCode;
+    }
+
+    return valid;
+}
+
 function toggleCosmeticsFullNameExtra(switchEl) {
     const extraBlock = document.getElementById('full_name_extra_block');
     const extraInput = document.getElementById('full_name_extra');
@@ -804,7 +981,15 @@ function show_cosmetics_pos(index, full_name, trademark, type, nominal_quantity,
                             quantity, country, tnved_code, subcategory, rd_name, edit_link, copy_link, delete_link, csrf_token) {
     let main = document.getElementById('ShowModalTable');
     main.innerHTML = '';
+    const blankValue = function (value) {
+        const cleaned = String(value ?? '').trim();
+        return ['none', 'null', 'undefined'].includes(cleaned.toLowerCase()) ? '' : cleaned;
+    };
+    content_type = blankValue(content_type);
+    complectation = blankValue(complectation);
+    content = blankValue(content);
     const isRazorSubcategory = String(subcategory || '').trim() === 'razor_blades_and_cassettes';
+    const isReplaceableRazor = isRazorSubcategory && String(tnved_code || '').trim() === '8212109000';
     const contentLabel = cosmeticsResolveContentLabelForValues(type, tnved_code);
     const shouldShowForChildren = !isRazorSubcategory && window.COSMETICS_FOR_CHILDREN_ENABLED !== false;
     const shouldShowContent = !isRazorSubcategory && window.COSMETICS_CONTENT_VALUE_ENABLED !== false;
@@ -818,13 +1003,13 @@ function show_cosmetics_pos(index, full_name, trademark, type, nominal_quantity,
                     ${contentTypeBlock}
                     <div class="important-card__item" style="overflow: auto"><div class="important-card__prop">${contentLabel || 'Состав'}</div><div class="important-card__val">${content || ''}</div></div>
     `;
-    const bladeCountBlock = isRazorSubcategory ? `
+    const bladeCountBlock = isReplaceableRazor ? `
                     <div class="important-card__item"><div class="important-card__prop">Количество лезвий</div><div class="important-card__val">${blade_count || ''}</div></div>
     ` : '';
     const layersCharacteristicBlock = layers_characteristic ? `
                     <div class="important-card__item"><div class="important-card__prop">Кол-во слоев</div><div class="important-card__val">${layers_characteristic}</div></div>
     ` : '';
-    const complectationBlock = complectation ? `
+    const complectationBlock = isReplaceableRazor && complectation ? `
                     <div class="important-card__item" style="overflow: auto"><div class="important-card__prop">Комплектация</div><div class="important-card__val">${complectation}</div></div>
     ` : '';
 
@@ -1010,6 +1195,10 @@ async function cosmetics_update_table(page) {
 
 function cosmetics_clear_pos() {
     const defaultTnvedCode = String(window.COSMETICS_DEFAULT_TNVED_CODE || '').trim();
+    const replaceableRazorSwitch = document.getElementById('replaceable_razor_switch');
+    if (replaceableRazorSwitch) {
+        replaceableRazorSwitch.checked = false;
+    }
     $('#trademark').val("");
     $('#full_name_extra').val("");
     $('#type').val('').trigger("change");
@@ -1050,6 +1239,7 @@ function cosmetics_clear_pos() {
     cosmeticsUpdateNominalQuantityTypeOptions();
     cosmeticsUpdateCategoryCode();
     cosmeticsToggleContentTypeBlock();
+    cosmeticsApplyRazorSwitchState(false);
     cosmeticsToggleComplectationBlock();
     cosmeticsToggleForChildrenBlock();
 }
@@ -1074,9 +1264,17 @@ document.addEventListener("DOMContentLoaded", function () {
     if (productTypeEl) {
         productTypeEl.addEventListener('change', cosmeticsUpdateNominalQuantityTypeOptions);
         productTypeEl.addEventListener('change', cosmeticsToggleComplectationBlock);
+        productTypeEl.addEventListener('change', cosmeticsToggleRazorExtraFields);
         productTypeEl.addEventListener('change', function () {
             syncCosmeticsTnvedByProductType(true);
             cosmetics_validate_full_name_requirements();
+        });
+    }
+
+    const replaceableRazorSwitch = document.getElementById('replaceable_razor_switch');
+    if (replaceableRazorSwitch) {
+        replaceableRazorSwitch.addEventListener('change', function () {
+            cosmeticsApplyRazorSwitchState(true);
         });
     }
 
@@ -1094,6 +1292,7 @@ document.addEventListener("DOMContentLoaded", function () {
     cosmetics_check_tnved();
     cosmeticsUpdateCategoryCode();
     cosmeticsToggleContentTypeBlock();
+    cosmeticsApplyRazorSwitchState(false);
     cosmeticsToggleComplectationBlock();
     cosmeticsToggleForChildrenBlock();
 

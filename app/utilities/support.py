@@ -497,6 +497,8 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
 def helper_category_common_index(o_id: int, category: str, category_process_name: str, user: User,
                                  update_flag: int = None, **kwargs):
     with_packages = False
+    subcategory = kwargs.get('subcategory')
+    index_kwargs = {'subcategory': subcategory} if subcategory else {}
     active_orders = get_category_p_orders(user=user, category=category, subcategory=kwargs.get('subcategory'), processed=False)
 
     # if not specific order
@@ -505,9 +507,7 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
             specific_order = True
             o_id = active_orders[0].id
             flash(message=settings.Messages.USER_ORDERS_LIMIT, category='warning')
-            return redirect(url_for(f'{category_process_name}.index', o_id=o_id))
-
-        subcategory = kwargs.get('subcategory')
+            return redirect(url_for(f'{category_process_name}.index', o_id=o_id, **index_kwargs))
 
         # else:
         #     order_list, company_type, company_name, company_idn, \
@@ -523,15 +523,17 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
             edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
             total_price, price_exist, subcategory = orders_list_common(category=category, user=user, o_id=o_id)
         mark_type_hidden = mark_type
+        index_kwargs = {'subcategory': subcategory} if subcategory else {}
         if not orders:
             flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
-            return redirect(url_for(f'{category_process_name}.index'))
+            return redirect(url_for(f'{category_process_name}.index', **index_kwargs))
 
         if update_flag:
             return order_table_update(user=current_user, o_id=o_id, category=category)
 
         link = f'javascript:{category_process_name}_update_table(\'' + url_for(f'{category_process_name}.index', o_id=o_id,
-                                                            update_flag=1) + '?page={0}\');'
+                                                            update_flag=1,
+                                                            **index_kwargs) + '?page={0}\');'
         page, per_page, offset, pagination, order_list = helper_paginate_data(data=orders, href=link)
         with_packages = order_list[-1].with_packages if category not in [settings.Clothes.CATEGORY,
                                                                          settings.Socks.CATEGORY, ] \
@@ -1011,6 +1013,8 @@ def helper_delete_order_pos(o_id: int, m_id: int, category: str, model: db.Model
     cat_list = model.query.with_entities(model.id).filter_by(order_id=o_id).all()
     pos_exists = model.query.with_entities(model.id).filter_by(id=m_id, order_id=o_id).first()
     subcategory = request.args.get('subcategory', '')
+    if not subcategory and request.view_args:
+        subcategory = request.view_args.get('subcategory', '')
     if not Category.check_subcategory(category=category, subcategory=subcategory):
         return jsonify(
             dict(status='error', message=settings.Messages.STRANGE_REQUESTS + ' нет такой подкатегории'))
@@ -1568,15 +1572,29 @@ def helper_process_category_order(user: User, order: Order, category: str, order
         flash(message=settings.Messages.EMPTY_ORDER, category='error')
         return redirect(url_for(f'{_category_name}.index'))
     o_id = order.id
+    subcategory = get_subcategory(order_id=o_id, category=category)
+    redirect_kwargs = {'subcategory': subcategory} if subcategory else {}
 
     if not validate_order_comment_length(order_comment=order_comment):
-        return redirect(url_for(f'{_category_name}.index', o_id=o_id))
+        return redirect(url_for(f'{_category_name}.index', o_id=o_id, **redirect_kwargs))
 
     # check for company_idn exception
     company_idn = order.company_idn
     if company_idn in ExceptionDataUsers.get_company_idns():
         flash(message=settings.ExceptionOrders.COMPANY_IDN_ERROR.format(company_idn=company_idn), category='error')
-        return redirect(url_for(f'{_category_name}.index', o_id=o_id))
+        return redirect(url_for(f'{_category_name}.index', o_id=o_id, **redirect_kwargs))
+
+    _, order_mark_count = get_rows_marks(o_id=o_id, category=category)
+    client_order_checked = request.form.get("client_order_checked") == "1"
+    if order_mark_count > settings.CLIENT_MARK_QUANTITY and not client_order_checked:
+        flash(
+            Markup(
+                "Заказ не передан на оформление. Для заказов больше "
+                f"{settings.CLIENT_MARK_QUANTITY} маркировок подтвердите, что заказ проверен."
+            ),
+            category='error',
+        )
+        return redirect(url_for(f'{_category_name}.index', o_id=o_id, **redirect_kwargs))
 
     status_balance, total_order_price, agent_at2, message_balance = helper_check_uoabm(user=current_user, o_id=o_id)
     if status_balance == 0:
@@ -1622,8 +1640,6 @@ def helper_process_category_order(user: User, order: Order, category: str, order
 
         # notify markineris common group
         MarkinerisInform.send_message_tg.delay(order_idn=order_idn)
-
-    subcategory = get_subcategory(order_id=o_id, category=category)
 
     return redirect(url_for(f'{_category_name}.index', subcategory=subcategory))
 

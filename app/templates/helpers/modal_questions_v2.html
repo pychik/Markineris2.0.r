@@ -13,6 +13,23 @@
                 {{ order_notification | safe }}
                 <b class="d-flex justify-content-between">Количество маркировок в заказе<div id="modal_orders_pos_count"><span>{{orders_pos_count}}</span>шт.</div>
                     </b>
+                <div id="client_mark_confirmation_block"
+                     class="client-mark-confirmation"
+                     data-client-mark-limit="30000"
+                    {% if not orders_pos_count or orders_pos_count <= 30000 %}style="display:none"{% endif %}>
+                    <p class="dedicated mt-3 mb-0 client-mark-confirmation__text">
+                        Клиент несет ответственность за корректность собранного заказа.
+                    </p>
+                    <div class="form-check form-switch mt-3 mb-0">
+                        <input class="form-check-input border border-warning"
+                               type="checkbox"
+                               role="switch"
+                               id="client_mark_confirmation"
+                               onchange="update_client_mark_confirmation_state();">
+                        <label class="form-check-label" for="client_mark_confirmation">Заказ мной проверен</label>
+                    </div>
+                    <div id="client_mark_confirmation_error" class="text-danger small mt-2"></div>
+                </div>
 
                 <div id="data_order_check_insert">
 
@@ -36,6 +53,23 @@
         </div>
     </div>
 </div>
+
+<style>
+    .client-mark-confirmation {
+        border-bottom: 2px solid #ffe000;
+        margin-top: 6px;
+        padding: 6px 0 12px;
+        color: #575757;
+    }
+
+    .client-mark-confirmation__text {
+        line-height: 1.35;
+    }
+
+    .client-mark-confirmation .dedicated::after {
+        display: none;
+    }
+</style>
 
 {% if specific_order %}
     <div class="modal fade" id="clean_ordersModal" tabindex="-1" role="dialog" aria-labelledby="clean_ordersModalLabel" aria-hidden="true">

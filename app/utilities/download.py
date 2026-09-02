@@ -594,7 +594,54 @@ class ParfumProcessor(OrdersProcessor):
 
 class CosmeticsProcessor(OrdersProcessor):
     RAZOR_SUBCATEGORY = "razor_blades_and_cassettes"
+    RAZOR_REPLACEABLE_TNVED_CODE = "8212109000"
     TOOTH_SUBCATEGORY = "cosmetics_tooth"
+    NAILS_SUBCATEGORY = "cosmetics_nails"
+    BLANK_STRING_VALUES = {"none", "null", "undefined"}
+    NAILS_START_EXT = [
+        ['Код товара', 'Код ТНВЭД', 'Код категории', 'Полное наименование товара', 'Товарный знак',
+         'Номинальное количество', 'Номинальное количество', 'Вид товара', 'Предназначено для детей',
+         'Характеристика срока использования товара', 'Состав товара', 'Состав товара', 'Комплектация',
+         'Срок службы товара', 'Срок службы товара', 'Код ТНВЭД',
+         'Статус карточки товара в Каталоге', 'Результат обработки данных в Каталоге',
+         '', '', '', '', '', ''],
+        ['GTIN', 'Tnved', 'k3', '2478', '2504', '23820', '23820', '12', '15823', '23513',
+         '23847', '23847', '28', '23515', '23515', '13933', 'status', 'result',
+         '', '', '', 'количество', 'страна', 'сертификация'],
+        ['value', 'value', 'value', 'value', 'value', 'type', 'value', 'value', 'value', 'value',
+         'type', 'value', 'value', 'type', 'value', 'value', 'value', 'value',
+         '', '', '', 'количество', 'страна', 'сертификация'],
+        ['', '', 'Значение из справочника, id', 'Текстовое значение',
+         'Значение из справочника, Текстовое значение', 'Тип (из справочника)', 'Числовое значение',
+         'Значение из справочника, Текстовое значение', 'Значение из справочника, Текстовое значение',
+         'Значение из справочника, Текстовое значение', 'Тип (из справочника)', 'Текстовое значение',
+         'Текстовое значение', 'Тип (из справочника)', 'Числовое значение',
+         'Значение из справочника, Текстовое значение', 'Текстовое поле (Черновик или На модерации)',
+         'Заполняется автоматически при загрузке в систему', '', '', '', 'количество', 'страна',
+         'сертификация']
+    ]
+    NAILS_PRELOAD_START = [
+        'Код ТНВЭД',
+        'Код категории',
+        'Полное_наименование_товара',
+        'Товарный знак',
+        'Тип ном._кол-ва',
+        'Номинальное_количество',
+        'Вид товара',
+        'Для детей',
+        'Хар-ка срока использования',
+        'Тип состава',
+        'Состав товара',
+        'Комплектация',
+        'Ед. срока службы',
+        'Срок службы',
+        'Код ТНВЭД',
+        'Дата_от',
+        'Дата_до',
+        'Количество',
+        'Страна',
+        'Декларация соответствия',
+    ]
     MATERIAL_WITH_CHILDREN_START_EXT = [
         ['Код товара', 'Код ТНВЭД', 'Код категории', 'Полное наименование товара', 'Товарный знак',
          'Номинальное количество', 'Номинальное количество', 'Вид товара', 'Предназначено для детей',
@@ -738,6 +785,17 @@ class CosmeticsProcessor(OrdersProcessor):
     def is_tooth_subcategory(cls, subcategory: str | None) -> bool:
         return str(subcategory or '').strip() == cls.TOOTH_SUBCATEGORY
 
+    @classmethod
+    def is_nails_subcategory(cls, subcategory: str | None) -> bool:
+        return str(subcategory or '').strip() == cls.NAILS_SUBCATEGORY
+
+    @classmethod
+    def clean_optional_value(cls, value) -> str:
+        cleaned = str(value or '').strip()
+        if cleaned.lower() in cls.BLANK_STRING_VALUES:
+            return ''
+        return cleaned
+
     @staticmethod
     def get_subcategory_config(subcategory: str | None) -> dict | None:
         from views.main.categories.cosmetics.subcategories import get_subcategory_config
@@ -816,6 +874,8 @@ class CosmeticsProcessor(OrdersProcessor):
             return copy(settings.Cosmetics.START_EXT_RAZOR)
         if self.is_tooth_subcategory(first_subcategory):
             return copy(self.TOOTH_START_EXT)
+        if self.is_nails_subcategory(first_subcategory):
+            return copy(self.NAILS_START_EXT)
         if self.is_material_with_children_and_layers_subcategory(first_subcategory):
             return copy(self.TOILET_PAPER_START_EXT)
         if self.is_material_no_children_subcategory(first_subcategory):
@@ -836,9 +896,12 @@ class CosmeticsProcessor(OrdersProcessor):
             category_code = CosmeticsProcessor.get_category_code(el.subcategory, el.tnved_code)
             certification = CosmeticsProcessor.get_certification(el)
             children_value = CosmeticsProcessor.get_children_value(el)
-            content = OrdersProcessor.normalize_export_content(el.content)
+            content = OrdersProcessor.normalize_export_content(CosmeticsProcessor.clean_optional_value(el.content))
+            content_type = CosmeticsProcessor.clean_optional_value(el.content_type)
+            complectation = CosmeticsProcessor.clean_optional_value(el.complectation)
 
             if CosmeticsProcessor.is_razor_subcategory(el.subcategory):
+                is_replaceable_razor = str(el.tnved_code or '').strip() == CosmeticsProcessor.RAZOR_REPLACEABLE_TNVED_CODE
                 temp_list = [
                     '',
                     el.tnved_code,
@@ -848,8 +911,8 @@ class CosmeticsProcessor(OrdersProcessor):
                     el.nominal_quantity_type,
                     el.nominal_quantity,
                     el.type,
-                    el.blade_count,
-                    el.complectation,
+                    el.blade_count if is_replaceable_razor else '',
+                    complectation if is_replaceable_razor else '',
                     el.usage_term_type,
                     'мес',
                     el.service_life,
@@ -864,7 +927,7 @@ class CosmeticsProcessor(OrdersProcessor):
                 ]
             elif CosmeticsProcessor.is_tooth_subcategory(el.subcategory):
                 tnved_code = str(el.tnved_code or '').strip()
-                content_type = el.content_type if tnved_code in ('3306100000', '3306900000') else ''
+                content_type = content_type if tnved_code in ('3306100000', '3306900000') else ''
                 content_product = content if tnved_code in ('3306100000', '3306900000') else ''
                 content_material = content if tnved_code in ('3306200000', '9603210000') else ''
                 temp_list = [
@@ -881,6 +944,33 @@ class CosmeticsProcessor(OrdersProcessor):
                     content_type,
                     content_product,
                     content_material,
+                    'мес',
+                    el.service_life,
+                    el.tnved_code,
+                    '',
+                    '',
+                    el.sl_date_from.strftime('%d.%m.%Y') if el.sl_date_from else '',
+                    el.sl_date_to.strftime('%d.%m.%Y') if el.sl_date_to else '',
+                    '',
+                    el.quantity,
+                    el.country,
+                    certification,
+                ]
+            elif CosmeticsProcessor.is_nails_subcategory(el.subcategory):
+                temp_list = [
+                    '',
+                    el.tnved_code,
+                    category_code,
+                    full_name,
+                    trademark,
+                    el.nominal_quantity_type,
+                    el.nominal_quantity,
+                    el.type,
+                    children_value,
+                    el.usage_term_type,
+                    content_type,
+                    content,
+                    complectation,
                     'мес',
                     el.service_life,
                     el.tnved_code,
@@ -979,7 +1069,7 @@ class CosmeticsProcessor(OrdersProcessor):
                     el.type,
                     children_value,
                     el.usage_term_type,
-                    el.content_type,
+                    content_type,
                     content,
                     'мес',
                     el.service_life,
@@ -1416,6 +1506,7 @@ def upload_errors_file(error_list: list) -> BytesIO:
 def _cosmetics_common_preload(company_idn: str, orders_list: list) -> tuple[list, list]:
     is_razor_preload = bool(orders_list) and CosmeticsProcessor.is_razor_subcategory(orders_list[0].subcategory)
     is_tooth_preload = bool(orders_list) and CosmeticsProcessor.is_tooth_subcategory(orders_list[0].subcategory)
+    is_nails_preload = bool(orders_list) and CosmeticsProcessor.is_nails_subcategory(orders_list[0].subcategory)
     is_material_with_children_and_layers_preload = bool(orders_list) and CosmeticsProcessor.is_material_with_children_and_layers_subcategory(orders_list[0].subcategory)
     is_material_no_children_preload = bool(orders_list) and CosmeticsProcessor.is_material_no_children_subcategory(orders_list[0].subcategory)
     is_material_with_children_preload = bool(orders_list) and CosmeticsProcessor.is_material_with_children_subcategory(orders_list[0].subcategory)
@@ -1444,6 +1535,8 @@ def _cosmetics_common_preload(company_idn: str, orders_list: list) -> tuple[list
             'Страна',
             'Декларация соответствия',
         ]
+    elif is_nails_preload:
+        start_list = copy(CosmeticsProcessor.NAILS_PRELOAD_START)
     elif is_material_with_children_and_layers_preload:
         start_list = copy(CosmeticsProcessor.TOILET_PAPER_PRELOAD_START)
     elif is_material_no_children_preload:
@@ -1501,6 +1594,29 @@ def _cosmetics_common_preload(company_idn: str, orders_list: list) -> tuple[list
                 x[23],  # Сертификация
             ]
         res_list = list(map(build_tooth_preload_row, res_list_raw))
+    elif is_nails_preload:
+        res_list = list(map(lambda x: [
+            x[1],   # Код ТНВЭД
+            x[2],   # Код категории
+            x[3],   # Полное наименование
+            x[4],   # Товарный знак
+            x[5],   # Тип ном. кол-ва
+            x[6],   # Номинальное количество
+            x[7],   # Вид товара
+            x[8],   # Для детей
+            x[9],   # Хар-ка срока использования
+            x[10],  # Тип состава
+            x[11],  # Состав товара
+            x[12],  # Комплектация
+            x[13],  # Ед. срока службы
+            x[14],  # Срок службы
+            x[15],  # Код ТНВЭД
+            x[18],  # Дата_от
+            x[19],  # Дата_до
+            x[21],  # Количество
+            x[22],  # Страна
+            x[23],  # Сертификация
+        ], res_list_raw))
     elif is_material_with_children_and_layers_preload:
         res_list = list(map(lambda x: [
             x[1],   # Код ТНВЭД

@@ -46,7 +46,7 @@ def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
                           with_packages=True if form_dict.get("with_packages") == "True" else False,
                           tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                           tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
-                          rd_name=form_dict.get("rd_name").replace('№', ''),
+                          rd_name=rd_name_clean(form_dict.get("rd_name")),
                           rd_date=rd_date)
 
     extend_sq = (ShoeQuantitySize(size=el[0], quantity=el[1]) for el in sizes_quantities)
@@ -68,7 +68,7 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcateg
                                 gender=form_dict.get("gender"), country=form_dict.get("country"),
                                 tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                                 tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
-                                rd_name=form_dict.get("rd_name").replace('№', ''),
+                                rd_name=rd_name_clean(form_dict.get("rd_name")),
                                 rd_date=rd_date, subcategory=subcategory if subcategory else ClothesSubcategories.common.value)
 
     extend_sq = (
@@ -96,7 +96,7 @@ def save_socks(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
                               gender=form_dict.get("gender"), country=form_dict.get("country"),
                               tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                               tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
-                              rd_name=form_dict.get("rd_name").replace('№', ''),
+                              rd_name=rd_name_clean(form_dict.get("rd_name")),
                               rd_date=rd_date)
     extend_sq = (
         SocksQuantitySize(size=el[0], quantity=el[1], size_type=get_socks_size_type(el[0], el[2]))
@@ -123,7 +123,7 @@ def save_linen(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
                             content=form_dict.get("content"), country=form_dict.get("country"),
                             tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                             tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
-                            rd_name=form_dict.get("rd_name").replace('№', ''),
+                            rd_name=rd_name_clean(form_dict.get("rd_name")),
                             rd_date=rd_date)
 
     if with_p == "True":
@@ -151,7 +151,7 @@ def save_parfum(order: Order, form_dict: dict) -> Order:
                               quantity=form_dict.get("quantity"), country=form_dict.get("country"),
                               tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                               tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
-                              rd_name=form_dict.get("rd_name").replace('№', ''),
+                              rd_name=rd_name_clean(form_dict.get("rd_name")),
                               rd_date=rd_date)
 
     append_or_merge_position(order.parfum, new_parfum_order, settings.Parfum.CATEGORY)
@@ -163,6 +163,15 @@ def save_cosmetics(order: Order, form_dict: dict, subcategory: str) -> Order:
     nominal_quantity_raw = form_dict.get("nominal_quantity")
     blade_count_raw = form_dict.get("blade_count")
     layers_characteristic = process_input_str(form_dict.get("layers_characteristic") or "")
+    content_type = process_input_str(form_dict.get("content_type"))
+    if content_type.lower() in {"none", "null", "undefined"}:
+        content_type = ""
+    content = process_input_str(form_dict.get("content"))
+    if content.lower() in {"none", "null", "undefined"}:
+        content = ""
+    complectation = process_input_str(form_dict.get("complectation"))
+    if complectation.lower() in {"none", "null", "undefined"}:
+        complectation = ""
 
     try:
         quantity = int(quantity_raw)
@@ -181,6 +190,10 @@ def save_cosmetics(order: Order, form_dict: dict, subcategory: str) -> Order:
     except (TypeError, ValueError):
         blade_count = None
 
+    if subcategory == "razor_blades_and_cassettes" and str(form_dict.get("tnved_code") or "").strip() != "8212109000":
+        blade_count = None
+        complectation = ""
+
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
     rd_date_to = datetime.strptime(form_dict.get("rd_date_to"), '%d.%m.%Y').date() if form_dict.get("rd_date_to") else None
     sl_date_from = datetime.strptime(form_dict.get("sl_date_from"), '%d.%m.%Y').date() if form_dict.get("sl_date_from") else None
@@ -195,7 +208,7 @@ def save_cosmetics(order: Order, form_dict: dict, subcategory: str) -> Order:
         article_price=form_dict.get("article_price"),
         tax=form_dict.get("tax"),
         rd_type=form_dict.get("rd_type"),
-        rd_name=(form_dict.get("rd_name") or "").replace('№', ''),
+        rd_name=rd_name_clean(form_dict.get("rd_name")),
         rd_date=rd_date,
         rd_date_to=rd_date_to,
         subcategory=subcategory,
@@ -203,12 +216,12 @@ def save_cosmetics(order: Order, form_dict: dict, subcategory: str) -> Order:
         nominal_quantity_type=form_dict.get("nominal_quantity_type"),
         quantity=quantity,
         blade_count=blade_count,
-        complectation=process_input_str(form_dict.get("complectation")),
+        complectation=complectation,
         layers_characteristic=layers_characteristic,
         for_children=form_dict.get("for_children") == "yes",
         usage_term_type=form_dict.get("usage_term_type"),
-        content_type=form_dict.get("content_type"),
-        content=form_dict.get("content"),
+        content_type=content_type,
+        content=content,
         service_life=form_dict.get("service_life") or None,
         sl_date_from=sl_date_from,
         sl_date_to=sl_date_to,

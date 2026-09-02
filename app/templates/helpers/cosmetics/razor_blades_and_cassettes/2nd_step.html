@@ -25,9 +25,18 @@
         window.COSMETICS_ALLOWED_TNVED_CODES = {{ allowed_tnved_codes | tojson }};
         window.COSMETICS_ALLOWED_TNVED_CHOICES = {{ allowed_tnved_choices | tojson }};
         window.COSMETICS_DEFAULT_TNVED_CODE = {{ (copied_order.tnved_code if copied_order and copied_order.tnved_code else '') | tojson }};
+        window.COSMETICS_CATEGORY_CODE = {{ category_code | tojson }};
+        window.COSMETICS_CATEGORY_CODE_BY_TNVED = {{ subcategory_config.get("category_code_by_tnved", {}) | tojson }};
+        window.COSMETICS_CONTENT_TYPE_ENABLED = {{ subcategory_config.get("content_type_enabled", true) | tojson }};
+        window.COSMETICS_CONTENT_VALUE_ENABLED = {{ subcategory_config.get("content_value_enabled", true) | tojson }};
         window.COSMETICS_COMPLECTATION_TRIGGER_TYPES = {{ subcategory_config.get("complectation_trigger_product_types", ()) | tojson }};
         window.COSMETICS_COMPLECTATION_TRIGGER_TNVEDS = {{ subcategory_config.get("complectation_trigger_tnved_codes", ()) | tojson }};
         window.COSMETICS_TNVED_CODES_BY_PRODUCT_TYPE = {{ subcategory_config.get("tnved_codes_by_product_type", {}) | tojson }};
+        window.COSMETICS_IS_RAZOR_SUBCATEGORY = true;
+        window.COSMETICS_STANDARD_TNVED_CODES_BY_PRODUCT_TYPE = {{ subcategory_config.get("standard_tnved_codes_by_product_type", {}) | tojson }};
+        window.COSMETICS_REPLACEABLE_RAZOR_TNVED_CODE = {{ subcategory_config.get("replaceable_razor_tnved_code", "") | tojson }};
+        window.COSMETICS_STANDARD_RAZOR_PRODUCT_TYPES = {{ subcategory_config.get("standard_razor_product_types", ()) | tojson }};
+        window.COSMETICS_REPLACEABLE_RAZOR_PRODUCT_TYPES = {{ subcategory_config.get("replaceable_razor_product_types", ()) | tojson }};
     </script>
     <div class="col-md-2">
         <div class="return mb-2">
@@ -60,6 +69,11 @@
                                        onchange="toggleCosmeticsFullNameExtra(this);"
                                        {% if copied_order and copied_order.full_name_extra %}checked{% endif %}>
                                 <label class="form-check-label small mb-0 text-dark" for="fullNameExtraSwitch">Доп.</label>
+                                <a data-bs-toggle="tooltip"
+                                   data-html="true"
+                                   title="Не повторяйте вид товара и товарный знак: они добавляются автоматически. Проверяйте поле 'Полное наименование', чтобы не было дублей. Пример: для вида 'БРИТВА' и товарного знака 'AUTOBRAND' пишите 'с двумя сменными кассетами', а не 'БРИТВА AUTOBRAND с кассетами'.">
+                                    <span class="badge badge-secondary"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M8.625 11.25C8.625 11.3495 8.66451 11.4448 8.73483 11.5152C8.80516 11.5855 8.90054 11.625 9 11.625C9.09946 11.625 9.19484 11.5855 9.26517 11.5152C9.33549 11.4448 9.375 11.3495 9.375 11.25V8.23575C9.375 8.13629 9.33549 8.04091 9.26517 7.97058C9.19484 7.90026 9.09946 7.86075 9 7.86075C8.90054 7.86075 8.80516 7.90026 8.73483 7.97058C8.66451 8.04091 8.625 8.13629 8.625 8.23575V11.25Z" fill="#D12600" /><path d="M9 7.12427C9.20711 7.12427 9.375 6.95637 9.375 6.74927C9.375 6.54216 9.20711 6.37427 9 6.37427C8.79289 6.37427 8.625 6.54216 8.625 6.74927C8.625 6.95637 8.79289 7.12427 9 7.12427Z" fill="#D12600" /><path d="M8.99982 1.54877C10.4734 1.54877 11.9138 1.98571 13.139 2.80435C14.3642 3.62299 15.3192 4.78655 15.8831 6.14791C16.447 7.50927 16.5946 9.00728 16.3072 10.4525C16.0198 11.8977 15.3103 13.2253 14.2684 14.2673C13.2265 15.3093 11.899 16.019 10.4538 16.3065C9.00859 16.5941 7.51057 16.4466 6.14915 15.8828C4.78774 15.3191 3.62408 14.3642 2.80532 13.1391C1.98655 11.914 1.54946 10.4736 1.54932 9.00002C1.5513 7.02456 2.33688 5.13057 3.73366 3.73365C5.13045 2.33672 7.02436 1.55095 8.99982 1.54877ZM8.99982 15.699C10.3251 15.699 11.6206 15.306 12.7226 14.5697C13.8245 13.8333 14.6833 12.7868 15.1904 11.5623C15.6975 10.3379 15.8301 8.99057 15.5715 7.69076C15.3128 6.39095 14.6745 5.19704 13.7373 4.26002C12.8 3.323 11.606 2.68495 10.3061 2.42658C9.00623 2.16821 7.65894 2.30112 6.43461 2.80849C5.21028 3.31587 4.16391 4.17492 3.42783 5.27701C2.69175 6.3791 2.29902 7.67472 2.29932 9.00002C2.3017 10.7762 3.00845 12.479 4.26457 13.7348C5.52068 14.9907 7.2236 15.697 8.99982 15.699Z" fill="#D12600" /></svg></span>
+                                </a>
                             </div>
                         </div>
                         <div id="generated_full_name"
@@ -116,7 +130,10 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="type" class="control-label">Вид товара</label>
-                        <select id="type" name="type" class="form-control search-select" oninput="updateCosmeticsFullName(); cosmeticsUpdateNominalQuantityTypeOptions(); cosmeticsToggleComplectationBlock();" onchange="updateCosmeticsFullName(); cosmeticsUpdateNominalQuantityTypeOptions(); cosmeticsToggleComplectationBlock();" required>
+                        <select id="type" name="type" class="form-control search-select"
+                                oninput="updateCosmeticsFullName(); cosmeticsUpdateNominalQuantityTypeOptions(); cosmeticsToggleContentTypeBlock();"
+                                onchange="updateCosmeticsFullName(); cosmeticsUpdateNominalQuantityTypeOptions(); syncCosmeticsTnvedByProductType(true); cosmeticsUpdateCategoryCode(); cosmeticsToggleContentTypeBlock(); cosmeticsToggleComplectationBlock(); cosmeticsToggleRazorExtraFields();"
+                                required>
                             <option value="" selected disabled>Выберите из списка..</option>
                             {% for item in product_types %}
                                 <option value="{{ item }}" {% if copied_order and copied_order.type == item %}selected{% endif %}>{{ item }}</option>
@@ -127,14 +144,14 @@
             </div>
 
             <div class="row g-4 mt-1">
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="form-group">
                         <label for="nominal_quantity" class="control-label">Кол-во в потреб. упаковке</label>
                         <input id="nominal_quantity" name="nominal_quantity" type="number" min="0" step="1" class="form-control" placeholder="1" value="{% if copied_order %}{{ copied_order.nominal_quantity }}{% endif %}" required>
                     </div>
                 </div>
 
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="form-group">
                         <label for="nominal_quantity_type" class="control-label">Тип ед. в потреб. упаковке</label>
                         <select id="nominal_quantity_type" name="nominal_quantity_type" class="form-control search-select" required>
@@ -146,23 +163,49 @@
                     </div>
                 </div>
 
-                <div class="col-md-3">
+                <div class="col-md-4">
+                    {% include 'helpers/cosmetics/countries_rd_switch.html' %}
+                </div>
+            </div>
+
+            <div class="row g-4 mt-1">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <div class="form-check form-switch mb-2">
+                            <label class="d-inline-flex align-items-center gap-2 mb-0"
+                                   data-bs-toggle="tooltip"
+                                   data-bs-placement="bottom"
+                                   title="Включите для бритвы со сменными лезвиями / кассетами. Выключите для одноразовых бритв и лезвий / кассет."
+                                   style="cursor:pointer">
+                                <input class="form-check-input border border-warning mt-0"
+                                       type="checkbox"
+                                       role="switch"
+                                       id="replaceable_razor_switch"
+                                       name="replaceable_razor"
+                                       value="1"
+                                       onchange="cosmeticsApplyRazorSwitchState(true);"
+                                       {% if copied_order and copied_order.tnved_code == subcategory_config.get("replaceable_razor_tnved_code", "") %}checked{% endif %}>
+                                <span class="form-check-label small mb-0 text-dark">
+                                    Бритва со сменными лезвиями / кассетами
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mt-1" id="razor_extra_fields_row">
+                <div class="col-md-3" id="blade_count_block">
                     <div class="form-group">
                         <label for="blade_count" class="control-label">Кол-во лезвий в раб. части</label>
                         <input id="blade_count" name="blade_count" type="number" min="0" step="1" class="form-control" placeholder="1" value="{% if copied_order and copied_order.blade_count is not none %}{{ copied_order.blade_count }}{% else %}1{% endif %}" required>
                     </div>
                 </div>
 
-                <div class="col-md-3">
-                    {% include 'helpers/cosmetics/countries_rd_switch.html' %}
-                </div>
-            </div>
-
-            <div class="row g-4 mt-1">
-                <div class="col-md-12" id="complectation_block" {% if not copied_order or not copied_order.complectation %}style="display:none"{% endif %}>
+                <div class="col-md-9" id="complectation_block" {% if not copied_order or not copied_order.complectation %}style="display:none"{% endif %}>
                     <div class="form-group">
                         <label for="complectation" class="control-label">Комплектация (для многоразовых бритв и лезвий)</label>
-                        <textarea id="complectation" name="complectation" class="form-control" rows="4" maxlength="500" placeholder="Введите комплектацию">{% if copied_order and copied_order.complectation %}{{ copied_order.complectation }}{% endif %}</textarea>
+                        <textarea id="complectation" name="complectation" class="form-control" rows="2" maxlength="500" placeholder="Введите комплектацию">{% if copied_order and copied_order.complectation %}{{ copied_order.complectation }}{% endif %}</textarea>
                     </div>
                 </div>
             </div>
@@ -280,7 +323,7 @@
                     <div class="important-card__prop">
                         Коды категории
                     </div>
-                    <div class="important-card__val ms-2">
+                    <div class="important-card__val ms-2" id="cosmetics_category_code_value">
                         {{ category_code }}
                     </div>
                 </div>
@@ -297,6 +340,8 @@
                 $(function () {
                     const cosmeticsToday = new Date();
                     const cosmeticsMinDateFrom = new Date(2023, 0, 1);
+                    const cosmeticsMaxDateFrom = new Date(cosmeticsToday);
+                    cosmeticsMaxDateFrom.setDate(cosmeticsMaxDateFrom.getDate() + 1);
                     const cosmeticsMinDateTo = new Date(cosmeticsToday);
                     cosmeticsMinDateTo.setMonth(cosmeticsMinDateTo.getMonth() + 1);
 
@@ -305,7 +350,8 @@
                         changeMonth: true,
                         changeYear: true,
                         yearRange: "2023:2100",
-                        minDate: cosmeticsMinDateFrom
+                        minDate: cosmeticsMinDateFrom,
+                        maxDate: cosmeticsMaxDateFrom
                     });
 
                     $("#sl_date_to").datepicker({

@@ -1,6 +1,8 @@
 import json
+import calendar
 from flask import request, flash
 import re
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 from config import settings
@@ -94,6 +96,27 @@ class ValidationError(Exception):
 
 
 class ValidatorProcessor:
+    @staticmethod
+    def parse_ru_date(value: str | None) -> date | None:
+        value = str(value or "").strip()
+        if not value:
+            return None
+        return datetime.strptime(value, "%d.%m.%Y").date()
+
+    @staticmethod
+    def add_months(value: date, months_count: int) -> date:
+        month = value.month + months_count
+        year = value.year + (month - 1) // 12
+        month = ((month - 1) % 12) + 1
+        day = min(value.day, calendar.monthrange(year, month)[1])
+        return date(year, month, day)
+
+    @staticmethod
+    def validate_sl_date_from_not_future(date_from: date) -> str | None:
+        if date_from > date.today() + timedelta(days=1):
+            return "Дата от в периоде годности не может быть позже текущей даты более чем на 1 день."
+        return None
+
     @staticmethod
     def sign_up(form_dict: dict) -> tuple:
         def check_email(email_str: str) -> Optional[str]:
@@ -294,7 +317,16 @@ class ValidatorProcessor:
 
         product_type = str(form_data.get("type") or "").strip()
         tnved_code = str(form_data.get("tnved_code") or "").strip()
+        blade_count_raw = str(form_data.get("blade_count") or "").strip()
         complectation = str(form_data.get("complectation") or "").strip()
+        if complectation.lower() in {"none", "null", "undefined"}:
+            complectation = ""
+        content_type = str(form_data.get("content_type") or "").strip()
+        if content_type.lower() in {"none", "null", "undefined"}:
+            content_type = ""
+        content = str(form_data.get("content") or "").strip()
+        if content.lower() in {"none", "null", "undefined"}:
+            content = ""
         layers_characteristic = str(form_data.get("layers_characteristic") or "").strip()
         trademark = normalize_trademark_placeholder(str(form_data.get("trademark") or "").strip())
         full_name_extra = process_input_str(str(form_data.get("full_name_extra") or "").strip())
@@ -302,10 +334,66 @@ class ValidatorProcessor:
         if product_type and (not trademark or trademark.upper() == "БЕЗ ТОВАРНОГО ЗНАКА") and not full_name_extra:
             return "Если выбран вариант 'БЕЗ ТОВАРНОГО ЗНАКА', заполните поле 'Дополнить полное наименование'."
 
+        date_from_raw = str(form_data.get("sl_date_from") or "").strip()
+        date_to_raw = str(form_data.get("sl_date_to") or "").strip()
+        service_life_raw = str(form_data.get("service_life") or "").strip()
+        try:
+            date_from = ValidatorProcessor.parse_ru_date(date_from_raw)
+            date_to = ValidatorProcessor.parse_ru_date(date_to_raw)
+            service_life = int(service_life_raw) if service_life_raw else None
+        except ValueError:
+            return "Заполните корректные даты периода годности и срок годности в месяцах."
+
+        if not date_from or not date_to or service_life is None:
+            return "Заполните даты периода годности и срок годности в месяцах."
+
+        date_from_error = ValidatorProcessor.validate_sl_date_from_not_future(date_from)
+        if date_from_error:
+            return date_from_error
+
+        if date_to < date_from:
+            return "Дата до в периоде годности не может быть раньше даты от."
+
+        max_date_to = ValidatorProcessor.add_months(date_from, service_life)
+        if date_to > max_date_to:
+            return "Дата до в периоде годности не может быть позже даты от плюс срок годности в месяцах."
+
         tnved_codes_by_product_type = subcategory_config.get("tnved_codes_by_product_type") or {}
         allowed_codes_for_type = tnved_codes_by_product_type.get(product_type) or ()
         if allowed_codes_for_type and tnved_code not in allowed_codes_for_type:
             return "Выбранный ТН ВЭД не подходит для указанного вида товара."
+
+        replaceable_razor_tnved_code = str(subcategory_config.get("replaceable_razor_tnved_code") or "").strip()
+        if replaceable_razor_tnved_code:
+            replaceable_razor_enabled = str(form_data.get("replaceable_razor") or "").strip().lower() in {
+                "1",
+                "on",
+                "true",
+                "yes",
+            }
+            replaceable_razor_product_types = set(subcategory_config.get("replaceable_razor_product_types") or ())
+            standard_razor_product_types = set(subcategory_config.get("standard_razor_product_types") or ())
+            try:
+                blade_count = int(blade_count_raw) if blade_count_raw else None
+            except ValueError:
+                return "Заполните корректное значение поля 'Кол-во лезвий в рабочей части'."
+
+            if replaceable_razor_enabled:
+                if tnved_code != replaceable_razor_tnved_code:
+                    return "Для бритвы со сменными лезвиями / кассетами выберите ТН ВЭД 8212109000."
+                if replaceable_razor_product_types and product_type not in replaceable_razor_product_types:
+                    return "Выбранный вид товара не подходит для бритвы со сменными лезвиями / кассетами."
+                if blade_count is None or blade_count <= 0:
+                    return "Для бритвы со сменными лезвиями / кассетами заполните количество лезвий."
+                if not complectation:
+                    return "Для бритвы со сменными лезвиями / кассетами заполните комплектацию."
+            else:
+                if tnved_code == replaceable_razor_tnved_code:
+                    return "Для ТН ВЭД 8212109000 включите переключатель 'Бритва со сменными лезвиями / кассетами'."
+                if standard_razor_product_types and product_type not in standard_razor_product_types:
+                    return "Выбранный вид товара доступен только для бритвы со сменными лезвиями / кассетами."
+                if complectation:
+                    return "Комплектация заполняется только для бритвы со сменными лезвиями / кассетами."
 
         complectation_trigger_types = set(subcategory_config.get("complectation_trigger_product_types") or ())
         complectation_trigger_tnveds = set(subcategory_config.get("complectation_trigger_tnved_codes") or ())
@@ -314,6 +402,15 @@ class ValidatorProcessor:
             return "Для выбранного вида товара или ТН ВЭД необходимо заполнить поле 'Комплектация'."
         if not complectation_allowed and complectation:
             return "Поле 'Комплектация' допускается только для подходящих видов товара и ТН ВЭД."
+
+        if subcategory_config.get("content_value_enabled", True) and not content:
+            return "Заполните поле 'Состав товара'."
+
+        content_type_trigger_types = set(subcategory_config.get("content_type_trigger_product_types") or ())
+        content_type_trigger_tnveds = set(subcategory_config.get("content_type_trigger_tnved_codes") or ())
+        content_type_required = product_type in content_type_trigger_types or tnved_code in content_type_trigger_tnveds
+        if subcategory_config.get("content_type_enabled", True) and content_type_required and not content_type:
+            return "Выберите значение поля 'Тип состава'."
 
         allowed_layers_characteristics = tuple(subcategory_config.get("layers_characteristic_choices") or ())
         if allowed_layers_characteristics and layers_characteristic not in allowed_layers_characteristics:

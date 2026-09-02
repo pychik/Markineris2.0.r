@@ -1,0 +1,14 @@
+.clothes-category-icon-frame {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 112px;
+    height: 112px;
+}
+
+.clothes-category-icon {
+    display: block;
+    width: 92px;
+    height: 92px;
+    object-fit: contain;
+}

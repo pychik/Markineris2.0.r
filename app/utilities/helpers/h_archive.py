@@ -13,8 +13,31 @@ from utilities.saving_uts import common_save_copy_order
 from utilities.support import get_category_archive_all, \
     common_process_delete_order, helper_get_order_notification, \
     helper_category_archive_orders, helper_paginate_data, get_category_p_orders
+from views.main.subcategory_notes import build_subcategory_notes
 
 orders_archive = Blueprint('orders_archive', __name__)
+
+
+PARTIAL_REQUEST_VALUES = {'1', 'true', 'yes', 'on'}
+
+
+def build_archive_subcategory_notes() -> list[dict[str, list[str] | str]]:
+    return build_subcategory_notes()
+
+
+def is_partial_archive_request(upload_flag: int = None) -> bool:
+    if upload_flag == settings.UPLOAD_BACKGROUND:
+        return True
+
+    partial_arg = request.args.get('partial', '')
+    return partial_arg.strip().lower() in PARTIAL_REQUEST_VALUES
+
+
+def _get_supported_order_categories() -> tuple:
+    return tuple(
+        category for category in settings.CATEGORIES_UPLOAD
+        if category in settings.CATEGORIES_DICT
+    )
 
 
 def h_index() -> tuple:
@@ -26,10 +49,13 @@ def h_index() -> tuple:
     shoe_orders, clothes_orders, linen_orders, parfum_orders, cosmetics_orders = helper_category_archive_orders(all_orders=all_orders)
 
     stages_description = settings.OrderStage.STAGES
+    archive_subcategory_notes = build_archive_subcategory_notes()
     return render_template('archive/a_base_v2.html', **locals()), 200
 
 
 def h_category(category: str = 'все', upload_flag: int = None):
+    is_partial_request = is_partial_archive_request(upload_flag=upload_flag)
+
     user = current_user
     admin_id = user.admin_parent_id
     order_notification, admin_name, crm = helper_get_order_notification(
@@ -45,11 +71,21 @@ def h_category(category: str = 'все', upload_flag: int = None):
 
     # all / пусто = все категории
     is_all_categories = category == 'все'
+    supported_categories = _get_supported_order_categories()
+
+    if not is_all_categories and category not in supported_categories:
+        message = settings.Messages.STRANGE_REQUESTS + ' нет такой категории'
+        if is_partial_request:
+            return jsonify(dict(status='error', message=message))
+
+        flash(message=message, category='error')
+        return redirect(url_for('main.enter'))
+
     # Проверку подкатегории делаем только для конкретной категории clothes
     if not is_all_categories and category in (settings.Clothes.CATEGORY, settings.Cosmetics.CATEGORY):
         if not Category.check_subcategory(category=category, subcategory=subcategory):
             message = settings.Messages.STRANGE_REQUESTS + ' нет такой подкатегории'
-            if upload_flag:
+            if is_partial_request:
                 return jsonify(dict(status='error', message=message))
             else:
                 flash(message=message, category='error')
@@ -94,18 +130,19 @@ def h_category(category: str = 'все', upload_flag: int = None):
         .outerjoin(OrderFile, Order.order_zip_file)
         .outerjoin(Clothes, Order.id == Clothes.order_id)
         .outerjoin(Cosmetics, Order.id == Cosmetics.order_id)
+        .filter(Order.category.in_(supported_categories))
     )
 
-    # Если выбрана конкретная категория — фильтруем по ней
-    if not is_all_categories:
+    # Если выбрана одежда, показываем в этой вкладке одежду и носки.
+    if not is_all_categories and category == settings.Clothes.CATEGORY:
+        query = query.filter(Order.category.in_((settings.Clothes.CATEGORY, settings.Socks.CATEGORY)))
+    elif not is_all_categories:
         query = query.filter(Order.category == category)
 
-    # Фильтр по подкатегории нужен только для clothes,
-    # и только если выбрана именно эта категория
-    if not is_all_categories and category == settings.Clothes.CATEGORY:
-
-
-        if subcategory in (None, '', 'common'):
+    # Фильтр по подкатегории нужен только если подкатегория выбрана явно.
+    if not is_all_categories and category == settings.Clothes.CATEGORY and subcategory:
+        query = query.filter(Order.category == settings.Clothes.CATEGORY)
+        if subcategory == 'common':
             query = query.filter(or_(
                 Clothes.subcategory.is_(None),
                 Clothes.subcategory == '',
@@ -143,21 +180,21 @@ def h_category(category: str = 'все', upload_flag: int = None):
 
     category_orders = query.all()
 
-    category_for_url = 'Все' if is_all_categories else category
-    category_title = 'Все' if is_all_categories else settings.CATEGORIES_DICT.get(category, category)
+    category_for_url = 'все' if is_all_categories else category
+    category_tab_id = settings.CATEGORIES_DICT.get(category_for_url, category_for_url)
+    page_subcategory = subcategory if not is_all_categories and subcategory else ''
+
+    link_url_kwargs = dict(category=category_for_url, partial=1)
+    if page_subcategory:
+        link_url_kwargs['subcategory'] = page_subcategory
 
     link = (
         "javascript:get_category_history('"
-        + url_for(
-            'orders_archive.index',
-            category=category_for_url,
-            upload_flag=settings.UPLOAD_BACKGROUND,
-            subcategory='' if is_all_categories else subcategory
-        )
+        + url_for('orders_archive.index', **link_url_kwargs)
         + "&page={0}', '"
-        + category_title
+        + category_tab_id
         + "', '"
-        + ('' if is_all_categories else subcategory)
+        + page_subcategory
         + "');"
     )
 
@@ -168,6 +205,7 @@ def h_category(category: str = 'все', upload_flag: int = None):
     )
     stages_description = settings.OrderStage.STAGES
     subcategories_dict = settings.SUB_CATEGORIES_DICT
+    archive_subcategory_notes = build_archive_subcategory_notes()
 
     prepared_orders = []
     for s in category_orders:
@@ -179,16 +217,15 @@ def h_category(category: str = 'все', upload_flag: int = None):
         row_subcategory = s_dict.get('subcategory')
 
         if category in ['', 'все']:
-            if row_category == 'одежда':
-                if row_subcategory and row_subcategory != 'common':
-                    display_category = subcategories_dict.get(row_subcategory, row_subcategory)
-                else:
-                    display_category = row_category
-            else:
-                display_category = row_category
+            display_category = row_category
 
-        if row_category == settings.Cosmetics.CATEGORY and row_subcategory:
-            display_subcategory = subcategories_dict.get(row_subcategory, row_subcategory)
+        if category == settings.Clothes.CATEGORY and row_category == settings.Socks.CATEGORY:
+            display_subcategory = settings.Socks.CATEGORY
+        elif row_category in (settings.Clothes.CATEGORY, settings.Cosmetics.CATEGORY):
+            if row_subcategory in (None, '', 'common') and row_category == settings.Clothes.CATEGORY:
+                display_subcategory = 'одежда основная'
+            elif row_subcategory:
+                display_subcategory = subcategories_dict.get(row_subcategory, row_subcategory)
 
         s_dict['display_category'] = display_category
         s_dict['display_subcategory'] = display_subcategory
@@ -196,7 +233,7 @@ def h_category(category: str = 'все', upload_flag: int = None):
 
     category_orders = prepared_orders
 
-    if upload_flag == 111:
+    if is_partial_request:
         return jsonify({
             'htmlresponse': render_template('archive/a_category_common_v2.html', **locals())
         })
@@ -240,7 +277,7 @@ def h_copy_order(o_id: int, category: str) -> Response:
     if o_id:
         flash(message=f"{settings.Messages.ORDER_COPY_SUCCESS} {category}")
         url_kwargs = dict(o_id=o_id, copy_order_edit_org='edit_org_card')
-        if category == settings.Cosmetics.CATEGORY and subcategory:
+        if category in (settings.Clothes.CATEGORY, settings.Cosmetics.CATEGORY) and subcategory:
             url_kwargs['subcategory'] = subcategory
         return redirect(url_for(f'{category_process_name}.index', **url_kwargs))
     else:

@@ -512,6 +512,122 @@ a[aria-expanded="true"] .nav-chevron {
     cursor: pointer;
 }
 
+.archive-file-storage-note,
+.archive-subcategory-note {
+    border: 1px solid #ffecb5;
+    border-left: 4px solid #ffc107;
+    border-radius: 8px;
+    background: #fff3cd;
+    color: #664d03;
+}
+
+.archive-subcategory-note {
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.archive-subcategory-note__toggle {
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 14px;
+    border: 0;
+    background: transparent;
+    display: grid;
+    grid-template-columns: 26px auto 1fr 12px;
+    align-items: center;
+    gap: 10px;
+    color: inherit;
+    text-align: left;
+}
+
+.archive-subcategory-note__icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #ffc107;
+    border: 1px solid #d39e00;
+    color: #664d03;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    font-family: Georgia, "Times New Roman", serif;
+}
+
+.archive-subcategory-note__toggle-text {
+    font-size: 15px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.archive-subcategory-note__toggle-caption {
+    color: #806520;
+    font-size: 13px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.archive-subcategory-note__chevron {
+    width: 9px;
+    height: 9px;
+    border-right: 2px solid #806520;
+    border-bottom: 2px solid #806520;
+    transform: rotate(45deg);
+    transition: transform .18s ease;
+}
+
+.archive-subcategory-note__toggle:not(.collapsed) .archive-subcategory-note__chevron {
+    transform: rotate(225deg);
+}
+
+.archive-subcategory-note__body {
+    min-width: 0;
+    padding: 0 14px 14px 50px;
+}
+
+.archive-subcategory-note__text,
+.archive-subcategory-note__group {
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.archive-subcategory-note__text {
+    margin-bottom: 8px;
+    color: #806520;
+}
+
+.archive-subcategory-note__groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 6px 18px;
+}
+
+.archive-subcategory-note__group span {
+    font-weight: 700;
+}
+
+@media (max-width: 575.98px) {
+    .archive-subcategory-note__toggle {
+        grid-template-columns: 26px 1fr 12px;
+    }
+
+    .archive-subcategory-note__toggle-caption {
+        display: none;
+    }
+
+    .archive-subcategory-note__body {
+        padding: 0 12px 12px 12px;
+    }
+
+    .archive-subcategory-note__groups {
+        grid-template-columns: 1fr;
+    }
+}
+
 .captcha-refresh-icon {
   display: inline-flex;
   align-items: center;
