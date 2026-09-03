@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{{url_for('static',filename='main_v2/images/favicon.ico')}}" type="image/x-icon">
+    <link rel="icon" href="{{url_for('static',filename='main_v2/images/favicon.ico')}}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="{{url_for('static',filename='main_v2/css/service/g_fonts.css')}}" crossorigin>
+    <link href="{{url_for('static',filename='main_v2/css/service/g_fonts.css')}}" rel="stylesheet">
+    <link rel="stylesheet" href="{{url_for('static', filename='crm_mod/libs/bootstrap/css/bootstrap.min.css')}}">
+    <link rel="stylesheet" href="{{url_for('static', filename='crm_mod/css/main.css')}}?v=5">
+    <link rel="stylesheet" href="{{ url_for('static', filename='crm_mod/css/special_crm_effects_v2.css') }}?v=5">
+    <script src="{{url_for('static',filename='main_v2/js/assets/jquery.min.js')}}"></script>
+    <style>
+        .automated-order-header-icons {
+            gap: 4px;
+        }
+
+        .automated-order-header-icons .pc-chat-wrap,
+        .automated-order-header-icons .automated-order-logs-wrap,
+        .automated-order-header-icons .automated-order-tech-wrap {
+            margin-right: 0 !important;
+        }
+
+        .automated-external-indicator {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            height: 22px;
+            padding: 0 6px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: 0.02em;
+            border: 1px solid transparent;
+            user-select: none;
+        }
+
+        .automated-external-indicator--success {
+            background: #dcfce7;
+            color: #166534;
+            border-color: #86efac;
+        }
+
+        .automated-external-indicator--warning {
+            background: #fff3cd;
+            color: #9a3412;
+            border-color: #fcd34d;
+        }
+
+        .automated-external-indicator--danger {
+            background: #fee2e2;
+            color: #b91c1c;
+            border-color: #fca5a5;
+        }
+
+        .automated-external-indicator--info {
+            background: #dbeafe;
+            color: #1d4ed8;
+            border-color: #93c5fd;
+        }
+    </style>
+    <title>Автоматизированные заказы CRM</title>
+</head>
+
+<body>
+    <header class="header container-fluid py-3">
+        <div class="header__wrapper d-flex justify-content-between align-items-start">
+            <div class="header__left d-flex align-items-start">
+                <div class="logo header__logo">
+                    <a href="{{url_for('main.enter')}}">
+                        <img src="{{url_for('static', filename='crm_mod/img/logo.svg')}}" alt="Markineris CRM" class="img-fluid">
+                    </a>
+                </div>
+                <div class="d-flex flex-column ms-3">
+                    {% include 'crm_mod_v1/helpers/search_order_find_manager.html' %}
+                    <div class="top__filter mt-2 d-flex align-items-center gap-2 flex-wrap">
+                        <div class="filter filter-manager">
+                            <select class="form-select filter__select" id="selectManager" onchange="filter_category_manager('{{ url_for('crm_automated.orders', bck=1) }}');"
+                                aria-label="Выберите менеджера" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Фильтр по исполнителям"
+                                style="width: 220px;">
+                                <option value="" {% if not filtered_manager_id %}selected{% endif %}>Все заказы</option>
+                                {% for m in managers_list %}
+                                    <option value="{{ m[0] }}" {% if filtered_manager_id == m[0] %}selected{% endif %}>Заказы {{ m[1] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="filter filter-manager">
+                            <select class="form-select filter__select" id="automatedPerPageSelect" onchange="automatedChangePerPage()"
+                                aria-label="Количество заказов в колонке" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Количество заказов на страницу в колонке"
+                                style="width: 150px;">
+                                {% for option in automated_per_page_options %}
+                                    <option value="{{ option }}" {% if automated_per_page == option %}selected{% endif %}>{{ option }} в колонке</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex align-items-start justify-content-center flex-fill px-3">
+                <div class="user__type mt-1">Автоматизированные заказы CRM</div>
+            </div>
+            <div class="header__right d-flex flex-column align-items-end">
+                <div class="d-flex align-items-start">
+                    {% include 'crm_mod_v1/helpers/categories_tab.html'%}
+                    {% include 'crm_mod_v1/helpers/user_tab.html'%}
+                </div>
+                <div id="automatedWeeklyCounters" class="operators-orders-info mt-2" title="Показатели за текущую неделю по текущему фильтру доски">
+                    {{ weekly_counters.range }} | Обработано: {{ weekly_counters.processed }} | Отменено: {{ weekly_counters.cancelled }} | Проблемных: {{ weekly_counters.problem }}
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div id="crm-config"
+        data-order-details-url="{{ url_for('crm_automated.order_details') }}"
+        data-column-orders-url="{{ url_for('crm_automated.orders_column') }}"
+        data-order-logs-url-template="{{ url_for('crm_automated.order_logs', o_id=0) }}"
+        data-order-technical-info-url-template="{{ url_for('crm_automated.order_technical_info', o_id=0) }}"
+        data-current-user-id="{{ current_user.id }}"
+        data-enable-hourly-reload="{{ 'true' if current_user.role in ['superuser', 'supermanager'] else 'false' }}"
+        data-default-per-page="{{ automated_per_page if automated_per_page is defined else 50 }}"
+        data-csrf="{{ csrf_token() }}"
+        data-order-chat-messages-url-template="{{ url_for('crm_automated.order_chat_get_messages', o_id=0) }}"
+        data-order-chat-send-url-template="{{ url_for('crm_automated.order_chat_send', o_id=0) }}"
+        data-order-chat-read-url-template="{{ url_for('crm_automated.order_chat_mark_read', o_id=0) }}">
+    </div>
+
+    <main class="main container-fluid">
+        {% block crm_dashboard %}{% endblock %}
+    </main>
+
+    <div id="blockModalFileLinkAttach"></div>
+    {% include 'crm_mod_v1/helpers/modals/order_chat_modal.html' %}
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11" id="all_messages"></div>
+    <div class="overlay" id="overlay_loading">
+        <div class="d-flex justify-content-center">
+            <div class="text-warning over_text text-center">
+                <h3>Производится обработка запроса...</h3>
+                <h5>Если процесс длится более 3 мин, обновите страницу!</h5>
+                <div class="spinner-border" style="width: 5rem; height: 5rem;" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{url_for('static',filename='main_v2/js/assets/popper.min.js')}}"></script>
+    <script src="{{url_for('static', filename='crm_mod/libs/bootstrap/js/bootstrap.bundle.min.js')}}"></script>
+    <script src="{{url_for('static', filename='crm_mod/js/crm_main_v1_1.js')}}?v=6"></script>
+    <script src="{{url_for('static', filename='crm_mod/js/order_chat.js')}}?v=2"></script>
+    <script src="{{url_for('static', filename='crm_mod/js/crm_automated.js')}}?v=4"></script>
+    <script src="{{url_for('static', filename='crm_mod/libs/scrollbooster/scrollbooster.min.js')}}" defer></script>
+    <script src="{{url_for('static',filename='main_v2/js/new_messages.js')}}?v=1"></script>
+
+    <script>
+        const message_icon_error = `{{url_for('static',filename='main_v2/img/icons/error.svg')}}`;
+        const message_icon_warning = `{{url_for('static',filename='main_v2/img/icons/warning.svg')}}`;
+        const message_icon_success = `{{url_for('static',filename='main_v2/img/icons/success.svg')}}`;
+        const LOAD_ORDER_PROCESS_INFO_URL = `{{ url_for('crm_automated.get_processing_order_info') }}`;
+        const UPDATE_ORDER_PROCESS_INFO_URL = `{{ url_for('crm_automated.update_processing_order_info') }}`;
+        const AUTOMATED_STAGE_PROBLEM = {{ order_stage.MANAGER_PROBLEM }};
+        const AUTOMATED_STAGE_CANCELLED = {{ order_stage.CANCELLED }};
+        initializeJSPage(document);
+        automatedInitColumnPagination(document);
+        automatedScheduleHourlyReload();
+    </script>
+</body>
+
+</html>

@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 
 from config import settings
 from logger import logger
+from utilities.support import resolve_automated_crm_flag
 
 
 # adding custom command for creating superuser

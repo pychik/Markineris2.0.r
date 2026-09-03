@@ -3,7 +3,8 @@ from enum import Enum as PyEnum
 
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func, Index, text
+from sqlalchemy import BigInteger, func, Index, text
+from sqlalchemy.dialects.postgresql import JSONB
 
 from config import settings
 from utilities.categories_data.subcategories_data import ClothesSubcategories
@@ -307,12 +308,45 @@ class EmailMessage(db.Model, UserMixin):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
 
+class ExternalProcessor(db.Model):
+    __tablename__ = 'external_processors'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False, unique=True, index=True)
+    key_id = db.Column(db.String(128), nullable=False, unique=True, index=True)
+    shared_secret = db.Column(db.String(255), nullable=False)
+    allowed_ips = db.Column(db.Text(), nullable=False, default='', server_default='')
+    minio_bucket_name = db.Column(db.String(255), nullable=False)
+    minio_prefix = db.Column(db.String(255), nullable=False, default='', server_default='')
+    ttl_seconds = db.Column(db.Integer, nullable=False, default=300, server_default='300')
+    nonce_ttl_seconds = db.Column(db.Integer, nullable=False, default=600, server_default='600')
+    batch_size = db.Column(db.Integer, nullable=False, default=10, server_default='10')
+    confirmation_timeout_seconds = db.Column(db.Integer, nullable=False, default=300, server_default='300')
+    # сколько ждём финальный result после accept; 3 суток - согласовано с LiteMark (модерация ЧЗ)
+    processing_timeout_seconds = db.Column(db.Integer, nullable=False, default=259200, server_default='259200')
+    source_label = db.Column(db.String(100), nullable=False, unique=True, index=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True, server_default=text('true'), index=True)
+    created_at = db.Column(db.DateTime(), nullable=False, default=datetime.now, index=True)
+    updated_at = db.Column(db.DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, index=True)
+
+
 class Order(db.Model, UserMixin):
     __tablename__ = "orders"
+    __table_args__ = (
+        Index(
+            'ix_orders_external_claim_queue',
+            'crm_created_at',
+            'id',
+            postgresql_where=text(
+                'stage = 2 AND is_automated_crm IS TRUE AND (to_delete IS NOT TRUE)'
+            ),
+        ),
+    )
     id = db.Column(db.Integer, primary_key=True)
 
     category = db.Column(db.String(100), nullable=False, default='')
     is_moderation = db.Column(db.Boolean, default=False, nullable=False, server_default=text("false"), index=True)
+    is_automated_crm = db.Column(db.Boolean, default=False, nullable=False, server_default=text("false"), index=True)
     company_idn = db.Column(db.String(100))
     company_type = db.Column(db.String(100))
     company_name = db.Column(db.String(100))
@@ -327,11 +361,11 @@ class Order(db.Model, UserMixin):
     external_problem = db.Column(db.Boolean(), default=False)
 
     stage = db.Column(db.Integer, default=0, index=True)
-    comment_problem = db.Column(db.String(230), default='')
+    comment_problem = db.Column(db.String(500), default='')
     comment_cancel = db.Column(db.String(230), default='')
 
     # Информация по заказау УПД и компания проводящая доки
-    processing_info = db.Column(db.String(100), default="")
+    processing_info = db.Column(db.String(255), default="")
 
     p_started = db.Column(db.DateTime())  # pool strated
     m_started = db.Column(db.DateTime())  # manager has taken order
@@ -347,6 +381,28 @@ class Order(db.Model, UserMixin):
     crm_created_at = db.Column(db.DateTime())  # order pushed to NEW stage of crm
     sent_at = db.Column(db.DateTime())  # order sent
     closed_at = db.Column(db.DateTime())  # order processed
+
+    status = db.Column(db.String(100), index=True)
+    dispatch_token = db.Column(db.String(64), index=True)
+    object_key = db.Column(db.String(255), index=True)
+    confirmed_at = db.Column(db.DateTime(), index=True)
+
+    # компания, от имени которой заказ проводится и от которой придёт УПД.
+    # закрепляется один раз на превалидации и дальше только читается,
+    # чтобы при повторной выдаче после таймаута она не подменилась.
+    upd_company_name = db.Column(db.String(120))
+    upd_company_inn = db.Column(db.String(20), index=True)
+    # номер УПД, приходит от внешнего обработчика в POST /orders/{id}/result
+    upd_number = db.Column(db.String(100))
+
+    # заказ снят с внешнего обработчика по таймауту: когда отдан ему в /orders/problems
+    # и когда он подтвердил остановку через /problem-ack
+    problem_notified_at = db.Column(db.DateTime(), index=True)
+    problem_ack_at = db.Column(db.DateTime())
+
+    # превалидация пройдена: подобрана РД и закреплена компания обработки.
+    # пока отметки нет, заказ не может быть выдан внешнему обработчику.
+    prevalidated_at = db.Column(db.DateTime(), index=True)
 
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), index=True)
     manager_id = db.Column(db.Integer, db.ForeignKey('users.id'))
@@ -374,8 +430,24 @@ class OrderFile(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     origin_name = db.Column(db.String(100), nullable=False, default='')
     file_system_name = db.Column(db.String(100))
-    file_link = db.Column(db.String(100))
+    file_link = db.Column(db.String(512))
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), index=True)
+
+
+class OrderProcessedLog(db.Model):
+    __tablename__ = 'order_processed_logs'
+
+    id = db.Column(BigInteger, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False, index=True)
+    event_type = db.Column(db.String(100), nullable=False, index=True)
+    status = db.Column(db.String(100), index=True)
+    dispatch_token = db.Column(db.String(64), index=True)
+    stage = db.Column(db.Integer, index=True)
+    message = db.Column(db.String(1000), nullable=False)
+    object_key = db.Column(db.String(255))
+    source = db.Column(db.String(100), nullable=False, default='external_processing')
+    payload = db.Column(JSONB, nullable=True)
+    created_at = db.Column(db.DateTime(), nullable=False, default=datetime.now, index=True)
 
 
 class OrderStat(db.Model, UserMixin):

@@ -1002,6 +1002,7 @@ def h_make_pc_basket_order():
             user_id=current_user.id,
             stage=0,
             is_moderation=True,
+            is_automated_crm=True,
         )
 
         # company поля

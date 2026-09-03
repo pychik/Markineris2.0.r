@@ -45,6 +45,23 @@ def _norm_inn(inn: Optional[str]) -> str:
     return (inn or "").strip()
 
 
+# Выбор компании-обработчика переехал в Тезаурус: GET|POST /api/v1/processing-companies/select,
+# см. tezaurus/order_matching.py и docs/tezaurus-integration-markineris.md. Локальный подбор
+# по категориям больше не нужен - правила и распределение по кругу живут на их стороне.
+#
+# Enum CompaniesOperators ниже оставлен: на нём держится выпадающий список в модалке УПД
+# обычной CRM (helper_get_processing_order_info), где компанию выбирает оператор руками.
+
+
+def format_upd_company(company_name: Optional[str], company_inn: Optional[str]) -> str:
+    """Строка компании в том же виде, в каком её выбирает оператор в модалке УПД."""
+    name = (company_name or "").strip()
+    inn = _norm_inn(company_inn)
+    if not name:
+        return ""
+    return f"{name} ({inn})" if inn else name
+
+
 # Запрещённые пары по ИНН (симметрично)
 FORBIDDEN_INN_PAIRS = {
     frozenset({"4400023137", "4400023120"}),      # Гренада + Аврора

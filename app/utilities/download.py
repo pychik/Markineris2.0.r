@@ -1,3 +1,4 @@
+import base64
 import re
 import zipfile
 from abc import ABC
@@ -8,6 +9,7 @@ from typing import Generator, Optional, Union
 
 from flask import flash, redirect, Response, send_file, url_for
 from pandas import DataFrame
+from sqlalchemy.orm import lazyload
 from xlsxwriter import Workbook
 from xlsxwriter.worksheet import Worksheet
 
@@ -100,7 +102,8 @@ class OrdersProcessor(ProcessorInterface, ABC):
 
     def excel_add_worksheet_data(self, company_idn: str, company_name: str, company_type: str, edo_type: str,
                                  edo_id: str, mark_type: str,
-                                 user_name: str, user_phone: str, user_email: str, partner: str) -> None:
+                                 user_name: str, user_phone: str, user_email: str, partner: str,
+                                 upd_company_name: str = '', upd_company_inn: str = '') -> None:
         # self.additional_info = [[user_name, user_phone, user_email],
         self.additional_info = [[user_name, ],
                                 ['Код партнера', partner],
@@ -108,6 +111,9 @@ class OrdersProcessor(ProcessorInterface, ABC):
                                 [edo_type, edo_id],
                                 ['Тип этикетки', mark_type],
                                 ]
+        # компания обработки: от неё проводится заказ и от неё же выставляется УПД
+        if upd_company_name:
+            self.additional_info.append(['Компания обработки', upd_company_name, upd_company_inn or ''])
 
     def process_to_excel(self, list_of_orders: Generator) -> list[tuple[BytesIO, str],]:
 
@@ -371,7 +377,9 @@ class OrdersProcessor(ProcessorInterface, ABC):
                                       company_type=company_type,
                                       edo_type=edo_type, edo_id=edo_id, mark_type=mark_type,
                                       user_name=c_name, user_phone=c_phone,
-                                      user_email=c_email, partner=c_partner_code)
+                                      user_email=c_email, partner=c_partner_code,
+                                      upd_company_name=getattr(order, 'upd_company_name', '') or '',
+                                      upd_company_inn=getattr(order, 'upd_company_inn', '') or '')
 
         excel_files = self.process_to_excel(list_of_orders=OrdersProcessor
                                             .prepare_batches(orders_divided=[(self.orders_list_outer, f"{e_name}_ВВЕЗЕН"),
@@ -1255,10 +1263,16 @@ def orders_list_get(model: db.Model) -> Optional[Union[tuple, list]]:
         return None, None
 
 
-def get_download_info(o_id, user: User, flag_046: bool = False) -> Union[Response, tuple]:
+def get_download_info(o_id, user: User, flag_046: bool = False, order: Order | None = None) -> Union[Response, tuple]:
     category_name_excel = ''  # for filename if we got subcategory
 
-    order = Order.query.filter(Order.id == o_id, ~Order.to_delete).first()
+    if order is None:
+        order = (
+            db.session.query(Order)
+            .options(lazyload('*'))
+            .filter(Order.id == o_id, Order.to_delete.isnot(True))
+            .first()
+        )
     if not order:
         flash(message=settings.Messages.EMPTY_ORDER, category='error')
         # return redirect(url_for('main.enter'))
@@ -1392,6 +1406,43 @@ def orders_download_common(user: User, o_id: int, flag_046: bool = False):
         return redirect(url_for('main.index'))
 
     return send_file(files_list[0], download_name=files_list[1], as_attachment=True)
+
+
+def get_order_download_payload(
+    o_id: int,
+    flag_046: bool = False,
+    order: Order | None = None,
+    user: User | None = None,
+) -> Optional[dict]:
+    if order is None:
+        order = (
+            db.session.query(Order)
+            .options(lazyload('*'))
+            .filter(Order.id == o_id, Order.to_delete.isnot(True))
+            .first()
+        )
+    if not order:
+        return None
+
+    current_user = user or order.users
+    if not current_user:
+        return None
+
+    payload = get_download_info(o_id=o_id, user=current_user, flag_046=flag_046, order=order)
+    files_obj = payload[-1] if payload else None
+    if not files_obj:
+        return None
+
+    file_buffer, download_name = files_obj
+    file_buffer.seek(0)
+    raw_content = file_buffer.read()
+
+    return {
+        'file_name': download_name,
+        'content_type': 'application/zip',
+        'size_bytes': len(raw_content),
+        'content_base64': base64.b64encode(raw_content).decode('ascii'),
+    }
 
 
 def orders_process_send_order(o_id: int, user: User, order_comment: str, order_idn: str,

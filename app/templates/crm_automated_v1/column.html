@@ -1,0 +1,19 @@
+<div class="crm__col">
+    <div class="orders">
+        <h2 class="orders__title">
+            {{ title }} <span id="{{ column_id }}_quantity">({{ total_count }})</span>
+        </h2>
+        <div style="width:335px"></div>
+        <div id="{{ column_id }}" class="orders__list automated-orders-list"
+            data-column-id="{{ column_id }}"
+            data-stage="{{ stage }}"
+            data-page="{{ page }}"
+            data-per-page="{{ per_page }}"
+            data-next-page="{{ next_page }}"
+            data-has-more="{{ 1 if has_more else 0 }}"
+            data-loading="0">
+            {% include 'crm_automated_v1/column_items.html' %}
+            <div class="automated-column-sentinel" data-column-id="{{ column_id }}" aria-hidden="true"></div>
+        </div>
+    </div>
+</div>

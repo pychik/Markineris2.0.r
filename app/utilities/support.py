@@ -90,6 +90,20 @@ def sql_count(func):
     return wrapper
 
 
+def resolve_automated_crm_flag(order_comment) -> bool:
+    """Заказ без комментария пользователя уходит на автоматическую обработку во внешний сервис.
+
+    Комментарий - признак "особенного" заказа, такой разбирает оператор обычной CRM.
+    ВНИМАНИЕ: после включения раздела "Быстрый заказ" (план - после октября 2026) правило
+    нужно пересмотреть, см. docs/litemark-integration.md, раздел про признак автоматизации.
+    """
+    return not (order_comment or '').strip()
+
+
+def is_automated_crm_order(is_automated_crm) -> bool:
+    return bool(is_automated_crm is True)
+
+
 def order_count(category: str, order_list) -> tuple:
 
     match category:
@@ -871,7 +885,11 @@ def process_order_start(user: User, category: str, o_id: int, order_idn: str, or
         #         order.stage = settings.OrderStage.NEW
         #         order.crm_created_at = datetime.now()
 
-        _stage = get_process_stage(o_id=o_id, category=category)
+        is_automated = resolve_automated_crm_flag(order_comment)
+        # Автоматизированный заказ всегда проходит через NEW: там его подхватывает
+        # превалидация, закрепляет компанию и сама переводит в пул. Инвариант простой -
+        # в пуле не может быть заказа без пройденной превалидации.
+        _stage = settings.OrderStage.NEW if is_automated else get_process_stage(o_id=o_id, category=category)
         try:
             if check_new_tnved_in_list():
                 order.has_new_tnveds = True
@@ -882,6 +900,7 @@ def process_order_start(user: User, category: str, o_id: int, order_idn: str, or
             order.crm_created_at = dt
             order.order_idn = order_idn
             order.user_comment = order_comment
+            order.is_automated_crm = is_automated
             if _stage == settings.OrderStage.POOL:
                 create_order_stats(order_info=order)
                 order.p_started = dt
@@ -3207,6 +3226,44 @@ def bck_susmu_required(func):
             return func(*args, **kwargs)
         else:
 
+            return jsonify(dict(status='danger', message=settings.Messages.SUPERUM_REQUIRED))
+
+    return wrapper
+
+
+AUTOMATED_CRM_ROLES = [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MARKINERIS_ADMIN_USER]
+
+
+def automated_crm_required(func):
+    """Доступ к доске автоматизированных заказов."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.status is True and current_user.role in AUTOMATED_CRM_ROLES:
+            return func(*args, **kwargs)
+        flash(message=settings.Messages.SUPERUM_REQUIRED, category='error')
+        return redirect(url_for('main.index'))
+
+    return wrapper
+
+
+def su_sm_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.status is True and current_user.role in [settings.SUPER_USER, settings.SUPER_MANAGER]:
+            return func(*args, **kwargs)
+        else:
+            flash(message=settings.Messages.SUPERUM_REQUIRED, category='error')
+            return redirect(url_for('main.index'))
+
+    return wrapper
+
+
+def bck_su_sm_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.status is True and current_user.role in [settings.SUPER_USER, settings.SUPER_MANAGER]:
+            return func(*args, **kwargs)
+        else:
             return jsonify(dict(status='danger', message=settings.Messages.SUPERUM_REQUIRED))
 
     return wrapper

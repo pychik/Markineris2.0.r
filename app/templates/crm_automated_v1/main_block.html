@@ -1,0 +1,26 @@
+<div class="crm faded">
+    <div class="crm__wrapper">
+        {% for column in board_columns %}
+            {% set column_id = column.column_id %}
+            {% set title = column.title %}
+            {% set stage = column.stage %}
+            {% set orders = column.items %}
+            {% set total_count = column.total_count %}
+            {% set page = column.page %}
+            {% set per_page = column.per_page %}
+            {% set next_page = column.next_page %}
+            {% set has_more = column.has_more %}
+            {% include 'crm_automated_v1/column.html' %}
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    var update_url = "{{ url_for('crm_automated.orders', bck=1) }}";
+    var update_url_temp = update_url;
+    var managers_list = [{% for m in managers_list %}['{{m[0]}}','{{m[1]}}'], {% endfor %}];
+    var OF_MAX_SIZE = {{ of_max_size }};
+    var SEARCH_ORDER_URL = "{{ url_for('crm_automated.search_order') }}";
+    var delta_timer_color = {{ problem_order_time_limit }};
+    var AUTOMATED_COLUMN_URL = "{{ url_for('crm_automated.orders_column') }}";
+</script>
