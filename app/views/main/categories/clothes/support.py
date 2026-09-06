@@ -16,6 +16,92 @@ from utilities.support import helper_get_order_notification, helper_category_com
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
 
 
+def _build_tnved_choices(codes: list[str] | tuple[str, ...]) -> list[dict[str, str]]:
+    return [{"code": str(code), "label": ""} for code in codes]
+
+
+def _get_clothes_category_tiles() -> tuple[dict, ...]:
+    common_creds = ClothesSubcategoryProcessor(ClothesSubcategories.common.value).get_creds()
+    underwear_creds = ClothesSubcategoryProcessor(ClothesSubcategories.underwear.value).get_creds()
+    swimming_creds = ClothesSubcategoryProcessor(ClothesSubcategories.swimming_accessories.value).get_creds()
+    hats_creds = ClothesSubcategoryProcessor(ClothesSubcategories.hats.value).get_creds()
+    gloves_creds = ClothesSubcategoryProcessor(ClothesSubcategories.gloves.value).get_creds()
+    shawls_creds = ClothesSubcategoryProcessor(ClothesSubcategories.shawls.value).get_creds()
+
+    return (
+        {
+            "slug": ClothesSubcategories.common.value,
+            "title": "Одежда основная",
+            "url": url_for("clothes.index", subcategory=ClothesSubcategories.common.value),
+            "icon": "crm_mod/img/icons/clothes.svg",
+            "product_types": list(common_creds.types),
+            "allowed_tnved_codes": list(common_creds.clothes_all_tnved),
+        },
+        {
+            "slug": ClothesSubcategories.underwear.value,
+            "title": "Нижнее белье",
+            "url": url_for("clothes.index", subcategory=ClothesSubcategories.underwear.value),
+            "icon": "crm_mod/img/icons/underwear.svg",
+            "product_types": list(underwear_creds.types),
+            "allowed_tnved_codes": list(underwear_creds.clothes_all_tnved),
+        },
+        {
+            "slug": "socks",
+            "title": "Чулочно-носочные изделия",
+            "url": url_for("clothes.index", subcategory="socks"),
+            "icon": "crm_mod/img/icons/socks.svg",
+            "product_types": list(settings.Socks.TYPES),
+            "allowed_tnved_codes": list(settings.Socks.TNVED_ALL),
+        },
+        {
+            "slug": ClothesSubcategories.swimming_accessories.value,
+            "title": "Купальные принадлежности",
+            "url": url_for("clothes.index", subcategory=ClothesSubcategories.swimming_accessories.value),
+            "icon": "crm_mod/img/icons/swimming_accessories.svg",
+            "product_types": list(swimming_creds.types),
+            "allowed_tnved_codes": list(swimming_creds.clothes_all_tnved),
+        },
+        {
+            "slug": ClothesSubcategories.hats.value,
+            "title": "Шляпы",
+            "url": url_for("clothes.index", subcategory=ClothesSubcategories.hats.value),
+            "icon": "crm_mod/img/icons/hats.svg",
+            "product_types": list(hats_creds.types),
+            "allowed_tnved_codes": list(hats_creds.clothes_all_tnved),
+        },
+        {
+            "slug": ClothesSubcategories.gloves.value,
+            "title": "Перчатки",
+            "url": url_for("clothes.index", subcategory=ClothesSubcategories.gloves.value),
+            "icon": "crm_mod/img/icons/gloves.svg",
+            "product_types": list(gloves_creds.types),
+            "allowed_tnved_codes": list(gloves_creds.clothes_all_tnved),
+        },
+        {
+            "slug": ClothesSubcategories.shawls.value,
+            "title": "Шали",
+            "url": url_for("clothes.index", subcategory=ClothesSubcategories.shawls.value),
+            "icon": "crm_mod/img/icons/shawls.svg",
+            "product_types": list(shawls_creds.types),
+            "allowed_tnved_codes": list(shawls_creds.clothes_all_tnved),
+        },
+    )
+
+
+def render_clothes_categories_index() -> str:
+    page_title = "Основные категории одежды"
+    search_placeholder = "Введите ТНВЭД или вид товара для определения категории"
+    clothes_category_tiles = _get_clothes_category_tiles()
+    clothes_search_index = [
+        {
+            **tile,
+            "allowed_tnved_choices": _build_tnved_choices(tile.get("allowed_tnved_codes", [])),
+        }
+        for tile in clothes_category_tiles
+    ]
+    return render_template("categories/clothes/index.html", **locals())
+
+
 def _allowed_clothes_types(subcategory: str | None) -> list[str]:
     subcategory_value = subcategory if subcategory not in ("", None, "None") else ClothesSubcategories.common.value
     dynamic_subcategories = {
@@ -28,6 +114,7 @@ def _allowed_clothes_types(subcategory: str | None) -> list[str]:
 
 
 def helper_clothes_index(o_id: int, p_id: int = None, update_flag: int = None,
+                         subcategory: str | None = None,
                          copied_order: db.Model = None, edit_order: str = None) -> Union[Response, str]:
     copy_order_edit_org = request.args.get('copy_order_edit_org')
     user = current_user
@@ -60,7 +147,9 @@ def helper_clothes_index(o_id: int, p_id: int = None, update_flag: int = None,
 
     # clothes_tnved = settings.Clothes.TNVED_CODE
     # clothes_upper = settings.Clothes.UPPER_TYPES
-    subcategory = request.args.get('subcategory', '')
+    subcategory = subcategory if subcategory is not None else request.args.get('subcategory', '')
+    if subcategory == 'socks':
+        return redirect(url_for('socks.index'))
     if not Category.check_subcategory(category=category, subcategory=subcategory):
         flash(message=settings.Messages.STRANGE_REQUESTS + f' подкатегория неизвестна сервису', category='error')
         return redirect(url_for(f'main.enter'))

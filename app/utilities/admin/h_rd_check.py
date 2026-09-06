@@ -20,7 +20,7 @@ DOC_TYPE_OPTIONS = (
     (DOC_TYPE_CERTIFICATE, settings.RD_TYPES[1]),
 )
 
-# демо ограничен категорией "одежда" / базовой подкатегорией, как в реальном шаге оформления позиции заказа
+# демо ограничен категориями "одежда" (базовая подкатегория) и "обувь", как в реальных шагах оформления заказа
 CLOTHES_SUBCATEGORY = ClothesSubcategories.common.value
 
 # доступ к демо: суперпользователь либо тестовый аккаунт для показа руководству
@@ -50,6 +50,13 @@ def h_rd_check_main():
         types=get_clothes_tnved_types(CLOTHES_SUBCATEGORY),
         clothes_all_tnved=get_clothes_all_tnved(CLOTHES_SUBCATEGORY),
         countries=get_all_countries(),
+        shoes_types=settings.Shoes.TYPES,
+        shoes_genders=settings.Shoes.GENDERS,
+        shoes_materials_top=settings.Shoes.MATERIALS_UP_LINEN,
+        shoe_tnved=settings.Shoes.TNVED_CODE,
+        shoe_al=settings.Shoes.SHOE_AL,
+        shoe_ot=settings.Shoes.SHOE_OT,
+        shoe_nl=settings.Shoes.SHOE_NL,
     )
 
 

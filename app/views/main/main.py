@@ -7,6 +7,7 @@ from data_migrations.etl_service import ETLMigrateUserData
 from models import db
 from redis_queue.connection import conn as redis_conn
 from utilities.support import user_activated, manager_forbidden, su_required
+from views.main.subcategory_notes import build_subcategory_notes
 
 main = Blueprint('main', __name__)
 
@@ -52,6 +53,7 @@ def index():
 def enter():
     user = current_user
     ym_sign_up_goal = ''
+    enter_subcategory_notes = build_subcategory_notes()
     # yandex metrics for reaching goals of getting info about new sign ups
     # ym_sign_up_goal = settings.YandexMetrics.sign_up_goal \
     #     if ('success', settings.Messages.USER_SIGHNUP_SUCCESS_PARTNER) in session.get('_flashes', []) else ''

@@ -1,5 +1,7 @@
 {% set trademark = '' if (t.trademark or '') == 'БЕЗ ТОВАРНОГО ЗНАКА' else (t.trademark or '') %}
 {% set full_name = (((t.type or '') ~ ' ' ~ trademark ~ ' ' ~ (t.full_name_extra or '')) | trim) %}
+{% set content_type_value = '' if (t.content_type or '')|lower in ['none', 'null', 'undefined'] else (t.content_type or '') %}
+{% set complectation_value = '' if (t.complectation or '')|lower in ['none', 'null', 'undefined'] else (t.complectation or '') %}
 <button type="button" onclick='show_cosmetics_pos(
     {{ loop.index | tojson }},
     {{ full_name | tojson }},
@@ -11,9 +13,9 @@
     {{ (t.usage_term_type or '') | tojson }},
     {{ (t.service_life or '') | tojson }},
     {{ (t.blade_count or '') | tojson }},
-    {{ (t.complectation or '') | tojson }},
+    {{ complectation_value | tojson }},
     {{ (t.layers_characteristic or '') | tojson }},
-    {{ (t.content_type or '') | tojson }},
+    {{ content_type_value | tojson }},
     {{ (t.content or '') | tojson }},
     {{ (t.sl_date_from.strftime('%d.%m.%Y') if t.sl_date_from else '') | tojson }},
     {{ (t.sl_date_to.strftime('%d.%m.%Y') if t.sl_date_to else '') | tojson }},

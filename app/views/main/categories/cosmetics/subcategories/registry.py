@@ -305,6 +305,8 @@ SUBCATEGORY_CONFIG = {
         "product_types": razor_blades_and_cassettes.PRODUCT_TYPES,
         "usage_term_types": razor_blades_and_cassettes.USAGE_TERM_TYPES,
         "content_type_choices": razor_blades_and_cassettes.CONTENT_TYPE_CHOICES,
+        "content_type_enabled": razor_blades_and_cassettes.CONTENT_TYPE_ENABLED,
+        "content_value_enabled": razor_blades_and_cassettes.CONTENT_VALUE_ENABLED,
         "for_children_choices": razor_blades_and_cassettes.FOR_CHILDREN_CHOICES,
         "default_countries": razor_blades_and_cassettes.DEFAULT_COUNTRIES,
         "nominal_quantity_types_by_product_type": razor_blades_and_cassettes.NOMINAL_QUANTITY_TYPES_BY_PRODUCT_TYPE,
@@ -314,6 +316,10 @@ SUBCATEGORY_CONFIG = {
         "complectation_trigger_tnved_codes": razor_blades_and_cassettes.COMPLECTATION_TRIGGER_TNVED_CODES,
         "tnved_codes_by_product_type": razor_blades_and_cassettes.TNVED_CODES_BY_PRODUCT_TYPE,
         "category_code_by_tnved": razor_blades_and_cassettes.CATEGORY_CODE_BY_TNVED,
+        "standard_tnved_codes_by_product_type": razor_blades_and_cassettes.STANDARD_TNVED_CODES_BY_PRODUCT_TYPE,
+        "replaceable_razor_tnved_code": razor_blades_and_cassettes.REPLACEABLE_RAZOR_TNVED_CODE,
+        "standard_razor_product_types": razor_blades_and_cassettes.STANDARD_RAZOR_PRODUCT_TYPES,
+        "replaceable_razor_product_types": razor_blades_and_cassettes.REPLACEABLE_RAZOR_PRODUCT_TYPES,
     },
 }
 

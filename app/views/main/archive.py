@@ -14,7 +14,8 @@ orders_archive = Blueprint('orders_archive', __name__)
 @login_required
 @user_activated
 def index(category: str = 'все', upload_flag: int = None):
-    # using upload bck flag as 111
+    # Legacy partial route: /orders_archive/<category>/111.
+    # New async requests use ?partial=1.
     return h_category(category=category, upload_flag=upload_flag)
 
 

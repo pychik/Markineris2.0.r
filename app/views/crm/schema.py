@@ -23,6 +23,7 @@ class CompaniesOperators(Enum):
     IGNATUK = ("ИП \"Игнатюк Анастасия Дмитриевна\"", "026491035246")
     BETASTROY = ("ООО \"Бетастрой\"", "7720963833")
     MINDIYAROV = ("ИП \"Миндияров Савелий Валерьевич\"", "022703451765")
+    KHUZIN = ("ИП \"Хузин Булат Денисович\"", "023104386702")
 
     def __init__(self, name, inn):
         self.display_name = name

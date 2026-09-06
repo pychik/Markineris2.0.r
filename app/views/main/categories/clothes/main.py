@@ -4,7 +4,11 @@ from flask_login import current_user, login_required
 from config import settings
 from models import Clothes, Order
 from utilities.helpers.h_categories import h_category_sba
-from views.main.categories.clothes.support import h_bck_clothes_tnved, h_bck_clothes_genders
+from views.main.categories.clothes.support import (
+    h_bck_clothes_tnved,
+    h_bck_clothes_genders,
+    render_clothes_categories_index,
+)
 from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.support import (check_order_pos, preprocess_order_category, common_process_delete_order,
     helper_delete_order_pos, user_activated, helper_process_category_order,
@@ -16,55 +20,83 @@ from views.main.categories.clothes.support import helper_clothes_index
 clothes = Blueprint('clothes', __name__)
 
 
-@clothes.route('/', defaults={'o_id': None}, methods=['GET', ])
+@clothes.route('/', defaults={'subcategory': None, 'o_id': None}, methods=['GET', ])
+@clothes.route('/<string:subcategory>', defaults={'o_id': None, 'update_flag': None}, methods=['GET', ])
+@clothes.route('/<string:subcategory>/<int:o_id>/', defaults={'update_flag': None}, methods=['GET', ])
+@clothes.route('/<string:subcategory>/<int:o_id>/<int:update_flag>', methods=['GET', ])
 @clothes.route('/<int:o_id>/', defaults={'update_flag': None}, methods=['GET', ])
 @clothes.route('/<int:o_id>/<int:update_flag>', methods=['GET', ])
 @login_required
 @user_activated
 @manager_forbidden
-def index(o_id: int = None, update_flag: int = None):
+def index(subcategory: str | None = None, o_id: int = None, update_flag: int = None):
+    query_subcategory = request.args.get('subcategory')
+    if subcategory is None and query_subcategory:
+        redirect_kwargs = {'subcategory': query_subcategory}
+        if o_id is not None:
+            redirect_kwargs['o_id'] = o_id
+        if update_flag is not None:
+            redirect_kwargs['update_flag'] = update_flag
+        return redirect(url_for('clothes.index', **redirect_kwargs))
 
-    return helper_clothes_index(o_id=o_id, update_flag=update_flag)
+    if subcategory is None and o_id is None:
+        return render_clothes_categories_index()
+
+    return helper_clothes_index(o_id=o_id, update_flag=update_flag, subcategory=subcategory)
 
 
+@clothes.route('/<string:subcategory>/<int:o_id>/copy_order/<int:p_id>', defaults={'edit_order': None}, methods=['GET', ])
+@clothes.route('/<string:subcategory>/<int:o_id>/copy_order/<int:p_id>/<string:edit_order>/', methods=['GET', ])
 @clothes.route('/<int:o_id>/copy_order/<int:p_id>', defaults={'edit_order': None}, methods=['GET', ])
 @clothes.route('/<int:o_id>/copy_order/<int:p_id>/<string:edit_order>/', methods=['GET', ])
 @login_required
 @user_activated
-def copy_order(o_id: int, p_id: int, edit_order: str = None):
+def copy_order(o_id: int, p_id: int, edit_order: str = None, subcategory: str | None = None):
     copied_order = (Clothes.query.join(Order, Clothes.order_id == Order.id)
                     .filter(Clothes.id == p_id, Order.user_id == current_user.id, ~Order.to_delete)
                     .first())
     if not copied_order:
         flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
-        return redirect(url_for('clothes.index'))
-    return helper_clothes_index(o_id=o_id, p_id=p_id, copied_order=copied_order, edit_order=edit_order)
+        return redirect(url_for('clothes.index', subcategory=subcategory) if subcategory else url_for('clothes.index'))
+    return helper_clothes_index(
+        o_id=o_id,
+        p_id=p_id,
+        subcategory=subcategory,
+        copied_order=copied_order,
+        edit_order=edit_order,
+    )
 
 
+@clothes.route('/<string:subcategory>/preprocess_order/', defaults={'o_id': None}, methods=['POST', ])
+@clothes.route('/<string:subcategory>/preprocess_order/<int:o_id>', defaults={'p_id': None}, methods=['POST', ])
+@clothes.route('/<string:subcategory>/preprocess_order/<int:o_id>/<int:p_id>', methods=['POST', ])
 @clothes.route('/preprocess_order/', defaults={'o_id': None}, methods=['POST', ])
 @clothes.route('/preprocess_order/<int:o_id>', defaults={'p_id': None}, methods=['POST', ])
 @clothes.route('/preprocess_order/<int:o_id>/<int:p_id>', methods=['POST', ])
 @login_required
 @user_activated
-def preprocess_order(o_id: int = None, p_id: int = None):
+def preprocess_order(o_id: int = None, p_id: int = None, subcategory: str | None = None):
     return preprocess_order_category(o_id=o_id, p_id=p_id, category=settings.Clothes.CATEGORY)
 
 
+@clothes.route('/<string:subcategory>/<int:o_id>/delete_order/<int:c_id>', defaults={'async_type': None}, methods=['POST', ])
+@clothes.route('/<string:subcategory>/<int:o_id>/delete_order/<int:c_id>/<int:async_type>', methods=['POST', ])
 @clothes.route('<int:o_id>/delete_order/<int:c_id>', defaults={'async_type': None}, methods=['POST', ])
 @clothes.route('<int:o_id>/delete_order/<int:c_id>/<int:async_type>', methods=['POST', ])
 @login_required
 @user_activated
-def delete_order_pos(o_id: int, c_id: int, async_type: int = None):
+def delete_order_pos(o_id: int, c_id: int, async_type: int = None, subcategory: str | None = None):
     return helper_delete_order_pos(o_id=o_id, m_id=c_id, async_type=async_type, category=settings.Clothes.CATEGORY,
                                    model=Clothes)
 
 
+@clothes.route('/<string:subcategory>/<int:o_id>/clean_orders/', methods=['GET', ])
 @clothes.route('<int:o_id>/clean_orders/', methods=['GET', ])
 @login_required
 @user_activated
-def clean_orders(o_id: int):
+def clean_orders(o_id: int, subcategory: str | None = None):
     common_process_delete_order(o_id=o_id, stage=settings.OrderStage.CREATING)
-    subcategory = get_subcategory(order_id=o_id, category=settings.Clothes.CATEGORY)
+    subcategory = subcategory or get_subcategory(order_id=o_id, category=settings.Clothes.CATEGORY)
     return redirect(url_for('clothes.index', subcategory=subcategory))
 
 
@@ -80,10 +112,11 @@ def clean_orders(o_id: int):
 #     return orders_download_common(user=user, o_id=o_id)
 
 
+@clothes.route('/<string:subcategory>/process_order/<int:o_id>', methods=['POST', ])
 @clothes.route('/process_order/<int:o_id>', methods=['POST', ])
 @login_required
 @user_activated
-def process_order(o_id: int):
+def process_order(o_id: int, subcategory: str | None = None):
     user = current_user
     order_comment = request.form.to_dict().get("order_comment", "")
 
@@ -94,10 +127,11 @@ def process_order(o_id: int):
                                          order_comment=order_comment)
 
 
+@clothes.route('/<string:subcategory>/search_by_article/<int:o_id>', methods=['POST', ])
 @clothes.route('/search_by_article/<int:o_id>', methods=['POST', ])
 @login_required
 @user_activated
-def search_by_article(o_id: int):
+def search_by_article(o_id: int, subcategory: str | None = None):
     return h_category_sba(u_id=current_user.id, o_id=o_id, model_c=Clothes, category=settings.Clothes.CATEGORY_PROCESS)
 
 
@@ -117,10 +151,11 @@ def process_upload():
                                      upload_model=UploadClothes)
 
 
+@clothes.route('/<string:subcategory>/preload/<int:o_id>/<int:stage>', methods=['GET', ])
 @clothes.route('/preload/<int:o_id>/<int:stage>', methods=['GET', ])
 @user_activated
 @login_required
-def preload(o_id: int, stage: int):
+def preload(o_id: int, stage: int, subcategory: str | None = None):
     return helper_preload_common(o_id=o_id, stage=stage, category=settings.Clothes.CATEGORY,
                                  category_process_name=settings.Clothes.CATEGORY_PROCESS)
 

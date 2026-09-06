@@ -37,11 +37,36 @@ DEFAULT_COUNTRIES = DEFAULT_COUNTRIES
 USAGE_TERM_TYPES = USAGE_TERM_TYPES
 NOMINAL_QUANTITY_TYPES_BY_PRODUCT_TYPE = {}
 CONTENT_TYPE_CHOICES = ()
+CONTENT_TYPE_ENABLED = False
+CONTENT_VALUE_ENABLED = False
 FOR_CHILDREN_CHOICES = ()
+REPLACEABLE_RAZOR_TNVED_CODE = "8212109000"
+STANDARD_RAZOR_PRODUCT_TYPES = (
+    "БРИТВА",
+    "БРИТВА ОДНОРАЗОВАЯ",
+    "БРИТВА Т-ОБРАЗНАЯ",
+    "СТАНОК БРИТВЕННЫЙ",
+    "ЛЕЗВИЕ ДЛЯ БРИТВЫ",
+    "КАССЕТА ДЛЯ БРИТВЫ",
+)
+REPLACEABLE_RAZOR_PRODUCT_TYPES = (
+    "БРИТВА",
+    "БРИТВА Т-ОБРАЗНАЯ",
+    "СТАНОК БРИТВЕННЫЙ",
+    "СИСТЕМА БРИТВЕННАЯ",
+)
 COMPLECTATION_TRIGGER_PRODUCT_TYPES = ()
 COMPLECTATION_TRIGGER_TNVED_CODES = (
-    "8212109000",
+    REPLACEABLE_RAZOR_TNVED_CODE,
 )
+STANDARD_TNVED_CODES_BY_PRODUCT_TYPE = {
+    "БРИТВА ОДНОРАЗОВАЯ": ("8212101000",),
+    "БРИТВА": ("8212101000",),
+    "БРИТВА Т-ОБРАЗНАЯ": ("8212101000",),
+    "СТАНОК БРИТВЕННЫЙ": ("8212101000",),
+    "ЛЕЗВИЕ ДЛЯ БРИТВЫ": ("8212200000",),
+    "КАССЕТА ДЛЯ БРИТВЫ": ("8212200000",),
+}
 TNVED_CODES_BY_PRODUCT_TYPE = {
     "БРИТВА ОДНОРАЗОВАЯ": ("8212101000",),
     "БРИТВА": ("8212101000", "8212109000"),

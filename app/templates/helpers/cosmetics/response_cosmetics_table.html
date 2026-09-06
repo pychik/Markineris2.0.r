@@ -35,6 +35,7 @@
                 {% if subcategory == 'razor_blades_and_cassettes' %}
                     {% set razor_category_code = '30958' if (t.tnved_code or '') == '8212101000' else '30957' if (t.tnved_code or '') == '8212109000' else '231207' if (t.tnved_code or '') == '8212200000' else '' %}
                     {% set razor_category_label = 'Одноразовые' if (t.tnved_code or '') == '8212101000' else 'Многоразовые' if (t.tnved_code or '') == '8212109000' else 'Лезвия / кассеты' if (t.tnved_code or '') == '8212200000' else '' %}
+                    {% set is_replaceable_razor = (t.tnved_code or '') == '8212109000' %}
                 {% endif %}
                 <tr>
                     <td class="tablesaw-cell-content">{{ offset + loop.index }}</td>
@@ -46,8 +47,8 @@
                         <div class="small text-muted">{{ razor_category_label }}</div>
                         {% endif %}
                     </td>
-                    <td>{{ t.blade_count or '' }}</td>
-                    <td>{{ t.complectation or '' }}</td>
+                    <td>{{ t.blade_count if is_replaceable_razor else '' }}</td>
+                    <td>{{ t.complectation if is_replaceable_razor else '' }}</td>
                     {% endif %}
                     <td class="text-end actions">
                         {% include 'helpers/cosmetics/table_actions.html' %}
