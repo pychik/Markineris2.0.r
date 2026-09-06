@@ -703,7 +703,7 @@ function cosmetics_validate_full_name_requirements() {
     return !invalid;
 }
 
-function normalizeCosmeticsContentInput(inputEl) {
+function normalizeCosmeticsRussianTextInput(inputEl) {
     if (!inputEl) {
         return;
     }
@@ -716,11 +716,31 @@ function normalizeCosmeticsContentInput(inputEl) {
         A: 'Ф', S: 'Ы', D: 'В', F: 'А', G: 'П', H: 'Р', J: 'О', K: 'Л',
         L: 'Д', Z: 'Я', X: 'Ч', C: 'С', V: 'М', B: 'И', N: 'Т', M: 'Ь'
     };
+    const layoutPunctuationMap = {
+        '`': 'ё', '~': 'Ё', '[': 'х', '{': 'Х', ']': 'ъ', '}': 'Ъ',
+        ';': 'ж', ':': 'Ж', "'": 'э', '"': 'Э', ',': 'б', '<': 'Б', '.': 'ю', '>': 'Ю'
+    };
+    const hasLatinNeighbor = (chars, index) => (
+        /[A-Za-z]/.test(chars[index - 1] || '') || /[A-Za-z]/.test(chars[index + 1] || '')
+    );
 
     let value = String(inputEl.value || '');
-    value = value.split('').map((char) => keyboardMap[char] || char).join('');
+    const chars = value.split('');
+    value = chars.map((char, index) => {
+        if (keyboardMap[char]) {
+            return keyboardMap[char];
+        }
+        if (layoutPunctuationMap[char] && hasLatinNeighbor(chars, index)) {
+            return layoutPunctuationMap[char];
+        }
+        return char;
+    }).join('');
     value = value.replace(/[^А-Яа-яЁё0-9\s,.;:!?()%+\-/"'№@#&*_=\\|[\]{}<>«»\n\r]/g, '');
     inputEl.value = value;
+}
+
+function normalizeCosmeticsContentInput(inputEl) {
+    normalizeCosmeticsRussianTextInput(inputEl);
 }
 
 function cosmeticsUpdateNominalQuantityTypeOptions() {
@@ -1298,6 +1318,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const contentEl = document.getElementById('content');
     if (contentEl) {
-        normalizeCosmeticsContentInput(contentEl);
+        contentEl.addEventListener('input', function () {
+            normalizeCosmeticsRussianTextInput(contentEl);
+        });
+        normalizeCosmeticsRussianTextInput(contentEl);
+    }
+
+    const complectationEl = document.getElementById('complectation');
+    if (complectationEl) {
+        complectationEl.addEventListener('input', function () {
+            normalizeCosmeticsRussianTextInput(complectationEl);
+        });
+        normalizeCosmeticsRussianTextInput(complectationEl);
     }
 });

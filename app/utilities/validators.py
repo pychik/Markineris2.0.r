@@ -321,6 +321,8 @@ class ValidatorProcessor:
         complectation = str(form_data.get("complectation") or "").strip()
         if complectation.lower() in {"none", "null", "undefined"}:
             complectation = ""
+        if re.search(r"[A-Za-z]", complectation):
+            return "Поле 'Комплектация' не должно содержать латиницу."
         content_type = str(form_data.get("content_type") or "").strip()
         if content_type.lower() in {"none", "null", "undefined"}:
             content_type = ""
