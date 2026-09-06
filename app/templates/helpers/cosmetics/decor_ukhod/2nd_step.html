@@ -257,7 +257,7 @@
                 <div class="col-md-12" id="complectation_block" {% if not copied_order or not copied_order.complectation %}style="display:none"{% endif %}>
                     <div class="form-group">
                         <label for="complectation" class="control-label">Комплектация</label>
-                        <textarea id="complectation" name="complectation" class="form-control" rows="4" maxlength="500" placeholder="Введите комплектацию">{% if copied_order and copied_order.complectation %}{{ copied_order.complectation }}{% endif %}</textarea>
+                        <textarea id="complectation" name="complectation" class="form-control" rows="4" maxlength="500" placeholder="Введите комплектацию" oninput="normalizeCosmeticsContentInput(this)">{% if copied_order and copied_order.complectation %}{{ copied_order.complectation }}{% endif %}</textarea>
                     </div>
                 </div>
             </div>
