@@ -31,6 +31,7 @@ from utilities.admin.h_admin_control import (
     h_create_link_new_password,
     h_send_order,
     h_download_agent_report,
+    h_download_at2_transactions_report,
     h_user_search,
     h_user_search_idn,
     h_cross_user_search,
@@ -312,6 +313,13 @@ def send_order():
 @su_required
 def download_agent_report(u_id: int):
     return h_download_agent_report(u_id=u_id)
+
+
+@admin_control.route('/download_at2_transactions_report/<int:u_id>', methods=['GET'])
+@login_required
+@su_required
+def download_at2_transactions_report(u_id: int):
+    return h_download_at2_transactions_report(u_id=u_id)
 
 
 @admin_control.route('/change_agent_fee/<int:u_id>', methods=['POST'])
