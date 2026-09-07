@@ -23,10 +23,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import text
+from sqlalchemy import func, text
 from xlsxwriter import Workbook
 from xlsxwriter.utility import xl_rowcol_to_cell
 
@@ -62,7 +63,7 @@ def _load_agent(email: str) -> AgentContext:
     """Load type2 agent by email and return minimal report context."""
     agent = (
         User.query.with_entities(User.id, User.email, User.login_name, User.balance, User.is_at2)
-        .filter(User.email == _normalize_email(email))
+        .filter(func.lower(User.email) == _normalize_email(email))
         .first()
     )
     if not agent:
@@ -317,16 +318,8 @@ def _write_sheet(workbook: Workbook, sheet_name: str, rows: list[list[Any]], met
     _set_column_widths(sheet, rows, headers, metadata)
 
 
-def export_at2_transactions_report(agent_email: str, output_path: str | Path | None = None) -> dict[str, Any]:
-    """Build XLSX report for a type2 agent and save it to disk.
-
-    Args:
-        agent_email: Email of the target agent type2.
-        output_path: Optional explicit path for resulting xlsx file.
-
-    Returns:
-        Dict with generated file path and basic counters for quick verification.
-    """
+def _prepare_report(agent_email: str) -> tuple[AgentContext, datetime, list[dict[str, Any]], list[list[Any]], list[list[Any]], dict[str, Any]]:
+    """Collect all report data before writing XLSX."""
     agent = _load_agent(agent_email)
     generated_at = datetime.now()
     raw_rows = _transaction_rows(agent.id)
@@ -338,16 +331,19 @@ def export_at2_transactions_report(agent_email: str, output_path: str | Path | N
         if row.get("transaction_type") == TransactionTypes.refund_funds.value and (row.get("order_idns") or "").strip()
     ]
     metadata = _metadata(agent=agent, generated_at=generated_at, rows=raw_rows)
+    return agent, generated_at, raw_rows, success_rows, cancelled_order_rows, metadata
 
-    if output_path is None:
-        email_chunk = _sanitize_file_chunk(agent.email.split("@", 1)[0])
-        output_path = REPORT_DIR / f"at2_transactions_{email_chunk}_{generated_at:%Y%m%d_%H%M%S}.xlsx"
-    else:
-        output_path = Path(output_path)
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+def _report_filename(agent: AgentContext, generated_at: datetime) -> str:
+    """Build stable XLSX file name for an agent report."""
+    email_chunk = _sanitize_file_chunk(agent.email.split("@", 1)[0])
+    return f"at2_transactions_{email_chunk}_{generated_at:%Y%m%d_%H%M%S}.xlsx"
 
-    workbook = Workbook(str(output_path))
+
+def _write_workbook(workbook_target: Any, success_rows: list[list[Any]], cancelled_order_rows: list[list[Any]],
+                    metadata: dict[str, Any]) -> None:
+    """Write XLSX workbook to a path or file-like object."""
+    workbook = Workbook(workbook_target)
     try:
         _write_sheet(
             workbook=workbook,
@@ -363,6 +359,38 @@ def export_at2_transactions_report(agent_email: str, output_path: str | Path | N
         )
     finally:
         workbook.close()
+
+
+def create_at2_transactions_report(agent_email: str) -> BytesIO:
+    """Build XLSX report for a type2 agent in memory."""
+    agent, generated_at, _, success_rows, cancelled_order_rows, metadata = _prepare_report(agent_email)
+
+    output = BytesIO()
+    _write_workbook(output, success_rows, cancelled_order_rows, metadata)
+    output.name = _report_filename(agent, generated_at)
+    output.seek(0)
+    return output
+
+
+def export_at2_transactions_report(agent_email: str, output_path: str | Path | None = None) -> dict[str, Any]:
+    """Build XLSX report for a type2 agent and save it to disk.
+
+    Args:
+        agent_email: Email of the target agent type2.
+        output_path: Optional explicit path for resulting xlsx file.
+
+    Returns:
+        Dict with generated file path and basic counters for quick verification.
+    """
+    agent, generated_at, raw_rows, success_rows, cancelled_order_rows, metadata = _prepare_report(agent_email)
+
+    if output_path is None:
+        output_path = REPORT_DIR / _report_filename(agent, generated_at)
+    else:
+        output_path = Path(output_path)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    _write_workbook(str(output_path), success_rows, cancelled_order_rows, metadata)
 
     return {
         "agent_id": agent.id,

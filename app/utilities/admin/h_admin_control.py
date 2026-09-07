@@ -20,6 +20,7 @@ from logger import logger
 from models import db, Order, OrderStat, PartnerCode, RestoreLink, Telegram, TelegramMessage, User, users_partners, \
     Price, TgUser, ReanimateStatus, ExceptionDataUsers, ValidExceptionsUserDataKinds
 from utilities.download import orders_process_send_order
+from utilities.reports_manual.at2_transactions_report import create_at2_transactions_report
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll, SQLQueryFactory
 from utilities.support import (url_encrypt, helper_check_form, helper_update_order_note, helper_paginate_data,
                                helper_strange_response, sql_count, helper_get_filter_users,
@@ -900,6 +901,31 @@ def h_download_agent_report(u_id: int) -> Response:
     else:
         flash(message=settings.Messages.DOWNLOAD_ADMIN_ERROR, category='error')
         return redirect(url_for('admin_control.index'))
+
+
+def h_download_at2_transactions_report(u_id: int) -> Response:
+    agent = User.query.with_entities(User.email, User.login_name, User.is_at2).filter_by(id=u_id).first()
+    if not agent:
+        flash(message=settings.Messages.DOWNLOAD_ADMIN_ERROR, category='error')
+        return redirect(url_for('admin_control.index'))
+
+    if not agent.is_at2:
+        flash(message='Отчет транзакций AT2 доступен только для агентов type2', category='error')
+        return redirect(url_for('admin_control.index'))
+
+    try:
+        excel_object = create_at2_transactions_report(agent.email)
+    except Exception as e:
+        message = f"{settings.Messages.DOWNLOAD_ADMIN_ERROR} {e}"
+        flash(message=message, category='error')
+        logger.error(message)
+        return redirect(url_for('admin_control.index'))
+
+    return send_file(
+        path_or_file=excel_object,
+        download_name=f"Отчет AT2 транзакций {agent.login_name}.xlsx",
+        as_attachment=True,
+    )
 
 
 def h_change_agent_fee(u_id: int) -> Response:
