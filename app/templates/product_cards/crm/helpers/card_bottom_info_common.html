@@ -7,6 +7,9 @@
   <div class="order__num">
     Артикул: <span class="text-secondary" data-pc-article-value="1" data-copy="{{ c.article_or_trademark }}" onclick="copy_buffer(this.dataset.copy, event)">{{ c.article_or_trademark }}</span><br>
   </div>
+  <div class="order__num">
+    Компания: <span class="text-secondary">{{ c.processing_company or '-' }}</span><br>
+  </div>
   <div class="order__time"
        data-bs-toggle="tooltip"
        data-bs-html="true"

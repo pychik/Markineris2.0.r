@@ -11,7 +11,7 @@
           onchange="pcReloadColumn('in_moderation')">
             <option value="">Все фирмы</option>
             {% for c in companies_pool %}
-              <option value="{{ c.id }}">{{ c.inn }} {{ c.title }}</option>
+              <option value="{{ c.key }}">{{ c.inn }} {{ c.title or c.external_id }}</option>
             {% endfor %}
           </select>
         {% endif %}

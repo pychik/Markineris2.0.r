@@ -6,6 +6,210 @@
    Product cards UI (pc-*)
    =========================== */
 
+.pc-category-tabs--main [data-pc-category-child],
+.pc-category-tabs:not(.pc-category-tabs--main) [data-pc-main-only],
+.pc-category-tabs:not(.pc-category-tabs--clothes) [data-pc-category-child="clothes"] {
+  display: none !important;
+}
+
+.pc-category-disabled-tile {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pc-category-disabled-tile .nav-link,
+.pc-category-disabled-tile button {
+  cursor: not-allowed;
+}
+
+.pc-category-disabled-tile button {
+  color: #575757;
+}
+
+.pc-category-disabled-tile img {
+  width: 52px;
+  height: 51px;
+  object-fit: contain;
+}
+
+.pc-category-tabs--clothes [data-pc-category-order="10"] { order: 10; }
+.pc-category-tabs--clothes [data-pc-category-order="20"] { order: 20; }
+.pc-category-tabs--clothes [data-pc-category-order="30"] { order: 30; }
+.pc-category-tabs--clothes [data-pc-category-order="40"] { order: 40; }
+.pc-category-tabs--clothes [data-pc-category-order="50"] { order: 50; }
+.pc-category-tabs--clothes [data-pc-category-order="60"] { order: 60; }
+.pc-category-tabs--clothes [data-pc-category-order="70"] { order: 70; }
+
+.pc-category-tabs > [data-pc-category-tile],
+.pc-category-tabs > .pc-category-back {
+  min-width: 0;
+  text-decoration: none;
+}
+
+.pc-category-tabs .nav-link {
+  overflow: hidden;
+}
+
+.pc-category-tabs button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pc-category-tabs .category-item__name {
+  max-width: 100%;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.pc-category-back .nav-link,
+.pc-category-back button {
+  background: #6c757d;
+  color: #fff;
+}
+
+.pc-category-back .nav-link.active {
+  background: #6c757d;
+}
+
+.pc-category-back__arrow {
+  display: block;
+  height: 50px;
+  color: #fff;
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 50px;
+}
+
+.pc-action-toolbar {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 0 0 14px auto;
+}
+
+.pc-action-toolbar__create-group {
+  width: auto;
+}
+
+.pc-action-toolbar__create-group .btn {
+  min-width: 190px;
+}
+
+.pc-action-toolbar__create-group #pc-create-current-category {
+  min-width: 220px;
+}
+
+.pc-action-toolbar .btn {
+  min-height: 42px;
+  line-height: 1.2;
+  white-space: normal;
+}
+
+.pc-action-toolbar__moderation {
+  min-width: 220px;
+}
+
+.pc-action-toolbar__cart {
+  min-width: 150px;
+  min-height: 42px;
+  border-radius: 6px;
+}
+
+@media (max-width: 767.98px) {
+  .pc-action-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-left: 0;
+  }
+
+  .pc-action-toolbar__create-group {
+    display: flex;
+    width: 100%;
+  }
+
+  .pc-action-toolbar__create-group .btn {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .pc-action-toolbar__cart {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .pc_pills_row {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .pc_pills_row > ul.pc-category-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    justify-content: stretch;
+  }
+
+  .pc-category-tabs .nav-link {
+    width: 100%;
+    height: 82px;
+  }
+
+  .pc-category-tabs button {
+    padding: 10px 6px;
+  }
+
+  .pc-category-tabs button svg {
+    max-width: 34px;
+    height: 30px;
+    flex: 0 0 auto;
+  }
+
+  .pc-category-tabs .category-item__name,
+  .pc-category-tabs .category-item__name span {
+    font-size: 12px !important;
+    line-height: 1.05 !important;
+  }
+
+  .pc-category-back__arrow {
+    height: 34px;
+    font-size: 24px;
+    line-height: 34px;
+  }
+}
+
+@media (max-width: 419.98px) {
+  .pc-action-toolbar__create-group {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .pc-action-toolbar__create-group > .btn:not(:last-child):not(.dropdown-toggle),
+  .pc-action-toolbar__create-group > .btn-group:not(:last-child) > .btn {
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+    border-bottom-left-radius: 6px;
+  }
+
+  .pc-action-toolbar__create-group > .btn:nth-child(n+2),
+  .pc-action-toolbar__create-group > .btn-group:not(:first-child) > .btn {
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    border-bottom-left-radius: 6px;
+  }
+
+  .pc-action-toolbar__create-group > .btn + .btn {
+    margin-left: 0;
+    margin-top: 0;
+  }
+}
+
 /* Базовая кнопка */
 .pc-btn {
   display: inline-flex;

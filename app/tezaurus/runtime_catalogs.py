@@ -53,6 +53,79 @@ _REDIS_TO_DISPLAY_GENDER = {
     "БЕЗ УКАЗАНИЯ ПОЛА": "Без указания пола",
 }
 
+_DEFAULT_PROCESSING_COMPANIES = [
+    {
+        "title": 'ИП "Игнатюк Анастасия Дмитриевна"',
+        "inn": "026491035246",
+        "is_active": True,
+        "categories": ["clothes"],
+        "origins": ["rf"],
+    },
+    {
+        "title": 'ИП "Миндияров Савелий Валерьевич"',
+        "inn": "022703451765",
+        "is_active": True,
+        "categories": ["shoes"],
+        "origins": ["rf"],
+    },
+    {
+        "title": "ИП Хузин Булат Денисович",
+        "inn": "023104386702",
+        "is_active": True,
+        "categories": ["clothes", "shoes", "parfum"],
+        "origins": ["rf", "import"],
+    },
+    {
+        "title": 'ООО "Маркинерис"',
+        "inn": "4400029308",
+        "is_active": True,
+        "categories": ["clothes", "shoes", "parfum"],
+        "origins": ["rf", "import"],
+    },
+    {
+        "title": "Аврора",
+        "inn": "4400023120",
+        "is_active": True,
+        "categories": ["clothes", "shoes", "parfum"],
+        "origins": ["rf", "import"],
+    },
+    {
+        "title": "Гренада",
+        "inn": "4400023137",
+        "is_active": True,
+        "categories": ["clothes", "shoes", "parfum", "toys", "cosmetics", "home_goods"],
+        "origins": ["rf", "import"],
+    },
+    {
+        "title": "ИП Ишмитов Илья Алексеевич",
+        "inn": "023103006891",
+        "is_active": True,
+        "categories": ["clothes", "shoes", "parfum"],
+        "origins": ["rf", "import"],
+    },
+    {
+        "title": 'ИП "Моськин"',
+        "inn": "771988302928",
+        "is_active": True,
+        "categories": ["clothes", "shoes", "parfum"],
+        "origins": ["rf", "import"],
+    },
+    {
+        "title": 'ООО "Бетастрой"',
+        "inn": "7720963833",
+        "is_active": True,
+        "categories": ["shoes"],
+        "origins": ["rf", "import"],
+    },
+    {
+        "title": 'ООО "Перемены"',
+        "inn": "4400027438",
+        "is_active": True,
+        "categories": ["clothes", "shoes", "parfum"],
+        "origins": ["rf", "import"],
+    },
+]
+
 
 def _normalize_str_list(values) -> list[str]:
     if not isinstance(values, list):
@@ -67,6 +140,35 @@ def _normalize_str_list(values) -> list[str]:
             continue
         normalized.append(text.upper())
     return normalized
+
+
+def _normalize_processing_company_items(values) -> list[dict[str, str]]:
+    if not isinstance(values, list):
+        return []
+
+    companies: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for value in values:
+        if not isinstance(value, dict):
+            continue
+
+        external_id = str(value.get("external_id") or value.get("id") or value.get("company_id") or "").strip()
+        inn = str(value.get("inn") or value.get("company_idn") or "").strip()
+        title = str(value.get("title") or value.get("name") or value.get("company_name") or "").strip()
+        key = str(value.get("key") or inn or external_id or title).strip()
+
+        if not key or key in seen:
+            continue
+
+        seen.add(key)
+        companies.append({
+            "key": key,
+            "external_id": external_id,
+            "inn": inn,
+            "title": title,
+        })
+
+    return sorted(companies, key=lambda company: ((company.get("title") or "").lower(), company.get("inn") or ""))
 
 
 @lru_cache(maxsize=1)
@@ -181,6 +283,17 @@ def get_colors() -> list[str]:
         logger.exception("Failed to read colors from Tezaurus Redis cache")
 
     return _normalize_str_list(list(settings.ALL_COLORS))
+
+
+def get_processing_companies() -> list[dict[str, str]]:
+    try:
+        companies = _normalize_processing_company_items(_get_cache_service().get_processing_companies())
+        if companies:
+            return companies
+    except Exception:
+        logger.exception("Failed to read processing companies from Tezaurus Redis cache")
+
+    return _normalize_processing_company_items(_DEFAULT_PROCESSING_COMPANIES)
 
 
 def get_all_countries() -> list[str]:

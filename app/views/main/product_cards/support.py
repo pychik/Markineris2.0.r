@@ -1,28 +1,24 @@
 import time
 import functools
-import hashlib
-from typing import Iterable, Tuple, Optional
 from datetime import datetime
 from flask import flash, jsonify, redirect, request, url_for, Response
 from flask_login import current_user
 from typing import Union, Any
 
 from sqlalchemy import event
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import joinedload
-from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries
 from werkzeug.datastructures import ImmutableMultiDict
 
 from config import settings
 from logger import logger
 from models import db, Clothes, LinenSizesUnits, ProductCard, ClothesQuantitySize, Shoe, ShoeQuantitySize, Socks, \
-    SocksQuantitySize, Linen, LinenQuantitySize, Parfum, UserProcessingCompany, ProcessingCompany, ModerationStatus
+    SocksQuantitySize, Linen, LinenQuantitySize, Parfum, ModerationStatus
 from utilities.categories_data.subcategories_data import ClothesSubcategories
-from utilities.exceptions import SizeTypeException, CompanyPoolError
+from utilities.exceptions import SizeTypeException
 from utilities.saving_helpers import get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, process_input_str
 from utilities.support import check_forbidden_words
 from utilities.validators import ValidatorProcessor
-from views.crm.schema import CompanyLite, is_forbidden_pair_by_inn
+from tezaurus.processing_companies import PROCESSING_COMPANIES_BATCH_LIMIT, ProcessingCompaniesClient
+from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
 
 CATEGORIES_COMMON = {
@@ -1132,229 +1128,6 @@ def check_same_fields_if_exists(*, category: str, subcategory: str | None, form_
         )
 
 
-def handle_company_removed(company_id: int):
-    try:
-        bindings = UserProcessingCompany.query.filter_by(company_id=company_id).all()
-        affected_user_ids = sorted({b.user_id for b in bindings})
-
-        for b in bindings:
-            db.session.delete(b)
-
-        # если пул теперь <2, require_user_two_companies кинет CompanyPoolError -> rollback всего удаления
-        for uid in affected_user_ids:
-            require_user_two_companies(uid)
-
-            (ProductCard.query
-             .filter(ProductCard.user_id == uid,
-                     ProductCard.status != ModerationStatus.REJECTED)
-             .update({ProductCard.status: ModerationStatus.PARTIALLY_APPROVED},
-                     synchronize_session=False))
-
-        db.session.commit()
-
-    except CompanyPoolError:
-        db.session.rollback()
-        raise  # пусть админ-интерфейс покажет ошибку “в пуле меньше 2”
-    except SQLAlchemyError:
-        db.session.rollback()
-        raise
-
-
-def user_has_any_approved_company(user_id: int) -> bool:
-    return (UserProcessingCompany.query
-            .filter(UserProcessingCompany.user_id == user_id,
-                    UserProcessingCompany.is_approved.is_(True))
-            .first()) is not None
-
-
-def set_user_cards_partially_approved(user_id: int):
-    (ProductCard.query
-     .filter(ProductCard.user_id == user_id,
-             ProductCard.status.in_([
-                 ModerationStatus.SENT,
-                 ModerationStatus.SENT_NO_RD,
-                 ModerationStatus.IN_PROGRESS,
-                 ModerationStatus.IN_MODERATION,
-                 ModerationStatus.CLARIFICATION,
-                 ModerationStatus.APPROVED,
-                 ModerationStatus.PARTIALLY_APPROVED,
-             ]))
-     .update({ProductCard.status: ModerationStatus.PARTIALLY_APPROVED}, synchronize_session=False))
-
-
-def _hrw_score(user_id: int, company_id: int, salt: str) -> int:
-    payload = f"{salt}|u:{user_id}|c:{company_id}".encode("utf-8")
-    return int.from_bytes(
-        hashlib.blake2b(payload, digest_size=8).digest(),
-        "big"
-    )
-
-
-# def pick_two_companies_for_user(
-#     user_id: int,
-#     company_ids: Iterable[int],
-#     salt: str,
-# ) -> Optional[Tuple[int, int]]:
-#     ids = list(company_ids)
-#     if len(ids) < 2:
-#         return None
-#
-#     scored = [(cid, _hrw_score(user_id, cid, salt)) for cid in ids]
-#     scored.sort(key=lambda x: x[1], reverse=True)
-#     return scored[0][0], scored[1][0]
-
-
-def pick_two_companies_for_user_checked(
-        user_id: int,
-        companies: Iterable[CompanyLite],
-        salt: str,
-) -> Optional[Tuple[int, int]]:
-    items = list(companies)
-    if len(items) < 2:
-        return None
-
-    scored = [(c, _hrw_score(user_id, c.id, salt)) for c in items]
-    scored.sort(key=lambda x: x[1], reverse=True)
-    ordered = [c for c, _ in scored]
-
-    # первая допустимая пара в порядке HRW
-    for i in range(len(ordered) - 1):
-        c1 = ordered[i]
-        for j in range(i + 1, len(ordered)):
-            c2 = ordered[j]
-            if not is_forbidden_pair_by_inn(c1.inn, c2.inn):
-                return c1.id, c2.id
-    return None
-
-
-def require_user_two_companies(user_id: int) -> tuple[int, int]:
-    salt = "pc_companies_v1"
-
-    pool_rows = (
-        db.session.query(ProcessingCompany.id, ProcessingCompany.inn, ProcessingCompany.title)
-        .filter(ProcessingCompany.is_active.is_(True))
-        .order_by(ProcessingCompany.id.asc())
-        .all()
-    )
-    pool = [CompanyLite(id=cid, title=(title or ""), inn=(inn or "")) for cid, title, inn in pool_rows]
-
-    if len(pool) < 2:
-        raise CompanyPoolError("В пуле меньше двух активных компаний. Обратитесь к администратору.")
-
-    pool_by_id = {c.id: c for c in pool}
-
-    # 1) текущие привязки 1/2
-    rows = (
-        UserProcessingCompany.query
-        .options(joinedload(UserProcessingCompany.company))
-        .filter(UserProcessingCompany.user_id == user_id)
-        .filter(UserProcessingCompany.slot.in_([1, 2]))
-        .order_by(UserProcessingCompany.slot.asc())
-        .all()
-    )
-
-    by_slot = {r.slot: r for r in rows}
-
-    # удалить (или считать отсутствующими) только неактивные
-    active_bindings = []  # list[UserProcessingCompany] только с активной company
-    for slot, r in list(by_slot.items()):
-        if r.company and r.company.is_active:
-            active_bindings.append(r)
-        else:
-            db.session.delete(r)
-            by_slot.pop(slot, None)
-
-    # helper: upsert слота
-    def upsert(slot: int, company_id: int):
-        r = by_slot.get(slot)
-        if r:
-            if r.company_id != company_id:
-                r.company_id = company_id
-                r.is_approved = True
-            return
-        db.session.add(UserProcessingCompany(
-            user_id=user_id,
-            slot=slot,
-            company_id=company_id,
-            is_approved=True,
-        ))
-
-    # helper: проверка пары по ids
-    def ids_forbidden(cid1: int, cid2: int) -> bool:
-        c1 = pool_by_id.get(cid1)
-        c2 = pool_by_id.get(cid2)
-        if not c1 or not c2:
-            return False
-        return is_forbidden_pair_by_inn(c1.inn, c2.inn)
-
-    # если уже две активные и разные — и НЕ запрещённая пара — ничего не меняем
-    if len(active_bindings) >= 2 and by_slot.get(1) and by_slot.get(2):
-        cid1 = by_slot[1].company_id
-        cid2 = by_slot[2].company_id
-        if cid1 != cid2 and not ids_forbidden(cid1, cid2):
-            return cid1, cid2
-        # иначе (дубль или запрещённая пара) — пересобираем ниже
-
-    # если есть ровно одна активная — сохраняем её (но всё равно учитываем запрет пары)
-    keep_company_id = None
-    keep_slot = None
-    if len(active_bindings) == 1:
-        keep_company_id = active_bindings[0].company_id
-        keep_slot = active_bindings[0].slot
-
-        # на всякий случай: если keep уже не в пуле активных (не должно быть) — сбрасываем
-        if keep_company_id not in pool_by_id:
-            keep_company_id = None
-            keep_slot = None
-
-    # Выбор 2х компаний с учётом запрещённых пар
-    if keep_company_id is None:
-        picked = pick_two_companies_for_user_checked(user_id, pool, salt)
-        if not picked:
-            raise CompanyPoolError("Невозможно подобрать 2 компании без запрещённых сочетаний.")
-        c1_id, c2_id = picked
-    else:
-        keep = pool_by_id[keep_company_id]
-
-        # кандидаты для второй: все кроме keep, и чтобы пара была разрешена
-        candidates = [
-            c for c in pool
-            if c.id != keep_company_id and not is_forbidden_pair_by_inn(keep.inn, c.inn)
-        ]
-        if not candidates:
-            raise CompanyPoolError("Недостаточно компаний для назначения без запрещённых сочетаний.")
-
-        # детерминированно выбираем лучшую вторую по HRW
-        scored = [(c, _hrw_score(user_id, c.id, salt)) for c in candidates]
-        scored.sort(key=lambda x: x[1], reverse=True)
-        second = scored[0][0]
-
-        # раскладываем по слотам: сохраняем слот keep
-        if keep_slot == 1:
-            c1_id, c2_id = keep_company_id, second.id
-        else:
-            c1_id, c2_id = second.id, keep_company_id
-
-    # финальная страховка
-    if c1_id == c2_id:
-        # не должно случиться, но перестрахуемся
-        for c in pool:
-            if c.id != c1_id:
-                c2_id = c.id
-                break
-
-    if ids_forbidden(c1_id, c2_id):
-        # теоретически не должно случиться, но лучше явно упасть
-        raise CompanyPoolError("Подобралась запрещённая пара компаний. Обратитесь к администратору.")
-
-    # upsert слотов 1/2
-    upsert(1, c1_id)
-    upsert(2, c2_id)
-
-    db.session.flush()
-    return c1_id, c2_id
-
-
 def get_card_entity_for_prefill(card: ProductCard):
     if card.category == "clothes":
         return card.clothes[0] if card.clothes else None
@@ -1367,6 +1140,264 @@ def get_card_entity_for_prefill(card: ProductCard):
     if card.category == "parfum":
         return card.parfum[0] if card.parfum else None
     return None
+
+
+def _looks_like_processing_company(value: dict[str, Any]) -> bool:
+    return any(
+        key in value
+        for key in (
+            "id",
+            "external_id",
+            "company_id",
+            "company_idn",
+            "inn",
+            "title",
+            "name",
+            "company_name",
+        )
+    )
+
+
+def _find_processing_company_payload(payload: Any) -> dict[str, Any] | None:
+    if isinstance(payload, list):
+        for item in payload:
+            found = _find_processing_company_payload(item)
+            if found:
+                return found
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+
+    for key in (
+        "company",
+        "processing_company",
+        "selected_company",
+        "selected",
+        "item",
+        "result",
+    ):
+        found = _find_processing_company_payload(payload.get(key))
+        if found:
+            return found
+
+    for key in ("companies", "items", "results", "data"):
+        found = _find_processing_company_payload(payload.get(key))
+        if found:
+            return found
+
+    return payload if _looks_like_processing_company(payload) else None
+
+
+def _processing_company_value(company: dict[str, Any], *keys: str) -> str:
+    for key in keys:
+        value = company.get(key)
+        if value not in (None, ""):
+            if isinstance(value, dict):
+                value = next(
+                    (
+                        value.get(nested_key)
+                        for nested_key in ("full", "short", "value", "title", "name")
+                        if value.get(nested_key) not in (None, "")
+                    ),
+                    "",
+                )
+            return str(value).strip()
+    return ""
+
+
+def _processing_company_client_id(card: ProductCard) -> str:
+    return f"card-{card.id}"
+
+
+def _processing_company_chunks(items: list[Any], size: int) -> list[list[Any]]:
+    return [items[idx:idx + size] for idx in range(0, len(items), size)]
+
+
+def _format_processing_company_batch_errors(errors: list[dict[str, Any]]) -> str:
+    cards_text = ", ".join(
+        f"#{error['card_id']}: {error['message']}"
+        for error in errors
+    )
+    return (
+        "Отправка на модерацию не выполнена из-за ошибок назначения компаний "
+        f"в карточках: {cards_text}. "
+        "Отправьте остальные карточки отдельно, а ошибочные исправьте или попробуйте снова позже."
+    )
+
+
+def _card_processing_country(card: ProductCard) -> str:
+    entity = get_card_entity_for_prefill(card)
+    return (getattr(entity, "country", "") or "").strip()
+
+
+def clear_card_processing_company(card: ProductCard) -> None:
+    card.processing_info = ""
+    card.processing_company_external_id = ""
+    card.processing_company_title = ""
+    card.processing_company_inn = ""
+    card.processing_company_origin = ""
+    card.processing_company_category = ""
+    card.processing_company_payload = None
+    card.processing_company_assigned_at = None
+
+
+def _save_card_processing_company(
+    card: ProductCard,
+    *,
+    processing_request,
+    response_payload: dict[str, Any],
+    assigned_at: datetime | None = None,
+) -> dict[str, Any]:
+    company = _find_processing_company_payload(response_payload)
+    if not company:
+        raise ValueError(f"Тезаурус не вернул компанию для карточки {card.id}")
+
+    external_id = _processing_company_value(company, "id", "external_id", "company_id")
+    title = _processing_company_value(company, "title", "name", "company_name")
+    inn = _processing_company_value(company, "inn", "company_idn")
+
+    if not any((external_id, title, inn)):
+        raise ValueError(f"Тезаурус вернул компанию без идентификатора для карточки {card.id}")
+
+    label = " ".join(part for part in (inn, title) if part)
+    card.processing_info = (label or title or external_id)[:100]
+    card.processing_company_external_id = external_id[:100]
+    card.processing_company_title = title[:255]
+    card.processing_company_inn = inn[:20]
+    card.processing_company_origin = processing_request.origin[:20]
+    card.processing_company_category = processing_request.category[:50]
+    card.processing_company_payload = {
+        "request": processing_request.as_payload(),
+        "response": response_payload,
+        "company": company,
+    }
+    card.processing_company_assigned_at = assigned_at or datetime.now()
+
+    return {
+        "request": processing_request.as_payload(),
+        "company": company,
+        "label": card.processing_company_label or card.processing_info,
+    }
+
+
+def assign_tezaurus_processing_company(
+    card: ProductCard,
+    *,
+    client: ProcessingCompaniesClient | None = None,
+    assigned_at: datetime | None = None,
+) -> dict[str, Any]:
+    country = _card_processing_country(card)
+    if not country:
+        raise ValueError(f"Не указана страна для карточки {card.id}")
+
+    client = client or ProcessingCompaniesClient()
+    processing_request = client.build_request(category=card.category, country=country)
+    response_payload = client.select(
+        category=processing_request.category,
+        origin=processing_request.origin,
+    )
+    return _save_card_processing_company(
+        card,
+        processing_request=processing_request,
+        response_payload=response_payload,
+        assigned_at=assigned_at,
+    )
+
+
+def assign_tezaurus_processing_companies(
+    cards: list[ProductCard],
+    *,
+    client: ProcessingCompaniesClient | None = None,
+    assigned_at: datetime | None = None,
+) -> dict[int, dict[str, Any]]:
+    if not cards:
+        return {}
+
+    client = client or ProcessingCompaniesClient()
+    contexts = []
+    errors: list[dict[str, Any]] = []
+    for card in cards:
+        country = _card_processing_country(card)
+        if not country:
+            errors.append({
+                "card_id": card.id,
+                "message": "не указана страна",
+            })
+            continue
+
+        try:
+            processing_request = client.build_request(category=card.category, country=country)
+        except ValueError as exc:
+            errors.append({
+                "card_id": card.id,
+                "message": str(exc),
+            })
+            continue
+
+        contexts.append((card, _processing_company_client_id(card), processing_request))
+
+    if errors:
+        raise ValueError(_format_processing_company_batch_errors(errors))
+
+    response_contexts = []
+    for chunk in _processing_company_chunks(contexts, PROCESSING_COMPANIES_BATCH_LIMIT):
+        batch_items = [
+            processing_request.as_batch_payload(client_id)
+            for _card, client_id, processing_request in chunk
+        ]
+        batch_payload = client.select_batch(batch_items)
+        response_items = batch_payload.get("items")
+        if not isinstance(response_items, list):
+            raise ValueError("Тезаурус вернул некорректный batch-ответ без items")
+
+        response_by_client_id = {
+            str(item.get("client_id")): item
+            for item in response_items
+            if isinstance(item, dict) and item.get("client_id")
+        }
+
+        for card, client_id, processing_request in chunk:
+            item_payload = response_by_client_id.get(client_id)
+            if not item_payload:
+                errors.append({
+                    "card_id": card.id,
+                    "message": "Тезаурус не вернул batch-item",
+                })
+                continue
+
+            if item_payload.get("ok") is False or item_payload.get("matched") is not True:
+                message = item_payload.get("message") or "компания не назначена"
+                status_code = item_payload.get("status_code")
+                status_text = f" ({status_code})" if status_code else ""
+                errors.append({
+                    "card_id": card.id,
+                    "message": f"{message}{status_text}",
+                })
+                continue
+
+            if not _find_processing_company_payload(item_payload):
+                errors.append({
+                    "card_id": card.id,
+                    "message": "Тезаурус вернул ответ без компании",
+                })
+                continue
+
+            response_contexts.append((card, processing_request, item_payload))
+
+    if errors:
+        raise ValueError(_format_processing_company_batch_errors(errors))
+
+    assignments: dict[int, dict[str, Any]] = {}
+    for card, processing_request, item_payload in response_contexts:
+        assignments[card.id] = _save_card_processing_company(
+            card,
+            processing_request=processing_request,
+            response_payload=item_payload,
+            assigned_at=assigned_at,
+        )
+
+    return assignments
 
 
 def build_size_keys_for_incoming(category: str, sizes_quantities: list) -> set:

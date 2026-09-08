@@ -26,6 +26,35 @@
 }
 .crm-download-icon-btn:hover{opacity:.7}
 
+.order__header .order__name {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.order__header .order__name span {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.order__header .pc-article-link,
+.order__header .pc-chat-btn,
+.order__header .pc-logs-btn {
+  display: block;
+  width: 21px;
+  height: 21px;
+  object-fit: contain;
+}
+
+.order__header .pc-chat-wrap,
+.order__header .pc-logs-wrap {
+  flex: 0 0 auto;
+}
+
 /* фон модалки (как хотели ранее) */
 #crmSearchModal .modal-body{
   background:#f2f3f5;

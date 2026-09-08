@@ -13,10 +13,6 @@
      data-managers-url="{{ url_for('crm_product_cards.pc_managers_list') }}"
      data-assign-manager-url-template="{{ url_for('crm_product_cards.pc_assign_manager', pc_id=0) }}"
 
-     data-companies-modal-url="{{ url_for('crm_product_cards.companies_modal') }}"
-     data-companies-create-url="{{ url_for('crm_product_cards.companies_create') }}"
-     data-companies-delete-url-template="{{ url_for('crm_product_cards.companies_delete', company_id=0) }}"
-
      data-card-logs-url-template="{{ url_for('crm_product_cards.pc_card_logs', pc_id=0) }}"
 
      data-lazy-column-url="{{ url_for('crm_product_cards.pc_lazy_column') }}"
@@ -28,7 +24,6 @@
 
      data-approve-from-partially-url-template="{{ url_for('crm_product_cards.crm_approve_from_partially', card_id=0) }}"
 
-     data-set-company-slot-url="{{ url_for('crm_product_cards.crm_set_company_slot', card_id=0) }}"
      data-transfer-sent-to-in-progress-url="{{ url_for('crm_product_cards.transfer_sent_to_in_progress') }}"
      data-download-cards-companies-in-progress="{{ url_for('crm_product_cards.download_cards_companies_in_progress') }}"
      data-download-companies-url="{{ url_for('crm_product_cards.download_cards_companies') }}"

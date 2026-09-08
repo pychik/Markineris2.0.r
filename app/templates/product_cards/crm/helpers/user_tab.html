@@ -60,13 +60,6 @@
             </li>
 
         {% endif %}
-        {% if current_user.role in ['superuser', 'supermanager'] %}
-            <li>
-                <a class="dropdown-item d-flex align-items-center py-2" style="cursor: pointer" onclick="pcCompaniesOpen()">
-                    Пул фирм
-                </a>
-            </li>
-        {% endif %}
         <li>
             <a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('auth.logout')}}">
             <img src="{{url_for('static', filename='main_v2/img/icons/exit.svg')}}" class="me-2" width="24"

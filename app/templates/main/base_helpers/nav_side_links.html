@@ -11,15 +11,9 @@
     </li>
     <hr>
     <li class="nav-item">
-        {% set quick_order_maintenance_message = 'Проводятся технические работы в разделе «Быстрый заказ». В ближайшее время данный раздел будет временно недоступен. До завершения работ, пожалуйста, воспользуйтесь разделом «Обычный заказ».' %}
-        <a class="nav-link d-flex text-white align-items-center no-link"
-           href="#"
-           role="button"
-           aria-disabled="true"
-           title="{{ quick_order_maintenance_message }}"
-           data-bs-toggle="modal"
-           data-bs-target="#quickOrderMaintenanceModal"
-           style="opacity: .55; filter: grayscale(1);">
+        <a href="{{ url_for('user_product_cards.cards') }}"
+           class="nav-link d-flex text-white align-items-center {% if 'user_product_cards' in request.path %}active{% else %}no-link{% endif %}"
+           aria-current="page">
 
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
                  xmlns="http://www.w3.org/2000/svg">
@@ -113,17 +107,3 @@
 <!--                                    <a href="#" class="nav-link text-light" aria-current="page">Игрушки</a>-->
 <!--                                </li>-->
 </ul>
-<div class="modal fade" id="quickOrderMaintenanceModal" tabindex="-1" aria-labelledby="quickOrderMaintenanceModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background:#fff; color:#212529;">
-            <div class="modal-header" style="color:#212529;">
-                <h5 class="modal-title" id="quickOrderMaintenanceModalLabel" style="color:#212529;">Уведомление</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть" style="filter:none; opacity:.8;"></button>
-            </div>
-            <div class="modal-body" style="color:#212529;">
-                <p class="mb-3" style="color:#212529;">Проводятся технические работы в разделе «Быстрый заказ». В ближайшее время данный раздел будет временно недоступен.</p>
-                <p class="mb-0" style="color:#212529;">До завершения работ, пожалуйста, воспользуйтесь разделом «Обычный заказ».</p>
-            </div>
-        </div>
-    </div>
-</div>

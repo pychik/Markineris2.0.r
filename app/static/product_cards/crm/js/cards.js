@@ -1044,39 +1044,6 @@ if (!r.ok || data.status !== 'success') {
   }
 }
 
-async function pcSetCompanySlot(cardId, slot) {
-  const cfg = document.getElementById('pc-config');
-  const csrf = cfg.dataset.csrf;
-  const url = cfg.dataset.setCompanySlotUrl.replace(/0\b/, String(cardId));
-
-  const sel = document.getElementById(`pc-company-slot-${slot}`);
-  const companyId = sel ? sel.value : "";
-
-  const msg = document.getElementById('pc-companies-msg');
-  if (msg) msg.innerHTML = '';
-
-  if (!companyId) {
-    if (msg) msg.innerHTML = '<span class="text-danger">Выберите компанию</span>';
-    return;
-  }
-
-  const fd = new FormData();
-  fd.append('slot', String(slot));
-  fd.append('company_id', String(companyId));
-  fd.append('csrf_token', csrf);
-
-  const r = await fetch(url, {method:'POST', body:fd, headers:{'X-Requested-With':'XMLHttpRequest'}});
-  const data = await r.json();
-
-  if (data.status !== 'success') {
-    if (msg) msg.innerHTML = `<span class="text-danger">${data.message || 'Ошибка'}</span>`;
-    return;
-  }
-
-  const box = document.getElementById('pc-card-view-companies');
-  if (box) box.outerHTML = data.html;
-}
-
 function pcApproveFromPartially(cardId) {
   const cfg = pcGetConfigEl().dataset;
   const csrf = cfg.csrf;

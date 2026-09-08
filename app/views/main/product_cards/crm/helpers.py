@@ -10,8 +10,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import joinedload, selectinload
 
 from config import settings
-from models import User, db, ProductCard, ModerationStatus, Clothes, Socks, Linen, Shoe, UserProcessingCompany, \
-    ProcessingCompany, Parfum
+from models import User, db, ProductCard, ModerationStatus, Clothes, Socks, Linen, Shoe, Parfum
 from utilities.download import ShoesProcessor, ClothesProcessor, SocksProcessor, LinenProcessor, ParfumProcessor
 
 from utilities.support import order_count
@@ -190,6 +189,9 @@ def split_cards_by_status(cards: list[ProductCard]) -> dict[str, list[dict]]:
             "sent_at": card.sent_at,
             "crm_stage_tooltip": crm_card_stage_tooltip(card),
             "processing_info": card.processing_info,
+            "processing_company": card.processing_company_label,
+            "processing_company_inn": card.processing_company_inn,
+            "processing_company_title": card.processing_company_title,
             "user_id": card.user_id,
 
             "user_login": card.creator.login_name if card.creator else "",
@@ -404,81 +406,10 @@ def get_card_download_info(pc_id: int, user: User):
     )
 
 
-def move_user_approved_cards_to_partially(user_id: int):
-    (ProductCard.query
-     .filter(ProductCard.user_id == user_id,
-             ProductCard.status == ModerationStatus.APPROVED)
-     .update(
-         {ProductCard.status: ModerationStatus.PARTIALLY_APPROVED},
-         synchronize_session=False
-     ))
-
-
-def delete_company_from_pool_no_reassign(company_id: int) -> tuple[bool, str, dict]:
-    company = ProcessingCompany.query.get(company_id)
-    if not company:
-        return False, "Фирма не найдена", {}
-
-    total = db.session.query(ProcessingCompany.id).count()
-
-    # запрет удаления последней фирмы
-    if total <= 1:
-        affected_logins = (
-            db.session.query(User.login_name)
-            .join(UserProcessingCompany, UserProcessingCompany.user_id == User.id)
-            .filter(UserProcessingCompany.company_id == company_id)
-            .distinct()
-            .order_by(User.login_name.asc())
-            .all()
-        )
-        logins = [x[0] for x in affected_logins if x and x[0]]
-
-        # построчно
-        lines = "\n".join(logins) if logins else "(пользователей нет)"
-        msg = (
-            "Нельзя удалить последнюю компанию из пула.\n"
-            "Затронутые пользователи:\n"
-            f"{lines}"
-        )
-        return False, msg, {"affected_users": logins}
-
-    # пользователи, у кого была эта фирма
-    affected_user_ids = [
-        x[0] for x in (
-            db.session.query(UserProcessingCompany.user_id)
-            .filter(UserProcessingCompany.company_id == company_id)
-            .distinct()
-            .all()
-        )
-    ]
-
-    # 1) удалить привязки user->company
-    UserProcessingCompany.query.filter_by(company_id=company_id).delete(synchronize_session=False)
-
-    # 2) удалить фирму из пула
-    db.session.delete(company)
-
-    # 3) всем затронутым пользователям перевести APPROVED карточки -> PARTIALLY_APPROVED
-    if affected_user_ids:
-        (ProductCard.query
-         .filter(
-             ProductCard.user_id.in_(affected_user_ids),
-             ProductCard.status == ModerationStatus.APPROVED
-         )
-         .update(
-             {ProductCard.status: ModerationStatus.PARTIALLY_APPROVED},
-             synchronize_session=False
-         ))
-
-    meta = {"affected_users_count": len(affected_user_ids)}
-    msg = f"Фирма удалена. Затронутых пользователей: {len(affected_user_ids)}. APPROVED карточки переведены в PARTIALLY_APPROVED."
-    return True, msg, meta
-
-
 ALLOWED_BACK_ROLES = {"superuser", "supermanager", "markineris_admin"}
 
 
-def h_pc_move_get_cards_by_status(status_value: str, category=None, subcategory=None, company_id=None):
+def h_pc_move_get_cards_by_status(status_value: str, category=None, subcategory=None, company_key=None):
     q = (
         ProductCard.query
         .options(
@@ -515,15 +446,13 @@ def h_pc_move_get_cards_by_status(status_value: str, category=None, subcategory=
     if subcategory:
         q = q.filter(ProductCard.clothes.any(Clothes.subcategory == subcategory))
 
-    if company_id:
-        q = (
-            q.join(UserProcessingCompany, UserProcessingCompany.user_id == ProductCard.user_id)
-             .join(ProcessingCompany, ProcessingCompany.id == UserProcessingCompany.company_id)
-             .filter(
-                 UserProcessingCompany.company_id == company_id,
-                 UserProcessingCompany.is_approved.is_(True),
-                 ProcessingCompany.is_active.is_(True),
-             )
+    if company_key:
+        q = q.filter(
+            or_(
+                ProductCard.processing_company_inn == company_key,
+                ProductCard.processing_company_external_id == company_key,
+                ProductCard.processing_company_title == company_key,
+            )
         )
 
     q = apply_crm_cards_scope(q, current_user)
@@ -563,6 +492,9 @@ def h_pc_move_pack_cards(cards: list[ProductCard]) -> list[dict]:
             "sent_at": card.sent_at,
             "crm_stage_tooltip": crm_card_stage_tooltip(card),
             "processing_info": card.processing_info,
+            "processing_company": card.processing_company_label,
+            "processing_company_inn": card.processing_company_inn,
+            "processing_company_title": card.processing_company_title,
 
             "user_id": card.user_id,
             "manager_id": card.manager_id,
@@ -765,31 +697,6 @@ def h_pc_move_check_permissions(card: ProductCard, target: str):
 
 def h_append_card_log(old: str | None, line: str) -> str:
     return ((old or "") + line)[-settings.ProducCards.MAX_LOG:]
-
-
-def get_users_processing_companies_map(user_ids: list[int]) -> dict[int, list[dict]]:
-    if not user_ids:
-        return {}
-
-    rows = (
-        UserProcessingCompany.query
-        .options(joinedload(UserProcessingCompany.company))
-        .filter(UserProcessingCompany.user_id.in_(user_ids))
-        .order_by(UserProcessingCompany.user_id.asc(), UserProcessingCompany.slot.asc())
-        .all()
-    )
-
-    out: dict[int, list[dict]] = {}
-    for r in rows:
-        out.setdefault(r.user_id, []).append({
-            "slot": r.slot,
-            "is_approved": bool(r.is_approved),
-            "company_id": r.company_id,
-            "title": r.company.title if r.company else "",
-            "inn": r.company.inn if r.company else "",
-            "is_active": bool(r.company.is_active) if r.company else True,
-        })
-    return out
 
 
 def helper_reject_cards_by_rd_date_to_today() -> dict:

@@ -20,6 +20,10 @@ class TezaurusCacheService:
         items = colors_snapshot.get("items") if isinstance(colors_snapshot, dict) else []
         return items if isinstance(items, list) else []
 
+    def get_processing_companies(self) -> list[Any]:
+        companies = self.repository.get_processing_companies()
+        return companies if isinstance(companies, list) else []
+
     def get_countries(self, *, category: str | None = None, our_rd: bool = False) -> Any:
         value = self.repository.get_countries_by_filter(category=category, our_rd=our_rd)
         if value is not None:

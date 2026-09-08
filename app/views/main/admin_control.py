@@ -1,12 +1,16 @@
 from flask import Blueprint, jsonify, request, redirect, url_for, flash, render_template
-from flask_login import login_required
+from flask_login import current_user, login_required
 from pydantic import ValidationError
+from werkzeug.security import check_password_hash
 
 from config import settings
 from data_migrations.etl_service import ETLMigrateUserData, run_migration
 from data_migrations.instance import etl_service
 from data_migrations.utils import make_password
-from models import User, db
+from models import CardChatRead, ModerationStatus, ProductCard, User, UserProcessingCompany, db
+from tezaurus.exceptions import TezaurusApiError, TezaurusConfigurationError
+from tezaurus.processing_companies import ProcessingCompaniesClient
+from tezaurus.runtime_catalogs import get_all_countries
 from utilities.admin.h_admin_control import h_bck_agent_reanimate, h_exception_user_data_main, \
     h_add_exception_user_data, h_delete_exception_user_data, h_admins_table
 from utilities.admin.h_admin_control import (
@@ -120,12 +124,199 @@ from validators.admin_control import UpdateBalanceSchema
 admin_control = Blueprint('admin_control', __name__)
 
 
+MODULE_TESTING_CATEGORIES = (
+    {'slug': 'clothes', 'title': 'Одежда'},
+    {'slug': 'shoes', 'title': 'Обувь'},
+    {'slug': 'linen', 'title': 'Белье'},
+    {'slug': 'parfum', 'title': 'Парфюм'},
+    {'slug': 'cosmetics', 'title': 'Косметика'},
+    {'slug': 'socks', 'title': 'Носки и прочее'},
+    {'slug': 'toys', 'title': 'Игрушки'},
+    {'slug': 'home_goods', 'title': 'Товары для дома'},
+)
+
+
 @admin_control.route('/', defaults={'expanded': None})
 @admin_control.route('/<expanded>/')
 @login_required
 @aus_required
 def index(expanded: str = None):
     return h_index()
+
+
+@admin_control.route('/module-testing', methods=['GET'])
+@login_required
+@su_required
+def module_testing():
+    try:
+        countries = get_all_countries()
+    except Exception:
+        logger.exception('Failed to load countries for module testing page')
+        countries = settings.COUNTRIES_LIST
+
+    module_testing_categories = MODULE_TESTING_CATEGORIES
+    return render_template('admin/module_testing/main.html', **locals())
+
+
+@admin_control.route('/module-testing/processing-companies/select', methods=['POST'])
+@login_required
+@su_required
+def module_testing_processing_companies_select():
+    payload = request.get_json(silent=True) or request.form.to_dict()
+    category = payload.get('category', '')
+    country = payload.get('country', '')
+
+    try:
+        client = ProcessingCompaniesClient()
+        processing_request = client.build_request(
+            category=category,
+            country=country,
+        )
+        response_payload = client.select(
+            category=processing_request.category,
+            origin=processing_request.origin,
+        )
+    except ValueError as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 400
+    except TezaurusConfigurationError as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 503
+    except TezaurusApiError as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 502
+
+    return jsonify({
+        'status': 'success',
+        'request': processing_request.as_payload(),
+        'response': response_payload,
+    })
+
+
+@admin_control.route('/module-testing/product-cards/reset-created', methods=['POST'])
+@login_required
+@su_required
+def module_testing_product_cards_reset_created():
+    try:
+        rejected_cards = ProductCard.query.filter(
+            ProductCard.status == ModerationStatus.REJECTED,
+        ).all()
+        deleted_count = len(rejected_cards)
+        for card in rejected_cards:
+            db.session.delete(card)
+        db.session.flush()
+
+        deleted_company_bindings = UserProcessingCompany.query.delete(
+            synchronize_session=False,
+        )
+
+        updated_count = ProductCard.query.filter(
+            ProductCard.status != ModerationStatus.REJECTED,
+        ).update(
+            {
+                ProductCard.status: ModerationStatus.CREATED,
+                ProductCard.manager_id: None,
+                ProductCard.processing_info: "",
+                ProductCard.processing_company_external_id: "",
+                ProductCard.processing_company_title: "",
+                ProductCard.processing_company_inn: "",
+                ProductCard.processing_company_origin: "",
+                ProductCard.processing_company_category: "",
+                ProductCard.processing_company_payload: None,
+                ProductCard.processing_company_assigned_at: None,
+                ProductCard.sent_at: None,
+                ProductCard.taken_at: None,
+                ProductCard.moderation_at: None,
+                ProductCard.clarification_requested_at: None,
+                ProductCard.approved_at: None,
+                ProductCard.rejected_at: None,
+                ProductCard.reject_reason: "",
+            },
+            synchronize_session=False,
+        )
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        logger.exception('Failed to reset product cards to created status')
+        return jsonify({
+            'status': 'error',
+            'message': 'Не удалось перевести карточки товаров в исходное положение.',
+        }), 500
+
+    return jsonify({
+        'status': 'success',
+        'updated': updated_count,
+        'deleted_rejected': deleted_count,
+        'deleted_company_bindings': deleted_company_bindings,
+        'message': (
+            f'Карточки товаров переведены в этап создания: {updated_count}. '
+            f'Отмененные карточки удалены: {deleted_count}. '
+            f'Старые привязки компаний удалены: {deleted_company_bindings}.'
+        ),
+    })
+
+
+@admin_control.route('/module-testing/product-cards/delete-all', methods=['POST'])
+@login_required
+@su_required
+def module_testing_product_cards_delete_all():
+    if current_user.role != settings.SUPER_USER:
+        return jsonify({
+            'status': 'error',
+            'message': 'Удалять карточки товаров может только superuser.',
+        }), 403
+
+    payload = request.get_json(silent=True) or {}
+    password = str(payload.get('password') or '')
+
+    if not password:
+        return jsonify({
+            'status': 'error',
+            'message': 'Введите пароль учетной записи.',
+        }), 400
+
+    if not check_password_hash(current_user.password or '', password):
+        return jsonify({
+            'status': 'error',
+            'message': 'Неверный пароль учетной записи.',
+        }), 403
+
+    try:
+        product_card_ids = db.session.query(ProductCard.id)
+        deleted_cards = ProductCard.query.count()
+
+        deleted_chat_reads = 0
+        if deleted_cards:
+            deleted_chat_reads = CardChatRead.query.filter(
+                CardChatRead.card_id.in_(product_card_ids),
+            ).delete(synchronize_session=False)
+
+            cards = ProductCard.query.all()
+            for card in cards:
+                db.session.delete(card)
+            db.session.flush()
+
+        deleted_company_bindings = UserProcessingCompany.query.delete(
+            synchronize_session=False,
+        )
+
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        logger.exception('Failed to delete all product cards')
+        return jsonify({
+            'status': 'error',
+            'message': 'Не удалось удалить карточки товаров.',
+        }), 500
+
+    return jsonify({
+        'status': 'success',
+        'deleted_cards': deleted_cards,
+        'deleted_chat_reads': deleted_chat_reads,
+        'deleted_company_bindings': deleted_company_bindings,
+        'message': (
+            f'Старые карточки товаров удалены: {deleted_cards}. '
+            f'Прочтения чата очищены: {deleted_chat_reads}. '
+            f'Старые привязки компаний удалены: {deleted_company_bindings}.'
+        ),
+    })
 
 
 @admin_control.route('/admins_table', methods=["GET"])

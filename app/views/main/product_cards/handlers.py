@@ -9,57 +9,61 @@ from sqlalchemy.orm import joinedload, selectinload, load_only
 from config import settings
 from logger import logger
 from models import db, ExceptionDataUsers, Order, ProductCard, Shoe, Linen, Parfum, Clothes, Socks, ModerationStatus, \
-    UserProcessingCompany, ProcessingCompany
+    UserSeen
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
 from utilities.saving_uts import get_rows_marks
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.support import check_forbidden_words, helper_preload_common, helper_check_uoabm, \
-    helper_check_user_order_in_archive, check_order_pos, process_admin_order_num, process_order_start
+    helper_check_user_order_in_archive, check_order_pos, process_admin_order_num, process_order_start, \
+    helper_get_last_contact_info
 from utilities.telegram import MarkinerisInform
-from utilities.validators import ValidatorProcessor, validate_order_comment_length
-from views.main.product_cards.chat.helpers import (
-    USER_CHAT_WRITE_STATUSES,
-    h_pc_chat_unread_count,
-    h_unread_map_for_cards,
-    h_visible_chat_card_ids,
-)
-from views.main.product_cards.crm.helpers import crm_card_subcategory_title, crm_card_sizes_label, crm_card_article, h_append_card_log
+from utilities.validators import ValidatorProcessor, validate_and_build_contact_info, validate_order_comment_length
+from tezaurus.exceptions import TezaurusApiError, TezaurusConfigurationError
+from tezaurus.processing_companies import ProcessingCompaniesClient
+from views.main.product_cards.chat.helpers import h_pc_chat_unread_count, h_unread_map_for_cards, \
+    h_visible_chat_card_ids, USER_CHAT_WRITE_STATUSES
+from views.main.product_cards.crm.helpers import crm_card_subcategory_title, crm_card_sizes_label, crm_card_article, \
+    h_append_card_log
 from views.main.product_cards.order_helpers import _json_error, _add_order_item_from_card, \
     _count_open_moderation_orders, _get_card_or_fail, _validate_card_access_and_status, _load_cards_for_order, \
     _count_open_pc_orders, common_save_copy_pc_order
 from views.main.product_cards.support import validate_card_form, save_clothes_card, save_shoes_card, save_linen_card, \
     save_socks_card, save_parfum_card, parse_sizes_for_category, CATEGORIES_COMMON, MODERATION_STATUS_TITLES, \
     MODERATION_STATUS_COLORS, normalize_article_for_category, normalize_color_for_category, collect_existing_size_keys, \
-    filter_new_sizes, CARD_FIELDS, \
-    extract_card_main_and_sizes, get_card_ctx, check_same_fields_if_exists, \
-    require_user_two_companies, CATEGORY_TITLES, get_card_entity_for_prefill, assert_frozen_fields_unchanged, \
+    filter_new_sizes, CARD_FIELDS, extract_card_main_and_sizes, get_card_ctx, check_same_fields_if_exists, \
+    CATEGORY_TITLES, get_card_entity_for_prefill, assert_frozen_fields_unchanged, \
     update_card_allowed_fields, ALLOWED_CARDS_DELETE_STATUSES, card_has_rd, CARD_STATUS_DATETIME_ATTR, \
-    get_card_allowed_field_changes, merge_selected_created_wear_cards
+    get_card_allowed_field_changes, merge_selected_created_wear_cards, assign_tezaurus_processing_companies
 from views.main.product_cards.utils import validate_rd_block
 
 
 def h_cards():
-    # cards_video_key = 'vid02_create_order'
-    category = request.args.get("category", "clothes")
+    cards_video_key = 'vid02_create_order'
+    category = request.args.get("category", "shoes")
     subcategory = request.args.get("subcategory")
     article_query = request.args.get("article_query", "").strip()
 
     # 1) проверяем, есть ли запись
-    # exists = db.session.execute(
-    #     select(UserSeen.id).where(
-    #         UserSeen.user_id == current_user.id,
-    #         UserSeen.key == cards_video_key
-    #     ).limit(1)
-    # ).first()
+    exists = db.session.execute(
+        select(UserSeen.id).where(
+            UserSeen.user_id == current_user.id,
+            UserSeen.key == cards_video_key
+        ).limit(1)
+    ).first()
 
-    # show_video = exists is None
-    #
-    # # 2) если надо показать — создаём запись
-    # if show_video:
-    #     db.session.add(UserSeen(user_id=current_user.id, key=cards_video_key))
-    #     db.session.commit()
+    show_video = exists is None
+
+    # 2) если надо показать — создаём запись
+    if show_video:
+        db.session.add(UserSeen(user_id=current_user.id, key=cards_video_key))
+        db.session.commit()
+
+    created_cards_count = ProductCard.query.filter(
+        ProductCard.user_id == current_user.id,
+        ProductCard.status == ModerationStatus.CREATED,
+    ).count()
 
     return render_template(
         "product_cards/user/main.html",
@@ -67,7 +71,8 @@ def h_cards():
         current_subcategory=subcategory,
         article_query=article_query,
         mapper_categories=CATEGORIES_COMMON,
-        # show_cards_video=show_video
+        created_cards_count=created_cards_count,
+        show_cards_video=show_video
     )
 
 
@@ -77,7 +82,7 @@ def h_cards_table():
         status_value = card.status.value if hasattr(card.status, "value") else str(card.status)
         attr_name = CARD_STATUS_DATETIME_ATTR.get(status_value, "created_at")
         return getattr(card, attr_name, None) or card.created_at
-    category = request.form.get("category", settings.Clothes.CATEGORY_PROCESS )
+    category = request.form.get("category", settings.Shoes.CATEGORY_PROCESS)
     subcategory = request.form.get("subcategory") or None
     article_query = request.form.get("article_query", "").strip()
     page = request.form.get("page", default=1, type=int)
@@ -337,9 +342,6 @@ def h_save_product_card():
                 sizes_quantities=filtered_sq,
                 subcategory=subcategory,
             )
-
-            # ВСЕГДА: гарантируем 2 компании или падаем
-        require_user_two_companies(current_user.id)
 
         db.session.commit()
     except Exception as e:
@@ -622,40 +624,40 @@ def h_send_cards_moderate():
         db.session.flush()
 
         ids_with_rd: list[int] = []
-        ids_no_rd: list[int] = []
 
         for c in cards:
-            (ids_with_rd if card_has_rd(c) else ids_no_rd).append(c.id)
+            if card_has_rd(c):
+                ids_with_rd.append(c.id)
 
-        # 4) Два апдейта (быстро)
         updated_sent = 0
         updated_no_rd = 0
+        tezaurus_client = ProcessingCompaniesClient()
+        cards_to_send = [
+            card
+            for card in cards
+            if card.user_id == current_user.id and card.status == ModerationStatus.CREATED
+        ]
+        assignments = assign_tezaurus_processing_companies(
+            cards_to_send,
+            client=tezaurus_client,
+            assigned_at=now,
+        )
 
-        if ids_with_rd:
-            updated_sent = (
-                ProductCard.query
-                .filter(
-                    ProductCard.id.in_(ids_with_rd),
-                    ProductCard.user_id == current_user.id,
-                    ProductCard.status == ModerationStatus.CREATED,
-                )
-                .update(
-                    {ProductCard.status: ModerationStatus.SENT, ProductCard.sent_at: now},
-                    synchronize_session=False
-                )
-            )
+        for card in cards_to_send:
+            if card.id in ids_with_rd:
+                card.status = ModerationStatus.SENT
+                updated_sent += 1
+            else:
+                card.status = ModerationStatus.SENT_NO_RD
+                updated_no_rd += 1
 
-        if ids_no_rd:
-            updated_no_rd = (
-                ProductCard.query
-                .filter(
-                    ProductCard.id.in_(ids_no_rd),
-                    ProductCard.user_id == current_user.id,
-                    ProductCard.status == ModerationStatus.CREATED,
-                )
-                .update(
-                    {ProductCard.status: ModerationStatus.SENT_NO_RD, ProductCard.sent_at: now},
-                    synchronize_session=False
+            card.sent_at = now
+            assigned = assignments[card.id]
+            card.card_log = h_append_card_log(
+                card.card_log,
+                (
+                    f"\n{now:%d.%m.%Y %H:%M} назначена компания тезауруса "
+                    f"{assigned['label']}; карточка отправлена на модерацию;"
                 )
             )
 
@@ -685,6 +687,19 @@ def h_send_cards_moderate():
         db.session.rollback()
         logger.exception("DB error in send_cards_moderate")
         return jsonify({"status": "error", "error": "Database error"}), 500
+    except ValueError as exc:
+        db.session.rollback()
+        logger.exception("Processing company assignment failed in send_cards_moderate")
+        message = str(exc)
+        return jsonify({"status": "error", "error": message, "message": message}), 400
+    except TezaurusConfigurationError as exc:
+        db.session.rollback()
+        logger.exception("Tezaurus configuration error in send_cards_moderate")
+        return jsonify({"status": "error", "error": str(exc)}), 503
+    except TezaurusApiError as exc:
+        db.session.rollback()
+        logger.exception("Tezaurus API error in send_cards_moderate")
+        return jsonify({"status": "error", "error": str(exc)}), 502
     except Exception:
         db.session.rollback()
         logger.exception("Unexpected error in send_cards_moderate")
@@ -732,41 +747,6 @@ def h_card_view(card_id: int, crm_: bool = False):
         return q.first_or_404()
 
     card = _get_card_for_view(card_id=card_id, crm_=crm_)
-
-    # --- компании пользователя (автора карточки) ---
-    user_companies_rows = (
-        UserProcessingCompany.query
-        .options(joinedload(UserProcessingCompany.company))
-        .filter(UserProcessingCompany.user_id == card.user_id)
-        .order_by(UserProcessingCompany.slot.asc())
-        .all()
-    )
-
-    user_companies = []
-    for r in user_companies_rows:
-        comp = r.company
-        user_companies.append({
-            "slot": r.slot,
-            "is_approved": bool(r.is_approved),
-            "assigned_at": r.assigned_at,
-            "title": comp.title if comp else "",
-            "inn": comp.inn if comp else "",
-            "is_active": bool(comp.is_active) if comp else True,
-        })
-    can_edit_companies = bool(
-        crm_
-        and (card.status == ModerationStatus.PARTIALLY_APPROVED)
-        and (current_user.role in {"manager", "supermanager", "superuser"})
-    )
-
-    pool_companies = []
-    if can_edit_companies:
-        pool_companies = (
-            ProcessingCompany.query
-            .filter(ProcessingCompany.is_active.is_(True))
-            .order_by(ProcessingCompany.title.asc())
-            .all()
-        )
 
     cfg = CATEGORIES_COMMON.get(card.category)
     if not cfg:
@@ -826,10 +806,6 @@ def h_card_view(card_id: int, crm_: bool = False):
 
     rd_description = settings.RD_DESCRIPTION
     rd_types_list = settings.RD_TYPES
-    by_slot = {uc["slot"]: uc for uc in user_companies}
-
-    slot1_filled = bool(by_slot.get(1) and by_slot[1].get("inn"))
-    slot2_filled = bool(by_slot.get(2) and by_slot[2].get("inn"))
 
     html = render_template(
         "product_cards/user/card_view.html",
@@ -839,14 +815,9 @@ def h_card_view(card_id: int, crm_: bool = False):
         sizes=sizes,
         status_titles=MODERATION_STATUS_TITLES,
         fields=fields.items(),
-        user_companies=user_companies,
         rd_description=rd_description,
         rd_types_list=rd_types_list,
-        pool_companies=pool_companies,
-        can_edit_companies=can_edit_companies,
         is_operator_view=crm_,
-        slot1_filled=slot1_filled,
-        slot2_filled=slot2_filled,
     )
     return jsonify(status="success", html=html)
 

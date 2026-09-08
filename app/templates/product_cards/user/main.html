@@ -18,6 +18,7 @@
      data-card-view-url-template="{{ url_for('user_product_cards.card_view', card_id=0) }}"
      data-current-category="{{ current_category }}"
      data-current-subcategory="{{ current_subcategory or '' }}"
+     data-created-cards-count="{{ created_cards_count or 0 }}"
      data-csrf="{{ csrf_token() }}"
      data-current-user-id="{{ current_user.id }}"
      data-new-card-url="{{ url_for('user_product_cards.new_product_card') }}"
@@ -33,39 +34,50 @@
 
   {% include "product_cards/user/top.html" %}
 
-  <div class="d-flex gap-2 justify-content-end align-items-center">
+  <div class="pc-action-toolbar">
+    <div class="btn-group pc-action-toolbar__create-group" role="group" aria-label="Создание карточки товара">
+      <button type="button"
+              class="btn btn-warning"
+              id="pc-create-current-category">
+        <span class="me-2">+</span>
+        <span id="pc-create-current-category-label">Создать товар</span>
+      </button>
 
-    <button type="button"
-            class="btn btn-warning"
-            data-bs-toggle="modal"
-            data-bs-target="#pc-create-modal">
-      <span class="me-2">+</span>
-      <span>Создать новый товар</span>
+      <button type="button"
+              class="btn btn-secondary"
+              data-bs-toggle="modal"
+              data-bs-target="#pc-create-modal">
+        <span class="me-2">+</span>
+        <span>Другая категория</span>
+      </button>
+    </div>
+
+    <button
+      type="button"
+      class="btn btn-warning pc-action-toolbar__moderation"
+      id="pc-send-created-open-btn"
+      onclick="pcOpenSendCreatedCardsModal(this)"
+      data-url-created="{{ url_for('user_product_cards.get_created_cards') }}"
+      data-url-send="{{ url_for('user_product_cards.send_cards_moderate') }}">
+      На модерацию
+      <span class="badge bg-dark ms-1" id="pc-created-cards-count">{{ created_cards_count or 0 }}</span>
     </button>
 
     <button type="button"
-        class="btn btn-outline-dark "
-        id="o-b-cart-open-btn"
-        data-bs-toggle="offcanvas"
-        data-bs-target="#o-b-cart-offcanvas"
-        aria-controls="o-b-cart-offcanvas">
-  Корзина
-  <span class="badge bg-dark ms-1 o-b-badge" id="o-b-cart-count">0</span>
-</button>
-
-</div>
+            class="btn btn-outline-dark pc-action-toolbar__cart"
+            id="o-b-cart-open-btn"
+            data-bs-toggle="offcanvas"
+            data-bs-target="#o-b-cart-offcanvas"
+            aria-controls="o-b-cart-offcanvas"
+            aria-label="Открыть корзину карточек">
+      Корзина
+      <span class="badge bg-dark ms-1 o-b-badge" id="o-b-cart-count">0</span>
+    </button>
+  </div>
 
   <div id="pc-table-wrapper">
     {#{% include "product_cards/user/table.html" %}#}
   </div>
-<button
-  class="btn btn-warning"
-  onclick="pcOpenSendCreatedCardsModal(this)"
-  data-url-created="{{ url_for('user_product_cards.get_created_cards') }}"
-  data-url-send="{{ url_for('user_product_cards.send_cards_moderate') }}"
->
-  Отправить карточки “Создана” на модерацию
-</button>
 
 
 </div>

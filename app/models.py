@@ -4,6 +4,7 @@ from enum import Enum as PyEnum
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func, Index, text
+from sqlalchemy.dialects.postgresql import JSONB
 
 from config import settings
 from utilities.categories_data.subcategories_data import ClothesSubcategories
@@ -420,6 +421,21 @@ class ProductCard(db.Model, UserMixin):
 
     # Информация по закрепленной компании проводчику
     processing_info = db.Column(db.String(100), default="")
+    processing_company_external_id = db.Column(db.String(100), default="")
+    processing_company_title = db.Column(db.String(255), default="")
+    processing_company_inn = db.Column(db.String(20), default="")
+    processing_company_origin = db.Column(db.String(20), default="")
+    processing_company_category = db.Column(db.String(50), default="")
+    processing_company_payload = db.Column(JSONB, nullable=True)
+    processing_company_assigned_at = db.Column(db.DateTime())
+
+    @property
+    def processing_company_label(self) -> str:
+        parts = [
+            (self.processing_company_inn or "").strip(),
+            (self.processing_company_title or "").strip(),
+        ]
+        return " ".join(part for part in parts if part)
 
     # пользователь, который создал карточку (аналог user_id в Order)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), index=True)

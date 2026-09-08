@@ -1,4 +1,139 @@
 
+const PC_CATEGORY_GROUPS = {
+    clothes: {
+        mode: "clothes",
+        modeClass: "pc-category-tabs--clothes",
+        rootCategory: "clothes",
+        childCategories: ["socks"],
+        tabIds: [
+            "pills-clothes-tab",
+            "pills-underwear-tab",
+            "pills-swimming_accessories-tab",
+            "pills-hats-tab",
+            "pills-gloves-tab",
+            "pills-shawls-tab",
+            "pills-socks-tab",
+        ],
+    },
+};
+
+const PC_MAIN_CATEGORY_TAB_IDS = [
+    "pills-shoes-tab",
+    "pills-clothes-tab",
+    "pills-linen-tab",
+    "pills-parfum-tab",
+    "pills-cosmetics-tab",
+    "pills-toys-tab",
+];
+
+const PC_CATEGORY_CREATE_LABELS = {
+    shoes: "обувь",
+    clothes: "одежду",
+    linen: "белье",
+    parfum: "духи",
+    socks: "носки",
+};
+
+const PC_CLOTHES_CREATE_LABELS = {
+    common: "одежду",
+    underwear: "нижнее белье",
+    swimming_accessories: "плавательные аксессуары",
+    hats: "шляпы",
+    gloves: "перчатки",
+    shawls: "шали",
+};
+
+let pcCategoryTabsMode = "main";
+
+function pc_category_tab_wrapper(tabId) {
+    const tab = document.getElementById(tabId);
+    if (!tab) return null;
+    return tab.closest("[data-pc-category-tile]") || tab.closest("a") || tab;
+}
+
+function pc_order_category_tabs(tabIds) {
+    const tabs = document.getElementById("pills-tab");
+    if (!tabs) return;
+
+    tabIds.forEach(tabId => {
+        const wrapper = pc_category_tab_wrapper(tabId);
+        if (wrapper) tabs.appendChild(wrapper);
+    });
+}
+
+function pc_ensure_category_back_tab() {
+    const tabs = document.getElementById("pills-tab");
+    if (!tabs) return null;
+
+    let back = document.getElementById("pc-category-back");
+    if (back) return back.closest("a") || back;
+
+    const wrapper = document.createElement("a");
+    wrapper.href = "javascript:void(0)";
+    wrapper.className = "pc-category-back d-none";
+    wrapper.innerHTML = `
+        <li class="nav-link" id="pc-category-back" type="button" role="tab">
+            <button class="text-center border-0" type="button">
+                <span class="pc-category-back__arrow" aria-hidden="true">&larr;</span>
+                <div class="category-item__name text-center">Категории</div>
+            </button>
+        </li>
+    `;
+    wrapper.addEventListener("click", function (event) {
+        event.preventDefault();
+        pc_show_main_category_tabs();
+    });
+
+    tabs.appendChild(wrapper);
+    return wrapper;
+}
+
+function pc_show_main_category_tabs() {
+    pc_set_category_tabs_mode("main");
+}
+
+function pc_show_category_group(groupMode) {
+    pc_set_category_tabs_mode(groupMode);
+}
+
+function pc_set_category_tabs_mode(mode) {
+    const tabs = document.getElementById("pills-tab");
+    const group = Object.values(PC_CATEGORY_GROUPS).find(item => item.mode === mode) || null;
+
+    pcCategoryTabsMode = group ? group.mode : "main";
+    if (tabs) {
+        tabs.classList.toggle("pc-category-tabs--main", !group);
+        Object.values(PC_CATEGORY_GROUPS).forEach(item => {
+            tabs.classList.toggle(item.modeClass, Boolean(group && item.mode === group.mode));
+        });
+    }
+
+    const back = pc_ensure_category_back_tab();
+    if (back) back.classList.toggle("d-none", !group);
+
+    pc_order_category_tabs(group ? group.tabIds : PC_MAIN_CATEGORY_TAB_IDS);
+    if (tabs && back && group) tabs.appendChild(back);
+
+}
+
+function pc_get_category_group_for_click(category) {
+    return Object.values(PC_CATEGORY_GROUPS).find(group => {
+        return category === group.rootCategory || group.childCategories.includes(category);
+    }) || null;
+}
+
+function pc_get_category_group_for_initial(category, subcategory) {
+    return Object.values(PC_CATEGORY_GROUPS).find(group => {
+        const isRootSubcategory = category === group.rootCategory && Boolean(subcategory);
+        return isRootSubcategory || group.childCategories.includes(category);
+    }) || null;
+}
+
+function pc_init_category_tabs_mode(category, subcategory) {
+    const group = pc_get_category_group_for_initial(category, subcategory);
+    pc_set_category_tabs_mode(group ? group.mode : "main");
+}
+
 // обновляет активные табы категорий/подкатегорий
 function pc_update_category(category, subcategory) {
     // снять active со всех табов
@@ -56,6 +191,9 @@ document.addEventListener("DOMContentLoaded", function () {
     let   currentSubcategory = config.dataset.currentSubcategory || "";
     const csrfToken         = config.dataset.csrf;
     const NEW_PRODUCT_CARD_URL  = config.dataset.newCardUrl;
+    const createCurrentBtn = document.getElementById("pc-create-current-category");
+    const createCurrentLabel = document.getElementById("pc-create-current-category-label");
+    const createdCardsCount = document.getElementById("pc-created-cards-count");
 
     const searchInput  = form.querySelector('input[name="article_query"]');
     const catInput     = form.querySelector('input[name="category"]');
@@ -68,6 +206,45 @@ document.addEventListener("DOMContentLoaded", function () {
         subcatInput.name = 'subcategory';
         form.appendChild(subcatInput);
     }
+
+    function getCurrentCreateTitle() {
+        if (currentCategory === "clothes") {
+            return PC_CLOTHES_CREATE_LABELS[currentSubcategory || "common"] || PC_CATEGORY_CREATE_LABELS.clothes;
+        }
+        return PC_CATEGORY_CREATE_LABELS[currentCategory] || "товар";
+    }
+
+    function buildCurrentCreateUrl() {
+        const params = new URLSearchParams();
+        params.set("category", currentCategory || "shoes");
+        if (currentCategory === "clothes" && currentSubcategory && currentSubcategory !== "common") {
+            params.set("subcategory", currentSubcategory);
+        }
+        return NEW_PRODUCT_CARD_URL + "?" + params.toString();
+    }
+
+    function updateCreateCurrentButton() {
+        if (!createCurrentBtn || !createCurrentLabel) return;
+        createCurrentLabel.textContent = `Создать ${getCurrentCreateTitle()}`;
+    }
+
+    window.pcUpdateCreatedCardsCount = function (count) {
+        if (!createdCardsCount) return;
+        const value = Number.isFinite(Number(count)) ? Number(count) : 0;
+        createdCardsCount.textContent = String(value);
+        config.dataset.createdCardsCount = String(value);
+    };
+
+    if (createCurrentBtn) {
+        createCurrentBtn.addEventListener("click", function () {
+            if (!NEW_PRODUCT_CARD_URL) {
+                make_message("Не удалось определить адрес создания карточки", "error");
+                return;
+            }
+            window.location.href = buildCurrentCreateUrl();
+        });
+    }
+
     tableWrapper.addEventListener("click", function (e) {
         const btn = e.target.closest("[data-pc-action]");
         if (!btn) return;
@@ -342,10 +519,11 @@ function loadTable(page = 1) {
     // Сигнатуру оставляем ту же, чтобы не трогать разметку:
     // href="javascript:get_category_history('...', 'clothes', 'underwear')"
     window.get_category_product_cards = function (_url, category, subcategory) {
-        // что сейчас считать "активным" табом (см. твой update_category)
-        let proc_category = category;
-        if (subcategory && subcategory !== 'common') {
-            proc_category = subcategory;
+        const group = pc_get_category_group_for_click(category);
+        if (group) {
+            pc_show_category_group(group.mode);
+        } else if (pcCategoryTabsMode !== "main") {
+            pc_show_main_category_tabs();
         }
 
         // обновляем текущие значения
@@ -378,6 +556,7 @@ function loadTable(page = 1) {
 
         // визуально переключаем активный таб
         pc_update_category(category, subcategory);
+        updateCreateCurrentButton();
 
         // перезагружаем таблицу по новой категории
         loadTable(1);
@@ -422,6 +601,10 @@ function loadTable(page = 1) {
             window.location.href = targetUrl;
         });
     }
+    pc_init_category_tabs_mode(currentCategory, currentSubcategory);
+    updateCreateCurrentButton();
+    window.pcUpdateCreatedCardsCount(config.dataset.createdCardsCount);
+
     // первый старт
     loadTable(1);
 });

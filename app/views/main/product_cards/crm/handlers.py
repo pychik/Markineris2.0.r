@@ -12,12 +12,12 @@ from sqlalchemy.orm import joinedload
 from typing import Optional
 
 from logger import logger
-from models import db, ProductCard, User, ModerationStatus, ProcessingCompany, UserProcessingCompany
+from models import db, ProductCard, User, ModerationStatus
+from tezaurus.runtime_catalogs import get_processing_companies
 from utilities.download import OrdersProcessor, ShoesProcessor, ClothesProcessor, SocksProcessor, LinenProcessor, \
     ParfumProcessor
-from views.crm.schema import is_forbidden_pair_by_inn
 from .helpers import crm_get_cards, helper_categories_counter, split_cards_by_status, product_card_download_common, \
-    delete_company_from_pool_no_reassign, h_pc_move_render_list_html, h_append_card_log, \
+    h_pc_move_render_list_html, h_append_card_log, \
     h_pc_move_pack_cards, h_pc_move_template_for_status, h_pc_move_get_cards_by_status, \
     h_pc_move_apply_status_transition, get_card_download_info, h_find_card_ids_by_article_or_tm, \
     h_cards_ctx_key_for_status, helper_reject_cards_by_rd_date_to_today, is_at2_admin_user, \
@@ -44,14 +44,7 @@ def h_crm_cards():
     categories_counter = helper_categories_counter(cards)
     status_counter = {k: len(v) for k, v in buckets.items()}
 
-    companies_pool = (
-        ProcessingCompany.query
-        .filter(ProcessingCompany.is_active.is_(True))
-        .with_entities(ProcessingCompany.id, ProcessingCompany.inn, ProcessingCompany.title)
-        .distinct()
-        .order_by(ProcessingCompany.title.asc())
-        .all()
-    )
+    companies_pool = get_processing_companies()
     bck = request.args.get("bck", 0, type=int)
 
     if bck:
@@ -67,7 +60,7 @@ def h_pc_lazy_column():
     status_value = (request.args.get("status") or "").strip()
     category = (request.args.get("category") or "").strip() or None
     subcategory = (request.args.get("subcategory") or "").strip() or None
-    company_id = request.args.get("company_id", type=int)  # ✅ NEW
+    company_key = (request.args.get("company_id") or "").strip() or None
 
     allowed = {
         ModerationStatus.SENT_NO_RD.value,
@@ -86,15 +79,11 @@ def h_pc_lazy_column():
     if subcategory and category != "clothes":
         return jsonify(status="error", message="Подкатегория доступна только для clothes"), 400
 
-    # ✅ company_id валидируем (пустой/None = нет фильтра)
-    if company_id is not None and company_id <= 0:
-        return jsonify(status="error", message="Некорректная компания"), 400
-
     cards = h_pc_move_get_cards_by_status(
         status_value=status_value,
         category=category,
         subcategory=subcategory,
-        company_id=company_id,
+        company_key=company_key,
     )
     packed = h_pc_move_pack_cards(cards)
 
@@ -431,40 +420,17 @@ def h_download_cards_companies_in_progress():
     if not cards:
         return _json_error("Нет карточек в статусе IN_PROGRESS", 404)
 
-    # компании владельцев
-    owner_ids = {c.user_id for c in cards if c.user_id}
-
-    upc_rows: list[UserProcessingCompany] = (
-        UserProcessingCompany.query
-        .join(ProcessingCompany, UserProcessingCompany.company_id == ProcessingCompany.id)
-        .filter(
-            UserProcessingCompany.user_id.in_(owner_ids),
-            UserProcessingCompany.is_approved.is_(True),
-            ProcessingCompany.is_active.is_(True),
-        )
-        .options(joinedload(UserProcessingCompany.company))
-        .all()
-    )
-
-    companies_by_user: dict[int, list[ProcessingCompany]] = {}
-    for row in upc_rows:
-        companies_by_user.setdefault(row.user_id, []).append(row.company)
-
     # разложение карточек по папкам компаний
     company_cards: dict[str, list[ProductCard]] = {}
     for card in cards:
         user = card.creator
-        if not user:
-            continue
-
-        comps = companies_by_user.get(user.id) or []
-        if not comps:
-            folder = f"БЕЗ_КОМПАНИИ/{_safe_part(user.login_name or str(user.id))}"
-            company_cards.setdefault(folder, []).append(card)
+        if card.processing_company_label:
+            folder = f"{_safe_part(card.processing_company_inn)} {_safe_part(card.processing_company_title)}".strip()
+            company_cards.setdefault(folder or "БЕЗ_КОМПАНИИ", []).append(card)
         else:
-            for comp in comps:
-                folder = f"{_safe_part(comp.inn)} {_safe_part(comp.title)}"
-                company_cards.setdefault(folder, []).append(card)
+            owner_label = user.login_name if user else str(card.user_id or card.id)
+            folder = f"БЕЗ_КОМПАНИИ/{_safe_part(owner_label)}"
+            company_cards.setdefault(folder, []).append(card)
 
     dt = datetime.now()
     dt_str = dt.strftime("%d.%m.%Y %H:%M")
@@ -670,38 +636,16 @@ def h_download_cards_companies_by_status():
     if not cards:
         return _json_error(f"Нет карточек в статусе {status.value}", 404)
 
-    owner_ids = {c.user_id for c in cards if c.user_id}
-
-    upc_rows: list[UserProcessingCompany] = (
-        UserProcessingCompany.query
-        .join(ProcessingCompany, UserProcessingCompany.company_id == ProcessingCompany.id)
-        .filter(
-            UserProcessingCompany.user_id.in_(owner_ids),
-            UserProcessingCompany.is_approved.is_(True),
-            ProcessingCompany.is_active.is_(True),
-        )
-        .options(joinedload(UserProcessingCompany.company))
-        .all()
-    )
-
-    companies_by_user: dict[int, list[ProcessingCompany]] = {}
-    for row in upc_rows:
-        companies_by_user.setdefault(row.user_id, []).append(row.company)
-
     company_cards: dict[str, list[ProductCard]] = {}
     for card in cards:
         user = card.creator
-        if not user:
-            continue
-
-        comps = companies_by_user.get(user.id) or []
-        if not comps:
-            folder = f"БЕЗ_КОМПАНИИ/{_safe_part(user.login_name or str(user.id))}"
-            company_cards.setdefault(folder, []).append(card)
+        if card.processing_company_label:
+            folder = f"{_safe_part(card.processing_company_inn)} {_safe_part(card.processing_company_title)}".strip()
+            company_cards.setdefault(folder or "БЕЗ_КОМПАНИИ", []).append(card)
         else:
-            for comp in comps:
-                folder = f"{_safe_part(comp.inn)} {_safe_part(comp.title)}"
-                company_cards.setdefault(folder, []).append(card)
+            owner_label = user.login_name if user else str(card.user_id or card.id)
+            folder = f"БЕЗ_КОМПАНИИ/{_safe_part(owner_label)}"
+            company_cards.setdefault(folder, []).append(card)
 
     dt = datetime.now()
     outer_zip = BytesIO()
@@ -742,33 +686,6 @@ def h_download_cards_companies_by_status():
         as_attachment=True,
         download_name=filename,
     )
-
-
-def h_crm_user_companies(user_id: int):
-    # (опционально) доступ: только crm роли
-    # if current_user.role not in {"manager", "supermanager", "superuser"}: ...
-
-    rows = (
-        UserProcessingCompany.query
-        .options(joinedload(UserProcessingCompany.company))
-        .filter(UserProcessingCompany.user_id == user_id)
-        .order_by(UserProcessingCompany.slot.asc())
-        .all()
-    )
-
-    companies = [{
-        "slot": r.slot,
-        "is_approved": bool(r.is_approved),
-        "title": r.company.title if r.company else "",
-        "inn": r.company.inn if r.company else "",
-        "is_active": bool(r.company.is_active) if r.company else True,
-    } for r in rows]
-
-    html = render_template(
-        "product_cards/crm/_user_companies_badges.html",
-        companies=companies
-    )
-    return jsonify({"status": "success", "html": html, "count": len(companies)})
 
 
 def h_pc_take_card_to_processing(pc_id: int):
@@ -891,92 +808,6 @@ def h_pc_take_card_to_processing(pc_id: int):
         db.session.rollback()
         logger.exception("Unexpected error in pc_take_card_to_processing")
         return json_response(message="Неизвестная ошибка", status="error", code=500)
-
-
-def h_companies_modal():
-    companies = (ProcessingCompany.query
-                 .order_by(ProcessingCompany.is_active.desc(), ProcessingCompany.id.desc())
-                 .all())
-    html = render_template("product_cards/crm/companies/modal.html", companies=companies)
-    return jsonify({"status": "success", "html": html})
-
-
-def h_companies_create():
-    try:
-        title = (request.form.get("title") or "").strip()
-        inn = (request.form.get("inn") or "").strip()
-
-        if not title:
-            return jsonify({"status": "error", "message": "Укажите название фирмы"}), 400
-
-        c = ProcessingCompany(title=title, inn=inn or None, is_active=True)
-        db.session.add(c)
-        db.session.commit()
-
-        companies = ProcessingCompany.query.order_by(ProcessingCompany.is_active.desc(),
-                                                     ProcessingCompany.id.desc()).all()
-        table_html = render_template("product_cards/crm/companies/_table.html", companies=companies)
-
-        return jsonify({"status": "success", "message": "Фирма добавлена", "table_html": table_html})
-
-    except Exception:
-        db.session.rollback()
-        logger.exception("companies_create error")
-        return jsonify({"status": "error", "message": "Ошибка добавления"}), 500
-
-
-def h_companies_update(company_id: int):
-    try:
-        c = ProcessingCompany.query.get(company_id)
-        if not c:
-            return jsonify({"status": "error", "message": "Фирма не найдена"}), 404
-
-        title = (request.form.get("title") or "").strip()
-        inn = (request.form.get("inn") or "").strip()
-        is_active = request.form.get("is_active")  # "1"/"0" or None
-
-        if title:
-            c.title = title
-        c.inn = inn or None
-        if is_active is not None:
-            c.is_active = True if is_active in ("1", "true", "True", "on") else False
-
-        db.session.commit()
-
-        companies = ProcessingCompany.query.order_by(ProcessingCompany.is_active.desc(),
-                                                     ProcessingCompany.id.desc()).all()
-        table_html = render_template("product_cards/crm/companies/_table.html", companies=companies)
-
-        return jsonify({"status": "success", "message": "Фирма обновлена", "table_html": table_html})
-
-    except Exception:
-        db.session.rollback()
-        logger.exception("companies_update error")
-        return jsonify({"status": "error", "message": "Ошибка обновления"}), 500
-
-
-def h_companies_delete(company_id: int):
-    try:
-        ok, msg, meta = delete_company_from_pool_no_reassign(company_id)
-        if not ok:
-            return jsonify({"status": "error", "message": msg, **meta}), 400
-
-        db.session.commit()
-
-        companies = ProcessingCompany.query.order_by(ProcessingCompany.id.desc()).all()
-        table_html = render_template("product_cards/crm/companies/_table.html", companies=companies)
-
-        return jsonify({"status": "success", "message": msg, "table_html": table_html, **meta})
-
-    except SQLAlchemyError:
-        db.session.rollback()
-        logger.exception("companies_delete db error")
-        return jsonify({"status": "error", "message": "Ошибка БД"}), 500
-
-    except Exception:
-        db.session.rollback()
-        logger.exception("companies_delete error")
-        return jsonify({"status": "error", "message": "Ошибка удаления"}), 500
 
 
 def h_pc_move_card(pc_id: int):
@@ -1522,137 +1353,7 @@ def h_search_crm_card():
     return jsonify(status="error", message="Некорректный режим поиска"), 400
 
 
-def h_crm_set_company_slot(card_id: int):
-    slot = request.form.get("slot", type=int)
-    company_id = request.form.get("company_id", type=int)
-
-    if slot not in (1, 2):
-        return jsonify(status="error", message="Некорректный слот"), 400
-    if not company_id:
-        return jsonify(status="error", message="Не выбрана компания"), 400
-
-    card = ProductCard.query.filter_by(id=card_id).first()
-    if not card:
-        return jsonify(status="error", message="Карточка не найдена"), 404
-
-    if card.status != ModerationStatus.PARTIALLY_APPROVED:
-        return jsonify(status="error", message="Менять компании можно только в PARTIALLY_APPROVED"), 403
-
-    if current_user.role not in {"manager", "supermanager", "superuser"}:
-        return jsonify(status="error", message="Недостаточно прав"), 403
-
-    comp = ProcessingCompany.query.filter_by(id=company_id, is_active=True).first()
-    if not comp:
-        return jsonify(status="error", message="Компания не найдена или не активна"), 400
-
-    try:
-        row = (UserProcessingCompany.query
-               .options(joinedload(UserProcessingCompany.company))
-               .filter_by(user_id=card.user_id, slot=slot)
-               .first())
-
-        # ✅ если слот уже заполнен активной компанией — запрещаем менять
-        if row and row.company and row.company.is_active:
-            return jsonify(status="error", message="Этот слот уже заполнен. Изменение запрещено."), 400
-
-        # если эта компания уже стоит в другом слоте — запрещаем (чтобы не было дубля)
-        other = (UserProcessingCompany.query
-                 .filter(UserProcessingCompany.user_id == card.user_id,
-                         UserProcessingCompany.company_id == company_id)
-                 .first())
-        if other:
-            return jsonify(status="error", message="Эта компания уже закреплена в другом слоте"), 400
-
-        # ✅ запрет на запрещённые сочетания компаний (по ИНН) между слотами 1/2
-        other_slot = 2 if slot == 1 else 1
-        other_row = (UserProcessingCompany.query
-                     .options(joinedload(UserProcessingCompany.company))
-                     .filter(UserProcessingCompany.user_id == card.user_id,
-                             UserProcessingCompany.slot == other_slot)
-                     .first())
-
-        if other_row and other_row.company:
-            if is_forbidden_pair_by_inn(other_row.company.inn, comp.inn):
-                return jsonify(
-                    status="error",
-                    message=f"Нельзя ставить вместе: '{other_row.company.title}' и '{comp.title}'."
-                ), 400
-
-        if row:
-            row.company_id = company_id
-            row.is_approved = True
-
-        else:
-            db.session.add(UserProcessingCompany(
-                user_id=card.user_id,
-                slot=slot,
-                company_id=company_id,
-                is_approved=True,
-            ))
-
-        # лог
-        dt = datetime.now()
-        mgr = getattr(current_user, "login_name", "") or str(current_user.id)
-        card.card_log = h_append_card_log(
-            card.card_log,
-            f"\n{dt:%d-%m-%Y %H:%M:%S} добавил компанию в слот {slot}: '{comp.title}' ({comp.inn}) оператор {mgr};"
-        )
-
-        db.session.commit()
-
-        # пересобираем блок
-        user_companies_rows = (
-            UserProcessingCompany.query
-            .options(joinedload(UserProcessingCompany.company))
-            .filter(UserProcessingCompany.user_id == card.user_id)
-            .order_by(UserProcessingCompany.slot.asc())
-            .all()
-        )
-        user_companies = []
-        by_slot = {}
-        for r in user_companies_rows:
-            c = r.company
-            item = {
-                "slot": r.slot,
-                "company_id": r.company_id,
-                "is_approved": bool(r.is_approved),
-                "title": c.title if c else "",
-                "inn": c.inn if c else "",
-                "is_active": bool(c.is_active) if c else True,
-            }
-            user_companies.append(item)
-            by_slot[r.slot] = item
-
-        slot1_filled = bool(by_slot.get(1) and by_slot[1].get("company_id"))
-        slot2_filled = bool(by_slot.get(2) and by_slot[2].get("company_id"))
-
-        pool_companies = (ProcessingCompany.query
-                          .filter(ProcessingCompany.is_active.is_(True))
-                          .order_by(ProcessingCompany.title.asc())
-                          .all())
-
-        html = render_template(
-            "product_cards/user/helpers/_card_view_companies_block.html",
-            user_companies=user_companies,
-            pool_companies=pool_companies,
-            can_edit_companies=True,
-            card=card,
-            slot1_filled=slot1_filled,
-            slot2_filled=slot2_filled,
-        )
-
-        return jsonify(status="success", html=html)
-
-    except SQLAlchemyError:
-        db.session.rollback()
-        return jsonify(status="error", message="Ошибка БД при сохранении"), 500
-
-
 def h_crm_approve_from_partially(card_id: int):
-    def _slot_ok(s: int):
-        r = by_slot.get(s)
-        return bool(r and r.company and r.company.is_active)
-
     card = ProductCard.query.filter_by(id=card_id).first()
     if not card:
         return jsonify(status="error", message="Карточка не найдена"), 404
@@ -1663,23 +1364,10 @@ def h_crm_approve_from_partially(card_id: int):
     if current_user.role not in {"manager", "supermanager", "superuser"}:
         return jsonify(status="error", message="Недостаточно прав"), 403
 
-    # ✅ проверяем слоты пользователя карточки
-    rows = (UserProcessingCompany.query
-            .options(joinedload(UserProcessingCompany.company))
-            .filter(UserProcessingCompany.user_id == card.user_id,
-                    UserProcessingCompany.slot.in_([1,2]))
-            .all())
-
-    by_slot = {r.slot: r for r in rows}
-
-    if not _slot_ok(1) or not _slot_ok(2):
-        return jsonify(status="error", message="Нельзя перевести в APPROVED: заполните оба слота компаний"), 400
+    if not card.processing_company_label:
+        return jsonify(status="error", message="Нельзя перевести в APPROVED: у карточки не назначена компания"), 400
 
     dt = datetime.now()
-    for s in (1, 2):
-        r = by_slot[s]
-        r.is_approved = True
-        r.approved_at = dt
 
     try:
         h_pc_move_apply_status_transition(card, ModerationStatus.APPROVED.value)
@@ -1687,7 +1375,7 @@ def h_crm_approve_from_partially(card_id: int):
         mgr = getattr(current_user, "login_name", "") or str(current_user.id)
         card.card_log = h_append_card_log(
             card.card_log,
-            f"\n{dt:%d-%m-%Y %H:%M:%S} подтвердил компании (2 слота) и перевёл в APPROVED {mgr};"
+            f"\n{dt:%d-%m-%Y %H:%M:%S} подтвердил компанию карточки и перевёл в APPROVED {mgr};"
         )
 
         db.session.commit()

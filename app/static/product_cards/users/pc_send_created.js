@@ -1,5 +1,7 @@
 "use strict";
 
+const PC_SEND_MODERATE_TIMEOUT_MS = 60000;
+
 // ===== config helpers =====
 function pcConfigEl() {
   const el = document.getElementById("pc-config");
@@ -121,6 +123,20 @@ function pcShowOk(msg) {
   el.textContent = msg;
 }
 
+function pcShowWarning(msg) {
+  if (typeof make_message === "function") {
+    make_message(msg, "warning");
+    return;
+  }
+
+  pcShowErr(msg);
+}
+
+function pcResetSendCreatedModal() {
+  pcSetModalBody(`<div class="text-muted">Загрузка...</div>`);
+  pcLoadCreatedCardsIntoModal();
+}
+
 // ===== публичная функция для onclick =====
 function pcOpenSendCreatedCardsModal() {
   pcSetModalBody(`<div class="text-muted">Загрузка...</div>`);
@@ -139,6 +155,9 @@ async function pcLoadCreatedCardsIntoModal() {
 
     const data = await res.json();
     const cards = (data.status === "success") ? (data.cards || []) : [];
+    if (typeof window.pcUpdateCreatedCardsCount === "function") {
+      window.pcUpdateCreatedCardsCount(cards.length);
+    }
 
     pcSetModalBody(pcRenderSendCreated(cards));
 
@@ -183,6 +202,15 @@ async function pcSendSelectedCreatedCards() {
   const oldText = btn.textContent;
   btn.textContent = "Отправка...";
 
+  const controller = new AbortController();
+  let isTimedOut = false;
+  const timeoutId = setTimeout(() => {
+    isTimedOut = true;
+    controller.abort();
+    pcShowWarning("Отправка на модерацию занимает больше минуты. Модальное окно сброшено. Попробуйте отправить остальные карточки отдельно, а ошибочные отправьте позже.");
+    pcResetSendCreatedModal();
+  }, PC_SEND_MODERATE_TIMEOUT_MS);
+
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -191,10 +219,12 @@ async function pcSendSelectedCreatedCards() {
         // если у вас CSRF через заголовок — удобно так
         "X-CSRFToken": pcCsrf()
       },
-      body: JSON.stringify({ card_ids: selected })
+      body: JSON.stringify({ card_ids: selected }),
+      signal: controller.signal
     });
 
     const data = await res.json().catch(() => ({}));
+    clearTimeout(timeoutId);
 
     // подстройка под твой формат ответа:
     // - если вернёшь {status:"success"} — ок
@@ -210,6 +240,11 @@ async function pcSendSelectedCreatedCards() {
     setTimeout(() => window.location.reload(), 900);
 
   } catch (e) {
+    clearTimeout(timeoutId);
+    if (isTimedOut || e.name === "AbortError") {
+      return;
+    }
+
     pcShowErr(e.message);
     btn.disabled = false;
     btn.textContent = oldText;

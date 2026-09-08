@@ -85,13 +85,36 @@
 - Размеры живут не в `ProductCard`, а в дочерних таблицах `*QuantitySize`.
 - Доступные действия пользователя и CRM зависят от `status` и `data_status`.
 
-## Временная заглушка раздела "Быстрый заказ"
+### Восстановленный раздел "Быстрый заказ"
 
-- Пользовательский blueprint [users.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/users.py) сейчас целиком закрыт `before_request`-заглушкой на время технических работ.
-- Это касается всех пользовательских ручек раздела: списка карточек, создания/редактирования/удаления карточек, отправки на модерацию, сборки заказа из корзины карточек и черновиков заказов из карточек.
-- `GET`-запросы в `user_product_cards` получают `flash`-предупреждение и редирект в `main.enter`.
-- Не-`GET` запросы получают JSON `503` с текстом заглушки и `redirect_url` на раздел "Обычный заказ".
-- В сайдбаре вкладка "Быстрый заказ" должна оставаться видимой, но визуально приглушенной, без рабочих подпунктов, с `title` по наведению и модалкой с тем же текстом по клику.
+- Пользовательский blueprint [users.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/users.py) снова открыт: временный `before_request`-guard `product_cards_maintenance_guard()` удален.
+- Ссылка в сайдбаре [nav_side_links.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/templates/main/base_helpers/nav_side_links.html) снова ведет на `url_for('user_product_cards.cards')`; приглушенная заглушка и модалка техработ удалены.
+- Пользовательские ручки раздела снова доступны: список карточек, создание/редактирование/удаление, отправка на модерацию, сборка заказа из корзины карточек и черновики заказов из карточек.
+- Если раздел снова нужно закрывать на техработы, надо синхронно возвращать guard в [users.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/users.py), визуальную заглушку сайдбара и ограничения на UI-действия, которые отправляют запросы в `user_product_cards`.
+
+### Компания обработки карточки
+
+- Источник истины по компании обработки теперь сама карточка товара: поля `ProductCard.processing_company_*` и property `ProductCard.processing_company_label` в [models.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/models.py).
+- При пользовательской отправке на модерацию `h_send_cards_moderate()` назначает компании через batch-helper `assign_tezaurus_processing_companies(...)` из [support.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/support.py).
+- Batch-запрос в Tezaurus выполняется после объединения дублей вещевых карточек; в один запрос уходит до `200` итоговых карточек, каждая с `client_id=card-<id>`.
+- Если итоговых карточек больше `200`, Markineris отправляет несколько batch-запросов по `200`, а не отклоняет пользовательскую отправку по лимиту.
+- Перед запросом в Tezaurus категория и страна карточки нормализуются в `category` и `origin`; детальная логика клиента описана в [app/tezaurus/README.md](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/tezaurus/README.md).
+- Если Tezaurus не настроен, недоступен или хотя бы один batch-item вернулся с `ok=false`, `matched=false` или без компании, отправка выбранных карточек откатывается без частичного перевода в `sent` / `sent_no_rd`. Для item-ошибок пользователь получает общий текст с номерами всех проблемных карточек.
+- Старое требование "у пользователя должны быть две закрепленные компании" удалено из создания, отправки и CRM-логики карточек.
+- Модалка просмотра карточки показывает только назначенную компанию карточки, категорию запроса, происхождение и дату назначения; редактирование двух слотов пользователя из этого блока убрано.
+- CRM-фильтр по фирме в колонке "На модерации" строится по уже назначенным `processing_company_inn` / `processing_company_external_id` / `processing_company_title`, а не по `UserProcessingCompany`.
+- Выгрузки карточек по компаниям раскладывают файлы по `ProductCard.processing_company_label`; карточки без назначенной компании попадают в папку `БЕЗ_КОМПАНИИ/<пользователь>`.
+- Перевод `partially_approved -> approved` теперь проверяет наличие назначенной компании на карточке, а не заполненность двух пользовательских слотов.
+- Старый CRM-пул фирм для карточек модерации удален из UI, routes, handlers и статического JS; назначение идет только через Tezaurus при отправке карточки.
+- Для новых колонок используется ручная миграция [product_card_processing_company.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/utilities/scripts_manual/custom_migrations/product_card_processing_company.py).
+
+### Админская проверка Tezaurus и сброс карточек
+
+- Для `superuser` добавлена страница `/admin_control/module-testing`.
+- На странице есть форма прямой проверки подбора исполнителя Tezaurus: backend route `module_testing_processing_companies_select`, фронт [processing_companies.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/static/main_v2/js/admin/processing_companies.js).
+- Там же есть служебная кнопка сброса карточек товаров: `module_testing_product_cards_reset_created`.
+- Рядом добавлена служебная кнопка полного удаления карточек товаров: `module_testing_product_cards_delete_all`; она доступна только `superuser`, требует пароль текущей учетной записи через модальное окно и удаляет все `ProductCard`, связанные category-строки, размеры, чат карточек, прочтения чата и старые привязки компаний.
+- Сброс переводит все неотмененные карточки в `created`, очищает `processing_company_*`, сбрасывает даты модерационного процесса, удаляет старые записи `UserProcessingCompany` и удаляет карточки в статусе `rejected`.
 
 ## Редактирование карточек на модерации
 
@@ -140,7 +163,7 @@
   - `card_id`
   - `article_or_trademark`
   - `ts`
-- CRM-вкладки того же origin ловят `storage`-событие в [cards.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/crm/js/cards.js) и точечно обновляют только карточку с DOM-id:
+- CRM-вкладки того же origin ловят `storage`-событие в [cards.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/static/product_cards/crm/js/cards.js) и точечно обновляют только карточку с DOM-id:
   - `cardCommonBlock_<card_id>`
 - Если нужной карточки в текущей колонке или вкладке нет, событие просто игнорируется без ошибки.
 - Важно: `storage` приходит в другие вкладки, а не в ту, которая делает `setItem`. Для этого сценария это корректно.
@@ -148,10 +171,10 @@
 - Для копирования обновленного значения в CRM-шаблоне используется span с маркером:
   - `data-pc-article-value="1"`
 - Если меняется логика межвкладочной синхронизации, надо проверять сразу:
-  - [handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/handlers.py)
-  - [common.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/users/common.js)
-  - [cards.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/crm/js/cards.js)
-  - [card_bottom_info_common.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/templates/product_cards/crm/helpers/card_bottom_info_common.html)
+  - [handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/handlers.py)
+  - [common.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/static/product_cards/users/common.js)
+  - [cards.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/static/product_cards/crm/js/cards.js)
+  - [card_bottom_info_common.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/templates/product_cards/crm/helpers/card_bottom_info_common.html)
 
 
 ## Где завязана уникальность товара
@@ -185,7 +208,7 @@
 - Это нормальный сценарий, если карточка была отклонена до пользовательской отправки на модерацию, например массовым служебным скриптом.
 - В таком кейсе у карточки обычно есть `rejected_at`, но нет этапа `sent -> in_progress -> ...`, поэтому CRM UI не должен считать дату отправки обязательной.
 - Любые CRM-шаблоны и partial, которые рендерят отмененные карточки, должны безопасно обрабатывать `sent_at is None` и использовать fallback по `rejected_at` или текст без даты.
-- Конкретно блок времени/tooltip для CRM-карточки сейчас завязан на [card_bottom_info_common.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/templates/product_cards/crm/helpers/card_bottom_info_common.html) и helper `crm_card_stage_tooltip(...)` в [crm/helpers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/crm/helpers.py).
+- Конкретно блок времени/tooltip для CRM-карточки сейчас завязан на [card_bottom_info_common.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/templates/product_cards/crm/helpers/card_bottom_info_common.html) и helper `crm_card_stage_tooltip(...)` в [crm/helpers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/crm/helpers.py).
 
 ## Логи карточки
 
@@ -207,21 +230,34 @@
 ## Поля даты РД
 
 - Даты РД лежат не в `ProductCard`, а в category-моделях через `CommonMixin`: `rd_date` = "От", `rd_date_to` = "До".
-- Поля формы находятся в [rd.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/templates/product_cards/new/categories/helpers/rd.html): `id="rd_date"` и `id="rd_date_to"`.
+- Поля формы находятся в [rd.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/templates/product_cards/new/categories/helpers/rd.html): `id="rd_date"` и `id="rd_date_to"`.
 - `rd.html` используется общими формами создания и редактирования карточки, поэтому изменения в нем затрагивают и пользовательскую часть, и CRM-редактирование.
 - Для операторов CRM разрешен ручной ввод дат. Видимые поля `rd_date` / `rd_date_to` должны оставаться обычными текстовыми input без привязанного datepicker, иначе клик по полю открывает календарь и ломает ручной ввод.
 - Datepicker в карточках РД привязан к скрытым proxy-input без `name`: `rd_date_picker` и `rd_date_to_picker`. Они нужны только для открытия календаря по иконке и не отправляются на backend.
 - Календарь открывается только по SVG-иконке рядом с пустым полем. Если дата уже указана или оператор начал ввод, иконка скрывается; после очистки даты через `×` иконка снова появляется.
 - Ручной ввод нормализуется во фронтовый формат `dd.mm.yyyy`; примеры: `12042026` -> `12.04.2026`, `120426` -> `12.04.2026`, `12-04-2026` -> `12.04.2026`.
-- Нормализация перед отправкой вызывается из [common.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/users/common.js) через `window.pcNormalizeRdDates()`.
+- Нормализация перед отправкой вызывается из [common.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/static/product_cards/users/common.js) через `window.pcNormalizeRdDates()`.
 - Проверки дат должны сохраняться и при ручном вводе, и при выборе через календарь: `rd_date` не раньше `01.01.2022`, `rd_date` не позже сегодня, `rd_date_to` не раньше сегодня + 1 месяц, `rd_date <= rd_date_to`. Для календаря ограничения пересчитываются перед открытием proxy-datepicker.
-- Backend все еще принимает даты через [utils.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/utils.py) в формате `%d.%m.%Y`; если меняется фронтовый ввод, итоговое значение перед submit должно оставаться `dd.mm.yyyy`.
-- После правки [common.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/users/common.js) надо поднять cache-busting версию подключения в [main_card.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/templates/product_cards/new/main_card.html).
+- Backend все еще принимает даты через [utils.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/utils.py) в формате `%d.%m.%Y`; если меняется фронтовый ввод, итоговое значение перед submit должно оставаться `dd.mm.yyyy`.
+- После правки [common.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/static/product_cards/users/common.js) надо поднять cache-busting версию подключения в [main_card.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/templates/product_cards/new/main_card.html).
+
+## Навигация По Категориям
+
+- Верхняя плиточная навигация пользователя находится в [nav_pills.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/templates/product_cards/user/nav_pills.html), переключение состояния - в [users.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/static/product_cards/users/users.js), начальная видимость уровней - в [user.css](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/static/main_v2/css/product_cards/user.css).
+- При входе в быстрый заказ без `category` по умолчанию открывается `shoes`.
+- На основном уровне показываются основные категории: `shoes`, `clothes`, `linen`, `parfum`, а также disabled-плитки будущих категорий `cosmetics` и `toys`.
+- `socks` визуально вложена в раздел одежды, но backend-категорией остается `socks`.
+- При выборе `clothes` пользователь попадает на промежуточный уровень одежды: первой идет основная одежда (`clothes/common`), затем подкатегории одежды и `socks`.
+- Кнопка `Категории` на промежуточном уровне возвращает только плитки основного уровня без изменения уже загруженной таблицы; визуально она выделена как secondary-кнопка, чтобы не путаться с товарными категориями.
+- Новые категории с подкатегориями добавляются через конфиг `PC_CATEGORY_GROUPS` и разметку плиток с `data-pc-category-child="<group>"`; дочерние плитки должны быть скрыты CSS до запуска JS, чтобы не было мелькания всех плиток при загрузке страницы.
+- Верхняя панель действий в [main.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/templates/product_cards/user/main.html) разделена на смысловые зоны: компактная Bootstrap `btn-group` создания (`Создать ...`, `Другая категория`), отдельная кнопка `На модерацию` с отступом и отдельная кнопка `Корзина`.
 
 ## Пользовательская отправка на модерацию
 
-- Массовая отправка выбранных карточек со статусом `created` идет через `POST /cards/send_moderate`, route `send_cards_moderate()` в [users.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/users.py), handler `h_send_cards_moderate()` в [handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/handlers.py).
-- Перед выставлением статусов `sent` / `sent_no_rd` выбранные свежие вещевые карточки объединяются через `merge_selected_created_wear_cards(...)` из [support.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/support.py).
+- Массовая отправка выбранных карточек со статусом `created` идет через `POST /cards/send_moderate`, route `send_cards_moderate()` в [users.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/users.py), handler `h_send_cards_moderate()` в [handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/handlers.py).
+- Кнопка `На модерацию` находится в верхней панели действий, но поведение остается общим: она открывает старую модалку со всеми карточками пользователя в статусе `created`, без фильтра по текущей категории.
+- Счетчик на кнопке показывает общее количество карточек `created`; при открытии модалки он обновляется по фактическому ответу `GET /cards/created`.
+- Перед выставлением статусов `sent` / `sent_no_rd` выбранные свежие вещевые карточки объединяются через `merge_selected_created_wear_cards(...)` из [support.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/support.py).
 - Объединение работает только для категорий с размерами: `clothes`, `shoes`, `linen`, `socks`. `parfum` не трогается.
 - Ключ объединения для `clothes`: `category + article + color + subcategory`.
 - Ключ объединения для `shoes`, `linen`, `socks`: `category + article + color`.
@@ -230,28 +266,29 @@
 - После переноса размеров карточки-дубли удаляются через ORM `db.session.delete(...)`.
 - Если у базовой карточки нет РД, а у дубля есть РД, блок РД копируется в базовую карточку перед отправкой.
 - Ответ ручки возвращает статистику `merged_cards`, `moved_sizes`, `skipped_sizes`, `deleted_card_ids`; фронт показывает `message` из ответа.
-- Фронтовая логика отправки находится в [pc_send_created.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/users/pc_send_created.js).
+- Фронтовая логика отправки находится в [pc_send_created.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/static/product_cards/users/pc_send_created.js).
+- Если за 60 секунд фронт не получил успешный ответ от `POST /cards/send_moderate`, запрос отменяется, показывается `make_message(..., "warning")`, а модалка сбрасывается и заново загружает список карточек.
 
 ## Массовый перенос в CRM
 
-- Универсальная ручка массового переноса карточек: `POST /crm/cards/bulk_move`, route `pc_bulk_move_cards()` в [crm/main.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/crm/main.py), handler `h_pc_bulk_move_cards()` в [crm/handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/crm/handlers.py).
+- Универсальная ручка массового переноса карточек: `POST /crm/cards/bulk_move`, route `pc_bulk_move_cards()` в [crm/main.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/crm/main.py), handler `h_pc_bulk_move_cards()` в [crm/handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/crm/handlers.py).
 - Ручка принимает `card_ids[]`, `target`, а также текущие фильтры `category` и `subcategory`, чтобы после переноса вернуть актуальный HTML затронутых колонок.
 - Сейчас массово разрешен только выборочный перенос `clarification -> in_moderation`. Разрешенные bulk-переходы задаются whitelist-ом внутри `h_pc_bulk_move_cards()`.
 - Обычный `manager` может массово переносить только карточки, закрепленные за ним по `manager_id`. `superuser` и `supermanager` могут переносить любые карточки.
 - Если хотя бы одна выбранная карточка не найдена, не проходит whitelist, не проходит `validate_transition(...)` или проверку прав, вся операция отклоняется без частичного переноса.
-- UI массового выбора сейчас добавлен только в колонку "На уточнении": кнопка `✓✓` включает чекбоксы на карточках, затем `✓` переносит выбранные на модерацию, `×` отменяет режим выбора. Фронтовая логика находится в [cards.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/crm/js/cards.js): `pcBulkMoveSelected(...)`, `pcApplyBulkMoveResponse(...)`.
+- UI массового выбора сейчас добавлен только в колонку "На уточнении": кнопка `✓✓` включает чекбоксы на карточках, затем `✓` переносит выбранные на модерацию, `×` отменяет режим выбора. Фронтовая логика находится в [cards.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/static/product_cards/crm/js/cards.js): `pcBulkMoveSelected(...)`, `pcApplyBulkMoveResponse(...)`.
 
 ## Назначение оператора в CRM
 
 - Назначение оператора из карточки доступно только ролям `superuser` и `supermanager`.
-- В карточке оператор рендерится через [card_manager_info.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/templates/product_cards/crm/helpers/card_manager_info.html). Для разрешенных ролей и разрешенных статусов имя оператора становится кнопкой.
+- В карточке оператор рендерится через [card_manager_info.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/templates/product_cards/crm/helpers/card_manager_info.html). Для разрешенных ролей и разрешенных статусов имя оператора становится кнопкой.
 - Нельзя назначать оператора в колонках `sent`, `sent_no_rd`, `approved`, `rejected`. Это проверяется и в шаблоне, и на backend.
-- Список доступных операторов грузится AJAX-ом через `GET /crm/cards/managers`, route `pc_managers_list()` в [crm/main.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/crm/main.py), handler `h_pc_managers_list()` в [crm/handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/crm/handlers.py).
-- Назначение выполняется AJAX-ом через `POST /crm/card/<pc_id>/assign_manager`, route `pc_assign_manager()` в [crm/main.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/crm/main.py), handler `h_pc_assign_manager()` в [crm/handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/views/main/product_cards/crm/handlers.py).
+- Список доступных операторов грузится AJAX-ом через `GET /crm/cards/managers`, route `pc_managers_list()` в [crm/main.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/crm/main.py), handler `h_pc_managers_list()` в [crm/handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/crm/handlers.py).
+- Назначение выполняется AJAX-ом через `POST /crm/card/<pc_id>/assign_manager`, route `pc_assign_manager()` в [crm/main.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/crm/main.py), handler `h_pc_assign_manager()` в [crm/handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/crm/handlers.py).
 - Ручка назначения меняет только `ProductCard.manager_id`, статус карточки не меняется.
 - При успешном назначении пишется строка в `ProductCard.card_log` через `h_append_card_log(...)`.
-- Фронтовая логика находится в [cards.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/static/product_cards/crm/js/cards.js): `pcOpenAssignManagerModal(...)`, `pcAssignManager(...)`, `pcUpdateManagerOnCard(...)`.
-- URL для AJAX передаются через `#pc-config` в [crm_main.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris-2.0/app/templates/product_cards/crm/crm_main.html): `data-managers-url`, `data-assign-manager-url-template`.
+- Фронтовая логика находится в [cards.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/static/product_cards/crm/js/cards.js): `pcOpenAssignManagerModal(...)`, `pcAssignManager(...)`, `pcUpdateManagerOnCard(...)`.
+- URL для AJAX передаются через `#pc-config` в [crm_main.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/templates/product_cards/crm/crm_main.html): `data-managers-url`, `data-assign-manager-url-template`.
 
 ## Что полезно помнить перед изменениями
 
