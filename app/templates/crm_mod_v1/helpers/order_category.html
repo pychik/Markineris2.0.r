@@ -61,6 +61,28 @@
                         data-bs-placement="top" data-bs-title="{{ subcategories_dict.get(n.subcategory, n.category) }}">
             <img src="{{ url_for('static', filename=cosmetics_icon_map.get(n.subcategory, 'crm_mod/img/icons/cosmetics_decor_ukhod.svg'), v='20260630-toilet-paper-outline') }}" alt="" class="img-fluid" style="width: 59%; height: 59%;">
         </div>
+    {% elif n.category == 'игрушки' %}
+        {% set toys_icon_map = {
+            'doll_accessories': 'main_v2/img/icons/toys/doll_accessories.png',
+            'puzzles': 'main_v2/img/icons/toys/puzzles.png',
+            'competition_cars': 'main_v2/img/icons/toys/competition_cars.png',
+            'sets_kits': 'main_v2/img/icons/toys/sets_kits.png',
+            'motorized_toys': 'main_v2/img/icons/toys/motorized_toys.png',
+            'animal_creature': 'main_v2/img/icons/toys/animal_creature.png',
+            'scale_models_other': 'main_v2/img/icons/toys/scale_models_other_plastic.png',
+            'musical_toy_instruments': 'main_v2/img/icons/toys/musical_toy_instruments.png',
+            'dolls_human_figures': 'main_v2/img/icons/toys/dolls_human_figures.png',
+            'construction_sets': 'main_v2/img/icons/toys/construction_sets.png',
+            'card_games': 'main_v2/img/icons/toys/card_games.png',
+            'board_room_games_inventory': 'main_v2/img/icons/toys/board_room_games_inventory.png',
+            'toy_weapons': 'main_v2/img/icons/toys/toy_weapons.png',
+            'play_tents': 'main_v2/img/icons/toys/play_tents.png',
+            'electric_train_sets': 'main_v2/img/icons/toys/train_set.png'
+        } %}
+        <div class="order__img order__img--toys order__img--toys-{{ (n.subcategory or '')|replace('_', '-') }}" data-bs-toggle="tooltip" style="user-select: none;"
+                        data-bs-placement="top" data-bs-title="{{ subcategories_dict.get(n.subcategory, n.category) }}">
+            <img src="{{ url_for('static', filename=toys_icon_map.get(n.subcategory, 'main_v2/img/icons/toys/toys.png')) }}" alt="" class="img-fluid">
+        </div>
     {% endif %}
     {% if n.is_rf_order %}
         <span class="order-rf-badge" data-bs-toggle="tooltip" data-bs-placement="top"

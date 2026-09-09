@@ -9,6 +9,7 @@
   --green: #70e273;
   --pink: #feaec9;
   --lilac: #c8b6ff;
+  --toys-light: #ffe68a;
   --warning: #ffac0a;
 }
 
@@ -142,6 +143,9 @@ body {
   -o-object-fit: contain;
      object-fit: contain;
   margin: auto;
+}
+.categories__item-img--toys {
+  transform: scale(1.12);
 }
 .categories-item__text {
   color: #7d7d7d;
@@ -299,10 +303,67 @@ body {
 .order__img--lilac {
   background-color: var(--lilac);
 }
+.order__img--toys {
+  background-color: var(--toys-light);
+  overflow: hidden;
+}
 .order__img img {
   width: 70%;
   height: 70%;
   filter: brightness(0) invert(1);
+}
+.order__img--toys img {
+  width: 84%;
+  height: 84%;
+  object-fit: contain;
+  transform: none;
+  transform-origin: center;
+  filter: none;
+}
+.order__img--toys-doll-accessories img {
+  transform: scale(1.97);
+}
+.order__img--toys-puzzles img {
+  transform: scale(1.35);
+}
+.order__img--toys-sets-kits img {
+  transform: scale(1.73);
+}
+.order__img--toys-motorized-toys img {
+  transform: scale(1.42);
+}
+.order__img--toys-animal-creature img {
+  transform: scale(1.72);
+}
+.order__img--toys-scale-models-other img {
+  transform: scale(1.12);
+}
+.order__img--toys-musical-toy-instruments img {
+  transform: scale(1.35);
+}
+.order__img--toys-dolls-human-figures img {
+  transform: scale(1.18);
+}
+.order__img--toys-construction-sets img {
+  transform: scale(1.23);
+}
+.order__img--toys-card-games img {
+  transform: scale(1.18);
+}
+.order__img--toys-board-room-games-inventory img {
+  transform: scale(1.08);
+}
+.order__img--toys-toy-weapons img {
+  transform: scale(1.08);
+}
+.order__img--toys-play-tents img {
+  transform: scale(1.74);
+}
+.order__img--toys-electric-train-sets img {
+  transform: scale(1.08);
+}
+.order__img--toys-competition-cars img {
+  transform: scale(1.33);
 }
 .order-rf-badge {
   display: inline-flex;

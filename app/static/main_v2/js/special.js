@@ -794,6 +794,8 @@ function update_category(category_p) {
         'clothes',
         'linen',
         'parfum',
+        'cosmetics',
+        'toys',
         'socks',
         'underwear',
         'swimming_accessories',

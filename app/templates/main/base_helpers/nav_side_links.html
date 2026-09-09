@@ -109,9 +109,9 @@
     <li class="nav-item nav-item--sub {% if 'parfum' in request.path %}active{%endif%} ps-5">
         <a href="{{ url_for('cosmetics.index') }}" class="nav-link text-light" aria-current="page">Косметика <span class="badge bg-success rounded-1 p-1">New</span></a>
     </li>
-<!--                                <li class="nav-item nav-item&#45;&#45;sub {% if 'toys' in request.path %}active{%endif%} ps-5">-->
-<!--                                    <a href="#" class="nav-link text-light" aria-current="page">Игрушки</a>-->
-<!--                                </li>-->
+    <li class="nav-item nav-item--sub {% if 'toys' in request.path %}active{%endif%} ps-5">
+        <a href="{{ url_for('toys.index') }}" class="nav-link text-light" aria-current="page">Игрушки <span class="badge bg-success rounded-1 p-1">New</span></a>
+    </li>
 </ul>
 <div class="modal fade" id="quickOrderMaintenanceModal" tabindex="-1" aria-labelledby="quickOrderMaintenanceModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">

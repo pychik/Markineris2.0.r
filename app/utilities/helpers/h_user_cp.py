@@ -13,6 +13,7 @@ from logger import logger
 from models import (
     Clothes,
     Cosmetics,
+    Toys,
     db,
     Order,
     User,
@@ -265,7 +266,8 @@ def h_order_book_detail(u_id: int):
                         "белье": 'linen',
                         "парфюм": 'parfum',
                         settings.Cosmetics.CATEGORY: settings.Cosmetics.CATEGORY_PROCESS,
-                        "носки и прочее": 'socks', }
+                        "носки и прочее": 'socks',
+                        settings.Toys.CATEGORY: settings.Toys.CATEGORY_PROCESS, }
     cosmetics_category = settings.Cosmetics.CATEGORY
     subcategories_dict = settings.SUB_CATEGORIES_DICT
     active_orders_raw = (
@@ -273,11 +275,12 @@ def h_order_book_detail(u_id: int):
         .filter(~Order.processed, ~Order.to_delete)
         .outerjoin(Clothes, (Order.id == Clothes.order_id) & (Order.category == settings.Clothes.CATEGORY))
         .outerjoin(Cosmetics, (Order.id == Cosmetics.order_id) & (Order.category == settings.Cosmetics.CATEGORY))
+        .outerjoin(Toys, (Order.id == Toys.order_id) & (Order.category == settings.Toys.CATEGORY))
         .with_entities(
             Order.id,
             Order.order_idn,
             Order.category,
-            func.coalesce(Clothes.subcategory, Cosmetics.subcategory).label('subcategory'),
+            func.coalesce(Clothes.subcategory, Cosmetics.subcategory, Toys.subcategory).label('subcategory'),
             Order.company_type,
             Order.company_name,
             Order.company_idn,
@@ -291,7 +294,7 @@ def h_order_book_detail(u_id: int):
     )
     active_orders = []
     for el in categories.keys():
-        if el in ("одежда", settings.Cosmetics.CATEGORY):
+        if el in ("одежда", settings.Cosmetics.CATEGORY, settings.Toys.CATEGORY):
             orders_for_category = list(filter(lambda x: x.category == el, active_orders_raw))
             subcategories = {}
             for order in orders_for_category:

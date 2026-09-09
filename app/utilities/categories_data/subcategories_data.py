@@ -22,6 +22,10 @@ class Category(Enum):
                 from views.main.categories.cosmetics.subcategories import CosmeticsSubcategories
 
                 return CosmeticsSubcategories.has_value(subcategory)
+            case settings.Toys.CATEGORY:
+                from views.main.categories.toys.subcategories import ToysSubcategories
+
+                return ToysSubcategories.has_value(subcategory)
             case _:
                 return False
 

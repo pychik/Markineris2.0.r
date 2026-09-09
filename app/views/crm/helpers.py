@@ -2349,7 +2349,7 @@ def helper_categories_counter(all_cards: list | tuple) -> dict:
         if category:
             categories_counter[category] += 1
 
-    for cat in ('одежда', 'обувь', 'белье', 'парфюм', 'косметика', 'носки и прочее'):
+    for cat in ('одежда', 'обувь', 'белье', 'парфюм', 'косметика', 'игрушки', 'носки и прочее'):
         categories_counter[cat] += 0
 
     return categories_counter
