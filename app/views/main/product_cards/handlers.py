@@ -15,8 +15,7 @@ from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
 from utilities.saving_uts import get_rows_marks
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.support import check_forbidden_words, helper_preload_common, helper_check_uoabm, \
-    helper_check_user_order_in_archive, check_order_pos, process_admin_order_num, process_order_start, \
-    helper_get_last_contact_info
+    helper_check_user_order_in_archive, check_order_pos, process_admin_order_num, process_order_start
 from utilities.telegram import MarkinerisInform
 from utilities.validators import ValidatorProcessor, validate_and_build_contact_info, validate_order_comment_length
 from tezaurus.exceptions import TezaurusApiError, TezaurusConfigurationError
