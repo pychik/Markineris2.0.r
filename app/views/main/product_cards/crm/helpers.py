@@ -647,6 +647,8 @@ def h_pc_move_apply_status_transition(card: ProductCard, target: str, reject_rea
         card.card_log = h_append_card_log(card.card_log, f"\n{dt_str} отправил на уточнение {manager_login};")
 
     elif target == ModerationStatus.APPROVED.value:
+        if not card.processing_company_label:
+            raise ValueError("Нельзя одобрить карточку: не назначена компания обработки")
         card.status = ModerationStatus.APPROVED
         card.approved_at = dt
         card.card_log = h_append_card_log(card.card_log, f"\n{dt_str} одобрил {manager_login};")
