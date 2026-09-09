@@ -2,14 +2,13 @@ from datetime import datetime
 from flask import request, render_template, jsonify, flash, url_for, redirect, Response
 from flask_login import current_user
 from markupsafe import Markup
-from sqlalchemy import case, select, text
+from sqlalchemy import case, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload, selectinload, load_only
 
 from config import settings
 from logger import logger
-from models import db, ExceptionDataUsers, Order, ProductCard, Shoe, Linen, Parfum, Clothes, Socks, ModerationStatus, \
-    UserSeen
+from models import db, ExceptionDataUsers, Order, ProductCard, Shoe, Linen, Parfum, Clothes, Socks, ModerationStatus
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
@@ -41,25 +40,9 @@ from views.main.product_cards.utils import validate_rd_block
 
 
 def h_cards():
-    cards_video_key = 'vid02_create_order'
     category = request.args.get("category", "shoes")
     subcategory = request.args.get("subcategory")
     article_query = request.args.get("article_query", "").strip()
-
-    # 1) проверяем, есть ли запись
-    exists = db.session.execute(
-        select(UserSeen.id).where(
-            UserSeen.user_id == current_user.id,
-            UserSeen.key == cards_video_key
-        ).limit(1)
-    ).first()
-
-    show_video = exists is None
-
-    # 2) если надо показать — создаём запись
-    if show_video:
-        db.session.add(UserSeen(user_id=current_user.id, key=cards_video_key))
-        db.session.commit()
 
     created_cards_count = ProductCard.query.filter(
         ProductCard.user_id == current_user.id,
@@ -73,7 +56,7 @@ def h_cards():
         article_query=article_query,
         mapper_categories=CATEGORIES_COMMON,
         created_cards_count=created_cards_count,
-        show_cards_video=show_video
+        show_cards_video=False,
     )
 
 
