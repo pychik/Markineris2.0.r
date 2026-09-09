@@ -1,26 +1,71 @@
 <div class="pc-card-view__block mb-3" id="pc-card-view-companies">
+  {% set can_change_processing_company = can_change_processing_company|default(false) %}
   <h6 class="fw-semibold mb-2">Компания карточки</h6>
 
   {% if card.processing_company_label %}
     <div class="d-flex flex-column gap-1">
       <div>
-        <span class="badge bg-secondary-subtle text-secondary border">
+        <span class="badge bg-secondary-subtle text-secondary border {% if can_change_processing_company %}pc-processing-company-current{% endif %}"
+              id="pc-card-processing-company-label"
+              {% if can_change_processing_company %}
+                role="button"
+                data-card-id="{{ card.id }}"
+                onclick="pcToggleProcessingCompanySelect(this)"
+              {% endif %}>
           {{ card.processing_company_label }}
         </span>
       </div>
-      <div class="small text-muted">
-        {% if card.processing_company_category %}
-          Категория запроса: {{ card.processing_company_category }}
-        {% endif %}
-        {% if card.processing_company_origin %}
-          · Происхождение: {{ card.processing_company_origin }}
-        {% endif %}
+      <div class="small text-muted" id="pc-card-processing-company-date">
         {% if card.processing_company_assigned_at %}
-          · Назначена: {{ card.processing_company_assigned_at.strftime('%d.%m.%Y %H:%M') }}
+          Дата смены: {{ card.processing_company_assigned_at.strftime('%d.%m.%Y %H:%M') }}
         {% endif %}
       </div>
+      {% if can_change_processing_company %}
+        <div class="mt-2 d-none" id="pc-card-processing-company-editor">
+          <select class="form-select form-select-sm"
+                  id="pc-card-processing-company-select"
+                  data-card-id="{{ card.id }}"
+                  onchange="pcChangeProcessingCompany(this)">
+            <option value="">Выберите компанию</option>
+            {% for company in processing_companies %}
+              {% set company_key = company.get('key') %}
+              {% set company_label = (((company.get('inn') or '') ~ ' ' ~ (company.get('title') or ''))|trim) or company.get('external_id') %}
+              <option value="{{ company_key }}"
+                      {% if company_key in [card.processing_company_inn, card.processing_company_external_id, card.processing_company_title] %}selected{% endif %}>
+                {{ company_label }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endif %}
     </div>
   {% else %}
-    <div class="text-muted mb-0">Компания будет назначена при отправке карточки на модерацию</div>
+    {% if can_change_processing_company %}
+      <div>
+        <span class="badge bg-secondary-subtle text-secondary border pc-processing-company-current"
+              id="pc-card-processing-company-label"
+              role="button"
+              data-card-id="{{ card.id }}"
+              onclick="pcToggleProcessingCompanySelect(this)">
+          Компания не назначена
+        </span>
+      </div>
+      <div class="small text-muted" id="pc-card-processing-company-date"></div>
+      <div class="mt-2" id="pc-card-processing-company-editor">
+        <select class="form-select form-select-sm"
+                id="pc-card-processing-company-select"
+                data-card-id="{{ card.id }}"
+                onchange="pcChangeProcessingCompany(this)">
+          <option value="">Выберите компанию</option>
+          {% for company in processing_companies %}
+            {% set company_key = company.get('key') %}
+            {% set company_label = (((company.get('inn') or '') ~ ' ' ~ (company.get('title') or ''))|trim) or company.get('external_id') %}
+            <option value="{{ company_key }}">{{ company_label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    {% else %}
+      <div class="text-muted mb-0">Компания не назначена</div>
+    {% endif %}
   {% endif %}
 </div>

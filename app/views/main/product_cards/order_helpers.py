@@ -14,7 +14,7 @@ from utilities.saving_helpers import get_clothes_size_type
 from utilities.saving_uts import save_copy_order_shoes, save_copy_order_clothes, \
     save_copy_order_socks, save_copy_order_linen, save_copy_order_parfum
 
-ALLOWED_CARD_DATA_STATUSES: set[str] = {"approved", "partially_approved"}
+ALLOWED_CARD_DATA_STATUSES: set[str] = {"approved"}
 
 _COLUMNS_CACHE: dict[type, list[str]] = {}
 
@@ -463,5 +463,4 @@ def common_save_copy_pc_order(user: User, category: str, order: Order) -> int | 
         flash(message=message, category="error")
         logger.error(message)
         return None
-
 

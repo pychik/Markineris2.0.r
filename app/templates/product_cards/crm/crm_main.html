@@ -12,6 +12,7 @@
      data-bulk-move-url="{{ url_for('crm_product_cards.pc_bulk_move_cards') }}"
      data-managers-url="{{ url_for('crm_product_cards.pc_managers_list') }}"
      data-assign-manager-url-template="{{ url_for('crm_product_cards.pc_assign_manager', pc_id=0) }}"
+     data-change-processing-company-url-template="{{ url_for('crm_product_cards.pc_change_processing_company', pc_id=0) }}"
 
      data-card-logs-url-template="{{ url_for('crm_product_cards.pc_card_logs', pc_id=0) }}"
 
@@ -21,8 +22,6 @@
      data-chat-messages-url-template="{{ url_for('chat_product_cards.pc_chat_get_messages', pc_id=0) }}"
      data-chat-send-url-template="{{ url_for('chat_product_cards.pc_chat_send', pc_id=0) }}"
      data-chat-read-url-template="{{ url_for('chat_product_cards.pc_chat_mark_read', pc_id=0) }}"
-
-     data-approve-from-partially-url-template="{{ url_for('crm_product_cards.crm_approve_from_partially', card_id=0) }}"
 
      data-transfer-sent-to-in-progress-url="{{ url_for('crm_product_cards.transfer_sent_to_in_progress') }}"
      data-download-cards-companies-in-progress="{{ url_for('crm_product_cards.download_cards_companies_in_progress') }}"

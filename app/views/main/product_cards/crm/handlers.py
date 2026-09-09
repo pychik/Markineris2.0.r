@@ -27,6 +27,63 @@ from ..support import CATEGORIES_COMMON, MODERATION_STATUS_TITLES, json_response
 from config import settings
 
 
+def _crm_processing_company_key(company: dict) -> str:
+    return str(
+        company.get("key")
+        or company.get("inn")
+        or company.get("external_id")
+        or company.get("id")
+        or company.get("company_id")
+        or company.get("title")
+        or company.get("name")
+        or company.get("company_name")
+        or ""
+    ).strip()
+
+
+def _crm_processing_company_value(company: dict, *keys: str) -> str:
+    for key in keys:
+        value = company.get(key)
+        if value in (None, ""):
+            continue
+        if isinstance(value, dict):
+            value = next(
+                (
+                    value.get(nested_key)
+                    for nested_key in ("full", "short", "value", "title", "name")
+                    if value.get(nested_key) not in (None, "")
+                ),
+                "",
+            )
+        return str(value).strip()
+    return ""
+
+
+def _crm_processing_company_label(*, inn: str, title: str, external_id: str = "") -> str:
+    return " ".join(part for part in ((inn or "").strip(), (title or "").strip()) if part) or external_id or "-"
+
+
+def _crm_find_processing_company(company_key: str) -> dict | None:
+    needle = (company_key or "").strip()
+    if not needle:
+        return None
+
+    for company in get_processing_companies():
+        if not isinstance(company, dict):
+            continue
+
+        keys = {
+            _crm_processing_company_key(company),
+            _crm_processing_company_value(company, "inn", "company_idn"),
+            _crm_processing_company_value(company, "external_id", "id", "company_id"),
+            _crm_processing_company_value(company, "title", "name", "company_name"),
+        }
+        if needle in keys:
+            return company
+
+    return None
+
+
 def h_crm_cards():
     category = request.args.get("category")  # slug: clothes/shoes/...
     subcategory = request.args.get("subcategory")  # только для clothes
@@ -67,9 +124,9 @@ def h_pc_lazy_column():
         ModerationStatus.SENT.value,
         ModerationStatus.IN_PROGRESS.value,
         ModerationStatus.IN_MODERATION.value,
+        ModerationStatus.CLARIFICATION.value,
         ModerationStatus.APPROVED.value,
         ModerationStatus.REJECTED.value,
-        ModerationStatus.PARTIALLY_APPROVED.value,
     }
     if status_value not in allowed:
         return jsonify(status="error", message="Недопустимый статус"), 400
@@ -101,12 +158,12 @@ def h_pc_lazy_column():
         ctx["in_progress_cards"] = packed
     elif status_value == ModerationStatus.IN_MODERATION.value:
         ctx["in_moderation_cards"] = packed
+    elif status_value == ModerationStatus.CLARIFICATION.value:
+        ctx["clarification_cards"] = packed
     elif status_value == ModerationStatus.APPROVED.value:
         ctx["approved_cards"] = packed
     elif status_value == ModerationStatus.REJECTED.value:
         ctx["rejected_cards"] = packed
-    else:
-        ctx["partially_approved_cards"] = packed
 
     html = render_template(tpl, **ctx)
 
@@ -218,6 +275,105 @@ def h_pc_assign_manager(pc_id: int):
         card_id=pc_id,
         manager_id=manager.id,
         manager_login=new_manager_login,
+    )
+
+
+def h_pc_change_processing_company(pc_id: int):
+    if current_user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MANAGER_USER]:
+        return json_response(status="error", message="Недостаточно прав", code=403)
+
+    payload = request.get_json(silent=True) or {}
+    company_key = str(
+        request.form.get("company_key")
+        or payload.get("company_key")
+        or request.form.get("company_id")
+        or payload.get("company_id")
+        or ""
+    ).strip()
+
+    if not company_key:
+        return json_response(status="error", message="Выберите компанию", code=400)
+
+    card = ProductCard.query.filter_by(id=pc_id).first()
+    if not card:
+        return json_response(status="error", message="Карточка не найдена", code=404)
+
+    if card.status in (ModerationStatus.APPROVED, ModerationStatus.REJECTED):
+        return json_response(
+            status="error",
+            message="Смена компании недоступна для одобренных и отмененных карточек",
+            code=400,
+        )
+
+    owner_error = check_owner_or_admin(current_user, card)
+    if owner_error:
+        return json_response(status="error", message=owner_error.message, code=owner_error.status_code)
+
+    company = _crm_find_processing_company(company_key)
+    if not company:
+        return json_response(status="error", message="Компания не найдена в справочнике", code=404)
+
+    external_id = _crm_processing_company_value(company, "external_id", "id", "company_id")
+    title = _crm_processing_company_value(company, "title", "name", "company_name")
+    inn = _crm_processing_company_value(company, "inn", "company_idn")
+    new_label = _crm_processing_company_label(inn=inn, title=title, external_id=external_id)
+    old_label = card.processing_company_label or card.processing_info or "-"
+
+    if old_label == new_label:
+        return jsonify(
+            status="success",
+            message=f"Компания карточки №{card.id} уже выбрана",
+            card_id=card.id,
+            status_value=card.status.value if hasattr(card.status, "value") else card.status,
+            company={
+                "key": company_key,
+                "external_id": external_id,
+                "inn": inn,
+                "title": title,
+                "label": new_label,
+                "assigned_at": card.processing_company_assigned_at.strftime("%d.%m.%Y %H:%M")
+                if card.processing_company_assigned_at else "",
+            },
+        )
+
+    dt = datetime.now()
+    manager_login = getattr(current_user, "login_name", "") or str(current_user.id)
+
+    try:
+        card.processing_info = new_label[:100]
+        card.processing_company_external_id = external_id[:100]
+        card.processing_company_title = title[:255]
+        card.processing_company_inn = inn[:20]
+        card.processing_company_payload = {
+            "manual_change": True,
+            "changed_by": current_user.id,
+            "changed_at": dt.isoformat(),
+            "company": company,
+        }
+        card.processing_company_assigned_at = dt
+        card.card_log = h_append_card_log(
+            card.card_log,
+            f"\n{dt:%d-%m-%Y %H:%M:%S} {manager_login} сменил компанию карточки: {old_label} -> {new_label};",
+        )
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        logger.exception("DB error in h_pc_change_processing_company")
+        return json_response(status="error", message="Ошибка смены компании", code=500)
+
+    return jsonify(
+        status="success",
+        message=f"Компания карточки №{card.id} изменена",
+        card_id=card.id,
+        status_value=card.status.value if hasattr(card.status, "value") else card.status,
+        company={
+            "key": company_key,
+            "external_id": external_id,
+            "inn": inn,
+            "title": title,
+            "label": new_label,
+            "assigned_at": dt.strftime("%d.%m.%Y %H:%M"),
+        },
     )
 
 
@@ -517,7 +673,7 @@ def h_download_cards_companies_by_status():
 
     try:
         status = ModerationStatus(status_str)
-        if status == ModerationStatus.CREATED:
+        if status in (ModerationStatus.CREATED, ModerationStatus.PARTIALLY_APPROVED):
             raise ValueError()
     except ValueError:
         return jsonify(
@@ -866,8 +1022,7 @@ def h_pc_move_card(pc_id: int):
     def _find_base_card_same_article(card: ProductCard):
         """
         Ищем базовую карточку ЭТОГО ЖЕ пользователя по article + color
-        (+ subcategory для clothes),
-        но только среди статусов APPROVED / PARTIALLY_APPROVED.
+        (+ subcategory для clothes), но только среди статуса APPROVED.
         Берём самую раннюю (created_at asc) — это будет "основная".
         """
         cfg = CATEGORIES_COMMON.get(card.category)
@@ -882,10 +1037,7 @@ def h_pc_move_card(pc_id: int):
         if not main or not getattr(main, "article", None):
             return None
 
-        allowed_statuses = (
-            ModerationStatus.APPROVED,
-            ModerationStatus.PARTIALLY_APPROVED,
-        )
+        allowed_statuses = (ModerationStatus.APPROVED,)
 
         q = (
             db.session.query(ProductCard)
@@ -1045,7 +1197,6 @@ def h_pc_move_card(pc_id: int):
         heavy = {
             ModerationStatus.APPROVED.value,
             ModerationStatus.REJECTED.value,
-            ModerationStatus.PARTIALLY_APPROVED.value,
         }
 
         from_html, from_qty = h_pc_move_render_list_html(from_status, category=category, subcategory=subcategory)
@@ -1212,7 +1363,6 @@ def h_search_crm_card():
         ModerationStatus.CLARIFICATION.value,
         ModerationStatus.APPROVED.value,
         ModerationStatus.REJECTED.value,
-        ModerationStatus.PARTIALLY_APPROVED.value,
     }
 
     # --- 1) Поиск по ID (как раньше) ---
@@ -1309,7 +1459,6 @@ def h_search_crm_card():
             ModerationStatus.CLARIFICATION.value,
             ModerationStatus.APPROVED.value,
             ModerationStatus.REJECTED.value,
-            ModerationStatus.PARTIALLY_APPROVED.value,
         ]
 
         by_status = {st: [] for st in order}
@@ -1351,40 +1500,6 @@ def h_search_crm_card():
         return jsonify(status="success", found_count=len(packed), html=html)
 
     return jsonify(status="error", message="Некорректный режим поиска"), 400
-
-
-def h_crm_approve_from_partially(card_id: int):
-    card = ProductCard.query.filter_by(id=card_id).first()
-    if not card:
-        return jsonify(status="error", message="Карточка не найдена"), 404
-
-    if card.status != ModerationStatus.PARTIALLY_APPROVED:
-        return jsonify(status="error", message="Действие доступно только в PARTIALLY_APPROVED"), 400
-
-    if current_user.role not in {"manager", "supermanager", "superuser"}:
-        return jsonify(status="error", message="Недостаточно прав"), 403
-
-    if not card.processing_company_label:
-        return jsonify(status="error", message="Нельзя перевести в APPROVED: у карточки не назначена компания"), 400
-
-    dt = datetime.now()
-
-    try:
-        h_pc_move_apply_status_transition(card, ModerationStatus.APPROVED.value)
-
-        mgr = getattr(current_user, "login_name", "") or str(current_user.id)
-        card.card_log = h_append_card_log(
-            card.card_log,
-            f"\n{dt:%d-%m-%Y %H:%M:%S} подтвердил компанию карточки и перевёл в APPROVED {mgr};"
-        )
-
-        db.session.commit()
-        return jsonify(status="success", message=f"Карточка №{card.id} переведена в APPROVED")
-
-    except SQLAlchemyError:
-        db.session.rollback()
-        return jsonify(status="error", message="Ошибка БД"), 500
-
 
 def h_crm_reject_cards_by_rd_today():
     try:

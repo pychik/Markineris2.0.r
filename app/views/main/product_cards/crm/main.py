@@ -12,9 +12,9 @@ from utilities.support import (
 
 from .handlers import h_crm_cards, h_download_product_card, h_pc_take_card_to_processing, \
     h_pc_move_card, h_pc_cards, h_pc_lazy_column, \
-    h_search_crm_card, h_crm_approve_from_partially, h_download_cards_companies_in_progress, \
+    h_search_crm_card, h_download_cards_companies_in_progress, \
     h_transfer_sent_to_in_progress, h_download_cards_companies_by_status, h_crm_reject_cards_by_rd_today, \
-    h_pc_bulk_move_cards, h_pc_managers_list, h_pc_assign_manager
+    h_pc_bulk_move_cards, h_pc_managers_list, h_pc_assign_manager, h_pc_change_processing_company
 from .helpers import get_crm_card_for_user
 
 
@@ -149,6 +149,14 @@ def pc_assign_manager(pc_id: int):
     return h_pc_assign_manager(pc_id)
 
 
+@crm_product_cards.route("/crm/card/<int:pc_id>/processing_company", methods=["POST"])
+@login_required
+@user_activated
+@bck_sumausmumu_required
+def pc_change_processing_company(pc_id: int):
+    return h_pc_change_processing_company(pc_id)
+
+
 @crm_product_cards.route('/crm/search_card', methods=['POST'])
 @login_required
 @user_activated
@@ -156,14 +164,6 @@ def pc_assign_manager(pc_id: int):
 def search_card():
 
     return h_search_crm_card()
-
-
-@crm_product_cards.route("/crm/card/<int:card_id>/approve_from_partially", methods=["POST"])
-@login_required
-@user_activated
-@susmumu_required
-def crm_approve_from_partially(card_id: int):
-    return h_crm_approve_from_partially(card_id)
 
 
 @crm_product_cards.route("/crm/cards/reject_by_rd_today", methods=["POST"])

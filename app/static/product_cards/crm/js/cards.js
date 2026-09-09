@@ -44,6 +44,13 @@ function pcGetAssignManagerUrl(cardId) {
   return pcUrlFromTemplate(tpl, cardId);
 }
 
+function pcGetChangeProcessingCompanyUrl(cardId) {
+  const cfg = pcGetConfigEl().dataset;
+  const tpl = cfg.changeProcessingCompanyUrlTemplate;
+  if (!tpl) throw new Error("changeProcessingCompanyUrlTemplate missing in pc-config");
+  return pcUrlFromTemplate(tpl, cardId);
+}
+
 function pcUpdateCardArticleValue(cardId, articleOrTrademark) {
   if (!cardId) return;
   const cardEl = document.getElementById(`cardCommonBlock_${cardId}`);
@@ -423,7 +430,6 @@ function pcApplyMoveResponse(data) {
     clarification: {qty: "clarification_cards_qty", list: "clarification_cards_list"},
     approved: {qty: "approved_cards_qty", list: "approved_cards_list"},
     rejected: {qty: "rejected_cards_qty", list: "rejected_cards_list"},
-    partially_approved: {qty: "partially_approved_cards_qty", list: "partially_approved_cards_list"},
   };
 
   function applyBlock(statusKey, qtyVal, htmlVal) {
@@ -469,7 +475,6 @@ function pcApplyBulkMoveResponse(data) {
     clarification: {qty: "clarification_cards_qty", list: "clarification_cards_list"},
     approved: {qty: "approved_cards_qty", list: "approved_cards_list"},
     rejected: {qty: "rejected_cards_qty", list: "rejected_cards_list"},
-    partially_approved: {qty: "partially_approved_cards_qty", list: "partially_approved_cards_list"},
   };
 
   Object.entries(data.updated_columns).forEach(([statusKey, payload]) => {
@@ -754,6 +759,90 @@ function pcUpdateManagerOnCard(cardId, managerId, managerLogin) {
 window.pcOpenAssignManagerModal = pcOpenAssignManagerModal;
 window.pcAssignManager = pcAssignManager;
 
+/* =========================
+   CHANGE PROCESSING COMPANY
+========================= */
+
+function pcToggleProcessingCompanySelect(el) {
+  const editor = document.getElementById("pc-card-processing-company-editor");
+  if (!editor) return;
+
+  editor.classList.toggle("d-none");
+  const select = document.getElementById("pc-card-processing-company-select");
+  if (select && !editor.classList.contains("d-none")) select.focus();
+}
+
+function pcChangeProcessingCompany(selectEl) {
+  const cardId = selectEl?.dataset?.cardId;
+  const companyKey = (selectEl?.value || "").trim();
+
+  if (!cardId) {
+    if (typeof make_message === "function") make_message("Не найден ID карточки", "error");
+    return;
+  }
+  if (!companyKey) {
+    if (typeof make_message === "function") make_message("Выберите компанию", "warning");
+    return;
+  }
+
+  const cfg = pcGetConfigEl().dataset;
+  const fd = new FormData();
+  if (cfg.csrf) fd.append("csrf_token", cfg.csrf);
+  fd.append("company_key", companyKey);
+
+  selectEl.disabled = true;
+  loadingCircle();
+
+  fetch(pcGetChangeProcessingCompanyUrl(cardId), {method: "POST", body: fd})
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.status !== "success") {
+          throw new Error(data.message || "Ошибка смены компании");
+        }
+        return data;
+      })
+      .then((data) => {
+        pcUpdateProcessingCompanyView(data);
+        if (typeof make_message === "function") {
+          make_message(data.message || "Компания изменена", data.status || "success");
+        }
+
+        if (data.status_value && typeof pcReloadColumn === "function") {
+          requestAnimationFrame(() => pcReloadColumn(data.status_value));
+        }
+      })
+      .catch((e) => {
+        if (typeof make_message === "function") make_message(e.message || "Ошибка", "error");
+        else alert(e.message);
+      })
+      .finally(() => {
+        selectEl.disabled = false;
+        close_Loading_circle();
+      });
+}
+
+function pcUpdateProcessingCompanyView(data) {
+  const company = data?.company || {};
+  const label = company.label || "-";
+  const assignedAt = company.assigned_at || "";
+
+  const modalLabel = document.getElementById("pc-card-processing-company-label");
+  if (modalLabel) modalLabel.textContent = label;
+
+  const modalDate = document.getElementById("pc-card-processing-company-date");
+  if (modalDate) modalDate.textContent = assignedAt ? `Дата смены: ${assignedAt}` : "";
+
+  const editor = document.getElementById("pc-card-processing-company-editor");
+  if (editor) editor.classList.add("d-none");
+
+  const cardEl = document.getElementById(`cardCommonBlock_${data.card_id}`);
+  const cardCompanyLabel = cardEl?.querySelector("[data-pc-company-label]");
+  if (cardCompanyLabel) cardCompanyLabel.textContent = label;
+}
+
+window.pcToggleProcessingCompanySelect = pcToggleProcessingCompanySelect;
+window.pcChangeProcessingCompany = pcChangeProcessingCompany;
+
 
 /* =========================
    BOOT
@@ -867,12 +956,12 @@ function pcReloadColumn(statusKey) {
       .then((data) => {
         withTooltipsRefresh(() => {
           const map = {
+            sent_no_rd: {qty: "sent_no_rd_cards_qty", list: "sent_no_rd_cards_list"},
             sent: {qty: "sent_cards_qty", list: "sent_cards_list"},
             in_progress: {qty: "in_progress_cards_qty", list: "in_progress_cards_list"},
             in_moderation: {qty: "in_moderation_cards_qty", list: "in_moderation_cards_list"},
             approved: {qty: "approved_cards_qty", list: "approved_cards_list"},
             rejected: {qty: "rejected_cards_qty", list: "rejected_cards_list"},
-            partially_approved: {qty: "partially_approved_cards_qty", list: "partially_approved_cards_list"},
           };
 
           const dest = map[statusKey];
@@ -1043,104 +1132,6 @@ if (!r.ok || data.status !== 'success') {
     return false;
   }
 }
-
-function pcApproveFromPartially(cardId) {
-  const cfg = pcGetConfigEl().dataset;
-  const csrf = cfg.csrf;
-
-  const tpl = cfg.approveFromPartiallyUrlTemplate; // пробьём так же, как move template
-  if (!tpl) throw new Error("approveFromPartiallyUrlTemplate missing in pc-config");
-  const url = pcUrlFromTemplate(tpl, cardId);
-
-  const fd = new FormData();
-  if (csrf) fd.append("csrf_token", csrf);
-
-  loadingCircle();
-
-  fetch(url, { method: "POST", body: fd })
-    .then(async (res) => {
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.status !== "success") {
-        throw new Error(data.message || "Ошибка");
-      }
-      return data;
-    })
-    .then(async (data) => {
-      if (typeof make_message === "function") make_message("Карточка переведена в APPROVED", "success");
-
-      // сперва закрываем
-      pcCloseCardViewModal();
-
-      // потом обновляем колонку (можно без await)
-      pcReloadPartiallyApprovedColumn().catch(() => {});
-    })
-
-    .catch((e) => {
-      if (typeof make_message === "function") make_message(e.message || "Ошибка", "error");
-      else alert(e.message);
-    })
-    .finally(() => close_Loading_circle());
-}
-
-window.pcApproveFromPartially = pcApproveFromPartially;
-
-
-function pcReloadPartiallyApprovedColumn() {
-  const cfg = pcGetConfigEl().dataset;
-  const url = cfg.lazyColumnUrl; // data-lazy-column-url
-
-  if (!url) throw new Error("lazyColumnUrl missing in pc-config");
-
-  const category = pcGetActiveCategory ? pcGetActiveCategory() : (cfg.currentCategory || "");
-  const subcategory = cfg.currentSubcategory || "";
-
-  const qs = new URLSearchParams();
-  qs.set("status", "partially_approved");
-  if (category) qs.set("category", category);
-  if (subcategory) qs.set("subcategory", subcategory);
-
-  return fetch(`${url}?${qs.toString()}`, { headers: { "X-Requested-With": "XMLHttpRequest" } })
-    .then(async (res) => {
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.status !== "success") {
-        throw new Error(data.message || "Не удалось обновить partially_approved");
-      }
-      return data;
-    })
-    .then((data) => {
-      // ✅ ВАЖНО: поставь правильный id контейнера partially_approved списка
-      // Обычно это что-то вроде: partially_approved_list / partially_approved_cards / st_... и т.п.
-      const listEl =
-        document.getElementById("partially_approved_cards_list") ||
-        document.querySelector("[data-col='partially_approved'] .pc-cards-list") ||
-        document.getElementById("st_partially_approved_list");
-
-      if (!listEl) {
-        // не падаем, но сообщим
-        if (typeof make_message === "function") make_message("Колонка PARTIALLY_APPROVED не найдена в DOM", "warning");
-        return data;
-      }
-
-      listEl.innerHTML = data.list_html;
-
-      // qty — если у тебя есть счётчик
-      const qtyEl =
-        document.getElementById("partially_approved_qty") ||
-        document.querySelector("[data-col='partially_approved'] .pc-col-qty");
-
-      if (qtyEl) qtyEl.textContent = data.qty;
-
-      // если у тебя есть хелпер refresh тултипов
-      if (typeof withTooltipsRefresh === "function") {
-        withTooltipsRefresh(() => {}, document);
-      }
-
-      return data;
-    });
-}
-
-window.pcReloadPartiallyApprovedColumn = pcReloadPartiallyApprovedColumn;
-
 
 function pcCloseCardViewModal() {
   const el = document.getElementById("pc-view-modal");

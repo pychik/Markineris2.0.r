@@ -159,7 +159,6 @@ def split_cards_by_status(cards: list[ProductCard]) -> dict[str, list[dict]]:
         ModerationStatus.IN_MODERATION.value: [],
         ModerationStatus.CLARIFICATION.value: [],
         ModerationStatus.APPROVED.value: [],
-        ModerationStatus.PARTIALLY_APPROVED.value: [],
         ModerationStatus.REJECTED.value: [],
     }
 
@@ -527,7 +526,6 @@ def h_pc_move_template_for_status(status_value: str) -> str:
         ModerationStatus.CLARIFICATION.value: "product_cards/crm/cards/updated_stages/_clarification_list.html",
         ModerationStatus.APPROVED.value: "product_cards/crm/cards/updated_stages/_approved_list.html",
         ModerationStatus.REJECTED.value: "product_cards/crm/cards/updated_stages/_rejected_list.html",
-        ModerationStatus.PARTIALLY_APPROVED.value: "product_cards/crm/cards/updated_stages/_partially_approved_list.html",
     }
     return m.get(status_value)
 
@@ -541,7 +539,6 @@ def h_cards_ctx_key_for_status(st: str) -> str | None:
         ModerationStatus.CLARIFICATION.value: "clarification_cards",
         ModerationStatus.APPROVED.value: "approved_cards",
         ModerationStatus.REJECTED.value: "rejected_cards",
-        ModerationStatus.PARTIALLY_APPROVED.value: "partially_approved_cards",
     }.get(st)
 
 

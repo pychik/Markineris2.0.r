@@ -22,6 +22,7 @@ from utilities.telegram import MarkinerisInform
 from utilities.validators import ValidatorProcessor, validate_and_build_contact_info, validate_order_comment_length
 from tezaurus.exceptions import TezaurusApiError, TezaurusConfigurationError
 from tezaurus.processing_companies import ProcessingCompaniesClient
+from tezaurus.runtime_catalogs import get_processing_companies
 from views.main.product_cards.chat.helpers import h_pc_chat_unread_count, h_unread_map_for_cards, \
     h_visible_chat_card_ids, USER_CHAT_WRITE_STATUSES
 from views.main.product_cards.crm.helpers import crm_card_subcategory_title, crm_card_sizes_label, crm_card_article, \
@@ -806,6 +807,12 @@ def h_card_view(card_id: int, crm_: bool = False):
 
     rd_description = settings.RD_DESCRIPTION
     rd_types_list = settings.RD_TYPES
+    card_status_value = card.status.value if hasattr(card.status, "value") else card.status
+    can_change_processing_company = (
+        crm_
+        and current_user.role in [settings.SUPER_USER, settings.SUPER_MANAGER, settings.MANAGER_USER]
+        and card_status_value not in [ModerationStatus.APPROVED.value, ModerationStatus.REJECTED.value]
+    )
 
     html = render_template(
         "product_cards/user/card_view.html",
@@ -818,6 +825,8 @@ def h_card_view(card_id: int, crm_: bool = False):
         rd_description=rd_description,
         rd_types_list=rd_types_list,
         is_operator_view=crm_,
+        can_change_processing_company=can_change_processing_company,
+        processing_companies=get_processing_companies() if crm_ else [],
     )
     return jsonify(status="success", html=html)
 
