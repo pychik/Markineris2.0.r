@@ -21,21 +21,22 @@ class SQLQueryCategoriesAll:
                 LEFT JOIN public.linen_quantity_sizes l_qs ON l.id = l_qs.lin_id
                 LEFT JOIN public.parfum p ON o.category=\'{settings.Parfum.CATEGORY}\' AND o.id = p.order_id
                 LEFT JOIN public.cosmetics co ON o.category=\'{settings.Cosmetics.CATEGORY}\' AND o.id = co.order_id
+                LEFT JOIN public.toys ty ON o.category=\'{settings.Toys.CATEGORY}\' AND o.id = ty.order_id
             """,
             "fields": {
-                "subcategory": "coalesce(max(cl.subcategory), max(co.subcategory), 'common')",
-                "pos_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id, co.id))",
-                "marks_count": "SUM(COALESCE(sh.box_quantity * sh_qs.quantity, cl.box_quantity * cl_qs.quantity, sk.box_quantity * sk_qs.quantity, l.box_quantity * l_qs.quantity, p.quantity, co.quantity, 0))",
-                "rows_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id, co.id))",
+                "subcategory": "coalesce(max(cl.subcategory), max(co.subcategory), max(ty.subcategory), 'common')",
+                "pos_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id, co.id, ty.id))",
+                "marks_count": "SUM(COALESCE(sh.box_quantity * sh_qs.quantity, cl.box_quantity * cl_qs.quantity, sk.box_quantity * sk_qs.quantity, l.box_quantity * l_qs.quantity, p.quantity, co.quantity, ty.quantity, 0))",
+                "rows_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id, co.id, ty.id))",
                 "is_rf_order": f"""
-                                COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id, co.id)) > 0
+                                COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id, co.id, ty.id)) > 0
                                 AND BOOL_AND(
-                                    UPPER(TRIM(COALESCE(sh.country, cl.country, sk.country, l.country, p.country, co.country, '')))
+                                    UPPER(TRIM(COALESCE(sh.country, cl.country, sk.country, l.country, p.country, co.country, ty.country, '')))
                                     = '{settings.COUNTRY_RUSSIA}'
                                 )""",
-                "category_pos_type_max": "MAX(COALESCE(sh.type, cl.type, sk.type, l.type, p.type, co.type))",
-                "category_pos_type": "COALESCE(sh.type, cl.type, sk.type, l.type, p.type, co.type)",
-                "declar_doc": "COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date, co.rd_date))",
+                "category_pos_type_max": "MAX(COALESCE(sh.type, cl.type, sk.type, l.type, p.type, co.type, ty.type))",
+                "category_pos_type": "COALESCE(sh.type, cl.type, sk.type, l.type, p.type, co.type, ty.type)",
+                "declar_doc": "COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date, co.rd_date, ty.rd_date))",
                 "orders_count_utm": "COUNT(DISTINCT CASE WHEN o.stage >= 8 AND o.stage != 9 THEN o.id END)",
                 "marks_count_utm": """SUM(COALESCE(
                     CASE 
@@ -45,7 +46,8 @@ class SQLQueryCategoriesAll:
                             COALESCE(sk.box_quantity * sk_qs.quantity, 0) + 
                             COALESCE(l.box_quantity * l_qs.quantity, 0) + 
                             COALESCE(p.quantity, 0) +
-                            COALESCE(co.quantity, 0)
+                            COALESCE(co.quantity, 0) +
+                            COALESCE(ty.quantity, 0)
                         ELSE 0 
                     END, 0))"""
             }
@@ -143,6 +145,19 @@ class SQLQueryFactory:
                 "category_pos_type_max": "MAX(co.type)",
                 "category_pos_type": "co.type",
                 "declar_doc": "COUNT(co.rd_date)"
+            }
+        },
+        "toys": {
+            "join": """
+                LEFT JOIN public.toys ty ON o.id = ty.order_id
+            """,
+            "fields": {
+                "pos_count": "COUNT(ty.id)",
+                "marks_count": "SUM(ty.quantity)",
+                "rows_count": "COUNT(ty.id)",
+                "category_pos_type_max": "MAX(ty.type)",
+                "category_pos_type": "ty.type",
+                "declar_doc": "COUNT(ty.rd_date)"
             }
         }
     }

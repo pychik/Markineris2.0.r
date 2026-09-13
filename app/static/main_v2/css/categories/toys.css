@@ -1,0 +1,133 @@
+.toys-category-icon-frame {
+  width: 108px;
+  height: 108px;
+  overflow: hidden;
+}
+
+.toys-category-icon {
+  display: block;
+}
+
+.toys-category-icon--doll-accessories {
+  width: 196px;
+  height: auto;
+  max-width: none;
+  transform: translate(-44px, -40px);
+}
+
+.toys-category-icon--svg {
+  width: 100px;
+  height: 100px;
+  margin: 4px auto;
+  object-fit: contain;
+}
+
+.toys-category-icon--puzzles {
+  width: 134px;
+  height: auto;
+  max-width: none;
+  transform: translate(-13px, -13px);
+}
+
+.toys-category-icon--competition-cars {
+  width: 132px;
+  height: auto;
+  max-width: none;
+  transform: translate(-10px, -7px);
+}
+
+.toys-category-icon--sets-kits {
+  width: 172px;
+  height: auto;
+  max-width: none;
+  transform: translate(-32px, -33px);
+}
+
+.toys-category-icon--animal-creature {
+  width: 171px;
+  height: auto;
+  max-width: none;
+  transform: translate(-36px, -30px);
+}
+
+.toys-category-icon--motorized-toys {
+  width: 122px;
+  height: auto;
+  max-width: none;
+  transform: translate(-14px, -19px);
+}
+
+.toys-category-icon--musical-toy-instruments {
+  width: 134px;
+  height: auto;
+  max-width: none;
+  transform: translate(-15px, -15px);
+}
+
+.toys-category-icon--dolls-human-figures {
+  width: 116px;
+  height: auto;
+  max-width: none;
+  transform: translate(-5px, -3px);
+}
+
+.toys-category-icon--card-games {
+  width: 118px;
+  height: auto;
+  max-width: none;
+  transform: translate(-5px, -4px);
+}
+
+.toys-category-icon--scale-models {
+  width: 114px;
+  height: auto;
+  max-width: none;
+  transform: translate(-5px, -4px);
+}
+
+.toys-category-icon--construction-sets {
+  width: 128px;
+  height: auto;
+  max-width: none;
+  transform: translate(-10px, -10px);
+}
+
+.toys-category-icon--board-room-games-inventory {
+  width: 126px;
+  height: auto;
+  max-width: none;
+  transform: translate(-9px, -9px);
+}
+
+.toys-category-icon--toy-weapons {
+  width: 126px;
+  height: auto;
+  max-width: none;
+  transform: translate(-9px, -9px);
+}
+
+.toys-category-icon--train-set {
+  width: 126px;
+  height: auto;
+  max-width: none;
+  transform: translate(-9px, -9px);
+}
+
+.toys-category-icon--play-tents {
+  width: 174px;
+  height: auto;
+  max-width: none;
+  transform: translate(-37px, -31px);
+}
+
+.toys-category-disabled {
+  position: relative;
+  background: #fff;
+  color: inherit;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.toys-category-disabled .category-item__name {
+  color: #9a9a9a;
+}
