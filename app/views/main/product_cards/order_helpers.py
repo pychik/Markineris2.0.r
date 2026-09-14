@@ -687,13 +687,11 @@ def common_save_copy_pc_order(
                 new_order = save_copy_order_clothes(
                     order_category_list=_filtered_order_items(order.clothes, only_copyable_items),
                     new_order=new_order,
-                    old_aggrs=order.aggr_orders,
                 )
             case settings.Socks.CATEGORY:
                 new_order = save_copy_order_socks(
                     order_category_list=_filtered_order_items(order.socks, only_copyable_items),
                     new_order=new_order,
-                    old_aggrs=order.aggr_orders,
                 )
             case settings.Linen.CATEGORY:
                 new_order = save_copy_order_linen(

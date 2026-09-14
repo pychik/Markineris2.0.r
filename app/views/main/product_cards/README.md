@@ -117,7 +117,7 @@
 - `partially_approved` оставлен только как исторический/вычисляемый статус данных. В текущей логике CRM он не выводится отдельной колонкой, не участвует в lazy-загрузке, поиске и выгрузке по статусу, а отдельный перевод `partially_approved -> approved` удален.
 - Пользователь может оформить заказ только по карточкам, где `data_status == approved`; частично одобренные карточки больше не считаются разрешенными для заказа.
 - Старый CRM-пул фирм из пользовательских слотов удален из UI, routes, handlers и статического JS; первичное назначение идет через Tezaurus при отправке карточки.
-- Для новых колонок используется ручная миграция [product_card_processing_company.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/utilities/scripts_manual/custom_migrations/product_card_processing_company.py).
+- Для новых колонок используются обычные миграции Flask-Migrate: `flask db migrate` и `flask db upgrade`.
 
 ### Админская проверка Tezaurus и сброс карточек
 
