@@ -27,7 +27,7 @@ from views.main.product_cards.crm.helpers import crm_card_subcategory_title, crm
     h_append_card_log
 from views.main.product_cards.order_helpers import _json_error, _add_order_item_from_card, \
     _count_open_moderation_orders, _get_card_or_fail, _validate_card_access_and_status, _load_cards_for_order, \
-    _count_open_pc_orders, common_save_copy_pc_order
+    _count_open_pc_orders, common_save_copy_pc_order, get_or_create_fast_order_company
 from views.main.product_cards.support import validate_card_form, save_clothes_card, save_shoes_card, save_linen_card, \
     save_socks_card, save_parfum_card, save_cosmetics_card, save_toys_card, parse_sizes_for_category, \
     CATEGORIES_COMMON, MODERATION_STATUS_TITLES, MODERATION_STATUS_COLORS, normalize_article_for_category, \
@@ -1224,6 +1224,8 @@ def h_make_pc_basket_order():
                 }
             )
 
+        fast_company_cache = {}
+        position_company_pairs = []
         for it in items:
             card_id = int(it["card_id"])
             pc = cards_map.get(card_id)
@@ -1237,7 +1239,13 @@ def h_make_pc_basket_order():
                 if it_sub != subcategory:
                     raise ValueError("Корзина должна быть в одной подкатегории. Обнаружена смешанная subcategory.")
 
-            _add_order_item_from_card(new_order, pc, it)
+            fast_company = get_or_create_fast_order_company(new_order, pc, fast_company_cache)
+            position = _add_order_item_from_card(new_order, pc, it)
+            position_company_pairs.append((position, fast_company))
+
+        db.session.flush()
+        for position, fast_company in position_company_pairs:
+            position.fast_order_company_id = fast_company.id
 
         db.session.commit()
 

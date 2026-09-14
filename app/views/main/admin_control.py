@@ -7,7 +7,7 @@ from config import settings
 from data_migrations.etl_service import ETLMigrateUserData, run_migration
 from data_migrations.instance import etl_service
 from data_migrations.utils import make_password
-from models import CardChatRead, ModerationStatus, ProductCard, User, UserProcessingCompany, db
+from models import CardChatRead, ModerationStatus, ProductCard, User, db
 from tezaurus.exceptions import TezaurusApiError, TezaurusConfigurationError
 from tezaurus.processing_companies import ProcessingCompaniesClient
 from tezaurus.runtime_catalogs import get_all_countries
@@ -203,10 +203,6 @@ def module_testing_product_cards_reset_created():
             db.session.delete(card)
         db.session.flush()
 
-        deleted_company_bindings = UserProcessingCompany.query.delete(
-            synchronize_session=False,
-        )
-
         updated_count = ProductCard.query.filter(
             ProductCard.status != ModerationStatus.REJECTED,
         ).update(
@@ -244,11 +240,9 @@ def module_testing_product_cards_reset_created():
         'status': 'success',
         'updated': updated_count,
         'deleted_rejected': deleted_count,
-        'deleted_company_bindings': deleted_company_bindings,
         'message': (
             f'Карточки товаров переведены в этап создания: {updated_count}. '
-            f'Отмененные карточки удалены: {deleted_count}. '
-            f'Старые привязки компаний удалены: {deleted_company_bindings}.'
+            f'Отмененные карточки удалены: {deleted_count}.'
         ),
     })
 
@@ -293,10 +287,6 @@ def module_testing_product_cards_delete_all():
                 db.session.delete(card)
             db.session.flush()
 
-        deleted_company_bindings = UserProcessingCompany.query.delete(
-            synchronize_session=False,
-        )
-
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -310,11 +300,9 @@ def module_testing_product_cards_delete_all():
         'status': 'success',
         'deleted_cards': deleted_cards,
         'deleted_chat_reads': deleted_chat_reads,
-        'deleted_company_bindings': deleted_company_bindings,
         'message': (
             f'Старые карточки товаров удалены: {deleted_cards}. '
-            f'Прочтения чата очищены: {deleted_chat_reads}. '
-            f'Старые привязки компаний удалены: {deleted_company_bindings}.'
+            f'Прочтения чата очищены: {deleted_chat_reads}.'
         ),
     })
 

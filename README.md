@@ -13,17 +13,17 @@ make help
 - Флаг считается в общем SQL-агрегаторе `app/utilities/sql_categories_aggregations.py` и протаскивается через `app/views/crm/helpers.py`; отдельной колонки и миграции в `orders` нет.
 
 ### Быстрые заказы из карточек: компании обработки и УПД
-- Архив Excel для быстрых заказов из карточек делится по компаниям обработки, сохраненным в позициях заказа.
-- При создании быстрого заказа в позицию копируются `processing_company_external_id`, `processing_company_title` и `processing_company_inn` из карточки.
-- В CRM для быстрого заказа модалка УПД показывает отдельное поле УПД для каждой компании из позиций.
-- После деплоя нужно один раз выполнить ручные миграции:
-```python
-from utilities.scripts_manual.custom_migrations.order_position_processing_company import run_order_position_processing_company_migration
-from utilities.scripts_manual.custom_migrations.order_processing_info_text import run_order_processing_info_text_migration
-
-run_order_position_processing_company_migration()
-run_order_processing_info_text_migration()
+- Архив Excel для быстрых заказов из карточек делится по компаниям обработки через `fast_order_companies`.
+- При создании быстрого заказа компании сохраняются в `fast_order_companies`: одна строка на одну уникальную компанию в рамках заказа.
+- В товарные позиции быстрого заказа сохраняется только ссылка `fast_order_company_id`.
+- В CRM для быстрого заказа модалка УПД показывает отдельное поле УПД для каждой компании из `fast_order_companies`.
+- Миграции для этих изменений генерируются локально и не коммитятся:
+```shell
+cd app
+flask db migrate -m "add fast order companies"
+flask db upgrade
 ```
+- В сгенерированной миграции должны быть: создание `fast_order_companies`, добавление `fast_order_company_id` в товарные таблицы заказов и изменение `orders.processing_info` на `text`, если оно еще не применено в базе.
 
 ## Инструкция по развертыванию
 

@@ -12,7 +12,7 @@ from xlsxwriter import Workbook
 from xlsxwriter.worksheet import Worksheet
 
 from config import settings
-from models import Order, db, User
+from models import FastOrderCompanies, Order, db, User
 from .categories_data.accessories_data import HATS_DEC_DICT, GLOVES_DEC_DICT, SHAWLS_DEC_DICT
 from .categories_data.categories_codes.clothes_category_code_mapper import resolve_clothes_category_code
 from .categories_data.subcategories_data import ClothesSubcategories, Category
@@ -91,25 +91,32 @@ class OrdersProcessor(ProcessorInterface, ABC):
         return value.strip("._ ")[:80] or default
 
     @staticmethod
-    def processing_company_key(item) -> tuple[str, str, str]:
-        inn = str(getattr(item, "processing_company_inn", "") or "").strip()
-        title = str(getattr(item, "processing_company_title", "") or "").strip()
-        external_id = str(getattr(item, "processing_company_external_id", "") or "").strip()
-        key = inn or external_id or title or "unknown"
-        label = " ".join(part for part in (inn, title) if part) or external_id or "Компания не указана"
-        return key, label, inn
-
-    @classmethod
-    def group_orders_by_processing_company(cls, orders_list: list) -> list[tuple[str, str, str, list]]:
+    def group_orders_by_fast_order_company(order_id: int, orders_list: list) -> list[tuple[FastOrderCompanies | None, list]]:
+        company_ids = {
+            item.fast_order_company_id
+            for item in orders_list
+            if getattr(item, "fast_order_company_id", None)
+        }
+        companies = (
+            FastOrderCompanies.query
+            .filter(
+                FastOrderCompanies.order_id == order_id,
+                FastOrderCompanies.id.in_(company_ids),
+            )
+            .all()
+        ) if company_ids else []
+        companies_by_id = {company.id: company for company in companies}
         grouped: dict[str, dict] = {}
         for item in orders_list:
-            key, label, inn = cls.processing_company_key(item)
-            bucket = grouped.setdefault(key, {"label": label, "inn": inn, "items": []})
+            company_id = getattr(item, "fast_order_company_id", None)
+            company = companies_by_id.get(company_id)
+            key = str(company.id) if company else "unknown"
+            bucket = grouped.setdefault(key, {"company": company, "items": []})
             bucket["items"].append(item)
-        return [
-            (key, data["label"], data["inn"], data["items"])
-            for key, data in grouped.items()
-        ]
+        return sorted(
+            ((data["company"], data["items"]) for data in grouped.values()),
+            key=lambda row: (row[0].processing_company_label if row[0] else "Компания не указана"),
+        )
 
     @staticmethod
     def prepare_batches(orders_divided: list, batch_size=400):
@@ -407,7 +414,12 @@ class OrdersProcessor(ProcessorInterface, ABC):
 
         if getattr(order, "is_moderation", False):
             excel_files = []
-            for _, company_label, company_inn, company_orders in self.group_orders_by_processing_company(self.source_orders_list):
+            for fast_company, company_orders in self.group_orders_by_fast_order_company(
+                order_id=order.id,
+                orders_list=self.source_orders_list,
+            ):
+                company_label = fast_company.processing_company_label if fast_company else "Компания не указана"
+                company_inn = fast_company.processing_company_inn if fast_company else ""
                 company_processor = self.__class__(
                     category=self.category,
                     company_idn=company_inn or company_idn,

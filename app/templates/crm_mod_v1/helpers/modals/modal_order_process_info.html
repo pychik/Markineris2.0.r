@@ -20,7 +20,7 @@
               <div class="mb-3" data-pc-upd-row>
                 <label class="form-label">{{ c.label }}</label>
                 <input type="hidden" data-pc-company value="{{ c.value }}">
-                <input type="text" data-pc-upd-input name="upd_number_{{ loop.index }}" class="form-control" maxlength="100" placeholder="Номер УПД">
+                <input type="text" data-pc-upd-input name="upd_number_{{ loop.index }}" class="form-control" maxlength="100" placeholder="Номер УПД" value="{{ c.upd_number }}">
               </div>
             {% endfor %}
           {% else %}

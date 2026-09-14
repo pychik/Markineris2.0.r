@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from config import settings
 from logger import logger
-from models import db, Order, ProductCard, Clothes, Parfum, Cosmetics, Toys, ClothesQuantitySize, Socks, \
+from models import db, Order, ProductCard, FastOrderCompanies, Clothes, Parfum, Cosmetics, Toys, ClothesQuantitySize, Socks, \
     SocksQuantitySize, Shoe, ShoeQuantitySize, Linen, LinenQuantitySize, User
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.saving_helpers import get_clothes_size_type
@@ -18,6 +18,82 @@ from utilities.saving_uts import save_copy_order_shoes, save_copy_order_clothes,
 ALLOWED_CARD_DATA_STATUSES: set[str] = {"approved"}
 
 _COLUMNS_CACHE: dict[type, list[str]] = {}
+
+
+def _order_items_for_category(order: Order, category: str) -> list:
+    if category == settings.Shoes.CATEGORY:
+        return list(order.shoes)
+    if category == settings.Clothes.CATEGORY:
+        return list(order.clothes)
+    if category == settings.Socks.CATEGORY:
+        return list(order.socks)
+    if category == settings.Linen.CATEGORY:
+        return list(order.linen)
+    if category == settings.Parfum.CATEGORY:
+        return list(order.parfum)
+    if category == settings.Cosmetics.CATEGORY:
+        return list(order.cosmetics)
+    if category == settings.Toys.CATEGORY:
+        return list(order.toys)
+    return []
+
+
+def fast_order_company_key(*, external_id: str | None, title: str | None, inn: str | None) -> str:
+    return (inn or "").strip() or (external_id or "").strip() or (title or "").strip() or "unknown"
+
+
+def get_or_create_fast_order_company(
+    order: Order,
+    pc: ProductCard,
+    cache: dict[str, FastOrderCompanies],
+) -> FastOrderCompanies:
+    external_id = (pc.processing_company_external_id or "").strip()
+    title = (pc.processing_company_title or "").strip()
+    inn = (pc.processing_company_inn or "").strip()
+    key = fast_order_company_key(external_id=external_id, title=title, inn=inn)
+
+    if key not in cache:
+        cache[key] = FastOrderCompanies(
+            order_id=order.id,
+            company_key=key,
+            processing_company_external_id=external_id,
+            processing_company_title=title,
+            processing_company_inn=inn,
+        )
+        db.session.add(cache[key])
+
+    return cache[key]
+
+
+def _copy_fast_order_companies(source_order: Order, new_order: Order, category: str) -> None:
+    new_items = _order_items_for_category(new_order, category)
+    used_old_company_ids = {
+        getattr(new_item, "fast_order_company_id", None)
+        for new_item in new_items
+        if getattr(new_item, "fast_order_company_id", None)
+    }
+    companies_by_old_id = {}
+    for source_company in source_order.fast_order_companies:
+        if source_company.id not in used_old_company_ids:
+            continue
+        new_company = FastOrderCompanies(
+            order_id=new_order.id,
+            company_key=source_company.company_key,
+            processing_company_external_id=source_company.processing_company_external_id or "",
+            processing_company_title=source_company.processing_company_title or "",
+            processing_company_inn=source_company.processing_company_inn or "",
+            upd_number=source_company.upd_number or "",
+        )
+        db.session.add(new_company)
+        companies_by_old_id[source_company.id] = new_company
+
+    db.session.flush()
+
+    for new_item in new_items:
+        old_company_id = getattr(new_item, "fast_order_company_id", None)
+        new_company = companies_by_old_id.get(old_company_id)
+        if new_company:
+            new_item.fast_order_company_id = new_company.id
 
 
 def _json_error(message: str, code: int = 400, **extra):
@@ -172,16 +248,6 @@ def _copy_common_fields_from_card_obj(dst_obj, src_obj, rd_tuple):
         dst_obj.rd_date = rd_date
 
 
-def _copy_processing_company_from_card(dst_obj, pc: ProductCard):
-    for src_attr, dst_attr in (
-        ("processing_company_external_id", "processing_company_external_id"),
-        ("processing_company_title", "processing_company_title"),
-        ("processing_company_inn", "processing_company_inn"),
-    ):
-        if hasattr(dst_obj, dst_attr):
-            setattr(dst_obj, dst_attr, (getattr(pc, src_attr, "") or "").strip())
-
-
 def _load_cards_for_order(card_ids: list[int], *, category: str) -> dict[int, ProductCard]:
     q = ProductCard.query.filter(ProductCard.id.in_(card_ids))
 
@@ -224,7 +290,6 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
         new_obj = Parfum()
 
         copy_model_columns(src, new_obj)
-        _copy_processing_company_from_card(new_obj, pc)
 
         # ✅ количество: сначала qty/quantity, потом fallback на sizes[0].qty
         qty_raw = item_payload.get("qty", None)
@@ -254,7 +319,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
             new_obj.trademark = tm
 
         order.parfum.append(new_obj)
-        return
+        return new_obj
 
     # ---------- COSMETICS / TOYS ----------
     if pc.category in ("cosmetics", "toys"):
@@ -266,7 +331,6 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
         new_obj = Cosmetics() if pc.category == "cosmetics" else Toys()
 
         copy_model_columns(src, new_obj)
-        _copy_processing_company_from_card(new_obj, pc)
 
         qty_raw = item_payload.get("qty", None)
         if qty_raw is None:
@@ -296,7 +360,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
             order.cosmetics.append(new_obj)
         else:
             order.toys.append(new_obj)
-        return
+        return new_obj
 
     # ---------- COMMON FOR NON-PARFUM ----------
     sizes = item_payload.get("sizes") or []
@@ -316,7 +380,6 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
 
         # ✅ копируем ВСЕ поля одежды (color, gender, content, type, tnved_code, country, tax, article_price, box_quantity...)
         copy_model_columns(src, new_obj)
-        _copy_processing_company_from_card(new_obj, pc)
 
         # ✅ article/trademark — из payload (как ты и описывал)
         new_obj.article = (item_payload.get("article") or "").strip()
@@ -345,7 +408,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
 
         # НЕ трогаем new_obj.card_id
         order.clothes.append(new_obj)
-        return
+        return new_obj
 
     # ---------- SOCKS ----------
     if pc.category == "socks":
@@ -357,7 +420,6 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
 
         # ✅ копируем ВСЕ поля носков (color, gender, content, etc.)
         copy_model_columns(src, new_obj)
-        _copy_processing_company_from_card(new_obj, pc)
 
         new_obj.article = (item_payload.get("article") or "").strip()
         new_obj.trademark = (item_payload.get("trademark") or "").strip() or new_obj.trademark
@@ -383,7 +445,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
             )
 
         order.socks.append(new_obj)
-        return
+        return new_obj
 
     # ---------- SHOES ----------
     if pc.category == "shoes":
@@ -395,7 +457,6 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
 
         # ✅ копируем ВСЕ поля обуви (color, material_top, material_lining, material_bottom, gender, with_packages...)
         copy_model_columns(src, new_obj)
-        _copy_processing_company_from_card(new_obj, pc)
 
         new_obj.article = (item_payload.get("article") or "").strip()
         new_obj.trademark = (item_payload.get("trademark") or "").strip() or new_obj.trademark
@@ -419,7 +480,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
             )
 
         order.shoes.append(new_obj)
-        return
+        return new_obj
 
     # ---------- LINEN ----------
     if pc.category == "linen":
@@ -431,7 +492,6 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
 
         # ✅ копируем ВСЕ поля белья (color, customer_age, textile_type, content, with_packages...)
         copy_model_columns(src, new_obj)
-        _copy_processing_company_from_card(new_obj, pc)
 
         new_obj.article = (item_payload.get("article") or "").strip()
         new_obj.trademark = (item_payload.get("trademark") or "").strip() or new_obj.trademark
@@ -457,7 +517,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
             )
 
         order.linen.append(new_obj)
-        return
+        return new_obj
 
     raise ValueError(f"Неизвестная категория карточки: {pc.category}")
 
@@ -556,6 +616,8 @@ def common_save_copy_pc_order(user: User, category: str, order: Order) -> int | 
                 raise Exception("Неизвестная категория")
 
         user.orders.append(new_order)
+        db.session.flush()
+        _copy_fast_order_companies(order, new_order, category)
         db.session.commit()
 
         # вернём id

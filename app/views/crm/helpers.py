@@ -17,7 +17,7 @@ from werkzeug.utils import secure_filename
 
 from config import settings
 from logger import logger
-from models import User, Order, OrderStat, db, ServerParam, UserProcessingCompany
+from models import User, Order, OrderStat, db, ServerParam
 from redis_queue.callbacks import on_success_periodic_task, on_failure_periodic_task
 from utilities.download import crm_orders_common_preload
 from utilities.exceptions import EmptyFileToUploadError
@@ -33,37 +33,15 @@ from .order_chat import h_order_chat_unread_map
 from .schema import CompaniesOperators
 
 
-ORDER_POSITION_RELATIONS = (
-    "shoes",
-    "linen",
-    "parfum",
-    "cosmetics",
-    "toys",
-    "clothes",
-    "socks",
-)
-
-
-def _processing_company_option_from_item(item) -> dict:
-    inn = str(getattr(item, "processing_company_inn", "") or "").strip()
-    title = str(getattr(item, "processing_company_title", "") or "").strip()
-    external_id = str(getattr(item, "processing_company_external_id", "") or "").strip()
-    key = inn or external_id or title or "unknown"
-    label = " ".join(part for part in (title, f"({inn})" if inn else "") if part) or external_id or "Компания не указана"
-    return {"value": key, "label": label, "inn": inn, "title": title, "external_id": external_id}
-
-
 def _order_processing_company_options(order: Order) -> list[dict]:
-    result = []
-    seen = set()
-    for rel_name in ORDER_POSITION_RELATIONS:
-        for item in getattr(order, rel_name, []) or []:
-            option = _processing_company_option_from_item(item)
-            if option["value"] in seen:
-                continue
-            seen.add(option["value"])
-            result.append(option)
-    return result
+    return [
+        {
+            "value": str(company.id),
+            "label": company.processing_company_label or "Компания не указана",
+            "upd_number": company.upd_number or "",
+        }
+        for company in order.fast_order_companies
+    ]
 
 
 def _format_processing_info_rows(rows: list[tuple[str, str]]) -> str:
@@ -2061,13 +2039,7 @@ def helper_get_processing_order_info() -> Response:
 
     order_info = (
         Order.query.options(
-            joinedload(Order.shoes),
-            joinedload(Order.linen),
-            joinedload(Order.parfum),
-            joinedload(Order.cosmetics),
-            joinedload(Order.toys),
-            joinedload(Order.clothes),
-            joinedload(Order.socks),
+            joinedload(Order.fast_order_companies),
         )
         .filter(Order.id == order_id)
         .first()
@@ -2111,13 +2083,7 @@ def helper_update_processing_order_info() -> tuple[Response, int]:
 
     order = (
         Order.query.options(
-            joinedload(Order.shoes),
-            joinedload(Order.linen),
-            joinedload(Order.parfum),
-            joinedload(Order.cosmetics),
-            joinedload(Order.toys),
-            joinedload(Order.clothes),
-            joinedload(Order.socks),
+            joinedload(Order.fast_order_companies),
         )
         .filter(Order.id == order_id)
         .first()
@@ -2139,10 +2105,15 @@ def helper_update_processing_order_info() -> tuple[Response, int]:
         if not isinstance(raw_items, list) or not raw_items:
             return jsonify({"status": "error", "message": "Все поля обязательны к заполнению"}), 400
 
-        available = {
-            option["value"]: option["label"]
-            for option in _order_processing_company_options(order)
+        companies_by_id = {str(company.id): company for company in order.fast_order_companies}
+        submitted_company_ids = {
+            str(raw_item.get("company") or "").strip()
+            for raw_item in raw_items
+            if isinstance(raw_item, dict)
         }
+        if submitted_company_ids != set(companies_by_id):
+            return jsonify({"status": "error", "message": "Заполните УПД по всем компаниям заказа"}), 400
+
         info_rows = []
         for raw_item in raw_items:
             if not isinstance(raw_item, dict):
@@ -2151,9 +2122,11 @@ def helper_update_processing_order_info() -> tuple[Response, int]:
             item_upd = str(raw_item.get("upd_number") or "").strip()
             if not key or not item_upd:
                 return jsonify({"status": "error", "message": "Заполните УПД по всем компаниям заказа"}), 400
-            if key not in available:
+            company = companies_by_id.get(key)
+            if not company:
                 return jsonify({"status": "error", "message": "Некорректная компания"}), 400
-            info_rows.append((available[key], item_upd))
+            company.upd_number = item_upd
+            info_rows.append((company.processing_company_label or "Компания не указана", item_upd))
 
         try:
             order.processing_info = _format_processing_info_rows(info_rows)
@@ -2569,29 +2542,6 @@ def _sanitize_order_desc_pii(order_row, user: User):
     return SimpleNamespace(**safe_data)
 
 
-def _get_user_companies_for_user(user_id: int):
-    rows = (
-        UserProcessingCompany.query
-        .options(joinedload(UserProcessingCompany.company))
-        .filter(UserProcessingCompany.user_id == user_id)
-        .order_by(UserProcessingCompany.slot.asc())
-        .all()
-    )
-
-    out = []
-    for r in rows:
-        comp = r.company
-        out.append({
-            "slot": r.slot,
-            "is_approved": bool(r.is_approved),
-            "assigned_at": r.assigned_at,
-            "title": comp.title if comp else "",
-            "inn": comp.inn if comp else "",
-            "is_active": bool(comp.is_active) if comp else True,
-        })
-    return out
-
-
 def h_order_details():
     src = (request.args.get("src") or "").strip()
 
@@ -2608,12 +2558,10 @@ def h_order_details():
 
     n = _sanitize_order_desc_pii(n, current_user)
 
-    user_companies = _get_user_companies_for_user(n.user_id)
-
     html = render_template(
         "crm_mod_v1/helpers/order_description.html",
         src=src,
         n=n,
-        user_companies=user_companies,
+        user_companies=[],
     )
     return jsonify(status="success", html=html)

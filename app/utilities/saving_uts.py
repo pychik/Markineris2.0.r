@@ -331,14 +331,6 @@ def common_save_db(order: Order, form_dict: dict, category: str, subcategory: st
     return order
 
 
-def _processing_company_copy_kwargs(item) -> dict:
-    return {
-        "processing_company_external_id": getattr(item, "processing_company_external_id", "") or "",
-        "processing_company_title": getattr(item, "processing_company_title", "") or "",
-        "processing_company_inn": getattr(item, "processing_company_inn", "") or "",
-    }
-
-
 def common_save_copy_order(u_id: int, user: User, category: str, order: Order) -> Optional[int]:
 
     try:
@@ -398,9 +390,9 @@ def save_copy_order_shoes(order_category_list: list[Shoe], new_order: Order) -> 
                                 with_packages=shoe.with_packages,
                                 tnved_code=shoe.tnved_code, article_price=shoe.article_price,
                                 tax=shoe.tax, rd_type=shoe.rd_type, rd_name=shoe.rd_name.replace('№', ''), rd_date=shoe.rd_date,
+                                fast_order_company_id=shoe.fast_order_company_id,
                                 sizes_quantities=list((ShoeQuantitySize(size=sq.size, quantity=sq.quantity)
-                                                                    for sq in shoe.sizes_quantities)),
-                                **_processing_company_copy_kwargs(shoe))
+                                                                    for sq in shoe.sizes_quantities)))
         append_or_merge_position(new_order.shoes, new_shoes, settings.Shoes.CATEGORY)
         kept_linen_count += 1
     if kept_linen_count == 0:
@@ -440,8 +432,8 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
             article_price=clothes.article_price, tax=clothes.tax,
             rd_type=clothes.rd_type, rd_name=clothes.rd_name.replace('№', ''),
             rd_date=clothes.rd_date, subcategory=clothes.subcategory,
-            sizes_quantities=new_sizes,
-            **_processing_company_copy_kwargs(clothes)
+            fast_order_company_id=clothes.fast_order_company_id,
+            sizes_quantities=new_sizes
         )
         append_or_merge_position(new_order.clothes, new_clothes, settings.Clothes.CATEGORY,
                                  old_sq_map=old_sq_map,
@@ -484,8 +476,8 @@ def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) ->
             article_price=sock.article_price, tax=sock.tax,
             rd_type=sock.rd_type, rd_name=rd_name_clean(sock.rd_name),
             rd_date=sock.rd_date,
-            sizes_quantities=new_sizes,
-            **_processing_company_copy_kwargs(sock)
+            fast_order_company_id=sock.fast_order_company_id,
+            sizes_quantities=new_sizes
         )
         append_or_merge_position(new_order.socks, new_socks, settings.Socks.CATEGORY,
                                  old_sq_map=old_sq_map,
@@ -515,11 +507,11 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
                                      tnved_code=linen.tnved_code, article_price=linen.article_price,
                                      tax=linen.tax, rd_type=linen.rd_type, rd_name=linen.rd_name.replace('№', ''),
                                      rd_date=linen.rd_date,
+                                     fast_order_company_id=linen.fast_order_company_id,
                                      sizes_quantities=[
                 LinenQuantitySize(size=sq.size, unit=sq.unit, quantity=sq.quantity)
                 for sq in linen.sizes_quantities
             ],
-                                     **_processing_company_copy_kwargs(linen)
         )
         append_or_merge_position(new_order.linen, new_linen, settings.Linen.CATEGORY)
         kept_linen_count += 1
@@ -559,7 +551,7 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
             rd_type=parfum.rd_type,
             rd_name=rd_name_clean(parfum.rd_name),
             rd_date=parfum.rd_date,
-            **_processing_company_copy_kwargs(parfum)
+            fast_order_company_id=parfum.fast_order_company_id,
         )
         append_or_merge_position(new_order.parfum, new_parfum, settings.Parfum.CATEGORY)
         # kept_parfum_count += 1
@@ -608,7 +600,7 @@ def save_copy_order_cosmetics(order_category_list: list[Cosmetics], new_order: O
             service_life=cosmetics.service_life,
             sl_date_from=cosmetics.sl_date_from,
             sl_date_to=cosmetics.sl_date_to,
-            **_processing_company_copy_kwargs(cosmetics)
+            fast_order_company_id=cosmetics.fast_order_company_id,
         )
         append_or_merge_position(new_order.cosmetics, new_cosmetics, settings.Cosmetics.CATEGORY)
     return new_order
@@ -644,7 +636,7 @@ def save_copy_order_toys(order_category_list: list[Toys], new_order: Order) -> O
             sl_date_from=toy.sl_date_from,
             sl_date_to=toy.sl_date_to,
             quantity=toy.quantity,
-            **_processing_company_copy_kwargs(toy)
+            fast_order_company_id=toy.fast_order_company_id,
         )
         append_or_merge_position(new_order.toys, new_toys, settings.Toys.CATEGORY)
     return new_order

@@ -355,6 +355,12 @@ class Order(db.Model, UserMixin):
     transaction_id = db.Column(db.Integer, db.ForeignKey('user_transactions.id'), index=True)
 
     order_zip_file = db.relationship('OrderFile', uselist=False, cascade='all,delete', backref='orders')
+    fast_order_companies = db.relationship(
+        "FastOrderCompanies",
+        backref="order",
+        cascade="all,delete",
+        lazy="selectin",
+    )
     messages = db.relationship('OrderMessage', backref='order', cascade='all,delete', lazy='dynamic')
     shoes = db.relationship('Shoe', backref='order', cascade="all,delete", lazy='joined', foreign_keys='Shoe.order_id')
     linen = db.relationship('Linen', backref='order', cascade="all,delete", lazy='joined',
@@ -378,6 +384,47 @@ class OrderFile(db.Model, UserMixin):
     file_system_name = db.Column(db.String(100))
     file_link = db.Column(db.String(100))
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), index=True)
+
+
+class FastOrderCompanies(db.Model, UserMixin):
+    __tablename__ = "fast_order_companies"
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    company_key = db.Column(db.String(255), nullable=False, index=True)
+    processing_company_external_id = db.Column(db.String(100), nullable=False, default="", server_default="")
+    processing_company_title = db.Column(db.String(255), nullable=False, default="", server_default="")
+    processing_company_inn = db.Column(db.String(20), nullable=False, default="", server_default="", index=True)
+    upd_number = db.Column(db.String(100), nullable=False, default="", server_default="")
+
+    created_at = db.Column(db.DateTime(), default=datetime.now)
+    updated_at = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "order_id",
+            "company_key",
+            name="uq_fast_order_companies_order_company",
+        ),
+    )
+
+    @property
+    def processing_company_label(self) -> str:
+        parts = [
+            (self.processing_company_title or "").strip(),
+            f"({self.processing_company_inn.strip()})" if (self.processing_company_inn or "").strip() else "",
+        ]
+        return " ".join(part for part in parts if part) or (self.processing_company_external_id or "").strip()
+
+
+def _fast_order_company_fk():
+    return db.Column(
+        db.Integer,
+        db.ForeignKey("fast_order_companies.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
 
 class OrderStat(db.Model, UserMixin):
@@ -767,42 +814,6 @@ class OrderChatRead(db.Model):
     )
 
 
-class ProcessingCompany(db.Model):
-    __tablename__ = "processing_companies"
-
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(255), nullable=False)   # ООО "..."
-    inn = db.Column(db.String(20), unique=True, index=True)
-    is_active = db.Column(db.Boolean, nullable=False, default=True, server_default="true")
-
-    created_at = db.Column(db.DateTime(), default=datetime.now)
-
-
-class UserProcessingCompany(db.Model):
-    __tablename__ = "user_processing_companies"
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    company_id = db.Column(db.Integer, db.ForeignKey("processing_companies.id"), nullable=False, index=True)
-
-    # слот 1 или 2
-    slot = db.Column(db.SmallInteger, nullable=False)
-
-    is_approved = db.Column(db.Boolean, nullable=False, default=True, server_default="true")
-
-    assigned_at = db.Column(db.DateTime(), default=datetime.now)
-    # approved_at = db.Column(db.DateTime(), default=datetime.now)
-
-    user = db.relationship("User", lazy="joined")
-    company = db.relationship("ProcessingCompany", lazy="joined")
-
-    __table_args__ = (
-        db.UniqueConstraint("user_id", "slot", name="uq_user_processing_company_slot"),
-        db.UniqueConstraint("user_id", "company_id", name="uq_user_processing_company_company"),
-    )
-
-
 class CommonMixin:
     id = db.Column(db.BigInteger, primary_key=True)
     type = db.Column(db.String(100))
@@ -817,10 +828,6 @@ class CommonMixin:
     rd_name = db.Column(db.String(100))
     rd_date = db.Column(db.Date())
     rd_date_to = db.Column(db.Date(), index=True)
-
-    processing_company_external_id = db.Column(db.String(100), default="")
-    processing_company_title = db.Column(db.String(255), default="")
-    processing_company_inn = db.Column(db.String(20), default="")
 
 
 class OrderCommon(CommonMixin):
@@ -841,6 +848,7 @@ class Shoe(db.Model, UserMixin, OrderCommon):
     material_bottom = db.Column(db.String(50))
     gender = db.Column(db.String(50))
     with_packages = db.Column(db.Boolean(), default=False)
+    fast_order_company_id = _fast_order_company_fk()
 
     sizes_quantities = db.relationship('ShoeQuantitySize', backref='shoes', cascade="all,delete", lazy='joined')
     order_id = db.Column(
@@ -886,6 +894,7 @@ class Linen(db.Model, UserMixin, OrderCommon):
     textile_type = db.Column(db.String(50))
     content = db.Column(db.String(100))
     with_packages = db.Column(db.String(50), default="нет")
+    fast_order_company_id = _fast_order_company_fk()
     sizes_quantities = db.relationship('LinenQuantitySize', backref='linen', cascade="all,delete", lazy='joined')
     order_id = db.Column(
         db.Integer,
@@ -937,6 +946,7 @@ class Parfum(db.Model, UserMixin, CommonMixin):
     with_packages = db.Column(db.String(50), default="нет")
     box_quantity = db.Column(db.Integer(), default=1)
     quantity = db.Column(db.Integer())
+    fast_order_company_id = _fast_order_company_fk()
     order_id = db.Column(
         db.Integer,
         db.ForeignKey('orders.id', ondelete='CASCADE'),
@@ -977,6 +987,7 @@ class Cosmetics(db.Model, UserMixin, CommonMixin):
     service_life = db.Column(db.Integer())
     sl_date_from = db.Column(db.Date())
     sl_date_to = db.Column(db.Date(), index=True)
+    fast_order_company_id = _fast_order_company_fk()
 
     order_id = db.Column(
         db.Integer,
@@ -1020,6 +1031,7 @@ class Toys(db.Model, UserMixin, CommonMixin):
     sl_date_from = db.Column(db.Date())
     sl_date_to = db.Column(db.Date(), index=True)
     quantity = db.Column(db.Integer())
+    fast_order_company_id = _fast_order_company_fk()
 
     order_id = db.Column(
         db.Integer,
@@ -1080,6 +1092,7 @@ class Clothes(ClothesMixin):
     # CLOTHES PRODUCT tYPE IS TYPE COMMONMIXIN
     # We use subcategory as a scaling option
     subcategory = db.Column(db.String(32), nullable=False, default=ClothesSubcategories.common.value, server_default=ClothesSubcategories.common.value)
+    fast_order_company_id = _fast_order_company_fk()
     sizes_quantities = db.relationship('ClothesQuantitySize', backref='clothes', cascade="all,delete", lazy='joined')
     order_id = db.Column(
         db.Integer,
@@ -1112,6 +1125,7 @@ class Socks(ClothesMixin):
         Index("ix_socks_article_color", "article", "color"),
     )
     sizes_quantities = db.relationship('SocksQuantitySize', backref='socks', cascade="all,delete", lazy='joined')
+    fast_order_company_id = _fast_order_company_fk()
     order_id = db.Column(
         db.Integer,
         db.ForeignKey('orders.id', ondelete='CASCADE'),
