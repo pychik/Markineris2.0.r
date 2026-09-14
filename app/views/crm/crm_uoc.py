@@ -294,12 +294,13 @@ def avg_order_processing_time_rpt_excel():
             'За 1 день',
             'За 2 дня',
             'За 3 дня',
-            'Более 3 дней',
+            'За 4 дня',
+            'Более 4 дней',
             'Среднее время выполнения заказа(мин)',
             'Среднее время выполнения заказа(часов)',
         ],
         output_file_name=output_file_name,
-        condition_format={9: [{
+        condition_format={10: [{
             'type': 'cell',
             'criteria': '>',
             'value': 5,

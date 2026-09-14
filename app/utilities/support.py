@@ -3739,7 +3739,11 @@ def helper_get_stmt_avg_order_time_processing_report(
             ) AS three_days_order_count,
             COUNT(os.order_id) FILTER (
                 WHERE EXTRACT(EPOCH FROM os.m_finished - os.m_started) > 259200
-            ) AS more_than_three_days_order_count,
+                  AND EXTRACT(EPOCH FROM os.m_finished - os.m_started) <= 345600
+            ) AS four_days_order_count,
+            COUNT(os.order_id) FILTER (
+                WHERE EXTRACT(EPOCH FROM os.m_finished - os.m_started) > 345600
+            ) AS more_than_four_days_order_count,
             TRUNC(AVG(EXTRACT(EPOCH FROM os.m_finished - os.m_started) / 60), 1) AS processing_time,
             TRUNC(AVG(EXTRACT(EPOCH FROM os.m_finished - os.m_started) / 3600), 1) AS processing_time_hour
         FROM order_stats os
