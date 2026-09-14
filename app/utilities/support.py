@@ -1,3 +1,4 @@
+import calendar
 import dataclasses
 import re
 from base64 import encodebytes
@@ -3661,6 +3662,17 @@ def get_partner_code_max_id(partners) -> str:
     return str(auto_increment_id)
 
 
+AVG_ORDER_PROCESSING_REPORT_MAX_MONTHS = 4
+
+
+def _add_months(date_value: datetime, months: int) -> datetime:
+    month = date_value.month - 1 + months
+    year = date_value.year + month // 12
+    month = month % 12 + 1
+    day = min(date_value.day, calendar.monthrange(year, month)[1])
+    return date_value.replace(year=year, month=month, day=day)
+
+
 def helper_get_filter_avg_order_time_processing_report(report: bool = False):
     default_day_to = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d')
     default_day_from = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d')
@@ -3678,6 +3690,12 @@ def helper_get_filter_avg_order_time_processing_report(report: bool = False):
     date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
         '%Y-%m-%d') if url_date_to else default_day_from
 
+    date_from_dt = datetime.strptime(date_from, '%Y-%m-%d')
+    date_to_dt = datetime.strptime(date_to, '%Y-%m-%d')
+    max_date_to_dt = _add_months(date_from_dt, AVG_ORDER_PROCESSING_REPORT_MAX_MONTHS) + timedelta(days=1)
+    if date_to_dt > max_date_to_dt:
+        date_to = max_date_to_dt.strftime('%Y-%m-%d')
+
     return date_from, date_to, manager_id
 
 
@@ -3688,38 +3706,48 @@ def helper_get_stmt_avg_order_time_processing_report(
 ) -> TextClause:
 
     stmt = text(f"""
+        WITH order_stats AS (
             SELECT
-                U.LOGIN_NAME,
-                count(distinct o.id) as order_count,
+                o.id AS order_id,
+                o.manager_id,
+                o.m_started,
+                o.m_finished,
                 {SQLQueryCategoriesAll.get_stmt(field='marks_count')} AS pos_count,
-                {SQLQueryCategoriesAll.get_stmt(field='rows_count')} AS rows_count,
-                TRUNC(AVG(
-                    EXTRACT(
-                        epoch
-                        FROM
-                            O.M_FINISHED - O.M_STARTED
-                    ) 
-                ) / 60, 1) AS PROCESSING_TIME,
-                TRUNC(AVG(
-                    EXTRACT(
-                        epoch
-                        FROM
-                            O.M_FINISHED - O.M_STARTED
-                    ) 
-                ) / 60 / 60, 1) AS PROCESSING_TIME_HOUR
-            FROM
-                ORDERS O
-                JOIN USERS U ON O.MANAGER_ID = U.ID
+                {SQLQueryCategoriesAll.get_stmt(field='rows_count')} AS rows_count
+            FROM orders o
                 {SQLQueryCategoriesAll.get_joins()}
-            WHERE
-                O.M_STARTED >= :date_from
-                and O.M_FINISHED < :date_to
-                and (o.stage = 5 or o.stage > 7)
-                and (o.manager_id = :manager_id or 0 = :manager_id)
-            GROUP BY
-                U.LOGIN_NAME
-            ORDER BY 3 DESC;
-        """).bindparams(date_from=date_from, date_to=date_to, manager_id=manager_id)
+            WHERE o.m_started >= :date_from
+              AND o.m_finished < :date_to
+              AND o.m_finished IS NOT NULL
+            GROUP BY o.id, o.manager_id, o.m_started, o.m_finished
+        )
+        SELECT
+            u.login_name,
+            COUNT(os.order_id) AS order_count,
+            SUM(os.rows_count) AS rows_count,
+            SUM(os.pos_count) AS pos_count,
+            COUNT(os.order_id) FILTER (
+                WHERE EXTRACT(EPOCH FROM os.m_finished - os.m_started) <= 86400
+            ) AS one_day_order_count,
+            COUNT(os.order_id) FILTER (
+                WHERE EXTRACT(EPOCH FROM os.m_finished - os.m_started) > 86400
+                  AND EXTRACT(EPOCH FROM os.m_finished - os.m_started) <= 172800
+            ) AS two_days_order_count,
+            COUNT(os.order_id) FILTER (
+                WHERE EXTRACT(EPOCH FROM os.m_finished - os.m_started) > 172800
+                  AND EXTRACT(EPOCH FROM os.m_finished - os.m_started) <= 259200
+            ) AS three_days_order_count,
+            COUNT(os.order_id) FILTER (
+                WHERE EXTRACT(EPOCH FROM os.m_finished - os.m_started) > 259200
+            ) AS more_than_three_days_order_count,
+            TRUNC(AVG(EXTRACT(EPOCH FROM os.m_finished - os.m_started) / 60), 1) AS processing_time,
+            TRUNC(AVG(EXTRACT(EPOCH FROM os.m_finished - os.m_started) / 3600), 1) AS processing_time_hour
+        FROM order_stats os
+        JOIN users u ON u.id = os.manager_id
+        WHERE (:manager_id = 0 OR os.manager_id = :manager_id)
+        GROUP BY u.login_name
+        ORDER BY pos_count DESC
+    """).bindparams(date_from=date_from, date_to=date_to, manager_id=manager_id)
     return stmt
 
 

@@ -1083,6 +1083,11 @@ function bck_avg_order_processing_time_rpt(url) {
     let date_to = $('#date_to').val();
     let manager = $('#manager_filter').val();
 
+    if (!validate_avg_order_processing_time_rpt_dates(date_from, date_to)) {
+        return;
+    }
+
+    loadingCircle();
     $.ajax({
         url: url,
         method: "GET",
@@ -1093,8 +1098,13 @@ function bck_avg_order_processing_time_rpt(url) {
             manager: manager,
         },
         success: function (data) {
-            $('#avg_order_processing_time_table').html(data);
-            $("#avg_order_processing_time_table").append(data.htmlresponse);
+            $('#avg_order_processing_time_table').html(data.htmlresponse);
+        },
+        error: function(xhr, status, error) {
+            console.error('Error:', error);
+        },
+        complete: function() {
+            close_Loading_circle();
         }
     });
 }
@@ -1105,7 +1115,12 @@ function get_avg_order_processing_time_rpt_excel(url, csrf) {
     let date_from = $('#date_from').val();
     let date_to = $('#date_to').val();
     let manager = $('#manager_filter').val();
-    $('#overlay_loading').show();
+
+    if (!validate_avg_order_processing_time_rpt_dates(date_from, date_to)) {
+        return;
+    }
+
+    loadingCircle();
     $.ajax({
         url: url,
         headers: { "X-CSRFToken": csrf },
@@ -1120,7 +1135,6 @@ function get_avg_order_processing_time_rpt_excel(url, csrf) {
         },
 
         success: function(response, status, xhr) {
-            $('#overlay_loading').hide();
             if (xhr.status === 200) {
                 var blob = new Blob([response], { type: 'application/xlsx' });
                 var link = document.createElement('a');
@@ -1137,12 +1151,58 @@ function get_avg_order_processing_time_rpt_excel(url, csrf) {
             }
         },
         error: function(xhr, status, error) {
-            $('#overlay_loading').hide();
             // Error handling
             console.error('Error:', error);
+        },
+        complete: function() {
+            close_Loading_circle();
         }
     });
 
+}
+
+function parse_avg_order_processing_time_rpt_date(dateText) {
+    let parts = dateText.split('.');
+    if (parts.length !== 3) {
+        return null;
+    }
+    let day = parseInt(parts[0], 10);
+    let month = parseInt(parts[1], 10) - 1;
+    let year = parseInt(parts[2], 10);
+    let date = new Date(year, month, day);
+    if (date.getFullYear() !== year || date.getMonth() !== month || date.getDate() !== day) {
+        return null;
+    }
+    return date;
+}
+
+function add_months_avg_order_processing_time_rpt(date, months) {
+    let result = new Date(date.getTime());
+    let day = result.getDate();
+    result.setMonth(result.getMonth() + months);
+    if (result.getDate() !== day) {
+        result.setDate(0);
+    }
+    return result;
+}
+
+function validate_avg_order_processing_time_rpt_dates(date_from, date_to) {
+    let dateFrom = parse_avg_order_processing_time_rpt_date(date_from);
+    let dateTo = parse_avg_order_processing_time_rpt_date(date_to);
+
+    if (!dateFrom || !dateTo) {
+        make_message('Выберите корректный период отчета', 'warning');
+        return false;
+    }
+    if (dateFrom > dateTo) {
+        make_message('Дата "C" не может быть больше даты "По"', 'warning');
+        return false;
+    }
+    if (dateTo > add_months_avg_order_processing_time_rpt(dateFrom, 4)) {
+        make_message('Максимальный диапазон отчета - 4 месяца', 'warning');
+        return false;
+    }
+    return true;
 }
 
 function loadOrderCompanyOperatorModal(order_id) {
