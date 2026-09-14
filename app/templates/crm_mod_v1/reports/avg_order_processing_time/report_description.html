@@ -1,0 +1,110 @@
+<style>
+  .avg-report-header {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    margin: 18px 0 12px;
+  }
+
+  .avg-report-title {
+    color: #252b3a;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.25;
+    margin: 0;
+  }
+
+  .avg-report-info-btn {
+    align-items: center;
+    background: #f5f7fb;
+    border: 1px solid #ccd5e3;
+    border-radius: 50%;
+    color: #49627f;
+    display: inline-flex;
+    font-size: 15px;
+    font-weight: 700;
+    height: 28px;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+    transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+    width: 28px;
+  }
+
+  .avg-report-info-btn:hover,
+  .avg-report-info-btn:focus {
+    background: #eaf1fb;
+    border-color: #8ba7c8;
+    color: #243f5f;
+    outline: none;
+  }
+
+  .avg-report-description {
+    background: #f8fafc;
+    border: 1px solid #d9e2ee;
+    border-left: 4px solid #6f8fb5;
+    border-radius: 6px;
+    color: #39475a;
+    margin: 0 0 16px;
+    padding: 14px 16px;
+  }
+
+  .avg-report-description__grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .avg-report-description__item {
+    margin: 0;
+  }
+
+  .avg-report-description__label {
+    color: #263449;
+    display: block;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+
+  @media (max-width: 768px) {
+    .avg-report-description__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="avg-report-header">
+  <h2 class="avg-report-title">Отчет по активности операторов</h2>
+  <button class="avg-report-info-btn"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#avg_order_processing_time_description"
+          aria-expanded="false"
+          aria-controls="avg_order_processing_time_description"
+          title="Описание отчета">
+    i
+  </button>
+</div>
+
+<div class="collapse" id="avg_order_processing_time_description">
+  <div class="avg-report-description">
+    <div class="avg-report-description__grid">
+      <p class="avg-report-description__item">
+        <span class="avg-report-description__label">Что показывает</span>
+        Сводку по операторам: количество обработанных заказов, строк, марок и среднее время обработки.
+      </p>
+      <p class="avg-report-description__item">
+        <span class="avg-report-description__label">Как считается время</span>
+        От момента принятия заказа в работу до фиксации завершения обработки или решения проблемы.
+      </p>
+      <p class="avg-report-description__item">
+        <span class="avg-report-description__label">Дневные колонки</span>
+        Заказы распределяются по фактической длительности обработки: до 1, 2, 3 и более 3 дней.
+      </p>
+      <p class="avg-report-description__item">
+        <span class="avg-report-description__label">Ограничение периода</span>
+        Максимальный диапазон формирования отчета - 4 месяца.
+      </p>
+    </div>
+  </div>
+</div>

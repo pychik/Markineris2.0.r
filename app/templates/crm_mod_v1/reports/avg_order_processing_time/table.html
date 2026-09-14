@@ -15,6 +15,18 @@
         Кол-во марок
       </th>
       <th scope="col">
+        За 1 день
+      </th>
+      <th scope="col">
+        За 2 дня
+      </th>
+      <th scope="col">
+        За 3 дня
+      </th>
+      <th scope="col">
+        Более 3 дней
+      </th>
+      <th scope="col">
         Среднее время выполнения заказа(мин)
       </th>
 
@@ -39,6 +51,18 @@
       </td>
       <td>
         {{ rec.pos_count }}
+      </td>
+      <td>
+        {{ rec.one_day_order_count }}
+      </td>
+      <td>
+        {{ rec.two_days_order_count }}
+      </td>
+      <td>
+        {{ rec.three_days_order_count }}
+      </td>
+      <td>
+        {{ rec.more_than_three_days_order_count }}
       </td>
       <td>
         {{ rec.processing_time }}

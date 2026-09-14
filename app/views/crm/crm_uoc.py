@@ -286,10 +286,20 @@ def avg_order_processing_time_rpt_excel():
     excel = ExcelReport(
         data=records,
         filters={'start_date': date_from, 'end_date': date_to, 'manager': manager_name},
-        columns_name=['login', 'Кол-во КС', 'Кол-во КМ', 'Кол-во заказов', 'Среднее время выполнения заказа(мин)',
-                      'Среднее время выполнения заказа(часов)', ],
+        columns_name=[
+            'login',
+            'Кол-во заказов',
+            'Кол-во строк',
+            'Кол-во марок',
+            'За 1 день',
+            'За 2 дня',
+            'За 3 дня',
+            'Более 3 дней',
+            'Среднее время выполнения заказа(мин)',
+            'Среднее время выполнения заказа(часов)',
+        ],
         output_file_name=output_file_name,
-        condition_format={5: [{
+        condition_format={9: [{
             'type': 'cell',
             'criteria': '>',
             'value': 5,
