@@ -34,6 +34,7 @@
 
           <tbody id="pcTableBody">
             {% for card in product_cards %}
+              {% set can_card_to_cart = (card.status.value == 'approved') and card.processing_company_label %}
 
               {# определяем «основной» объект в карточке #}
               {% set item = None %}
@@ -125,7 +126,7 @@
                               data-card-id="{{ card.id }}"
                               data-view-url="{{ url_for('user_product_cards.card_view', card_id=card.id) }}">
 
-                        {% if card.status.value != 'approved' %}
+                        {% if not can_card_to_cart %}
                             {# иконка «глаз» #}
                           <span title="Посмотреть карточку товара">
                               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none">

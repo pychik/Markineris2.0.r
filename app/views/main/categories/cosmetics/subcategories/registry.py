@@ -308,6 +308,7 @@ SUBCATEGORY_CONFIG = {
         "content_type_enabled": razor_blades_and_cassettes.CONTENT_TYPE_ENABLED,
         "content_value_enabled": razor_blades_and_cassettes.CONTENT_VALUE_ENABLED,
         "for_children_choices": razor_blades_and_cassettes.FOR_CHILDREN_CHOICES,
+        "for_children_enabled": razor_blades_and_cassettes.FOR_CHILDREN_ENABLED,
         "default_countries": razor_blades_and_cassettes.DEFAULT_COUNTRIES,
         "nominal_quantity_types_by_product_type": razor_blades_and_cassettes.NOMINAL_QUANTITY_TYPES_BY_PRODUCT_TYPE,
         "step_2_template": "helpers/cosmetics/razor_blades_and_cassettes/2nd_step.html",

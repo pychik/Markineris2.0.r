@@ -145,6 +145,13 @@ function product_card_submit(category = null) {
     if (cat === "cosmetics" && typeof cosmetics_validate_full_name_requirements === "function") {
         fullNameOk = !!cosmetics_validate_full_name_requirements();
         categoryOk = fullNameOk && categoryOk;
+        if (typeof cosmetics_validate_razor_switch === "function") {
+            const razorSwitchOk = !!cosmetics_validate_razor_switch();
+            categoryOk = razorSwitchOk && categoryOk;
+            if (!razorSwitchOk) {
+                errors.push('Бритвы и лезвия. Проверьте переключатель "Бритва со сменными лезвиями / кассетами", ТН ВЭД, количество лезвий и комплектацию.');
+            }
+        }
     }
     if (cat === "toys") {
         if (typeof toys_validate_full_name_requirements === "function") {

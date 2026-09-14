@@ -4,8 +4,8 @@
 
       <option value="">------------</option>
       {%for con in countries%}
-            <option value="{{con}}" {% if copied_order %}
-                                      {% if copied_order.country == con %}
+            <option value="{{con}}" {% if copied_order and copied_order.country %}
+                                      {% if copied_order.country.upper() == con %}
                                           selected
                                       {% endif %}
                                   {% endif %}>{{con}}
@@ -22,14 +22,14 @@
          data-bs-toggle="tooltip"
          data-bs-placement="bottom"
          title="Включите, если у вас есть разрешительная документация"
-         {% if copied_order and copied_order.rd_name %}checked{% endif %}>
+         {% if copied_order and (copied_order.rd_type or copied_order.rd_name or copied_order.rd_date) %}checked{% endif %}>
   <label class="form-check-label small mb-0 text-dark" for="has-rd-switch">РД</label>
 </div>
 
 
 <script>
-  const RD_COUNTRIES = {{ countries | tojson }};
-  const COUNTRIES = {{ rd_countries | tojson }};
+  const DEFAULT_COUNTRIES = {{ countries | tojson }};
+  const RD_COUNTRIES = {{ rd_countries | tojson }};
 
   function clearRdFields() {
         const ids = ["rd_type", "rd_name", "rd_date", "rd_date_to"];
@@ -94,8 +94,8 @@
 
     const isOn = switchEl.checked;
 
-    // ВКЛ → rd_countries, ВЫКЛ → countries
-    const list = isOn ? RD_COUNTRIES : COUNTRIES;
+    // ВКЛ -> rd_countries, ВЫКЛ -> countries
+    const list = isOn ? RD_COUNTRIES : DEFAULT_COUNTRIES;
 
     renderCountrySelect(selectEl, list, { preserveSelected });
     applySwitchStyle(isOn);

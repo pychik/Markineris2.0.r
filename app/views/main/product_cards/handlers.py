@@ -13,8 +13,7 @@ from models import db, ExceptionDataUsers, Order, ProductCard, Shoe, Linen, Parf
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
-from utilities.saving_uts import get_rows_marks
-from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
+from utilities.sql_categories_aggregations import SQLQueryCategoriesAll, SQLQueryFactory
 from utilities.support import check_forbidden_words, helper_preload_common, helper_check_uoabm, \
     helper_check_user_order_in_archive, check_order_pos, process_admin_order_num, process_order_start
 from utilities.telegram import MarkinerisInform
@@ -118,6 +117,18 @@ def _card_identity_value(category: str, entity) -> tuple[str, str]:
     if category == settings.Toys.CATEGORY_PROCESS:
         return (getattr(entity, "model_article", "") or getattr(entity, "trademark", "") or ""), "модель/артикул"
     return (getattr(entity, "article", "") or ""), "артикул"
+
+
+def _pc_visible_fields_for_entity(category_process: str, entity):
+    fields = dict(CARD_FIELDS.get(category_process, {}))
+    if (
+        category_process == settings.Cosmetics.CATEGORY_PROCESS
+        and getattr(entity, "subcategory", "") == "razor_blades_and_cassettes"
+        and str(getattr(entity, "tnved_code", "") or "").strip() != "8212109000"
+    ):
+        fields.pop("blade_count", None)
+        fields.pop("complectation", None)
+    return fields
 
 
 def _ensure_card_form_defaults(ctx: dict) -> dict:
@@ -856,7 +867,7 @@ def h_send_cards_moderate():
             card.card_log = h_append_card_log(
                 card.card_log,
                 (
-                    f"\n{now:%d.%m.%Y %H:%M} назначена компания тезауруса "
+                    f"\n{now:%d.%m.%Y %H:%M} назначена компания "
                     f"{assigned['label']}; карточка отправлена на модерацию;"
                 )
             )
@@ -1008,7 +1019,7 @@ def h_card_view(card_id: int, crm_: bool = False):
         sizes = []
     elif card.category in (settings.Cosmetics.CATEGORY_PROCESS, settings.Toys.CATEGORY_PROCESS):
         sizes = []
-    fields = CARD_FIELDS.get(card.category, {})
+    fields = _pc_visible_fields_for_entity(card.category, main)
 
     rd_description = settings.RD_DESCRIPTION
     rd_types_list = settings.RD_TYPES
@@ -1257,16 +1268,77 @@ def h_make_pc_basket_order():
     ), 200
 
 
-def h_pc_order_view(o_id: int):
-    order = (Order.query
-             .filter(
-        Order.id == o_id,
-        Order.user_id == current_user.id,
-        Order.stage == 0,
-        Order.is_moderation.is_(True),
-        Order.to_delete.is_(False),
+def _get_pc_order_header(o_id: int, *, require_unprocessed: bool = False):
+    query = (
+        db.session.query(
+            Order.id,
+            Order.category,
+            Order.company_name,
+            Order.company_idn,
+        )
+        .filter(
+            Order.id == o_id,
+            Order.user_id == current_user.id,
+            Order.stage == 0,
+            Order.is_moderation.is_(True),
+            Order.to_delete.is_(False),
+        )
     )
-             .first())
+    if require_unprocessed:
+        query = query.filter(Order.processed.is_(False))
+    return query.first()
+
+
+def _get_pc_order_pos_model(category: str):
+    cat = (category or "").strip()
+    if cat == settings.Clothes.CATEGORY:
+        return Clothes
+    if cat == settings.Shoes.CATEGORY:
+        return Shoe
+    if cat == settings.Linen.CATEGORY:
+        return Linen
+    if cat == settings.Socks.CATEGORY:
+        return Socks
+    if cat == settings.Parfum.CATEGORY:
+        return Parfum
+    if cat == settings.Cosmetics.CATEGORY:
+        return Cosmetics
+    if cat == settings.Toys.CATEGORY:
+        return Toys
+    return None
+
+
+def _get_pc_order_rows_by_category(category: str, o_id: int):
+    model = _get_pc_order_pos_model(category)
+    if model is None:
+        return []
+    return model.query.filter_by(order_id=o_id).all()
+
+
+def _get_pc_order_counts_by_category(category: str, o_id: int) -> tuple[int, int]:
+    category_process = settings.CATEGORIES_DICT.get(category)
+    if not category_process:
+        return 0, 0
+
+    stmt = text(f"""
+        SELECT
+            COALESCE({SQLQueryFactory.get_stmt(category_process, 'rows_count')}, 0) AS rows_count,
+            COALESCE({SQLQueryFactory.get_stmt(category_process, 'marks_count')}, 0) AS marks_count
+        FROM public.orders o
+        {SQLQueryFactory.get_joins(category_process)}
+        WHERE o.category = :category AND o.id = :o_id
+        GROUP BY o.id
+        LIMIT 1
+    """)
+
+    row = db.session.execute(stmt, {"category": category, "o_id": o_id}).fetchone()
+    if not row:
+        return 0, 0
+    return int(row.rows_count or 0), int(row.marks_count or 0)
+
+
+def h_pc_order_view(o_id: int):
+    order = _get_pc_order_header(o_id)
 
     if not order:
         flash("Заказ не найден", "error")
@@ -1275,16 +1347,11 @@ def h_pc_order_view(o_id: int):
     category_process = settings.CATEGORIES_DICT.get(order.category)
     cat_cfg = CATEGORIES_COMMON.get(category_process, {})
     category_title = order.category
+    order_list = _get_pc_order_rows_by_category(order.category, order.id)
     subcategory = ""
     sub_title = ""
     if cat_cfg.get("has_subcategory"):
-        entity = None
-        if order.category == settings.Clothes.CATEGORY and order.clothes:
-            entity = order.clothes[0]
-        elif order.category == settings.Cosmetics.CATEGORY and order.cosmetics:
-            entity = order.cosmetics[0]
-        elif order.category == settings.Toys.CATEGORY and order.toys:
-            entity = order.toys[0]
+        entity = order_list[0] if order_list else None
         subcategory = (getattr(entity, "subcategory", "") or "").strip() if entity else ""
         sub_title = (cat_cfg.get("subcategories") or {}).get(subcategory, subcategory)
 
@@ -1293,50 +1360,23 @@ def h_pc_order_view(o_id: int):
         order=order,
         o_id=order.id,
         category=order.category,
+        category_process_name=category_process,
         category_title=category_title,
         subcategory=subcategory,
         subcategory_title=sub_title,
+        order_list=order_list,
+        marks_count=len(order_list),
+        orders_pos_count=len(order_list),
     )
 
 
 def h_pc_order_table(o_id: int):
-
-    def _get_order_rows(order: Order):
-        """
-        Возвращает список "строк" заказа (модели категории).
-        ВАЖНО: строки заказа — это записи с order_id=order.id и card_id=None (мы так сделали).
-        """
-        cat = (order.category or "").strip()
-
-        if cat == settings.Clothes.CATEGORY:
-            return order.clothes or []
-        if cat == settings.Shoes.CATEGORY:
-            return order.shoes or []
-        if cat == settings.Linen.CATEGORY:
-            return order.linen or []
-        if cat == settings.Socks.CATEGORY:
-            return order.socks or []
-        if cat == settings.Parfum.CATEGORY:
-            return order.parfum or []
-        if cat == settings.Cosmetics.CATEGORY:
-            return order.cosmetics or []
-        if cat == settings.Toys.CATEGORY:
-            return order.toys or []
-
-        return []
-    order = (Order.query
-             .filter(
-                 Order.id == o_id,
-                 Order.user_id == current_user.id,
-                 Order.stage == 0,
-                 Order.is_moderation.is_(True),
-                 Order.to_delete.is_(False),
-             ).first())
+    order = _get_pc_order_header(o_id)
 
     if not order:
         return "", 404
 
-    order_list = _get_order_rows(order)
+    order_list = _get_pc_order_rows_by_category(order.category, order.id)
     return render_template(
         "product_cards/user/order/_pc_order_table.html",
         order=order,
@@ -1456,31 +1496,7 @@ def h_pc_order_draft_delete_jsonify(o_id: int) -> tuple[Response, int]:
 
 
 def h_pc_order_pos_view(o_id: int, pos_id: int):
-    def _get_order_pos_by_id(category: str, o_id: int, pos_id: int):
-        if category == settings.Clothes.CATEGORY:
-            return Clothes.query.filter_by(id=pos_id, order_id=o_id).first()
-        if category == settings.Shoes.CATEGORY:
-            return Shoe.query.filter_by(id=pos_id, order_id=o_id).first()
-        if category == settings.Linen.CATEGORY:
-            return Linen.query.filter_by(id=pos_id, order_id=o_id).first()
-        if category == settings.Socks.CATEGORY:
-            return Socks.query.filter_by(id=pos_id, order_id=o_id).first()
-        if category == settings.Parfum.CATEGORY:
-            return Parfum.query.filter_by(id=pos_id, order_id=o_id).first()
-        if category == settings.Cosmetics.CATEGORY:
-            return Cosmetics.query.filter_by(id=pos_id, order_id=o_id).first()
-        if category == settings.Toys.CATEGORY:
-            return Toys.query.filter_by(id=pos_id, order_id=o_id).first()
-        return None
-
-    order = (Order.query
-             .filter(
-        Order.id == o_id,
-        Order.user_id == current_user.id,
-        Order.stage == 0,
-        Order.is_moderation.is_(True),
-        Order.to_delete.is_(False),
-    ).first())
+    order = _get_pc_order_header(o_id)
     if not order:
         return "", 404
 
@@ -1488,7 +1504,8 @@ def h_pc_order_pos_view(o_id: int, pos_id: int):
 
     category_process = settings.CATEGORIES_DICT.get(category, "")
 
-    pos = _get_order_pos_by_id(category, o_id, pos_id)
+    model = _get_pc_order_pos_model(category)
+    pos = model.query.filter_by(id=pos_id, order_id=o_id).first() if model is not None else None
     if not pos:
         return "", 404
 
@@ -1500,7 +1517,7 @@ def h_pc_order_pos_view(o_id: int, pos_id: int):
             # sub — англоподобный ключ (underwear, hats...)
             subcategory_title = cat_cfg.get("subcategories", {}).get(sub, sub)
     # готовим список (label, value) по CARD_FIELDS
-    fields_cfg = CARD_FIELDS.get(category_process, {})
+    fields_cfg = _pc_visible_fields_for_entity(category_process, pos)
 
     fields_prepared = []
     for field, label in fields_cfg.items():
@@ -1693,23 +1710,13 @@ def h_pc_order_check_before_process(o_id: int):
         - дубль в архиве (helper_check_user_order_in_archive)
         - баланс/стоимость (helper_check_uoabm)
         """
-    order = (Order.query
-             .filter(
-        Order.id == o_id,
-        Order.user_id == current_user.id,
-        Order.is_moderation.is_(True),
-        Order.stage == settings.OrderStage.CREATING,
-        Order.to_delete.is_(False),
-        Order.processed.is_(False),
-    ).first())
-
-
+    order = _get_pc_order_header(o_id, require_unprocessed=True)
     if not order:
         return jsonify(status="error", message="Заказ не найден"), 404
 
     category = (order.category or "").strip()
 
-    rows_count, marks_count = get_rows_marks(o_id=o_id, category=category)
+    rows_count, marks_count = _get_pc_order_counts_by_category(category=category, o_id=o_id)
 
     # 1) дубль в архиве
     status_order, answer_order = helper_check_user_order_in_archive(category=category, o_id=o_id)

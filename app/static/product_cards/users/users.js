@@ -115,7 +115,7 @@ const PC_SUBCATEGORY_CREATE_LABELS = {
         doll_accessories: "аксессуар для кукол",
         puzzles: "пазл",
         competition_cars: "гоночную машинку",
-        sets_kits: "набор/комплект",
+        sets_kits: "набор/комплект игрушек",
         motorized_toys: "игрушку с приводом",
         animal_creature: "фигурку животного",
         scale_models_other: "масштабную модель",

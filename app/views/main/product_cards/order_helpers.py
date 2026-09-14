@@ -81,6 +81,12 @@ def _validate_card_access_and_status(pc: ProductCard, expected_category: str):
         # можно дополнить pc.status / pc.reject_reason
         return f"Карточка #{pc.id} не прошла модерацию (статус: {ds})"
 
+    if not pc.processing_company_label:
+        return (
+            f"Карточка #{pc.id} не может быть добавлена в быстрый заказ: "
+            "не назначена компания обработки"
+        )
+
     return None
 
 

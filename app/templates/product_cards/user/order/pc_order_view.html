@@ -65,7 +65,9 @@
 </div>
 
 
-  <div id="pc-order-table" class="mt-5"></div>
+  <div id="pc-order-table" class="mt-5">
+    {% include 'product_cards/user/order/_pc_order_table.html' %}
+  </div>
 
 </div>
 
@@ -85,7 +87,7 @@
   </div>
 </div>
 
-<script src="{{ url_for('static', filename='product_cards/users/pc_order_view.js') }}"></script>
+<script src="{{ url_for('static', filename='product_cards/users/pc_order_view.js', v='2') }}"></script>
 <script src="{{ url_for('static', filename='product_cards/users/pc_order_process.js') }}"></script>
 
 

@@ -1,3 +1,4 @@
+{% set is_razor_subcategory = subcategory == 'razor_blades_and_cassettes' %}
 <div class="row setup-content faded">
 	    <script>
 	        function normalizeTrademarkPlaceholder(el, placeholder) {
@@ -38,6 +39,11 @@
         window.COSMETICS_NOMINAL_QUANTITY_TYPES = {{ nominal_quantity_types | tojson }};
         window.COSMETICS_NOMINAL_QUANTITY_TYPES_BY_PRODUCT_TYPE = {{ nominal_quantity_types_by_product_type | tojson }};
         window.COSMETICS_FOR_CHILDREN_ENABLED = {{ subcategory_config.get("for_children_enabled", true) | tojson }};
+        window.COSMETICS_IS_RAZOR_SUBCATEGORY = {{ is_razor_subcategory | tojson }};
+        window.COSMETICS_STANDARD_TNVED_CODES_BY_PRODUCT_TYPE = {{ subcategory_config.get("standard_tnved_codes_by_product_type", {}) | tojson }};
+        window.COSMETICS_REPLACEABLE_RAZOR_TNVED_CODE = {{ subcategory_config.get("replaceable_razor_tnved_code", "") | tojson }};
+        window.COSMETICS_STANDARD_RAZOR_PRODUCT_TYPES = {{ subcategory_config.get("standard_razor_product_types", ()) | tojson }};
+        window.COSMETICS_REPLACEABLE_RAZOR_PRODUCT_TYPES = {{ subcategory_config.get("replaceable_razor_product_types", ()) | tojson }};
     </script>
 
     <div class="row justify-content-end g-3">
@@ -124,7 +130,7 @@
                         <label for="type" class="control-label">Вид товара</label>
                         <select id="type" name="type" class="form-control search-select"
                                 oninput="updateCosmeticsFullName(); cosmeticsUpdateNominalQuantityTypeOptions(); pcCosmeticsSyncConditionalFields();"
-                                onchange="updateCosmeticsFullName(); cosmeticsUpdateNominalQuantityTypeOptions(); syncCosmeticsTnvedByProductType(true); pcCosmeticsSyncConditionalFields();"
+                                onchange="updateCosmeticsFullName(); cosmeticsUpdateNominalQuantityTypeOptions(); syncCosmeticsTnvedByProductType(true); cosmeticsToggleRazorExtraFields(); pcCosmeticsSyncConditionalFields();"
                                 required>
                             <option value="" selected disabled>Выберите из списка..</option>
                             {% for item in product_types %}
@@ -136,9 +142,9 @@
             </div>
 
             <div class="row g-4 mt-1">
-                <div class="col-md-3">
+                <div class="{% if is_razor_subcategory %}col-md-4{% else %}col-md-3{% endif %}">
                     <div class="form-group">
-                        <label for="nominal_quantity" class="control-label">Номинальное количество</label>
+                        <label for="nominal_quantity" class="control-label">Кол-во в потреб. упаковке</label>
                         <input id="nominal_quantity"
                                name="nominal_quantity"
                                type="number"
@@ -150,9 +156,9 @@
                     </div>
                 </div>
 
-                <div class="col-md-3">
+                <div class="{% if is_razor_subcategory %}col-md-4{% else %}col-md-3{% endif %}">
                     <div class="form-group">
-                        <label for="nominal_quantity_type" class="control-label">Тип ном. кол-ва</label>
+                        <label for="nominal_quantity_type" class="control-label">Тип ед. в потреб. упаковке</label>
                         <select id="nominal_quantity_type" name="nominal_quantity_type" class="form-control search-select" required>
                             <option value="" selected disabled>Выберите тип</option>
                             {% for item in nominal_quantity_types %}
@@ -182,12 +188,40 @@
                     </div>
                 </div>
 
-                <div class="col-md-3">
+                <div class="{% if is_razor_subcategory %}col-md-4{% else %}col-md-3{% endif %}">
                     {% include 'product_cards/new/categories/helpers/countries.html' %}
                 </div>
             </div>
 
+            {% if is_razor_subcategory %}
             <div class="row g-4 mt-1">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <div class="form-check form-switch mb-2">
+                            <label class="d-inline-flex align-items-center gap-2 mb-0"
+                                   data-bs-toggle="tooltip"
+                                   data-bs-placement="bottom"
+                                   title="Включите для бритвы со сменными лезвиями / кассетами. Выключите для одноразовых бритв и лезвий / кассет."
+                                   style="cursor:pointer">
+                                <input class="form-check-input border border-warning mt-0"
+                                       type="checkbox"
+                                       role="switch"
+                                       id="replaceable_razor_switch"
+                                       name="replaceable_razor"
+                                       value="1"
+                                       onchange="cosmeticsApplyRazorSwitchState(true);"
+                                       {% if copied_order and copied_order.tnved_code == subcategory_config.get("replaceable_razor_tnved_code", "") %}checked{% endif %}>
+                                <span class="form-check-label small mb-0 text-dark">
+                                    Бритва со сменными лезвиями / кассетами
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="row g-4 mt-1" {% if is_razor_subcategory %}id="razor_extra_fields_row"{% endif %}>
                 {% set layers_characteristic_choices = subcategory_config.get("layers_characteristic_choices", ()) %}
                 {% if layers_characteristic_choices %}
                 <div class="col-md-3">
@@ -203,8 +237,8 @@
                 </div>
                 {% endif %}
 
-                {% if subcategory == 'razor_blades_and_cassettes' %}
-                <div class="col-md-3">
+                {% if is_razor_subcategory %}
+                <div class="col-md-3" id="blade_count_block">
                     <div class="form-group">
                         <label for="blade_count" class="control-label">Кол-во лезвий</label>
                         <input id="blade_count"
@@ -213,7 +247,14 @@
                                min="1"
                                step="1"
                                class="form-control"
-                               value="{% if copied_order and copied_order.blade_count %}{{ copied_order.blade_count }}{% endif %}">
+                               value="{% if copied_order and copied_order.blade_count is not none %}{{ copied_order.blade_count }}{% else %}1{% endif %}">
+                    </div>
+                </div>
+
+                <div class="col-md-9" id="complectation_block" {% if not copied_order or not copied_order.complectation %}style="display:none"{% endif %}>
+                    <div class="form-group">
+                        <label for="complectation" class="control-label">Комплектация</label>
+                        <textarea id="complectation" name="complectation" class="form-control" rows="2" maxlength="500" oninput="normalizeCosmeticsContentInput(this)">{% if copied_order and copied_order.complectation %}{{ copied_order.complectation }}{% endif %}</textarea>
                     </div>
                 </div>
                 {% endif %}
@@ -254,6 +295,7 @@
                 </div>
             </div>
 
+            {% if not is_razor_subcategory %}
             <div class="row g-4 mt-1">
                 <div class="col-md-12" id="complectation_block" {% if not copied_order or not copied_order.complectation %}style="display:none"{% endif %}>
                     <div class="form-group">
@@ -262,6 +304,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
 
             <div class="row g-4 mt-1">
                 <div class="col-md-3">

@@ -400,6 +400,29 @@ function oBCartRemoveMissingCardIds(missingCardIds) {
   return true;
 }
 
+function oBCartItemTitleHtml(it) {
+  const category = (it.category || "").trim();
+  const article = (it.article || "").trim();
+  const trademark = (it.trademark || "").trim();
+
+  if (category === "cosmetics" || category === "parfum") {
+    return `<span class="text-truncate">${trademark || "—"}</span>`;
+  }
+
+  if (category === "toys") {
+    const title = article || trademark || "—";
+    const meta = trademark && trademark !== title
+      ? `<span class="o-b-cart-meta">(${trademark})</span>`
+      : "";
+    return `<span class="text-truncate">${title}</span>${meta}`;
+  }
+
+  return `
+    <span class="text-truncate">${article || "—"}</span>
+    <span class="o-b-cart-meta">(${trademark || "—"})</span>
+  `;
+}
+
 // --- render ---
 function oBCartRender() {
 
@@ -543,8 +566,7 @@ function oBCartRender() {
       <div class="o-b-article-block">
         <div class="o-b-article-head">
           <div class="o-b-cart-title">
-            <span class="text-truncate">${it0.article || "—"}</span>
-            <span class="o-b-cart-meta">(${it0.trademark || "—"})</span>
+            ${oBCartItemTitleHtml(it0)}
           
             ${
               !oBIsSingleUnitCategory(it0.category) && it0.color
@@ -975,6 +997,8 @@ function oBCartUpsertFromModalQty(payload) {
 
     if (idx >= 0) {
       order.items[idx].qty = qty;
+      order.items[idx].article = payload.article || order.items[idx].article || "";
+      order.items[idx].trademark = payload.trademark || order.items[idx].trademark || "";
 
     } else {
       order.items.push({

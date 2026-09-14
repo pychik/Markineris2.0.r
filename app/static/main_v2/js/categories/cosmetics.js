@@ -1254,8 +1254,8 @@ function cosmetics_clear_pos() {
     } else {
         updateCosmeticsFullName();
     }
-
     cosmetics_clear_tnved_feedback();
+    cosmeticsApplyRazorSwitchState(false);
     cosmeticsUpdateNominalQuantityTypeOptions();
     cosmeticsUpdateCategoryCode();
     cosmeticsToggleContentTypeBlock();
@@ -1305,6 +1305,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     initCosmeticsCategorySearch();
+    cosmeticsApplyRazorSwitchState(false);
     updateCosmeticsFullName();
     cosmetics_validate_full_name_requirements();
     cosmeticsUpdateNominalQuantityTypeOptions();

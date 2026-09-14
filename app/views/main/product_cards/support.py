@@ -273,6 +273,14 @@ def _get_product_cards_rd_countries(category_process: str) -> list[str]:
     return [country for country in get_rd_countries(category_process) if not _is_russia_country(country)]
 
 
+def _get_subcategory_default_countries(subcategory_config: dict[str, Any]) -> tuple[str, ...]:
+    return tuple(country.upper() for country in subcategory_config["default_countries"])
+
+
+def _get_all_countries_upper() -> tuple[str, ...]:
+    return tuple(country.upper() for country in get_all_countries())
+
+
 def helper_clothes_info(subcategory: str | None) -> Union[Response,  dict[str, Any]]:
 
     # Формируем набор глобальных переменных для категории одежда и ее подкатегорий
@@ -458,8 +466,8 @@ def helper_cosmetics_info(subcategory: str | None) -> Union[Response, dict[str, 
     usage_term_types = subcategory_config["usage_term_types"]
     content_type_choices = subcategory_config["content_type_choices"]
     for_children_choices = subcategory_config["for_children_choices"]
-    countries = _get_product_cards_countries()
-    rd_countries = _get_product_cards_rd_countries(settings.Cosmetics.CATEGORY_PROCESS)
+    countries = _get_subcategory_default_countries(subcategory_config)
+    rd_countries = _get_all_countries_upper()
     rd_description = settings.RD_DESCRIPTION
     rd_types_list = settings.RD_TYPES
     with_packages = False
@@ -496,8 +504,8 @@ def helper_toys_info(subcategory: str | None) -> Union[Response, dict[str, Any]]
     min_child_age_choices = subcategory_config["min_child_age_choices"]
     usage_term_types = subcategory_config["usage_term_types"]
     service_life_types = subcategory_config["service_life_types"]
-    countries = _get_product_cards_countries()
-    rd_countries = _get_product_cards_rd_countries(settings.Toys.CATEGORY_PROCESS)
+    countries = _get_subcategory_default_countries(subcategory_config)
+    rd_countries = _get_all_countries_upper()
     rd_description = settings.RD_DESCRIPTION
     rd_types_list = settings.RD_TYPES
     with_packages = False
@@ -556,7 +564,10 @@ def validate_card_form(category_process: str, subcategory: str, form_data: Immut
             raise ValueError(settings.Messages.COLOR_INPUT_ERROR.format(color=color))
 
     country = form_data.get("country")
-    if _is_russia_country(country):
+    if _is_russia_country(country) and category_process not in (
+        settings.Cosmetics.CATEGORY_PROCESS,
+        settings.Toys.CATEGORY_PROCESS,
+    ):
         raise ValueError("Страна РОССИЯ недоступна в разделе 'Мои карточки'.")
 
     # 3. TНВЭД
@@ -1116,6 +1127,13 @@ def save_cosmetics_card(
         product_type in set(subcategory_config.get("complectation_trigger_product_types") or ())
         or tnved_code in set(subcategory_config.get("complectation_trigger_tnved_codes") or ())
     )
+    nominal_quantity = _parse_optional_int(form_dict.get("nominal_quantity"))
+    nominal_quantity_type = form_dict.get("nominal_quantity_type")
+    blade_count = _parse_optional_int(form_dict.get("blade_count"))
+    if subcategory == "razor_blades_and_cassettes" and tnved_code != "8212109000":
+        blade_count = None
+        complectation_visible = False
+
     layers_enabled = bool(subcategory_config.get("layers_characteristic_choices") or ())
     for_children_enabled = subcategory_config.get("for_children_enabled", True)
 
@@ -1130,9 +1148,9 @@ def save_cosmetics_card(
         rd_date=rd_date,
         rd_date_to=rd_date_to,
         subcategory=subcategory,
-        nominal_quantity=_parse_optional_int(form_dict.get("nominal_quantity")),
-        nominal_quantity_type=form_dict.get("nominal_quantity_type"),
-        blade_count=_parse_optional_int(form_dict.get("blade_count")),
+        nominal_quantity=nominal_quantity,
+        nominal_quantity_type=nominal_quantity_type,
+        blade_count=blade_count,
         complectation=_clean_optional_text(form_dict.get("complectation")) if complectation_visible else "",
         layers_characteristic=_clean_optional_text(form_dict.get("layers_characteristic")) if layers_enabled else "",
         for_children=form_dict.get("for_children") == "yes" if for_children_enabled else False,

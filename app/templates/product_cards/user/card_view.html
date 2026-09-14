@@ -1,5 +1,5 @@
 {# В корзину можно только в пользовательском режиме #}
-{% set can_card_to_cart = (not is_operator_view) and (card.data_status == 'approved') %}
+{% set can_card_to_cart = (not is_operator_view) and (card.data_status == 'approved') and card.processing_company_label %}
 
 {% set subcat_title = '' %}
 {% if cfg.has_subcategory and main and main.subcategory not in [None, '', 'common'] %}
@@ -25,6 +25,11 @@
 
   {% include 'product_cards/user/helpers/_card_view_companies_block.html' %}
 
+  {% if (not is_operator_view) and card.data_status == 'approved' and not card.processing_company_label %}
+    <div class="alert alert-warning py-2 mb-3">
+      Карточку нельзя добавить в быстрый заказ: не назначена компания обработки.
+    </div>
+  {% endif %}
 
   {% if main %}
   <div class="pc-card-view__block mb-3">
@@ -137,6 +142,12 @@
   {% endif %}
 
   {% if card.category in ['parfum', 'cosmetics', 'toys'] and can_card_to_cart %}
+    {% set single_card_article = '' %}
+    {% if main and card.category == 'toys' %}
+      {% set single_card_article = main.model_article or '' %}
+    {% elif main and main.article is defined %}
+      {% set single_card_article = main.article or '' %}
+    {% endif %}
     <div class="d-flex align-items-center gap-2">
       <input type="number" id="pc-single-qty" class="o-b-qty pc-single-qty" min="0" value="0">
       <button id="pc-single-add"
@@ -147,7 +158,7 @@
               data-category-title="{{ cfg.title }}"
               data-subcategory="{{ main.subcategory or '' }}"
               data-subcategory-title="{% if cfg.has_subcategory and main and main.subcategory not in [None,'','common'] %}{{ cfg.get('subcategories', {}).get(main.subcategory, '') }}{% endif %}"
-              data-article="{{ main.article if main else '' }}"
+              data-article="{{ single_card_article }}"
               data-trademark="{{ main.trademark if main else '' }}"
               data-color="{{ main.color if main else '' }}"
               >
