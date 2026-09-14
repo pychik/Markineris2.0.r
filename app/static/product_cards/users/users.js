@@ -15,6 +15,54 @@ const PC_CATEGORY_GROUPS = {
             "pills-socks-tab",
         ],
     },
+    cosmetics: {
+        mode: "cosmetics",
+        modeClass: "pc-category-tabs--cosmetics",
+        rootCategory: "cosmetics",
+        childCategories: [],
+        tabIds: [
+            "pills-cosmetics-tab",
+            "pills-cosmetics-decor_ukhod-tab",
+            "pills-cosmetics-cosmetics_eye-tab",
+            "pills-cosmetics-cosmetics_lips-tab",
+            "pills-cosmetics-cosmetics_the_rest_hair-tab",
+            "pills-cosmetics-cosmetics_rascheski-tab",
+            "pills-cosmetics-razor_blades_and_cassettes-tab",
+            "pills-cosmetics-cosmetics_tooth-tab",
+            "pills-cosmetics-cosmetics_salt_bomb-tab",
+            "pills-cosmetics-cosmetics_mochalki-tab",
+            "pills-cosmetics-cosmetics_aroma-tab",
+            "pills-cosmetics-cosmetics_cleaning_products-tab",
+            "pills-cosmetics-cosmetics_deodorants-tab",
+            "pills-cosmetics-cosmetics_nails-tab",
+            "pills-cosmetics-cosmetics_toilet_paper-tab",
+            "pills-cosmetics-cosmetics_tweezers-tab",
+        ],
+    },
+    toys: {
+        mode: "toys",
+        modeClass: "pc-category-tabs--toys",
+        rootCategory: "toys",
+        childCategories: [],
+        tabIds: [
+            "pills-toys-tab",
+            "pills-toys-doll_accessories-tab",
+            "pills-toys-puzzles-tab",
+            "pills-toys-competition_cars-tab",
+            "pills-toys-sets_kits-tab",
+            "pills-toys-motorized_toys-tab",
+            "pills-toys-animal_creature-tab",
+            "pills-toys-scale_models_other-tab",
+            "pills-toys-musical_toy_instruments-tab",
+            "pills-toys-dolls_human_figures-tab",
+            "pills-toys-construction_sets-tab",
+            "pills-toys-card_games-tab",
+            "pills-toys-board_room_games_inventory-tab",
+            "pills-toys-toy_weapons-tab",
+            "pills-toys-play_tents-tab",
+            "pills-toys-electric_train_sets-tab",
+        ],
+    },
 };
 
 const PC_MAIN_CATEGORY_TAB_IDS = [
@@ -32,6 +80,8 @@ const PC_CATEGORY_CREATE_LABELS = {
     linen: "белье",
     parfum: "духи",
     socks: "носки",
+    cosmetics: "косметику",
+    toys: "игрушку",
 };
 
 const PC_CLOTHES_CREATE_LABELS = {
@@ -41,6 +91,43 @@ const PC_CLOTHES_CREATE_LABELS = {
     hats: "шляпы",
     gloves: "перчатки",
     shawls: "шали",
+};
+
+const PC_SUBCATEGORY_CREATE_LABELS = {
+    cosmetics: {
+        decor_ukhod: "декоративную и уходовую косметику",
+        cosmetics_eye: "косметику для глаз",
+        cosmetics_lips: "косметику для губ",
+        cosmetics_the_rest_hair: "косметику для волос",
+        cosmetics_rascheski: "расческу",
+        razor_blades_and_cassettes: "бритвы/лезвия",
+        cosmetics_tooth: "зубные средства",
+        cosmetics_salt_bomb: "соль/бомбу для ванны",
+        cosmetics_mochalki: "мочалку",
+        cosmetics_aroma: "ароматизатор",
+        cosmetics_cleaning_products: "чистящее средство",
+        cosmetics_deodorants: "дезодорант",
+        cosmetics_nails: "косметику для ногтей",
+        cosmetics_toilet_paper: "туалетную бумагу",
+        cosmetics_tweezers: "пинцет",
+    },
+    toys: {
+        doll_accessories: "аксессуар для кукол",
+        puzzles: "пазл",
+        competition_cars: "гоночную машинку",
+        sets_kits: "набор/комплект",
+        motorized_toys: "игрушку с приводом",
+        animal_creature: "фигурку животного",
+        scale_models_other: "масштабную модель",
+        musical_toy_instruments: "музыкальную игрушку",
+        dolls_human_figures: "куклу/фигурку",
+        construction_sets: "конструктор",
+        card_games: "карточную игру",
+        board_room_games_inventory: "настольную игру",
+        toy_weapons: "игрушечное оружие",
+        play_tents: "игровую палатку",
+        electric_train_sets: "железную дорогу",
+    },
 };
 
 let pcCategoryTabsMode = "main";
@@ -143,23 +230,30 @@ function pc_update_category(category, subcategory) {
 
     // основная категория
     const mainMap = {
-        shoes:   'pills-shoes-tab',
-        clothes: 'pills-clothes-tab',
-        linen:   'pills-linen-tab',
-        parfum:  'pills-parfum-tab',
-        socks:   'pills-socks-tab',
+        shoes: "pills-shoes-tab",
+        clothes: "pills-clothes-tab",
+        linen: "pills-linen-tab",
+        parfum: "pills-parfum-tab",
+        socks: "pills-socks-tab",
+        cosmetics: "pills-cosmetics-tab",
+        toys: "pills-toys-tab",
     };
 
     const mainId = mainMap[category];
     if (mainId) {
         const mainEl = document.getElementById(mainId);
-        if (category === 'clothes' && subcategory) {
-
+        if (category === "clothes" && subcategory) {
             const subId = `pills-${subcategory}-tab`; // underwear / swimming_accessories / hats / gloves / shawls
             const subEl = document.getElementById(subId);
-            if (subEl) subEl.classList.add('active');
-        return}
-        if (mainEl) mainEl.classList.add('active');
+            if (subEl) subEl.classList.add("active");
+            return;
+        }
+        if ((category === "cosmetics" || category === "toys") && subcategory) {
+            const subEl = document.getElementById(`pills-${category}-${subcategory}-tab`);
+            if (subEl) subEl.classList.add("active");
+            return;
+        }
+        if (mainEl) mainEl.classList.add("active");
     }
 
     // подкатегории одежды
@@ -211,13 +305,20 @@ document.addEventListener("DOMContentLoaded", function () {
         if (currentCategory === "clothes") {
             return PC_CLOTHES_CREATE_LABELS[currentSubcategory || "common"] || PC_CATEGORY_CREATE_LABELS.clothes;
         }
+        if (PC_SUBCATEGORY_CREATE_LABELS[currentCategory]) {
+            return PC_SUBCATEGORY_CREATE_LABELS[currentCategory][currentSubcategory] || PC_CATEGORY_CREATE_LABELS[currentCategory] || "товар";
+        }
         return PC_CATEGORY_CREATE_LABELS[currentCategory] || "товар";
     }
 
     function buildCurrentCreateUrl() {
         const params = new URLSearchParams();
         params.set("category", currentCategory || "shoes");
-        if (currentCategory === "clothes" && currentSubcategory && currentSubcategory !== "common") {
+        if (
+            currentSubcategory
+            && currentSubcategory !== "common"
+            && (currentCategory === "clothes" || PC_SUBCATEGORY_CREATE_LABELS[currentCategory])
+        ) {
             params.set("subcategory", currentSubcategory);
         }
         return NEW_PRODUCT_CARD_URL + "?" + params.toString();
@@ -565,11 +666,33 @@ function loadTable(page = 1) {
     const subcatWrapper    = document.getElementById("pc-create-subcat-wrapper");
     const subcategorySelect = document.getElementById("pc-create-subcategory");
     const createContinueBtn = document.getElementById("pc-create-continue");
+    const subcategoryLabel = document.getElementById("pc-create-subcategory-label");
+
+    function pcCategoryHasSubcategories(category) {
+        return category === "clothes" || Boolean(PC_SUBCATEGORY_CREATE_LABELS[category]);
+    }
+
+    function syncCreateSubcategoryOptions(category) {
+        if (!subcategorySelect) return;
+        let firstVisible = null;
+        Array.from(subcategorySelect.options).forEach(option => {
+            const visible = option.dataset.category === category;
+            option.hidden = !visible;
+            option.disabled = !visible;
+            if (visible && !firstVisible) firstVisible = option;
+        });
+        if (firstVisible) subcategorySelect.value = firstVisible.value;
+        if (subcategoryLabel) {
+            const categoryTitle = PC_CATEGORY_CREATE_LABELS[category] || "";
+            subcategoryLabel.textContent = categoryTitle ? `Подкатегория: ${categoryTitle}` : "Подкатегория";
+        }
+    }
 
     if (categorySelect) {
         // показать/скрыть подкатегории
         categorySelect.addEventListener("change", function () {
-            if (this.value === "clothes") {
+            if (pcCategoryHasSubcategories(this.value)) {
+                syncCreateSubcategoryOptions(this.value);
                 subcatWrapper.classList.remove("d-none");
             } else {
                 subcatWrapper.classList.add("d-none");
@@ -587,7 +710,7 @@ function loadTable(page = 1) {
             }
 
             let subcat = "";
-            if (cat === "clothes" && subcategorySelect && !subcatWrapper.classList.contains("d-none")) {
+            if (pcCategoryHasSubcategories(cat) && subcategorySelect && !subcatWrapper.classList.contains("d-none")) {
                 subcat = subcategorySelect.value || "";
             }
 

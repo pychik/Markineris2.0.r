@@ -27,6 +27,8 @@ _RD_CATEGORY_MAP = {
     settings.Shoes.CATEGORY_PROCESS: "shoes",
     settings.Linen.CATEGORY_PROCESS: "linen",
     settings.Parfum.CATEGORY_PROCESS: "parfum",
+    settings.Cosmetics.CATEGORY_PROCESS: "cosmetics",
+    settings.Toys.CATEGORY_PROCESS: "toys",
 }
 
 _RD_FALLBACKS = {
@@ -34,6 +36,8 @@ _RD_FALLBACKS = {
     "shoes": settings.SHOES_COUNTRIES_RD,
     "linen": settings.LINEN_COUNTRIES_RD,
     "parfum": settings.PARFUM_COUNTRIES_RD,
+    "cosmetics": [],
+    "toys": [],
 }
 
 _DISPLAY_TO_REDIS_GENDER = {

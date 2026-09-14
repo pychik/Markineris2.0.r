@@ -136,11 +136,11 @@
     </div>
   {% endif %}
 
-  {% if card.category == 'parfum' and can_card_to_cart %}
+  {% if card.category in ['parfum', 'cosmetics', 'toys'] and can_card_to_cart %}
     <div class="d-flex align-items-center gap-2">
-      <input type="number" id="pc-parfum-qty" class="o-b-qty" min="0" value="0">
-      <button id="pc-parfum-add"
-              class="pc-btn pc-btn-yellow pc-btn--sm"
+      <input type="number" id="pc-single-qty" class="o-b-qty pc-single-qty" min="0" value="0">
+      <button id="pc-single-add"
+              class="pc-btn pc-btn-yellow pc-btn--sm pc-single-add"
               title="Применить количество в корзину"
               data-card-id="{{ card.id }}"
               data-category="{{ card.category }}"

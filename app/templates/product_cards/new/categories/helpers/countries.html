@@ -78,7 +78,7 @@
 
     wrap.style.display = isOn ? "" : "none";
 
-    ["rd_type", "rd_name", "rd_date_from", "rd_date_to"].forEach(id => {
+    ["rd_type", "rd_name", "rd_date", "rd_date_to"].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.required = isOn;
     });

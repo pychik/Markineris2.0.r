@@ -27,7 +27,7 @@
     <thead class="text-dark">
       <tr>
         <th scope="col">#</th>
-        <th scope="col"><font size="2">Артикул</font></th>
+        <th scope="col"><font size="2">Товар</font></th>
         <th scope="col"><font size="2">Товарный знак</font></th>
         <th scope="col" ><font size="2">Действия</font></th>
       </tr>
@@ -36,16 +36,24 @@
     <tbody id="pc_order_table_body_info">
       {% if order_list and order_list|length > 0 %}
         {% for t in order_list %}
-          <tr data-article="{{ (t.article or '')|lower }}"
+          {% if category_process_name == 'cosmetics' %}
+            {% set row_trademark = '' if (t.trademark or '')|upper == 'БЕЗ ТОВАРНОГО ЗНАКА' else (t.trademark or '') %}
+            {% set item_title = ((t.type or '') ~ ' ' ~ row_trademark ~ ' ' ~ (t.full_name_extra or ''))|trim %}
+          {% elif category_process_name == 'toys' %}
+            {% set row_trademark = '' if (t.trademark or '')|lower == 'без товарного знака' else (t.trademark or '') %}
+            {% set item_title = ((t.type or '') ~ ' ' ~ row_trademark ~ ' ' ~ (t.full_name_extra or ''))|trim %}
+            {% if not item_title and t.model_article is defined and t.model_article %}
+              {% set item_title = t.model_article %}
+            {% endif %}
+          {% else %}
+            {% set item_title = t.article if t.article is defined and t.article else '' %}
+          {% endif %}
+          <tr data-article="{{ (item_title or '')|lower }}"
               data-trademark="{{ (t.trademark or '')|lower }}">
             <td>{{ loop.index }}</td>
 
             <td>
-              {% if category == 'parfum' %}
-                -
-              {% else %}
-                {{ t.article }}
-              {% endif %}
+              {{ item_title or '-' }}
             </td>
 
             <td>{{ t.trademark }}</td>

@@ -561,8 +561,11 @@ class ProductCard(db.Model, UserMixin):
             # здесь юнит – сама парфюмерная запись(и)
             return list(self.parfum)    # relationship к Parfum по card_id
 
-        if self.category == 'косметика':
+        if self.category == 'cosmetics':
             return list(self.cosmetics)
+
+        if self.category == 'toys':
+            return list(self.toys)
 
         if self.category == 'socks':
             return [s for sk in self.socks for s in sk.sizes_quantities]     # как сделаешь

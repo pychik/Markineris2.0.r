@@ -125,8 +125,12 @@ function oBNormalizeCardId(cardId) {
   return Number.isFinite(num) ? String(num) : "";
 }
 
+function oBIsSingleUnitCategory(category) {
+  return ["parfum", "cosmetics", "toys"].includes((category || "").trim());
+}
+
 // ключ позиции:
-// - parfum: category + card_id
+// - single-unit categories: category + card_id
 // - остальные: card_id + size + size_type + unit
 function oBItemKey(item) {
   const category = (item.category || "").trim();
@@ -135,8 +139,8 @@ function oBItemKey(item) {
   const st = (item.size_type || "").trim();
   const unit = (item.unit || "").trim();
 
-  if (category === "parfum") {
-    return oBParfumKey(category, cardId);
+  if (oBIsSingleUnitCategory(category)) {
+    return oBSingleUnitKey(category, cardId);
   }
 
   return `${category}||${cardId}||${size}||${st}||${unit}`;
@@ -480,8 +484,8 @@ function oBCartRender() {
   // группируем по артикулу (одна "шапка" артикула + список размеров)
   const groups = new Map();
   order.items.forEach((it, idx) => {
-    const gKey = it.category === "parfum"
-      ? oBParfumKey(it.category, it.card_id)
+    const gKey = oBIsSingleUnitCategory(it.category)
+      ? oBSingleUnitKey(it.category, it.card_id)
       : `${it.card_id}||${(it.article||"").trim()}||${(it.trademark||"").trim()}`;
 
     if (!groups.has(gKey)) groups.set(gKey, { it, rows: [] });
@@ -497,13 +501,13 @@ function oBCartRender() {
 
 
     const sizesHtml = g.rows.map(({ it, idx }) => {
-      const isParfum = it.category === "parfum";
-      const sizeLine = isParfum
+      const isSingleUnit = oBIsSingleUnitCategory(it.category);
+      const sizeLine = isSingleUnit
         ? "Количество"
         : (it.size
           ? `Размер: ${it.size}${it.size_type ? " · " + it.size_type : ""}${it.unit ? " · " + it.unit : ""}`
           : `Без размеров`);
-      const removeTitle = isParfum ? "Удалить позицию" : "Удалить размер";
+      const removeTitle = isSingleUnit ? "Удалить позицию" : "Удалить размер";
 
       return `
         <div class="o-b-size-row">
@@ -543,7 +547,7 @@ function oBCartRender() {
             <span class="o-b-cart-meta">(${it0.trademark || "—"})</span>
           
             ${
-              it0.category !== "parfum" && it0.color
+              !oBIsSingleUnitCategory(it0.category) && it0.color
                 ? `<div class="o-b-cart-meta small text-muted" style="font-size: 8px">${it0.color}</div>`
                 : ""
             }
@@ -605,8 +609,7 @@ function oBCartBuildPayloadOrError() {
   for (const ord of orders) {
     if (!ord.items || !ord.items.length) continue;
 
-    // ✅ PARFUM: группируем по card_id, без sizes
-    if ((ord.category || "").trim() === "parfum") {
+    if (oBIsSingleUnitCategory(ord.category)) {
       const byCardId = {};
 
       for (const it of ord.items) {
@@ -615,7 +618,7 @@ function oBCartBuildPayloadOrError() {
 
         if (!byCardId[cardId]) {
           byCardId[cardId] = {
-            article: "",                   // у парфюма не используем
+            article: "",
             trademark: it.trademark || "",
             card_id: parseInt(cardId, 10),
             category: it.category,
@@ -651,10 +654,10 @@ function oBCartBuildPayloadOrError() {
         category_title: ord.category_title || ord.category,
         company: ord.company || null,
         mark_type: ord.mark_type || "МАРКИРОВКА НЕ ВЫБРАНА",
-        items: items, // ✅ parfum items без sizes
+        items: items,
       });
 
-      continue; // ✅ не падаем в общую ветку
+      continue;
     }
 
     // ====== остальные категории  ======
@@ -823,7 +826,8 @@ function oBGetOpenCardModalContext() {
   const anyBtn =
     body.querySelector(".pc-apply-qty-btn") ||
     body.querySelector(".pc-add-to-cart-btn") ||   // fallback на старое
-    body.querySelector("#pc-parfum-add");          // fallback на парфюм
+    body.querySelector(".pc-single-add") ||
+    body.querySelector("#pc-parfum-add");          // fallback на старые модалки
 
   if (!anyBtn) return null;
 
@@ -877,34 +881,46 @@ function oBCartSyncOpenCardModalInputsFromCart() {
   });
 }
 
-function oBCartGetParfumQtyFromCart() {
+function oBCartGetSingleUnitQtyFromCart() {
   const order = oBCartGetSingleOrder();
-  if (!order || (order.category || "").toLowerCase() !== "parfum") return 0;
+  if (!order || !oBIsSingleUnitCategory(order.category)) return 0;
 
-  // ✅ берём card_id из текущей открытой карточки
-  const btn = document.getElementById("pc-parfum-add");
+  const btn = document.querySelector(".pc-single-add") || document.getElementById("pc-parfum-add");
   const cardId = oBNormalizeCardId(btn?.dataset?.cardId);
   if (!cardId) return 0;
 
-  const key = oBParfumKey("parfum", cardId);
+  const category = (btn?.dataset?.category || order.category || "").trim();
+  const key = oBSingleUnitKey(category, cardId);
   const it = (order.items || []).find(
-    x => oBParfumKey(x.category, x.card_id) === key
+    x => oBSingleUnitKey(x.category, x.card_id) === key
   );
 
   return parseInt(it?.qty || 0, 10) || 0;
 }
 
-function oBCartSyncParfumQtyFromCart() {
-  const inp = document.getElementById("pc-parfum-qty");
+function oBCartGetParfumQtyFromCart() {
+  return oBCartGetSingleUnitQtyFromCart();
+}
+
+function oBCartSyncSingleUnitQtyFromCart() {
+  const inp = document.querySelector(".pc-single-qty") || document.getElementById("pc-parfum-qty");
   if (!inp) return;
 
-  inp.value = String(oBCartGetParfumQtyFromCart() || 0);
+  inp.value = String(oBCartGetSingleUnitQtyFromCart() || 0);
+}
+
+function oBCartSyncParfumQtyFromCart() {
+  oBCartSyncSingleUnitQtyFromCart();
 }
 // ===== CART KEYS =====
 
-// ключ для парфюма (1 позиция = 1 карточка)
-function oBParfumKey(category, cardId) {
+function oBSingleUnitKey(category, cardId) {
   return `${(category || "").trim()}||${oBNormalizeCardId(cardId)}`;
+}
+
+// старое имя оставлено для совместимости
+function oBParfumKey(category, cardId) {
+  return oBSingleUnitKey(category, cardId);
 }
 
 function oBKeyNorm(v) {
@@ -947,10 +963,9 @@ function oBCartUpsertFromModalQty(payload) {
   orders = res.orders;
   const order = res.order;
 
-  // --- PARFUM (ключ по card_id) ---
-  if ((payload.category || "").trim() === "parfum") {
-    const k = oBParfumKey(payload.category, payload.card_id);
-    const idx = order.items.findIndex(x => oBParfumKey(x.category, x.card_id) === k);
+  if (oBIsSingleUnitCategory(payload.category)) {
+    const k = oBSingleUnitKey(payload.category, payload.card_id);
+    const idx = order.items.findIndex(x => oBSingleUnitKey(x.category, x.card_id) === k);
 
     if (qty === 0) {
       if (idx >= 0) order.items.splice(idx, 1);
@@ -1036,8 +1051,8 @@ function pcSyncApplyButtonsFromInputs() {
   });
 
   // parfum
-  const pInp = document.getElementById("pc-parfum-qty");
-  const pBtn = document.getElementById("pc-parfum-add");
+  const pInp = document.querySelector(".pc-single-qty") || document.getElementById("pc-parfum-qty");
+  const pBtn = document.querySelector(".pc-single-add") || document.getElementById("pc-parfum-add");
   if (pInp && pBtn) pcSetApplyBtnState(pBtn, pInp.value);
 }
 
@@ -1133,12 +1148,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-  // parfum add
+  // single-unit add
   document.addEventListener("click", (e) => {
-    const btn = e.target.closest("#pc-parfum-add");
+    const btn = e.target.closest(".pc-single-add") || e.target.closest("#pc-parfum-add");
     if (!btn) return;
 
-    const qtyEl = document.getElementById("pc-parfum-qty");
+    const qtyEl = document.querySelector(".pc-single-qty") || document.getElementById("pc-parfum-qty");
     if (!qtyEl) return;
 
     const nextQty = Math.max(0, parseInt(qtyEl.value, 10) || 0);
@@ -1169,8 +1184,8 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (e.target && e.target.id === "pc-parfum-qty") {
-      const btn = document.getElementById("pc-parfum-add");
+    if (e.target && (e.target.classList?.contains("pc-single-qty") || e.target.id === "pc-parfum-qty")) {
+      const btn = document.querySelector(".pc-single-add") || document.getElementById("pc-parfum-add");
       pcSetApplyBtnState(btn, 0);
     }
   });
@@ -1179,8 +1194,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (cardModalEl) {
     cardModalEl.addEventListener("shown.bs.modal", () => {
       oBCartSyncOpenCardModalInputsFromCart();
-      oBCartSyncParfumQtyFromCart();
-      pcSyncApplyButtonsFromInputs();           // парфюм
+      oBCartSyncSingleUnitQtyFromCart();
+      pcSyncApplyButtonsFromInputs();
     });
   }
 

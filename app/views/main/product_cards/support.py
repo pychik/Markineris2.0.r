@@ -1,7 +1,7 @@
 import time
 import functools
 from datetime import datetime
-from flask import flash, jsonify, redirect, request, url_for, Response
+from flask import flash, jsonify, redirect, render_template, request, url_for, Response
 from flask_login import current_user
 from typing import Union, Any
 
@@ -11,15 +11,24 @@ from werkzeug.datastructures import ImmutableMultiDict
 from config import settings
 from logger import logger
 from models import db, Clothes, LinenSizesUnits, ProductCard, ClothesQuantitySize, Shoe, ShoeQuantitySize, Socks, \
-    SocksQuantitySize, Linen, LinenQuantitySize, Parfum, ModerationStatus
+    SocksQuantitySize, Linen, LinenQuantitySize, Parfum, Cosmetics, Toys, ModerationStatus
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.exceptions import SizeTypeException
-from utilities.saving_helpers import get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, process_input_str
+from utilities.helpers.helpers_checks import rd_name_clean
+from utilities.saving_helpers import get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, \
+    normalize_trademark_placeholder, process_input_str
 from utilities.support import check_forbidden_words
 from utilities.validators import ValidatorProcessor
 from tezaurus.processing_companies import PROCESSING_COMPANIES_BATCH_LIMIT, ProcessingCompaniesClient
 from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
+from views.main.categories.cosmetics.subcategories import CosmeticsSubcategories, \
+    get_subcategory_config as get_cosmetics_subcategory_config
+from views.main.categories.cosmetics.subcategories.registry import \
+    SUBCATEGORY_CONFIG as COSMETICS_SUBCATEGORY_CONFIG
+from views.main.categories.toys.subcategories import ToysSubcategories, \
+    get_subcategory_config as get_toys_subcategory_config
+from views.main.categories.toys.subcategories.registry import SUBCATEGORY_CONFIG as TOYS_SUBCATEGORY_CONFIG
 
 CATEGORIES_COMMON = {
     "shoes": {
@@ -44,6 +53,28 @@ CATEGORIES_COMMON = {
         "rel_name": "parfum",
         "has_subcategory": False,
         "subcategories": None,
+    },
+
+    "cosmetics": {
+        "title": "косметика",
+        "model": Cosmetics,
+        "rel_name": "cosmetics",
+        "has_subcategory": True,
+        "subcategories": {
+            cfg["slug"]: cfg["title"]
+            for cfg in COSMETICS_SUBCATEGORY_CONFIG.values()
+        },
+    },
+
+    "toys": {
+        "title": "игрушки",
+        "model": Toys,
+        "rel_name": "toys",
+        "has_subcategory": True,
+        "subcategories": {
+            cfg["slug"]: cfg["title"]
+            for cfg in TOYS_SUBCATEGORY_CONFIG.values()
+        },
     },
 
     "clothes": {
@@ -131,7 +162,51 @@ CARD_FIELDS = {
         "material_package": "Материал упаковки",
         "country": "Страна",
         "tnved_code": "ТН ВЭД",
-    }
+    },
+
+    "cosmetics": {
+        "trademark": "Товарный знак",
+        "type": "Вид товара",
+        "full_name_extra": "Доп. наименование",
+        "country": "Страна",
+        "tnved_code": "ТН ВЭД",
+        "subcategory": "Подкатегория",
+        "nominal_quantity": "Номинальное количество",
+        "nominal_quantity_type": "Тип ном. кол-ва",
+        "blade_count": "Кол-во лезвий",
+        "complectation": "Комплектация",
+        "layers_characteristic": "Кол-во слоев",
+        "for_children": "Для детей",
+        "usage_term_type": "Хар-ка срока исп-ния",
+        "content_type": "Тип состава",
+        "content": "Состав",
+        "service_life": "Срок годности, мес.",
+        "sl_date_from": "Период годности: дата от",
+        "sl_date_to": "Период годности: дата до",
+    },
+
+    "toys": {
+        "trademark": "Товарный знак",
+        "type": "Вид товара",
+        "full_name_extra": "Доп. наименование",
+        "country": "Страна",
+        "tnved_code": "ТН ВЭД",
+        "subcategory": "Подкатегория",
+        "category_code": "Код категории",
+        "okpd2_code": "Код ОКПД2",
+        "okpd2_name": "Наименование ОКПД2",
+        "model_article_type": "Тип модели/артикула",
+        "model_article": "Модель / артикул",
+        "drive_type": "Тип привода",
+        "material": "Материал изделия",
+        "min_child_age": "Минимальный возраст",
+        "usage_term_type": "Хар-ка срока исп-ния",
+        "content": "Состав",
+        "service_life_type": "Ед. срока службы",
+        "service_life": "Срок годности, мес.",
+        "sl_date_from": "Период годности: дата от",
+        "sl_date_to": "Период годности: дата до",
+    },
 }
 
 WEAR_CARD_CATEGORIES = {
@@ -359,6 +434,87 @@ def helper_parfum_info(subcategory: str | None) -> Union[Response, dict[str, Any
     return locals()
 
 
+def helper_cosmetics_info(subcategory: str | None) -> Union[Response, dict[str, Any]]:
+    if not subcategory:
+        return redirect(url_for("user_product_cards.category_subcategories", category=settings.Cosmetics.CATEGORY_PROCESS))
+    if not CosmeticsSubcategories.has_value(subcategory):
+        flash("Неизвестная подкатегория косметики.", "error")
+        return redirect(url_for("user_product_cards.category_subcategories", category=settings.Cosmetics.CATEGORY_PROCESS))
+
+    subcategory_config = get_cosmetics_subcategory_config(subcategory)
+    if not subcategory_config:
+        flash("Подкатегория косметики пока не настроена.", "error")
+        return redirect(url_for("user_product_cards.category_subcategories", category=settings.Cosmetics.CATEGORY_PROCESS))
+
+    category = settings.Cosmetics.CATEGORY
+    category_process_name = settings.Cosmetics.CATEGORY_PROCESS
+    subcategory_title = subcategory_config["title"]
+    category_code = subcategory_config["category_code"]
+    allowed_tnved_codes = subcategory_config["allowed_tnved_codes"]
+    allowed_tnved_choices = subcategory_config["allowed_tnved_choices"]
+    nominal_quantity_types = subcategory_config["nominal_quantity_types"]
+    nominal_quantity_types_by_product_type = subcategory_config["nominal_quantity_types_by_product_type"]
+    product_types = subcategory_config["product_types"]
+    usage_term_types = subcategory_config["usage_term_types"]
+    content_type_choices = subcategory_config["content_type_choices"]
+    for_children_choices = subcategory_config["for_children_choices"]
+    countries = _get_product_cards_countries()
+    rd_countries = _get_product_cards_rd_countries(settings.Cosmetics.CATEGORY_PROCESS)
+    rd_description = settings.RD_DESCRIPTION
+    rd_types_list = settings.RD_TYPES
+    with_packages = False
+    has_aggr = False
+    return locals()
+
+
+def helper_toys_info(subcategory: str | None) -> Union[Response, dict[str, Any]]:
+    if not subcategory:
+        return redirect(url_for("user_product_cards.category_subcategories", category=settings.Toys.CATEGORY_PROCESS))
+    if not ToysSubcategories.has_value(subcategory):
+        flash("Неизвестная подкатегория игрушек.", "error")
+        return redirect(url_for("user_product_cards.category_subcategories", category=settings.Toys.CATEGORY_PROCESS))
+
+    subcategory_config = get_toys_subcategory_config(subcategory)
+    if not subcategory_config:
+        flash("Подкатегория игрушек пока не настроена.", "error")
+        return redirect(url_for("user_product_cards.category_subcategories", category=settings.Toys.CATEGORY_PROCESS))
+
+    category = settings.Toys.CATEGORY
+    category_process_name = settings.Toys.CATEGORY_PROCESS
+    subcategory_title = subcategory_config["title"]
+    category_code = subcategory_config["category_code"]
+    category_code_by_tnved = subcategory_config.get("category_code_by_tnved", {})
+    allowed_tnved_codes = subcategory_config["allowed_tnved_codes"]
+    allowed_tnved_choices = subcategory_config["allowed_tnved_choices"]
+    allowed_tnved_codes_by_product_type = subcategory_config.get("allowed_tnved_codes_by_product_type", {})
+    tnved_group_choices = subcategory_config.get("tnved_group_choices", ())
+    okpd2_choices_by_tnved = subcategory_config["okpd2_choices_by_tnved"]
+    model_article_types = subcategory_config["model_article_types"]
+    product_types = subcategory_config["product_types"]
+    drive_type_choices = subcategory_config.get("drive_type_choices", ())
+    material_choices = subcategory_config["material_choices"]
+    min_child_age_choices = subcategory_config["min_child_age_choices"]
+    usage_term_types = subcategory_config["usage_term_types"]
+    service_life_types = subcategory_config["service_life_types"]
+    countries = _get_product_cards_countries()
+    rd_countries = _get_product_cards_rd_countries(settings.Toys.CATEGORY_PROCESS)
+    rd_description = settings.RD_DESCRIPTION
+    rd_types_list = settings.RD_TYPES
+    with_packages = False
+    has_aggr = False
+    return locals()
+
+
+def _is_valid_card_subcategory(category_process: str, subcategory: str | None) -> bool:
+    if category_process == settings.Clothes.CATEGORY_PROCESS:
+        return subcategory in {s.value for s in ClothesSubcategories}
+    if category_process == settings.Cosmetics.CATEGORY_PROCESS:
+        return CosmeticsSubcategories.has_value(subcategory)
+    if category_process == settings.Toys.CATEGORY_PROCESS:
+        return ToysSubcategories.has_value(subcategory)
+    return True
+
+
 def validate_card_form(category_process: str, subcategory: str, form_data: ImmutableMultiDict):
     """
     Валидирует данные карточки.
@@ -375,14 +531,13 @@ def validate_card_form(category_process: str, subcategory: str, form_data: Immut
     # -------------------------
 
     if has_subcat:
-        # категория (например clothes) ОБЯЗАТЕЛЬНО должна иметь подкатегорию
-        valid_subcats = [s.value for s in ClothesSubcategories]
-
         if not subcategory:
-            # по умолчанию "common"
-            subcategory = ClothesSubcategories.common.value
+            if category_process == settings.Clothes.CATEGORY_PROCESS:
+                subcategory = ClothesSubcategories.common.value
+            else:
+                raise ValueError(f"Для категории '{cfg.get('title')}' не указана подкатегория.")
 
-        if subcategory not in valid_subcats:
+        if not _is_valid_card_subcategory(category_process, subcategory):
             raise ValueError(f"Подкатегория '{subcategory}' не существует для категории '{cfg.get('title')}'.")
     # else:
     #     # Если категория НЕ поддерживает подкатегории, но subcategory передана → ошибка
@@ -395,7 +550,7 @@ def validate_card_form(category_process: str, subcategory: str, form_data: Immut
     category_title = CATEGORIES_COMMON.get(category_process).get('title').lower()
 
     # 2. Цвета (кроме парфюма)
-    if category_process != settings.Parfum.CATEGORY_PROCESS:
+    if "color" in CARD_FIELDS.get(category_process, {}):
         color = form_data.get("color")
         if ValidatorProcessor.check_colors(color=color):
             raise ValueError(settings.Messages.COLOR_INPUT_ERROR.format(color=color))
@@ -411,6 +566,16 @@ def validate_card_form(category_process: str, subcategory: str, form_data: Immut
             tnved_str=form_data.get("tnved_code")
     ):
         raise ValueError(settings.Messages.TNVED_ABSENCE_ERROR)
+
+    if category_process == settings.Cosmetics.CATEGORY_PROCESS:
+        error = ValidatorProcessor.validate_cosmetics_subcategory_payload(subcategory, form_data)
+        if error:
+            raise ValueError(error)
+
+    if category_process == settings.Toys.CATEGORY_PROCESS:
+        error = ValidatorProcessor.validate_toys_subcategory_payload(subcategory, form_data)
+        if error:
+            raise ValueError(error)
 
     # # 4. RD документация
     # rd_name = form_data.get("rd_name")
@@ -902,6 +1067,151 @@ def save_parfum_card(
     return card
 
 
+def _parse_optional_int(value) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_optional_ru_date(value):
+    value = (value or "").strip()
+    if not value:
+        return None
+    return datetime.strptime(value, "%d.%m.%Y").date()
+
+
+def _clean_optional_text(value) -> str:
+    value = process_input_str(value)
+    return "" if value.lower() in {"none", "null", "undefined"} else value
+
+
+def save_cosmetics_card(
+    card: ProductCard,
+    form_dict: dict,
+    sizes_quantities: list | None = None,
+    subcategory: str | None = None,
+) -> ProductCard:
+    rd_date = form_dict.get("_rd_date_obj")
+    rd_date_to = form_dict.get("_rd_date_to_obj")
+    sl_date_from = _parse_optional_ru_date(form_dict.get("sl_date_from"))
+    sl_date_to = _parse_optional_ru_date(form_dict.get("sl_date_to"))
+    subcategory_config = get_cosmetics_subcategory_config(subcategory) or {}
+    product_type = str(form_dict.get("type") or "").strip()
+    tnved_code = str(form_dict.get("tnved_code") or "").strip()
+
+    content_value_enabled = subcategory_config.get("content_value_enabled", True)
+    content_type_enabled = subcategory_config.get("content_type_enabled", True)
+    content_type_trigger_types = set(subcategory_config.get("content_type_trigger_product_types") or ())
+    content_type_trigger_tnveds = set(subcategory_config.get("content_type_trigger_tnved_codes") or ())
+    content_type_visible = content_value_enabled and content_type_enabled
+    if content_type_visible and content_type_trigger_types:
+        content_type_visible = product_type in content_type_trigger_types
+    if content_type_visible and content_type_trigger_tnveds:
+        content_type_visible = tnved_code in content_type_trigger_tnveds
+
+    complectation_visible = (
+        product_type in set(subcategory_config.get("complectation_trigger_product_types") or ())
+        or tnved_code in set(subcategory_config.get("complectation_trigger_tnved_codes") or ())
+    )
+    layers_enabled = bool(subcategory_config.get("layers_characteristic_choices") or ())
+    for_children_enabled = subcategory_config.get("for_children_enabled", True)
+
+    cosmetics = Cosmetics(
+        trademark=normalize_trademark_placeholder(form_dict.get("trademark")),
+        type=product_type,
+        full_name_extra=process_input_str(form_dict.get("full_name_extra")),
+        country=form_dict.get("country"),
+        tnved_code=tnved_code,
+        rd_type=form_dict.get("rd_type"),
+        rd_name=rd_name_clean(form_dict.get("rd_name")),
+        rd_date=rd_date,
+        rd_date_to=rd_date_to,
+        subcategory=subcategory,
+        nominal_quantity=_parse_optional_int(form_dict.get("nominal_quantity")),
+        nominal_quantity_type=form_dict.get("nominal_quantity_type"),
+        blade_count=_parse_optional_int(form_dict.get("blade_count")),
+        complectation=_clean_optional_text(form_dict.get("complectation")) if complectation_visible else "",
+        layers_characteristic=_clean_optional_text(form_dict.get("layers_characteristic")) if layers_enabled else "",
+        for_children=form_dict.get("for_children") == "yes" if for_children_enabled else False,
+        usage_term_type=form_dict.get("usage_term_type"),
+        content_type=_clean_optional_text(form_dict.get("content_type")) if content_type_visible else "",
+        content=_clean_optional_text(form_dict.get("content")) if content_value_enabled else "",
+        service_life=_parse_optional_int(form_dict.get("service_life")),
+        sl_date_from=sl_date_from,
+        sl_date_to=sl_date_to,
+        card_id=card.id,
+    )
+
+    db.session.add(cosmetics)
+    return card
+
+
+def save_toys_card(
+    card: ProductCard,
+    form_dict: dict,
+    sizes_quantities: list | None = None,
+    subcategory: str | None = None,
+) -> ProductCard:
+    rd_date = form_dict.get("_rd_date_obj")
+    rd_date_to = form_dict.get("_rd_date_to_obj")
+    sl_date_from = _parse_optional_ru_date(form_dict.get("sl_date_from"))
+    sl_date_to = _parse_optional_ru_date(form_dict.get("sl_date_to"))
+
+    model_article = normalize_article_placeholder(form_dict.get("model_article"))
+    if form_dict.get("no_model_article") or not model_article:
+        model_article = "отсутствует"
+
+    okpd2_name = form_dict.get("okpd2_name")
+    category_code = form_dict.get("category_code")
+    subcategory_config = get_toys_subcategory_config(subcategory) or {}
+    tnved_code = str(form_dict.get("tnved_code") or "").strip()
+    if subcategory_config:
+        category_code = (
+            (subcategory_config.get("category_code_by_tnved") or {}).get(tnved_code)
+            or subcategory_config.get("category_code")
+            or ""
+        )
+        okpd2_choices = subcategory_config.get("okpd2_choices_by_tnved", {}).get(tnved_code, ())
+        okpd2_name = next(
+            (name for code, name in okpd2_choices if str(code).strip() == str(form_dict.get("okpd2_code") or "").strip()),
+            okpd2_name,
+        )
+
+    toys = Toys(
+        trademark=normalize_trademark_placeholder(form_dict.get("trademark")),
+        type=form_dict.get("type"),
+        full_name_extra=process_input_str(form_dict.get("full_name_extra")),
+        country=form_dict.get("country"),
+        tnved_code=form_dict.get("tnved_code"),
+        rd_type=form_dict.get("rd_type"),
+        rd_name=rd_name_clean(form_dict.get("rd_name")),
+        rd_date=rd_date,
+        rd_date_to=rd_date_to,
+        subcategory=subcategory,
+        category_code=category_code,
+        okpd2_code=form_dict.get("okpd2_code"),
+        okpd2_name=okpd2_name,
+        model_article_type=form_dict.get("model_article_type"),
+        model_article=model_article,
+        drive_type=form_dict.get("drive_type"),
+        material=form_dict.get("material"),
+        min_child_age=form_dict.get("min_child_age"),
+        usage_term_type=form_dict.get("usage_term_type"),
+        content=form_dict.get("content"),
+        service_life_type=form_dict.get("service_life_type") or "мес",
+        service_life=_parse_optional_int(form_dict.get("service_life")),
+        sl_date_from=sl_date_from,
+        sl_date_to=sl_date_to,
+        card_id=card.id,
+    )
+
+    db.session.add(toys)
+    return card
+
+
 def extract_card_main_and_sizes(card: ProductCard):
     """
     Возвращает main-объект (Clothes/Shoes/...) и список размеров для формы.
@@ -950,6 +1260,8 @@ def extract_card_main_and_sizes(card: ProductCard):
 
     elif card.category == settings.Parfum.CATEGORY_PROCESS:
         sizes = []
+    elif card.category in (settings.Cosmetics.CATEGORY_PROCESS, settings.Toys.CATEGORY_PROCESS):
+        sizes = []
 
     return main, sizes
 
@@ -961,6 +1273,8 @@ def get_card_ctx(category: str, subcategory: str | None = None) -> dict:
         "linen": helper_linen_info,
         "parfum": helper_parfum_info,
         "shoes": helper_shoes_info,
+        "cosmetics": helper_cosmetics_info,
+        "toys": helper_toys_info,
     }
 
     builder = category_ctx_builder[category]
@@ -1073,6 +1387,52 @@ def check_same_fields_if_exists(*, category: str, subcategory: str | None, form_
             )
         return
 
+    if category in (settings.Cosmetics.CATEGORY_PROCESS, settings.Toys.CATEGORY_PROCESS):
+        query = (
+            db.session.query(model)
+            .join(ProductCard, ProductCard.id == model.card_id)
+            .filter(
+                ProductCard.user_id == current_user.id,
+                ProductCard.category == category,
+                ProductCard.status != ModerationStatus.REJECTED,
+            )
+        )
+        if subcategory and hasattr(model, "subcategory"):
+            query = query.filter(model.subcategory == subcategory)
+
+        def _form_cmp_value(field: str) -> str:
+            if field == "trademark":
+                return _norm(normalize_trademark_placeholder(form_dict.get(field)))
+            if field == "model_article":
+                value = normalize_article_placeholder(form_dict.get(field))
+                return _norm("отсутствует" if form_dict.get("no_model_article") or not value else value)
+            if field == "for_children":
+                return "1" if form_dict.get(field) == "yes" else "0"
+            if field in ("sl_date_from", "sl_date_to"):
+                return _norm(form_dict.get(field))
+            return _norm(form_dict.get(field))
+
+        def _db_cmp_value(existing_item, field: str) -> str:
+            value = getattr(existing_item, field, None)
+            if field == "for_children":
+                return "1" if value else "0"
+            if field in ("sl_date_from", "sl_date_to") and value:
+                return value.strftime("%d.%m.%Y")
+            return _norm(value)
+
+        for existing in query.all():
+            if all(
+                _db_cmp_value(existing, field) == _form_cmp_value(field)
+                for field in fields_to_lock
+                if field != "subcategory"
+            ):
+                title = cfg.get("title", category)
+                raise Exception(
+                    f"У вас уже есть такая карточка в категории '{title}' "
+                    f"(ID {existing.card_id}). Новая карточка не создана."
+                )
+        return
+
     # =========================
     # ОСТАЛЬНЫЕ: article + совпадение полей
     # =========================
@@ -1139,6 +1499,10 @@ def get_card_entity_for_prefill(card: ProductCard):
         return card.linen[0] if card.linen else None
     if card.category == "parfum":
         return card.parfum[0] if card.parfum else None
+    if card.category == "cosmetics":
+        return card.cosmetics[0] if card.cosmetics else None
+    if card.category == "toys":
+        return card.toys[0] if card.toys else None
     return None
 
 
@@ -1604,6 +1968,11 @@ def assert_frozen_fields_unchanged(card: ProductCard, form_data):
         # sizes у парфюма нет — пропускаем
         return
 
+    if category in (settings.Cosmetics.CATEGORY_PROCESS, settings.Toys.CATEGORY_PROCESS):
+        if not get_card_entity_for_prefill(card):
+            raise ValueError("Не удалось прочитать данные карточки для сравнения.")
+        return
+
     # не парфюм:
     entity = get_card_entity_for_prefill(card)
     if not entity:
@@ -1713,6 +2082,7 @@ def assert_frozen_fields_unchanged(card: ProductCard, form_data):
 FROZEN_FIELDS = {
     "default": {"color", "size", "size_type", "quantity", "sizeX", "sizeY", "sizeUnit"},
     "parfum": set(),
+    "single_unit": set(),
 }
 
 
@@ -1724,7 +2094,11 @@ def update_card_allowed_fields(card: ProductCard, form_dict: dict, form_data):
     if not entity:
         raise ValueError("Нет данных категории в карточке")
 
-    frozen = FROZEN_FIELDS["parfum"] if category == "parfum" else FROZEN_FIELDS["default"]
+    frozen = (
+        FROZEN_FIELDS["single_unit"]
+        if category in (settings.Parfum.CATEGORY_PROCESS, settings.Cosmetics.CATEGORY_PROCESS, settings.Toys.CATEGORY_PROCESS)
+        else FROZEN_FIELDS["default"]
+    )
 
     # разрешённые поля = CARD_FIELDS[category] - frozen(по смыслу)
     for field in CARD_FIELDS[category].keys():
@@ -1733,8 +2107,20 @@ def update_card_allowed_fields(card: ProductCard, form_dict: dict, form_data):
         if hasattr(entity, field) and field in form_dict:
             if field == "article":
                 setattr(entity, field, normalize_article_for_category(category, form_dict))
+            elif field == "model_article":
+                value = normalize_article_placeholder(form_dict.get(field))
+                setattr(entity, field, "отсутствует" if form_dict.get("no_model_article") or not value else value)
             elif field == "trademark":
-                setattr(entity, field, process_input_str(form_dict[field] or ""))
+                if category in (settings.Cosmetics.CATEGORY_PROCESS, settings.Toys.CATEGORY_PROCESS):
+                    setattr(entity, field, normalize_trademark_placeholder(form_dict.get(field)))
+                else:
+                    setattr(entity, field, process_input_str(form_dict[field] or ""))
+            elif field == "for_children":
+                setattr(entity, field, form_dict.get(field) == "yes")
+            elif field in ("nominal_quantity", "blade_count", "service_life"):
+                setattr(entity, field, _parse_optional_int(form_dict.get(field)))
+            elif field in ("sl_date_from", "sl_date_to"):
+                setattr(entity, field, _parse_optional_ru_date(form_dict.get(field)))
             else:
                 setattr(entity, field, form_dict[field])
 
@@ -1756,7 +2142,11 @@ def get_card_allowed_field_changes(card: ProductCard, form_dict: dict) -> list[s
     if not entity:
         return []
 
-    frozen = FROZEN_FIELDS["parfum"] if category == "parfum" else FROZEN_FIELDS["default"]
+    frozen = (
+        FROZEN_FIELDS["single_unit"]
+        if category in (settings.Parfum.CATEGORY_PROCESS, settings.Cosmetics.CATEGORY_PROCESS, settings.Toys.CATEGORY_PROCESS)
+        else FROZEN_FIELDS["default"]
+    )
     changes: list[str] = []
 
     def _norm(value):
@@ -1764,12 +2154,23 @@ def get_card_allowed_field_changes(card: ProductCard, form_dict: dict) -> list[s
             return ""
         if isinstance(value, str):
             return value.strip()
+        if hasattr(value, "strftime"):
+            return value.strftime("%d.%m.%Y")
         return value
 
     for field, label in CARD_FIELDS[category].items():
         if field in frozen or not hasattr(entity, field) or field not in form_dict:
             continue
-        if _norm(getattr(entity, field, None)) != _norm(form_dict.get(field)):
+        if field == "for_children":
+            form_value = form_dict.get(field) == "yes"
+        elif field == "model_article":
+            value = normalize_article_placeholder(form_dict.get(field))
+            form_value = "отсутствует" if form_dict.get("no_model_article") or not value else value
+        elif field in ("sl_date_from", "sl_date_to"):
+            form_value = form_dict.get(field)
+        else:
+            form_value = form_dict.get(field)
+        if _norm(getattr(entity, field, None)) != _norm(form_value):
             changes.append(label)
 
     rd_changed = False
@@ -1817,6 +2218,10 @@ def card_has_rd(card: ProductCard) -> bool:
         return any(_has_rd_on_item(it) for it in (card.linen or []))
     if cat == "parfum":
         return any(_has_rd_on_item(it) for it in (card.parfum or []))
+    if cat == "cosmetics":
+        return any(_has_rd_on_item(it) for it in (card.cosmetics or []))
+    if cat == "toys":
+        return any(_has_rd_on_item(it) for it in (card.toys or []))
 
     return False
 

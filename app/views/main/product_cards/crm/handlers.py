@@ -15,7 +15,7 @@ from logger import logger
 from models import db, ProductCard, User, ModerationStatus
 from tezaurus.runtime_catalogs import get_processing_companies
 from utilities.download import OrdersProcessor, ShoesProcessor, ClothesProcessor, SocksProcessor, LinenProcessor, \
-    ParfumProcessor
+    ParfumProcessor, CosmeticsProcessor, ToysProcessor
 from .helpers import crm_get_cards, helper_categories_counter, split_cards_by_status, product_card_download_common, \
     h_pc_move_render_list_html, h_append_card_log, \
     h_pc_move_pack_cards, h_pc_move_template_for_status, h_pc_move_get_cards_by_status, \
@@ -133,8 +133,8 @@ def h_pc_lazy_column():
 
     if category and category not in CATEGORIES_COMMON:
         return jsonify(status="error", message="Неизвестная категория"), 400
-    if subcategory and category != "clothes":
-        return jsonify(status="error", message="Подкатегория доступна только для clothes"), 400
+    if subcategory and not CATEGORIES_COMMON.get(category, {}).get("has_subcategory"):
+        return jsonify(status="error", message="Подкатегория недоступна для выбранной категории"), 400
 
     cards = h_pc_move_get_cards_by_status(
         status_value=status_value,
@@ -440,6 +440,8 @@ def h_download_cards_companies_in_progress():
         "socks": (CATEGORIES_COMMON["socks"]["rel_name"], SocksProcessor, settings.Socks.CATEGORY),
         "linen": (CATEGORIES_COMMON["linen"]["rel_name"], LinenProcessor, settings.Linen.CATEGORY),
         "parfum": (CATEGORIES_COMMON["parfum"]["rel_name"], ParfumProcessor, settings.Parfum.CATEGORY),
+        "cosmetics": (CATEGORIES_COMMON["cosmetics"]["rel_name"], CosmeticsProcessor, settings.Cosmetics.CATEGORY),
+        "toys": (CATEGORIES_COMMON["toys"]["rel_name"], ToysProcessor, settings.Toys.CATEGORY),
     }
 
     # ----------------------------
@@ -687,6 +689,8 @@ def h_download_cards_companies_by_status():
         "socks": (CATEGORIES_COMMON["socks"]["rel_name"], SocksProcessor, settings.Socks.CATEGORY),
         "linen": (CATEGORIES_COMMON["linen"]["rel_name"], LinenProcessor, settings.Linen.CATEGORY),
         "parfum": (CATEGORIES_COMMON["parfum"]["rel_name"], ParfumProcessor, settings.Parfum.CATEGORY),
+        "cosmetics": (CATEGORIES_COMMON["cosmetics"]["rel_name"], CosmeticsProcessor, settings.Cosmetics.CATEGORY),
+        "toys": (CATEGORIES_COMMON["toys"]["rel_name"], ToysProcessor, settings.Toys.CATEGORY),
     }
 
     def _json_error(message: str, code: int = 400):
@@ -1152,8 +1156,13 @@ def h_pc_move_card(pc_id: int):
         # 5) спец-логика при APPROVED: merge sizes или approve sizes
         merge_info = None
         if target == ModerationStatus.APPROVED.value:
-            # parfum: ничего не мерджим
-            if card.category != settings.Parfum.CATEGORY_PROCESS:
+            wear_categories = {
+                settings.Clothes.CATEGORY_PROCESS,
+                settings.Shoes.CATEGORY_PROCESS,
+                settings.Linen.CATEGORY_PROCESS,
+                settings.Socks.CATEGORY_PROCESS,
+            }
+            if card.category in wear_categories:
                 base = _find_base_card_same_article(card)
 
                 # условие: "если по артикулу есть уже какие-то размеры" -> base существует и у неё есть размеры
@@ -1187,10 +1196,17 @@ def h_pc_move_card(pc_id: int):
                         f"\n{dt_str} все размеры помечены как одобренные оператором {mgr};"
                     )
             else:
-                # parfum — если у юнитов есть is_approved, можно поставить
-                for p in card.parfum:
-                    if hasattr(p, "is_approved"):
-                        p.is_approved = True
+                cfg = CATEGORIES_COMMON.get(card.category)
+                rel_name = cfg.get("rel_name") if cfg else ""
+                for unit in getattr(card, rel_name, []) or []:
+                    if hasattr(unit, "is_approved"):
+                        unit.is_approved = True
+                dt, dt_str = _dt()
+                mgr = _manager_login()
+                card.card_log = h_append_card_log(
+                    card.card_log,
+                    f"\n{dt_str} позиция карточки помечена как одобренная оператором {mgr};"
+                )
 
         db.session.commit()
 

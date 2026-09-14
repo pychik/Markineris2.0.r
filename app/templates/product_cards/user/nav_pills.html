@@ -12,7 +12,7 @@
 {#              </div>#}
 {#              <span class="pc_learn__text">Видео</span>#}
 {#          </div>#}
-          {% set pc_category_tabs_mode = 'clothes' if current_category == 'socks' or (current_category == 'clothes' and current_subcategory) else 'main' %}
+          {% set pc_category_tabs_mode = 'clothes' if current_category == 'socks' or (current_category == 'clothes' and current_subcategory) else (current_category if current_category in ['cosmetics', 'toys'] and current_subcategory else 'main') %}
           <ul class="nav-pills nav-pills--cat mb-4 pc-category-tabs pc-category-tabs--{{ pc_category_tabs_mode }}" id="pills-tab" role="tablist">
 
 <!--            <span onclick="get_shoes_history('{{ url_for('user_product_cards.cards_table', category='обувь', upload_flag=1) }}')">-->
@@ -45,7 +45,7 @@
             </a>
 
 
-            <a data-pc-category-tile data-pc-category-order="10" href="javascript:get_category_product_cards(`{{ url_for('user_product_cards.cards_table', category='одежда', upload_flag=111)}}`, 'clothes')">
+            <a data-pc-category-tile data-pc-category-root="clothes" data-pc-category-order="10" href="javascript:get_category_product_cards(`{{ url_for('user_product_cards.cards_table', category='одежда', upload_flag=111)}}`, 'clothes')">
                 <li class="nav-link"  id="pills-clothes-tab"
                     type="button" role="tab" >
                     <button class="text-center border-0">
@@ -107,25 +107,25 @@
                 </li>
             </a>
 
-            <span data-pc-category-tile data-pc-main-only class="pc-category-disabled-tile" title="Скоро">
+            <a data-pc-category-tile data-pc-category-root="cosmetics" data-pc-category-order="10" href="{{ url_for('user_product_cards.cards', category='cosmetics', subcategory='decor_ukhod') }}">
                 <li class="nav-link" id="pills-cosmetics-tab"
-                    type="button" role="tab" aria-disabled="true">
-                    <button class="text-center border-0" type="button" disabled>
+                    type="button" role="tab">
+                    <button class="text-center border-0" type="button">
                         <img src="{{ url_for('static', filename='main_v2/img/icons/cosmetics.svg') }}" width="52" height="51" alt="" aria-hidden="true">
                         <div class="category-item__name text-center">Косметика</div>
                     </button>
                 </li>
-            </span>
+            </a>
 
-            <span data-pc-category-tile data-pc-main-only class="pc-category-disabled-tile" title="Скоро">
+            <a data-pc-category-tile data-pc-category-root="toys" data-pc-category-order="10" href="{{ url_for('user_product_cards.cards', category='toys', subcategory='doll_accessories') }}">
                 <li class="nav-link" id="pills-toys-tab"
-                    type="button" role="tab" aria-disabled="true">
-                    <button class="text-center border-0" type="button" disabled>
+                    type="button" role="tab">
+                    <button class="text-center border-0" type="button">
                         <img src="{{ url_for('static', filename='main_v2/img/icons/toys/toys.png') }}" width="52" height="51" alt="" aria-hidden="true">
                         <div class="category-item__name text-center">Игрушки</div>
                     </button>
                 </li>
-            </span>
+            </a>
 
             <a data-pc-category-tile data-pc-category-child="clothes" data-pc-category-order="70" href="javascript:get_category_product_cards(`{{ url_for('user_product_cards.cards_table', category='носки и прочее', upload_flag=111)}}`, 'socks')">
                 <li class="nav-link" id="pills-socks-tab"
@@ -140,6 +140,28 @@
                     </button>
                 </li>
             </a>
+
+            {% if pc_subcategory_tiles is defined and pc_subcategory_tiles %}
+                {% for tile in pc_subcategory_tiles %}
+                    <a data-pc-category-tile
+                       data-pc-category-child="{{ current_category }}"
+                       data-pc-category-order="{{ loop.index0 + 20 }}"
+                       style="order: {{ loop.index0 + 20 }};"
+                       href="javascript:get_category_product_cards(`{{ url_for('user_product_cards.cards_table', category=current_category, subcategory=tile.slug, upload_flag=111)}}`, '{{ current_category }}', '{{ tile.slug }}')">
+                        <li class="nav-link" id="pills-{{ current_category }}-{{ tile.slug }}-tab"
+                            type="button" role="tab">
+                            <button class="text-center border-0" type="button">
+                                {% if tile.icon %}
+                                    <img src="{{ url_for('static', filename=tile.icon) }}" width="50" height="50" alt="" aria-hidden="true">
+                                {% endif %}
+                                <div class="category-item__name text-center">
+                                    {{ tile.title }}
+                                </div>
+                            </button>
+                        </li>
+                    </a>
+                {% endfor %}
+            {% endif %}
 
 <!--            <li class="nav-link " >-->
 <!--                <button class="text-center border-0" aria-controls="pills-disabled"-->

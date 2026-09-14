@@ -10,8 +10,9 @@ from sqlalchemy import or_
 from sqlalchemy.orm import joinedload, selectinload
 
 from config import settings
-from models import User, db, ProductCard, ModerationStatus, Clothes, Socks, Linen, Shoe, Parfum
-from utilities.download import ShoesProcessor, ClothesProcessor, SocksProcessor, LinenProcessor, ParfumProcessor
+from models import User, db, ProductCard, ModerationStatus, Clothes, Socks, Linen, Shoe, Parfum, Cosmetics, Toys
+from utilities.download import ShoesProcessor, ClothesProcessor, SocksProcessor, LinenProcessor, ParfumProcessor, \
+    CosmeticsProcessor, ToysProcessor
 
 from utilities.support import order_count
 
@@ -111,14 +112,10 @@ def crm_get_cards(category: str = None, subcategory: str = None, user: User = No
 
     q = apply_crm_cards_scope(q, user)
 
-    # subcategory только для clothes
     if subcategory:
-        q = q.filter(
-            exists().where(
-                (Clothes.card_id == ProductCard.id) &
-                (Clothes.subcategory == subcategory)
-            )
-        )
+        cfg = CATEGORIES_COMMON.get(category or "")
+        model = cfg.get("model") if cfg else Clothes
+        q = q.filter(exists().where((model.card_id == ProductCard.id) & (model.subcategory == subcategory)))
 
     # базовые связи (не раздувают)
     q = q.options(
@@ -137,6 +134,10 @@ def crm_get_cards(category: str = None, subcategory: str = None, user: User = No
         q = q.options(selectinload(ProductCard.socks).selectinload(Socks.sizes_quantities))
     elif category == settings.Parfum.CATEGORY_PROCESS:
         q = q.options(selectinload(ProductCard.parfum))
+    elif category == settings.Cosmetics.CATEGORY_PROCESS:
+        q = q.options(selectinload(ProductCard.cosmetics))
+    elif category == settings.Toys.CATEGORY_PROCESS:
+        q = q.options(selectinload(ProductCard.toys))
     else:
         # category не задана → список смешанный. Если sizes реально нужны в CRM-колонках всегда:
         q = q.options(
@@ -145,6 +146,8 @@ def crm_get_cards(category: str = None, subcategory: str = None, user: User = No
             selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities),
             selectinload(ProductCard.socks).selectinload(Socks.sizes_quantities),
             selectinload(ProductCard.parfum),
+            selectinload(ProductCard.cosmetics),
+            selectinload(ProductCard.toys),
         )
 
     q = q.order_by(ProductCard.created_at.desc())
@@ -219,8 +222,13 @@ def crm_card_article(card: ProductCard) -> str:
     rel_name = cfg["rel_name"]
     items = getattr(card, rel_name) or []
     main = items[0] if items else None
-    return getattr(main, "article", None) or "-" if card.category != settings.Parfum.CATEGORY_PROCESS \
-        else getattr(main, "trademark", None) or "-"
+    if not main:
+        return "-"
+    for attr in ("article", "model_article", "trademark", "type", "full_name_extra"):
+        value = getattr(main, attr, None)
+        if value:
+            return value
+    return "-"
 
 
 def crm_card_sizes_label(card: ProductCard) -> tuple[int, str]:
@@ -268,14 +276,19 @@ def crm_card_sizes_label(card: ProductCard) -> tuple[int, str]:
     # parfum: размеров нет
     if card.category == settings.Parfum.CATEGORY_PROCESS:
         return 1 , "-"
+    if card.category in (settings.Cosmetics.CATEGORY_PROCESS, settings.Toys.CATEGORY_PROCESS):
+        cfg = CATEGORIES_COMMON.get(card.category)
+        items = getattr(card, cfg["rel_name"], []) if cfg else []
+        return (1, "-") if items else (0, "-")
 
     return 0, "-"
 
 
 def crm_card_subcategory_slug(card: ProductCard) -> str | None:
-    if card.category != "clothes":
+    cfg = CATEGORIES_COMMON.get(card.category)
+    if not cfg or not cfg.get("has_subcategory"):
         return None
-    main = (card.clothes or [None])[0]
+    main = (getattr(card, cfg["rel_name"], []) or [None])[0]
     return getattr(main, "subcategory", None)
 
 
@@ -283,7 +296,7 @@ def crm_card_subcategory_title(card: ProductCard) -> str | None:
     slug = crm_card_subcategory_slug(card)
     if not slug:
         return None
-    return (CATEGORIES_COMMON.get("clothes", {}).get("subcategories") or {}).get(slug, slug)
+    return (CATEGORIES_COMMON.get(card.category, {}).get("subcategories") or {}).get(slug, slug)
 
 
 def crm_card_stage_tooltip(card: ProductCard) -> str:
@@ -353,6 +366,12 @@ def get_card_download_info(pc_id: int, user: User):
     elif category == settings.Parfum.CATEGORY:
         items = card.parfum
         processor_cls = ParfumProcessor
+    elif category == settings.Cosmetics.CATEGORY:
+        items = card.cosmetics
+        processor_cls = CosmeticsProcessor
+    elif category == settings.Toys.CATEGORY:
+        items = card.toys
+        processor_cls = ToysProcessor
 
     else:
         flash(message=settings.Messages.CATEGORY_UNKNOWN_ERROR, category="error")
@@ -432,6 +451,10 @@ def h_pc_move_get_cards_by_status(status_value: str, category=None, subcategory=
             q = q.options(selectinload(ProductCard.socks).selectinload(Socks.sizes_quantities))
         elif category == settings.Parfum.CATEGORY_PROCESS:
             q = q.options(selectinload(ProductCard.parfum))
+        elif category == settings.Cosmetics.CATEGORY_PROCESS:
+            q = q.options(selectinload(ProductCard.cosmetics))
+        elif category == settings.Toys.CATEGORY_PROCESS:
+            q = q.options(selectinload(ProductCard.toys))
 
     else:
         q = q.options(
@@ -440,10 +463,15 @@ def h_pc_move_get_cards_by_status(status_value: str, category=None, subcategory=
             selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities),
             selectinload(ProductCard.socks).selectinload(Socks.sizes_quantities),
             selectinload(ProductCard.parfum),
+            selectinload(ProductCard.cosmetics),
+            selectinload(ProductCard.toys),
         )
 
     if subcategory:
-        q = q.filter(ProductCard.clothes.any(Clothes.subcategory == subcategory))
+        cfg = CATEGORIES_COMMON.get(category or "")
+        model = cfg.get("model") if cfg else Clothes
+        rel_name = cfg.get("rel_name") if cfg else "clothes"
+        q = q.filter(getattr(ProductCard, rel_name).any(model.subcategory == subcategory))
 
     if company_key:
         q = q.filter(
@@ -588,7 +616,17 @@ def h_find_card_ids_by_article_or_tm(q: str) -> list[int]:
         .filter(Parfum.card_id.isnot(None), Parfum.trademark.ilike(like))
         .distinct().all()
     )
-    print(ids)
+    ids.update(
+        r[0] for r in db.session.query(Cosmetics.card_id)
+        .filter(Cosmetics.card_id.isnot(None), Cosmetics.trademark.ilike(like))
+        .distinct().all()
+    )
+    ids.update(
+        r[0] for r in db.session.query(Toys.card_id)
+        .filter(Toys.card_id.isnot(None), or_(Toys.trademark.ilike(like), Toys.model_article.ilike(like)))
+        .distinct().all()
+    )
+
     return sorted(ids)
 
 
@@ -720,6 +758,8 @@ def helper_reject_cards_by_rd_date_to_today() -> dict:
             .outerjoin(Shoe,    Shoe.card_id == ProductCard.id)
             .outerjoin(Linen,   Linen.card_id == ProductCard.id)
             .outerjoin(Parfum,  Parfum.card_id == ProductCard.id)
+            .outerjoin(Cosmetics, Cosmetics.card_id == ProductCard.id)
+            .outerjoin(Toys, Toys.card_id == ProductCard.id)
             .filter(
                 or_(
                     Clothes.rd_date_to == today,
@@ -727,6 +767,8 @@ def helper_reject_cards_by_rd_date_to_today() -> dict:
                     Shoe.rd_date_to == today,
                     Linen.rd_date_to == today,
                     Parfum.rd_date_to == today,
+                    Cosmetics.rd_date_to == today,
+                    Toys.rd_date_to == today,
                 )
             )
             .distinct()

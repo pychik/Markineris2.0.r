@@ -18,11 +18,15 @@
         </div>
 
         <div class="mb-3 d-none" id="pc-create-subcat-wrapper">
-            <label for="pc-create-subcategory" class="form-label">Подкатегория одежды</label>
+            <label for="pc-create-subcategory" class="form-label" id="pc-create-subcategory-label">Подкатегория</label>
 
             <select id="pc-create-subcategory" class="form-select">
-                {% for key, label in mapper_categories['clothes']['subcategories'].items() %}
-                    <option value="{{ key }}">{{ label }}</option>
+                {% for category_key, category_cfg in mapper_categories.items() %}
+                    {% if category_cfg['subcategories'] %}
+                        {% for key, label in category_cfg['subcategories'].items() %}
+                            <option value="{{ key }}" data-category="{{ category_key }}">{{ label }}</option>
+                        {% endfor %}
+                    {% endif %}
                 {% endfor %}
             </select>
         </div>

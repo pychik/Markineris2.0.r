@@ -8,7 +8,8 @@ from sqlalchemy.orm import joinedload, selectinload, load_only
 
 from config import settings
 from logger import logger
-from models import db, ExceptionDataUsers, Order, ProductCard, Shoe, Linen, Parfum, Clothes, Socks, ModerationStatus
+from models import db, ExceptionDataUsers, Order, ProductCard, Shoe, Linen, Parfum, Clothes, Socks, Cosmetics, Toys, \
+    ModerationStatus
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
@@ -29,19 +30,113 @@ from views.main.product_cards.order_helpers import _json_error, _add_order_item_
     _count_open_moderation_orders, _get_card_or_fail, _validate_card_access_and_status, _load_cards_for_order, \
     _count_open_pc_orders, common_save_copy_pc_order
 from views.main.product_cards.support import validate_card_form, save_clothes_card, save_shoes_card, save_linen_card, \
-    save_socks_card, save_parfum_card, parse_sizes_for_category, CATEGORIES_COMMON, MODERATION_STATUS_TITLES, \
-    MODERATION_STATUS_COLORS, normalize_article_for_category, normalize_color_for_category, collect_existing_size_keys, \
-    filter_new_sizes, CARD_FIELDS, extract_card_main_and_sizes, get_card_ctx, check_same_fields_if_exists, \
-    CATEGORY_TITLES, get_card_entity_for_prefill, assert_frozen_fields_unchanged, \
+    save_socks_card, save_parfum_card, save_cosmetics_card, save_toys_card, parse_sizes_for_category, \
+    CATEGORIES_COMMON, MODERATION_STATUS_TITLES, MODERATION_STATUS_COLORS, normalize_article_for_category, \
+    normalize_color_for_category, collect_existing_size_keys, filter_new_sizes, CARD_FIELDS, \
+    extract_card_main_and_sizes, get_card_ctx, check_same_fields_if_exists, CATEGORY_TITLES, \
+    get_card_entity_for_prefill, assert_frozen_fields_unchanged, \
     update_card_allowed_fields, ALLOWED_CARDS_DELETE_STATUSES, card_has_rd, CARD_STATUS_DATETIME_ATTR, \
     get_card_allowed_field_changes, merge_selected_created_wear_cards, assign_tezaurus_processing_companies
 from views.main.product_cards.utils import validate_rd_block
+from views.main.categories.cosmetics.subcategories.registry import \
+    SUBCATEGORY_CONFIG as COSMETICS_SUBCATEGORY_CONFIG
+from views.main.categories.toys.subcategories.registry import SUBCATEGORY_CONFIG as TOYS_SUBCATEGORY_CONFIG
+
+
+CARD_SUBCATEGORY_DEFAULTS = {
+    settings.Cosmetics.CATEGORY_PROCESS: "decor_ukhod",
+    settings.Toys.CATEGORY_PROCESS: "doll_accessories",
+}
+
+CARD_SUBCATEGORY_ORDER = {
+    settings.Cosmetics.CATEGORY_PROCESS: (
+        "decor_ukhod",
+        "cosmetics_eye",
+        "cosmetics_lips",
+        "cosmetics_the_rest_hair",
+        "cosmetics_rascheski",
+        "razor_blades_and_cassettes",
+        "cosmetics_tooth",
+        "cosmetics_salt_bomb",
+        "cosmetics_mochalki",
+        "cosmetics_aroma",
+        "cosmetics_cleaning_products",
+        "cosmetics_deodorants",
+        "cosmetics_nails",
+        "cosmetics_toilet_paper",
+        "cosmetics_tweezers",
+    ),
+    settings.Toys.CATEGORY_PROCESS: (
+        "doll_accessories",
+        "puzzles",
+        "competition_cars",
+        "sets_kits",
+        "motorized_toys",
+        "animal_creature",
+        "scale_models_other",
+        "musical_toy_instruments",
+        "dolls_human_figures",
+        "construction_sets",
+        "card_games",
+        "board_room_games_inventory",
+        "toy_weapons",
+        "play_tents",
+        "electric_train_sets",
+    ),
+}
+
+
+def _card_subcategory_registry(category: str):
+    if category == settings.Cosmetics.CATEGORY_PROCESS:
+        return COSMETICS_SUBCATEGORY_CONFIG
+    if category == settings.Toys.CATEGORY_PROCESS:
+        return TOYS_SUBCATEGORY_CONFIG
+    return {}
+
+
+def _card_subcategory_tiles(category: str):
+    registry = _card_subcategory_registry(category)
+    ordered_slugs = CARD_SUBCATEGORY_ORDER.get(category, ())
+    tiles = []
+    for slug in ordered_slugs:
+        config = registry.get(slug)
+        if not config:
+            continue
+        tiles.append({
+            "slug": config["slug"],
+            "title": config["title"],
+            "icon": config.get("icon"),
+        })
+    return tuple(tiles)
+
+
+def _card_identity_value(category: str, entity) -> tuple[str, str]:
+    if not entity:
+        return "", "артикул"
+    if category in (settings.Parfum.CATEGORY_PROCESS, settings.Cosmetics.CATEGORY_PROCESS):
+        return (getattr(entity, "trademark", "") or ""), "товарный знак"
+    if category == settings.Toys.CATEGORY_PROCESS:
+        return (getattr(entity, "model_article", "") or getattr(entity, "trademark", "") or ""), "модель/артикул"
+    return (getattr(entity, "article", "") or ""), "артикул"
+
+
+def _ensure_card_form_defaults(ctx: dict) -> dict:
+    ctx.setdefault("copied_order", None)
+    ctx.setdefault("edit_mode", False)
+    ctx.setdefault("edit_card_id", None)
+    ctx.setdefault("crm_", False)
+    ctx.setdefault("edit_order", "")
+    ctx.setdefault("excepted_articles", settings.ExceptionOrders.EXCEPTED_ARTICLES)
+    return ctx
 
 
 def h_cards():
     category = request.args.get("category", "shoes")
     subcategory = request.args.get("subcategory")
     article_query = request.args.get("article_query", "").strip()
+
+    if category in CARD_SUBCATEGORY_DEFAULTS and not subcategory:
+        subcategory = CARD_SUBCATEGORY_DEFAULTS[category]
 
     created_cards_count = ProductCard.query.filter(
         ProductCard.user_id == current_user.id,
@@ -54,8 +149,102 @@ def h_cards():
         current_subcategory=subcategory,
         article_query=article_query,
         mapper_categories=CATEGORIES_COMMON,
+        pc_subcategory_tiles=_card_subcategory_tiles(category),
         created_cards_count=created_cards_count,
         show_cards_video=False,
+    )
+
+
+def h_card_category_subcategories(category: str):
+    category = (category or "").strip()
+    cfg = CATEGORIES_COMMON.get(category)
+    if not cfg or not cfg.get("has_subcategory"):
+        flash("У выбранной категории нет страницы подкатегорий", "error")
+        return redirect(url_for("user_product_cards.cards"))
+
+    if category in CARD_SUBCATEGORY_DEFAULTS:
+        return redirect(url_for(
+            "user_product_cards.cards",
+            category=category,
+            subcategory=CARD_SUBCATEGORY_DEFAULTS[category],
+        ))
+
+    if category == settings.Cosmetics.CATEGORY_PROCESS:
+        registry = COSMETICS_SUBCATEGORY_CONFIG
+        ordered_slugs = CARD_SUBCATEGORY_ORDER[category]
+        search_index_name = "COSMETICS_SEARCH_INDEX"
+        search_input_id = "cosmetics-category-search"
+        search_result_id = "cosmetics-search-result"
+        extra_css = ("main_v2/css/categories/cosmetics.css",)
+        script_path = "main_v2/js/categories/cosmetics.js"
+        script_version = "12"
+        image_version = "20260623-cosmetics-teasers-2"
+        page_title = "Основные категории косметики"
+    elif category == settings.Toys.CATEGORY_PROCESS:
+        registry = TOYS_SUBCATEGORY_CONFIG
+        ordered_slugs = CARD_SUBCATEGORY_ORDER[category]
+        search_index_name = "TOYS_SEARCH_INDEX"
+        search_input_id = "toys-category-search"
+        search_result_id = "toys-search-result"
+        extra_css = ("main_v2/css/categories/cosmetics.css", "main_v2/css/categories/toys.css")
+        script_path = "main_v2/js/categories/toys.js"
+        script_version = "4"
+        image_version = "20260810-toys-subcategories"
+        page_title = "Основные категории игрушек"
+    else:
+        flash("Категория не поддерживает карточки через подкатегории", "error")
+        return redirect(url_for("user_product_cards.cards"))
+
+    tiles_by_slug = {
+        config["slug"]: {
+            "slug": config["slug"],
+            "title": config["title"],
+            "icon": config["icon"],
+            "icon_class": config.get("icon_class", ""),
+            "is_disabled": False,
+            "url": url_for(
+                "user_product_cards.new_product_card",
+                category=category,
+                subcategory=config["slug"],
+            ),
+        }
+        for config in registry.values()
+    }
+    category_tiles = tuple(tiles_by_slug[slug] for slug in ordered_slugs if slug in tiles_by_slug)
+    search_index = [
+        {
+            "slug": config["slug"],
+            "title": config["title"],
+            "url": url_for(
+                "user_product_cards.new_product_card",
+                category=category,
+                subcategory=config["slug"],
+            ),
+            "allowed_tnved_codes": list(config["allowed_tnved_codes"]),
+            "allowed_tnved_choices": [
+                {"code": code, "label": label}
+                for code, label in config["allowed_tnved_choices"]
+            ],
+            "product_types": list(config["product_types"]),
+        }
+        for config in registry.values()
+    ]
+
+    return render_template(
+        "product_cards/new/subcategories.html",
+        category=category,
+        category_title=cfg["title"],
+        page_title=page_title,
+        search_placeholder="Введите ТНВЭД или вид товара для определения категории",
+        category_tiles=category_tiles,
+        search_index=search_index,
+        search_index_name=search_index_name,
+        search_input_id=search_input_id,
+        search_result_id=search_result_id,
+        extra_css=extra_css,
+        script_path=script_path,
+        script_version=script_version,
+        image_version=image_version,
     )
 
 
@@ -72,6 +261,8 @@ def h_cards_table():
     per_page = 20
     if category == settings.Clothes.CATEGORY_PROCESS and not subcategory:
         subcategory = ClothesSubcategories.common.value
+    if category in CARD_SUBCATEGORY_DEFAULTS and not subcategory:
+        subcategory = CARD_SUBCATEGORY_DEFAULTS[category]
     # --- проверки категории / подкатегории ---
     cfg = CATEGORIES_COMMON.get(category)
     if cfg is None:
@@ -83,11 +274,11 @@ def h_cards_table():
     if subcategory and not cfg["has_subcategory"]:
         return jsonify({
             "status": "error",
-            "message": "Подкатегория доступна только для категории 'clothes'"
+            "message": "Подкатегория недоступна для выбранной категории"
         }), 400
 
     if cfg["has_subcategory"] and subcategory:
-        valid_subcats = [s.value for s in ClothesSubcategories]
+        valid_subcats = cfg.get("subcategories") or {}
         if subcategory not in valid_subcats:
             return jsonify({
                 "status": "error",
@@ -103,9 +294,9 @@ def h_cards_table():
         ProductCard.category == category,
     )
 
-    # фильтр по подкатегории — только для одежды
     if has_subcategory and subcategory:
-        query = query.filter(ProductCard.clothes.any(Clothes.subcategory == subcategory))
+        rel = getattr(ProductCard, rel_name)
+        query = query.filter(rel.any(model.subcategory == subcategory))
 
     # поиск по артикулу / trademark
     if article_query:
@@ -114,6 +305,10 @@ def h_cards_table():
 
         if hasattr(model, "article"):
             query = query.filter(rel.any(model.article.ilike(like)))
+        elif hasattr(model, "model_article"):
+            query = query.filter(rel.any(
+                model.trademark.ilike(like) | model.model_article.ilike(like)
+            ))
         else:
             query = query.filter(rel.any(model.trademark.ilike(like)))
 
@@ -134,6 +329,10 @@ def h_cards_table():
         query = query.options(selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities))
     elif category == settings.Parfum.CATEGORY_PROCESS:
         query = query.options(selectinload(ProductCard.parfum))
+    elif category == settings.Cosmetics.CATEGORY_PROCESS:
+        query = query.options(selectinload(ProductCard.cosmetics))
+    elif category == settings.Toys.CATEGORY_PROCESS:
+        query = query.options(selectinload(ProductCard.toys))
 
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     offset = (pagination.page - 1) * pagination.per_page
@@ -187,6 +386,9 @@ def h_new_product_card():
     )
 
     ctx = get_card_ctx(category=category, subcategory=subcategory)
+    if isinstance(ctx, Response):
+        return ctx
+    _ensure_card_form_defaults(ctx)
 
     return render_template("product_cards/new/main_card.html", **ctx)
 
@@ -194,6 +396,11 @@ def h_new_product_card():
 def h_save_product_card():
     form_data = request.form
     form_dict = form_data.to_dict()
+    single_unit_categories = {
+        settings.Parfum.CATEGORY_PROCESS,
+        settings.Cosmetics.CATEGORY_PROCESS,
+        settings.Toys.CATEGORY_PROCESS,
+    }
 
     category = form_data.get("category")
     subcategory = form_data.get("subcategory")
@@ -236,9 +443,7 @@ def h_save_product_card():
     except Exception as e:
         return jsonify(status="error", message=str(e))
 
-    # --- ОТДЕЛЬНАЯ ВЕТКА ДЛЯ ПАРФЮМА ---
-    if category == settings.Parfum.CATEGORY_PROCESS:
-        # Для парфюма нет размеров, только quantity, никаких уникальностей по size
+    if category in single_unit_categories:
         sizes_quantities = []
         filtered_sq = []
         skipped_labels = []
@@ -305,16 +510,17 @@ def h_save_product_card():
         settings.Linen.CATEGORY_PROCESS:   save_linen_card,
         settings.Socks.CATEGORY_PROCESS:   save_socks_card,
         settings.Parfum.CATEGORY_PROCESS:  save_parfum_card,
+        settings.Cosmetics.CATEGORY_PROCESS: save_cosmetics_card,
+        settings.Toys.CATEGORY_PROCESS: save_toys_card,
     }
     saver = save_map[category]
 
     try:
-        if category == settings.Parfum.CATEGORY_PROCESS:
-            # парфюм — sizes_quantities не нужны, saver сам возьмёт quantity из form_dict
+        if category in single_unit_categories:
             saver(
                 card=card,
                 form_dict=form_dict,
-                sizes_quantities=None,  # можно и не передавать, если сигнатура позволяет
+                sizes_quantities=None,
                 subcategory=subcategory,
             )
         else:
@@ -388,10 +594,13 @@ def h_edit_product_card(card_id: int, crm_: bool = False):
     copied_order = get_card_entity_for_prefill(card=card)
 
     ctx = get_card_ctx(category=card.category, subcategory=getattr(copied_order, "subcategory", None))
+    if isinstance(ctx, Response):
+        return ctx
     ctx["copied_order"] = copied_order
     ctx["edit_mode"] = True
     ctx["edit_card_id"] = card.id
     ctx["crm_"] = crm_
+    _ensure_card_form_defaults(ctx)
 
     return render_template("product_cards/new/main_card.html", **ctx)
 
@@ -529,6 +738,10 @@ def h_get_created_cards():
         q = q.options(selectinload(ProductCard.socks).selectinload(Socks.sizes_quantities))
     if settings.Parfum.CATEGORY_PROCESS in cats:
         q = q.options(selectinload(ProductCard.parfum))
+    if settings.Cosmetics.CATEGORY_PROCESS in cats:
+        q = q.options(selectinload(ProductCard.cosmetics))
+    if settings.Toys.CATEGORY_PROCESS in cats:
+        q = q.options(selectinload(ProductCard.toys))
 
     full = q.all()
     full_by_id = {c.id: c for c in full}
@@ -596,6 +809,10 @@ def h_send_cards_moderate():
                 q = q.options(joinedload(ProductCard.linen).joinedload(Linen.sizes_quantities))
             elif cat == "parfum":
                 q = q.options(joinedload(ProductCard.parfum))
+            elif cat == "cosmetics":
+                q = q.options(joinedload(ProductCard.cosmetics))
+            elif cat == "toys":
+                q = q.options(joinedload(ProductCard.toys))
             else:
                 # неизвестная категория — всё равно загрузим карточки без релейшенов
                 pass
@@ -726,6 +943,10 @@ def h_card_view(card_id: int, crm_: bool = False):
             q = q.options(selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities))
         elif cat == settings.Parfum.CATEGORY_PROCESS:
             q = q.options(selectinload(ProductCard.parfum))
+        elif cat == settings.Cosmetics.CATEGORY_PROCESS:
+            q = q.options(selectinload(ProductCard.cosmetics))
+        elif cat == settings.Toys.CATEGORY_PROCESS:
+            q = q.options(selectinload(ProductCard.toys))
 
         return q.first_or_404()
 
@@ -784,6 +1005,8 @@ def h_card_view(card_id: int, crm_: bool = False):
 
     elif card.category == settings.Parfum.CATEGORY_PROCESS:
         # у парфюма нет размеров – всё в одной записи
+        sizes = []
+    elif card.category in (settings.Cosmetics.CATEGORY_PROCESS, settings.Toys.CATEGORY_PROCESS):
         sizes = []
     fields = CARD_FIELDS.get(card.category, {})
 
@@ -866,20 +1089,22 @@ def h_card_edit(card_id: int):
         return redirect(url_for("user_product_cards.cards"))
 
     subcategory = None
-    if category == settings.Clothes.CATEGORY_PROCESS:
+    if CATEGORIES_COMMON.get(category, {}).get("has_subcategory"):
         subcategory = getattr(main, "subcategory", None)
 
     ctx = get_card_ctx(category=card.category, subcategory=subcategory)
+    if isinstance(ctx, Response):
+        return ctx
+    _ensure_card_form_defaults(ctx)
+    ctx.update({
+        "mode": "edit",
+        "copied_order": main,
+        "sizes": sizes,
+        "card": card,
+        "card_id": card.id,
+    })
 
-    return render_template(
-        "product_cards/new/main_card.html",
-        mode="edit",
-        copied_order=main,
-        sizes=sizes,
-        card=card,
-        card_id=card.id,
-        **ctx
-    )
+    return render_template("product_cards/new/main_card.html", **ctx)
 
 
 def h_card_delete(card_id: int):
@@ -946,15 +1171,15 @@ def h_make_pc_basket_order():
         category_ru = CATEGORIES_COMMON.get(category, '').get('title')
 
         subcategory = ""
-        if category == "clothes":
+        if CATEGORIES_COMMON.get(category, {}).get("has_subcategory"):
             subcategory = (o.get("subcategory") or items[0].get("subcategory") or "").strip()
             if not subcategory:
-                raise ValueError("Для одежды не указана подкатегория")
+                raise ValueError(f"Для категории '{category_ru}' не указана подкатегория")
 
         # лимит: максимум 2 черновика на категорию (+ субкатегория для clothes)
         open_cnt = _count_open_moderation_orders(current_user.id, category, subcategory)
         if open_cnt >= 2:
-            if category == "clothes":
+            if CATEGORIES_COMMON.get(category, {}).get("has_subcategory"):
                 raise ValueError(f"Достигнут лимит черновиков (2) для категории '{category_ru}' и подкатегории '{subcategory}'")
             raise ValueError(f"Достигнут лимит черновиков (2) для категории '{category_ru}'")
 
@@ -996,10 +1221,10 @@ def h_make_pc_basket_order():
                 # тут лучше 403, но через исключение
                 raise PermissionError(err)
 
-            if category == "clothes":
+            if CATEGORIES_COMMON.get(category, {}).get("has_subcategory"):
                 it_sub = (it.get("subcategory") or "").strip()
                 if it_sub != subcategory:
-                    raise ValueError("Корзина должна быть в одной подкатегории одежды. Обнаружена смешанная subcategory.")
+                    raise ValueError("Корзина должна быть в одной подкатегории. Обнаружена смешанная subcategory.")
 
             _add_order_item_from_card(new_order, pc, it)
 
@@ -1052,8 +1277,15 @@ def h_pc_order_view(o_id: int):
     category_title = order.category
     subcategory = ""
     sub_title = ""
-    if order.category == settings.Clothes.CATEGORY and order.clothes:
-        subcategory = (order.clothes[0].subcategory or "").strip()
+    if cat_cfg.get("has_subcategory"):
+        entity = None
+        if order.category == settings.Clothes.CATEGORY and order.clothes:
+            entity = order.clothes[0]
+        elif order.category == settings.Cosmetics.CATEGORY and order.cosmetics:
+            entity = order.cosmetics[0]
+        elif order.category == settings.Toys.CATEGORY and order.toys:
+            entity = order.toys[0]
+        subcategory = (getattr(entity, "subcategory", "") or "").strip() if entity else ""
         sub_title = (cat_cfg.get("subcategories") or {}).get(subcategory, subcategory)
 
     return render_template(
@@ -1086,6 +1318,10 @@ def h_pc_order_table(o_id: int):
             return order.socks or []
         if cat == settings.Parfum.CATEGORY:
             return order.parfum or []
+        if cat == settings.Cosmetics.CATEGORY:
+            return order.cosmetics or []
+        if cat == settings.Toys.CATEGORY:
+            return order.toys or []
 
         return []
     order = (Order.query
@@ -1106,6 +1342,7 @@ def h_pc_order_table(o_id: int):
         order=order,
         o_id=o_id,
         category=order.category,
+        category_process_name=settings.CATEGORIES_DICT.get(order.category),
         order_list=order_list,
     )
 
@@ -1132,14 +1369,13 @@ def h_pc_order_copy(o_id: int) -> Response:
         flash(message=settings.Messages.STRANGE_REQUESTS, category="error")
         return redirect(url_for("user_product_cards.pc_orders_drafts"))
 
-    # подкатегория нужна только для clothes (чтобы лимит 2 работал корректно)
     subcategory = get_subcategory(order_id=order.id, category=category) or None
 
     # лимит: максимум 2 pc-заказа на категорию (+ subcat для clothes)
     active_pc_count = _count_open_pc_orders(user_id=user.id, category=category, subcategory=subcategory)
 
     if active_pc_count >= 2:
-        if category == settings.Clothes.CATEGORY and subcategory:
+        if category in (settings.Clothes.CATEGORY, settings.Cosmetics.CATEGORY, settings.Toys.CATEGORY) and subcategory:
             flash(message=f"Достигнут лимит (2) заказов на категорию '{category}' и подкатегорию '{settings.CATEGORIES_DICT.get(subcategory)}'", category="error")
         else:
             flash(message=f"Достигнут лимит (2) заказов на категорию '{category}'", category="error")
@@ -1231,6 +1467,10 @@ def h_pc_order_pos_view(o_id: int, pos_id: int):
             return Socks.query.filter_by(id=pos_id, order_id=o_id).first()
         if category == settings.Parfum.CATEGORY:
             return Parfum.query.filter_by(id=pos_id, order_id=o_id).first()
+        if category == settings.Cosmetics.CATEGORY:
+            return Cosmetics.query.filter_by(id=pos_id, order_id=o_id).first()
+        if category == settings.Toys.CATEGORY:
+            return Toys.query.filter_by(id=pos_id, order_id=o_id).first()
         return None
 
     order = (Order.query
@@ -1303,6 +1543,10 @@ def h_pc_order_delete_pos(o_id: int, pos_id: int):
             obj = Socks.query.filter_by(id=pos_id, order_id=o_id).first()
         elif order.category == settings.Parfum.CATEGORY:
             obj = Parfum.query.filter_by(id=pos_id, order_id=o_id).first()
+        elif order.category == settings.Cosmetics.CATEGORY:
+            obj = Cosmetics.query.filter_by(id=pos_id, order_id=o_id).first()
+        elif order.category == settings.Toys.CATEGORY:
+            obj = Toys.query.filter_by(id=pos_id, order_id=o_id).first()
         else:
             obj = None
 
@@ -1409,13 +1653,18 @@ def h_pc_orders_drafts():
     for o in drafts:
         rows_count, marks_count = counts_map.get(o.id, (0, 0))
 
-        # subcategory только для одежды
         subcategory = ""
-        if o.category == settings.Clothes.CATEGORY:
-            if o.clothes and o.clothes[0].subcategory:
+        cat = _norm_cat(o.category)
+        cat_cfg = CATEGORIES_COMMON.get(cat, {})
+        if cat_cfg.get("has_subcategory"):
+            if o.category == settings.Clothes.CATEGORY and o.clothes and o.clothes[0].subcategory:
                 subcategory = (o.clothes[0].subcategory or "").strip()
+            elif o.category == settings.Cosmetics.CATEGORY and o.cosmetics and o.cosmetics[0].subcategory:
+                subcategory = (o.cosmetics[0].subcategory or "").strip()
+            elif o.category == settings.Toys.CATEGORY and o.toys and o.toys[0].subcategory:
+                subcategory = (o.toys[0].subcategory or "").strip()
             if not subcategory:
-                subcategory = "common"  # чтобы в шаблоне было “одежда”
+                subcategory = "common" if cat == settings.Clothes.CATEGORY_PROCESS else ""
 
         row = {
             "id": o.id,
@@ -1428,9 +1677,7 @@ def h_pc_orders_drafts():
             "marks_count": marks_count,
         }
 
-        cat_raw = o.category
-        cat = _norm_cat(cat_raw)
-        sub_key = subcategory if cat == settings.Clothes.CATEGORY_PROCESS else "__no_sub__"
+        sub_key = subcategory if cat_cfg.get("has_subcategory") and subcategory else "__no_sub__"
         grouped.setdefault(cat, {}).setdefault(sub_key, []).append(row)
 
     return render_template(

@@ -1,5 +1,5 @@
 <div id="categories_config"
-     data-current-category="current_category"
+     data-current-category="{{ current_category }}"
      data-current-category-title="{{ category_titles.get(current_category, current_category) }}"
      data-current-subcategory-title="{% if current_subcategory %}{{ categories_common.get(current_category).get('subcategories').get(current_subcategory) }}{% endif %}">
 </div>
@@ -26,7 +26,7 @@
           <thead>
             <tr>
               <th>Артикул / товар</th>
-              {% if product_cards[0].category != 'parfum' %}<th>Размеры</th>{%endif%}
+              {% if product_cards[0].category not in ['parfum', 'cosmetics', 'toys'] %}<th>Размеры</th>{%endif%}
               <th>Статус</th>
               <th class="text-end">Действия</th>
             </tr>
@@ -47,6 +47,10 @@
                 {% set item = card.socks[0] if card.socks else None %}
               {% elif card.category == 'parfum' %}
                 {% set item = card.parfum[0] if card.parfum else None %}
+              {% elif card.category == 'cosmetics' %}
+                {% set item = card.cosmetics[0] if card.cosmetics else None %}
+              {% elif card.category == 'toys' %}
+                {% set item = card.toys[0] if card.toys else None %}
               {% endif %}
 
               <tr class="{{ 'pc-row-blink' if card.status.value == 'clarification' }}">
@@ -55,6 +59,12 @@
                   {% if item %}
                     {% if card.category == 'parfum' %}
                       {{ item.trademark or "-" }}
+                    {% elif card.category == 'cosmetics' %}
+                      <div>{{ item.trademark or "-" }}</div>
+                      <div class="text-muted" style="font-size: 0.72rem;">{{ item.type or "-" }}</div>
+                    {% elif card.category == 'toys' %}
+                      <div>{{ item.model_article or item.trademark or "-" }}</div>
+                      <div class="text-muted" style="font-size: 0.72rem;">{{ item.trademark or "-" }}</div>
                     {% else %}
                       <div>{{ item.article or "-" }}</div>
                       <div class="text-muted" style="font-size: 0.72rem;">{{ item.color or "-" }}</div>

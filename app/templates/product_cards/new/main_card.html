@@ -17,8 +17,8 @@
      data-card-id="{{ edit_card_id or '' }}">
 </div>
 
-<div class="container py-4">
-{% set category_name = category.capitalize() if category != 'одежда' or( category == 'одежда' and (not subcategory or subcategory == 'common')) else subcategories_dict[subcategory].capitalize() %}
+<div class="container-fluid px-5 py-4">
+{% set category_name = subcategory_title if subcategory_title is defined and subcategory_title else category.capitalize() %}
     <h3 class="mb-4">{%if edit_mode %}Редактирование{%else%}Создание{% endif %} карточки товара в категории <u>{{ category_name }}</u> </h3>
 
     <form id="pc-create-form" method="post" enctype="multipart/form-data">
@@ -37,8 +37,8 @@
 {% include 'helpers/error_modal.html' %}
 
 
-<script src="{{url_for('static',filename='product_cards/users/' + category_process_name + '.js')}}"></script>
-<script src="{{url_for('static',filename='product_cards/users/common.js')}}"></script>
+<script src="{{ url_for('static',filename='product_cards/users/' + category_process_name + '.js', v='49') }}"></script>
+<script src="{{ url_for('static',filename='product_cards/users/common.js', v='10') }}"></script>
 
 <script>
     const excepted_articles = {{excepted_articles | tojson | safe}};

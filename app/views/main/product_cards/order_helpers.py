@@ -7,12 +7,13 @@ from sqlalchemy.orm import selectinload
 
 from config import settings
 from logger import logger
-from models import db, Order, ProductCard, Clothes, Parfum, ClothesQuantitySize, Socks, SocksQuantitySize, Shoe, \
-    ShoeQuantitySize, Linen, LinenQuantitySize, User
+from models import db, Order, ProductCard, Clothes, Parfum, Cosmetics, Toys, ClothesQuantitySize, Socks, \
+    SocksQuantitySize, Shoe, ShoeQuantitySize, Linen, LinenQuantitySize, User
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.saving_helpers import get_clothes_size_type
 from utilities.saving_uts import save_copy_order_shoes, save_copy_order_clothes, \
-    save_copy_order_socks, save_copy_order_linen, save_copy_order_parfum
+    save_copy_order_socks, save_copy_order_linen, save_copy_order_parfum, save_copy_order_cosmetics, \
+    save_copy_order_toys
 
 ALLOWED_CARD_DATA_STATUSES: set[str] = {"approved"}
 
@@ -27,9 +28,13 @@ def _json_error(message: str, code: int = 400, **extra):
 
 
 def _count_open_moderation_orders(user_id: int, category: str, subcategory: str | None) -> int:
+    category_ru = next(
+        (title for title, process_name in settings.CATEGORIES_DICT.items() if process_name == category),
+        category,
+    )
     q = Order.query.filter(
         Order.user_id == user_id,
-        Order.category == category,
+        Order.category == category_ru,
         Order.stage == 0,
         Order.is_moderation.is_(True),
         Order.to_delete.is_(False),
@@ -41,6 +46,16 @@ def _count_open_moderation_orders(user_id: int, category: str, subcategory: str 
         if not sub:
             return 999999
         q = q.filter(Order.clothes.any(Clothes.subcategory == sub))
+    elif category == "cosmetics":
+        sub = (subcategory or "").strip()
+        if not sub:
+            return 999999
+        q = q.filter(Order.cosmetics.any(Cosmetics.subcategory == sub))
+    elif category == "toys":
+        sub = (subcategory or "").strip()
+        if not sub:
+            return 999999
+        q = q.filter(Order.toys.any(Toys.subcategory == sub))
 
     return q.with_entities(func.count(Order.id)).scalar() or 0
 
@@ -78,6 +93,12 @@ def _units_map_for_card(pc: ProductCard):
     if pc.category == "parfum":
         approved = [p for p in pc.parfum if getattr(p, "is_approved", False)]
         return {"_parfum_units": approved}
+    if pc.category == "cosmetics":
+        approved = [p for p in pc.cosmetics if getattr(p, "is_approved", False)]
+        return {"_single_units": approved}
+    if pc.category == "toys":
+        approved = [p for p in pc.toys if getattr(p, "is_approved", False)]
+        return {"_single_units": approved}
 
     # clothes/socks/shoes/linen: sizes_quantities лежат в миксинах
     if pc.category == "clothes":
@@ -159,6 +180,10 @@ def _load_cards_for_order(card_ids: list[int], *, category: str) -> dict[int, Pr
         q = q.options(selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities))
     elif category == "parfum":
         q = q.options(selectinload(ProductCard.parfum))
+    elif category == "cosmetics":
+        q = q.options(selectinload(ProductCard.cosmetics))
+    elif category == "toys":
+        q = q.options(selectinload(ProductCard.toys))
 
     cards = q.all()
     return {c.id: c for c in cards}
@@ -212,6 +237,47 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
             new_obj.trademark = tm
 
         order.parfum.append(new_obj)
+        return
+
+    # ---------- COSMETICS / TOYS ----------
+    if pc.category in ("cosmetics", "toys"):
+        approved_units = _units_map_for_card(pc).get("_single_units") or []
+        if not approved_units:
+            raise ValueError(f"Карточка #{pc.id}: нет approved позиции")
+
+        src = approved_units[0]
+        new_obj = Cosmetics() if pc.category == "cosmetics" else Toys()
+
+        copy_model_columns(src, new_obj)
+
+        qty_raw = item_payload.get("qty", None)
+        if qty_raw is None:
+            qty_raw = item_payload.get("quantity", None)
+        if qty_raw is None:
+            sizes = item_payload.get("sizes") or []
+            try:
+                qty_raw = sizes[0].get("qty") if sizes else None
+            except Exception:
+                qty_raw = None
+
+        try:
+            qty = int(qty_raw)
+        except Exception:
+            qty = 0
+
+        if qty < 1:
+            raise ValueError(f"Карточка #{pc.id}: некорректное количество")
+
+        new_obj.quantity = qty
+
+        tm = (item_payload.get("trademark") or "").strip()
+        if tm:
+            new_obj.trademark = tm
+
+        if pc.category == "cosmetics":
+            order.cosmetics.append(new_obj)
+        else:
+            order.toys.append(new_obj)
         return
 
     # ---------- COMMON FOR NON-PARFUM ----------
@@ -411,6 +477,18 @@ def _count_open_pc_orders(user_id: int, category: str, subcategory: str | None =
         sub = subcategory or ClothesSubcategories.common.value
         q = q.join(Clothes).filter(Clothes.subcategory == sub)
         return q.with_entities(func.count(distinct(Order.id))).scalar() or 0
+    if category == settings.Cosmetics.CATEGORY:
+        sub = subcategory or ""
+        if not sub:
+            return 999999
+        q = q.join(Cosmetics).filter(Cosmetics.subcategory == sub)
+        return q.with_entities(func.count(distinct(Order.id))).scalar() or 0
+    if category == settings.Toys.CATEGORY:
+        sub = subcategory or ""
+        if not sub:
+            return 999999
+        q = q.join(Toys).filter(Toys.subcategory == sub)
+        return q.with_entities(func.count(distinct(Order.id))).scalar() or 0
     return q.count()
 
 
@@ -448,6 +526,10 @@ def common_save_copy_pc_order(user: User, category: str, order: Order) -> int | 
                 new_order = save_copy_order_linen(order_category_list=order.linen, new_order=new_order)
             case settings.Parfum.CATEGORY:
                 new_order = save_copy_order_parfum(order_category_list=order.parfum, new_order=new_order)
+            case settings.Cosmetics.CATEGORY:
+                new_order = save_copy_order_cosmetics(order_category_list=order.cosmetics, new_order=new_order)
+            case settings.Toys.CATEGORY:
+                new_order = save_copy_order_toys(order_category_list=order.toys, new_order=new_order)
             case _:
                 raise Exception("Неизвестная категория")
 
@@ -463,4 +545,3 @@ def common_save_copy_pc_order(user: User, category: str, order: Order) -> int | 
         flash(message=message, category="error")
         logger.error(message)
         return None
-
