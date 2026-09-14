@@ -1206,12 +1206,37 @@ function submitOrderCompanyOperatorForm() {
   if (!modalEl) return;
 
   const orderId = modalEl.dataset.orderId; // важно: data-order-id должен быть задан
-  const company = document.getElementById("companySelect")?.value;
-  const updNumber = document.getElementById("updInput")?.value;
+  const isPcOrder = modalEl.dataset.pcOrder === "1";
   const csrfToken = document.getElementById("csrf_token")?.value;
-  if (!company || !updNumber) {
-    make_message("Заполните все поля", "warning");
-    return;
+
+  let payload = {
+    order_id: orderId
+  };
+
+  if (isPcOrder) {
+    const rows = Array.from(modalEl.querySelectorAll("[data-pc-upd-row]"));
+    const companiesUpd = rows.map(row => ({
+      company: row.querySelector("[data-pc-company]")?.value || "",
+      upd_number: row.querySelector("[data-pc-upd-input]")?.value || ""
+    }));
+
+    if (!companiesUpd.length || companiesUpd.some(row => !row.company || !row.upd_number.trim())) {
+      make_message("Заполните УПД по всем компаниям заказа", "warning");
+      return;
+    }
+
+    payload.companies_upd = companiesUpd;
+  } else {
+    const company = document.getElementById("companySelect")?.value;
+    const updNumber = document.getElementById("updInput")?.value;
+
+    if (!company || !updNumber) {
+      make_message("Заполните все поля", "warning");
+      return;
+    }
+
+    payload.company = company;
+    payload.upd_number = updNumber;
   }
 
   fetch( UPDATE_ORDER_PROCESS_INFO_URL, {
@@ -1220,11 +1245,7 @@ function submitOrderCompanyOperatorForm() {
       "Content-Type": "application/json",
       "X-CSRFToken": csrfToken
     },
-    body: JSON.stringify({
-      order_id: orderId,
-      company: company,
-      upd_number: updNumber
-    })
+    body: JSON.stringify(payload)
   })
   .then(res => res.json())
   .then(data => {

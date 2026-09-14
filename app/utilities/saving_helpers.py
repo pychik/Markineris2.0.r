@@ -183,6 +183,9 @@ def build_position_key(item: Any, category: str) -> tuple:
         normalize_float_key(item.article_price),
         normalize_int_key(item.tax),
         normalize_key_value(item.type),
+        normalize_key_value(getattr(item, "processing_company_inn", "")),
+        normalize_key_value(getattr(item, "processing_company_external_id", "")),
+        normalize_key_value(getattr(item, "processing_company_title", "")),
     )
 
     match category:

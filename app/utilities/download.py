@@ -82,6 +82,36 @@ class OrdersProcessor(ProcessorInterface, ABC):
         return archive, filename
 
     @staticmethod
+    def safe_filename_part(value: str | None, default: str = "company") -> str:
+        value = str(value or "").strip()
+        if not value:
+            value = default
+        value = re.sub(r'[\\/:*?"<>|]+', "_", value)
+        value = re.sub(r"\s+", "_", value)
+        return value.strip("._ ")[:80] or default
+
+    @staticmethod
+    def processing_company_key(item) -> tuple[str, str, str]:
+        inn = str(getattr(item, "processing_company_inn", "") or "").strip()
+        title = str(getattr(item, "processing_company_title", "") or "").strip()
+        external_id = str(getattr(item, "processing_company_external_id", "") or "").strip()
+        key = inn or external_id or title or "unknown"
+        label = " ".join(part for part in (inn, title) if part) or external_id or "Компания не указана"
+        return key, label, inn
+
+    @classmethod
+    def group_orders_by_processing_company(cls, orders_list: list) -> list[tuple[str, str, str, list]]:
+        grouped: dict[str, dict] = {}
+        for item in orders_list:
+            key, label, inn = cls.processing_company_key(item)
+            bucket = grouped.setdefault(key, {"label": label, "inn": inn, "items": []})
+            bucket["items"].append(item)
+        return [
+            (key, data["label"], data["inn"], data["items"])
+            for key, data in grouped.items()
+        ]
+
+    @staticmethod
     def prepare_batches(orders_divided: list, batch_size=400):
         """
         Делит каждый список в `orders_divided` на батчи и добавляет индекс к имени файла.
@@ -374,6 +404,39 @@ class OrdersProcessor(ProcessorInterface, ABC):
                                       edo_type=edo_type, edo_id=edo_id, mark_type=mark_type,
                                       user_name=c_name, user_phone=c_phone,
                                       user_email=c_email, partner=c_partner_code)
+
+        if getattr(order, "is_moderation", False):
+            excel_files = []
+            for _, company_label, company_inn, company_orders in self.group_orders_by_processing_company(self.source_orders_list):
+                company_processor = self.__class__(
+                    category=self.category,
+                    company_idn=company_inn or company_idn,
+                    orders_list=company_orders,
+                    flag_046=self.flag_046,
+                    has_aggr=getattr(order, "has_aggr", False),
+                )
+                company_processor.excel_add_worksheet_data(
+                    company_idn=company_idn,
+                    company_name=company_name,
+                    company_type=company_type,
+                    edo_type=edo_type,
+                    edo_id=edo_id,
+                    mark_type=mark_type,
+                    user_name=c_name,
+                    user_phone=c_phone,
+                    user_email=c_email,
+                    partner=c_partner_code,
+                )
+                company_suffix = self.safe_filename_part(company_label)
+                batch_name = f"{e_name}_{company_suffix}"
+                excel_files.extend(
+                    company_processor.process_to_excel(
+                        list_of_orders=self.prepare_batches(
+                            orders_divided=[(company_processor.orders_list, batch_name)]
+                        )
+                    )
+                )
+            return OrdersProcessor.archive_excels(excel_files=excel_files, filename=self.path)
 
         excel_files = self.process_to_excel(list_of_orders=OrdersProcessor
                                             .prepare_batches(orders_divided=[(self.orders_list_outer, f"{e_name}_ВВЕЗЕН"),

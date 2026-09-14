@@ -332,7 +332,7 @@ class Order(db.Model, UserMixin):
     comment_cancel = db.Column(db.String(230), default='')
 
     # Информация по заказау УПД и компания проводящая доки
-    processing_info = db.Column(db.String(100), default="")
+    processing_info = db.Column(db.Text, default="")
 
     p_started = db.Column(db.DateTime())  # pool strated
     m_started = db.Column(db.DateTime())  # manager has taken order
@@ -817,6 +817,10 @@ class CommonMixin:
     rd_name = db.Column(db.String(100))
     rd_date = db.Column(db.Date())
     rd_date_to = db.Column(db.Date(), index=True)
+
+    processing_company_external_id = db.Column(db.String(100), default="")
+    processing_company_title = db.Column(db.String(255), default="")
+    processing_company_inn = db.Column(db.String(20), default="")
 
 
 class OrderCommon(CommonMixin):

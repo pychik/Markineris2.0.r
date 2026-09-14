@@ -172,6 +172,16 @@ def _copy_common_fields_from_card_obj(dst_obj, src_obj, rd_tuple):
         dst_obj.rd_date = rd_date
 
 
+def _copy_processing_company_from_card(dst_obj, pc: ProductCard):
+    for src_attr, dst_attr in (
+        ("processing_company_external_id", "processing_company_external_id"),
+        ("processing_company_title", "processing_company_title"),
+        ("processing_company_inn", "processing_company_inn"),
+    ):
+        if hasattr(dst_obj, dst_attr):
+            setattr(dst_obj, dst_attr, (getattr(pc, src_attr, "") or "").strip())
+
+
 def _load_cards_for_order(card_ids: list[int], *, category: str) -> dict[int, ProductCard]:
     q = ProductCard.query.filter(ProductCard.id.in_(card_ids))
 
@@ -214,6 +224,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
         new_obj = Parfum()
 
         copy_model_columns(src, new_obj)
+        _copy_processing_company_from_card(new_obj, pc)
 
         # ✅ количество: сначала qty/quantity, потом fallback на sizes[0].qty
         qty_raw = item_payload.get("qty", None)
@@ -255,6 +266,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
         new_obj = Cosmetics() if pc.category == "cosmetics" else Toys()
 
         copy_model_columns(src, new_obj)
+        _copy_processing_company_from_card(new_obj, pc)
 
         qty_raw = item_payload.get("qty", None)
         if qty_raw is None:
@@ -304,6 +316,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
 
         # ✅ копируем ВСЕ поля одежды (color, gender, content, type, tnved_code, country, tax, article_price, box_quantity...)
         copy_model_columns(src, new_obj)
+        _copy_processing_company_from_card(new_obj, pc)
 
         # ✅ article/trademark — из payload (как ты и описывал)
         new_obj.article = (item_payload.get("article") or "").strip()
@@ -344,6 +357,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
 
         # ✅ копируем ВСЕ поля носков (color, gender, content, etc.)
         copy_model_columns(src, new_obj)
+        _copy_processing_company_from_card(new_obj, pc)
 
         new_obj.article = (item_payload.get("article") or "").strip()
         new_obj.trademark = (item_payload.get("trademark") or "").strip() or new_obj.trademark
@@ -381,6 +395,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
 
         # ✅ копируем ВСЕ поля обуви (color, material_top, material_lining, material_bottom, gender, with_packages...)
         copy_model_columns(src, new_obj)
+        _copy_processing_company_from_card(new_obj, pc)
 
         new_obj.article = (item_payload.get("article") or "").strip()
         new_obj.trademark = (item_payload.get("trademark") or "").strip() or new_obj.trademark
@@ -416,6 +431,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
 
         # ✅ копируем ВСЕ поля белья (color, customer_age, textile_type, content, with_packages...)
         copy_model_columns(src, new_obj)
+        _copy_processing_company_from_card(new_obj, pc)
 
         new_obj.article = (item_payload.get("article") or "").strip()
         new_obj.trademark = (item_payload.get("trademark") or "").strip() or new_obj.trademark
