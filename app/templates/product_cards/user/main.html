@@ -3,15 +3,19 @@
 
 
 {% block main %}
-<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/product_cards/user.css', v='19') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/product_cards/user.css', v='20') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/product_cards/chat_user.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='main_v2/video/css/fancybox.css') }}">
-<script src="{{ url_for('static', filename='product_cards/users/users.js', v='11') }}"></script>
+<script src="{{ url_for('static', filename='product_cards/users/users.js', v='12') }}"></script>
 <script src="{{ url_for('static', filename='product_cards/users/pc_send_created.js') }}"></script>
 <script src="{{url_for('static', filename='product_cards/crm/js/card_chat.js')}}"></script>
 <script src="{{ url_for('static', filename='product_cards/users/pc_cart.js', v='18') }}"></script>
 
 <meta name="csrf-token" content="{{ csrf_token() }}">
+
+<script>
+  window.PC_CATEGORY_SEARCH_INDEX = {{ pc_category_search_index | default([]) | tojson | safe }};
+</script>
 
 <div id="pc-config"
      data-cards-table-url="{{ url_for('user_product_cards.cards_table') }}"

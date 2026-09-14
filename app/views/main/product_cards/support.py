@@ -20,7 +20,7 @@ from utilities.saving_helpers import get_clothes_size_type, get_socks_size_type,
 from utilities.support import check_forbidden_words
 from utilities.validators import ValidatorProcessor
 from tezaurus.processing_companies import PROCESSING_COMPANIES_BATCH_LIMIT, ProcessingCompaniesClient
-from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries
+from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries, get_clothes_tnved_pairs_for_types
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
 from views.main.categories.cosmetics.subcategories import CosmeticsSubcategories, \
     get_subcategory_config as get_cosmetics_subcategory_config
@@ -105,6 +105,98 @@ CATEGORY_TITLES = {
     key: cfg["title"]
     for key, cfg in CATEGORIES_COMMON.items()
 }
+
+
+def _pc_tnved_choices_from_pairs(pairs) -> list[dict[str, str]]:
+    choices = []
+    seen = set()
+    for pair in pairs or ():
+        if not pair:
+            continue
+        code = str(pair[0] or "").strip()
+        if not code or code in seen:
+            continue
+        seen.add(code)
+        label = str(pair[1] or "").strip() if len(pair) > 1 else ""
+        choices.append({"code": code, "label": label})
+    return choices
+
+
+def _pc_clothes_tnved_choices(subcategory: str, product_types: list[str] | tuple[str, ...]) -> list[dict[str, str]]:
+    return _pc_tnved_choices_from_pairs(get_clothes_tnved_pairs_for_types(subcategory, product_types, is_cards=True))
+
+
+def _pc_socks_tnved_choices() -> list[dict[str, str]]:
+    pairs = []
+    for product_type in settings.Socks.TYPES:
+        type_data = settings.Socks.SOCKS_TNVED_DICT.get(product_type) or ()
+        if len(type_data) > 1:
+            pairs.extend(type_data[1] or ())
+    return _pc_tnved_choices_from_pairs(pairs)
+
+
+def _pc_new_card_url(category: str, subcategory: str | None = None) -> str:
+    kwargs = {"category": category}
+    if subcategory and subcategory != ClothesSubcategories.common.value:
+        kwargs["subcategory"] = subcategory
+    return url_for("user_product_cards.new_product_card", **kwargs)
+
+
+def build_pc_category_search_index() -> list[dict[str, Any]]:
+    clothes_items = []
+    for slug, title in (
+        (ClothesSubcategories.common.value, "Одежда основная"),
+        (ClothesSubcategories.underwear.value, "Нижнее белье"),
+        (ClothesSubcategories.swimming_accessories.value, "Купальные принадлежности"),
+        (ClothesSubcategories.hats.value, "Шляпы"),
+        (ClothesSubcategories.gloves.value, "Перчатки"),
+        (ClothesSubcategories.shawls.value, "Шали"),
+    ):
+        creds = ClothesSubcategoryProcessor(subcategory=slug, is_cards=True).get_creds()
+        clothes_items.append({
+            "category": settings.Clothes.CATEGORY_PROCESS,
+            "category_title": CATEGORY_TITLES[settings.Clothes.CATEGORY_PROCESS],
+            "slug": slug,
+            "title": title,
+            "url": _pc_new_card_url(settings.Clothes.CATEGORY_PROCESS, slug),
+            "allowed_tnved_codes": list(creds.clothes_all_tnved),
+            "allowed_tnved_choices": _pc_clothes_tnved_choices(slug, creds.types),
+            "product_types": list(creds.types),
+        })
+
+    clothes_items.append({
+        "category": settings.Socks.CATEGORY_PROCESS,
+        "category_title": CATEGORY_TITLES[settings.Socks.CATEGORY_PROCESS],
+        "slug": "socks",
+        "title": CATEGORY_TITLES[settings.Socks.CATEGORY_PROCESS],
+        "url": _pc_new_card_url(settings.Socks.CATEGORY_PROCESS),
+        "allowed_tnved_codes": list(settings.Socks.TNVED_ALL),
+        "allowed_tnved_choices": _pc_socks_tnved_choices(),
+        "product_types": list(settings.Socks.TYPES),
+    })
+
+    registry_items = []
+    for category, category_title, registry in (
+        (settings.Cosmetics.CATEGORY_PROCESS, CATEGORY_TITLES[settings.Cosmetics.CATEGORY_PROCESS], COSMETICS_SUBCATEGORY_CONFIG),
+        (settings.Toys.CATEGORY_PROCESS, CATEGORY_TITLES[settings.Toys.CATEGORY_PROCESS], TOYS_SUBCATEGORY_CONFIG),
+    ):
+        for config in registry.values():
+            registry_items.append({
+                "category": category,
+                "category_title": category_title,
+                "slug": config["slug"],
+                "title": config["title"],
+                "url": _pc_new_card_url(category, config["slug"]),
+                "allowed_tnved_codes": list(config["allowed_tnved_codes"]),
+                "allowed_tnved_choices": [
+                    {"code": code, "label": label}
+                    for code, label in config["allowed_tnved_choices"]
+                ],
+                "product_types": list(config["product_types"]),
+            })
+
+    return [*clothes_items, *registry_items]
+
 
 CARD_FIELDS = {
     "clothes": {

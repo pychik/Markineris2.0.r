@@ -221,6 +221,126 @@ function pc_init_category_tabs_mode(category, subcategory) {
     pc_set_category_tabs_mode(group ? group.mode : "main");
 }
 
+function pc_init_category_definition_search() {
+    const searchIndex = Array.isArray(window.PC_CATEGORY_SEARCH_INDEX) ? window.PC_CATEGORY_SEARCH_INDEX : [];
+    const input = document.getElementById("pc-category-search-input");
+    const resultEl = document.getElementById("pc-category-search-result");
+
+    if (!input || !resultEl || !searchIndex.length) return;
+
+    function normalizeText(value) {
+        return String(value || "").trim().toUpperCase().replace(/\s+/g, " ");
+    }
+
+    function extractDigits(value) {
+        return String(value || "").replace(/\D/g, "");
+    }
+
+    function escapeHtml(value) {
+        return String(value || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function findMatches(query) {
+        const normalizedQuery = normalizeText(query);
+        const digitQuery = extractDigits(query);
+        const matches = [];
+        const seen = new Set();
+
+        if (!normalizedQuery) return matches;
+
+        for (const item of searchIndex) {
+            if (digitQuery) {
+                for (const choice of (item.allowed_tnved_choices || [])) {
+                    const code = String(choice.code || "");
+                    const key = `${item.category}::${item.slug}::tnved::${code}`;
+                    if (!code.includes(digitQuery) || seen.has(key)) continue;
+                    seen.add(key);
+                    matches.push({
+                        item,
+                        reason: `ТН ВЭД: ${code}`,
+                        details: choice.label || "Категория определена по коду ТН ВЭД",
+                    });
+                }
+            }
+
+            for (const type of (item.product_types || [])) {
+                const key = `${item.category}::${item.slug}::type::${type}`;
+                if (!normalizeText(type).includes(normalizedQuery) || seen.has(key)) continue;
+                seen.add(key);
+                matches.push({
+                    item,
+                    reason: `Вид товара: ${type}`,
+                    details: "Категория определена по названию товара",
+                });
+            }
+        }
+
+        return matches;
+    }
+
+    function renderResult(matches, query) {
+        if (!matches.length) {
+            resultEl.classList.remove("is-empty");
+            resultEl.innerHTML = `
+                <div class="pc-category-search-result__title">Совпадений не найдено</div>
+                <div class="pc-category-search-result__meta">Запрос: ${escapeHtml(query)}</div>
+            `;
+            return;
+        }
+
+        const itemsHtml = matches.slice(0, 15).map((match) => {
+            const item = match.item || {};
+            return `
+                <li class="pc-category-search-result__item">
+                    <a class="pc-category-search-result__link" href="${escapeHtml(item.url)}">
+                        <div class="pc-category-search-result__link-title">
+                            ${escapeHtml(item.category_title)} / ${escapeHtml(item.title)}
+                        </div>
+                        <div class="pc-category-search-result__meta">${escapeHtml(match.reason)}</div>
+                        <div class="pc-category-search-result__meta">${escapeHtml(match.details)}</div>
+                    </a>
+                </li>
+            `;
+        }).join("");
+        const moreHtml = matches.length > 15
+            ? '<div class="pc-category-search-result__more">Результатов поиска больше 15 ...</div>'
+            : "";
+
+        resultEl.classList.remove("is-empty");
+        resultEl.innerHTML = `
+            <div class="pc-category-search-result__title">
+                ${matches.length === 1 ? "Найдена категория" : "Найдено несколько совпадений"}
+            </div>
+            <ul class="pc-category-search-result__list">${itemsHtml}</ul>
+            ${moreHtml}
+        `;
+    }
+
+    input.addEventListener("input", function () {
+        const query = input.value.trim();
+        if (query.length < 3) {
+            resultEl.classList.add("is-empty");
+            resultEl.innerHTML = "";
+            return;
+        }
+        renderResult(findMatches(query), query);
+    });
+
+    input.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+            event.preventDefault();
+            input.value = "";
+            resultEl.classList.add("is-empty");
+            resultEl.innerHTML = "";
+        }
+    });
+}
+
 // обновляет активные табы категорий/подкатегорий
 function pc_update_category(category, subcategory) {
     // снять active со всех табов
@@ -729,6 +849,7 @@ function loadTable(page = 1) {
     window.pcUpdateCreatedCardsCount(config.dataset.createdCardsCount);
 
     // первый старт
+    pc_init_category_definition_search();
     loadTable(1);
 });
 

@@ -7,7 +7,7 @@ from config import settings
 from data_migrations.etl_service import ETLMigrateUserData, run_migration
 from data_migrations.instance import etl_service
 from data_migrations.utils import make_password
-from models import CardChatRead, ModerationStatus, ProductCard, User, db
+from models import CardChatRead, ModerationStatus, Order, ProductCard, User, db
 from tezaurus.exceptions import TezaurusApiError, TezaurusConfigurationError
 from tezaurus.processing_companies import ProcessingCompaniesClient
 from tezaurus.runtime_catalogs import get_all_countries
@@ -136,6 +136,15 @@ MODULE_TESTING_CATEGORIES = (
 )
 
 
+def _delete_product_card_orders() -> int:
+    orders = Order.query.filter(Order.is_moderation.is_(True)).all()
+    deleted_count = len(orders)
+    for order in orders:
+        db.session.delete(order)
+    db.session.flush()
+    return deleted_count
+
+
 @admin_control.route('/', defaults={'expanded': None})
 @admin_control.route('/<expanded>/')
 @login_required
@@ -195,6 +204,8 @@ def module_testing_processing_companies_select():
 @su_required
 def module_testing_product_cards_reset_created():
     try:
+        deleted_orders = _delete_product_card_orders()
+
         rejected_cards = ProductCard.query.filter(
             ProductCard.status == ModerationStatus.REJECTED,
         ).all()
@@ -240,9 +251,11 @@ def module_testing_product_cards_reset_created():
         'status': 'success',
         'updated': updated_count,
         'deleted_rejected': deleted_count,
+        'deleted_orders': deleted_orders,
         'message': (
             f'Карточки товаров переведены в этап создания: {updated_count}. '
-            f'Отмененные карточки удалены: {deleted_count}.'
+            f'Отмененные карточки удалены: {deleted_count}. '
+            f'Заказы из карточек удалены: {deleted_orders}.'
         ),
     })
 
@@ -273,6 +286,8 @@ def module_testing_product_cards_delete_all():
         }), 403
 
     try:
+        deleted_orders = _delete_product_card_orders()
+
         product_card_ids = db.session.query(ProductCard.id)
         deleted_cards = ProductCard.query.count()
 
@@ -300,9 +315,11 @@ def module_testing_product_cards_delete_all():
         'status': 'success',
         'deleted_cards': deleted_cards,
         'deleted_chat_reads': deleted_chat_reads,
+        'deleted_orders': deleted_orders,
         'message': (
             f'Старые карточки товаров удалены: {deleted_cards}. '
-            f'Прочтения чата очищены: {deleted_chat_reads}.'
+            f'Прочтения чата очищены: {deleted_chat_reads}. '
+            f'Заказы из карточек удалены: {deleted_orders}.'
         ),
     })
 

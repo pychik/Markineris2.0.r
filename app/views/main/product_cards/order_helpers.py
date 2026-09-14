@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from config import settings
 from logger import logger
 from models import db, Order, ProductCard, FastOrderCompanies, Clothes, Parfum, Cosmetics, Toys, ClothesQuantitySize, Socks, \
-    SocksQuantitySize, Shoe, ShoeQuantitySize, Linen, LinenQuantitySize, User
+    SocksQuantitySize, Shoe, ShoeQuantitySize, Linen, LinenQuantitySize, ModerationStatus, User
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.saving_helpers import get_clothes_size_type
 from utilities.saving_uts import save_copy_order_shoes, save_copy_order_clothes, \
@@ -16,6 +16,17 @@ from utilities.saving_uts import save_copy_order_shoes, save_copy_order_clothes,
     save_copy_order_toys
 
 ALLOWED_CARD_DATA_STATUSES: set[str] = {"approved"}
+PC_ORDER_ITEM_APPROVAL_CATEGORIES = {
+    settings.Parfum.CATEGORY,
+    settings.Cosmetics.CATEGORY,
+    settings.Toys.CATEGORY,
+}
+PC_ORDER_SIZE_APPROVAL_CATEGORIES = {
+    settings.Clothes.CATEGORY,
+    settings.Shoes.CATEGORY,
+    settings.Linen.CATEGORY,
+    settings.Socks.CATEGORY,
+}
 
 _COLUMNS_CACHE: dict[type, list[str]] = {}
 
@@ -152,6 +163,9 @@ def _validate_card_access_and_status(pc: ProductCard, expected_category: str):
     if pc.category != expected_category:
         return f"Карточка #{pc.id} принадлежит категории '{pc.category}', а в заказе '{expected_category}'"
 
+    if pc.status != ModerationStatus.APPROVED:
+        return f"Карточка #{pc.id} не в статусе одобрено"
+
     ds = (pc.data_status or "").strip()
     if ds not in ALLOWED_CARD_DATA_STATUSES:
         # можно дополнить pc.status / pc.reject_reason
@@ -164,6 +178,46 @@ def _validate_card_access_and_status(pc: ProductCard, expected_category: str):
         )
 
     return None
+
+
+def _pc_order_item_label(item) -> str:
+    for attr in ("article", "model_article", "trademark", "type"):
+        value = (getattr(item, attr, None) or "").strip()
+        if value:
+            return value
+    item_id = getattr(item, "id", None)
+    return f"позиция #{item_id}" if item_id else "позиция"
+
+
+def validate_pc_order_items_ready_for_process(category: str, items: list) -> list[str]:
+    category = (category or "").strip()
+    if not items:
+        return ["В заказе нет позиций."]
+
+    errors = []
+    for item in items:
+        label = _pc_order_item_label(item)
+        if not getattr(item, "fast_order_company_id", None):
+            errors.append(f"Позиция {label} без компании обработки.")
+            continue
+
+        if category in PC_ORDER_ITEM_APPROVAL_CATEGORIES:
+            if not getattr(item, "is_approved", False):
+                errors.append(f"Позиция {label} не одобрена.")
+            continue
+
+        if category in PC_ORDER_SIZE_APPROVAL_CATEGORIES:
+            sizes_quantities = list(getattr(item, "sizes_quantities", []) or [])
+            if not sizes_quantities:
+                errors.append(f"Позиция {label} без размеров.")
+                continue
+            if any(not getattr(size, "is_approved", False) for size in sizes_quantities):
+                errors.append(f"Позиция {label} содержит не одобренные размеры.")
+            continue
+
+        errors.append(f"Позиция {label} относится к неизвестной категории заказа.")
+
+    return errors
 
 
 def _units_map_for_card(pc: ProductCard):
@@ -276,7 +330,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
     Создаёт строку заказа из ProductCard.
     ВАЖНО:
       - копируем ВСЕ колонки из записи карточки (src) в запись заказа (new_obj)
-      - НЕ проставляем new_obj.card_id (в заказных строках он должен быть None)
+      - не проставляем new_obj.card_id, чтобы оформленный заказ не зависел от жизни карточки
       - order_id выставится сам при append в relationship
     """
 
@@ -406,7 +460,6 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
                 )
             )
 
-        # НЕ трогаем new_obj.card_id
         order.clothes.append(new_obj)
         return new_obj
 

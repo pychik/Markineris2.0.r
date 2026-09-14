@@ -420,6 +420,54 @@ def get_clothes_tnved_codes(subcategory: str | None, type_name: str, gender: str
     return [code for code, _ in get_clothes_tnved_pairs(subcategory, type_name, gender)]
 
 
+def get_clothes_tnved_pairs_for_types(
+    subcategory: str | None,
+    type_names: list[str] | tuple[str, ...] | None = None,
+    *,
+    is_cards: bool = False,
+) -> list[tuple[str, str]]:
+    normalized_subcategory = _normalize_subcategory(subcategory)
+    if not _is_supported_clothes_subcategory(normalized_subcategory):
+        return []
+
+    wanted_types = {str(type_name).strip() for type_name in (type_names or ()) if str(type_name).strip()}
+    result: list[tuple[str, str]] = []
+    seen: set[str] = set()
+
+    def add_pairs(pairs: list[tuple[str, str]] | tuple[tuple[str, str], ...]) -> None:
+        for code, description in pairs or ():
+            normalized_code = str(code or "").strip()
+            if not normalized_code or normalized_code in seen:
+                continue
+            seen.add(normalized_code)
+            result.append((normalized_code, str(description or "").strip()))
+
+    try:
+        type_items = _get_cache_service().get_tnved(category="clothes", subcategory=normalized_subcategory)
+        if isinstance(type_items, list):
+            for type_item in type_items:
+                if not isinstance(type_item, dict):
+                    continue
+                type_name = str(type_item.get("name") or "").strip()
+                if wanted_types and type_name not in wanted_types:
+                    continue
+                for gender_item in type_item.get("genders") or []:
+                    if not isinstance(gender_item, dict):
+                        continue
+                    add_pairs(_extract_gender_codes(gender_item))
+            if result:
+                return result
+    except Exception:
+        logger.exception("Failed to read clothes tnved pairs from Tezaurus Redis cache for subcategory %s", normalized_subcategory)
+
+    fallback_types = list(wanted_types) if wanted_types else _fallback_clothes_types(normalized_subcategory, is_cards=is_cards)
+    for type_name in fallback_types:
+        for gender in _fallback_clothes_genders(normalized_subcategory, type_name) or ("",):
+            add_pairs(_fallback_clothes_codes(normalized_subcategory, type_name, gender))
+
+    return result
+
+
 def get_clothes_all_tnved(subcategory: str | None) -> list[str]:
     normalized_subcategory = _normalize_subcategory(subcategory)
     if not _is_supported_clothes_subcategory(normalized_subcategory):

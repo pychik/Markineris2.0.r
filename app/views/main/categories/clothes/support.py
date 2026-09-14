@@ -7,7 +7,7 @@ from settings.start import db
 from tezaurus.runtime_catalogs import (
     get_all_countries,
     get_clothes_tnved_types,
-    get_clothes_tnved_genders,
+    get_clothes_tnved_pairs_for_types,
     get_colors,
     get_rd_countries,
 )
@@ -16,8 +16,32 @@ from utilities.support import helper_get_order_notification, helper_category_com
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
 
 
-def _build_tnved_choices(codes: list[str] | tuple[str, ...]) -> list[dict[str, str]]:
-    return [{"code": str(code), "label": ""} for code in codes]
+def _build_tnved_choices_from_pairs(pairs) -> list[dict[str, str]]:
+    choices = []
+    seen = set()
+    for pair in pairs or ():
+        if not pair:
+            continue
+        code = str(pair[0] or "").strip()
+        if not code or code in seen:
+            continue
+        seen.add(code)
+        label = str(pair[1] or "").strip() if len(pair) > 1 else ""
+        choices.append({"code": code, "label": label})
+    return choices
+
+
+def _build_clothes_tnved_choices(subcategory: str, product_types: list[str] | tuple[str, ...]) -> list[dict[str, str]]:
+    return _build_tnved_choices_from_pairs(get_clothes_tnved_pairs_for_types(subcategory, product_types))
+
+
+def _build_socks_tnved_choices() -> list[dict[str, str]]:
+    pairs = []
+    for product_type in settings.Socks.TYPES:
+        type_data = settings.Socks.SOCKS_TNVED_DICT.get(product_type) or ()
+        if len(type_data) > 1:
+            pairs.extend(type_data[1] or ())
+    return _build_tnved_choices_from_pairs(pairs)
 
 
 def _get_clothes_category_tiles() -> tuple[dict, ...]:
@@ -95,7 +119,11 @@ def render_clothes_categories_index() -> str:
     clothes_search_index = [
         {
             **tile,
-            "allowed_tnved_choices": _build_tnved_choices(tile.get("allowed_tnved_codes", [])),
+            "allowed_tnved_choices": (
+                _build_socks_tnved_choices()
+                if tile["slug"] == "socks"
+                else _build_clothes_tnved_choices(tile["slug"], tile.get("product_types", []))
+            ),
         }
         for tile in clothes_category_tiles
     ]

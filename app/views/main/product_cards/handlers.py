@@ -28,7 +28,7 @@ from views.main.product_cards.crm.helpers import crm_card_subcategory_title, crm
 from views.main.product_cards.order_helpers import _json_error, _add_order_item_from_card, \
     _count_open_moderation_orders, _get_card_or_fail, _validate_card_access_and_status, _load_cards_for_order, \
     _count_open_pc_orders, _filter_copyable_fast_order_items, common_save_copy_pc_order, \
-    get_or_create_fast_order_company
+    get_or_create_fast_order_company, validate_pc_order_items_ready_for_process
 from views.main.product_cards.support import validate_card_form, save_clothes_card, save_shoes_card, save_linen_card, \
     save_socks_card, save_parfum_card, save_cosmetics_card, save_toys_card, parse_sizes_for_category, \
     CATEGORIES_COMMON, MODERATION_STATUS_TITLES, MODERATION_STATUS_COLORS, normalize_article_for_category, \
@@ -36,7 +36,8 @@ from views.main.product_cards.support import validate_card_form, save_clothes_ca
     extract_card_main_and_sizes, get_card_ctx, check_same_fields_if_exists, CATEGORY_TITLES, \
     get_card_entity_for_prefill, assert_frozen_fields_unchanged, \
     update_card_allowed_fields, ALLOWED_CARDS_DELETE_STATUSES, card_has_rd, CARD_STATUS_DATETIME_ATTR, \
-    get_card_allowed_field_changes, merge_selected_created_wear_cards, assign_tezaurus_processing_companies
+    get_card_allowed_field_changes, merge_selected_created_wear_cards, assign_tezaurus_processing_companies, \
+    build_pc_category_search_index
 from views.main.product_cards.utils import validate_rd_block
 from views.main.categories.cosmetics.subcategories.registry import \
     SUBCATEGORY_CONFIG as COSMETICS_SUBCATEGORY_CONFIG
@@ -162,6 +163,7 @@ def h_cards():
         article_query=article_query,
         mapper_categories=CATEGORIES_COMMON,
         pc_subcategory_tiles=_card_subcategory_tiles(category),
+        pc_category_search_index=build_pc_category_search_index(),
         created_cards_count=created_cards_count,
         show_cards_video=False,
     )
@@ -1749,6 +1751,14 @@ def h_pc_order_check_before_process(o_id: int):
 
     category = (order.category or "").strip()
 
+    order_items = _get_pc_order_rows_by_category(category, o_id)
+    card_errors = validate_pc_order_items_ready_for_process(category, order_items)
+    if card_errors:
+        return jsonify(
+            status="error",
+            message="Заказ не отправлен в обработку: " + " ".join(card_errors),
+        ), 400
+
     rows_count, marks_count = _get_pc_order_counts_by_category(category=category, o_id=o_id)
 
     # 1) дубль в архиве
@@ -1800,6 +1810,12 @@ def h_pc_order_process(o_id: int):
         return _back_to_list()
 
     category = (order.category or "").strip()
+
+    order_items = _get_pc_order_rows_by_category(category, order.id)
+    card_errors = validate_pc_order_items_ready_for_process(category, order_items)
+    if card_errors:
+        flash(message="Заказ не отправлен в обработку: " + " ".join(card_errors), category="error")
+        return _back_to_order_view()
 
     if not validate_order_comment_length(order_comment=order_comment):
         return _back_to_order_view()
