@@ -12,7 +12,7 @@ from rq_scheduler.scheduler import Scheduler
 from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import joinedload, aliased
+from sqlalchemy.orm import joinedload, aliased, selectinload
 from werkzeug.utils import secure_filename
 
 from config import settings
@@ -48,6 +48,20 @@ def _format_processing_info_rows(rows: list[tuple[str, str]]) -> str:
     return "<br>".join(
         f"{escape(company_label)} <br> УПД: {escape(upd_number)}"
         for company_label, upd_number in rows
+    )
+
+
+def _processing_order_query():
+    return Order.query.options(
+        lazyload("*"),
+        selectinload(Order.fast_order_companies),
+        load_only(
+            Order.id,
+            Order.order_idn,
+            Order.processing_info,
+            Order.is_moderation,
+            Order.manager_id,
+        ),
     )
 
 
@@ -2039,7 +2053,7 @@ def helper_get_processing_order_info() -> Response:
 
     order_info = (
         Order.query.options(
-            joinedload(Order.fast_order_companies),
+            selectinload(Order.fast_order_companies),
         )
         .filter(Order.id == order_id)
         .first()
@@ -2083,7 +2097,7 @@ def helper_update_processing_order_info() -> tuple[Response, int]:
 
     order = (
         Order.query.options(
-            joinedload(Order.fast_order_companies),
+            selectinload(Order.fast_order_companies),
         )
         .filter(Order.id == order_id)
         .first()

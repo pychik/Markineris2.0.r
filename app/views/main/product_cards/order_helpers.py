@@ -574,7 +574,36 @@ def _count_open_pc_orders(user_id: int, category: str, subcategory: str | None =
     return q.count()
 
 
-def common_save_copy_pc_order(user: User, category: str, order: Order) -> int | None:
+def _filter_copyable_fast_order_items(order_items):
+    def is_copyable(item) -> bool:
+        if not getattr(item, "fast_order_company_id", None):
+            return False
+        if hasattr(item, "is_approved") and not item.is_approved:
+            return False
+        sizes_quantities = getattr(item, "sizes_quantities", None)
+        if sizes_quantities is not None:
+            return all(getattr(sq, "is_approved", False) for sq in sizes_quantities)
+        return True
+
+    return [
+        item
+        for item in order_items
+        if is_copyable(item)
+    ]
+
+
+def _filtered_order_items(order_items, only_copyable_items: bool):
+    if not only_copyable_items:
+        return order_items
+    return _filter_copyable_fast_order_items(order_items)
+
+
+def common_save_copy_pc_order(
+    user: User,
+    category: str,
+    order: Order,
+    only_copyable_items: bool = False,
+) -> int | None:
     try:
         new_order = Order(
             company_type=order.company_type,
@@ -597,21 +626,42 @@ def common_save_copy_pc_order(user: User, category: str, order: Order) -> int | 
         # копируем категории/позиции
         match category:
             case settings.Shoes.CATEGORY:
-                new_order = save_copy_order_shoes(order_category_list=order.shoes, new_order=new_order)
+                new_order = save_copy_order_shoes(
+                    order_category_list=_filtered_order_items(order.shoes, only_copyable_items),
+                    new_order=new_order,
+                )
             case settings.Clothes.CATEGORY:
-                new_order = save_copy_order_clothes(order_category_list=order.clothes, new_order=new_order,
-                                                    old_aggrs=order.aggr_orders)
+                new_order = save_copy_order_clothes(
+                    order_category_list=_filtered_order_items(order.clothes, only_copyable_items),
+                    new_order=new_order,
+                    old_aggrs=order.aggr_orders,
+                )
             case settings.Socks.CATEGORY:
-                new_order = save_copy_order_socks(order_category_list=order.socks, new_order=new_order,
-                                                  old_aggrs=order.aggr_orders)
+                new_order = save_copy_order_socks(
+                    order_category_list=_filtered_order_items(order.socks, only_copyable_items),
+                    new_order=new_order,
+                    old_aggrs=order.aggr_orders,
+                )
             case settings.Linen.CATEGORY:
-                new_order = save_copy_order_linen(order_category_list=order.linen, new_order=new_order)
+                new_order = save_copy_order_linen(
+                    order_category_list=_filtered_order_items(order.linen, only_copyable_items),
+                    new_order=new_order,
+                )
             case settings.Parfum.CATEGORY:
-                new_order = save_copy_order_parfum(order_category_list=order.parfum, new_order=new_order)
+                new_order = save_copy_order_parfum(
+                    order_category_list=_filtered_order_items(order.parfum, only_copyable_items),
+                    new_order=new_order,
+                )
             case settings.Cosmetics.CATEGORY:
-                new_order = save_copy_order_cosmetics(order_category_list=order.cosmetics, new_order=new_order)
+                new_order = save_copy_order_cosmetics(
+                    order_category_list=_filtered_order_items(order.cosmetics, only_copyable_items),
+                    new_order=new_order,
+                )
             case settings.Toys.CATEGORY:
-                new_order = save_copy_order_toys(order_category_list=order.toys, new_order=new_order)
+                new_order = save_copy_order_toys(
+                    order_category_list=_filtered_order_items(order.toys, only_copyable_items),
+                    new_order=new_order,
+                )
             case _:
                 raise Exception("Неизвестная категория")
 

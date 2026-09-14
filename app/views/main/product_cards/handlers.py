@@ -27,7 +27,8 @@ from views.main.product_cards.crm.helpers import crm_card_subcategory_title, crm
     h_append_card_log
 from views.main.product_cards.order_helpers import _json_error, _add_order_item_from_card, \
     _count_open_moderation_orders, _get_card_or_fail, _validate_card_access_and_status, _load_cards_for_order, \
-    _count_open_pc_orders, common_save_copy_pc_order, get_or_create_fast_order_company
+    _count_open_pc_orders, _filter_copyable_fast_order_items, common_save_copy_pc_order, \
+    get_or_create_fast_order_company
 from views.main.product_cards.support import validate_card_form, save_clothes_card, save_shoes_card, save_linen_card, \
     save_socks_card, save_parfum_card, save_cosmetics_card, save_toys_card, parse_sizes_for_category, \
     CATEGORIES_COMMON, MODERATION_STATUS_TITLES, MODERATION_STATUS_COLORS, normalize_article_for_category, \
@@ -1417,6 +1418,20 @@ def h_pc_order_copy(o_id: int) -> Response:
         flash(message=settings.Messages.STRANGE_REQUESTS, category="error")
         return redirect(url_for("user_product_cards.pc_orders_drafts"))
 
+    order_items = _get_pc_order_rows_by_category(category, order.id)
+    if not order_items:
+        flash(message="Нельзя скопировать быстрый заказ: в заказе нет позиций", category="error")
+        return redirect(url_for("user_product_cards.pc_orders_drafts"))
+
+    copyable_items = _filter_copyable_fast_order_items(order_items)
+    skipped_count = len(order_items) - len(copyable_items)
+    if not copyable_items:
+        flash(
+            message="Нельзя скопировать быстрый заказ: в заказе нет позиций, доступных для копирования",
+            category="error",
+        )
+        return redirect(url_for("user_product_cards.pc_orders_drafts"))
+
     subcategory = get_subcategory(order_id=order.id, category=category) or None
 
     # лимит: максимум 2 pc-заказа на категорию (+ subcat для clothes)
@@ -1430,10 +1445,20 @@ def h_pc_order_copy(o_id: int) -> Response:
         return redirect(url_for("user_product_cards.pc_orders_drafts"))
 
     # копируем
-    new_id = common_save_copy_pc_order(user=user, category=category, order=order)
+    new_id = common_save_copy_pc_order(
+        user=user,
+        category=category,
+        order=order,
+        only_copyable_items=True,
+    )
     if not new_id:
         return redirect(url_for("user_product_cards.pc_orders_drafts"))
 
+    if skipped_count:
+        flash(
+            message=f"При копировании пропущены позиции без одобренных данных или без компании: {skipped_count}",
+            category="warning",
+        )
     flash(message=f"Заказ скопирован: {category}, Идентификатор {new_id}", category="success")
     return redirect(url_for("user_product_cards.pc_orders_drafts"))
 
