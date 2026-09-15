@@ -329,14 +329,18 @@
                 <div class="col-md-3">
                     <div class="form-group">
                         <label for="sl_date_from" class="control-label">Период годности: дата от</label>
-                        <input id="sl_date_from" name="sl_date_from" type="text" class="form-control" autocomplete="off" readonly value="{% if copied_order and copied_order.sl_date_from %}{{ copied_order.sl_date_from.strftime('%d.%m.%Y') }}{% endif %}" required>
+                        <input id="sl_date_from" name="sl_date_from" type="text" class="form-control"
+                               onpaste="return false;" oncopy="return false" oncut="return false"
+                               ondrag="return false" ondrop="return false" autocomplete="off" readonly value="{% if copied_order and copied_order.sl_date_from %}{{ copied_order.sl_date_from.strftime('%d.%m.%Y') }}{% endif %}" required>
                     </div>
                 </div>
 
                 <div class="col-md-3">
                     <div class="form-group">
                         <label for="sl_date_to" class="control-label">Период годности: дата до</label>
-                        <input id="sl_date_to" name="sl_date_to" type="text" class="form-control" autocomplete="off" readonly value="{% if copied_order and copied_order.sl_date_to %}{{ copied_order.sl_date_to.strftime('%d.%m.%Y') }}{% endif %}" required>
+                        <input id="sl_date_to" name="sl_date_to" type="text" class="form-control"
+                               onpaste="return false;" oncopy="return false" oncut="return false"
+                               ondrag="return false" ondrop="return false" autocomplete="off" readonly value="{% if copied_order and copied_order.sl_date_to %}{{ copied_order.sl_date_to.strftime('%d.%m.%Y') }}{% endif %}" required>
                     </div>
                 </div>
             </div>

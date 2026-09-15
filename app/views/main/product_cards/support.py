@@ -1210,10 +1210,8 @@ def save_cosmetics_card(
     content_type_trigger_types = set(subcategory_config.get("content_type_trigger_product_types") or ())
     content_type_trigger_tnveds = set(subcategory_config.get("content_type_trigger_tnved_codes") or ())
     content_type_visible = content_value_enabled and content_type_enabled
-    if content_type_visible and content_type_trigger_types:
-        content_type_visible = product_type in content_type_trigger_types
-    if content_type_visible and content_type_trigger_tnveds:
-        content_type_visible = tnved_code in content_type_trigger_tnveds
+    if content_type_visible and (content_type_trigger_types or content_type_trigger_tnveds):
+        content_type_visible = product_type in content_type_trigger_types or tnved_code in content_type_trigger_tnveds
 
     complectation_visible = (
         product_type in set(subcategory_config.get("complectation_trigger_product_types") or ())
