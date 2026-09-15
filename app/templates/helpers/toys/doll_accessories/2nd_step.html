@@ -258,7 +258,7 @@
                         <select id="usage_term_type" name="usage_term_type" class="form-control search-select" required>
                             <option value="" selected disabled>Выберите значение</option>
                             {% for item in usage_term_types %}
-                                <option value="{{ item }}" {% if copied_order and copied_order.usage_term_type == item %}selected{% endif %}>{{ item }}</option>
+                                <option value="{{ item }}" {% if (copied_order and copied_order.usage_term_type == item) or ((not copied_order) and item == 'СРОК СЛУЖБЫ') %}selected{% endif %}>{{ item }}</option>
                             {% endfor %}
                         </select>
                     </div>

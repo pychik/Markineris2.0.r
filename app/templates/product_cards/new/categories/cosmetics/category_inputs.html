@@ -1,4 +1,7 @@
 {% set is_razor_subcategory = subcategory == 'razor_blades_and_cassettes' %}
+{% macro pc_info_icon() -%}
+<span class="badge badge-secondary"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M8.625 11.25C8.625 11.3495 8.66451 11.4448 8.73483 11.5152C8.80516 11.5855 8.90054 11.625 9 11.625C9.09946 11.625 9.19484 11.5855 9.26517 11.5152C9.33549 11.4448 9.375 11.3495 9.375 11.25V8.23575C9.375 8.13629 9.33549 8.04091 9.26517 7.97058C9.19484 7.90026 9.09946 7.86075 9 7.86075C8.90054 7.86075 8.80516 7.90026 8.73483 7.97058C8.66451 8.04091 8.625 8.13629 8.625 8.23575V11.25Z" fill="#D12600" /><path d="M9 7.12427C9.20711 7.12427 9.375 6.95637 9.375 6.74927C9.375 6.54216 9.20711 6.37427 9 6.37427C8.79289 6.37427 8.625 6.54216 8.625 6.74927C8.625 6.95637 8.79289 7.12427 9 7.12427Z" fill="#D12600" /><path d="M8.99982 1.54877C10.4734 1.54877 11.9138 1.98571 13.139 2.80435C14.3642 3.62299 15.3192 4.78655 15.8831 6.14791C16.447 7.50927 16.5946 9.00728 16.3072 10.4525C16.0198 11.8977 15.3103 13.2253 14.2684 14.2673C13.2265 15.3093 11.899 16.019 10.4538 16.3065C9.00859 16.5941 7.51057 16.4466 6.14915 15.8828C4.78774 15.3191 3.62408 14.3642 2.80532 13.1391C1.98655 11.914 1.54946 10.4736 1.54932 9.00002C1.5513 7.02456 2.33688 5.13057 3.73366 3.73365C5.13045 2.33672 7.02436 1.55095 8.99982 1.54877ZM8.99982 15.699C10.3251 15.699 11.6206 15.306 12.7226 14.5697C13.8245 13.8333 14.6833 12.7868 15.1904 11.5623C15.6975 10.3379 15.8301 8.99057 15.5715 7.69076C15.3128 6.39095 14.6745 5.19704 13.7373 4.26002C12.8 3.323 11.606 2.68495 10.3061 2.42658C9.00623 2.16821 7.65894 2.30112 6.43461 2.80849C5.21028 3.31587 4.16391 4.17492 3.42783 5.27701C2.69175 6.3791 2.29902 7.67472 2.29932 9.00002C2.3017 10.7762 3.00845 12.479 4.26457 13.7348C5.52068 14.9907 7.2236 15.697 8.99982 15.699Z" fill="#D12600" /></svg></span>
+{%- endmacro %}
 <div class="row setup-content faded">
 	    <script>
 	        function normalizeTrademarkPlaceholder(el, placeholder) {
@@ -67,8 +70,8 @@
                                 <a data-bs-toggle="tooltip"
                                    data-bs-html="true"
                                    data-html="true"
-                                   title="Не повторяйте вид товара и товарный знак: они добавляются автоматически. Проверяйте поле 'Полное наименование', чтобы не было дублей.">
-                                    <span class="badge badge-secondary">i</span>
+                                   title="Не повторяйте вид товара и товарный знак: они добавляются автоматически. Проверяйте поле 'Полное наименование', чтобы не было дублей. Пример: для вида 'КРЕМ' и товарного знака 'AUTOBRAND' пишите 'для рук с маслом ши', а не 'КРЕМ AUTOBRAND для рук'.">
+                                    {{ pc_info_icon() }}
                                 </a>
                             </div>
                         </div>
@@ -117,6 +120,7 @@
                                data-empty-value="БЕЗ ТОВАРНОГО ЗНАКА"
                                minlength="1"
                                maxlength="50"
+                               title="Вводимое значение не должно превышать 50 знаков"
                                oninput="updateCosmeticsFullName();"
                                onchange="normalizeTrademarkPlaceholder(this, 'БЕЗ ТОВАРНОГО ЗНАКА');check_article_word(this);check_valid(this);updateCosmeticsFullName();"
                                value="{% if copied_order %}{{ copied_order.trademark }}{% endif %}"
@@ -176,7 +180,7 @@
                                data-bs-html="true"
                                data-html="true"
                                title="Выберите, предназначен товар для детей или нет.">
-                                <span class="badge badge-secondary">i</span>
+                                {{ pc_info_icon() }}
                             </a>
                         </label>
                         <select id="for_children" name="for_children" class="form-control search-select" {% if subcategory_config.get("for_children_enabled", true) %}required{% endif %}>
@@ -281,13 +285,14 @@
                                data-bs-html="true"
                                data-html="true"
                                title="В поле можно вводить кириллицу, цифры и знаки препинания/служебные символы. Если введена латинская раскладка, текст будет автоматически преобразован в русскую.">
-                                <span class="badge badge-secondary">i</span>
+                                {{ pc_info_icon() }}
                             </a>
                         </label>
                         <textarea id="content"
                                   name="content"
                                   class="form-control"
                                   rows="5"
+                                  placeholder="Введите состав товара"
                                   maxlength="2000"
                                   oninput="normalizeCosmeticsContentInput(this)"
                                   {% if subcategory_config.get("content_value_enabled", true) %}required{% endif %}>{% if copied_order %}{{ copied_order.content }}{% endif %}</textarea>
@@ -313,7 +318,7 @@
                         <select id="usage_term_type" name="usage_term_type" class="form-control search-select" required>
                             <option value="" selected disabled>Выберите значение</option>
                             {% for item in usage_term_types %}
-                                <option value="{{ item }}" {% if copied_order and copied_order.usage_term_type == item %}selected{% endif %}>{{ item }}</option>
+                                <option value="{{ item }}" {% if (copied_order and copied_order.usage_term_type == item) or ((not copied_order) and item == 'СРОК СЛУЖБЫ') %}selected{% endif %}>{{ item }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -330,6 +335,7 @@
                     <div class="form-group">
                         <label for="sl_date_from" class="control-label">Период годности: дата от</label>
                         <input id="sl_date_from" name="sl_date_from" type="text" class="form-control"
+                               placeholder="Выберите дату"
                                onpaste="return false;" oncopy="return false" oncut="return false"
                                ondrag="return false" ondrop="return false" autocomplete="off" readonly value="{% if copied_order and copied_order.sl_date_from %}{{ copied_order.sl_date_from.strftime('%d.%m.%Y') }}{% endif %}" required>
                     </div>
@@ -339,6 +345,7 @@
                     <div class="form-group">
                         <label for="sl_date_to" class="control-label">Период годности: дата до</label>
                         <input id="sl_date_to" name="sl_date_to" type="text" class="form-control"
+                               placeholder="Выберите дату"
                                onpaste="return false;" oncopy="return false" oncut="return false"
                                ondrag="return false" ondrop="return false" autocomplete="off" readonly value="{% if copied_order and copied_order.sl_date_to %}{{ copied_order.sl_date_to.strftime('%d.%m.%Y') }}{% endif %}" required>
                     </div>
