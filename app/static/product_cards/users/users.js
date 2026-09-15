@@ -101,7 +101,7 @@ const PC_SUBCATEGORY_CREATE_LABELS = {
         cosmetics_the_rest_hair: "косметику для волос",
         cosmetics_rascheski: "расческу",
         razor_blades_and_cassettes: "бритвы/лезвия",
-        cosmetics_tooth: "зубные средства",
+        cosmetics_tooth: "средство для гигиены полости рта",
         cosmetics_salt_bomb: "соль/бомбу для ванны",
         cosmetics_mochalki: "мочалку",
         cosmetics_aroma: "ароматизатор",
