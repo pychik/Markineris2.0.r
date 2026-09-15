@@ -11,9 +11,12 @@
     </li>
     <hr>
     <li class="nav-item">
-        <a href="{{ url_for('user_product_cards.cards') }}"
-           class="nav-link d-flex text-white align-items-center {% if 'user_product_cards' in request.path %}active{% else %}no-link{% endif %}"
-           aria-current="page">
+        <a class="nav-link d-flex text-white align-items-center {% if 'user_product_cards' in request.path %}active{% else %}no-link{% endif %}"
+           data-bs-toggle="collapse"
+           href="#userProductCardsMenu"
+           role="button"
+           aria-expanded="{% if 'user_product_cards' in request.path %}true{% else %}false{% endif %}"
+           aria-controls="userProductCardsMenu">
 
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
                  xmlns="http://www.w3.org/2000/svg">
@@ -32,6 +35,24 @@
 
             <span class="ms-2">Быстрый заказ</span>
         </a>
+
+        <div class="collapse {% if 'user_product_cards' in request.path %}show{% endif %}"
+             id="userProductCardsMenu">
+            <ul class="nav flex-column">
+                {% set pc_order_menu_active = request.endpoint and request.endpoint.startswith('user_product_cards.pc_order') %}
+                <li class="nav-item nav-item--sub ps-5 {% if 'user_product_cards' in request.path and not pc_order_menu_active %}active{% endif %}">
+                    <a href="{{ url_for('user_product_cards.cards') }}" class="nav-link text-light" aria-current="page">
+                        Мои товары
+                    </a>
+                </li>
+
+                <li class="nav-item nav-item--sub ps-5 {% if pc_order_menu_active %}active{% endif %}">
+                    <a href="{{ url_for('user_product_cards.pc_orders_drafts') }}" class="nav-link text-light" aria-current="page">
+                        Черновики заказов (М)
+                    </a>
+                </li>
+            </ul>
+        </div>
     </li>
 
     <li class="nav-item">
