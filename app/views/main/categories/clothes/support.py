@@ -6,6 +6,7 @@ from config import settings
 from settings.start import db
 from tezaurus.runtime_catalogs import (
     get_all_countries,
+    get_clothes_tnved_genders,
     get_clothes_tnved_types,
     get_clothes_tnved_pairs_for_types,
     get_colors,
