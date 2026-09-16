@@ -1200,6 +1200,7 @@ function bck_crm_operator_report(reportKey, url) {
             $(get_crm_operator_report_table_target(reportKey)).html(data.htmlresponse);
         },
         error: function(xhr, status, error) {
+            show_crm_operator_report_ajax_error(xhr);
             console.error('Error:', error);
         },
         complete: function() {
@@ -1262,6 +1263,7 @@ function download_crm_operator_report_file(reportKey, url, csrf) {
         },
         error: function(xhr, status, error) {
             // Error handling
+            show_crm_operator_report_ajax_error(xhr);
             console.error('Error:', error);
         },
         complete: function() {
@@ -1269,6 +1271,25 @@ function download_crm_operator_report_file(reportKey, url, csrf) {
         }
     });
 
+}
+
+function show_crm_operator_report_ajax_error(xhr) {
+    if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
+        make_message(xhr.responseJSON.message, 'warning');
+        return;
+    }
+    if (xhr && xhr.response instanceof Blob) {
+        xhr.response.text().then(function (text) {
+            try {
+                const data = JSON.parse(text);
+                make_message(data.message || 'Ошибка формирования отчета', 'warning');
+            } catch (e) {
+                make_message('Ошибка формирования отчета', 'warning');
+            }
+        });
+        return;
+    }
+    make_message('Ошибка формирования отчета', 'warning');
 }
 
 function get_avg_order_processing_time_rpt_excel(url, csrf) {
@@ -1289,6 +1310,9 @@ function set_crm_operator_report_dates(dateFrom, dateTo) {
     update_crm_operator_month_picker_active();
 }
 
+const CRM_OPERATOR_REPORT_MIN_DATE = new Date(2022, 0, 1);
+const CRM_OPERATOR_REPORT_MIN_YEAR = CRM_OPERATOR_REPORT_MIN_DATE.getFullYear();
+
 function get_crm_report_month_range(year, monthIndex) {
     const now = new Date();
     const dateFrom = new Date(year, monthIndex, 1);
@@ -1305,17 +1329,21 @@ function render_crm_operator_month_picker(year) {
     if (!picker.length) {
         return;
     }
+    year = Math.max(year, CRM_OPERATOR_REPORT_MIN_YEAR);
     const now = new Date();
     picker.attr('data-year', year);
     $('#crm_report_month_year').text(year);
+    $('#crm_report_month_prev').prop('disabled', year <= CRM_OPERATOR_REPORT_MIN_YEAR);
     $('#crm_report_month_next').prop('disabled', year >= now.getFullYear());
     picker.empty();
     monthNames.forEach(function(monthName, monthIndex) {
+        const monthStart = new Date(year, monthIndex, 1);
         const isFutureMonth = year > now.getFullYear() || (year === now.getFullYear() && monthIndex > now.getMonth());
+        const isBeforeMinMonth = monthStart < new Date(CRM_OPERATOR_REPORT_MIN_YEAR, CRM_OPERATOR_REPORT_MIN_DATE.getMonth(), 1);
         const btn = $('<button type="button" class="btn btn-outline-secondary btn-sm crm-report-month-picker__btn"></button>');
         btn.text(monthName);
         btn.attr('data-month', monthIndex);
-        btn.prop('disabled', isFutureMonth);
+        btn.prop('disabled', isFutureMonth || isBeforeMinMonth);
         picker.append(btn);
     });
     update_crm_operator_month_picker_active();
@@ -1352,11 +1380,17 @@ $(document).on('click', '.crm-report-month-picker__btn', function () {
 });
 
 $(document).on('click', '#crm_report_month_prev', function () {
+    if ($(this).prop('disabled')) {
+        return;
+    }
     const picker = $('#crm_report_month_picker');
     render_crm_operator_month_picker(parseInt(picker.attr('data-year'), 10) - 1);
 });
 
 $(document).on('click', '#crm_report_month_next', function () {
+    if ($(this).prop('disabled')) {
+        return;
+    }
     const picker = $('#crm_report_month_picker');
     render_crm_operator_month_picker(parseInt(picker.attr('data-year'), 10) + 1);
 });
@@ -1401,6 +1435,10 @@ function validate_avg_order_processing_time_rpt_dates(date_from, date_to, maxMon
 
     if (!dateFrom || !dateTo) {
         make_message('Выберите корректный период отчета', 'warning');
+        return false;
+    }
+    if (dateFrom < CRM_OPERATOR_REPORT_MIN_DATE || dateTo < CRM_OPERATOR_REPORT_MIN_DATE) {
+        make_message('Период отчета не может быть раньше 01.01.2022', 'warning');
         return false;
     }
     if (dateFrom > dateTo) {

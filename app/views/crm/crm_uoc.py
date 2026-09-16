@@ -318,7 +318,11 @@ def avg_order_processing_time_rpt():
 @login_required
 @sumsuu_required
 def bck_avg_order_processing_time_rpt():
-    date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report()
+    try:
+        date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report()
+    except ValueError as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 400
+
     stmt = helper_get_stmt_avg_order_time_processing_report(
         date_from=date_from,
         date_to=date_to,
@@ -341,7 +345,11 @@ def bck_avg_order_processing_time_rpt():
 @login_required
 @sumsuu_required
 def bck_operator_category_orders_rpt():
-    date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report()
+    try:
+        date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report()
+    except ValueError as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 400
+
     stmt = helper_get_stmt_operator_category_orders_report(
         date_from=date_from,
         date_to=date_to,
@@ -365,9 +373,13 @@ def bck_operator_category_orders_rpt():
 @login_required
 @sumsuu_required
 def bck_daily_operator_category_orders_rpt():
-    date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(
-        max_months=DAILY_OPERATOR_ACTIVITY_REPORT_MAX_MONTHS,
-    )
+    try:
+        date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(
+            max_months=DAILY_OPERATOR_ACTIVITY_REPORT_MAX_MONTHS,
+        )
+    except ValueError as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 400
+
     stmt = helper_get_stmt_daily_operator_category_orders_report(
         date_from=date_from,
         date_to=date_to,
@@ -392,7 +404,11 @@ def bck_daily_operator_category_orders_rpt():
 @login_required
 @sumsuu_required
 def avg_order_processing_time_rpt_excel():
-    date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(report=True)
+    try:
+        date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(report=True)
+    except ValueError as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 400
+
     stmt = helper_get_stmt_avg_order_time_processing_report(
         date_from=date_from,
         date_to=date_to,
@@ -439,7 +455,11 @@ def avg_order_processing_time_rpt_excel():
 @login_required
 @sumsuu_required
 def operator_category_orders_rpt_excel():
-    date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(report=True)
+    try:
+        date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(report=True)
+    except ValueError as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 400
+
     stmt = helper_get_stmt_operator_category_orders_report(
         date_from=date_from,
         date_to=date_to,
@@ -460,10 +480,14 @@ def operator_category_orders_rpt_excel():
 @login_required
 @sumsuu_required
 def daily_operator_category_orders_rpt_excel():
-    date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(
-        report=True,
-        max_months=DAILY_OPERATOR_ACTIVITY_REPORT_MAX_MONTHS,
-    )
+    try:
+        date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(
+            report=True,
+            max_months=DAILY_OPERATOR_ACTIVITY_REPORT_MAX_MONTHS,
+        )
+    except ValueError as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 400
+
     stmt = helper_get_stmt_daily_operator_category_orders_report(
         date_from=date_from,
         date_to=date_to,
@@ -484,10 +508,14 @@ def daily_operator_category_orders_rpt_excel():
 @login_required
 @sumsuu_required
 def full_operator_metrics_rpt_file():
-    date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(
-        report=True,
-        max_months=FULL_OPERATOR_METRICS_REPORT_MAX_MONTHS,
-    )
+    try:
+        date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(
+            report=True,
+            max_months=FULL_OPERATOR_METRICS_REPORT_MAX_MONTHS,
+        )
+    except ValueError as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 400
+
     stmt = helper_get_stmt_full_operator_metrics_report(
         date_from=date_from,
         date_to=date_to,

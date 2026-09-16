@@ -3665,6 +3665,8 @@ def get_partner_code_max_id(partners) -> str:
 AVG_ORDER_PROCESSING_REPORT_MAX_MONTHS = 4
 DAILY_OPERATOR_ACTIVITY_REPORT_MAX_MONTHS = 1
 FULL_OPERATOR_METRICS_REPORT_MAX_MONTHS = 12
+OPERATOR_REPORT_MIN_DATE = datetime(2022, 1, 1)
+OPERATOR_REPORT_MIN_DATE_STR = OPERATOR_REPORT_MIN_DATE.strftime('%d.%m.%Y')
 CRM_OPERATOR_REPORT_CATEGORY_COLUMNS = (
     ('clothes', settings.Clothes.CATEGORY, 'Одежда'),
     ('shoes', settings.Shoes.CATEGORY, 'Обувь'),
@@ -3687,8 +3689,8 @@ def helper_get_filter_avg_order_time_processing_report(
         report: bool = False,
         max_months: int = AVG_ORDER_PROCESSING_REPORT_MAX_MONTHS,
 ):
-    default_day_to = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d')
-    default_day_from = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d')
+    default_date_to = datetime.today()
+    default_date_from = datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)
     if report:
         url_date_from = request.form.get('date_from', '', type=str)
         url_date_to = request.form.get('date_to', 0, type=str)
@@ -3699,12 +3701,21 @@ def helper_get_filter_avg_order_time_processing_report(
         url_date_to = request.args.get('date_to', '', type=str)
         manager_id = request.args.get('manager', 0, int)
 
-    date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from else default_day_from
-    date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
-        '%Y-%m-%d') if url_date_to else default_day_to
+    try:
+        date_from_dt = datetime.strptime(url_date_from, '%d.%m.%Y') if url_date_from else default_date_from
+        selected_date_to_dt = datetime.strptime(url_date_to, '%d.%m.%Y') if url_date_to else default_date_to
+    except ValueError:
+        raise ValueError('Выберите корректный период отчета.')
 
-    date_from_dt = datetime.strptime(date_from, '%Y-%m-%d')
-    date_to_dt = datetime.strptime(date_to, '%Y-%m-%d')
+    if date_from_dt < OPERATOR_REPORT_MIN_DATE or selected_date_to_dt < OPERATOR_REPORT_MIN_DATE:
+        raise ValueError(f'Период отчета не может быть раньше {OPERATOR_REPORT_MIN_DATE_STR}.')
+
+    if date_from_dt > selected_date_to_dt:
+        raise ValueError('Дата "C" не может быть больше даты "По".')
+
+    date_from = date_from_dt.strftime('%Y-%m-%d')
+    date_to_dt = selected_date_to_dt + timedelta(days=1)
+    date_to = date_to_dt.strftime('%Y-%m-%d')
     max_date_to_dt = _add_months(date_from_dt, max_months) + timedelta(days=1)
     if date_to_dt > max_date_to_dt:
         date_to = max_date_to_dt.strftime('%Y-%m-%d')
