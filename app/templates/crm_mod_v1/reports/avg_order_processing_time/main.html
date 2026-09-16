@@ -11,26 +11,219 @@
 <script src="{{url_for('static',filename='main_v2/js/assets/popper.min.js')}}"></script>
 
 
-<div class="container">
+{% include 'crm_mod_v1/reports/avg_order_processing_time/report_description.html' %}
 
-    {% include 'crm_mod_v1/reports/avg_order_processing_time/report_description.html' %}
+{% set default_manager = managers[0] if managers else none %}
+<div class="container"
+     id="crm_operator_reports_page"
+     data-active-report="avg_processing"
+     data-default-manager-id="{{ default_manager[0] if default_manager else '' }}"
+     data-default-manager-name="{{ default_manager[1] if default_manager else '' }}"
+     data-avg-processing-table-url="{{ url_for('crm_uoc.bck_avg_order_processing_time_rpt') }}?bck=1"
+     data-avg-processing-download-url="{{ url_for('crm_uoc.avg_order_processing_time_rpt_excel') }}"
+     data-operator-category-table-url="{{ url_for('crm_uoc.bck_operator_category_orders_rpt') }}?bck=1"
+     data-operator-category-download-url="{{ url_for('crm_uoc.operator_category_orders_rpt_excel') }}"
+     data-daily-category-table-url="{{ url_for('crm_uoc.bck_daily_operator_category_orders_rpt') }}?bck=1"
+     data-daily-category-download-url="{{ url_for('crm_uoc.daily_operator_category_orders_rpt_excel') }}"
+     data-full-metrics-download-url="{{ url_for('crm_uoc.full_operator_metrics_rpt_file') }}">
 
     <div class="order-filters">
       {% include 'crm_mod_v1/reports/avg_order_processing_time/filters.html' %}
     </div>
 
+    <ul class="nav nav-tabs mt-3 crm-report-tabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active crm-operator-report-tab"
+                type="button"
+                data-bs-toggle="tab"
+                data-bs-target="#avg_processing_report_pane"
+                data-report-key="avg_processing"
+                role="tab">
+          Общий отчет и статистика (среднее время)
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link crm-operator-report-tab"
+                type="button"
+                data-bs-toggle="tab"
+                data-bs-target="#operator_category_report_pane"
+                data-report-key="operator_category"
+                role="tab">
+          Отчет по категориям
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link crm-operator-report-tab"
+                type="button"
+                data-bs-toggle="tab"
+                data-bs-target="#daily_category_report_pane"
+                data-report-key="daily_category"
+                role="tab">
+          Подневный отчет по выбранному оператору
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link crm-operator-report-tab"
+                type="button"
+                data-bs-toggle="tab"
+                data-bs-target="#full_metrics_report_pane"
+                data-report-key="full_metrics"
+                role="tab">
+          Полные метрики
+        </button>
+      </li>
+    </ul>
 
-    <div class="row">
-
-        <div class="col-md-12">
-
-
-            <div id="avg_order_processing_time_table">
-                {% include 'crm_mod_v1/reports/avg_order_processing_time/table.html' %}
-            </div>
+    <div class="tab-content pt-3">
+      <div class="tab-pane fade show active" id="avg_processing_report_pane" role="tabpanel">
+        <div class="avg-report-header">
+          <h2 class="avg-report-title">Общий отчет и статистика (среднее время)</h2>
+          <button class="avg-report-info-btn"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#avg_processing_description"
+                  aria-expanded="false"
+                  aria-controls="avg_processing_description"
+                  title="Описание отчета">i</button>
         </div>
-    </div>
+        <div class="collapse" id="avg_processing_description">
+          <div class="avg-report-description">
+            <div class="avg-report-description__grid">
+              <p class="avg-report-description__item">
+                <span class="avg-report-description__label">Что показывает</span>
+                Сводку по операторам: количество обработанных заказов, строк, марок и среднее время обработки.
+              </p>
+              <p class="avg-report-description__item">
+                <span class="avg-report-description__label">Как считается время</span>
+                От момента принятия заказа в работу до фиксации завершения обработки или решения проблемы.
+              </p>
+              <p class="avg-report-description__item">
+                <span class="avg-report-description__label">Дневные колонки</span>
+                Заказы распределяются по фактической длительности обработки: до 1, 2, 3, 4 и более 4 дней.
+              </p>
+              <p class="avg-report-description__item">
+                <span class="avg-report-description__label">Ограничение периода</span>
+                Максимальный диапазон формирования отчета - 4 месяца.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div id="avg_order_processing_time_table">
+          {% include 'crm_mod_v1/reports/avg_order_processing_time/table.html' %}
+        </div>
+      </div>
 
+      <div class="tab-pane fade" id="operator_category_report_pane" role="tabpanel">
+        <div class="avg-report-header">
+          <h2 class="avg-report-title">Заказы операторов по категориям</h2>
+          <button class="avg-report-info-btn"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#operator_category_description"
+                  aria-expanded="false"
+                  aria-controls="operator_category_description"
+                  title="Описание отчета">i</button>
+        </div>
+        <div class="collapse" id="operator_category_description">
+          <div class="avg-report-description">
+            <div class="avg-report-description__grid">
+              <p class="avg-report-description__item">
+                <span class="avg-report-description__label">Что показывает</span>
+                Сколько выполненных заказов обработал каждый оператор за выбранный период.
+              </p>
+              <p class="avg-report-description__item">
+                <span class="avg-report-description__label">Категории</span>
+                Заказы раскладываются по одежде, обуви, белью, духам, косметике и игрушкам.
+              </p>
+              <p class="avg-report-description__item">
+                <span class="avg-report-description__label">Критерий попадания</span>
+                У заказа есть дата завершения оператором, а завершение попадает в выбранный период.
+              </p>
+              <p class="avg-report-description__item">
+                <span class="avg-report-description__label">Ограничение периода</span>
+                Максимальный диапазон формирования отчета - 4 месяца.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div id="operator_category_table">
+          <div class="alert alert-secondary mt-3">Отчет еще не сформирован.</div>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="daily_category_report_pane" role="tabpanel">
+        <div class="avg-report-header">
+          <h2 class="avg-report-title">Взятые заказы по дням</h2>
+          <button class="avg-report-info-btn"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#daily_category_description"
+                  aria-expanded="false"
+                  aria-controls="daily_category_description"
+                  title="Описание отчета">i</button>
+        </div>
+        <div class="collapse" id="daily_category_description">
+          <div class="avg-report-description">
+            <div class="avg-report-description__grid">
+              <p class="avg-report-description__item">
+                <span class="avg-report-description__label">Что показывает</span>
+                Сколько заказов операторы взяли в работу в каждый день выбранного периода.
+              </p>
+              <p class="avg-report-description__item">
+                <span class="avg-report-description__label">Дата отчета</span>
+                Используется дата принятия заказа оператором в работу.
+              </p>
+              <p class="avg-report-description__item">
+                <span class="avg-report-description__label">Категории</span>
+                Дневные итоги раскладываются по основным категориям заказов.
+              </p>
+              <p class="avg-report-description__item">
+                <span class="avg-report-description__label">Ограничение периода</span>
+                Максимальный диапазон этого отчета - 1 месяц.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div id="daily_category_table">
+          <div class="alert alert-secondary mt-3">Отчет еще не сформирован.</div>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="full_metrics_report_pane" role="tabpanel">
+        <div class="avg-report-header">
+          <h2 class="avg-report-title">Полные метрики заказов</h2>
+          <button class="avg-report-info-btn"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#full_metrics_description"
+                  aria-expanded="false"
+                  aria-controls="full_metrics_description"
+                  title="Описание отчета">i</button>
+        </div>
+        <div class="collapse show" id="full_metrics_description">
+          <div class="avg-report-description">
+            <div class="avg-report-description__grid">
+              <p class="avg-report-description__item">
+                <span class="avg-report-description__label">Что скачивается</span>
+                Текстовый файл с JSON-массивом заказов и всеми доступными метриками по выбранному периоду.
+              </p>
+              <p class="avg-report-description__item">
+                <span class="avg-report-description__label">Состав данных</span>
+                Оператор, клиент, категория, строки, марки, даты, статусы, УПД, компании обработки и переписка заказа.
+              </p>
+              <p class="avg-report-description__item">
+                <span class="avg-report-description__label">Интерфейс</span>
+                Для этого отчета таблица не строится, он предназначен для скачивания и анализа ИИ.
+              </p>
+              <p class="avg-report-description__item">
+                <span class="avg-report-description__label">Ограничение периода</span>
+                Максимальный диапазон выгрузки - 1 год.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
 </div>
 

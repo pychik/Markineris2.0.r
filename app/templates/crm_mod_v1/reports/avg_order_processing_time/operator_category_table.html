@@ -1,0 +1,39 @@
+<div class="faded mt-3">
+  <table class="table mt-3 table-result" id="operator_category_orders_table">
+    <thead class="text-dark">
+    <tr>
+      <th scope="col">Оператор</th>
+      <th scope="col">Всего заказов</th>
+      {% for column_key, category_value, column_title in category_columns %}
+        <th scope="col">{{ column_title }}</th>
+      {% endfor %}
+    </tr>
+    </thead>
+
+    <tbody>
+    {% for rec in records_list %}
+      <tr>
+        <td>{{ rec.login_name }}</td>
+        <td>{{ rec.total_order_count }}</td>
+        {% for column_key, category_value, column_title in category_columns %}
+          <td>{{ rec|attr(column_key ~ '_order_count') }}</td>
+        {% endfor %}
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="{{ category_columns|length + 2 }}" class="text-center">Нет данных за выбранный период</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="pagination-page-info text-center">На этой странице <b>{{ offset + 1 }} - {{ offset + records_list|length }}</b> Всего: <b>{{ pagination.total }}</b></div>
+
+  <div class="pagination_section my-1">
+    <div class="d-flex">
+      <div class="col-3"></div>
+      <div class="col-md-2"></div>
+      <div class="col-5" style="margin-left: 3%;">{{ pagination.links }}</div>
+    </div>
+  </div>
+</div>
