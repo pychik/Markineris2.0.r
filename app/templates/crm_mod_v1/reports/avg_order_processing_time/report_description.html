@@ -66,45 +66,56 @@
     margin-bottom: 2px;
   }
 
+  .crm-report-tabs .nav-link {
+    color: #39475a;
+  }
+
+  .crm-report-tabs .nav-link.active {
+    color: #1f2937;
+    font-weight: 700;
+  }
+
+  .crm-report-month-picker {
+    max-width: 680px;
+  }
+
+  .crm-report-month-picker__header {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .crm-report-month-picker__grid {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(6, minmax(76px, 1fr));
+  }
+
+  .crm-report-month-picker__btn {
+    border-radius: 6px;
+    min-height: 34px;
+  }
+
+  .crm-report-month-picker__btn.active {
+    background: #6c757d;
+    border-color: #6c757d;
+    color: #fff;
+  }
+
+  .daily-report-caption {
+    color: #39475a;
+    font-weight: 700;
+    margin: 8px 0 0;
+  }
+
   @media (max-width: 768px) {
     .avg-report-description__grid {
       grid-template-columns: 1fr;
     }
+
+    .crm-report-month-picker__grid {
+      grid-template-columns: repeat(3, minmax(76px, 1fr));
+    }
   }
 </style>
-
-<div class="avg-report-header">
-  <h2 class="avg-report-title">Отчет по активности операторов</h2>
-  <button class="avg-report-info-btn"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#avg_order_processing_time_description"
-          aria-expanded="false"
-          aria-controls="avg_order_processing_time_description"
-          title="Описание отчета">
-    i
-  </button>
-</div>
-
-<div class="collapse" id="avg_order_processing_time_description">
-  <div class="avg-report-description">
-    <div class="avg-report-description__grid">
-      <p class="avg-report-description__item">
-        <span class="avg-report-description__label">Что показывает</span>
-        Сводку по операторам: количество обработанных заказов, строк, марок и среднее время обработки.
-      </p>
-      <p class="avg-report-description__item">
-        <span class="avg-report-description__label">Как считается время</span>
-        От момента принятия заказа в работу до фиксации завершения обработки или решения проблемы.
-      </p>
-      <p class="avg-report-description__item">
-        <span class="avg-report-description__label">Дневные колонки</span>
-        Заказы распределяются по фактической длительности обработки: до 1, 2, 3, 4 и более 4 дней.
-      </p>
-      <p class="avg-report-description__item">
-        <span class="avg-report-description__label">Ограничение периода</span>
-        Максимальный диапазон формирования отчета - 4 месяца.
-      </p>
-    </div>
-  </div>
-</div>

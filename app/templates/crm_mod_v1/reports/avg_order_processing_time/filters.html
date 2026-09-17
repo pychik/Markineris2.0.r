@@ -3,6 +3,7 @@
 
         <script>
             $(function() {
+                const min_report_date = new Date(2022, 0, 1);
                 let max_date = new Date();
                 max_date.setDate(max_date.getDate() - 1);
                 var dateFormat = "dd.mm.yy",
@@ -10,16 +11,21 @@
                         defaultDate: "-1w",
                         changeMonth: true,
                         changeYear: true,
+                        minDate: min_report_date,
                         maxDate: max_date,
+                        yearRange: "2022:" + max_date.getFullYear(),
                         numberOfMonths: 3
                     }).on("change", function() {
-                        to.datepicker("option", "minDate", getDate(this));
+                        const selectedDate = getDate(this);
+                        to.datepicker("option", "minDate", selectedDate && selectedDate > min_report_date ? selectedDate : min_report_date);
                     }),
                     to = $("#date_to").datepicker({
                         defaultDate: new Date(),
                         changeMonth: true,
                         changeYear: true,
+                        minDate: min_report_date,
                         maxDate: new Date(),
+                        yearRange: "2022:" + new Date().getFullYear(),
                         numberOfMonths: 3
                     }).on("change", function() {
                         from.datepicker("option", "maxDate", getDate(this));
@@ -33,6 +39,15 @@
                         date = null;
                     }
                     return date;
+                }
+
+                const initialDateFrom = getDate(document.getElementById("date_from"));
+                const initialDateTo = getDate(document.getElementById("date_to"));
+                if (initialDateFrom && initialDateFrom < min_report_date) {
+                    from.datepicker("setDate", min_report_date).val("01.01.2022");
+                }
+                if (initialDateTo && initialDateTo < min_report_date) {
+                    to.datepicker("setDate", min_report_date).val("01.01.2022");
                 }
             });
         </script>
@@ -48,12 +63,24 @@
             </div>
         </div>
 
+        <div class="crm-report-month-picker mt-3">
+            <div class="crm-report-month-picker__header">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="crm_report_month_prev" title="Предыдущий год">&lt;</button>
+                <strong id="crm_report_month_year">{{ date_from.year if date_from.year >= 2022 else 2022 }}</strong>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="crm_report_month_next" title="Следующий год">&gt;</button>
+            </div>
+            <div class="crm-report-month-picker__grid"
+                 id="crm_report_month_picker"
+                 data-year="{{ date_from.year if date_from.year >= 2022 else 2022 }}">
+            </div>
+        </div>
+
         <div class="col-md-4" style="width:max-content">
                   <label class="col-form-label" for="manager_filter">Агент</label><br>
-                  <select class="form-control search-select" id="manager_filter" name="manager_filter" required>
+                  <select class="form-control search-select" id="manager_filter" name="manager_filter">
                     <option selected value="">Выберите менеджера</option>
                     {%for id,login_name in managers%}
-                      <option value="{{id}}">{{login_name}}</option>
+                      <option value="{{id}}" data-manager-name="{{ login_name }}">{{login_name}}</option>
                     {%endfor%}
                   </select>
             </div>
@@ -61,10 +88,10 @@
 
         <div class="row mt-3">
             <div class="col-md-2" title="Выполнить запрос">
-                <a href="javascript:bck_avg_order_processing_time_rpt(`{{ url_for('crm_uoc.bck_avg_order_processing_time_rpt') }}?bck=1`)" class="btn btn-secondary">Обновить</a>
+                <a href="javascript:refresh_crm_operator_report()" class="btn btn-secondary">Обновить</a>
             </div>
-            <div class="col-md-2" title="Скачать отчет excel">
-                <a href="javascript:get_avg_order_processing_time_rpt_excel(`{{ url_for('crm_uoc.avg_order_processing_time_rpt_excel') }}`, `{{ csrf_token() }}`)" class="btn btn-secondary">Скачать отчет</a>
+            <div class="col-md-2" title="Скачать отчет">
+                <a href="javascript:download_crm_operator_report(`{{ csrf_token() }}`)" class="btn btn-secondary">Скачать отчет</a>
             </div>
         </div>
     </form>

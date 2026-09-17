@@ -3663,6 +3663,18 @@ def get_partner_code_max_id(partners) -> str:
 
 
 AVG_ORDER_PROCESSING_REPORT_MAX_MONTHS = 4
+DAILY_OPERATOR_ACTIVITY_REPORT_MAX_MONTHS = 1
+FULL_OPERATOR_METRICS_REPORT_MAX_MONTHS = 12
+OPERATOR_REPORT_MIN_DATE = datetime(2022, 1, 1)
+OPERATOR_REPORT_MIN_DATE_STR = OPERATOR_REPORT_MIN_DATE.strftime('%d.%m.%Y')
+CRM_OPERATOR_REPORT_CATEGORY_COLUMNS = (
+    ('clothes', settings.Clothes.CATEGORY, 'Одежда'),
+    ('shoes', settings.Shoes.CATEGORY, 'Обувь'),
+    ('linen', settings.Linen.CATEGORY, 'Белье'),
+    ('parfum', settings.Parfum.CATEGORY, 'Духи'),
+    ('cosmetics', settings.Cosmetics.CATEGORY, 'Косметика'),
+    ('toys', settings.Toys.CATEGORY, 'Игрушки'),
+)
 
 
 def _add_months(date_value: datetime, months: int) -> datetime:
@@ -3673,9 +3685,12 @@ def _add_months(date_value: datetime, months: int) -> datetime:
     return date_value.replace(year=year, month=month, day=day)
 
 
-def helper_get_filter_avg_order_time_processing_report(report: bool = False):
-    default_day_to = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d')
-    default_day_from = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d')
+def helper_get_filter_avg_order_time_processing_report(
+        report: bool = False,
+        max_months: int = AVG_ORDER_PROCESSING_REPORT_MAX_MONTHS,
+):
+    default_date_to = datetime.today()
+    default_date_from = datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)
     if report:
         url_date_from = request.form.get('date_from', '', type=str)
         url_date_to = request.form.get('date_to', 0, type=str)
@@ -3686,13 +3701,22 @@ def helper_get_filter_avg_order_time_processing_report(report: bool = False):
         url_date_to = request.args.get('date_to', '', type=str)
         manager_id = request.args.get('manager', 0, int)
 
-    date_from = datetime.strptime(url_date_from, '%d.%m.%Y').strftime('%Y-%m-%d') if url_date_from else default_day_to
-    date_to = (datetime.strptime(url_date_to, '%d.%m.%Y') + timedelta(days=1)).strftime(
-        '%Y-%m-%d') if url_date_to else default_day_from
+    try:
+        date_from_dt = datetime.strptime(url_date_from, '%d.%m.%Y') if url_date_from else default_date_from
+        selected_date_to_dt = datetime.strptime(url_date_to, '%d.%m.%Y') if url_date_to else default_date_to
+    except ValueError:
+        raise ValueError('Выберите корректный период отчета.')
 
-    date_from_dt = datetime.strptime(date_from, '%Y-%m-%d')
-    date_to_dt = datetime.strptime(date_to, '%Y-%m-%d')
-    max_date_to_dt = _add_months(date_from_dt, AVG_ORDER_PROCESSING_REPORT_MAX_MONTHS) + timedelta(days=1)
+    if date_from_dt < OPERATOR_REPORT_MIN_DATE or selected_date_to_dt < OPERATOR_REPORT_MIN_DATE:
+        raise ValueError(f'Период отчета не может быть раньше {OPERATOR_REPORT_MIN_DATE_STR}.')
+
+    if date_from_dt > selected_date_to_dt:
+        raise ValueError('Дата "C" не может быть больше даты "По".')
+
+    date_from = date_from_dt.strftime('%Y-%m-%d')
+    date_to_dt = selected_date_to_dt + timedelta(days=1)
+    date_to = date_to_dt.strftime('%Y-%m-%d')
+    max_date_to_dt = _add_months(date_from_dt, max_months) + timedelta(days=1)
     if date_to_dt > max_date_to_dt:
         date_to = max_date_to_dt.strftime('%Y-%m-%d')
 
@@ -3719,6 +3743,7 @@ def helper_get_stmt_avg_order_time_processing_report(
             WHERE o.m_started >= :date_from
               AND o.m_finished < :date_to
               AND o.m_finished IS NOT NULL
+              AND o.stage != :cancelled_stage
             GROUP BY o.id, o.manager_id, o.m_started, o.m_finished
         )
         SELECT
@@ -3751,7 +3776,225 @@ def helper_get_stmt_avg_order_time_processing_report(
         WHERE (:manager_id = 0 OR os.manager_id = :manager_id)
         GROUP BY u.login_name
         ORDER BY pos_count DESC
-    """).bindparams(date_from=date_from, date_to=date_to, manager_id=manager_id)
+    """).bindparams(
+        date_from=date_from,
+        date_to=date_to,
+        manager_id=manager_id,
+        cancelled_stage=settings.OrderStage.CANCELLED,
+    )
+    return stmt
+
+
+def helper_get_stmt_operator_category_orders_report(
+        date_from: str = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d'),
+        date_to: str = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d'),
+        manager_id: int = 0,
+) -> TextClause:
+    stmt = text("""
+        WITH category_stats AS (
+            SELECT
+                o.manager_id,
+                COUNT(o.id) FILTER (WHERE o.category = :clothes_category) AS clothes_order_count,
+                COUNT(o.id) FILTER (WHERE o.category = :socks_category) AS socks_order_count,
+                COUNT(o.id) FILTER (WHERE o.category = :shoes_category) AS shoes_order_count,
+                COUNT(o.id) FILTER (WHERE o.category = :linen_category) AS linen_order_count,
+                COUNT(o.id) FILTER (WHERE o.category = :parfum_category) AS parfum_order_count,
+                COUNT(o.id) FILTER (WHERE o.category = :cosmetics_category) AS cosmetics_order_count,
+                COUNT(o.id) FILTER (WHERE o.category = :toys_category) AS toys_order_count
+            FROM public.orders o
+            WHERE o.m_started >= :date_from
+              AND o.m_finished < :date_to
+              AND o.m_finished IS NOT NULL
+              AND o.stage != :cancelled_stage
+              AND (:manager_id = 0 OR o.manager_id = :manager_id)
+            GROUP BY o.manager_id
+        )
+        SELECT
+            u.login_name,
+            (
+                cs.clothes_order_count +
+                cs.socks_order_count +
+                cs.shoes_order_count +
+                cs.linen_order_count +
+                cs.parfum_order_count +
+                cs.cosmetics_order_count +
+                cs.toys_order_count
+            ) AS total_order_count,
+            cs.clothes_order_count + cs.socks_order_count AS clothes_order_count,
+            cs.shoes_order_count,
+            cs.linen_order_count,
+            cs.parfum_order_count,
+            cs.cosmetics_order_count,
+            cs.toys_order_count
+        FROM category_stats cs
+        JOIN public.users u ON u.id = cs.manager_id
+        ORDER BY total_order_count DESC, u.login_name
+    """).bindparams(
+        date_from=date_from,
+        date_to=date_to,
+        manager_id=manager_id,
+        clothes_category=settings.Clothes.CATEGORY,
+        socks_category=settings.Socks.CATEGORY,
+        shoes_category=settings.Shoes.CATEGORY,
+        linen_category=settings.Linen.CATEGORY,
+        parfum_category=settings.Parfum.CATEGORY,
+        cosmetics_category=settings.Cosmetics.CATEGORY,
+        toys_category=settings.Toys.CATEGORY,
+        cancelled_stage=settings.OrderStage.CANCELLED,
+    )
+    return stmt
+
+
+def helper_get_stmt_daily_operator_category_orders_report(
+        date_from: str = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d'),
+        date_to: str = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d'),
+        manager_id: int = 0,
+) -> TextClause:
+    stmt = text("""
+        WITH category_stats AS (
+            SELECT
+                DATE(o.m_started) AS report_day,
+                COUNT(o.id) FILTER (WHERE o.category = :clothes_category) AS clothes_order_count,
+                COUNT(o.id) FILTER (WHERE o.category = :socks_category) AS socks_order_count,
+                COUNT(o.id) FILTER (WHERE o.category = :shoes_category) AS shoes_order_count,
+                COUNT(o.id) FILTER (WHERE o.category = :linen_category) AS linen_order_count,
+                COUNT(o.id) FILTER (WHERE o.category = :parfum_category) AS parfum_order_count,
+                COUNT(o.id) FILTER (WHERE o.category = :cosmetics_category) AS cosmetics_order_count,
+                COUNT(o.id) FILTER (WHERE o.category = :toys_category) AS toys_order_count
+            FROM public.orders o
+            WHERE o.m_started >= :date_from
+              AND o.m_started < :date_to
+              AND o.m_finished IS NOT NULL
+              AND o.stage != :cancelled_stage
+              AND (:manager_id = 0 OR o.manager_id = :manager_id)
+            GROUP BY DATE(o.m_started)
+        )
+        SELECT
+            cs.report_day,
+            (
+                cs.clothes_order_count +
+                cs.socks_order_count +
+                cs.shoes_order_count +
+                cs.linen_order_count +
+                cs.parfum_order_count +
+                cs.cosmetics_order_count +
+                cs.toys_order_count
+            ) AS total_order_count,
+            cs.clothes_order_count + cs.socks_order_count AS clothes_order_count,
+            cs.shoes_order_count,
+            cs.linen_order_count,
+            cs.parfum_order_count,
+            cs.cosmetics_order_count,
+            cs.toys_order_count
+        FROM category_stats cs
+        ORDER BY report_day
+    """).bindparams(
+        date_from=date_from,
+        date_to=date_to,
+        manager_id=manager_id,
+        clothes_category=settings.Clothes.CATEGORY,
+        socks_category=settings.Socks.CATEGORY,
+        shoes_category=settings.Shoes.CATEGORY,
+        linen_category=settings.Linen.CATEGORY,
+        parfum_category=settings.Parfum.CATEGORY,
+        cosmetics_category=settings.Cosmetics.CATEGORY,
+        toys_category=settings.Toys.CATEGORY,
+        cancelled_stage=settings.OrderStage.CANCELLED,
+    )
+    return stmt
+
+
+def helper_get_stmt_full_operator_metrics_report(
+        date_from: str = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d'),
+        date_to: str = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d'),
+        manager_id: int = 0,
+) -> TextClause:
+    stmt = text(f"""
+        WITH order_stats AS (
+            SELECT
+                o.id AS order_id,
+                {SQLQueryCategoriesAll.get_stmt(field='marks_count')} AS pos_count,
+                {SQLQueryCategoriesAll.get_stmt(field='rows_count')} AS rows_count
+            FROM public.orders o
+                {SQLQueryCategoriesAll.get_joins()}
+            WHERE o.m_started >= :date_from
+              AND o.m_finished < :date_to
+              AND o.m_finished IS NOT NULL
+              AND o.stage != :cancelled_stage
+              AND (:manager_id = 0 OR o.manager_id = :manager_id)
+            GROUP BY o.id
+        ),
+        messages AS (
+            SELECT
+                om.order_id,
+                COUNT(om.id) AS messages_count,
+                COALESCE(
+                    json_agg(
+                        json_build_object(
+                            'id', om.id,
+                            'created_at', to_char(om.created_at, 'YYYY-MM-DD HH24:MI:SS'),
+                            'author_id', om.author_id,
+                            'author_login', au.login_name,
+                            'text', om.text
+                        )
+                        ORDER BY om.created_at, om.id
+                    ),
+                    '[]'::json
+                ) AS messages
+            FROM public.order_messages om
+            LEFT JOIN public.users au ON au.id = om.author_id
+            GROUP BY om.order_id
+        )
+        SELECT
+            o.id AS order_id,
+            o.order_idn,
+            o.category,
+            o.stage,
+            o.company_idn,
+            o.company_type,
+            o.company_name,
+            o.edo_type,
+            o.edo_id,
+            o.mark_type,
+            o.has_aggr,
+            o.is_moderation,
+            o.payment,
+            o.processed,
+            o.processing_info,
+            o.comment_problem,
+            o.comment_cancel,
+            o.created_at,
+            o.crm_created_at,
+            o.m_started,
+            o.m_finished,
+            o.sent_at,
+            o.closed_at,
+            o.cp_created,
+            o.cc_created,
+            manager.id AS manager_id,
+            manager.login_name AS manager_login,
+            client.id AS client_id,
+            client.login_name AS client_login,
+            client.email AS client_email,
+            COALESCE(os.rows_count, 0) AS rows_count,
+            COALESCE(os.pos_count, 0) AS pos_count,
+            TRUNC(EXTRACT(EPOCH FROM o.m_finished - o.m_started) / 60, 1) AS processing_time_minutes,
+            TRUNC(EXTRACT(EPOCH FROM o.m_finished - o.m_started) / 3600, 1) AS processing_time_hours,
+            COALESCE(msg.messages_count, 0) AS messages_count,
+            COALESCE(msg.messages, '[]'::json) AS messages,
+            '[]'::json AS upd_items
+        FROM public.orders o
+        JOIN order_stats os ON os.order_id = o.id
+        LEFT JOIN public.users manager ON manager.id = o.manager_id
+        LEFT JOIN public.users client ON client.id = o.user_id
+        LEFT JOIN messages msg ON msg.order_id = o.id
+        ORDER BY o.m_finished DESC, o.id DESC
+    """).bindparams(
+        date_from=date_from,
+        date_to=date_to,
+        manager_id=manager_id,
+        cancelled_stage=settings.OrderStage.CANCELLED,
+    )
     return stmt
 
 

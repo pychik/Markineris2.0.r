@@ -1,4 +1,6 @@
+import json
 import urllib
+from decimal import Decimal
 from datetime import date, timedelta, datetime
 
 from flask import Blueprint, flash, render_template, redirect, url_for, request, make_response, jsonify
@@ -14,12 +16,82 @@ from utilities.admin.excel_report import ExcelReport
 from utilities.support import (user_activated, su_required, susmu_required, susmumu_required, manager_exist_check,
                                helper_get_filter_avg_order_time_processing_report,
                                helper_get_stmt_avg_order_time_processing_report,
-                               helper_paginate_data, sumsuu_required, moderator_exist_check, sql_count)
+                               helper_get_stmt_operator_category_orders_report,
+                               helper_get_stmt_daily_operator_category_orders_report,
+                               helper_get_stmt_full_operator_metrics_report,
+                               helper_paginate_data, sumsuu_required, moderator_exist_check, sql_count,
+                               CRM_OPERATOR_REPORT_CATEGORY_COLUMNS,
+                               DAILY_OPERATOR_ACTIVITY_REPORT_MAX_MONTHS,
+                               FULL_OPERATOR_METRICS_REPORT_MAX_MONTHS)
 from views.crm.helpers import (helper_clean_oco, check_manager_orders, helper_change_manager_limit, helper_get_limits,
                                helper_change_auto_order_pool, helper_change_auto_order_sent)
 
 # crm user order control
 crm_uoc = Blueprint('crm_uoc', __name__)
+
+
+def _operator_report_manager_name(manager_id: int) -> str | None:
+    if not manager_id:
+        return None
+    return User.query.with_entities(User.login_name).filter_by(id=manager_id).scalar()
+
+
+def _operator_reports_filters(date_from: str, date_to: str, manager_id: int) -> dict:
+    manager_name = _operator_report_manager_name(manager_id)
+    filters = {
+        'Дата C': date_from,
+        'Дата По': (datetime.strptime(date_to, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d'),
+    }
+    if manager_name:
+        filters['Оператор'] = manager_name
+    return filters
+
+
+def _crm_report_file_response(content: bytes, file_name: str, content_type: str):
+    response = make_response(content)
+    response.headers['data_file_name'] = urllib.parse.quote(file_name)
+    response.headers['Content-Type'] = content_type
+    response.headers['data_status'] = 'success'
+    return response
+
+
+def _crm_report_json_default(value):
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return float(value)
+    return str(value)
+
+
+def _crm_stage_name(stage: int) -> str:
+    try:
+        return settings.OrderStage.STAGES[stage][1]
+    except Exception:
+        return ''
+
+
+def _crm_report_rows_to_dicts(records):
+    result = []
+    for rec in records:
+        row = dict(rec._mapping)
+        row['stage_name'] = _crm_stage_name(row.get('stage'))
+        result.append(row)
+    return result
+
+
+def _xlsx_report_response(records, filters: dict, columns_name: list[str], output_file_name: str):
+    excel = ExcelReport(
+        data=records,
+        filters=filters,
+        columns_name=columns_name,
+        output_file_name=output_file_name,
+    )
+    excel_io = excel.create_report()
+    return _crm_report_file_response(
+        content=excel_io.getvalue(),
+        file_name=excel.output_file_name,
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
 
 
 @crm_uoc.route('/', methods=["GET"])
@@ -229,12 +301,13 @@ def change_auto_order_sent():
 def avg_order_processing_time_rpt():
     date_from = datetime.now() - timedelta(settings.ORDERS_REPORT_TIMEDELTA)
     date_to = datetime.now()
+    category_columns = CRM_OPERATOR_REPORT_CATEGORY_COLUMNS
     managers = db.session.execute(
-        text('select distinct id, login_name from users where id in (select manager_id from orders where manager_id is not null)')).fetchall()
+        text('select distinct id, login_name from users where id in (select manager_id from orders where manager_id is not null) order by login_name')).fetchall()
     stmt = helper_get_stmt_avg_order_time_processing_report()
     records = db.session.execute(stmt, ).fetchall()
-    link = f'javascript:bck_avg_order_processing_time_rpt(\'' + url_for(
-        'crm_uoc.bck_avg_order_processing_time_rpt') + f'?bck=1' + '&page={0}\');'
+    link = f"javascript:bck_crm_operator_report('avg_processing', '" + url_for(
+        'crm_uoc.bck_avg_order_processing_time_rpt') + f"?bck=1&page={{0}}');"
     page, per_page, \
         offset, pagination, \
         records_list = helper_paginate_data(data=records, per_page=settings.PAGINATION_PER_PAGE, href=link)
@@ -245,7 +318,11 @@ def avg_order_processing_time_rpt():
 @login_required
 @sumsuu_required
 def bck_avg_order_processing_time_rpt():
-    date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report()
+    try:
+        date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report()
+    except ValueError as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 400
+
     stmt = helper_get_stmt_avg_order_time_processing_report(
         date_from=date_from,
         date_to=date_to,
@@ -264,28 +341,86 @@ def bck_avg_order_processing_time_rpt():
     )
 
 
+@crm_uoc.route('/bck_operator_category_orders_report', methods=['GET'])
+@login_required
+@sumsuu_required
+def bck_operator_category_orders_rpt():
+    try:
+        date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report()
+    except ValueError as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 400
+
+    stmt = helper_get_stmt_operator_category_orders_report(
+        date_from=date_from,
+        date_to=date_to,
+        manager_id=manager_id,
+    )
+    records = db.session.execute(stmt).fetchall()
+    category_columns = CRM_OPERATOR_REPORT_CATEGORY_COLUMNS
+    link = f"javascript:bck_crm_operator_report('operator_category', '" + url_for(
+        'crm_uoc.bck_operator_category_orders_rpt') + f"?bck=1&page={{0}}');"
+    page, per_page, \
+        offset, pagination, \
+        records_list = helper_paginate_data(data=records, per_page=settings.PAGINATION_PER_PAGE, href=link, css_framework='foundation')
+    return jsonify(
+        {
+            'htmlresponse': render_template(f'crm_mod_v1/reports/avg_order_processing_time/operator_category_table.html', **locals())
+        }
+    )
+
+
+@crm_uoc.route('/bck_daily_operator_category_orders_report', methods=['GET'])
+@login_required
+@sumsuu_required
+def bck_daily_operator_category_orders_rpt():
+    try:
+        date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(
+            max_months=DAILY_OPERATOR_ACTIVITY_REPORT_MAX_MONTHS,
+        )
+    except ValueError as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 400
+
+    stmt = helper_get_stmt_daily_operator_category_orders_report(
+        date_from=date_from,
+        date_to=date_to,
+        manager_id=manager_id,
+    )
+    records = db.session.execute(stmt).fetchall()
+    category_columns = CRM_OPERATOR_REPORT_CATEGORY_COLUMNS
+    manager_name = _operator_report_manager_name(manager_id)
+    link = f"javascript:bck_crm_operator_report('daily_category', '" + url_for(
+        'crm_uoc.bck_daily_operator_category_orders_rpt') + f"?bck=1&page={{0}}');"
+    page, per_page, \
+        offset, pagination, \
+        records_list = helper_paginate_data(data=records, per_page=settings.PAGINATION_PER_PAGE, href=link, css_framework='foundation')
+    return jsonify(
+        {
+            'htmlresponse': render_template(f'crm_mod_v1/reports/avg_order_processing_time/daily_category_table.html', **locals())
+        }
+    )
+
+
 @crm_uoc.route('/avg_order_processing_time_report_excel', methods=['POST'])
 @login_required
 @sumsuu_required
 def avg_order_processing_time_rpt_excel():
-    date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(report=True)
+    try:
+        date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(report=True)
+    except ValueError as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 400
+
     stmt = helper_get_stmt_avg_order_time_processing_report(
         date_from=date_from,
         date_to=date_to,
         manager_id=manager_id,
     )
     records = db.session.execute(stmt).fetchall()
-    manager_name = None
-    if manager_id:
-        manager_name = User.query.with_entities(User.login_name).filter_by(id=manager_id).scalar()
-    filters = {'start_date': date_from, 'end_date': date_to}
-    if manager_name:
-        filters['manager'] = manager_name
+    filters = _operator_reports_filters(date_from, date_to, manager_id)
     output_file_name = f'Отчет среднему времени обработки заказов от {datetime.now().strftime("%d.%m.%Y")}'
 
     excel = ExcelReport(
         data=records,
-        filters={'start_date': date_from, 'end_date': date_to, 'manager': manager_name},
+        filters=filters,
         columns_name=[
             'login',
             'Кол-во заказов',
@@ -309,12 +444,101 @@ def avg_order_processing_time_rpt_excel():
     )
 
     excel_io = excel.create_report()
-    content = excel_io.getvalue()
-    response = make_response(content)
-    response.headers['data_file_name'] = urllib.parse.quote(excel.output_file_name)
-    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    response.headers['data_status'] = 'success'
-    return response
+    return _crm_report_file_response(
+        content=excel_io.getvalue(),
+        file_name=excel.output_file_name,
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
+
+@crm_uoc.route('/operator_category_orders_report_excel', methods=['POST'])
+@login_required
+@sumsuu_required
+def operator_category_orders_rpt_excel():
+    try:
+        date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(report=True)
+    except ValueError as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 400
+
+    stmt = helper_get_stmt_operator_category_orders_report(
+        date_from=date_from,
+        date_to=date_to,
+        manager_id=manager_id,
+    )
+    records = db.session.execute(stmt).fetchall()
+    columns_name = ['Оператор', 'Всего заказов'] + [column[2] for column in CRM_OPERATOR_REPORT_CATEGORY_COLUMNS]
+    output_file_name = f'Отчет по заказам операторов по категориям от {datetime.now().strftime("%d.%m.%Y")}'
+    return _xlsx_report_response(
+        records=records,
+        filters=_operator_reports_filters(date_from, date_to, manager_id),
+        columns_name=columns_name,
+        output_file_name=output_file_name,
+    )
+
+
+@crm_uoc.route('/daily_operator_category_orders_report_excel', methods=['POST'])
+@login_required
+@sumsuu_required
+def daily_operator_category_orders_rpt_excel():
+    try:
+        date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(
+            report=True,
+            max_months=DAILY_OPERATOR_ACTIVITY_REPORT_MAX_MONTHS,
+        )
+    except ValueError as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 400
+
+    stmt = helper_get_stmt_daily_operator_category_orders_report(
+        date_from=date_from,
+        date_to=date_to,
+        manager_id=manager_id,
+    )
+    records = db.session.execute(stmt).fetchall()
+    columns_name = ['Дата', 'Всего заказов'] + [column[2] for column in CRM_OPERATOR_REPORT_CATEGORY_COLUMNS]
+    output_file_name = f'Отчет по взятым заказам по дням от {datetime.now().strftime("%d.%m.%Y")}'
+    return _xlsx_report_response(
+        records=records,
+        filters=_operator_reports_filters(date_from, date_to, manager_id),
+        columns_name=columns_name,
+        output_file_name=output_file_name,
+    )
+
+
+@crm_uoc.route('/full_operator_metrics_report_file', methods=['POST'])
+@login_required
+@sumsuu_required
+def full_operator_metrics_rpt_file():
+    try:
+        date_from, date_to, manager_id = helper_get_filter_avg_order_time_processing_report(
+            report=True,
+            max_months=FULL_OPERATOR_METRICS_REPORT_MAX_MONTHS,
+        )
+    except ValueError as exc:
+        return jsonify({'status': 'error', 'message': str(exc)}), 400
+
+    stmt = helper_get_stmt_full_operator_metrics_report(
+        date_from=date_from,
+        date_to=date_to,
+        manager_id=manager_id,
+    )
+    records = db.session.execute(stmt).fetchall()
+    payload = {
+        'generated_at': datetime.now(),
+        'filters': _operator_reports_filters(date_from, date_to, manager_id),
+        'criteria': {
+            'date_field_for_period': 'm_finished',
+            'included_orders': 'orders with m_started >= date_from, m_finished < date_to + 1 day, m_finished is not null, stage is not cancelled',
+            'daily_report_date_field': 'm_started',
+        },
+        'data': _crm_report_rows_to_dicts(records),
+    }
+    content = json.dumps(payload, ensure_ascii=False, default=_crm_report_json_default, indent=2).encode('utf-8')
+    output_file_name = f'Полные метрики заказов операторов от {datetime.now().strftime("%d.%m.%Y")}.txt'
+    return _crm_report_file_response(
+        content=content,
+        file_name=output_file_name,
+        content_type='text/plain; charset=utf-8',
+    )
 
 
 @crm_uoc.route('/create_moderator/', methods=['POST'])
