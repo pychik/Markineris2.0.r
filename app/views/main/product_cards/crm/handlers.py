@@ -1124,24 +1124,49 @@ def h_pc_move_card(pc_id: int):
             return jsonify({"status": "error", "message": "Карточка не найдена"}), 404
 
         from_status = card.status.value if hasattr(card.status, "value") else str(card.status)
+        is_sent_no_rd_to_clarification = (
+            from_status == ModerationStatus.SENT_NO_RD.value
+            and target == ModerationStatus.CLARIFICATION.value
+        )
 
         # SENT не двигаем этим методом
-        if from_status in [ModerationStatus.SENT.value, ModerationStatus.SENT_NO_RD.value]:
+        if from_status == ModerationStatus.SENT.value or (
+            from_status == ModerationStatus.SENT_NO_RD.value
+            and not is_sent_no_rd_to_clarification
+        ):
             return jsonify({"status": "error", "message": "Карточка в 'Отправленные' берётся отдельной кнопкой"}), 400
+
+        if is_sent_no_rd_to_clarification:
+            if card.manager_id is not None:
+                return jsonify({"status": "error", "message": "Карточка уже взята в работу"}), 409
+            if not card_has_rd(card):
+                return jsonify({
+                    "status": "error",
+                    "message": (
+                        "Нельзя отправить карточку на уточнение: для статуса "
+                        "'Отправлена без РД' необходимо добавить РД в карточку."
+                    ),
+                }), 400
 
         # 1) матрица переходов
         if not validate_transition(from_status, target):
             return jsonify({"status": "error", "message": f"Нельзя переместить из '{from_status}' в '{target}'"}), 400
 
         # 2) владелец / админ
-        err = check_owner_or_admin(current_user, card)
-        if err:
-            return jsonify({"status": "error", "message": err.message}), err.status_code
+        if not is_sent_no_rd_to_clarification:
+            err = check_owner_or_admin(current_user, card)
+            if err:
+                return jsonify({"status": "error", "message": err.message}), err.status_code
 
         # 3) особые правила
         err = check_special_rules(current_user, card, target)
         if err:
             return jsonify({"status": "error", "message": err.message}), err.status_code
+
+        if is_sent_no_rd_to_clarification:
+            card.manager_id = current_user.id
+            if not card.taken_at:
+                card.taken_at = datetime.now()
 
         # 4) меняем статус + тайминги + базовый лог
         try:
