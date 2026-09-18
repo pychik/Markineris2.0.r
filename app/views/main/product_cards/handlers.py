@@ -37,7 +37,7 @@ from views.main.product_cards.support import validate_card_form, save_clothes_ca
     get_card_entity_for_prefill, assert_frozen_fields_unchanged, \
     update_card_allowed_fields, ALLOWED_CARDS_DELETE_STATUSES, card_has_rd, CARD_STATUS_DATETIME_ATTR, \
     get_card_allowed_field_changes, merge_selected_created_wear_cards, assign_tezaurus_processing_companies, \
-    build_pc_category_search_index
+    build_pc_category_search_index, find_approved_wear_card_for_size_extension, copy_card_processing_company
 from views.main.product_cards.utils import validate_rd_block
 from views.main.categories.cosmetics.subcategories.registry import \
     SUBCATEGORY_CONFIG as COSMETICS_SUBCATEGORY_CONFIG
@@ -851,11 +851,26 @@ def h_send_cards_moderate():
             for card in cards
             if card.user_id == current_user.id and card.status == ModerationStatus.CREATED
         ]
-        assignments = assign_tezaurus_processing_companies(
-            cards_to_send,
+        assignments: dict[int, dict] = {}
+        cards_for_tezaurus: list[ProductCard] = []
+        for card in cards_to_send:
+            base_card = find_approved_wear_card_for_size_extension(card)
+            if base_card and base_card.processing_company_label:
+                assignments[card.id] = copy_card_processing_company(
+                    target=card,
+                    source=base_card,
+                    assigned_at=now,
+                )
+                continue
+
+            cards_for_tezaurus.append(card)
+
+        tezaurus_assignments = assign_tezaurus_processing_companies(
+            cards_for_tezaurus,
             client=tezaurus_client,
             assigned_at=now,
         )
+        assignments.update(tezaurus_assignments)
 
         for card in cards_to_send:
             if card.id in ids_with_rd:
@@ -867,13 +882,23 @@ def h_send_cards_moderate():
 
             card.sent_at = now
             assigned = assignments[card.id]
-            card.card_log = h_append_card_log(
-                card.card_log,
-                (
-                    f"\n{now:%d.%m.%Y %H:%M} назначена компания "
-                    f"{assigned['label']}; карточка отправлена на модерацию;"
+            if assigned.get("source_card_id"):
+                card.card_log = h_append_card_log(
+                    card.card_log,
+                    (
+                        f"\n{now:%d.%m.%Y %H:%M} компания {assigned['label']} "
+                        f"унаследована из карточки №{assigned['source_card_id']}; "
+                        "карточка отправлена на модерацию;"
+                    )
                 )
-            )
+            else:
+                card.card_log = h_append_card_log(
+                    card.card_log,
+                    (
+                        f"\n{now:%d.%m.%Y %H:%M} назначена компания "
+                        f"{assigned['label']}; карточка отправлена на модерацию;"
+                    )
+                )
 
         db.session.commit()
 

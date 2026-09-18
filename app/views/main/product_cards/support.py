@@ -1,5 +1,6 @@
 import time
 import functools
+from copy import deepcopy
 from datetime import datetime
 from flask import flash, jsonify, redirect, render_template, request, url_for, Response
 from flask_login import current_user
@@ -1714,6 +1715,27 @@ def clear_card_processing_company(card: ProductCard) -> None:
     card.processing_company_assigned_at = None
 
 
+def copy_card_processing_company(
+    target: ProductCard,
+    source: ProductCard,
+    *,
+    assigned_at: datetime | None = None,
+) -> dict[str, Any]:
+    target.processing_info = (source.processing_info or source.processing_company_label or "")[:100]
+    target.processing_company_external_id = source.processing_company_external_id or ""
+    target.processing_company_title = source.processing_company_title or ""
+    target.processing_company_inn = source.processing_company_inn or ""
+    target.processing_company_origin = source.processing_company_origin or ""
+    target.processing_company_category = source.processing_company_category or ""
+    target.processing_company_payload = deepcopy(source.processing_company_payload)
+    target.processing_company_assigned_at = assigned_at or source.processing_company_assigned_at or datetime.now()
+
+    return {
+        "source_card_id": source.id,
+        "label": target.processing_company_label or target.processing_info,
+    }
+
+
 def _save_card_processing_company(
     card: ProductCard,
     *,
@@ -1919,6 +1941,42 @@ def _card_merge_key(card: ProductCard) -> tuple | None:
         key.append(getattr(main, "subcategory", None) or ClothesSubcategories.common.value)
 
     return tuple(key)
+
+
+def find_approved_wear_card_for_size_extension(card: ProductCard) -> ProductCard | None:
+    key = _card_merge_key(card)
+    if not key:
+        return None
+
+    cfg = CATEGORIES_COMMON.get(card.category)
+    if not cfg:
+        return None
+
+    model = cfg["model"]
+    main = _card_merge_main_entity(card)
+    if not main:
+        return None
+
+    q = (
+        db.session.query(ProductCard)
+        .join(model, ProductCard.id == model.card_id)
+        .filter(
+            ProductCard.id != card.id,
+            ProductCard.user_id == card.user_id,
+            ProductCard.category == card.category,
+            ProductCard.status == ModerationStatus.APPROVED,
+            model.article == getattr(main, "article", None),
+        )
+        .order_by(ProductCard.created_at.asc(), ProductCard.id.asc())
+    )
+
+    if hasattr(model, "color"):
+        q = q.filter(model.color == getattr(main, "color", None))
+
+    if cfg.get("has_subcategory") and hasattr(model, "subcategory"):
+        q = q.filter(model.subcategory == getattr(main, "subcategory", None))
+
+    return q.first()
 
 
 def _card_merge_size_key(category: str, sq):
