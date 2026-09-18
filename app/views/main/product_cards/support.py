@@ -1721,14 +1721,19 @@ def copy_card_processing_company(
     *,
     assigned_at: datetime | None = None,
 ) -> dict[str, Any]:
+    inherited_at = assigned_at or datetime.now()
     target.processing_info = (source.processing_info or source.processing_company_label or "")[:100]
     target.processing_company_external_id = source.processing_company_external_id or ""
     target.processing_company_title = source.processing_company_title or ""
     target.processing_company_inn = source.processing_company_inn or ""
     target.processing_company_origin = source.processing_company_origin or ""
     target.processing_company_category = source.processing_company_category or ""
-    target.processing_company_payload = deepcopy(source.processing_company_payload)
-    target.processing_company_assigned_at = assigned_at or source.processing_company_assigned_at or datetime.now()
+    target.processing_company_payload = {
+        "inherited_from_card_id": source.id,
+        "inherited_at": inherited_at.isoformat(),
+        "source_payload": deepcopy(source.processing_company_payload),
+    }
+    target.processing_company_assigned_at = inherited_at
 
     return {
         "source_card_id": source.id,

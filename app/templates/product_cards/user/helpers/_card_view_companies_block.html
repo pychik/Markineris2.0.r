@@ -25,6 +25,7 @@
           <select class="form-select form-select-sm"
                   id="pc-card-processing-company-select"
                   data-card-id="{{ card.id }}"
+                  data-current-company-key="{{ card.processing_company_inn or card.processing_company_external_id or card.processing_company_title }}"
                   onchange="pcChangeProcessingCompany(this)">
             <option value="">Выберите компанию</option>
             {% for company in processing_companies %}
@@ -55,6 +56,7 @@
         <select class="form-select form-select-sm"
                 id="pc-card-processing-company-select"
                 data-card-id="{{ card.id }}"
+                data-current-company-key=""
                 onchange="pcChangeProcessingCompany(this)">
           <option value="">Выберите компанию</option>
           {% for company in processing_companies %}

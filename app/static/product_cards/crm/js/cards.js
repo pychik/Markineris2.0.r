@@ -775,6 +775,9 @@ function pcToggleProcessingCompanySelect(el) {
 function pcChangeProcessingCompany(selectEl) {
   const cardId = selectEl?.dataset?.cardId;
   const companyKey = (selectEl?.value || "").trim();
+  const previousCompanyKey = selectEl?.dataset?.currentCompanyKey
+      || Array.from(selectEl?.options || []).find((option) => option.defaultSelected)?.value
+      || "";
 
   if (!cardId) {
     if (typeof make_message === "function") make_message("Не найден ID карточки", "error");
@@ -785,33 +788,59 @@ function pcChangeProcessingCompany(selectEl) {
     return;
   }
 
-  const cfg = pcGetConfigEl().dataset;
-  const fd = new FormData();
-  if (cfg.csrf) fd.append("csrf_token", cfg.csrf);
-  fd.append("company_key", companyKey);
+  const submitChange = (confirmed) => {
+    const cfg = pcGetConfigEl().dataset;
+    const fd = new FormData();
+    if (cfg.csrf) fd.append("csrf_token", cfg.csrf);
+    fd.append("company_key", companyKey);
+    if (confirmed) fd.append("confirm_all_sizes_company_change", "1");
+
+    return fetch(pcGetChangeProcessingCompanyUrl(cardId), {method: "POST", body: fd})
+        .then(async (res) => {
+          const data = await res.json().catch(() => ({}));
+          if (data.status === "confirm_required") {
+            if (window.confirm(data.message || "Подтвердите смену компании для всех размеров")) {
+              return submitChange(true);
+            }
+            return {status: "cancelled", message: "Смена компании отменена"};
+          }
+          if (!res.ok || data.status !== "success") {
+            throw new Error(data.message || "Ошибка смены компании");
+          }
+          return data;
+        });
+  };
 
   selectEl.disabled = true;
   loadingCircle();
 
-  fetch(pcGetChangeProcessingCompanyUrl(cardId), {method: "POST", body: fd})
-      .then(async (res) => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || data.status !== "success") {
-          throw new Error(data.message || "Ошибка смены компании");
-        }
-        return data;
-      })
+  submitChange(false)
       .then((data) => {
+        if (data.status === "cancelled") {
+          selectEl.value = previousCompanyKey;
+          if (typeof make_message === "function") make_message(data.message, "warning");
+          return;
+        }
+
         pcUpdateProcessingCompanyView(data);
         if (typeof make_message === "function") {
           make_message(data.message || "Компания изменена", data.status || "success");
         }
 
-        if (data.status_value && typeof pcReloadColumn === "function") {
-          requestAnimationFrame(() => pcReloadColumn(data.status_value));
+        const statusesToReload = Array.isArray(data.reload_statuses) ? data.reload_statuses : [];
+        if (data.status_value) statusesToReload.push(data.status_value);
+        if (typeof pcReloadColumn === "function") {
+          Array.from(new Set(statusesToReload.filter(Boolean))).forEach((statusKey) => {
+            requestAnimationFrame(() => pcReloadColumn(statusKey));
+          });
+        }
+
+        if (data.deleted_card_id && typeof pcCloseCardViewModal === "function") {
+          pcCloseCardViewModal();
         }
       })
       .catch((e) => {
+        selectEl.value = previousCompanyKey;
         if (typeof make_message === "function") make_message(e.message || "Ошибка", "error");
         else alert(e.message);
       })
@@ -834,6 +863,9 @@ function pcUpdateProcessingCompanyView(data) {
 
   const editor = document.getElementById("pc-card-processing-company-editor");
   if (editor) editor.classList.add("d-none");
+
+  const select = document.getElementById("pc-card-processing-company-select");
+  if (select) select.dataset.currentCompanyKey = company.key || company.inn || company.external_id || company.title || "";
 
   const cardEl = document.getElementById(`cardCommonBlock_${data.card_id}`);
   const cardCompanyLabel = cardEl?.querySelector("[data-pc-company-label]");

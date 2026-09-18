@@ -23,7 +23,8 @@ from .helpers import crm_get_cards, helper_categories_counter, split_cards_by_st
     h_cards_ctx_key_for_status, helper_reject_cards_by_rd_date_to_today, is_at2_admin_user, \
     get_crm_card_for_user, apply_crm_cards_scope
 from .transitions import validate_transition, check_special_rules, check_owner_or_admin
-from ..support import CATEGORIES_COMMON, MODERATION_STATUS_TITLES, json_response, card_has_rd
+from ..support import CATEGORIES_COMMON, MODERATION_STATUS_TITLES, json_response, card_has_rd, \
+    find_approved_wear_card_for_size_extension
 from config import settings
 
 
@@ -82,6 +83,96 @@ def _crm_find_processing_company(company_key: str) -> dict | None:
             return company
 
     return None
+
+
+def _truthy_request_flag(name: str, payload: dict) -> bool:
+    value = request.form.get(name)
+    if value is None:
+        value = payload.get(name)
+    return str(value or "").strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _pc_sq_key_for_merge(category: str, sq) -> tuple:
+    if category in (settings.Clothes.CATEGORY_PROCESS, settings.Socks.CATEGORY_PROCESS):
+        return sq.size, getattr(sq, "size_type", None)
+    if category == settings.Linen.CATEGORY_PROCESS:
+        return sq.size, getattr(sq, "unit", None)
+    return (sq.size,)
+
+
+def _pc_iter_wear_sqs(card: ProductCard):
+    if card.category == settings.Clothes.CATEGORY_PROCESS:
+        for c in card.clothes:
+            for sq in c.sizes_quantities:
+                yield c, sq
+    elif card.category == settings.Socks.CATEGORY_PROCESS:
+        for s in card.socks:
+            for sq in s.sizes_quantities:
+                yield s, sq
+    elif card.category == settings.Shoes.CATEGORY_PROCESS:
+        for sh in card.shoes:
+            for sq in sh.sizes_quantities:
+                yield sh, sq
+    elif card.category == settings.Linen.CATEGORY_PROCESS:
+        for l in card.linen:
+            for sq in l.sizes_quantities:
+                yield l, sq
+
+
+def _pc_set_all_wear_sizes_approved(card: ProductCard, is_approved: bool) -> None:
+    for _, sq in _pc_iter_wear_sqs(card):
+        if hasattr(sq, "is_approved"):
+            sq.is_approved = is_approved
+
+
+def _pc_merge_wear_sizes_into_base(card: ProductCard, base: ProductCard) -> tuple[int, int]:
+    cfg = CATEGORIES_COMMON.get(base.category)
+    if not cfg:
+        return 0, 0
+
+    base_items = getattr(base, cfg["rel_name"]) or []
+    base_item = base_items[0] if base_items else None
+    if not base_item:
+        return 0, 0
+
+    base_keys = {
+        _pc_sq_key_for_merge(base.category, sq)
+        for _, sq in _pc_iter_wear_sqs(base)
+    }
+
+    added = 0
+    skipped = 0
+    for _parent_obj, sq in list(_pc_iter_wear_sqs(card)):
+        key = _pc_sq_key_for_merge(card.category, sq)
+        if key in base_keys:
+            db.session.delete(sq)
+            skipped += 1
+            continue
+
+        base_item.sizes_quantities.append(sq)
+        base_keys.add(key)
+        added += 1
+
+    db.session.delete(card)
+    return added, skipped
+
+
+def _pc_apply_processing_company(
+    card: ProductCard,
+    *,
+    external_id: str,
+    title: str,
+    inn: str,
+    label: str,
+    payload: dict,
+    assigned_at: datetime,
+) -> None:
+    card.processing_info = label[:100]
+    card.processing_company_external_id = external_id[:100]
+    card.processing_company_title = title[:255]
+    card.processing_company_inn = inn[:20]
+    card.processing_company_payload = payload
+    card.processing_company_assigned_at = assigned_at
 
 
 def h_crm_cards():
@@ -304,6 +395,7 @@ def h_pc_change_processing_company(pc_id: int):
             message="Смена компании недоступна для одобренных и отмененных карточек",
             code=400,
         )
+    from_status_value = card.status.value if hasattr(card.status, "value") else card.status
 
     owner_error = check_owner_or_admin(current_user, card)
     if owner_error:
@@ -318,6 +410,12 @@ def h_pc_change_processing_company(pc_id: int):
     inn = _crm_processing_company_value(company, "inn", "company_idn")
     new_label = _crm_processing_company_label(inn=inn, title=title, external_id=external_id)
     old_label = card.processing_company_label or card.processing_info or "-"
+    base_card = find_approved_wear_card_for_size_extension(card)
+    is_extension_company_change = bool(
+        base_card
+        and base_card.processing_company_label
+        and base_card.processing_company_label != new_label
+    )
 
     if old_label == new_label:
         return jsonify(
@@ -338,23 +436,81 @@ def h_pc_change_processing_company(pc_id: int):
 
     dt = datetime.now()
     manager_login = getattr(current_user, "login_name", "") or str(current_user.id)
+    company_payload = {
+        "manual_change": True,
+        "changed_by": current_user.id,
+        "changed_at": dt.isoformat(),
+        "company": company,
+    }
+
+    if is_extension_company_change and not _truthy_request_flag("confirm_all_sizes_company_change", payload):
+        return jsonify(
+            status="confirm_required",
+            message=(
+                f"У клиента в основной карточке №{base_card.id} указана компания "
+                f"{base_card.processing_company_label}. Если поменять компанию на {new_label}, "
+                "новые размеры будут сразу слиты в основную карточку, основная карточка перейдет "
+                "в статус 'На модерации', и все размеры нужно будет промодерировать заново. Продолжить?"
+            ),
+            card_id=card.id,
+            base_card_id=base_card.id,
+            base_company_label=base_card.processing_company_label,
+            new_company_label=new_label,
+        )
 
     try:
-        card.processing_info = new_label[:100]
-        card.processing_company_external_id = external_id[:100]
-        card.processing_company_title = title[:255]
-        card.processing_company_inn = inn[:20]
-        card.processing_company_payload = {
-            "manual_change": True,
-            "changed_by": current_user.id,
-            "changed_at": dt.isoformat(),
-            "company": company,
-        }
-        card.processing_company_assigned_at = dt
-        card.card_log = h_append_card_log(
-            card.card_log,
-            f"\n{dt:%d-%m-%Y %H:%M:%S} {manager_login} сменил компанию карточки: {old_label} -> {new_label};",
-        )
+        if is_extension_company_change:
+            base_old_label = base_card.processing_company_label or base_card.processing_info or "-"
+            added, skipped = _pc_merge_wear_sizes_into_base(card, base_card)
+            _pc_set_all_wear_sizes_approved(base_card, False)
+            _pc_apply_processing_company(
+                base_card,
+                external_id=external_id,
+                title=title,
+                inn=inn,
+                label=new_label,
+                payload={
+                    **company_payload,
+                    "extension_card_id": card.id,
+                    "old_company_label": base_old_label,
+                },
+                assigned_at=dt,
+            )
+            base_card.status = ModerationStatus.IN_MODERATION
+            base_card.manager_id = current_user.id
+            base_card.moderation_at = dt
+            base_card.approved_at = None
+            base_card.card_log = h_append_card_log(
+                base_card.card_log,
+                (
+                    f"\n{dt:%d-%m-%Y %H:%M:%S} {manager_login} сменил компанию для всех размеров: "
+                    f"{base_old_label} -> {new_label}; карточка №{card.id} слита в основную "
+                    f"(добавлено размеров: {added}, пропущено дублей: {skipped}); "
+                    "все размеры отправлены на повторную модерацию;"
+                ),
+            )
+            response_card = base_card
+            message = (
+                f"Компания основной карточки №{base_card.id} изменена. "
+                "Карточка переведена на модерацию, карточка с новыми размерами удалена."
+            )
+        else:
+            _pc_apply_processing_company(
+                card,
+                external_id=external_id,
+                title=title,
+                inn=inn,
+                label=new_label,
+                payload=company_payload,
+                assigned_at=dt,
+            )
+            card.card_log = h_append_card_log(
+                card.card_log,
+                f"\n{dt:%d-%m-%Y %H:%M:%S} {manager_login} сменил компанию карточки: {old_label} -> {new_label};",
+            )
+            response_card = card
+            message = f"Компания карточки №{card.id} изменена"
+
         db.session.commit()
     except SQLAlchemyError:
         db.session.rollback()
@@ -363,9 +519,14 @@ def h_pc_change_processing_company(pc_id: int):
 
     return jsonify(
         status="success",
-        message=f"Компания карточки №{card.id} изменена",
-        card_id=card.id,
-        status_value=card.status.value if hasattr(card.status, "value") else card.status,
+        message=message,
+        card_id=response_card.id,
+        deleted_card_id=pc_id if is_extension_company_change else None,
+        status_value=response_card.status.value if hasattr(response_card.status, "value") else response_card.status,
+        reload_statuses=(
+            list(dict.fromkeys([from_status_value, ModerationStatus.IN_MODERATION.value]))
+            if is_extension_company_change else []
+        ),
         company={
             "key": company_key,
             "external_id": external_id,
