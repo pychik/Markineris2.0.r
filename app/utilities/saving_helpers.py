@@ -10,8 +10,8 @@ from utilities.exceptions import SizeTypeException
 
 NO_TRADEMARK_VALUE = 'без товарного знака'
 NO_ARTICLE_VALUE = 'отсутствует'
-NO_TRADEMARK_PLACEHOLDERS = {'БЕЗ ТОВАРНОГО ЗНАКА', 'БЕЗ БРЕНДА'}
-NO_ARTICLE_PLACEHOLDERS = {'БЕЗ АРТИКУЛА', 'НЕТ АРТИКУЛА', 'БЕЗ БРЕНДА', 'ОТСУТСТВУЕТ'}
+NO_TRADEMARK_PLACEHOLDERS = {'БЕЗ ТОВАРНОГО ЗНАКА', 'БЕЗ БРЕНДА', 'НЕТ'}
+NO_ARTICLE_PLACEHOLDERS = {'БЕЗ АРТИКУЛА', 'НЕТ АРТИКУЛА', 'БЕЗ БРЕНДА', 'ОТСУТСТВУЕТ', 'НЕТ'}
 LEGACY_LENGTH_WIDTH_SIZE_TYPE = 'ДЛИНА*ШИРИНА'
 
 
