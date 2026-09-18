@@ -5,8 +5,8 @@
             const value = el.value;
             const normalized = value.trim().replace(/\s+/g, " ").toLowerCase();
             const normalizedPlaceholder = String(placeholder || "").trim().toLowerCase();
-            const trademarkValues = ["без товарного знака", "без бренда"];
-            const articleValues = ["без артикула", "нет артикула", "без бренда", "отсутствует"];
+            const trademarkValues = ["без товарного знака", "без бренда", "нет"];
+            const articleValues = ["без артикула", "нет артикула", "без бренда", "отсутствует", "нет"];
             if (trademarkValues.includes(normalized) && normalizedPlaceholder !== "отсутствует") {
                 el.value = placeholder || "БЕЗ ТОВАРНОГО ЗНАКА";
                 return;

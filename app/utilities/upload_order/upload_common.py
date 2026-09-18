@@ -9,6 +9,9 @@ from models import db
 from config import settings
 from utilities.exceptions import ArticlesException
 
+NO_TRADEMARK_UPLOAD_PLACEHOLDERS = {'БЕЗ ТОВАРНОГО ЗНАКА', 'БЕЗ БРЕНДА', 'НЕТ'}
+NO_ARTICLE_UPLOAD_PLACEHOLDERS = {'БЕЗ АРТИКУЛА', 'НЕТ АРТИКУЛА', 'БЕЗ БРЕНДА', 'ОТСУТСТВУЕТ', 'НЕТ'}
+
 
 def normalize_trademark_placeholder(value: str) -> str:
     if value is None:
@@ -18,11 +21,28 @@ def normalize_trademark_placeholder(value: str) -> str:
     if not normalized or normalized == 'nan':
         return value
 
+    if normalized.upper() in NO_TRADEMARK_UPLOAD_PLACEHOLDERS:
+        return 'БЕЗ ТОВАРНОГО ЗНАКА'
+
     # Один и тот же спецсимвол с пробелами вокруг: "---", "% % %", "( ( (" -> placeholder.
     if len(normalized) >= 1 and len(set(normalized.replace(' ', ''))) == 1:
         candidate = normalized.replace(' ', '')
         if candidate and not candidate[0].isalnum():
             return 'БЕЗ ТОВАРНОГО ЗНАКА'
+
+    return value
+
+
+def normalize_article_placeholder(value: str) -> str:
+    if value is None:
+        return value
+
+    normalized = str(value).strip()
+    if not normalized or normalized == 'nan':
+        return value
+
+    if normalized.upper() in NO_ARTICLE_UPLOAD_PLACEHOLDERS:
+        return 'ОТСУТСТВУЕТ'
 
     return value
 
@@ -51,7 +71,14 @@ def check_article_value(func: Callable) -> Callable:
     def wrapper(value: str, *args, **kwargs):
         if value:
             lowered = value.lower()
-            if any(bad_word in lowered for bad_word in settings.ExceptionOrders.EXCEPTED_ARTICLES):
+            normalized = str(value).strip().upper()
+            placeholder_values = (
+                NO_ARTICLE_UPLOAD_PLACEHOLDERS
+                if func.__name__ == '_article'
+                else NO_TRADEMARK_UPLOAD_PLACEHOLDERS
+            )
+            if normalized not in placeholder_values \
+                    and any(bad_word in lowered for bad_word in settings.ExceptionOrders.EXCEPTED_ARTICLES):
                 raise ArticlesException(f"Обнаружено запрещённое сочетание: '{value}'")
         return func(value, *args, **kwargs)
     return wrapper

@@ -11,7 +11,7 @@ from logger import logger
 from tezaurus.runtime_catalogs import is_allowed_color, is_allowed_country
 from utilities.check_tnved import TnvedChecker
 from utilities.upload_order.upload_common import empty_value, val_error_start, UploadCategory, handle_upload_exceptions, \
-    check_article_value, normalize_trademark_placeholder
+    check_article_value, normalize_article_placeholder, normalize_trademark_placeholder
 
 
 class ValidateSocksMixin:
@@ -36,8 +36,9 @@ class ValidateSocksMixin:
     @staticmethod
     @check_article_value
     def _article(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
+        value = normalize_article_placeholder(value)
         if not value or value == 'nan' or isna(value) \
-                or len(value) < 1 or value.upper() == 'БЕЗ АРТИКУЛА':
+                or len(value) < 1 or value.upper() == 'ОТСУТСТВУЕТ':
             order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = 'ОТСУТСТВУЕТ'
         return
 

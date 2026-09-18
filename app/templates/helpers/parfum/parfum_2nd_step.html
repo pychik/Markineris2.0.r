@@ -4,7 +4,7 @@
             if (!el || typeof el.value !== "string") return;
             const value = el.value;
             const normalized = value.trim().replace(/\s+/g, " ").toLowerCase();
-            if (["без товарного знака", "без бренда"].includes(normalized)) {
+            if (["без товарного знака", "без бренда", "нет"].includes(normalized)) {
                 el.value = "БЕЗ ТОВАРНОГО ЗНАКА";
                 return;
             }
