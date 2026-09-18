@@ -3956,7 +3956,7 @@ def helper_get_stmt_full_operator_metrics_report(
             o.edo_type,
             o.edo_id,
             o.mark_type,
-            o.has_aggr,
+            false AS has_aggr,
             o.is_moderation,
             o.payment,
             o.processed,
