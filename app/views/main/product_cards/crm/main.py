@@ -14,7 +14,8 @@ from .handlers import h_crm_cards, h_download_product_card, h_pc_take_card_to_pr
     h_pc_move_card, h_pc_cards, h_pc_lazy_column, \
     h_search_crm_card, h_download_cards_companies_in_progress, \
     h_transfer_sent_to_in_progress, h_download_cards_companies_by_status, h_crm_reject_cards_by_rd_today, \
-    h_pc_bulk_move_cards, h_pc_managers_list, h_pc_assign_manager, h_pc_change_processing_company
+    h_pc_bulk_move_cards, h_pc_managers_list, h_pc_assign_manager, h_pc_change_processing_company, \
+    h_pc_company_stats_distribution, h_pc_refresh_company_stats_snapshot
 from .helpers import get_crm_card_for_user
 
 
@@ -37,6 +38,22 @@ def cards():
 @bck_suausmumu_t2_required
 def pc_lazy_column():
     return h_pc_lazy_column()
+
+
+@crm_product_cards.route("/crm/company_stats_distribution", methods=["GET"])
+@login_required
+@user_activated
+@bck_sumausmumu_required
+def pc_company_stats_distribution():
+    return h_pc_company_stats_distribution()
+
+
+@crm_product_cards.route("/crm/company_stats_distribution/refresh", methods=["POST"])
+@login_required
+@user_activated
+@bck_sumausmumu_required
+def pc_refresh_company_stats_snapshot():
+    return h_pc_refresh_company_stats_snapshot()
 
 
 @crm_product_cards.route("/crm_card_view/<int:card_id>", methods=["GET"])

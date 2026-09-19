@@ -106,6 +106,86 @@
   min-width: 150px;
 }
 
+.pc-company-stats__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pc-company-stats__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 9px;
+  border: 1px solid #d9dee5;
+  border-radius: 6px;
+  background: #f8f9fb;
+  color: #3f4650;
+  font-size: 13px;
+}
+
+.pc-company-stats__refresh-btn {
+  white-space: nowrap;
+}
+
+.pc-company-stats__table-wrap {
+  border: 1px solid #e2e6ec;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pc-company-stats__table {
+  margin-bottom: 0;
+}
+
+.pc-company-stats__table thead th {
+  background: #f3f5f8;
+  color: #49515c;
+  font-size: 12px;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.pc-company-stats__table tbody tr + tr {
+  border-top: 1px solid #edf0f3;
+}
+
+.pc-company-stats__company {
+  min-width: 220px;
+}
+
+.pc-company-stats__category-list,
+.pc-company-stats__status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pc-company-stats__category-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.pc-company-stats__category-title {
+  min-width: 145px;
+  color: #343a40;
+  font-weight: 600;
+}
+
+.pc-company-stats__origin,
+.pc-company-stats__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: #eef6f8;
+  color: #2f4d55;
+  font-size: 12px;
+}
+
 
 .order.order--card-updated,
 .order.order--card-updated:hover,

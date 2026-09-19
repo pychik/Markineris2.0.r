@@ -1,4 +1,5 @@
 import zipfile
+from collections import defaultdict
 from datetime import datetime
 from io import BytesIO
 
@@ -12,7 +13,7 @@ from sqlalchemy.orm import joinedload
 from typing import Optional
 
 from logger import logger
-from models import db, ProductCard, User, ModerationStatus
+from models import db, ProductCard, ProductCardCompanyStatsSnapshot, User, ModerationStatus
 from tezaurus.runtime_catalogs import get_processing_companies
 from utilities.download import OrdersProcessor, ShoesProcessor, ClothesProcessor, SocksProcessor, LinenProcessor, \
     ParfumProcessor, CosmeticsProcessor, ToysProcessor
@@ -23,9 +24,25 @@ from .helpers import crm_get_cards, helper_categories_counter, split_cards_by_st
     h_cards_ctx_key_for_status, helper_reject_cards_by_rd_date_to_today, is_at2_admin_user, \
     get_crm_card_for_user, apply_crm_cards_scope
 from .transitions import validate_transition, check_special_rules, check_owner_or_admin
+from ..company_stats import save_product_card_company_stats_snapshot
 from ..support import CATEGORIES_COMMON, MODERATION_STATUS_TITLES, json_response, card_has_rd, \
     find_approved_wear_card_for_size_extension
 from config import settings
+
+
+PROCESSING_COMPANY_CATEGORY_TITLES = {
+    "clothes": "Одежда / белье / носки",
+    "shoes": "Обувь",
+    "parfum": "Парфюм",
+    "cosmetics": "Косметика",
+    "toys": "Игрушки",
+    "home_goods": "Товары для дома",
+}
+
+PROCESSING_COMPANY_ORIGIN_TITLES = {
+    "rf": "РФ",
+    "import": "Не РФ",
+}
 
 
 def _crm_processing_company_key(company: dict) -> str:
@@ -62,6 +79,139 @@ def _crm_processing_company_value(company: dict, *keys: str) -> str:
 
 def _crm_processing_company_label(*, inn: str, title: str, external_id: str = "") -> str:
     return " ".join(part for part in ((inn or "").strip(), (title or "").strip()) if part) or external_id or "-"
+
+
+def _crm_company_stats_label(row: ProductCardCompanyStatsSnapshot) -> str:
+    return _crm_processing_company_label(
+        inn=row.processing_company_inn,
+        title=row.processing_company_title,
+        external_id=row.processing_company_external_id,
+    )
+
+
+def _crm_company_stats_latest_scope() -> tuple | None:
+    return (
+        db.session.query(
+            ProductCardCompanyStatsSnapshot.snapshot_date,
+            ProductCardCompanyStatsSnapshot.snapshot_hour,
+            func.max(ProductCardCompanyStatsSnapshot.snapshot_at).label("snapshot_at"),
+        )
+        .group_by(
+            ProductCardCompanyStatsSnapshot.snapshot_date,
+            ProductCardCompanyStatsSnapshot.snapshot_hour,
+        )
+        .order_by(
+            ProductCardCompanyStatsSnapshot.snapshot_date.desc(),
+            ProductCardCompanyStatsSnapshot.snapshot_hour.desc(),
+        )
+        .first()
+    )
+
+
+def _crm_build_company_stats_distribution() -> dict:
+    latest = _crm_company_stats_latest_scope()
+    if not latest:
+        return {
+            "has_data": False,
+            "snapshot_date": "",
+            "snapshot_hour": "",
+            "snapshot_at": "",
+            "companies": [],
+            "company_count": 0,
+            "cards_count": 0,
+            "category_titles": PROCESSING_COMPANY_CATEGORY_TITLES,
+            "origin_titles": PROCESSING_COMPANY_ORIGIN_TITLES,
+            "status_titles": MODERATION_STATUS_TITLES,
+        }
+
+    rows = (
+        ProductCardCompanyStatsSnapshot.query
+        .filter(
+            ProductCardCompanyStatsSnapshot.snapshot_date == latest.snapshot_date,
+            ProductCardCompanyStatsSnapshot.snapshot_hour == latest.snapshot_hour,
+        )
+        .order_by(
+            ProductCardCompanyStatsSnapshot.processing_company_title.asc(),
+            ProductCardCompanyStatsSnapshot.processing_company_inn.asc(),
+        )
+        .all()
+    )
+
+    companies: dict[tuple[str, str, str], dict] = {}
+    for row in rows:
+        key = (
+            row.processing_company_inn or "",
+            row.processing_company_external_id or "",
+            row.processing_company_title or "",
+        )
+        company = companies.setdefault(
+            key,
+            {
+                "label": _crm_company_stats_label(row),
+                "inn": row.processing_company_inn or "",
+                "external_id": row.processing_company_external_id or "",
+                "title": row.processing_company_title or "",
+                "total": 0,
+                "categories": defaultdict(lambda: {"category": "", "rf": 0, "import": 0, "unknown": 0, "total": 0}),
+                "statuses": defaultdict(int),
+            },
+        )
+
+        cards_count = int(row.cards_count or 0)
+        category = row.processing_company_category or "unknown"
+        origin = row.processing_company_origin or "unknown"
+        origin_key = origin if origin in PROCESSING_COMPANY_ORIGIN_TITLES else "unknown"
+        status = row.status or ""
+
+        company["total"] += cards_count
+        company["statuses"][status] += cards_count
+
+        category_stats = company["categories"][category]
+        category_stats["category"] = category
+        category_stats[origin_key] += cards_count
+        category_stats["total"] += cards_count
+
+    prepared_companies = []
+    for company in companies.values():
+        categories = sorted(
+            company["categories"].values(),
+            key=lambda item: (
+                -item["total"],
+                PROCESSING_COMPANY_CATEGORY_TITLES.get(item["category"], item["category"]),
+            ),
+        )
+        statuses = [
+            {
+                "status": status,
+                "title": MODERATION_STATUS_TITLES.get(status, status or "Без статуса"),
+                "count": count,
+            }
+            for status, count in sorted(
+                company["statuses"].items(),
+                key=lambda item: (-item[1], MODERATION_STATUS_TITLES.get(item[0], item[0])),
+            )
+        ]
+        prepared_companies.append({
+            **company,
+            "categories": categories,
+            "statuses": statuses,
+        })
+
+    prepared_companies.sort(key=lambda item: (-item["total"], item["label"].lower()))
+
+    snapshot_at = latest.snapshot_at.strftime("%d.%m.%Y %H:%M") if latest.snapshot_at else ""
+    return {
+        "has_data": True,
+        "snapshot_date": latest.snapshot_date.strftime("%d.%m.%Y"),
+        "snapshot_hour": latest.snapshot_hour,
+        "snapshot_at": snapshot_at,
+        "companies": prepared_companies,
+        "company_count": len(prepared_companies),
+        "cards_count": sum(company["total"] for company in prepared_companies),
+        "category_titles": PROCESSING_COMPANY_CATEGORY_TITLES,
+        "origin_titles": PROCESSING_COMPANY_ORIGIN_TITLES,
+        "status_titles": MODERATION_STATUS_TITLES,
+    }
 
 
 def _crm_find_processing_company(company_key: str) -> dict | None:
@@ -202,6 +352,47 @@ def h_crm_cards():
         })
 
     return render_template("product_cards/crm/crm_main.html", **locals())
+
+
+def h_pc_company_stats_distribution():
+    stats_ctx = _crm_build_company_stats_distribution()
+    can_refresh_company_stats = current_user.role == settings.SUPER_USER
+    html = render_template(
+        "product_cards/crm/helpers/company_stats_distribution_body.html",
+        stats=stats_ctx,
+        can_refresh_company_stats=can_refresh_company_stats,
+    )
+    return jsonify(status="success", html=html, **{
+        key: stats_ctx[key]
+        for key in ("has_data", "snapshot_date", "snapshot_hour", "snapshot_at", "company_count", "cards_count")
+    })
+
+
+def h_pc_refresh_company_stats_snapshot():
+    if current_user.role != settings.SUPER_USER:
+        return jsonify(status="error", message="Запуск среза доступен только суперадмину"), 403
+
+    try:
+        result = save_product_card_company_stats_snapshot()
+        stats_ctx = _crm_build_company_stats_distribution()
+        html = render_template(
+            "product_cards/crm/helpers/company_stats_distribution_body.html",
+            stats=stats_ctx,
+            can_refresh_company_stats=True,
+        )
+        return jsonify(
+            status="success",
+            message="Срез по компаниям обновлен",
+            snapshot_result=result,
+            html=html,
+            **{
+                key: stats_ctx[key]
+                for key in ("has_data", "snapshot_date", "snapshot_hour", "snapshot_at", "company_count", "cards_count")
+            },
+        )
+    except Exception:
+        logger.exception("pc company stats snapshot refresh error")
+        return jsonify(status="error", message="Не удалось обновить срез по компаниям"), 500
 
 
 def h_pc_lazy_column():

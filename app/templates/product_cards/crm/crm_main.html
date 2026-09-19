@@ -26,6 +26,8 @@
      data-transfer-sent-to-in-progress-url="{{ url_for('crm_product_cards.transfer_sent_to_in_progress') }}"
      data-download-cards-companies-in-progress="{{ url_for('crm_product_cards.download_cards_companies_in_progress') }}"
      data-download-companies-url="{{ url_for('crm_product_cards.download_cards_companies') }}"
+     data-company-stats-url="{{ url_for('crm_product_cards.pc_company_stats_distribution') }}"
+     data-company-stats-refresh-url="{{ url_for('crm_product_cards.pc_refresh_company_stats_snapshot') }}"
 
 
 ></div>
@@ -41,6 +43,24 @@
  {% include "product_cards/chat/modal_crm.html" %}
 
  {% include "product_cards/crm/helpers/modals/modal_card_logs.html" %}
+
+
+<div class="modal fade" id="pc-company-stats-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Распределение карточек по компаниям</h5>
+          <div class="text-muted small" id="pc-company-stats-modal-subtitle"></div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body" id="pc-company-stats-modal-body">
+        <div class="text-muted">Загрузка...</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 
 <div class="modal fade" id="pc-view-modal" tabindex="-1" aria-hidden="true">

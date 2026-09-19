@@ -1200,6 +1200,121 @@ function pcCloseCardViewModal() {
 
 window.pcCloseCardViewModal = pcCloseCardViewModal;
 
+/* =========================
+   COMPANY STATS DISTRIBUTION
+========================= */
+
+function pcCompanyStatsSetBody(html) {
+  const body = document.getElementById("pc-company-stats-modal-body");
+  if (body) body.innerHTML = html || "";
+}
+
+function pcCompanyStatsSetSubtitle(data) {
+  const subtitle = document.getElementById("pc-company-stats-modal-subtitle");
+  if (!subtitle) return;
+
+  if (!data || !data.has_data) {
+    subtitle.textContent = "";
+    return;
+  }
+
+  subtitle.textContent = `Последний срез: ${data.snapshot_at || data.snapshot_date || ""}`;
+}
+
+function pcShowCompanyStatsModal() {
+  const modalEl = document.getElementById("pc-company-stats-modal");
+  if (!modalEl) return null;
+
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  modal.show();
+  return modal;
+}
+
+async function pcLoadCompanyStatsDistribution() {
+  const cfg = pcGetConfigEl().dataset;
+  const url = cfg.companyStatsUrl;
+  if (!url) throw new Error("companyStatsUrl отсутствует в pc-config");
+
+  const resp = await fetch(url, {
+    method: "GET",
+    headers: {"X-Requested-With": "XMLHttpRequest"},
+    credentials: "same-origin",
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.status !== "success") {
+    throw new Error(data.message || "Не удалось загрузить распределение");
+  }
+  return data;
+}
+
+function pcOpenCompanyStatsModal() {
+  pcCompanyStatsSetBody('<div class="text-muted">Загрузка...</div>');
+  pcCompanyStatsSetSubtitle(null);
+  pcShowCompanyStatsModal();
+  loadingCircle();
+
+  pcLoadCompanyStatsDistribution()
+      .then((data) => {
+        pcCompanyStatsSetBody(data.html || "");
+        pcCompanyStatsSetSubtitle(data);
+      })
+      .catch((e) => {
+        pcCompanyStatsSetBody(`<div class="text-danger">${escapeHtml(e.message || "Ошибка")}</div>`);
+        if (typeof make_message === "function") make_message(e.message || "Ошибка", "error");
+      })
+      .finally(() => close_Loading_circle());
+}
+
+async function pcRefreshCompanyStatsSnapshot(btnEl) {
+  const cfg = pcGetConfigEl().dataset;
+  const url = cfg.companyStatsRefreshUrl;
+  const csrf = cfg.csrf;
+
+  if (!url) {
+    make_message("companyStatsRefreshUrl отсутствует в pc-config", "error");
+    return;
+  }
+
+  const originalText = btnEl?.textContent || "";
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.textContent = "Обновляем...";
+  }
+  loadingCircle();
+
+  try {
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+        "X-CSRFToken": csrf || "",
+      },
+      body: JSON.stringify({}),
+      credentials: "same-origin",
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || data.status !== "success") {
+      throw new Error(data.message || "Не удалось обновить срез");
+    }
+
+    pcCompanyStatsSetBody(data.html || "");
+    pcCompanyStatsSetSubtitle(data);
+    make_message(data.message || "Срез обновлен", "success");
+  } catch (e) {
+    make_message(e.message || "Ошибка", "error");
+  } finally {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.textContent = originalText || "Обновить срез";
+    }
+    close_Loading_circle();
+  }
+}
+
+window.pcOpenCompanyStatsModal = pcOpenCompanyStatsModal;
+window.pcRefreshCompanyStatsSnapshot = pcRefreshCompanyStatsSnapshot;
+
 function getPcdownloadConfig() {
   const el = document.getElementById("pc-config");
   if (!el) return {};
