@@ -356,6 +356,7 @@ function pcOpenViewModal(viewUrl) {
 
 
 function update_crm_info(){
+   loadingCircle();
 
    $.ajax({
     url: update_url_temp,
@@ -380,6 +381,9 @@ function update_crm_info(){
     },
      error: function() {
         make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
+    },
+    complete: function() {
+        close_Loading_circle();
     }
    });
 
