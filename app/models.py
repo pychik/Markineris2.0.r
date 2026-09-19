@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum as PyEnum
 
 from flask_login import UserMixin
@@ -634,6 +634,44 @@ class ProductCard(db.Model, UserMixin):
         if has_approved:
             return "approved"
         return "pending"
+
+
+class ProductCardCompanyStatsSnapshot(db.Model, UserMixin):
+    __tablename__ = "product_card_company_stats_snapshots"
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.Date, nullable=False, default=date.today, index=True)
+    snapshot_hour = db.Column(db.Integer, nullable=False, default=0, server_default="0", index=True)
+    snapshot_at = db.Column(db.DateTime(), default=datetime.now, nullable=False)
+    processing_company_external_id = db.Column(db.String(100), nullable=False, default="", server_default="")
+    processing_company_title = db.Column(db.String(255), nullable=False, default="", server_default="")
+    processing_company_inn = db.Column(db.String(20), nullable=False, default="", server_default="", index=True)
+    processing_company_category = db.Column(db.String(50), nullable=False, default="", server_default="", index=True)
+    processing_company_origin = db.Column(db.String(20), nullable=False, default="", server_default="", index=True)
+    status = db.Column(db.String(50), nullable=False, default="", server_default="", index=True)
+    cards_count = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    created_at = db.Column(db.DateTime(), default=datetime.now, nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "snapshot_date",
+            "snapshot_hour",
+            "processing_company_inn",
+            "processing_company_external_id",
+            "processing_company_title",
+            "processing_company_category",
+            "processing_company_origin",
+            "status",
+            name="uq_pc_company_stats_snapshot_scope",
+        ),
+        db.Index(
+            "ix_pc_company_stats_snapshot_company_date",
+            "processing_company_inn",
+            "processing_company_external_id",
+            "snapshot_date",
+            "snapshot_hour",
+        ),
+    )
 
 
 class CardMessage(db.Model, UserMixin):

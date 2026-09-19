@@ -1741,6 +1741,37 @@ def copy_card_processing_company(
     }
 
 
+def find_existing_processing_company_card(
+    card: ProductCard,
+    *,
+    processing_request,
+) -> ProductCard | None:
+    if not card.user_id:
+        return None
+
+    return (
+        db.session.query(ProductCard)
+        .filter(
+            ProductCard.id != card.id,
+            ProductCard.user_id == card.user_id,
+            ProductCard.status != ModerationStatus.REJECTED,
+            ProductCard.processing_company_origin == processing_request.origin,
+            ProductCard.processing_company_category == processing_request.category,
+            (
+                (ProductCard.processing_company_inn != "")
+                | (ProductCard.processing_company_external_id != "")
+                | (ProductCard.processing_company_title != "")
+            ),
+        )
+        .order_by(
+            ProductCard.processing_company_assigned_at.asc(),
+            ProductCard.created_at.asc(),
+            ProductCard.id.asc(),
+        )
+        .first()
+    )
+
+
 def _save_card_processing_company(
     card: ProductCard,
     *,
@@ -1814,7 +1845,7 @@ def assign_tezaurus_processing_companies(
         return {}
 
     client = client or ProcessingCompaniesClient()
-    contexts = []
+    contexts_by_scope: dict[tuple[int, str, str], list[tuple[ProductCard, str, Any]]] = {}
     errors: list[dict[str, Any]] = []
     for card in cards:
         country = _card_processing_country(card)
@@ -1834,13 +1865,40 @@ def assign_tezaurus_processing_companies(
             })
             continue
 
-        contexts.append((card, _processing_company_client_id(card), processing_request))
+        context = (card, _processing_company_client_id(card), processing_request)
+        scope_key = (card.user_id, processing_request.category, processing_request.origin)
+        contexts_by_scope.setdefault(scope_key, []).append(context)
 
     if errors:
         raise ValueError(_format_processing_company_batch_errors(errors))
 
+    assignments: dict[int, dict[str, Any]] = {}
+    representative_contexts = []
+    inherited_by_representative: dict[int, list[ProductCard]] = {}
+
+    for scope_contexts in contexts_by_scope.values():
+        first_card, _first_client_id, first_request = scope_contexts[0]
+        source_card = find_existing_processing_company_card(
+            first_card,
+            processing_request=first_request,
+        )
+
+        if source_card:
+            for card, _client_id, _processing_request in scope_contexts:
+                assignments[card.id] = copy_card_processing_company(
+                    target=card,
+                    source=source_card,
+                    assigned_at=assigned_at,
+                )
+            continue
+
+        representative_contexts.append(scope_contexts[0])
+        inherited_by_representative[first_card.id] = [
+            card for card, _client_id, _processing_request in scope_contexts[1:]
+        ]
+
     response_contexts = []
-    for chunk in _processing_company_chunks(contexts, PROCESSING_COMPANIES_BATCH_LIMIT):
+    for chunk in _processing_company_chunks(representative_contexts, PROCESSING_COMPANIES_BATCH_LIMIT):
         batch_items = [
             processing_request.as_batch_payload(client_id)
             for _card, client_id, processing_request in chunk
@@ -1887,7 +1945,6 @@ def assign_tezaurus_processing_companies(
     if errors:
         raise ValueError(_format_processing_company_batch_errors(errors))
 
-    assignments: dict[int, dict[str, Any]] = {}
     for card, processing_request, item_payload in response_contexts:
         assignments[card.id] = _save_card_processing_company(
             card,
@@ -1895,6 +1952,12 @@ def assign_tezaurus_processing_companies(
             response_payload=item_payload,
             assigned_at=assigned_at,
         )
+        for inherited_card in inherited_by_representative.get(card.id, []):
+            assignments[inherited_card.id] = copy_card_processing_company(
+                target=inherited_card,
+                source=card,
+                assigned_at=assigned_at,
+            )
 
     return assignments
 
