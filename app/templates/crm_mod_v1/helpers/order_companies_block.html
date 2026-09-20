@@ -9,14 +9,12 @@
         <div class="order__company-text">
           <b>{{ c.slot }}.</b>
           {{ c.title or '-' }}
-          {% if c.inn %} · {{ c.inn }}{% endif %}
+          {% if c.inn %}
+            · <span class="text-secondary fw-semibold"
+                    style="cursor:pointer"
+                    onclick="copy_buffer('{{ c.inn }}')">{{ c.inn }}</span>
+          {% endif %}
         </div>
-
-        {% if c.is_approved %}
-          <span class="badge bg-success-subtle text-success">OK</span>
-        {% else %}
-          <span class="badge bg-secondary-subtle text-muted">False</span>
-        {% endif %}
       </div>
     {% endfor %}
   </div>
