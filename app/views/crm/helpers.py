@@ -17,7 +17,7 @@ from werkzeug.utils import secure_filename
 
 from config import settings
 from logger import logger
-from models import User, Order, OrderStat, db, ServerParam
+from models import User, Order, OrderStat, FastOrderCompanies, db, ServerParam
 from redis_queue.callbacks import on_success_periodic_task, on_failure_periodic_task
 from utilities.download import crm_orders_common_preload
 from utilities.exceptions import EmptyFileToUploadError
@@ -41,6 +41,24 @@ def _order_processing_company_options(order: Order) -> list[dict]:
             "upd_number": company.upd_number or "",
         }
         for company in order.fast_order_companies
+    ]
+
+
+def _order_fast_companies_for_details(order_id: int) -> list[SimpleNamespace]:
+    companies = (
+        FastOrderCompanies.query
+        .filter(FastOrderCompanies.order_id == order_id)
+        .order_by(FastOrderCompanies.id.asc())
+        .all()
+    )
+    return [
+        SimpleNamespace(
+            slot=index,
+            title=company.processing_company_title or company.processing_company_external_id or "Компания не указана",
+            inn=company.processing_company_inn or "",
+            is_approved=True,
+        )
+        for index, company in enumerate(companies, start=1)
     ]
 
 
@@ -2571,11 +2589,12 @@ def h_order_details():
         return jsonify(status="error", message="Access denied"), 403
 
     n = _sanitize_order_desc_pii(n, current_user)
+    user_companies = _order_fast_companies_for_details(order_id) if n.is_moderation else []
 
     html = render_template(
         "crm_mod_v1/helpers/order_description.html",
         src=src,
         n=n,
-        user_companies=[],
+        user_companies=user_companies,
     )
     return jsonify(status="success", html=html)
