@@ -4,8 +4,8 @@
 
       <option value="">------------</option>
       {%for con in countries%}
-            <option value="{{con}}" {% if copied_order %}
-                                      {% if copied_order.country == con %}
+            <option value="{{con}}" {% if copied_order and copied_order.country %}
+                                      {% if copied_order.country.upper() == con %}
                                           selected
                                       {% endif %}
                                   {% endif %}>{{con}}
@@ -30,6 +30,7 @@
 <script>
   const RD_COUNTRIES = {{ countries | tojson }};
   const COUNTRIES = {{ rd_countries | tojson }};
+  const INITIAL_COUNTRY = {{ (copied_order.country.upper() if copied_order and copied_order.country else "") | tojson }};
 
   function clearRdFields() {
         const ids = ["rd_type", "rd_name", "rd_date", "rd_date_to"];
@@ -43,7 +44,7 @@
         });
       }
   function renderCountrySelect(selectEl, list, { preserveSelected = true } = {}) {
-    const prev = preserveSelected ? selectEl.value : "";
+    const prev = preserveSelected ? (selectEl.value || INITIAL_COUNTRY) : "";
 
     selectEl.innerHTML = "";
     const emptyOpt = document.createElement("option");
@@ -58,7 +59,6 @@
       selectEl.appendChild(opt);
     });
 
-    // если preserveSelected=false — всегда сброс
     if (preserveSelected && prev && list.includes(prev)) {
       selectEl.value = prev;
     } else {
@@ -94,10 +94,10 @@
 
     const isOn = switchEl.checked;
 
-    // ВКЛ → rd_countries, ВЫКЛ → countries
+    // ВКЛ: свой РД -> общий список стран; ВЫКЛ: нет своего РД -> наш список стран.
     const list = isOn ? RD_COUNTRIES : COUNTRIES;
 
-    {#renderCountrySelect(selectEl, list, { preserveSelected });#}
+    renderCountrySelect(selectEl, list, { preserveSelected });
     applySwitchStyle(isOn);
     toggleRdBlock(isOn);
   }
@@ -109,7 +109,6 @@
     // старт: можно оставить выбранную страну из copied_order
     applyRdState({ preserveSelected: true });
 
-    // при переключении: всегда сбрасываем выбранную страну
-    switchEl.addEventListener("change", () => applyRdState({ preserveSelected: false }));
+    switchEl.addEventListener("change", () => applyRdState({ preserveSelected: true }));
   });
 </script>

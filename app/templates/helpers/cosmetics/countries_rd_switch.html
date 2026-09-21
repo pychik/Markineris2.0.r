@@ -23,6 +23,7 @@
 <script>
   const COSMETICS_RD_COUNTRIES = {{ countries | tojson }};
   const COSMETICS_COUNTRIES = {{ rd_countries | tojson }};
+  const COSMETICS_INITIAL_COUNTRY = {{ (copied_order.country.upper() if copied_order and copied_order.country else "") | tojson }};
 
   function cosmeticsClearRdFields() {
     ["rd_type", "rd_name", "rd_date"].forEach(id => {
@@ -34,7 +35,7 @@
   }
 
   function cosmeticsRenderCountrySelect(selectEl, list, preserveSelected = true) {
-    const previousValue = preserveSelected ? selectEl.value : "";
+    const previousValue = preserveSelected ? (selectEl.value || COSMETICS_INITIAL_COUNTRY) : "";
 
     selectEl.innerHTML = "";
     const emptyOpt = document.createElement("option");
@@ -101,6 +102,6 @@
     if (!switchEl) return;
 
     cosmeticsApplyRdState(true);
-    switchEl.addEventListener("change", () => cosmeticsApplyRdState(false));
+    switchEl.addEventListener("change", () => cosmeticsApplyRdState(true));
   });
 </script>

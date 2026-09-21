@@ -382,8 +382,8 @@ def helper_clothes_info(subcategory: str | None) -> Union[Response,  dict[str, A
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = _get_product_cards_countries()
-    rd_countries = _get_product_cards_rd_countries(settings.Clothes.CATEGORY_PROCESS)
+    countries = _get_product_cards_rd_countries(settings.Clothes.CATEGORY_PROCESS)
+    rd_countries = _get_product_cards_countries()
 
     clothes_content = settings.Clothes.CLOTHES_CONTENT
     clothes_nat_content = settings.Clothes.CLOTHES_NAT_CONTENT
@@ -413,8 +413,8 @@ def helper_shoes_info(subcategory: str | None) -> Union[Response, dict[str, Any]
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = _get_product_cards_countries()
-    rd_countries = _get_product_cards_rd_countries(settings.Shoes.CATEGORY_PROCESS)
+    countries = _get_product_cards_rd_countries(settings.Shoes.CATEGORY_PROCESS)
+    rd_countries = _get_product_cards_countries()
     shoe_tnved = settings.Shoes.TNVED_CODE
     shoe_al = settings.Shoes.SHOE_AL
     shoe_ot = settings.Shoes.SHOE_OT
@@ -448,8 +448,8 @@ def helper_socks_info(subcategory: str | None) -> Union[Response,  dict[str, Any
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = _get_product_cards_countries()
-    rd_countries = _get_product_cards_rd_countries(settings.Socks.CATEGORY_PROCESS)
+    countries = _get_product_cards_rd_countries(settings.Socks.CATEGORY_PROCESS)
+    rd_countries = _get_product_cards_countries()
     socks_content = settings.Socks.CLOTHES_CONTENT
     socks_types_sizes_dict = settings.Socks.SIZE_ALL_DICT
 
@@ -482,8 +482,8 @@ def helper_linen_info(subcategory: str | None) -> Union[Response, dict[str, Any]
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = _get_product_cards_countries()
-    rd_countries = _get_product_cards_rd_countries(settings.Linen.CATEGORY_PROCESS)
+    countries = _get_product_cards_rd_countries(settings.Linen.CATEGORY_PROCESS)
+    rd_countries = _get_product_cards_countries()
 
     types = settings.Linen.TYPES_CARDS
     # colors = settings.Linen.COLORS
@@ -510,8 +510,8 @@ def helper_parfum_info(subcategory: str | None) -> Union[Response, dict[str, Any
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = _get_product_cards_countries()
-    rd_countries = _get_product_cards_rd_countries(settings.Parfum.CATEGORY_PROCESS)
+    countries = _get_product_cards_rd_countries(settings.Parfum.CATEGORY_PROCESS)
+    rd_countries = _get_product_cards_countries()
 
     category = settings.Parfum.CATEGORY
     category_process_name = settings.Parfum.CATEGORY_PROCESS
