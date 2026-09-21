@@ -18,6 +18,7 @@ from utilities.support import check_forbidden_words, helper_preload_common, help
     helper_check_user_order_in_archive, check_order_pos, process_admin_order_num, process_order_start
 from utilities.telegram import MarkinerisInform
 from utilities.validators import ValidatorProcessor, validate_and_build_contact_info, validate_order_comment_length
+from tezaurus.api_client import TezaurusApiClient
 from tezaurus.exceptions import TezaurusApiError, TezaurusConfigurationError
 from tezaurus.processing_companies import ProcessingCompaniesClient
 from tezaurus.runtime_catalogs import get_processing_companies
@@ -37,7 +38,8 @@ from views.main.product_cards.support import validate_card_form, save_clothes_ca
     get_card_entity_for_prefill, assert_frozen_fields_unchanged, \
     update_card_allowed_fields, ALLOWED_CARDS_DELETE_STATUSES, card_has_rd, CARD_STATUS_DATETIME_ATTR, \
     get_card_allowed_field_changes, merge_selected_created_wear_cards, assign_tezaurus_processing_companies, \
-    build_pc_category_search_index, find_approved_wear_card_for_size_extension, copy_card_processing_company
+    assign_tezaurus_processing_company, build_pc_category_search_index, find_approved_wear_card_for_size_extension, \
+    copy_card_processing_company
 from views.main.product_cards.utils import validate_rd_block
 from views.main.categories.cosmetics.subcategories.registry import \
     SUBCATEGORY_CONFIG as COSMETICS_SUBCATEGORY_CONFIG
@@ -85,6 +87,12 @@ CARD_SUBCATEGORY_ORDER = {
         "electric_train_sets",
     ),
 }
+
+INTERACTIVE_TEZAURUS_TIMEOUT = 8
+PROCESSING_COMPANY_REASSIGNMENT_ERROR = (
+    "Редактирование не сохранено: не удалось связаться с Tezaurus или подобрать новую "
+    "компанию обработки после смены страны. Проверьте сеть/Tezaurus и попробуйте снова."
+)
 
 
 def _card_subcategory_registry(category: str):
@@ -141,6 +149,28 @@ def _ensure_card_form_defaults(ctx: dict) -> dict:
     ctx.setdefault("edit_order", "")
     ctx.setdefault("excepted_articles", settings.ExceptionOrders.EXCEPTED_ARTICLES)
     return ctx
+
+
+def _card_processing_origin(*, category: str, country: str | None) -> str:
+    if not country:
+        return ""
+    ProcessingCompaniesClient.normalize_category(category)
+    return ProcessingCompaniesClient.origin_from_country(country)
+
+
+def _interactive_processing_companies_client() -> ProcessingCompaniesClient:
+    return ProcessingCompaniesClient(api_client=TezaurusApiClient(timeout=INTERACTIVE_TEZAURUS_TIMEOUT))
+
+
+def _card_processing_company_response(card: ProductCard) -> dict:
+    assigned_at = card.processing_company_assigned_at
+    return {
+        "external_id": card.processing_company_external_id or "",
+        "inn": card.processing_company_inn or "",
+        "title": card.processing_company_title or "",
+        "label": card.processing_company_label or card.processing_info or "-",
+        "assigned_at": assigned_at.strftime("%d.%m.%Y %H:%M") if assigned_at else "",
+    }
 
 
 def h_cards():
@@ -651,11 +681,10 @@ def h_update_product_card(crm_: bool = False):
     subcategory = form_data.get("subcategory")
     entity_before = get_card_entity_for_prefill(card)
     old_identity = ""
+    old_country = (getattr(entity_before, "country", "") or "").strip() if entity_before else ""
+    field_title = "артикул"
     if entity_before:
-        old_identity = (
-                           getattr(entity_before, "trademark", "") if category == settings.Parfum.CATEGORY_PROCESS
-                           else getattr(entity_before, "article", "")
-                       ) or ""
+        old_identity, field_title = _card_identity_value(category, entity_before)
     # 1) валидируем форму как обычно,
     try:
         validate_card_form(category_process=category, subcategory=subcategory, form_data=form_data)
@@ -677,21 +706,49 @@ def h_update_product_card(crm_: bool = False):
     except Exception as e:
         return jsonify(status="error", message=str(e))
 
-    # 3) обновляем только разрешённые поля (кроме артикула/цвета/размеров) identity-поля уже проверены выше
+    # 3) обновляем только разрешённые поля; identity-поля уже проверены выше
     try:
         log_user_changes = card.status == ModerationStatus.CLARIFICATION
         changes = get_card_allowed_field_changes(card=card, form_dict=form_dict) if (crm_ or log_user_changes) else []
+        old_origin = (
+            card.processing_company_origin
+            or _card_processing_origin(category=category, country=old_country)
+        )
+        old_company_label = card.processing_company_label or card.processing_info or "-"
         update_card_allowed_fields(card=card, form_dict=form_dict, form_data=form_data)
         entity_after = get_card_entity_for_prefill(card)
         new_identity = ""
+        processing_company_reassigned = False
+        new_origin = ""
         if entity_after:
-            new_identity = (
-                               getattr(entity_after, "trademark", "") if category == settings.Parfum.CATEGORY_PROCESS
-                               else getattr(entity_after, "article", "")
-                           ) or ""
+            new_identity, field_title = _card_identity_value(category, entity_after)
+            new_country = (getattr(entity_after, "country", "") or "").strip()
+            new_origin = _card_processing_origin(category=category, country=new_country)
+            if new_origin and new_origin != old_origin:
+                try:
+                    processing_client = _interactive_processing_companies_client()
+                    assigned = assign_tezaurus_processing_company(
+                        card,
+                        client=processing_client,
+                        assigned_at=datetime.now(),
+                    )
+                except (TezaurusApiError, TezaurusConfigurationError, ValueError) as exc:
+                    logger.exception("Failed to reassign product card processing company after origin change")
+                    raise RuntimeError(PROCESSING_COMPANY_REASSIGNMENT_ERROR) from exc
+                processing_company_reassigned = True
+                changes.append("Компания обработки")
+                dt_str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+                actor = getattr(current_user, "login_name", "") or str(current_user.id)
+                card.card_log = h_append_card_log(
+                    card.card_log,
+                    (
+                        f"\n{dt_str} {actor} сменил origin карточки: "
+                        f"{old_origin or '-'} -> {new_origin}; компания обработки: "
+                        f"{old_company_label} -> {assigned['label']};"
+                    ),
+                )
         if old_identity != new_identity:
             dt_str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-            field_title = "товарный знак" if category == settings.Parfum.CATEGORY_PROCESS else "артикул"
             actor = getattr(current_user, "login_name", "") or str(current_user.id)
             card.card_log = h_append_card_log(
                 card.card_log,
@@ -709,6 +766,9 @@ def h_update_product_card(crm_: bool = False):
                 f"\n{dt_str} {actor_label} исправил ({status_log_label}): {', '.join(changes)};"
             )
         db.session.commit()
+    except RuntimeError as e:
+        db.session.rollback()
+        return jsonify(status="error", message=str(e))
     except Exception as e:
         db.session.rollback()
         return jsonify(status="error", message=str(e))
@@ -718,6 +778,8 @@ def h_update_product_card(crm_: bool = False):
         message="Карточка обновлена",
         card_id=card.id,
         article_or_trademark=new_identity,
+        processing_company_reassigned=processing_company_reassigned,
+        processing_company=_card_processing_company_response(card),
     )
 
 

@@ -352,18 +352,12 @@ ALLOWED_CARDS_DELETE_STATUSES = {
 }
 
 
-def _is_russia_country(value: str | None) -> bool:
-    return (value or "").strip().upper() == "РОССИЯ"
-
-
-# Temporary product-cards-only restriction: hide and reject RUSSIA
-# without changing shared Redis/Tezaurus country dictionaries.
 def _get_product_cards_countries() -> list[str]:
-    return [country for country in get_all_countries() if not _is_russia_country(country)]
+    return get_all_countries()
 
 
 def _get_product_cards_rd_countries(category_process: str) -> list[str]:
-    return [country for country in get_rd_countries(category_process) if not _is_russia_country(country)]
+    return get_rd_countries(category_process)
 
 
 def _get_subcategory_default_countries(subcategory_config: dict[str, Any]) -> tuple[str, ...]:
@@ -655,13 +649,6 @@ def validate_card_form(category_process: str, subcategory: str, form_data: Immut
         color = form_data.get("color")
         if ValidatorProcessor.check_colors(color=color):
             raise ValueError(settings.Messages.COLOR_INPUT_ERROR.format(color=color))
-
-    country = form_data.get("country")
-    if _is_russia_country(country) and category_process not in (
-        settings.Cosmetics.CATEGORY_PROCESS,
-        settings.Toys.CATEGORY_PROCESS,
-    ):
-        raise ValueError("Страна РОССИЯ недоступна в разделе 'Мои карточки'.")
 
     # 3. TНВЭД
     if ValidatorProcessor.check_tnveds(

@@ -282,7 +282,8 @@ function product_card_submit(category = null) {
                     const crmUpdatePayload = {
                         type: "pc_card_updated",
                         card_id: data.card_id,
-                        article_or_trademark: data.article_or_trademark || ""
+                        article_or_trademark: data.article_or_trademark || "",
+                        processing_company: data.processing_company || null
                     };
 
                     // 1) Синхронизация между вкладками того же origin
@@ -335,4 +336,3 @@ function product_card_submit(category = null) {
         })
         .finally(() => close_Loading_circle());
 }
-
