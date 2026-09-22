@@ -17,7 +17,8 @@ from utilities.helpers.helpers_checks import _check_linen_compatibility, _check_
     _check_shoes_compatibility, rd_name_clean
 from utilities.exceptions import SizeTypeException
 from utilities.saving_helpers import append_or_merge_position, get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, \
-    normalize_length_width_size_type, normalize_length_width_size_value, normalize_trademark_placeholder, process_input_str
+    normalize_length_width_size_type, normalize_length_width_size_value, normalize_trademark_placeholder, process_input_str, \
+    validate_parfum_trademark
 from utilities.validators import normalize_mark_type_full
 
 
@@ -142,7 +143,8 @@ def save_linen(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
 def save_parfum(order: Order, form_dict: dict) -> Order:
     with_p = form_dict.get("with_packages")
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
-    new_parfum_order = Parfum(trademark=process_input_str(form_dict.get("trademark")),
+    trademark = validate_parfum_trademark(form_dict.get("trademark"))
+    new_parfum_order = Parfum(trademark=trademark,
                               volume_type=form_dict.get("volume_type"),
                               volume=form_dict.get("volume"), package_type=form_dict.get("package_type"),
                               material_package=form_dict.get("material_package"), type=form_dict.get("type"),
@@ -521,17 +523,20 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
 
 
 def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) -> Order:
-    # incompatible_items = []
-    # kept_parfum_count = 0
+    incompatible_items = []
+    kept_parfum_count = 0
 
     for parfum in order_category_list:
-        # result = _check_parfum_compatibility(parfum)
-        # if result:
-        #     incompatible_items.append(result)
-        #     continue
+        try:
+            trademark = validate_parfum_trademark(parfum.trademark)
+        except ValueError:
+            incompatible_items.append(
+                f"позиция с товарным знаком '{parfum.trademark or ''}' не скопирована: для парфюма нужен товарный знак"
+            )
+            continue
 
         new_parfum = Parfum(
-            trademark=normalize_trademark_placeholder(parfum.trademark),
+            trademark=trademark,
             volume_type=parfum.volume_type,
             volume=parfum.volume,
             package_type=parfum.package_type,
@@ -549,20 +554,20 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
             rd_date=parfum.rd_date,
         )
         append_or_merge_position(new_order.parfum, new_parfum, settings.Parfum.CATEGORY)
-        # kept_parfum_count += 1
+        kept_parfum_count += 1
 
-    # if kept_parfum_count == 0:
-    #     raise Exception(
-    #         "Не удалось скопировать ни одной позиции: все позиции не проходят новые правила ЧЗ."
-    #         + (" Подробности: " + ", ".join(incompatible_items) if incompatible_items else "")
-    #     )
-    #
-    # if incompatible_items:
-    #     flash(
-    #         message="Из скопированного заказа были удалены позиции согласно новым правилам ЧЗ."
-    #                 " Обратите внимание: " + ", ".join(incompatible_items),
-    #         category="warning"
-    #     )
+    if kept_parfum_count == 0:
+        raise Exception(
+            "Не удалось скопировать ни одной позиции: все позиции парфюма без товарного знака."
+            + (" Подробности: " + ", ".join(incompatible_items) if incompatible_items else "")
+        )
+
+    if incompatible_items:
+        flash(
+            message="Из скопированного заказа были удалены позиции парфюма без товарного знака. "
+                    "Обратите внимание: " + ", ".join(incompatible_items),
+            category="warning"
+        )
 
     return new_order
 

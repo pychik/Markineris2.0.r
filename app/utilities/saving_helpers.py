@@ -13,6 +13,63 @@ NO_ARTICLE_VALUE = 'отсутствует'
 NO_TRADEMARK_PLACEHOLDERS = {'БЕЗ ТОВАРНОГО ЗНАКА', 'БЕЗ БРЕНДА', 'НЕТ'}
 NO_ARTICLE_PLACEHOLDERS = {'БЕЗ АРТИКУЛА', 'НЕТ АРТИКУЛА', 'БЕЗ БРЕНДА', 'ОТСУТСТВУЕТ', 'НЕТ'}
 LEGACY_LENGTH_WIDTH_SIZE_TYPE = 'ДЛИНА*ШИРИНА'
+PARFUM_TRADEMARK_REQUIRED_ERROR = (
+    'Для парфюма необходимо указать товарный знак. '
+    'Значения вроде "нет", "без знака", "без товарного знака" не принимаются.'
+)
+PARFUM_NO_TRADEMARK_EXACT_VALUES = {
+    'б з',
+    'б тз',
+    'без бренда',
+    'без знака',
+    'без марки',
+    'без товарного знака',
+    'без товарный знак',
+    'без тз',
+    'без тм',
+    'нет',
+    'нет бренда',
+    'нет знака',
+    'нет марки',
+    'нет товарного знака',
+    'нет товарный знак',
+    'нет тз',
+    'нет тм',
+    'нету',
+    'nan',
+    'no brand',
+    'null',
+    'none',
+    'отсутствует',
+    'отсутствует бренд',
+    'отсутствует знак',
+    'отсутствует товарного знака',
+    'отсутствует товарный знак',
+    'отсутствует тз',
+    'undefined',
+}
+PARFUM_NO_TRADEMARK_NEGATION_TOKENS = {
+    'без',
+    'нет',
+    'нету',
+    'no',
+    'none',
+    'отсутствие',
+    'отсутствует',
+    'отсутствуют',
+}
+PARFUM_NO_TRADEMARK_DESCRIPTOR_TOKENS = {
+    'бренд',
+    'бренда',
+    'знак',
+    'знака',
+    'марка',
+    'марки',
+    'товарного',
+    'товарный',
+    'тз',
+    'тм',
+}
 
 
 def process_input_str(value: str | None) -> str:
@@ -36,6 +93,40 @@ def normalize_trademark_placeholder(value: str) -> str:
         return NO_TRADEMARK_VALUE
 
     return cleaned
+
+
+def _normalize_parfum_trademark_key(value: str | None) -> str:
+    cleaned = process_input_str(value or "").lower().replace("ё", "е")
+    cleaned = re.sub(r'[^0-9a-zа-я]+', ' ', cleaned)
+    return re.sub(r'\s+', ' ', cleaned).strip()
+
+
+def is_missing_parfum_trademark(value: str | None) -> bool:
+    normalized = _normalize_parfum_trademark_key(value)
+    if not normalized:
+        return True
+
+    if not any(ch.isalnum() for ch in normalized):
+        return True
+
+    if normalized in PARFUM_NO_TRADEMARK_EXACT_VALUES:
+        return True
+
+    tokens = set(normalized.split())
+    if tokens and tokens <= PARFUM_NO_TRADEMARK_NEGATION_TOKENS:
+        return True
+
+    return bool(
+        tokens & PARFUM_NO_TRADEMARK_NEGATION_TOKENS
+        and tokens & PARFUM_NO_TRADEMARK_DESCRIPTOR_TOKENS
+    )
+
+
+def validate_parfum_trademark(value: str | None) -> str:
+    trademark = process_input_str(value)
+    if is_missing_parfum_trademark(trademark):
+        raise ValueError(PARFUM_TRADEMARK_REQUIRED_ERROR)
+    return trademark
 
 
 def normalize_placeholder_value(value: Any, placeholders: set[str], replacement: str) -> Any:

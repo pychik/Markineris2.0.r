@@ -6,6 +6,7 @@ from config import settings
 from logger import logger
 from models import User, Order, Shoe, ShoeQuantitySize, Clothes, ClothesQuantitySize, Parfum, Linen, LinenQuantitySize, \
     db
+from utilities.saving_helpers import validate_parfum_trademark
 
 
 def upload_shoe_st(order_list: list, order: Order) -> Order:
@@ -69,7 +70,7 @@ def upload_clothes_st(order_list: list, order: Order) -> Order:
 
 
 def upload_parfum_st(order_list: list, order: Order) -> Order:
-    new_parfum_order = [Parfum(trademark=el[0].strip(), volume_type=el[1].strip(), volume=el[2].strip(),
+    new_parfum_order = [Parfum(trademark=validate_parfum_trademark(el[0]), volume_type=el[1].strip(), volume=el[2].strip(),
                                package_type=el[3].strip(), material_package=el[4].strip(), type=el[5].strip(),
                                with_packages="нет", box_quantity=1, quantity=el[7].strip(), country=el[8].strip(),
                                tnved_code=el[6].strip(), article_price=0, tax=0) for el in order_list]
@@ -78,7 +79,7 @@ def upload_parfum_st(order_list: list, order: Order) -> Order:
 
 
 def upload_parfum_ext(order_list: list, order: Order) -> Order:
-    new_parfum_order = [Parfum(trademark=el[0].strip(), volume_type=el[1].strip(), volume=el[2].strip(),
+    new_parfum_order = [Parfum(trademark=validate_parfum_trademark(el[0]), volume_type=el[1].strip(), volume=el[2].strip(),
                                package_type=el[3].strip(), material_package=el[4].strip(), type=el[5].strip(),
                                with_packages="да", box_quantity=el[7].strip(), quantity=el[8].strip(),
                                country=el[9].strip(), tnved_code=el[6].strip(), article_price=0, tax=0)

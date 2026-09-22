@@ -7,6 +7,7 @@ from config import settings
 from logger import logger
 from utilities.check_tnved import TnvedChecker
 from utilities.download import ParfumProcessor
+from utilities.saving_helpers import PARFUM_TRADEMARK_REQUIRED_ERROR, validate_parfum_trademark
 from utilities.upload_order.upload_common import empty_value, val_error_start, UploadCategory
 
 
@@ -23,6 +24,10 @@ class ValidateParfumMixin:
     @staticmethod
     @empty_value
     def _trademark(value: str, row_num: int, col: str) -> Optional[str]:
+        try:
+            validate_parfum_trademark(value)
+        except ValueError:
+            return f"{val_error_start(row_num=row_num, col=col)} {PARFUM_TRADEMARK_REQUIRED_ERROR}"
         return None
 
     @staticmethod
