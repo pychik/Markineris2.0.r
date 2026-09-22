@@ -454,7 +454,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
                 ClothesQuantitySize(
                     size=size,
                     quantity=qty,
-                    size_type=get_clothes_size_type(size, st),
+                    size_type=get_clothes_size_type(size, st, subcategory=subcategory),
                     # is_approved можно не ставить, но если хочешь — оставь True:
                     is_approved=True,
                 )

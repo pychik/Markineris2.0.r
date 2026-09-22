@@ -689,7 +689,6 @@ def parse_sizes_for_category(category: str, form_data_raw, subcategory: str | No
       - linen:          (size_str "X*Y", size_unit, quantity)
 
     form_data_raw — обычно request.form (ImmutableMultiDict).
-    subcategory сейчас не используется, но оставлен на будущее.
     """
     category_process = CATEGORIES_COMMON.get(category).get('title').lower()
     if category_process == settings.Clothes.CATEGORY:
@@ -701,6 +700,8 @@ def parse_sizes_for_category(category: str, form_data_raw, subcategory: str | No
             list(zip(sizes, quantities, size_types)),
             key=lambda x: x[0]
         )
+        for size, _qty, size_type in sizes_quantities:
+            get_clothes_size_type(size, size_type, subcategory=subcategory)
 
     elif category_process == settings.Socks.CATEGORY:
         sizes = form_data_raw.getlist("size")
@@ -824,7 +825,8 @@ def collect_existing_size_keys(user_id: int, category: str, subcategory: str | N
 
 def filter_new_sizes(category: str,
                      sizes_quantities: list,
-                     existing_keys: set) -> tuple[list, list]:
+                     existing_keys: set,
+                     subcategory: str | None = None) -> tuple[list, list]:
     """
     На вход:
       sizes_quantities — то, что вернул parse_sizes_for_category.
@@ -838,7 +840,7 @@ def filter_new_sizes(category: str,
     if category == settings.Clothes.CATEGORY_PROCESS:
         # [(size, qty, size_type_raw)]
         for size, qty, size_type_raw in sizes_quantities:
-            key = (size, get_clothes_size_type(size, size_type_raw))
+            key = (size, get_clothes_size_type(size, size_type_raw, subcategory=subcategory))
             if key in existing_keys:
                 skipped_labels.append(f"{size} ({size_type_raw})")
             else:
@@ -997,7 +999,7 @@ def save_clothes_card(
         ClothesQuantitySize(
             size=el[0],
             quantity=1,
-            size_type=get_clothes_size_type(el[0], el[2]),
+            size_type=get_clothes_size_type(el[0], el[2], subcategory=clothes.subcategory),
         )
         for el in sizes_quantities
     )
@@ -1952,12 +1954,12 @@ def assign_tezaurus_processing_companies(
     return assignments
 
 
-def build_size_keys_for_incoming(category: str, sizes_quantities: list) -> set:
+def build_size_keys_for_incoming(category: str, sizes_quantities: list, subcategory: str | None = None) -> set:
     keys = set()
 
     if category == settings.Clothes.CATEGORY_PROCESS:
         for size, qty, size_type_raw in sizes_quantities:
-            keys.add((size, get_clothes_size_type(size, size_type_raw)))
+            keys.add((size, get_clothes_size_type(size, size_type_raw, subcategory=subcategory)))
 
     elif category == settings.Socks.CATEGORY_PROCESS:
         for size, qty, size_type_raw in sizes_quantities:
@@ -2230,7 +2232,11 @@ def assert_frozen_fields_unchanged(card: ProductCard, form_data):
             for sq in l.sizes_quantities:
                 current_keys.add((sq.size, sq.unit))
 
-    incoming_keys = build_size_keys_for_incoming(category, incoming_sq)
+    incoming_keys = build_size_keys_for_incoming(
+        category,
+        incoming_sq,
+        subcategory=getattr(entity, "subcategory", None),
+    )
 
     if not (incoming_keys <= current_keys):
         raise ValueError("Нельзя добавлять новые размеры")

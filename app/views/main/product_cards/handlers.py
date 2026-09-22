@@ -520,6 +520,7 @@ def h_save_product_card():
             category=category,
             sizes_quantities=sizes_quantities,
             existing_keys=existing_keys,
+            subcategory=subcategory,
         )
 
         if not filtered_sq:
