@@ -468,6 +468,11 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
             flash(message=str(ae), category='error')
             db.session.rollback()
             return (None,) * 3
+        except ValueError as ve:
+            logger.error(ve)
+            flash(message=str(ve), category='error')
+            db.session.rollback()
+            return (None,) * 3
         except IntegrityError as e:
             logger.error(e)
             db.session.rollback()
@@ -490,6 +495,11 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
         except ArticlesException as ae:
             logger.error(ae)
             flash(message=str(ae), category='error')
+            db.session.rollback()
+            return (None,) * 3
+        except ValueError as ve:
+            logger.error(ve)
+            flash(message=str(ve), category='error')
             db.session.rollback()
             return (None,) * 3
         except IntegrityError as e:

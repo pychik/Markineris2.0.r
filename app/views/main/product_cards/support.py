@@ -17,7 +17,7 @@ from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.exceptions import SizeTypeException
 from utilities.helpers.helpers_checks import rd_name_clean
 from utilities.saving_helpers import get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, \
-    normalize_trademark_placeholder, process_input_str
+    normalize_trademark_placeholder, process_input_str, validate_parfum_trademark
 from utilities.support import check_forbidden_words
 from utilities.validators import ValidatorProcessor
 from tezaurus.processing_companies import PROCESSING_COMPANIES_BATCH_LIMIT, ProcessingCompaniesClient
@@ -642,6 +642,8 @@ def validate_card_form(category_process: str, subcategory: str, form_data: Immut
     # 1. Запрещённые слова
     check_forbidden_words(form_data.get("article", "").strip(), "article")
     check_forbidden_words(form_data.get("trademark", "").strip(), "trademark")
+    if category_process == settings.Parfum.CATEGORY_PROCESS:
+        validate_parfum_trademark(form_data.get("trademark"))
     category_title = CATEGORIES_COMMON.get(category_process).get('title').lower()
 
     # 2. Цвета (кроме парфюма)
@@ -1131,9 +1133,10 @@ def save_parfum_card(
     """
     rd_date = form_dict.get("_rd_date_obj")
     rd_date_to = form_dict.get("_rd_date_to_obj")
+    trademark = validate_parfum_trademark(form_dict.get("trademark"))
 
     parfum = Parfum(
-        trademark=process_input_str(form_dict.get("trademark") or ""),
+        trademark=trademark,
         volume_type=form_dict.get("volume_type"),
         volume=form_dict.get("volume"),
         package_type=form_dict.get("package_type"),

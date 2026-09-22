@@ -1,46 +1,17 @@
 <div class="row setup-content faded">
-    <script>
-        function normalizeTrademarkPlaceholder(el) {
-            if (!el || typeof el.value !== "string") return;
-            const value = el.value;
-            const normalized = value.trim().replace(/\s+/g, " ").toLowerCase();
-            if (["без товарного знака", "без бренда", "нет"].includes(normalized)) {
-                el.value = "БЕЗ ТОВАРНОГО ЗНАКА";
-                return;
-            }
-            if (/^\s*([^\p{L}\p{N}\s])(?:\s*\1)*\s*$/u.test(value)) {
-                el.value = "БЕЗ ТОВАРНОГО ЗНАКА";
-            }
-        }
-    </script>
-
-
     <div class="row justify-content-end g-3">
         <div class="col-xl-8">
             <div class="row g-4">
                 <div class="col-md-4">
                     <div class="form-group">
-                        <div class="d-flex align-items-center" >
-                            <label class="control-label d-block">Товарный знак</label>
-                            <div class="ms-3 form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="noTMSwitch"
-                                       data-bs-title="Нажмите, чтобы оставить поле пустым" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    onchange="toggleArticleTrademarkField(this, 'trademark');"
-                                {% if edit_mode %}disabled{% endif %}> <!-- Передаем `this` -->
-                            </div>
-                        </div>
-
-                        <!-- Скрываемое поле, которое отправляется -->
+                        <label class="control-label d-block">Товарный знак</label>
                         <input type="text" name="trademark" id="trademark" class="form-control"
-                            onchange="normalizeTrademarkPlaceholder(this);check_article_word(this);check_valid(this);" minlength="1" maxlength="50" required
+                            onchange="check_article_word(this);check_valid(this);" minlength="1" maxlength="50" required
                             title="Вводимое значение не должно превышать 50 знаков"
                             {% if copied_order %} value="{{ copied_order.trademark }}" {% endif %}>
-
-                        <!-- Видимое пустое поле для пользователя -->
-                        <input type="text" id="trademark_display" class="form-control"
-                            value="" disabled style="display: none;">
-
-
+                        <small class="d-block mt-2 text-danger fw-semibold">
+                            Обязательно: укажите реальный товарный знак. Без него ЧЗ не пропустит заказ.
+                        </small>
                     </div>
                 </div>
                 <div class="col-md-4">
