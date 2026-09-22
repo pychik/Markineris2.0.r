@@ -14,6 +14,12 @@ from utilities.categories_data.underwear_data import (UNDERWEAR_TYPES, UNDERWEAR
                                                       UNDERWEAR_NAME, UNDERWEAR_TNVEDS, UNDERWEAR_TYPES_CARDS)
 
 
+def _without_rost_size_type(size_types: dict) -> dict:
+    filtered = dict(size_types)
+    filtered.pop(settings.Clothes.ROST_SIZE_TYPE, None)
+    return filtered
+
+
 # todo understand real need of double request for globals
 class Underwear:
     clothes_all_tnved = UNDERWEAR_TNVED_DICT,
@@ -48,17 +54,17 @@ class ClothesSubcategoryProcessor:
             case ClothesSubcategories.hats.value:
                 scc = SubCategoriesCreds(clothes_all_tnved=HATS_TNVEDS,
                                          clothes_sizes=settings.Clothes.SIZES_ALL,
-                                         clothes_types_sizes_dict=settings.Clothes.SIZE_ALL_DICT,
+                                         clothes_types_sizes_dict=_without_rost_size_type(settings.Clothes.SIZE_ALL_DICT),
                                          types=HATS_TYPES,
                                          subcategory_name=HATS_NAME)
             case ClothesSubcategories.gloves.value:
                 scc = SubCategoriesCreds(clothes_all_tnved=GLOVES_TNVEDS,
                                          clothes_sizes=settings.Clothes.SIZES_ALL,
-                                         clothes_types_sizes_dict=settings.Clothes.SIZE_ALL_DICT,
+                                         clothes_types_sizes_dict=_without_rost_size_type(settings.Clothes.SIZE_ALL_DICT),
                                          types=GLOVES_TYPES,
                                          subcategory_name=GLOVES_NAME)
             case ClothesSubcategories.shawls.value:
-                shawls_size_types = dict(settings.Clothes.SIZE_ALL_DICT)
+                shawls_size_types = _without_rost_size_type(settings.Clothes.SIZE_ALL_DICT)
                 shawls_size_types[settings.Clothes.LENGTH_WIDTH_SIZE_TYPE] = tuple()
                 scc = SubCategoriesCreds(clothes_all_tnved=SHAWLS_TNVEDS,
                                          clothes_sizes=settings.Clothes.SIZES_ALL,

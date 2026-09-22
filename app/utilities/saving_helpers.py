@@ -13,6 +13,7 @@ NO_ARTICLE_VALUE = 'отсутствует'
 NO_TRADEMARK_PLACEHOLDERS = {'БЕЗ ТОВАРНОГО ЗНАКА', 'БЕЗ БРЕНДА', 'НЕТ'}
 NO_ARTICLE_PLACEHOLDERS = {'БЕЗ АРТИКУЛА', 'НЕТ АРТИКУЛА', 'БЕЗ БРЕНДА', 'ОТСУТСТВУЕТ', 'НЕТ'}
 LEGACY_LENGTH_WIDTH_SIZE_TYPE = 'ДЛИНА*ШИРИНА'
+NO_ROST_CLOTHES_SUBCATEGORIES = {'gloves', 'hats', 'shawls'}
 PARFUM_TRADEMARK_REQUIRED_ERROR = (
     'Для парфюма необходимо указать товарный знак. '
     'Значения вроде "нет", "без знака", "без товарного знака" не принимаются.'
@@ -166,6 +167,20 @@ def normalize_length_width_size_value(size: str | None, size_type: str | None) -
     )
 
 
+def is_rost_size_type_disallowed_for_subcategory(subcategory: str | None, size_type: str | None) -> bool:
+    return (
+        str(subcategory or '').strip() in NO_ROST_CLOTHES_SUBCATEGORIES
+        and str(size_type or '').strip() == settings.Clothes.ROST_SIZE_TYPE
+    )
+
+
+def validate_clothes_size_type_for_subcategory(size_type: str | None, subcategory: str | None) -> None:
+    if is_rost_size_type_disallowed_for_subcategory(subcategory, size_type):
+        raise SizeTypeException(
+            f"Тип размера '{settings.Clothes.ROST_SIZE_TYPE}' недоступен для шапок, перчаток и шалей."
+        )
+
+
 def normalize_key_value(value: Any) -> Any:
     """Trim string values before they participate in merge keys."""
     if value is None:
@@ -192,12 +207,13 @@ def normalize_float_key(value: Any) -> float:
     return float(value)
 
 
-def get_clothes_size_type(size: str, provided_type: str) -> str:
+def get_clothes_size_type(size: str, provided_type: str, subcategory: str | None = None) -> str:
     """Validate a clothes size value and map it to the normalized size type."""
     if not provided_type:
         raise SizeTypeException("Тип размера не указан.")
 
     provided_type = provided_type.strip()
+    validate_clothes_size_type_for_subcategory(provided_type, subcategory)
     length_width_size_type = settings.Clothes.LENGTH_WIDTH_SIZE_TYPE
 
     if is_length_width_size_type(provided_type):

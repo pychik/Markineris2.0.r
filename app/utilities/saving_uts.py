@@ -18,7 +18,7 @@ from utilities.helpers.helpers_checks import _check_linen_compatibility, _check_
 from utilities.exceptions import SizeTypeException
 from utilities.saving_helpers import append_or_merge_position, get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, \
     normalize_length_width_size_type, normalize_length_width_size_value, normalize_trademark_placeholder, process_input_str, \
-    validate_parfum_trademark
+    validate_clothes_size_type_for_subcategory, validate_parfum_trademark
 from utilities.validators import normalize_mark_type_full
 
 
@@ -60,6 +60,7 @@ def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
 def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcategory: str = None) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
     article = normalize_article_placeholder(form_dict.get("article"))
+    normalized_subcategory = subcategory if subcategory else ClothesSubcategories.common.value
 
     new_clothes_order = Clothes(trademark=process_input_str(form_dict.get("trademark")),
                                 article=article,
@@ -70,13 +71,13 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcateg
                                 tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                                 tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
                                 rd_name=rd_name_clean(form_dict.get("rd_name")),
-                                rd_date=rd_date, subcategory=subcategory if subcategory else ClothesSubcategories.common.value)
+                                rd_date=rd_date, subcategory=normalized_subcategory)
 
     extend_sq = (
         ClothesQuantitySize(
             size=el[0],
             quantity=el[1],
-            size_type=get_clothes_size_type(el[0], el[2])
+            size_type=get_clothes_size_type(el[0], el[2], subcategory=normalized_subcategory)
         )
         for el in sizes_quantities
     )
@@ -418,12 +419,22 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
 
         new_sizes = []
         for sq in clothes.sizes_quantities:
+            try:
+                normalized_size_type = normalize_length_width_size_type(sq.size_type)
+                validate_clothes_size_type_for_subcategory(normalized_size_type, clothes.subcategory)
+            except SizeTypeException as exc:
+                incompatible_items.append(
+                    f"позиция '{clothes.article or ''}' размер '{sq.size}' не скопирована: {exc}"
+                )
+                continue
             new_sq = ClothesQuantitySize(
                 size=normalize_length_width_size_value(sq.size, sq.size_type),
                 quantity=sq.quantity,
-                size_type=normalize_length_width_size_type(sq.size_type),
+                size_type=normalized_size_type,
             )
             new_sizes.append(new_sq)
+        if not new_sizes:
+            continue
 
         new_clothes = Clothes(
             trademark=normalize_trademark_placeholder(clothes.trademark),

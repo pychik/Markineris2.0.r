@@ -18,7 +18,7 @@ from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TYPES
 from utilities.categories_data.underwear_data import UNDERWEAR_TYPES
 from utilities.check_tnved import TnvedChecker
-from utilities.saving_helpers import is_length_width_size_type
+from utilities.saving_helpers import is_length_width_size_type, is_rost_size_type_disallowed_for_subcategory
 from utilities.upload_order.upload_common import empty_value, val_error_start, UploadCategory, handle_upload_exceptions, \
     check_article_value, normalize_article_placeholder, normalize_trademark_placeholder
 
@@ -134,6 +134,8 @@ class ValidateClothesMixin:
             if subcategory == ClothesSubcategories.shawls.value:
                 order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = settings.Clothes.LENGTH_WIDTH_SIZE_TYPE
                 return
+            return f"{val_error_start(row_num=row_num, col=size_col)} {settings.Clothes.UPLOAD_SIZE_TYPE_ERROR}"
+        if is_rost_size_type_disallowed_for_subcategory(subcategory, size_type):
             return f"{val_error_start(row_num=row_num, col=size_col)} {settings.Clothes.UPLOAD_SIZE_TYPE_ERROR}"
         if size_type in settings.Clothes.CLOTHES_SIZE_TYPES:
             return
