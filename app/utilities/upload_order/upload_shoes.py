@@ -199,12 +199,14 @@ class ValidateShoesMixin:
     @staticmethod
     @empty_value
     def _rd_date(value: str, row_num: int, col: str) -> Optional[str]:
+        error_message = f"{val_error_start(row_num=row_num, col=col)} {settings.Messages.UPLOAD_RD_DATE_ERROR}"
         try:
             res = datetime.strptime(value.strip(), "%d.%m.%Y")
         except ValueError:
             res = False
+            # logger.error(error_message)
         if not res:
-            return f"{val_error_start(row_num=row_num, col=col)} {settings.Messages.UPLOAD_RD_DATE_ERROR}"
+            return error_message
 
     @staticmethod
     def _rd_general(list_values: list, rz_gender_condition: bool, gender: str, row_num: int, order_list: list, cols: tuple) -> Optional[tuple]:
