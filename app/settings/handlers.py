@@ -62,6 +62,33 @@ def register_handlers(app: Flask) -> None:
         if current_user.role == settings.SUPER_MANAGER and request.path.startswith('/crm_uoc'):
             return
         if current_user.role == settings.MARKINERIS_ADMIN_USER:
+            allowed_markineris_admin_endpoints = {
+                'admin_control.bck_control_reanimate',
+                'admin_control.bck_reanimate_save_call_result',
+                'admin_control.bck_su_control_reanimate_excel',
+                'admin_control.su_bck_control_ut',
+                'admin_control.update_transaction_account',
+                'admin_control.su_control_ut',
+                'admin_control.su_bck_ut_report',
+                'admin_control.bck_su_transaction_detail',
+                'admin_control.bck_su_pending_transaction_update',
+                'user_cp.bck_transaction_detail',
+                'admin_control.su_add_promo',
+                'admin_control.su_bck_promo',
+                'admin_control.get_accounts',
+                'admin_control.su_delete_promo',
+                'admin_control.su_fin_promo_history',
+                'admin_control.su_control_finance',
+                'admin_control.su_bck_fin_promo_history',
+                'admin_control.index',
+                'admin_control.su_user_search',
+                'admin_control.client_orders_stats',
+                'admin_control.cross_user_search',
+                'admin_control.bck_change_user_password',
+            }
+            if request.endpoint in allowed_markineris_admin_endpoints:
+                return
+
             allowed_reanimate_url = [
                 url_for('admin_control.bck_control_reanimate'),
                 url_for('admin_control.bck_reanimate_save_call_result'),
