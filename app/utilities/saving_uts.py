@@ -561,7 +561,8 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
             trademark = validate_parfum_trademark(parfum.trademark)
         except ValueError:
             incompatible_items.append(
-                f"позиция с товарным знаком '{parfum.trademark or ''}' не скопирована: для парфюма нужен товарный знак"
+                f"позиция с товарным знаком '{parfum.trademark or ''}' не скопирована: "
+                f"для парфюма нужен корректный товарный знак"
             )
             continue
 
@@ -590,13 +591,13 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
 
     if kept_parfum_count == 0:
         raise Exception(
-            "Не удалось скопировать ни одной позиции: все позиции парфюма без товарного знака."
+            "Не удалось скопировать ни одной позиции: все позиции парфюма без корректного товарного знака."
             + (" Подробности: " + ", ".join(incompatible_items) if incompatible_items else "")
         )
 
     if incompatible_items:
         flash(
-            message="Из скопированного заказа были удалены позиции парфюма без товарного знака. "
+            message="Из скопированного заказа были удалены позиции парфюма без корректного товарного знака. "
                     "Обратите внимание: " + ", ".join(incompatible_items),
             category="warning"
         )

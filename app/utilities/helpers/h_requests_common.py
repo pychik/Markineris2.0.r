@@ -9,7 +9,8 @@ from models import db, Telegram, Order, ExceptionDataUsers
 from utilities.check_tnved import TnvedChecker
 from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.support import check_file_extension, send_file_tg, \
-    orders_list_common, helper_check_useroragent_balance, helper_check_uoabm, helper_check_user_order_in_archive
+    orders_list_common, helper_check_useroragent_balance, helper_check_uoabm, helper_check_user_order_in_archive, \
+    order_has_user_rd_by_id
 from utilities.validators import is_valid_mark_type_full
 
 
@@ -191,8 +192,12 @@ def h_cubaa():
                                                                   settings.Messages.STRANGE_REQUESTS,
                                                                   settings.Messages.STRANGE_REQUESTS)
 
-    order_check = Order.query.with_entities(Order.id).filter(Order.user_id == current_user.id, ~Order.to_delete).first()
-    if not order_check:
+    order_exists = (
+        Order.query.with_entities(Order.id)
+        .filter(Order.id == o_id, Order.user_id == current_user.id, ~Order.to_delete)
+        .first()
+    )
+    if not order_exists:
         return jsonify(dict(status_order=status_order, answer_orders=f"{answer_order}",
                             status_balance=status_balance, answer_balance=answer_balance))
 
@@ -202,4 +207,5 @@ def h_cubaa():
         agent_at2, answer_balance = helper_check_uoabm(user=current_user, o_id=o_id)
 
     return jsonify(dict(status_order=status_order, answer_orders=f"{answer_order}",
-                        status_balance=status_balance, answer_balance=answer_balance,  agent_at2=agent_at2))
+                        status_balance=status_balance, answer_balance=answer_balance, agent_at2=agent_at2,
+                        has_user_rd=order_has_user_rd_by_id(o_id=o_id, category=category)))

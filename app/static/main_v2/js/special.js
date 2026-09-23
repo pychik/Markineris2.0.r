@@ -584,6 +584,69 @@ function check_company_marks(){
     }
 }
 
+function show_rd_replacement_consent_step(nextStep) {
+    window.__rd_replacement_consent = null;
+
+    document.getElementById("data_order_check_insert").innerHTML = `
+        <div id="rd_replacement_consent_block" class="rd-replacement-consent-block faded">
+            <div class="contact-title">Разрешительная документация</div>
+            <div class="contact-subtitle">
+                В случае отказа системы „Честный ЗНАК“ в принятии вашей разрешительной документации даёте ли вы согласие на использование нашей разрешительной документации с возможным изменением страны происхождения товара?
+            </div>
+            <div class="d-grid gap-2 mt-3">
+                <label class="btn btn-outline-secondary text-start">
+                    <input class="form-check-input me-2" type="radio" name="rd_replacement_consent_choice" value="yes">
+                    Да
+                </label>
+                <label class="btn btn-outline-secondary text-start">
+                    <input class="form-check-input me-2" type="radio" name="rd_replacement_consent_choice" value="no">
+                    Нет
+                </label>
+            </div>
+            <div id="rd_replacement_consent_error" class="mt-2 text-danger"></div>
+        </div>
+    `;
+
+    document.querySelectorAll('input[name="rd_replacement_consent_choice"]').forEach((input) => {
+        input.addEventListener("change", () => {
+            window.__rd_replacement_consent = input.value;
+            document.querySelectorAll("#rd_replacement_consent_block label.btn").forEach((label) => {
+                const checked = label.querySelector("input")?.checked;
+                label.classList.toggle("btn-accent", !!checked);
+                label.classList.toggle("btn-outline-secondary", !checked);
+            });
+            const error = document.getElementById("rd_replacement_consent_error");
+            if (error) error.textContent = "";
+        });
+    });
+
+    document.getElementById("process_modal_footer").innerHTML = `
+        <button type="button" class="btn btn-accent border-0" id="btn_rd_consent_next">
+            Далее
+        </button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Назад</button>
+    `;
+
+    document.getElementById("btn_rd_consent_next")?.addEventListener("click", () => {
+        if (!window.__rd_replacement_consent) {
+            const error = document.getElementById("rd_replacement_consent_error");
+            if (error) error.textContent = "Выберите «Да» или «Нет».";
+            return;
+        }
+        nextStep();
+    });
+}
+
+function continue_after_order_checks(hasUserRd) {
+    if (hasUserRd) {
+        show_rd_replacement_consent_step(perform_process);
+        return;
+    }
+
+    window.__rd_replacement_consent = null;
+    perform_process();
+}
+
 function perform_process(){
     if (typeof validate_client_mark_confirmation === "function" && !validate_client_mark_confirmation()) {
         return;
@@ -593,13 +656,23 @@ function perform_process(){
     if (typeof sync_client_mark_confirmation_input === "function") {
         sync_client_mark_confirmation_input(document.getElementById("form_process"));
     }
+    const form = document.getElementById("form_process");
+    let rdConsentInput = document.getElementById("rd_replacement_consent_input");
+    if (!rdConsentInput) {
+        rdConsentInput = document.createElement("input");
+        rdConsentInput.type = "hidden";
+        rdConsentInput.name = "rd_replacement_consent";
+        rdConsentInput.id = "rd_replacement_consent_input";
+        form.appendChild(rdConsentInput);
+    }
+    rdConsentInput.value = window.__rd_replacement_consent || "";
     document.getElementById('process_modal_footer').innerHTML=`<div class="col text-center"><b>Производится обработка</b><br>
       <div class="spinner-border text-warning" role="status">
         <span class="visually-hidden">Loading...</span>
       </div>
     </div>`;
 
-    setTimeout(() => {document.getElementById('form_process').submit()}, 500);
+    setTimeout(() => {form.submit()}, 500);
 
 }
 
@@ -644,7 +717,7 @@ function perform_balance_order_check(url, csrf, o_id, category){
         let agent_2_str = 'Обратитесь к агенту, на данный момент активность невозможна'
         if(data.status_balance === 1 && data.status_order === 0){
             // console.log("performing_process");
-            perform_process();
+            continue_after_order_checks(!!data.has_user_rd);
 
         }
         else if(data.status_balance !== 1 && data.status_order === 0){
@@ -671,7 +744,7 @@ function perform_balance_order_check(url, csrf, o_id, category){
         }
         else if(data.status_balance === 1 && data.status_order !== 0){
             // console.log("balance ok, orders - duplicates");
-            document.getElementById('process_modal_footer').innerHTML = `<button type="button" class="btn btn-accent" id="btn_process" onclick="perform_process();">Все-равно оформить накладную!</button><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>`;
+            document.getElementById('process_modal_footer').innerHTML = `<button type="button" class="btn btn-accent" id="btn_process" onclick="continue_after_order_checks(${!!data.has_user_rd});">Все-равно оформить накладную!</button><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>`;
             // document.getElementById('process_modal_footer').innerHTML = `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="perfom_process_model_update('${url}', '${csrf}', ${o_id}, '${category}');">Ок</button>`;
             document.getElementById("data_order_check_insert").innerHTML = `<span style="color:#ffc400"><b>${data.answer_orders}</b></span><br>`;
 

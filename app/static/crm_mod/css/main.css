@@ -753,4 +753,41 @@ body {
   }
 }
 
+.order-rd-consent-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+
+.order-rd-consent-badge--yes {
+  background: #d1e7dd;
+  border-color: #badbcc;
+  color: #0f5132;
+}
+
+.order-rd-consent-badge--no {
+  background: #f8d7da;
+  border-color: #f5c2c7;
+  color: #842029;
+}
+
+.order-rd-consent-detail {
+  margin: 6px 0 8px 0;
+}
+.order-rd-consent-detail .order-rd-consent-badge {
+  min-width: 124px;
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
 /*# sourceMappingURL=main.css.map */

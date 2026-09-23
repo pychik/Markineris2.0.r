@@ -16,7 +16,8 @@ LEGACY_LENGTH_WIDTH_SIZE_TYPE = 'ДЛИНА*ШИРИНА'
 NO_ROST_CLOTHES_SUBCATEGORIES = {'gloves', 'hats', 'shawls'}
 PARFUM_TRADEMARK_REQUIRED_ERROR = (
     'Для парфюма необходимо указать товарный знак. '
-    'Значения вроде "нет", "без знака", "без товарного знака" не принимаются.'
+    'Значения вроде "нет", "без знака", "без товарного знака", а также типы товара '
+    '"парфюмерная вода", "духи", "туалетная вода", "мл", "парфюм" не принимаются.'
 )
 PARFUM_NO_TRADEMARK_EXACT_VALUES = {
     'б з',
@@ -47,8 +48,20 @@ PARFUM_NO_TRADEMARK_EXACT_VALUES = {
     'отсутствует товарного знака',
     'отсутствует товарный знак',
     'отсутствует тз',
+    'духи',
+    'мл',
+    'парфюм',
+    'парфюмерная вода',
+    'туалетная вода',
     'undefined',
 }
+PARFUM_FORBIDDEN_TRADEMARK_TOKEN_SETS = (
+    {'парфюмерная', 'вода'},
+    {'туалетная', 'вода'},
+    {'духи'},
+    {'мл'},
+    {'парфюм'},
+)
 PARFUM_NO_TRADEMARK_NEGATION_TOKENS = {
     'без',
     'нет',
@@ -114,6 +127,9 @@ def is_missing_parfum_trademark(value: str | None) -> bool:
         return True
 
     tokens = set(normalized.split())
+    if any(forbidden_tokens <= tokens for forbidden_tokens in PARFUM_FORBIDDEN_TRADEMARK_TOKEN_SETS):
+        return True
+
     if tokens and tokens <= PARFUM_NO_TRADEMARK_NEGATION_TOKENS:
         return True
 

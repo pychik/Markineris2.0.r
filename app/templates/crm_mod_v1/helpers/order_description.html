@@ -1,5 +1,18 @@
 {% set hide_pii = current_user.role in ['manager', 'supermanager'] %}
 {% include 'crm_mod_v1/helpers/order_manager_block.html' %}
+{% if n.rd_replacement_consent is defined and n.rd_replacement_consent is not none %}
+  <div class="order-rd-consent-detail">
+    {% if n.rd_replacement_consent %}
+      <span class="order-rd-consent-badge order-rd-consent-badge--yes"
+            data-bs-toggle="tooltip" data-bs-placement="top"
+            data-bs-title="Клиент разрешил использовать нашу РД при отказе системы «Честный ЗНАК» с возможным изменением страны происхождения товара">РД: разрешил</span>
+    {% else %}
+      <span class="order-rd-consent-badge order-rd-consent-badge--no"
+            data-bs-toggle="tooltip" data-bs-placement="top"
+            data-bs-title="Клиент не разрешил использовать нашу РД при отказе системы «Честный ЗНАК»">РД: не разрешил</span>
+    {% endif %}
+  </div>
+{% endif %}
 
 <div class="order__text">
   <b>Номер заказа:</b> <span style="cursor:pointer" class="text-secondary" onclick="copy_buffer('{{ n.order_idn }}')">{{ n.order_idn }}</span><br>
@@ -130,4 +143,3 @@
 
 
 {% include 'crm_mod_v1/helpers/order_companies_block.html' %}
-

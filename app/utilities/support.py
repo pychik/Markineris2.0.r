@@ -759,6 +759,59 @@ def helper_get_sort_order(sort_type_order: str) -> tuple:
     return sort_type, sort_order
 
 
+def order_has_user_rd(order: Order) -> bool:
+    if not order:
+        return False
+
+    for relation_name in ("shoes", "clothes", "socks", "linen", "parfum", "cosmetics", "toys"):
+        for item in getattr(order, relation_name, []) or []:
+            if getattr(item, "rd_date", None):
+                return True
+    return False
+
+
+def order_has_user_rd_by_id(o_id: int, category: str | None = None) -> bool:
+    if not o_id:
+        return False
+
+    category_process = settings.CATEGORIES_DICT.get(category, category)
+    category_models = {
+        settings.Shoes.CATEGORY_PROCESS: Shoe,
+        settings.Clothes.CATEGORY_PROCESS: Clothes,
+        settings.Socks.CATEGORY_PROCESS: Socks,
+        settings.Linen.CATEGORY_PROCESS: Linen,
+        settings.Parfum.CATEGORY_PROCESS: Parfum,
+        settings.Cosmetics.CATEGORY_PROCESS: Cosmetics,
+        settings.Toys.CATEGORY_PROCESS: Toys,
+    }
+
+    model = category_models.get(category_process)
+    models_to_check = (model,) if model else tuple(category_models.values())
+
+    for item_model in models_to_check:
+        if (
+            db.session.query(item_model.id)
+            .filter(item_model.order_id == o_id, item_model.rd_date.isnot(None))
+            .first()
+        ):
+            return True
+    return False
+
+
+def parse_rd_replacement_consent(value: str | None, *, required: bool) -> bool | None:
+    normalized = (value or "").strip().lower()
+    if normalized in {"yes", "true", "1", "on", "да"}:
+        return True
+    if normalized in {"no", "false", "0", "off", "нет"}:
+        return False
+    if required:
+        raise ValueError(
+            "Ответьте на вопрос о согласии использовать нашу разрешительную документацию "
+            "при отказе системы «Честный ЗНАК»."
+        )
+    return None
+
+
 def helper_preload_common(o_id: int, stage: int, category: str, category_process_name: str):
     user = current_user
 
@@ -1663,6 +1716,15 @@ def helper_process_category_order(user: User, order: Order, category: str, order
             ),
             category='error',
         )
+        return redirect(url_for(f'{_category_name}.index', o_id=o_id, **redirect_kwargs))
+
+    try:
+        order.rd_replacement_consent = parse_rd_replacement_consent(
+            request.form.get("rd_replacement_consent"),
+            required=order_has_user_rd(order),
+        )
+    except ValueError as exc:
+        flash(str(exc), "error")
         return redirect(url_for(f'{_category_name}.index', o_id=o_id, **redirect_kwargs))
 
     status_balance, total_order_price, agent_at2, message_balance = helper_check_uoabm(user=current_user, o_id=o_id)

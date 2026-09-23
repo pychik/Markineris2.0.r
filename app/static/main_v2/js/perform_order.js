@@ -1,4 +1,5 @@
 window.__pendingStep3AfterAsyncAdd = null;
+window.__rd_replacement_consent = null;
 window.CLIENT_MARK_QUANTITY = Number(window.CLIENT_MARK_QUANTITY || 30000);
 
 function get_client_mark_limit() {
