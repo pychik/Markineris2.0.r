@@ -10,6 +10,19 @@
   <div class="order__num">
     Компания: <span class="text-secondary" data-pc-company-label="1">{{ c.processing_company or '-' }}</span><br>
   </div>
+  {% if c.rd_replacement_consent is defined and c.rd_replacement_consent is not none %}
+    <div class="pc-rd-consent-detail">
+      {% if c.rd_replacement_consent %}
+        <span class="pc-rd-consent-badge pc-rd-consent-badge--yes"
+              data-bs-toggle="tooltip" data-bs-placement="top"
+              data-bs-title="Клиент разрешил использовать нашу РД при отказе системы «Честный ЗНАК» с возможным изменением страны происхождения товара">РД: разрешил</span>
+      {% else %}
+        <span class="pc-rd-consent-badge pc-rd-consent-badge--no"
+              data-bs-toggle="tooltip" data-bs-placement="top"
+              data-bs-title="Клиент не разрешил использовать нашу РД при отказе системы «Честный ЗНАК»">РД: не разрешил</span>
+      {% endif %}
+    </div>
+  {% endif %}
   <div class="order__time"
        data-bs-toggle="tooltip"
        data-bs-html="true"

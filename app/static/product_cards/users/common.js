@@ -20,6 +20,58 @@ window.pc_check_rd_docs = function () {
   return errs;
 };
 
+function pcUpdateRdReplacementConsentBlock() {
+    const hasRdSwitch = document.getElementById("has-rd-switch");
+    const block = document.getElementById("pc-rd-replacement-consent-block");
+    if (!block) return;
+
+    const hasRd = !!(hasRdSwitch && hasRdSwitch.checked);
+    block.classList.toggle("d-none", !hasRd);
+    block.querySelectorAll('input[name="rd_replacement_consent"]').forEach((input) => {
+        input.disabled = !hasRd;
+        const label = input.closest("label");
+        if (label) {
+            label.classList.toggle("is-selected", hasRd && input.checked);
+        }
+    });
+
+    if (!hasRd) {
+        block.querySelectorAll('input[name="rd_replacement_consent"]').forEach((input) => {
+            input.checked = false;
+        });
+        const error = document.getElementById("pc-rd-replacement-consent-error");
+        if (error) error.textContent = "";
+    }
+}
+
+function pcPlaceRdReplacementConsentBlock() {
+    const block = document.getElementById("pc-rd-replacement-consent-block");
+    const submitButton = document.querySelector('#pc-create-form button[onclick*="product_card_submit"]');
+    if (!block || !submitButton) return;
+
+    const submitWrap = submitButton.closest(".mt-4") || submitButton.parentElement;
+    if (submitWrap && submitWrap.parentElement && submitWrap.previousElementSibling !== block) {
+        submitWrap.parentElement.insertBefore(block, submitWrap);
+    }
+}
+
+function pcValidateRdReplacementConsent(hasRd) {
+    const error = document.getElementById("pc-rd-replacement-consent-error");
+    if (!hasRd) {
+        if (error) error.textContent = "";
+        return true;
+    }
+
+    const checked = document.querySelector('input[name="rd_replacement_consent"]:checked');
+    if (checked && ["yes", "no"].includes(checked.value)) {
+        if (error) error.textContent = "";
+        return true;
+    }
+
+    if (error) error.textContent = "Выберите «Да» или «Нет».";
+    return false;
+}
+
 function pcInitTooltips(root = document) {
     if (!window.bootstrap || !bootstrap.Tooltip) return;
     root.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
@@ -29,6 +81,12 @@ function pcInitTooltips(root = document) {
 
 document.addEventListener("DOMContentLoaded", function () {
     pcInitTooltips();
+    pcPlaceRdReplacementConsentBlock();
+    pcUpdateRdReplacementConsentBlock();
+    document.getElementById("has-rd-switch")?.addEventListener("change", pcUpdateRdReplacementConsentBlock);
+    document.querySelectorAll('input[name="rd_replacement_consent"]').forEach((input) => {
+        input.addEventListener("change", pcUpdateRdReplacementConsentBlock);
+    });
 });
 
 
@@ -69,7 +127,11 @@ function product_card_submit(category = null) {
 
     // Передаём тумблер на бэк (чтобы validate_rd_block работал от has_rd)
     const hasRdSwitch = document.getElementById("has-rd-switch");
-    formData.append("has_rd", (hasRdSwitch && hasRdSwitch.checked) ? "1" : "0");
+    const hasRd = !!(hasRdSwitch && hasRdSwitch.checked);
+    formData.append("has_rd", hasRd ? "1" : "0");
+    if (!hasRd) {
+        formData.delete("rd_replacement_consent");
+    }
 
     if (editMode) {
         if (!cardId) {
@@ -106,6 +168,13 @@ function product_card_submit(category = null) {
       }
     } else {
       console.warn("pc_check_rd_docs not found");
+    }
+
+    const rdConsentChecked = document.querySelector('input[name="rd_replacement_consent"]:checked');
+    if (!pcValidateRdReplacementConsent(hasRd)) {
+        errors.push("Разрешительная документация. Ответьте на вопрос о согласии использовать нашу РД.");
+    } else if (hasRd && rdConsentChecked) {
+        formData.set("rd_replacement_consent", rdConsentChecked.value);
     }
 
     // ===== 3) content / состав =====
@@ -180,8 +249,6 @@ function product_card_submit(category = null) {
     // Если есть jQuery и check_valid — обойдём все инпуты и соберём подписи label'ов
     if (typeof check_valid === "function" && (window.$ || window.jQuery)) {
         const $ = window.$ || window.jQuery;
-        const hasRd = !!(hasRdSwitch && hasRdSwitch.checked);
-
         const allInputs = $('#pc-create-form input, #pc-create-form select, #pc-create-form textarea');
         const SKIP_IDS = new Set(["rd_type", "rd_name", "rd_date", "rd_date_to", "tnved_code"]);
         allInputs.each(function () {

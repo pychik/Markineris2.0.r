@@ -30,6 +30,31 @@
           <input type="hidden" name="card_id" value="{{ edit_card_id }}">
         {% endif %}
         {% include "product_cards/new/categories/" + category_process_name  + "/category_inputs.html" %}
+        <div id="pc-rd-replacement-consent-block" class="mt-4 p-3 border rounded d-none">
+            <div class="fw-bold mb-2">Разрешительная документация</div>
+            <div class="text-muted small mb-3">
+                В случае отказа системы „Честный ЗНАК“ в принятии вашей разрешительной документации даёте ли вы согласие на использование нашей разрешительной документации с возможным изменением страны происхождения товара?
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <label class="btn btn-outline-secondary mb-0">
+                    <input class="form-check-input me-2"
+                           type="radio"
+                           name="rd_replacement_consent"
+                           value="yes"
+                           {% if rd_replacement_consent is sameas true %}checked{% endif %}>
+                    Да
+                </label>
+                <label class="btn btn-outline-secondary mb-0">
+                    <input class="form-check-input me-2"
+                           type="radio"
+                           name="rd_replacement_consent"
+                           value="no"
+                           {% if rd_replacement_consent is sameas false %}checked{% endif %}>
+                    Нет
+                </label>
+            </div>
+            <div id="pc-rd-replacement-consent-error" class="text-danger small mt-2"></div>
+        </div>
     </form>
 
 </div>
@@ -38,7 +63,7 @@
 
 
 <script src="{{ url_for('static',filename='product_cards/users/' + category_process_name + '.js', v='50') }}"></script>
-<script src="{{ url_for('static',filename='product_cards/users/common.js', v='12') }}"></script>
+<script src="{{ url_for('static',filename='product_cards/users/common.js', v='13') }}"></script>
 
 <script>
     const excepted_articles = {{excepted_articles | tojson | safe}};

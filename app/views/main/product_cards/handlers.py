@@ -15,7 +15,8 @@ from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll, SQLQueryFactory
 from utilities.support import check_forbidden_words, helper_preload_common, helper_check_uoabm, \
-    helper_check_user_order_in_archive, check_order_pos, process_admin_order_num, process_order_start
+    helper_check_user_order_in_archive, check_order_pos, process_admin_order_num, process_order_start, \
+    parse_rd_replacement_consent
 from utilities.telegram import MarkinerisInform
 from utilities.validators import ValidatorProcessor, validate_and_build_contact_info, validate_order_comment_length
 from tezaurus.api_client import TezaurusApiClient
@@ -483,6 +484,10 @@ def h_save_product_card():
     # 1.3 Валидация РД (единая для всех категорий)
     try:
         validate_rd_block(form_dict)
+        rd_replacement_consent = parse_rd_replacement_consent(
+            form_dict.get("rd_replacement_consent"),
+            required=str(form_dict.get("has_rd") or "").lower() in ("1", "true", "on", "yes"),
+        )
 
     except Exception as e:
         return jsonify(status="error", message=str(e))
@@ -544,6 +549,7 @@ def h_save_product_card():
         user_id=current_user.id,
         category=category,
         status=ModerationStatus.CREATED.value,
+        rd_replacement_consent=rd_replacement_consent,
     )
     db.session.add(card)
     db.session.flush()
@@ -645,6 +651,7 @@ def h_edit_product_card(card_id: int, crm_: bool = False):
     ctx["edit_mode"] = True
     ctx["edit_card_id"] = card.id
     ctx["crm_"] = crm_
+    ctx["rd_replacement_consent"] = card.rd_replacement_consent
     _ensure_card_form_defaults(ctx)
 
     return render_template("product_cards/new/main_card.html", **ctx)
@@ -698,6 +705,10 @@ def h_update_product_card(crm_: bool = False):
         return jsonify(status="error", message=str(e))
     try:
         validate_rd_block(form_dict)
+        rd_replacement_consent = parse_rd_replacement_consent(
+            form_dict.get("rd_replacement_consent"),
+            required=str(form_dict.get("has_rd") or "").lower() in ("1", "true", "on", "yes"),
+        )
     except Exception as e:
         return jsonify(status="error", message=str(e))
 
@@ -716,7 +727,9 @@ def h_update_product_card(crm_: bool = False):
             or _card_processing_origin(category=category, country=old_country)
         )
         old_company_label = card.processing_company_label or card.processing_info or "-"
+        old_rd_replacement_consent = card.rd_replacement_consent
         update_card_allowed_fields(card=card, form_dict=form_dict, form_data=form_data)
+        card.rd_replacement_consent = rd_replacement_consent
         entity_after = get_card_entity_for_prefill(card)
         new_identity = ""
         processing_company_reassigned = False
@@ -765,6 +778,14 @@ def h_update_product_card(crm_: bool = False):
             card.card_log = h_append_card_log(
                 card.card_log,
                 f"\n{dt_str} {actor_label} исправил ({status_log_label}): {', '.join(changes)};"
+            )
+        if old_rd_replacement_consent != card.rd_replacement_consent:
+            dt_str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+            actor = getattr(current_user, "login_name", "") or str(current_user.id)
+            value_label = "да" if card.rd_replacement_consent is True else "нет" if card.rd_replacement_consent is False else "-"
+            card.card_log = h_append_card_log(
+                card.card_log,
+                f"\n{dt_str} {actor} изменил согласие на использование нашей РД: {value_label};"
             )
         db.session.commit()
     except RuntimeError as e:
