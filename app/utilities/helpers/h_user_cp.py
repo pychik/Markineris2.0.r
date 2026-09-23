@@ -269,6 +269,8 @@ def h_order_book_detail(u_id: int):
                         "носки и прочее": 'socks',
                         settings.Toys.CATEGORY: settings.Toys.CATEGORY_PROCESS, }
     cosmetics_category = settings.Cosmetics.CATEGORY
+    toys_category = settings.Toys.CATEGORY
+    category_requires_subcategory = (cosmetics_category, toys_category)
     subcategories_dict = settings.SUB_CATEGORIES_DICT
     active_orders_raw = (
         current_user.orders.filter_by(stage=settings.OrderStage.CREATING, is_moderation=False)
@@ -298,6 +300,8 @@ def h_order_book_detail(u_id: int):
             orders_for_category = list(filter(lambda x: x.category == el, active_orders_raw))
             subcategories = {}
             for order in orders_for_category:
+                if el in category_requires_subcategory and not order.subcategory:
+                    continue
                 subcat = order.subcategory or "общий"
                 if subcat not in subcategories:
                     subcategories[subcat] = []
