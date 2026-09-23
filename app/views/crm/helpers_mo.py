@@ -1,6 +1,7 @@
 # multi operations helpers
 from datetime import datetime
 from flask import jsonify
+from flask_login import current_user
 from sqlalchemy import text, update, null
 from sqlalchemy.sql import bindparam
 
@@ -19,6 +20,18 @@ def h_all_new_multi_pool():
     """
     status = 'danger'
 
+    order_owner_filter = ""
+    query_params = {"stage": settings.OrderStage.NEW}
+    if current_user.role == settings.ADMIN_USER and current_user.is_at2:
+        order_owner_filter = """
+                          AND o.user_id IN (
+                              SELECT au.id
+                              FROM public.users au
+                              WHERE au.admin_parent_id = :admin_id OR au.id = :admin_id
+                          )
+                          """
+        query_params["admin_id"] = current_user.id
+
     all_new_orders_stmt = text(f"""SELECT o.id as id, o.category as category, o.company_idn as company_idn, 
                           o.stage as stage, o.company_type as company_type, o.company_name, o.order_idn,
                           o.payment as payment, MAX(ut.op_cost) as op_cost, 
@@ -31,10 +44,11 @@ def h_all_new_multi_pool():
                            LEFT join public.user_transactions ut on ut.id=o.transaction_id  
                            {SQLQueryCategoriesAll.get_joins()} 
                     WHERE o.stage = :stage AND (o.processed is null or o.processed=false) AND o.to_delete != True 
+                          {order_owner_filter}
                     GROUP BY o.id, o.category, o.company_idn, o.company_type, o.company_name, o.order_idn, o.stage,
                      o.created_at, o.crm_created_at, o.user_id, o.payment, ut.op_cost, o.transaction_id
                     order by o.created_at
-    """).bindparams(stage=settings.OrderStage.NEW)
+    """).bindparams(**query_params)
 
     all_new_orders = [o for o in db.session.execute(all_new_orders_stmt).fetchall()]
     if not all_new_orders:
