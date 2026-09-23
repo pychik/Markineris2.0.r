@@ -406,7 +406,13 @@ function clear_user_messages() {
 }
 
 
-function update_crm_info(){
+function update_crm_info(url){
+   if (url) {
+       update_url_temp = url;
+   }
+   if (!update_url_temp) {
+       update_url_temp = update_url;
+   }
 
    $.ajax({
     url:update_url_temp,

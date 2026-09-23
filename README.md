@@ -13,8 +13,10 @@ make help
 - Флаг считается в общем SQL-агрегаторе `app/utilities/sql_categories_aggregations.py` и протаскивается через `app/views/crm/helpers.py`; отдельной колонки и миграции в `orders` нет.
 
 ### CRM-массовый перенос заказов AT2
-- Массовая кнопка `NEW -> POOL` в CRM (`/crm_d/all_new_multi_pool`) для агента тип2 обрабатывает только заказы самого агента и его клиентов (`users.admin_parent_id = current_user.id` или `orders.user_id = current_user.id`).
-- Для `superuser` и `m2r_admin` сохранен общий режим переноса всех новых заказов.
+- Массовый перенос `NEW -> POOL` в CRM (`/crm_d/all_new_multi_pool`) доступен `superuser`, модератору `m2r_admin` и агенту тип2 (`role = admin`, `is_at2 = true`).
+- `superuser` и `m2r_admin` переносят все новые заказы.
+- Агент тип2 переносит только свои заказы и заказы своих клиентов (`orders.user_id = current_user.id` или `users.admin_parent_id = current_user.id`).
+- Обычный `admin` без `is_at2` получает предупреждение, заказы не переносятся.
 - Логика находится в `app/views/crm/helpers_mo.py`.
 
 ### CRM-отчет активности операторов

@@ -20,14 +20,22 @@ def h_all_new_multi_pool():
     """
     status = 'danger'
 
+    is_global_operator = current_user.role in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]
+    is_at2_agent = current_user.role == settings.ADMIN_USER and current_user.is_at2
+    if not (is_global_operator or is_at2_agent):
+        return jsonify({
+            'status': 'warning',
+            'message': 'Массовый перенос новых заказов доступен только агенту тип2, модератору или суперадмину'
+        })
+
     order_owner_filter = ""
     query_params = {"stage": settings.OrderStage.NEW}
-    if current_user.role == settings.ADMIN_USER and current_user.is_at2:
+    if is_at2_agent:
         order_owner_filter = """
                           AND o.user_id IN (
                               SELECT au.id
                               FROM public.users au
-                              WHERE au.admin_parent_id = :admin_id OR au.id = :admin_id
+                              WHERE au.id = :admin_id OR au.admin_parent_id = :admin_id
                           )
                           """
         query_params["admin_id"] = current_user.id
