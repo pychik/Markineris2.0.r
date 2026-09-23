@@ -93,6 +93,13 @@ const PC_CLOTHES_CREATE_LABELS = {
     shawls: "шали",
 };
 
+function pcInitViewTooltips(root) {
+    if (!window.bootstrap || !bootstrap.Tooltip || !root) return;
+    root.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
+        bootstrap.Tooltip.getOrCreateInstance(el);
+    });
+}
+
 const PC_SUBCATEGORY_CREATE_LABELS = {
     cosmetics: {
         decor_ukhod: "декоративную и уходовую косметику",
@@ -549,6 +556,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
 
                 body.innerHTML = data.html;
+                pcInitViewTooltips(body);
 
                 // Bootstrap 5
                 const modal = new bootstrap.Modal(modalEl);
