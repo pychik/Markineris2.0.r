@@ -840,6 +840,33 @@
   border: 1px solid rgba(0,0,0,.08);
 }
 
+.pc-rd-consent-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 150px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+
+.pc-rd-consent-badge--yes {
+  background: #d1e7dd;
+  border-color: #badbcc;
+  color: #0f5132;
+}
+
+.pc-rd-consent-badge--no {
+  background: #f8d7da;
+  border-color: #f5c2c7;
+  color: #842029;
+}
+
 /* ===== Группы по артикулам в корзине ===== */
 .o-b-article-block{
   border-top: 1px solid rgba(0,0,0,.08);

@@ -63,6 +63,25 @@
   {% include 'product_cards/user/rd_section.html' %}
 {% endif %}
 
+  {% if card.rd_replacement_consent is not none %}
+    <div class="pc-card-view__block mb-3">
+      <h6 class="fw-semibold mb-2">Ответ клиента по РД</h6>
+      {% if card.rd_replacement_consent %}
+        <span class="pc-rd-consent-badge pc-rd-consent-badge--yes"
+              data-bs-toggle="tooltip" data-bs-placement="top"
+              data-bs-title="Есть согласие на использование нашей РД при отказе системы «Честный ЗНАК» с возможным изменением страны происхождения товара">
+          РД: есть согласие
+        </span>
+      {% else %}
+        <span class="pc-rd-consent-badge pc-rd-consent-badge--no"
+              data-bs-toggle="tooltip" data-bs-placement="top"
+              data-bs-title="Нет согласия на использование нашей РД при отказе системы «Честный ЗНАК»">
+          РД: нет согласия
+        </span>
+      {% endif %}
+    </div>
+  {% endif %}
+
   {% if sizes %}
     <div class="pc-card-view__block mb-3">
       <h6 class="fw-semibold mb-2">Размеры</h6>
