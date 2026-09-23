@@ -128,6 +128,7 @@ def h_category(category: str = 'все', upload_flag: int = None):
             Order.closed_at,
             Order.processing_info,
             Order.is_moderation,
+            Order.rd_replacement_consent,
             func.coalesce(Clothes.subcategory, Cosmetics.subcategory, Toys.subcategory, '').label('subcategory'),
             func.max(OrderFile.file_link).label('file_link')
         )
@@ -180,6 +181,7 @@ def h_category(category: str = 'все', upload_flag: int = None):
             Order.closed_at,
             Order.processing_info,
             Order.is_moderation,
+            Order.rd_replacement_consent,
             Clothes.subcategory,
             Cosmetics.subcategory,
             Toys.subcategory

@@ -512,6 +512,37 @@ a[aria-expanded="true"] .nav-chevron {
     cursor: pointer;
 }
 
+.archive-rd-consent-detail {
+    margin-top: 8px;
+}
+
+.archive-rd-consent-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 150px;
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    user-select: none;
+}
+
+.archive-rd-consent-badge--yes {
+    background: #d1e7dd;
+    border-color: #badbcc;
+    color: #0f5132;
+}
+
+.archive-rd-consent-badge--no {
+    background: #f8d7da;
+    border-color: #f5c2c7;
+    color: #842029;
+}
+
 .archive-file-storage-note,
 .archive-subcategory-note {
     border: 1px solid #ffecb5;
