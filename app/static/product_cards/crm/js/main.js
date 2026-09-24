@@ -57,7 +57,10 @@ function bindCrmDelegates(root = document) {
         e.target.closest(".pc-chat-wrap") ||
         e.target.closest("[data-pc-action='view']") ||
         e.target.closest("button") ||
-        e.target.closest("a")
+        e.target.closest("a") ||
+        e.target.closest("input") ||
+        e.target.closest("select") ||
+        e.target.closest("label")
       ) {
         return;
       }
@@ -78,7 +81,10 @@ function bindCrmDelegates(root = document) {
         e.target.closest(".pc-chat-wrap") ||
         e.target.closest("[data-pc-action='view']") ||
         e.target.closest("button") ||
-        e.target.closest("a")
+        e.target.closest("a") ||
+        e.target.closest("input") ||
+        e.target.closest("select") ||
+        e.target.closest("label")
       ) {
         return;
       }
@@ -365,8 +371,7 @@ function update_crm_info(){
     {
 
         if (data.status === 'success') {
-            $('#update_all_info').html(data);
-            $("#update_all_info").append(data.htmlresponse);
+            $('#update_all_info').html(data.htmlresponse || data);
             initializeJSPage(document);
             make_message('Данные успешно обновлены ', 'success');
             // make_message(msg, data.status);
@@ -401,17 +406,29 @@ function update_url_category(){
 function update_category_crm_info(url, category, block, manager_flag){
     const items = document.querySelectorAll('.categories__item');
 
-    var url_proc = url + '&category=' + category;
-    if (manager_flag==='1'){
-        let manager_id = document.getElementById("selectManager").value;
-        url_proc = url + '&category=' + category + '&filtered_manager_id=' + manager_id;
+    const params = new URLSearchParams();
+    params.set('bck', '1');
+    if (category) {
+        params.set('category', category);
     }
+    if (typeof pcGetFilteredManagerId === 'function') {
+        const manager_id = pcGetFilteredManagerId();
+        if (manager_id) params.set('filtered_manager_id', manager_id);
+    } else if (manager_flag === '1' && document.getElementById("selectManager")) {
+        const manager_id = document.getElementById("selectManager").value;
+        if (manager_id) params.set('filtered_manager_id', manager_id);
+    }
+
+    var url_proc = `${url.split('?')[0]}?${params.toString()}`;
     // Iterate through each element
     items.forEach(item => {
       // Remove the 'categories__item--active' class
       item.classList.remove('categories__item--active');
     });
     block.classList.add('categories__item--active');
+    if (typeof pcSetBulkAssignMode === 'function') {
+        pcSetBulkAssignMode(false);
+    }
     update_url_temp = url_proc;
     update_crm_info();
 

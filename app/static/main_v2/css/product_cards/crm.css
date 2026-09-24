@@ -259,3 +259,35 @@
   border-color: #f5c2c7;
   color: #842029;
 }
+
+.pc-crm-search-tools {
+  max-width: 660px;
+}
+
+.pc-crm-search-form {
+  width: 400px;
+  flex: 0 0 400px;
+}
+
+.pc-crm-manager-tools {
+  width: 220px;
+  flex: 0 0 220px;
+}
+
+.pc-crm-manager-tools select {
+  width: 100%;
+}
+
+.pc-bulk-assign-select {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 991.98px) {
+  .pc-crm-search-tools,
+  .pc-crm-search-form,
+  .pc-crm-manager-tools,
+  .pc-crm-manager-tools select {
+    width: 100%;
+    max-width: 100%;
+  }
+}

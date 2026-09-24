@@ -15,7 +15,7 @@ from .handlers import h_crm_cards, h_download_product_card, h_pc_take_card_to_pr
     h_search_crm_card, h_download_cards_companies_in_progress, \
     h_transfer_sent_to_in_progress, h_download_cards_companies_by_status, h_crm_reject_cards_by_rd_today, \
     h_pc_bulk_move_cards, h_pc_managers_list, h_pc_assign_manager, h_pc_change_processing_company, \
-    h_pc_company_stats_distribution, h_pc_refresh_company_stats_snapshot
+    h_pc_company_stats_distribution, h_pc_refresh_company_stats_snapshot, h_pc_bulk_assign_manager
 from .helpers import get_crm_card_for_user
 
 
@@ -164,6 +164,14 @@ def pc_managers_list():
 @bck_sumausmumu_required
 def pc_assign_manager(pc_id: int):
     return h_pc_assign_manager(pc_id)
+
+
+@crm_product_cards.route("/crm/cards/bulk_assign_manager", methods=["POST"])
+@login_required
+@user_activated
+@bck_sumausmumu_required
+def pc_bulk_assign_manager():
+    return h_pc_bulk_assign_manager()
 
 
 @crm_product_cards.route("/crm/card/<int:pc_id>/processing_company", methods=["POST"])

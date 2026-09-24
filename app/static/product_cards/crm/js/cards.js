@@ -37,6 +37,30 @@ function pcGetBulkMoveUrl() {
   return url;
 }
 
+function pcGetBulkAssignManagerUrl() {
+  const cfg = pcGetConfigEl().dataset;
+  const url = cfg.bulkAssignManagerUrl;
+  if (!url) throw new Error("bulkAssignManagerUrl missing in pc-config");
+  return url;
+}
+
+function pcGetFilteredManagerId() {
+  const select = document.getElementById("selectManager");
+  return (select?.value || "").trim();
+}
+
+function pcAppendCurrentCrmFilters(fd) {
+  const cfg = pcGetConfigEl().dataset;
+  const category = pcGetActiveCategory();
+  const subcategory = pcGetActiveSubcategory();
+  const filteredManagerId = pcGetFilteredManagerId();
+
+  if (cfg.csrf) fd.append("csrf_token", cfg.csrf);
+  if (category) fd.append("category", category);
+  if (subcategory) fd.append("subcategory", subcategory);
+  if (filteredManagerId) fd.append("filtered_manager_id", filteredManagerId);
+}
+
 function pcGetAssignManagerUrl(cardId) {
   const cfg = pcGetConfigEl().dataset;
   const tpl = cfg.assignManagerUrlTemplate;
@@ -316,14 +340,10 @@ function pcTakeCardToProcessing(btnEl) {
     return;
   }
 
-  const cfg = pcGetConfigEl().dataset;
   const url = pcGetTakeUrl(cardId);
-  const category = pcGetActiveCategory();
 
   const form = new FormData();
-  if (cfg.csrf) form.append("csrf_token", cfg.csrf);
-  if (cfg.currentCategory) form.append("category", category);
-  if (cfg.currentSubcategory) form.append("subcategory", cfg.currentSubcategory);
+  pcAppendCurrentCrmFilters(form);
 
   loadingCircle();
 
@@ -361,19 +381,11 @@ function pcMoveCard(btnEl, target) {
   const cardId = btnEl?.dataset?.cardId;
   if (!cardId) return alert("card-id not found");
 
-  const cfg = pcGetConfigEl().dataset;
   const url = pcGetMoveUrl(cardId);
 
   const fd = new FormData();
-  if (cfg.csrf) fd.append("csrf_token", cfg.csrf);
   fd.append("target", target);
-
-  const category = pcGetActiveCategory();        // ✅ теперь из UI
-
-
-  // протаскиваем фильтры (чтобы бэк перерендерил правильные списки)
-  if (cfg.currentCategory) fd.append("category", category);
-  if (cfg.currentSubcategory) fd.append("subcategory", cfg.currentSubcategory);
+  pcAppendCurrentCrmFilters(fd);
 
   // если отклонение — пусть кнопка передаёт reason в data-reject-reason,
 
@@ -520,6 +532,10 @@ function pcBulkCheckboxes(statusKey) {
 }
 
 function pcSetBulkMode(statusKey, enabled) {
+  if (enabled && typeof pcSetBulkAssignMode === "function") {
+    pcSetBulkAssignMode(false);
+  }
+
   const panel = document.getElementById(`pc-bulk-panel-${statusKey}`);
   const startBtn = document.getElementById(`pc-bulk-start-${statusKey}`);
 
@@ -557,16 +573,11 @@ function pcBulkMoveSelected(fromStatus, target) {
     return;
   }
 
-  const cfg = pcGetConfigEl().dataset;
   const fd = new FormData();
-  if (cfg.csrf) fd.append("csrf_token", cfg.csrf);
   fd.append("target", target);
   selectedIds.forEach((cardId) => fd.append("card_ids[]", cardId));
 
-  const category = pcGetActiveCategory();
-  const subcategory = pcGetActiveSubcategory();
-  if (category) fd.append("category", category);
-  if (subcategory) fd.append("subcategory", subcategory);
+  pcAppendCurrentCrmFilters(fd);
 
   loadingCircle();
 
@@ -608,6 +619,129 @@ window.pcUpdateBulkCount = pcUpdateBulkCount;
 window.pcBulkMoveSelected = pcBulkMoveSelected;
 
 /* =========================
+   BULK ASSIGN MANAGER
+========================= */
+
+function pcBulkAssignCheckboxes() {
+  return Array.from(document.querySelectorAll(".pc-bulk-assign-check"));
+}
+
+function pcSetBulkAssignMode(enabled) {
+  const managerSelect = document.getElementById("pc-bulk-assign-manager-select");
+  const panel = document.getElementById("pc-bulk-assign-panel");
+  const startBtn = document.getElementById("pc-bulk-assign-start");
+
+  if (enabled && typeof pcSetBulkMode === "function") {
+    pcSetBulkMode("clarification", false);
+  }
+
+  if (enabled && !managerSelect?.value) {
+    if (typeof make_message === "function") make_message("Выберите оператора для назначения", "warning");
+    managerSelect?.focus();
+    enabled = false;
+  }
+
+  if (panel) panel.classList.toggle("d-none", !enabled);
+  if (startBtn) startBtn.classList.toggle("d-none", enabled);
+
+  document.querySelectorAll(".pc-bulk-assign-select").forEach((holder) => {
+    holder.classList.toggle("d-none", !enabled);
+  });
+
+  pcBulkAssignCheckboxes().forEach((checkbox) => {
+    checkbox.checked = false;
+  });
+
+  pcUpdateBulkAssignCount();
+}
+
+function pcBulkAssignManagerChanged() {
+  const panel = document.getElementById("pc-bulk-assign-panel");
+  if (panel && !panel.classList.contains("d-none")) {
+    pcSetBulkAssignMode(false);
+  }
+}
+
+function pcUpdateBulkAssignCount() {
+  const count = pcBulkAssignCheckboxes().filter((checkbox) => checkbox.checked).length;
+  const el = document.getElementById("pc-bulk-assign-count");
+  if (el) el.textContent = String(count);
+}
+
+function pcBulkAssignSelected() {
+  const managerId = (document.getElementById("pc-bulk-assign-manager-select")?.value || "").trim();
+  if (!managerId) {
+    if (typeof make_message === "function") make_message("Выберите оператора", "warning");
+    return;
+  }
+
+  const selectedIds = pcBulkAssignCheckboxes()
+      .filter((checkbox) => checkbox.checked)
+      .map((checkbox) => checkbox.value)
+      .filter(Boolean);
+
+  if (!selectedIds.length) {
+    if (typeof make_message === "function") make_message("Выберите карточки", "warning");
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append("manager_id", managerId);
+  selectedIds.forEach((cardId) => fd.append("card_ids[]", cardId));
+  pcAppendCurrentCrmFilters(fd);
+
+  loadingCircle();
+
+  fetch(pcGetBulkAssignManagerUrl(), {method: "POST", body: fd})
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.status !== "success") {
+          throw new Error(data.message || "Ошибка назначения оператора");
+        }
+        return data;
+      })
+      .then((data) => {
+        withTooltipsRefresh(() => {
+          pcApplyBulkMoveResponse(data);
+          pcSetBulkAssignMode(false);
+          if (typeof make_message === "function") {
+            make_message(data.message || "Готово", data.status || "success");
+          }
+        }, document);
+      })
+      .catch((e) => {
+        if (typeof make_message === "function") make_message(e.message || "Ошибка", "error");
+        else alert(e.message);
+      })
+      .finally(() => {
+        close_Loading_circle();
+      });
+}
+
+function pcFilterManager() {
+  const category = pcGetActiveCategory();
+  const params = new URLSearchParams();
+  params.set("bck", "1");
+  if (category) params.set("category", category);
+
+  const subcategory = pcGetActiveSubcategory();
+  if (subcategory) params.set("subcategory", subcategory);
+
+  const filteredManagerId = pcGetFilteredManagerId();
+  if (filteredManagerId) params.set("filtered_manager_id", filteredManagerId);
+
+  update_url_temp = `${UPDATE_PRODUCT_CARDS_CRM_URL.split("?")[0]}?${params.toString()}`;
+  pcSetBulkAssignMode(false);
+  update_crm_info();
+}
+
+window.pcSetBulkAssignMode = pcSetBulkAssignMode;
+window.pcBulkAssignManagerChanged = pcBulkAssignManagerChanged;
+window.pcUpdateBulkAssignCount = pcUpdateBulkAssignCount;
+window.pcBulkAssignSelected = pcBulkAssignSelected;
+window.pcFilterManager = pcFilterManager;
+
+/* =========================
    REJECT MODAL -> move rejected with reason
 ========================= */
 
@@ -641,13 +775,12 @@ function pcOpenRejectModal(btnEl) {
 window.pcOpenRejectModal = pcOpenRejectModal;
 
 function pcMoveCardWithReason(cardId, target, rejectReason) {
-  const cfg = pcGetConfigEl().dataset;
   const url = pcGetMoveUrl(cardId);
 
   const fd = new FormData();
-  if (cfg.csrf) fd.append("csrf_token", cfg.csrf);
   fd.append("target", target);
   fd.append("reject_reason", rejectReason);
+  pcAppendCurrentCrmFilters(fd);
 
   loadingCircle();
 
@@ -991,6 +1124,8 @@ function pcReloadColumn(statusKey) {
 
   if (category) params.set("category", category);
   if (subcategory) params.set("subcategory", subcategory);
+  const filteredManagerId = pcGetFilteredManagerId();
+  if (filteredManagerId) params.set("filtered_manager_id", filteredManagerId);
   if (statusKey === "in_moderation") {
       const sel = document.getElementById("in_moderation_company_select");
       const companyId = (sel?.value || "").trim();

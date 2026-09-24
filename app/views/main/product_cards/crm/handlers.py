@@ -328,8 +328,14 @@ def _pc_apply_processing_company(
 def h_crm_cards():
     category = request.args.get("category")  # slug: clothes/shoes/...
     subcategory = request.args.get("subcategory")  # только для clothes
+    filtered_manager_id = request.args.get("filtered_manager_id", None, type=int)
 
-    cards = crm_get_cards(category=category, subcategory=subcategory, user=current_user)
+    cards = crm_get_cards(
+        category=category,
+        subcategory=subcategory,
+        user=current_user,
+        filtered_manager_id=filtered_manager_id,
+    )
     buckets = split_cards_by_status(cards)
     sent_no_rd_cards = buckets["sent_no_rd"]
     sent_cards = buckets["sent"]
@@ -343,6 +349,18 @@ def h_crm_cards():
     status_counter = {k: len(v) for k, v in buckets.items()}
 
     companies_pool = get_processing_companies()
+    managers_list = []
+    if current_user.role in [settings.SUPER_USER, settings.SUPER_MANAGER]:
+        managers_list = (
+            User.query
+            .filter(
+                User.status.is_(True),
+                User.role.in_([settings.MANAGER_USER, settings.SUPER_MANAGER]),
+            )
+            .with_entities(User.id, User.login_name)
+            .order_by(User.login_name.asc())
+            .all()
+        )
     bck = request.args.get("bck", 0, type=int)
 
     if bck:
@@ -400,6 +418,7 @@ def h_pc_lazy_column():
     category = (request.args.get("category") or "").strip() or None
     subcategory = (request.args.get("subcategory") or "").strip() or None
     company_key = (request.args.get("company_id") or "").strip() or None
+    filtered_manager_id = request.args.get("filtered_manager_id", None, type=int)
 
     allowed = {
         ModerationStatus.SENT_NO_RD.value,
@@ -423,6 +442,7 @@ def h_pc_lazy_column():
         category=category,
         subcategory=subcategory,
         company_key=company_key,
+        filtered_manager_id=filtered_manager_id,
     )
     packed = h_pc_move_pack_cards(cards)
 
@@ -558,6 +578,124 @@ def h_pc_assign_manager(pc_id: int):
         manager_id=manager.id,
         manager_login=new_manager_login,
     )
+
+
+def h_pc_bulk_assign_manager():
+    if current_user.role not in [settings.SUPER_USER, settings.SUPER_MANAGER]:
+        return json_response(status="error", message="Недостаточно прав", code=403)
+
+    raw_ids = request.form.getlist("card_ids[]") or request.form.getlist("card_ids")
+    manager_id = request.form.get("manager_id", type=int)
+    category = (request.form.get("category") or "").strip() or None
+    subcategory = (request.form.get("subcategory") or "").strip() or None
+    filtered_manager_id = request.form.get("filtered_manager_id", None, type=int)
+
+    if not manager_id:
+        return jsonify({"status": "error", "message": "Выберите оператора"}), 400
+
+    try:
+        card_ids = []
+        for raw_id in raw_ids:
+            raw_id = str(raw_id).strip()
+            if raw_id:
+                card_ids.append(int(raw_id))
+    except ValueError:
+        return jsonify({"status": "error", "message": "Некорректные ID карточек"}), 400
+
+    card_ids = list(dict.fromkeys(card_ids))
+    if not card_ids:
+        return jsonify({"status": "error", "message": "Выберите карточки"}), 400
+
+    manager = (
+        User.query
+        .filter(
+            User.id == manager_id,
+            User.status.is_(True),
+            User.role.in_([settings.MANAGER_USER, settings.SUPER_MANAGER]),
+        )
+        .with_entities(User.id, User.login_name)
+        .first()
+    )
+    if not manager:
+        return jsonify({"status": "error", "message": "Оператор не найден"}), 404
+
+    allowed_statuses = {
+        ModerationStatus.IN_PROGRESS,
+        ModerationStatus.IN_MODERATION,
+        ModerationStatus.CLARIFICATION,
+    }
+
+    try:
+        cards = (
+            ProductCard.query
+            .filter(ProductCard.id.in_(card_ids))
+            .with_for_update(of=ProductCard)
+            .all()
+        )
+        cards_by_id = {card.id: card for card in cards}
+        missing_ids = [card_id for card_id in card_ids if card_id not in cards_by_id]
+        if missing_ids:
+            return jsonify({
+                "status": "error",
+                "message": f"Карточки не найдены: {', '.join(map(str, missing_ids))}",
+            }), 404
+
+        status_values = set()
+        new_manager_login = manager.login_name or str(manager.id)
+        dt_str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        actor_login = getattr(current_user, "login_name", "") or str(current_user.id)
+
+        for card_id in card_ids:
+            card = cards_by_id[card_id]
+            if card.status not in allowed_statuses:
+                return jsonify({
+                    "status": "error",
+                    "message": f"Карточке №{card.id} в этом статусе нельзя назначать оператора",
+                }), 400
+            status_values.add(card.status.value if hasattr(card.status, "value") else str(card.status))
+
+        changed_count = 0
+        for card_id in card_ids:
+            card = cards_by_id[card_id]
+            if card.manager_id == manager.id:
+                continue
+            old_manager_login = card.manager.login_name if card.manager else "не назначен"
+            card.manager_id = manager.id
+            card.card_log = h_append_card_log(
+                card.card_log,
+                f"\n{dt_str} {actor_login} назначил оператора: {old_manager_login} -> {new_manager_login};",
+            )
+            changed_count += 1
+
+        db.session.commit()
+
+        updated_columns = {}
+        for status_value in sorted(status_values):
+            html, qty = h_pc_move_render_list_html(
+                status_value,
+                category=category,
+                subcategory=subcategory,
+                filtered_manager_id=filtered_manager_id,
+            )
+            updated_columns[status_value] = {"qty": qty, "list_html": html}
+
+        return jsonify({
+            "status": "success",
+            "message": f"Назначено карточек: {changed_count}",
+            "assigned_count": changed_count,
+            "manager_id": manager.id,
+            "manager_login": new_manager_login,
+            "updated_columns": updated_columns,
+        })
+
+    except SQLAlchemyError:
+        db.session.rollback()
+        logger.exception("pc_bulk_assign_manager db error")
+        return jsonify({"status": "error", "message": "Ошибка БД"}), 500
+    except Exception:
+        db.session.rollback()
+        logger.exception("pc_bulk_assign_manager error")
+        return jsonify({"status": "error", "message": "Ошибка"}), 500
 
 
 def h_pc_change_processing_company(pc_id: int):
@@ -1203,6 +1341,7 @@ def h_download_cards_companies_by_status():
 def h_pc_take_card_to_processing(pc_id: int):
     category = request.form.get("category") or None
     subcategory = request.form.get("subcategory") or None
+    filtered_manager_id = request.form.get("filtered_manager_id", None, type=int)
 
     dt = datetime.now()
     dt_str = dt.strftime("%d-%m-%Y %H:%M:%S")
@@ -1270,7 +1409,12 @@ def h_pc_take_card_to_processing(pc_id: int):
         db.session.commit()
 
         # --- 4. Перерендер колонок ---
-        cards = crm_get_cards(category=category, subcategory=subcategory, user=current_user)
+        cards = crm_get_cards(
+            category=category,
+            subcategory=subcategory,
+            user=current_user,
+            filtered_manager_id=filtered_manager_id,
+        )
         buckets = split_cards_by_status(cards)
 
         sent_cards = buckets.get(ModerationStatus.SENT.value, [])
@@ -1329,6 +1473,7 @@ def h_pc_move_card(pc_id: int):
     # фильтры (протаскиваем!)
     category = (request.form.get("category") or "").strip() or None
     subcategory = (request.form.get("subcategory") or "").strip() or None
+    filtered_manager_id = request.form.get("filtered_manager_id", None, type=int)
 
     def _dt():
         dt = datetime.now()
@@ -1592,7 +1737,12 @@ def h_pc_move_card(pc_id: int):
             ModerationStatus.REJECTED.value,
         }
 
-        from_html, from_qty = h_pc_move_render_list_html(from_status, category=category, subcategory=subcategory)
+        from_html, from_qty = h_pc_move_render_list_html(
+            from_status,
+            category=category,
+            subcategory=subcategory,
+            filtered_manager_id=filtered_manager_id,
+        )
 
         resp = {
             "status": "success",
@@ -1611,7 +1761,12 @@ def h_pc_move_card(pc_id: int):
             resp["merged_to_card_id"] = merge_info["base_id"]
 
         if target not in heavy:
-            to_html, to_qty = h_pc_move_render_list_html(target, category=category, subcategory=subcategory)
+            to_html, to_qty = h_pc_move_render_list_html(
+                target,
+                category=category,
+                subcategory=subcategory,
+                filtered_manager_id=filtered_manager_id,
+            )
             resp.update({
                 "to_qty": to_qty,
                 "to_list_html": to_html,
@@ -1634,6 +1789,7 @@ def h_pc_bulk_move_cards():
     reject_reason = (request.form.get("reject_reason") or "").strip()
     category = (request.form.get("category") or "").strip() or None
     subcategory = (request.form.get("subcategory") or "").strip() or None
+    filtered_manager_id = request.form.get("filtered_manager_id", None, type=int)
 
     allowed_bulk_transitions = {
         (ModerationStatus.CLARIFICATION.value, ModerationStatus.IN_MODERATION.value),
@@ -1705,7 +1861,12 @@ def h_pc_bulk_move_cards():
 
         updated_columns = {}
         for status_value in sorted(from_statuses | {target}):
-            html, qty = h_pc_move_render_list_html(status_value, category=category, subcategory=subcategory)
+            html, qty = h_pc_move_render_list_html(
+                status_value,
+                category=category,
+                subcategory=subcategory,
+                filtered_manager_id=filtered_manager_id,
+            )
             updated_columns[status_value] = {
                 "qty": qty,
                 "list_html": html,

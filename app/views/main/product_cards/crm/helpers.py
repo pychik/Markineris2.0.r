@@ -96,7 +96,7 @@ def helper_categories_counter(all_cards: list | tuple) -> dict:
     return counters
 
 
-def crm_get_cards(category: str = None, subcategory: str = None, user: User = None):
+def crm_get_cards(category: str = None, subcategory: str = None, user: User = None, filtered_manager_id: int = None):
     q = ProductCard.query
 
     if category:
@@ -111,6 +111,14 @@ def crm_get_cards(category: str = None, subcategory: str = None, user: User = No
     ]))
 
     q = apply_crm_cards_scope(q, user)
+
+    if filtered_manager_id and user and getattr(user, "role", None) in CRM_ADMIN_ROLES:
+        q = q.filter(
+            or_(
+                ProductCard.status.in_([ModerationStatus.SENT, ModerationStatus.SENT_NO_RD]),
+                ProductCard.manager_id == filtered_manager_id
+            )
+        )
 
     if subcategory:
         cfg = CATEGORIES_COMMON.get(category or "")
@@ -428,7 +436,8 @@ def get_card_download_info(pc_id: int, user: User):
 ALLOWED_BACK_ROLES = {"superuser", "supermanager", "markineris_admin"}
 
 
-def h_pc_move_get_cards_by_status(status_value: str, category=None, subcategory=None, company_key=None):
+def h_pc_move_get_cards_by_status(status_value: str, category=None, subcategory=None, company_key=None,
+                                  filtered_manager_id: int = None):
     q = (
         ProductCard.query
         .options(
@@ -488,6 +497,12 @@ def h_pc_move_get_cards_by_status(status_value: str, category=None, subcategory=
     if getattr(current_user, "role", None) == "manager":
         if status_value not in [ModerationStatus.SENT.value, ModerationStatus.SENT_NO_RD.value]:
             q = q.filter(ProductCard.manager_id == current_user.id)
+    elif (
+        filtered_manager_id
+        and getattr(current_user, "role", None) in CRM_ADMIN_ROLES
+        and status_value not in [ModerationStatus.SENT.value, ModerationStatus.SENT_NO_RD.value]
+    ):
+        q = q.filter(ProductCard.manager_id == filtered_manager_id)
 
     return q.all()
 
@@ -632,12 +647,18 @@ def h_find_card_ids_by_article_or_tm(q: str) -> list[int]:
     return sorted(ids)
 
 
-def h_pc_move_render_list_html(status_value: str, category=None, subcategory=None) -> tuple[str, int]:
+def h_pc_move_render_list_html(status_value: str, category=None, subcategory=None,
+                               filtered_manager_id: int = None) -> tuple[str, int]:
     tpl = h_pc_move_template_for_status(status_value)
     if not tpl:
         return "", 0
 
-    cards = h_pc_move_get_cards_by_status(status_value, category=category, subcategory=subcategory)
+    cards = h_pc_move_get_cards_by_status(
+        status_value,
+        category=category,
+        subcategory=subcategory,
+        filtered_manager_id=filtered_manager_id,
+    )
     packed = h_pc_move_pack_cards(cards)
 
     ctx = {

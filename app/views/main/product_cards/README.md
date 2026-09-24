@@ -314,14 +314,18 @@
 ## Назначение оператора в CRM
 
 - Назначение оператора из карточки доступно только ролям `superuser` и `supermanager`.
+- В CRM-шапке справа от поиска карточки для `superuser` и `supermanager` есть фильтр по оператору. Он работает как в CRM заказов: `sent` / `sent_no_rd` остаются общим входящим пулом, а рабочие статусы фильтруются по выбранному `manager_id`.
 - В карточке оператор рендерится через [card_manager_info.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/templates/product_cards/crm/helpers/card_manager_info.html). Для разрешенных ролей и разрешенных статусов имя оператора становится кнопкой.
 - Нельзя назначать оператора в колонках `sent`, `sent_no_rd`, `approved`, `rejected`. Это проверяется и в шаблоне, и на backend.
 - Список доступных операторов грузится AJAX-ом через `GET /crm/cards/managers`, route `pc_managers_list()` в [crm/main.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/crm/main.py), handler `h_pc_managers_list()` в [crm/handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/crm/handlers.py).
 - Назначение выполняется AJAX-ом через `POST /crm/card/<pc_id>/assign_manager`, route `pc_assign_manager()` в [crm/main.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/crm/main.py), handler `h_pc_assign_manager()` в [crm/handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/crm/handlers.py).
+- Массовое назначение выполняется через `POST /crm/cards/bulk_assign_manager`, route `pc_bulk_assign_manager()` в [crm/main.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/crm/main.py), handler `h_pc_bulk_assign_manager()` в [crm/handlers.py](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/views/main/product_cards/crm/handlers.py). Ручка принимает `card_ids[]`, `manager_id` и текущие фильтры `category`, `subcategory`, `filtered_manager_id`.
+- Массовое назначение разрешено только для карточек в статусах `in_progress`, `in_moderation`, `clarification`; если среди выбранных есть карточка в другом статусе, операция отклоняется без частичного назначения.
+- UI массового назначения использует отдельный режим чекбоксов в карточках и взаимоисключается с bulk-режимом переноса `clarification -> in_moderation`: включение одного режима сбрасывает выбор другого.
 - Ручка назначения меняет только `ProductCard.manager_id`, статус карточки не меняется.
 - При успешном назначении пишется строка в `ProductCard.card_log` через `h_append_card_log(...)`.
-- Фронтовая логика находится в [cards.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/static/product_cards/crm/js/cards.js): `pcOpenAssignManagerModal(...)`, `pcAssignManager(...)`, `pcUpdateManagerOnCard(...)`.
-- URL для AJAX передаются через `#pc-config` в [crm_main.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/templates/product_cards/crm/crm_main.html): `data-managers-url`, `data-assign-manager-url-template`.
+- Фронтовая логика находится в [cards.js](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/static/product_cards/crm/js/cards.js): `pcOpenAssignManagerModal(...)`, `pcAssignManager(...)`, `pcUpdateManagerOnCard(...)`, `pcBulkAssignSelected(...)`, `pcFilterManager(...)`.
+- URL для AJAX передаются через `#pc-config` в [crm_main.html](/home/chik/python/youdo/elvin/elvin_orders/Markineris2.0.r/app/templates/product_cards/crm/crm_main.html): `data-managers-url`, `data-assign-manager-url-template`, `data-bulk-assign-manager-url`.
 
 ## Что полезно помнить перед изменениями
 
