@@ -61,6 +61,7 @@ from .exceptions import GetFirstPageFromPDFError, ArticlesException, SizeTypeExc
 from .helpers.h_categories import order_table_update
 from .http_client import Requester
 from .minio_service.services import get_s3_service
+from .saving_helpers import validate_parfum_trademark
 from .saving_uts import common_save_db, get_delete_pos_stmts, get_rows_marks
 from .telegram import TelegramProcessor, MarkinerisInform
 from .useful_objects import Olc, OLC_NONE, OLC_PARFUM_NONE, OLC_PARFUM_9NONE
@@ -308,6 +309,12 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
                 return jsonify(dict(status='error', message=toys_validation_error))
             flash(message=toys_validation_error, category='error')
             return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=o_id, subcategory=subcategory))
+    if category == settings.Parfum.CATEGORY and o_id and not p_id:
+        try:
+            check_forbidden_words(form_data_raw.get("trademark", "").strip(), "trademark")
+            validate_parfum_trademark(form_data_raw.get("trademark"))
+        except (ArticlesException, ValueError) as exc:
+            return jsonify(dict(status='error', field='trademark', message=str(exc)))
 
     order_id, sort_type, sort_order = preprocess_order_common(user=current_user, form_data_raw=form_data_raw,
                                                               category=category, subcategory=subcategory,
