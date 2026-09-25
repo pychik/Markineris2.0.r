@@ -266,6 +266,37 @@ def deactivate_manager(u_id: int):
     return redirect(url_for('crm_uoc.index'))
 
 
+@crm_uoc.route('/change_worker_password/<int:u_id>', methods=['POST'])
+@login_required
+@user_activated
+@su_required
+def change_worker_password(u_id: int):
+    form_dict = request.form.to_dict()
+    password = form_dict.get('password') or ''
+    password_repeat = form_dict.get('password_repeat') or ''
+    allowed_roles = [settings.MANAGER_USER, settings.SUPER_MANAGER, settings.MARKINERIS_ADMIN_USER]
+
+    if len(password) < 6:
+        return jsonify({'status': 'error', 'message': 'Пароль должен быть не короче 6 символов.'}), 400
+
+    if password != password_repeat:
+        return jsonify({'status': 'error', 'message': 'Пароли не совпадают.'}), 400
+
+    user = User.query.filter(User.id == u_id, User.role.in_(allowed_roles)).first()
+    if not user:
+        return jsonify({'status': 'error', 'message': settings.Messages.NO_SUCH_USER}), 404
+
+    try:
+        user.password = generate_password_hash(password, method='sha256')
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': f'Пароль пользователя {user.login_name} изменен.'})
+    except Exception as e:
+        db.session.rollback()
+        message = f'Ошибка изменения пароля пользователя: {e}'
+        logger.error(message)
+        return jsonify({'status': 'error', 'message': message}), 500
+
+
 # clean old cancelled orders
 @crm_uoc.route('/clean_oco', methods=['POST'])
 @login_required

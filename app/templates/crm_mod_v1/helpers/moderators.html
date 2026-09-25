@@ -47,7 +47,11 @@
                     {% for u in moderators_list %}
                         <tr>
                             <th scope="row">{{ loop.index }}</th>
-                            <td>{{ u.login_name }}<br><span class="text-muted">{{ u.email }}</span></td>
+                            <td>
+                                {{ u.login_name }}
+                                {% include 'crm_mod_v1/helpers/password_edit_button.html' %}
+                                <br><span class="text-muted">{{ u.email }}</span>
+                            </td>
                             <td><span class="badge bg-warning text-dark">Модератор Маркинерис</span></td>
                             <td>
                                 {% if u.status %}

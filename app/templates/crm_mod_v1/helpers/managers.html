@@ -49,7 +49,11 @@
                     {% for u in managers_list %}
                         <tr>
                             <th scope="row">{{ loop.index }}</th>
-                            <td>{{ u.login_name }}<br><span class="text-muted">{{ u.email }}</span></td>
+                            <td>
+                                {{ u.login_name }}
+                                {% include 'crm_mod_v1/helpers/password_edit_button.html' %}
+                                <br><span class="text-muted">{{ u.email }}</span>
+                            </td>
                             <td>
                                 <div class="d-flex flex-column gap-2">
                                     <span class="badge bg-{% if u.role=='manager' %}secondary{% else %}warning{% endif %} align-self-start">
