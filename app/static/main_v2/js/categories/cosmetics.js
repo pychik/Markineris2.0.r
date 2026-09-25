@@ -718,7 +718,7 @@ function normalizeCosmeticsRussianTextInput(inputEl) {
     };
     const layoutPunctuationMap = {
         '`': 'ё', '~': 'Ё', '[': 'х', '{': 'Х', ']': 'ъ', '}': 'Ъ',
-        ';': 'ж', ':': 'Ж', "'": 'э', '"': 'Э', ',': 'б', '<': 'Б', '.': 'ю', '>': 'Ю'
+        ';': 'ж', ':': 'Ж', "'": 'э', '"': 'Э', '<': 'Б', '>': 'Ю'
     };
     const hasLatinNeighbor = (chars, index) => (
         /[A-Za-z]/.test(chars[index - 1] || '') || /[A-Za-z]/.test(chars[index + 1] || '')
