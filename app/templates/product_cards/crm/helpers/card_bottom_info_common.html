@@ -10,7 +10,13 @@
   <div class="order__num">
     Компания: <span class="text-secondary" data-pc-company-label="1">{{ c.processing_company or '-' }}</span><br>
   </div>
-  {% if c.rd_replacement_consent is defined and c.rd_replacement_consent is not none %}
+  {% if c.has_user_rd and c.operator_rd_updated %}
+    <div class="order__num pc-rd-consent-detail">
+      <span class="pc-rd-consent-badge pc-rd-consent-badge--operator"
+            data-bs-toggle="tooltip" data-bs-placement="top"
+            data-bs-title="РД добавлена или изменена оператором при редактировании карточки">{{ c.operator_rd_badge_text }}</span>
+    </div>
+  {% elif c.has_user_rd and c.rd_replacement_consent is defined and c.rd_replacement_consent is not none %}
     <div class="pc-rd-consent-detail">
       {% if c.rd_replacement_consent %}
         <span class="pc-rd-consent-badge pc-rd-consent-badge--yes"

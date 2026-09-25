@@ -56,8 +56,10 @@ function pcPlaceRdReplacementConsentBlock() {
 }
 
 function pcValidateRdReplacementConsent(hasRd) {
+    const configEl = document.getElementById("pc-config");
+    const isCrmMode = configEl?.dataset?.crmFlag === "1";
     const error = document.getElementById("pc-rd-replacement-consent-error");
-    if (!hasRd) {
+    if (!hasRd || isCrmMode) {
         if (error) error.textContent = "";
         return true;
     }

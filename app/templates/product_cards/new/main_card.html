@@ -30,6 +30,7 @@
           <input type="hidden" name="card_id" value="{{ edit_card_id }}">
         {% endif %}
         {% include "product_cards/new/categories/" + category_process_name  + "/category_inputs.html" %}
+        {% if not crm_ %}
         <div id="pc-rd-replacement-consent-block" class="mt-4 p-3 border rounded d-none">
             <div class="fw-bold mb-2">Разрешительная документация</div>
             <div class="text-muted small mb-3">
@@ -55,6 +56,7 @@
             </div>
             <div id="pc-rd-replacement-consent-error" class="text-danger small mt-2"></div>
         </div>
+        {% endif %}
     </form>
 
 </div>
@@ -63,7 +65,7 @@
 
 
 <script src="{{ url_for('static',filename='product_cards/users/' + category_process_name + '.js', v='50') }}"></script>
-<script src="{{ url_for('static',filename='product_cards/users/common.js', v='13') }}"></script>
+<script src="{{ url_for('static',filename='product_cards/users/common.js', v='15') }}"></script>
 
 <script>
     const excepted_articles = {{excepted_articles | tojson | safe}};

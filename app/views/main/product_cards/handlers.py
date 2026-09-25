@@ -705,10 +705,13 @@ def h_update_product_card(crm_: bool = False):
         return jsonify(status="error", message=str(e))
     try:
         validate_rd_block(form_dict)
-        rd_replacement_consent = parse_rd_replacement_consent(
-            form_dict.get("rd_replacement_consent"),
-            required=str(form_dict.get("has_rd") or "").lower() in ("1", "true", "on", "yes"),
-        )
+        if crm_:
+            rd_replacement_consent = card.rd_replacement_consent
+        else:
+            rd_replacement_consent = parse_rd_replacement_consent(
+                form_dict.get("rd_replacement_consent"),
+                required=str(form_dict.get("has_rd") or "").lower() in ("1", "true", "on", "yes"),
+            )
     except Exception as e:
         return jsonify(status="error", message=str(e))
 
@@ -770,7 +773,7 @@ def h_update_product_card(crm_: bool = False):
         if changes:
             dt_str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
             user_login = getattr(current_user, "login_name", "") or str(current_user.id)
-            actor_label = f"Клиент {user_login}" if current_user.id == card.user_id else user_login
+            actor_label = user_login if crm_ else f"Клиент {user_login}" if current_user.id == card.user_id else user_login
             status_log_label = {
                 ModerationStatus.CLARIFICATION: "НУ",
                 ModerationStatus.SENT_NO_RD: "ОБРД",
@@ -779,6 +782,11 @@ def h_update_product_card(crm_: bool = False):
                 card.card_log,
                 f"\n{dt_str} {actor_label} исправил ({status_log_label}): {', '.join(changes)};"
             )
+            if crm_ and "РД" in changes:
+                card.card_log = h_append_card_log(
+                    card.card_log,
+                    f"\n{dt_str} {actor_label} установил РД оператором ({status_log_label});"
+                )
         if old_rd_replacement_consent != card.rd_replacement_consent:
             dt_str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
             actor = getattr(current_user, "login_name", "") or str(current_user.id)

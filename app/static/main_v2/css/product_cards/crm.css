@@ -260,6 +260,12 @@
   color: #842029;
 }
 
+.pc-rd-consent-badge--operator {
+  background: #fff3cd;
+  border-color: #ffecb5;
+  color: #664d03;
+}
+
 .pc-crm-search-tools {
   max-width: 660px;
 }

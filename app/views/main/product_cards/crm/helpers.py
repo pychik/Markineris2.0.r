@@ -18,7 +18,7 @@ from utilities.support import order_count
 
 from views.main.product_cards.chat.helpers import h_pc_chat_unread_count, h_unread_map_for_cards
 
-from views.main.product_cards.support import CATEGORIES_COMMON
+from views.main.product_cards.support import CATEGORIES_COMMON, card_has_rd
 
 CRM_STATUSES = [
     ModerationStatus.SENT.value,
@@ -32,6 +32,30 @@ CRM_STATUSES = [
 
 CRM_ADMIN_ROLES = {"superuser", "supermanager"}  # кто видит всё
 CRM_MANAGER_ROLE = "manager"
+
+
+def card_operator_rd_badge_text(card: ProductCard) -> str:
+    if not card_has_rd(card):
+        return ""
+
+    for line in (card.card_log or "").splitlines():
+        if " установил РД оператором" in line:
+            return "РД уточнен" if "(НУ)" in line else "РД: установлен оператором"
+
+        if " исправил (" not in line or "РД" not in line:
+            continue
+
+        actor_part, change_part = line.split(" исправил (", 1)
+        status_label, sep, field_part = change_part.partition("):")
+        if not sep or status_label not in {"ОБРД", "НУ"}:
+            continue
+        changed_fields = field_part.split(";", 1)[0]
+        if any(field.strip() == "РД" for field in changed_fields.split(",")):
+            if status_label == "НУ":
+                return "РД уточнен"
+            return "РД: установлен оператором"
+
+    return ""
 
 
 def is_at2_admin_user(user: User | None) -> bool:
@@ -188,6 +212,8 @@ def split_cards_by_status(cards: list[ProductCard]) -> dict[str, list[dict]]:
         buckets.setdefault(st, [])
 
         sizes_count, sizes_label = crm_card_sizes_label(card)
+        has_user_rd = card_has_rd(card)
+        rd_operator_badge_text = card_operator_rd_badge_text(card)
 
         buckets[st].append({
             "id": card.id,
@@ -197,6 +223,9 @@ def split_cards_by_status(cards: list[ProductCard]) -> dict[str, list[dict]]:
             "status": st,
             "created_at": card.created_at,
             "sent_at": card.sent_at,
+            "has_user_rd": has_user_rd,
+            "operator_rd_updated": bool(rd_operator_badge_text),
+            "operator_rd_badge_text": rd_operator_badge_text,
             "rd_replacement_consent": card.rd_replacement_consent,
             "crm_stage_tooltip": crm_card_stage_tooltip(card),
             "processing_info": card.processing_info,
@@ -525,6 +554,8 @@ def h_pc_move_pack_cards(cards: list[ProductCard]) -> list[dict]:
         st = card.status.value if hasattr(card.status, "value") else card.status
 
         sizes_count, sizes_label = crm_card_sizes_label(card)  # вычислим 1 раз
+        has_user_rd = card_has_rd(card)
+        rd_operator_badge_text = card_operator_rd_badge_text(card)
         packed.append({
             "id": card.id,
             "category": card.category,
@@ -533,6 +564,9 @@ def h_pc_move_pack_cards(cards: list[ProductCard]) -> list[dict]:
             "status": st,
             "created_at": card.created_at,
             "sent_at": card.sent_at,
+            "has_user_rd": has_user_rd,
+            "operator_rd_updated": bool(rd_operator_badge_text),
+            "operator_rd_badge_text": rd_operator_badge_text,
             "rd_replacement_consent": card.rd_replacement_consent,
             "crm_stage_tooltip": crm_card_stage_tooltip(card),
             "processing_info": card.processing_info,
