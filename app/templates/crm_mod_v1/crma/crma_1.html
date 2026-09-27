@@ -2,7 +2,7 @@
     <div class="orders">
         <h2 class="orders__title">
             Новые заказы <span id="new_ordersMainDiv_quantity">({{new_orders | length}})</span>
-            {%if new_orders%}
+            {%if new_orders and (current_user.role in ['superuser', 'm2r_admin'] or (current_user.role == 'admin' and current_user.is_at2))%}
                 <span class="badge" style="cursor: pointer"  data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="top"
                                     data-bs-title="Перевести все заказы в ОТПРАВЛЕНЫ ФИРМЕ"
                       onclick="bck_all_new_multi_pool(`{{ url_for('crm_d.all_new_multi_pool')}}`, `{{ csrf_token() }}`);">

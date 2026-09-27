@@ -148,6 +148,39 @@
     </div>
 </div>
 
+{% if current_user.role == 'superuser' %}
+    <div class="modal fade" id="crmWorkerPasswordModal" tabindex="-1" aria-labelledby="crmWorkerPasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="crmWorkerPasswordForm" method="post" action="#">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="crmWorkerPasswordModalLabel">Изменить пароль</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <p class="text-muted mb-3">Пользователь: <b id="crmWorkerPasswordLogin"></b></p>
+                        <div class="mb-3">
+                            <label class="form-label" for="crmWorkerPasswordInput">Новый пароль</label>
+                            <input type="password" class="form-control" id="crmWorkerPasswordInput" name="password" minlength="6" required autocomplete="new-password">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="crmWorkerPasswordRepeatInput">Повторите пароль</label>
+                            <input type="password" class="form-control" id="crmWorkerPasswordRepeatInput" name="password_repeat" minlength="6" required autocomplete="new-password">
+                        </div>
+                        <div id="crmWorkerPasswordError" class="alert alert-danger d-none mb-0" role="alert"></div>
+                        <div id="crmWorkerPasswordSuccess" class="alert alert-success d-none mb-0" role="alert"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn crm-uoc-btn crm-uoc-btn-primary">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
 <script>
 var Password = {
 
@@ -193,6 +226,101 @@ var Password = {
   }
 
 };
+
+document.addEventListener('DOMContentLoaded', function () {
+  var modalEl = document.getElementById('crmWorkerPasswordModal');
+  var form = document.getElementById('crmWorkerPasswordForm');
+  if (!modalEl || !form) {
+    return;
+  }
+
+  var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  var loginEl = document.getElementById('crmWorkerPasswordLogin');
+  var passwordInput = document.getElementById('crmWorkerPasswordInput');
+  var passwordRepeatInput = document.getElementById('crmWorkerPasswordRepeatInput');
+  var errorEl = document.getElementById('crmWorkerPasswordError');
+  var successEl = document.getElementById('crmWorkerPasswordSuccess');
+  var csrfInput = form.querySelector('input[name="csrf_token"]');
+
+  function showMessage(el, message) {
+    el.textContent = message;
+    el.classList.remove('d-none');
+  }
+
+  function resetMessages() {
+    errorEl.classList.add('d-none');
+    errorEl.textContent = '';
+    successEl.classList.add('d-none');
+    successEl.textContent = '';
+  }
+
+  document.querySelectorAll('.crm-uoc-password-edit').forEach(function (button) {
+    button.addEventListener('click', function () {
+      form.action = button.dataset.passwordUrl;
+      loginEl.textContent = button.dataset.userLogin || '';
+      form.reset();
+      resetMessages();
+      modal.show();
+      window.setTimeout(function () {
+        passwordInput.focus();
+      }, 150);
+    });
+  });
+
+  form.addEventListener('submit', function (event) {
+    event.preventDefault();
+    resetMessages();
+
+    if (passwordInput.value.length < 6) {
+      showMessage(errorEl, 'Пароль должен быть не короче 6 символов.');
+      return;
+    }
+
+    if (passwordInput.value !== passwordRepeatInput.value) {
+      showMessage(errorEl, 'Пароли не совпадают.');
+      return;
+    }
+
+    if (typeof loadingCircle === 'function') {
+      loadingCircle();
+    }
+
+    fetch(form.action, {
+      method: 'POST',
+      body: new FormData(form),
+      headers: {
+        'X-CSRFToken': csrfInput ? csrfInput.value : ''
+      }
+    })
+      .then(function (response) {
+        return response.json()
+          .catch(function () {
+            return {message: 'Не удалось обработать ответ сервера.'};
+          })
+          .then(function (data) {
+            if (!response.ok || data.status !== 'success') {
+              throw new Error(data.message || 'Не удалось изменить пароль.');
+            }
+            return data;
+          });
+      })
+      .then(function (data) {
+        showMessage(successEl, data.message || 'Пароль изменен.');
+        form.reset();
+        window.setTimeout(function () {
+          modal.hide();
+        }, 900);
+      })
+      .catch(function (error) {
+        showMessage(errorEl, error.message || 'Не удалось изменить пароль.');
+      })
+      .finally(function () {
+        if (typeof close_Loading_circle === 'function') {
+          close_Loading_circle();
+        }
+      });
+  });
+});
 </script>
 
 {% endblock %}

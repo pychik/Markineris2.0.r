@@ -200,7 +200,7 @@ class ValidateLinenMixin:
             res = datetime.strptime(value.strip(), "%d.%m.%Y")
         except ValueError:
             res = False
-            logger.error(error_message)
+            # logger.error(error_message)
         if not res:
             return error_message
 

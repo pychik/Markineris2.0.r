@@ -406,7 +406,13 @@ function clear_user_messages() {
 }
 
 
-function update_crm_info(){
+function update_crm_info(url){
+   if (url) {
+       update_url_temp = url;
+   }
+   if (!update_url_temp) {
+       update_url_temp = update_url;
+   }
 
    $.ajax({
     url:update_url_temp,
@@ -1077,7 +1083,98 @@ function attach_file_link_toggle(){
 }
 
 
-function bck_avg_order_processing_time_rpt(url) {
+function get_crm_operator_report_page() {
+    return $('#crm_operator_reports_page');
+}
+
+function get_active_crm_operator_report_key() {
+    return get_crm_operator_report_page().attr('data-active-report') || 'avg_processing';
+}
+
+function get_crm_operator_report_month_limit(reportKey) {
+    if (reportKey === 'full_metrics') {
+        return 12;
+    }
+    return reportKey === 'daily_category' ? 1 : 4;
+}
+
+function get_crm_operator_default_manager_id() {
+    return get_crm_operator_report_page().attr('data-default-manager-id') || '';
+}
+
+function get_crm_operator_selected_manager_name() {
+    let selected = $('#manager_filter option:selected');
+    return selected.data('manager-name') || selected.text() || '';
+}
+
+function ensure_crm_daily_report_manager(reportKey) {
+    if (reportKey !== 'daily_category') {
+        return;
+    }
+    let managerSelect = $('#manager_filter');
+    if (managerSelect.val()) {
+        return;
+    }
+    let defaultManagerId = get_crm_operator_default_manager_id();
+    if (defaultManagerId) {
+        managerSelect.val(defaultManagerId).trigger('change');
+    }
+}
+
+function get_crm_operator_report_table_target(reportKey) {
+    const targets = {
+        avg_processing: '#avg_order_processing_time_table',
+        operator_category: '#operator_category_table',
+        daily_category: '#daily_category_table'
+    };
+    return targets[reportKey] || targets.avg_processing;
+}
+
+function get_crm_operator_report_url(reportKey, mode) {
+    const attrs = {
+        avg_processing: {
+            table: 'data-avg-processing-table-url',
+            download: 'data-avg-processing-download-url'
+        },
+        operator_category: {
+            table: 'data-operator-category-table-url',
+            download: 'data-operator-category-download-url'
+        },
+        daily_category: {
+            table: 'data-daily-category-table-url',
+            download: 'data-daily-category-download-url'
+        },
+        full_metrics: {
+            download: 'data-full-metrics-download-url'
+        }
+    };
+    const attrName = attrs[reportKey] && attrs[reportKey][mode];
+    return attrName ? get_crm_operator_report_page().attr(attrName) : null;
+}
+
+$(document).on('shown.bs.tab', '.crm-operator-report-tab', function () {
+    const reportKey = $(this).data('report-key');
+    get_crm_operator_report_page().attr('data-active-report', reportKey);
+    ensure_crm_daily_report_manager(reportKey);
+});
+
+function refresh_crm_operator_report() {
+    const reportKey = get_active_crm_operator_report_key();
+    if (reportKey === 'full_metrics') {
+        make_message('Для отчета с полными метриками доступно только скачивание файла', 'warning');
+        return;
+    }
+    ensure_crm_daily_report_manager(reportKey);
+    bck_crm_operator_report(reportKey, get_crm_operator_report_url(reportKey, 'table'));
+}
+
+function download_crm_operator_report(csrf) {
+    const reportKey = get_active_crm_operator_report_key();
+    ensure_crm_daily_report_manager(reportKey);
+    download_crm_operator_report_file(reportKey, get_crm_operator_report_url(reportKey, 'download'), csrf);
+}
+
+function bck_crm_operator_report(reportKey, url) {
     let sort_mode = $('input[name="sort_type"]:checked').val();
     let date_from = $('#date_from').val();
     let date_to = $('#date_to').val();
@@ -1109,8 +1206,11 @@ function bck_avg_order_processing_time_rpt(url) {
     });
 }
 
+function bck_avg_order_processing_time_rpt(url) {
+    bck_crm_operator_report('avg_processing', url);
+}
 
-function get_avg_order_processing_time_rpt_excel(url, csrf) {
+function download_crm_operator_report_file(reportKey, url, csrf) {
     let sort_mode = $('input[name="sort_type"]:checked').val();
     let date_from = $('#date_from').val();
     let date_to = $('#date_to').val();
@@ -1136,14 +1236,14 @@ function get_avg_order_processing_time_rpt_excel(url, csrf) {
 
         success: function(response, status, xhr) {
             if (xhr.status === 200) {
-                var blob = new Blob([response], { type: 'application/xlsx' });
+                var blob = new Blob([response], { type: xhr.getResponseHeader('Content-Type') || 'application/octet-stream' });
                 var link = document.createElement('a');
 
                 var dataName = xhr.getResponseHeader('data_file_name');
 
                 link.href = window.URL.createObjectURL(blob);
                 // console.log()
-                link.download = decodeURIComponent(dataName) || 'статистика_по_времени_обработки_заказа.xlsx'; //
+                link.download = decodeURIComponent(dataName) || 'отчет_операторов.xlsx'; //
                 link.click();
             } else {
                 // Handle other status codes
@@ -1152,6 +1252,7 @@ function get_avg_order_processing_time_rpt_excel(url, csrf) {
         },
         error: function(xhr, status, error) {
             // Error handling
+            show_crm_operator_report_ajax_error(xhr);
             console.error('Error:', error);
         },
         complete: function() {
@@ -1186,7 +1287,8 @@ function add_months_avg_order_processing_time_rpt(date, months) {
     return result;
 }
 
-function validate_avg_order_processing_time_rpt_dates(date_from, date_to) {
+function validate_avg_order_processing_time_rpt_dates(date_from, date_to, maxMonths) {
+    maxMonths = maxMonths || 4;
     let dateFrom = parse_avg_order_processing_time_rpt_date(date_from);
     let dateTo = parse_avg_order_processing_time_rpt_date(date_to);
 
@@ -1194,12 +1296,16 @@ function validate_avg_order_processing_time_rpt_dates(date_from, date_to) {
         make_message('Выберите корректный период отчета', 'warning');
         return false;
     }
+    if (dateFrom < CRM_OPERATOR_REPORT_MIN_DATE || dateTo < CRM_OPERATOR_REPORT_MIN_DATE) {
+        make_message('Период отчета не может быть раньше 01.01.2022', 'warning');
+        return false;
+    }
     if (dateFrom > dateTo) {
         make_message('Дата "C" не может быть больше даты "По"', 'warning');
         return false;
     }
-    if (dateTo > add_months_avg_order_processing_time_rpt(dateFrom, 4)) {
-        make_message('Максимальный диапазон отчета - 4 месяца', 'warning');
+    if (dateTo > add_months_avg_order_processing_time_rpt(dateFrom, maxMonths)) {
+        make_message('Максимальный диапазон отчета - ' + maxMonths + ' мес.', 'warning');
         return false;
     }
     return true;

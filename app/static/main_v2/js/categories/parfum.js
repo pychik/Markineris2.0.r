@@ -4,6 +4,35 @@ function parfum_check_sizes_quantity_valid(){
     return sizes.length >= 1;
 }
 
+function parfum_clear_field_error(fieldId) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+
+    field.classList.remove('is-invalid');
+    const errorEl = document.getElementById(`${fieldId}_server_error`);
+    if (errorEl) {
+        errorEl.remove();
+    }
+}
+
+function parfum_show_field_error(fieldId, message) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+
+    field.classList.remove('is-valid');
+    field.classList.add('is-invalid');
+
+    let errorEl = document.getElementById(`${fieldId}_server_error`);
+    if (!errorEl) {
+        errorEl = document.createElement('div');
+        errorEl.id = `${fieldId}_server_error`;
+        errorEl.className = 'invalid-feedback d-block';
+        field.insertAdjacentElement('afterend', errorEl);
+    }
+    errorEl.textContent = message;
+    field.focus();
+}
+
 function parfum_perform_pos_add(async_flag, url){
 
     var pos_form =document.getElementById('form_process_main');
@@ -287,6 +316,7 @@ async function async_parfum_delete_pos(url, csrf,block){
     {
         close_Loading_circle();
         if(data.status==='success'){
+          parfum_clear_field_error('trademark');
           $('#step-3_update').html(data);
           $("#step-3_update").append(data.htmlresponse);
           $('#orders_row_count').html(data.pos_count);
@@ -312,8 +342,11 @@ async function async_parfum_delete_pos(url, csrf,block){
            if (typeof window.clearPendingStep3TransitionAfterAsyncAdd === 'function') {
              window.clearPendingStep3TransitionAfterAsyncAdd();
            }
-           message = 'Произошла ошибка во время сохранения позиции';
+           message = data.message || 'Произошла ошибка во время сохранения позиции';
            message_type = 'danger';
+           if (data.field) {
+             parfum_show_field_error(data.field, message);
+           }
            make_message(message, message_type);
         }
     },

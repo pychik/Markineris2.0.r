@@ -24,7 +24,10 @@
         За 3 дня
       </th>
       <th scope="col">
-        Более 3 дней
+        За 4 дня
+      </th>
+      <th scope="col">
+        Более 4 дней
       </th>
       <th scope="col">
         Среднее время выполнения заказа(мин)
@@ -62,7 +65,10 @@
         {{ rec.three_days_order_count }}
       </td>
       <td>
-        {{ rec.more_than_three_days_order_count }}
+        {{ rec.four_days_order_count }}
+      </td>
+      <td>
+        {{ rec.more_than_four_days_order_count }}
       </td>
       <td>
         {{ rec.processing_time }}
