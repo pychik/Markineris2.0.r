@@ -7,6 +7,7 @@ from config import settings
 from data_migrations.etl_service import ETLMigrateUserData, run_migration
 from data_migrations.instance import etl_service
 from data_migrations.utils import make_password
+from loguru import logger
 from models import CardChatRead, ModerationStatus, Order, ProductCard, User, db
 from tezaurus.exceptions import TezaurusApiError, TezaurusConfigurationError
 from tezaurus.processing_companies import ProcessingCompaniesClient
@@ -241,7 +242,7 @@ def module_testing_product_cards_reset_created():
         db.session.commit()
     except Exception:
         db.session.rollback()
-        logger.exception('Failed to reset product cards to created status')
+        # logger.exception('Failed to reset product cards to created status')
         return jsonify({
             'status': 'error',
             'message': 'Не удалось перевести карточки товаров в исходное положение.',
