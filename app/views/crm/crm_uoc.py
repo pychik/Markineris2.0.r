@@ -21,8 +21,11 @@ from utilities.support import (user_activated, su_required, susmu_required, susm
                                helper_get_stmt_full_operator_metrics_report,
                                helper_paginate_data, sumsuu_required, moderator_exist_check, sql_count,
                                CRM_OPERATOR_REPORT_CATEGORY_COLUMNS,
+                               AVG_ORDER_PROCESSING_REPORT_MAX_MONTHS,
                                DAILY_OPERATOR_ACTIVITY_REPORT_MAX_MONTHS,
-                               FULL_OPERATOR_METRICS_REPORT_MAX_MONTHS)
+                               FULL_OPERATOR_METRICS_REPORT_MAX_MONTHS,
+                               OPERATOR_REPORT_MIN_DATE,
+                               OPERATOR_REPORT_MIN_DATE_STR)
 from views.crm.helpers import (helper_clean_oco, check_manager_orders, helper_change_manager_limit, helper_get_limits,
                                helper_change_auto_order_pool, helper_change_auto_order_sent)
 
@@ -333,6 +336,14 @@ def avg_order_processing_time_rpt():
     date_from = datetime.now() - timedelta(settings.ORDERS_REPORT_TIMEDELTA)
     date_to = datetime.now()
     category_columns = CRM_OPERATOR_REPORT_CATEGORY_COLUMNS
+    operator_report_min_date = OPERATOR_REPORT_MIN_DATE
+    operator_report_min_date_str = OPERATOR_REPORT_MIN_DATE_STR
+    operator_report_month_limits = {
+        'avg_processing': AVG_ORDER_PROCESSING_REPORT_MAX_MONTHS,
+        'operator_category': AVG_ORDER_PROCESSING_REPORT_MAX_MONTHS,
+        'daily_category': DAILY_OPERATOR_ACTIVITY_REPORT_MAX_MONTHS,
+        'full_metrics': FULL_OPERATOR_METRICS_REPORT_MAX_MONTHS,
+    }
     managers = db.session.execute(
         text('select distinct id, login_name from users where id in (select manager_id from orders where manager_id is not null) order by login_name')).fetchall()
     stmt = helper_get_stmt_avg_order_time_processing_report()
