@@ -1,0 +1,124 @@
+{% extends "main/base_v2.html" %}
+
+{% block fc_panel %}
+<div class="container">
+    <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
+        <div class="breadcrumbs">
+            <a href="{{ url_for('admin_control.index') }}">Панель администратора</a>
+            /
+            <span>Тестирование модулей</span>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-7">
+            <form id="processingCompaniesTestForm"
+                  class="card bg-light p-4"
+                  data-action="{{ url_for('admin_control.module_testing_processing_companies_select') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <h3 class="h5 mb-4">Подбор исполнителя Tezaurus</h3>
+
+                <div class="form-group mb-3">
+                    <label class="control-label" for="processingCompanyCategory">Категория</label>
+                    <select class="form-control" id="processingCompanyCategory" name="category" required>
+                        <option value="">------------</option>
+                        {% for category_item in module_testing_categories %}
+                            <option value="{{ category_item.slug }}">{{ category_item.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group mb-4">
+                    <label class="control-label" for="processingCompanyCountry">Страна</label>
+                    <select class="form-control" id="processingCompanyCountry" name="country" required>
+                        <option value="">------------</option>
+                        {% for country in countries %}
+                            <option value="{{ country }}">{{ country }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-accent border-0 text-dark">
+                    Отправить запрос
+                </button>
+            </form>
+        </div>
+
+        <div class="col-lg-5 mt-4 mt-lg-0">
+            <div id="processingCompaniesResult" class="card bg-light p-4 d-none"></div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-lg-7">
+            <div class="card bg-light p-4">
+                <h3 class="h5 mb-3">Карточки товаров</h3>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <form id="resetProductCardsForm"
+                          class="m-0"
+                          data-action="{{ url_for('admin_control.module_testing_product_cards_reset_created') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <button type="submit" class="btn btn-danger">
+                            Перевести все карточки товаров в исходное положение
+                        </button>
+                    </form>
+
+                    <button type="button"
+                            class="btn btn-outline-danger"
+                            id="deleteProductCardsOpenBtn">
+                        Удалить все старые карточки товаров
+                    </button>
+                </div>
+
+                <div class="small text-muted mt-3">
+                    Удаление карточек также очищает связанные категории, размеры, чат и старые привязки компаний.
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5 mt-4 mt-lg-0">
+            <div id="resetProductCardsResult" class="card bg-light p-4 d-none"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteProductCardsModal" tabindex="-1" aria-labelledby="deleteProductCardsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form id="deleteProductCardsForm"
+              class="modal-content"
+              data-action="{{ url_for('admin_control.module_testing_product_cards_delete_all') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteProductCardsModalLabel">Удаление карточек товаров</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+
+            <div class="modal-body">
+                <p class="mb-3">Вы уверены что хотите удалить все карточки товаров?</p>
+                <div class="mb-3">
+                    <label class="form-label" for="deleteProductCardsPassword">Пароль учетной записи</label>
+                    <input type="password"
+                           class="form-control"
+                           id="deleteProductCardsPassword"
+                           name="password"
+                           autocomplete="current-password"
+                           required>
+                </div>
+                <div class="alert alert-danger d-none mb-0" id="deleteProductCardsModalError"></div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-danger">
+                    Да, удалить все старые карточки товаров
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='main_v2/js/admin/processing_companies.js', v='3') }}"></script>
+{% endblock %}

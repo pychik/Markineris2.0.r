@@ -15,7 +15,10 @@ CRM_MANAGER_ROLE = "manager"
 # матрица переходов: ОТКУДА -> КУДА можно
 TRANSITIONS: dict[str, set[str]] = {
     ModerationStatus.SENT.value: set(),  # "взять в работу" отдельным методом (как у тебя)
-    ModerationStatus.SENT_NO_RD.value: {ModerationStatus.IN_PROGRESS.value,},  # "взять в работу" отдельным методом (как у тебя)
+    ModerationStatus.SENT_NO_RD.value: {
+        ModerationStatus.IN_PROGRESS.value,
+        ModerationStatus.CLARIFICATION.value,
+    },  # "взять в работу" отдельным методом (как у тебя)
     ModerationStatus.IN_PROGRESS.value: {
         ModerationStatus.SENT.value,
         ModerationStatus.IN_MODERATION.value,

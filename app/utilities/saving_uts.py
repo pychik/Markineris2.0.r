@@ -33,6 +33,10 @@ def time_count(func):
     return wrapper
 
 
+def _copy_pc_approval_flag(new_order: Order, source_obj) -> bool:
+    return bool(getattr(new_order, "is_moderation", False) and getattr(source_obj, "is_approved", False))
+
+
 def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
     article = normalize_article_placeholder(form_dict.get("article"))
@@ -393,7 +397,12 @@ def save_copy_order_shoes(order_category_list: list[Shoe], new_order: Order) -> 
                                 with_packages=shoe.with_packages,
                                 tnved_code=shoe.tnved_code, article_price=shoe.article_price,
                                 tax=shoe.tax, rd_type=shoe.rd_type, rd_name=shoe.rd_name.replace('№', ''), rd_date=shoe.rd_date,
-                                sizes_quantities=list((ShoeQuantitySize(size=sq.size, quantity=sq.quantity)
+                                fast_order_company_id=shoe.fast_order_company_id,
+                                sizes_quantities=list((ShoeQuantitySize(
+                                    size=sq.size,
+                                    quantity=sq.quantity,
+                                    is_approved=_copy_pc_approval_flag(new_order, sq),
+                                )
                                                                     for sq in shoe.sizes_quantities)))
         append_or_merge_position(new_order.shoes, new_shoes, settings.Shoes.CATEGORY)
         kept_linen_count += 1
@@ -431,6 +440,7 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
                 size=normalize_length_width_size_value(sq.size, sq.size_type),
                 quantity=sq.quantity,
                 size_type=normalized_size_type,
+                is_approved=_copy_pc_approval_flag(new_order, sq),
             )
             new_sizes.append(new_sq)
         if not new_sizes:
@@ -444,6 +454,7 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
             article_price=clothes.article_price, tax=clothes.tax,
             rd_type=clothes.rd_type, rd_name=clothes.rd_name.replace('№', ''),
             rd_date=clothes.rd_date, subcategory=clothes.subcategory,
+            fast_order_company_id=clothes.fast_order_company_id,
             sizes_quantities=new_sizes
         )
         append_or_merge_position(new_order.clothes, new_clothes, settings.Clothes.CATEGORY,
@@ -476,6 +487,7 @@ def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) ->
                 size=normalize_length_width_size_value(sq.size, sq.size_type),
                 quantity=sq.quantity,
                 size_type=normalize_length_width_size_type(sq.size_type),
+                is_approved=_copy_pc_approval_flag(new_order, sq),
             )
             new_sizes.append(new_sq)
 
@@ -487,6 +499,7 @@ def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) ->
             article_price=sock.article_price, tax=sock.tax,
             rd_type=sock.rd_type, rd_name=rd_name_clean(sock.rd_name),
             rd_date=sock.rd_date,
+            fast_order_company_id=sock.fast_order_company_id,
             sizes_quantities=new_sizes
         )
         append_or_merge_position(new_order.socks, new_socks, settings.Socks.CATEGORY,
@@ -517,8 +530,14 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
                                      tnved_code=linen.tnved_code, article_price=linen.article_price,
                                      tax=linen.tax, rd_type=linen.rd_type, rd_name=linen.rd_name.replace('№', ''),
                                      rd_date=linen.rd_date,
+                                     fast_order_company_id=linen.fast_order_company_id,
                                      sizes_quantities=[
-                LinenQuantitySize(size=sq.size, unit=sq.unit, quantity=sq.quantity)
+                LinenQuantitySize(
+                    size=sq.size,
+                    unit=sq.unit,
+                    quantity=sq.quantity,
+                    is_approved=_copy_pc_approval_flag(new_order, sq),
+                )
                 for sq in linen.sizes_quantities
             ],
         )
@@ -564,6 +583,8 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
             rd_type=parfum.rd_type,
             rd_name=rd_name_clean(parfum.rd_name),
             rd_date=parfum.rd_date,
+            is_approved=_copy_pc_approval_flag(new_order, parfum),
+            fast_order_company_id=parfum.fast_order_company_id,
         )
         append_or_merge_position(new_order.parfum, new_parfum, settings.Parfum.CATEGORY)
         kept_parfum_count += 1
@@ -612,6 +633,8 @@ def save_copy_order_cosmetics(order_category_list: list[Cosmetics], new_order: O
             service_life=cosmetics.service_life,
             sl_date_from=cosmetics.sl_date_from,
             sl_date_to=cosmetics.sl_date_to,
+            is_approved=_copy_pc_approval_flag(new_order, cosmetics),
+            fast_order_company_id=cosmetics.fast_order_company_id,
         )
         append_or_merge_position(new_order.cosmetics, new_cosmetics, settings.Cosmetics.CATEGORY)
     return new_order
@@ -647,6 +670,8 @@ def save_copy_order_toys(order_category_list: list[Toys], new_order: Order) -> O
             sl_date_from=toy.sl_date_from,
             sl_date_to=toy.sl_date_to,
             quantity=toy.quantity,
+            is_approved=_copy_pc_approval_flag(new_order, toy),
+            fast_order_company_id=toy.fast_order_company_id,
         )
         append_or_merge_position(new_order.toys, new_toys, settings.Toys.CATEGORY)
     return new_order

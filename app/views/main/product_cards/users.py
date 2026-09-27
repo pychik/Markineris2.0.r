@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, jsonify, redirect, request, url_for
+from flask import Blueprint
 from flask_login import login_required
 
 
@@ -7,31 +7,10 @@ from views.main.product_cards.handlers import h_cards, h_cards_table, h_new_prod
     h_save_product_card, h_card_delete, h_card_edit, h_card_view, h_get_created_cards, \
     h_send_cards_moderate, h_make_pc_basket_order, h_pc_order_view, h_pc_orders_drafts, h_pc_order_table, \
     h_pc_order_pos_view, h_pc_order_delete_pos, h_pc_order_delete, h_pc_order_preview, h_pc_order_check_before_process, \
-    h_pc_order_process, h_update_product_card, h_edit_product_card, h_pc_order_copy, h_pc_order_draft_delete
+    h_pc_order_process, h_update_product_card, h_edit_product_card, h_pc_order_copy, h_pc_order_draft_delete, \
+    h_card_category_subcategories
 
 user_product_cards = Blueprint('user_product_cards', __name__)
-
-
-PC_MAINTENANCE_MESSAGE = (
-    "Проводятся технические работы в разделе «Быстрый заказ». "
-    "В ближайшее время данный раздел будет временно недоступен. "
-    "До завершения работ, пожалуйста, воспользуйтесь разделом «Обычный заказ»."
-)
-
-
-@user_product_cards.before_request
-@login_required
-@user_activated
-def product_cards_maintenance_guard():
-    if request.method == "GET":
-        flash(PC_MAINTENANCE_MESSAGE, "warning")
-        return redirect(url_for("main.enter"))
-
-    return jsonify(
-        status="error",
-        message=PC_MAINTENANCE_MESSAGE,
-        redirect_url=url_for("main.enter"),
-    ), 503
 
 
 @user_product_cards.route('/cards', methods=['GET'])
@@ -46,6 +25,13 @@ def cards():
 @user_activated
 def cards_table():
     return h_cards_table()
+
+
+@user_product_cards.route('/cards/category/<string:category>/subcategories', methods=['GET'])
+@login_required
+@user_activated
+def category_subcategories(category: str):
+    return h_card_category_subcategories(category=category)
 
 
 @user_product_cards.route('/new_product_card', methods=['GET', ])

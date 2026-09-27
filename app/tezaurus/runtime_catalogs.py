@@ -27,6 +27,8 @@ _RD_CATEGORY_MAP = {
     settings.Shoes.CATEGORY_PROCESS: "shoes",
     settings.Linen.CATEGORY_PROCESS: "linen",
     settings.Parfum.CATEGORY_PROCESS: "parfum",
+    settings.Cosmetics.CATEGORY_PROCESS: "cosmetics",
+    settings.Toys.CATEGORY_PROCESS: "toys",
 }
 
 _RD_FALLBACKS = {
@@ -34,6 +36,8 @@ _RD_FALLBACKS = {
     "shoes": settings.SHOES_COUNTRIES_RD,
     "linen": settings.LINEN_COUNTRIES_RD,
     "parfum": settings.PARFUM_COUNTRIES_RD,
+    "cosmetics": [],
+    "toys": [],
 }
 
 _DISPLAY_TO_REDIS_GENDER = {
@@ -53,6 +57,79 @@ _REDIS_TO_DISPLAY_GENDER = {
     "БЕЗ УКАЗАНИЯ ПОЛА": "Без указания пола",
 }
 
+_DEFAULT_PROCESSING_COMPANIES = [
+    {
+        "title": 'ИП "Игнатюк Анастасия Дмитриевна"',
+        "inn": "026491035246",
+        "is_active": True,
+        "categories": ["clothes"],
+        "origins": ["rf"],
+    },
+    {
+        "title": 'ИП "Миндияров Савелий Валерьевич"',
+        "inn": "022703451765",
+        "is_active": True,
+        "categories": ["shoes"],
+        "origins": ["rf"],
+    },
+    {
+        "title": "ИП Хузин Булат Денисович",
+        "inn": "023104386702",
+        "is_active": True,
+        "categories": ["clothes", "shoes", "parfum"],
+        "origins": ["rf", "import"],
+    },
+    {
+        "title": 'ООО "Маркинерис"',
+        "inn": "4400029308",
+        "is_active": True,
+        "categories": ["clothes", "shoes", "parfum"],
+        "origins": ["rf", "import"],
+    },
+    {
+        "title": "Аврора",
+        "inn": "4400023120",
+        "is_active": True,
+        "categories": ["clothes", "shoes", "parfum"],
+        "origins": ["rf", "import"],
+    },
+    {
+        "title": "Гренада",
+        "inn": "4400023137",
+        "is_active": True,
+        "categories": ["clothes", "shoes", "parfum", "toys", "cosmetics", "home_goods"],
+        "origins": ["rf", "import"],
+    },
+    {
+        "title": "ИП Ишмитов Илья Алексеевич",
+        "inn": "023103006891",
+        "is_active": True,
+        "categories": ["clothes", "shoes", "parfum"],
+        "origins": ["rf", "import"],
+    },
+    {
+        "title": 'ИП "Моськин"',
+        "inn": "771988302928",
+        "is_active": True,
+        "categories": ["clothes", "shoes", "parfum"],
+        "origins": ["rf", "import"],
+    },
+    {
+        "title": 'ООО "Бетастрой"',
+        "inn": "7720963833",
+        "is_active": True,
+        "categories": ["shoes"],
+        "origins": ["rf", "import"],
+    },
+    {
+        "title": 'ООО "Перемены"',
+        "inn": "4400027438",
+        "is_active": True,
+        "categories": ["clothes", "shoes", "parfum"],
+        "origins": ["rf", "import"],
+    },
+]
+
 
 def _normalize_str_list(values) -> list[str]:
     if not isinstance(values, list):
@@ -67,6 +144,35 @@ def _normalize_str_list(values) -> list[str]:
             continue
         normalized.append(text.upper())
     return normalized
+
+
+def _normalize_processing_company_items(values) -> list[dict[str, str]]:
+    if not isinstance(values, list):
+        return []
+
+    companies: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for value in values:
+        if not isinstance(value, dict):
+            continue
+
+        external_id = str(value.get("external_id") or value.get("id") or value.get("company_id") or "").strip()
+        inn = str(value.get("inn") or value.get("company_idn") or "").strip()
+        title = str(value.get("title") or value.get("name") or value.get("company_name") or "").strip()
+        key = str(value.get("key") or inn or external_id or title).strip()
+
+        if not key or key in seen:
+            continue
+
+        seen.add(key)
+        companies.append({
+            "key": key,
+            "external_id": external_id,
+            "inn": inn,
+            "title": title,
+        })
+
+    return sorted(companies, key=lambda company: ((company.get("title") or "").lower(), company.get("inn") or ""))
 
 
 @lru_cache(maxsize=1)
@@ -181,6 +287,17 @@ def get_colors() -> list[str]:
         logger.exception("Failed to read colors from Tezaurus Redis cache")
 
     return _normalize_str_list(list(settings.ALL_COLORS))
+
+
+def get_processing_companies() -> list[dict[str, str]]:
+    try:
+        companies = _normalize_processing_company_items(_get_cache_service().get_processing_companies())
+        if companies:
+            return companies
+    except Exception:
+        logger.exception("Failed to read processing companies from Tezaurus Redis cache")
+
+    return _normalize_processing_company_items(_DEFAULT_PROCESSING_COMPANIES)
 
 
 def get_all_countries() -> list[str]:
@@ -301,6 +418,54 @@ def get_clothes_tnved_pairs(subcategory: str | None, type_name: str, gender: str
 
 def get_clothes_tnved_codes(subcategory: str | None, type_name: str, gender: str) -> list[str]:
     return [code for code, _ in get_clothes_tnved_pairs(subcategory, type_name, gender)]
+
+
+def get_clothes_tnved_pairs_for_types(
+    subcategory: str | None,
+    type_names: list[str] | tuple[str, ...] | None = None,
+    *,
+    is_cards: bool = False,
+) -> list[tuple[str, str]]:
+    normalized_subcategory = _normalize_subcategory(subcategory)
+    if not _is_supported_clothes_subcategory(normalized_subcategory):
+        return []
+
+    wanted_types = {str(type_name).strip() for type_name in (type_names or ()) if str(type_name).strip()}
+    result: list[tuple[str, str]] = []
+    seen: set[str] = set()
+
+    def add_pairs(pairs: list[tuple[str, str]] | tuple[tuple[str, str], ...]) -> None:
+        for code, description in pairs or ():
+            normalized_code = str(code or "").strip()
+            if not normalized_code or normalized_code in seen:
+                continue
+            seen.add(normalized_code)
+            result.append((normalized_code, str(description or "").strip()))
+
+    try:
+        type_items = _get_cache_service().get_tnved(category="clothes", subcategory=normalized_subcategory)
+        if isinstance(type_items, list):
+            for type_item in type_items:
+                if not isinstance(type_item, dict):
+                    continue
+                type_name = str(type_item.get("name") or "").strip()
+                if wanted_types and type_name not in wanted_types:
+                    continue
+                for gender_item in type_item.get("genders") or []:
+                    if not isinstance(gender_item, dict):
+                        continue
+                    add_pairs(_extract_gender_codes(gender_item))
+            if result:
+                return result
+    except Exception:
+        logger.exception("Failed to read clothes tnved pairs from Tezaurus Redis cache for subcategory %s", normalized_subcategory)
+
+    fallback_types = list(wanted_types) if wanted_types else _fallback_clothes_types(normalized_subcategory, is_cards=is_cards)
+    for type_name in fallback_types:
+        for gender in _fallback_clothes_genders(normalized_subcategory, type_name) or ("",):
+            add_pairs(_fallback_clothes_codes(normalized_subcategory, type_name, gender))
+
+    return result
 
 
 def get_clothes_all_tnved(subcategory: str | None) -> list[str]:

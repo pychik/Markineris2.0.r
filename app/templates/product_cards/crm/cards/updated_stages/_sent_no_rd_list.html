@@ -26,7 +26,14 @@
           <div class="order__footer">
             {% include 'product_cards/crm/helpers/table_download.html' %}
 
-            <div class="steps">
+            <div class="steps d-flex gap-2">
+              <img src="{{ url_for('static', filename='crm_mod/img/icons/chat-dots-fill.svg') }}"
+                 width="24" height="24"
+                 data-bs-toggle="tooltip"
+                 data-bs-title="Отправить на уточнение"
+                 data-card-id="{{ c.id }}"
+                 onclick="pcMoveCard(this, 'clarification')">
+
               <img src="{{ url_for('static', filename='crm_mod/img/icons/arrow-right-circle-fill.svg') }}"
                  width="24" height="24"
                  data-bs-toggle="tooltip"

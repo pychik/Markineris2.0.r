@@ -16,6 +16,8 @@
 - реализовано: синхронизация, сохранение в Redis и read API из кэша
 - реализовано: периодическая задача планировщика для обновления кэша
 - реализовано: переключение цветов и стран Markineris на чтение из Redis-кэша Tezaurus
+- реализовано: прямой запрос подбора обрабатывающей фирмы через Tezaurus для админского тестирования
+- реализовано: список обрабатывающих фирм для CRM-фильтра через Redis-кэш Tezaurus
 - пока не реализовано: полная замена существующих источников TNVED в UI и бизнес-логике Markineris
 
 ## Что уже переведено на Redis
@@ -40,6 +42,7 @@
 ## Структура модуля
 
 - `api_client.py` - клиент API Tezaurus для получения ревизий и полных выгрузок
+- `processing_companies.py` - клиент и нормализация запроса подбора обрабатывающей фирмы
 - `redis_repository.py` - хранение JSON в Redis и управление ключами
 - `sync_service.py` - оркестрация синхронизации по ревизиям с fallback-поведением
 - `cache_service.py` - read API для цветов, стран и TNVED из Redis
@@ -60,6 +63,105 @@
 - colors: `GET /api/v1/export/colors`
 - countries: `GET /api/v1/export/countries`
 - tnved (clothes): `GET /api/v1/export/tnved/clothes`
+- processing_companies: `GET /api/v1/export/processing-companies`
+
+Для `processing_companies` Tezaurus должен отдавать ревизию в `GET /api/v1/meta/dictionaries-state`.
+Если Redis-снимок еще не создан или недоступен, `runtime_catalogs.py` использует локальный default-список компаний,
+синхронизированный с `DEFAULT_PROCESSING_COMPANY_RULES` Tezaurus.
+
+## Запрос обрабатывающей фирмы
+
+Подбор обрабатывающей фирмы не кэшируется в Redis. Tezaurus выполняет выбор по текущей очереди и правилам на каждый запрос, поэтому Markineris отправляет прямой `POST` в API.
+
+Справочник всех обрабатывающих фирм кэшируется отдельно. Он используется только для CRM-фильтра в колонке
+"На модерации" и не влияет на алгоритм назначения фирмы карточке.
+
+Endpoint Tezaurus:
+
+`POST /api/v1/processing-companies/select`
+
+Batch endpoint Tezaurus:
+
+`POST /api/v1/processing-companies/select-batch`
+
+Payload:
+
+```json
+{"category":"clothes","origin":"rf"}
+```
+
+Batch payload:
+
+```json
+{
+  "items": [
+    {"client_id": "card-7121", "category": "clothes", "origin": "import"},
+    {"client_id": "card-10369", "category": "shoes", "origin": "rf"}
+  ]
+}
+```
+
+`client_id` возвращается в ответе как есть и используется Markineris для сопоставления ответа с `ProductCard.id`. В одном batch-запросе Tezaurus принимает до `200` карточек; если карточек больше, Markineris отправляет несколько batch-запросов по `200`.
+
+Категории Tezaurus:
+
+- `clothes`
+- `shoes`
+- `parfum`
+- `cosmetics`
+- `toys`
+- `home_goods`
+
+Происхождение:
+
+- `rf` - Россия
+- `import` - остальные страны
+
+В Markineris запрос оформлен через `tezaurus.processing_companies.ProcessingCompaniesClient`.
+
+Рабочий пользовательский поток `/cards/send_moderate` использует `select-batch` после объединения дублей вещевых карточек. Одиночный `select` остается для прямой проверки и страницы `/admin_control/module-testing`.
+
+Нормализация категории перед отправкой:
+
+- `linen`, `белье` -> `clothes`
+- `socks`, `носки`, `носки и прочее` -> `clothes`
+- остальные поддерживаемые категории отправляются своим slug из списка Tezaurus
+
+Нормализация происхождения перед отправкой:
+
+- `РОССИЯ`, `РФ`, `RU`, `RUS`, `643` -> `rf`
+- любая другая непустая страна -> `import`
+
+Пример прямой проверки:
+
+```bash
+curl -sS -X POST \
+  -H "Authorization: Bearer ${TEZAURUS_API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"category":"clothes","origin":"rf"}' \
+  "${TEZAURUS_BASE_URL}/api/v1/processing-companies/select"
+```
+
+Пример batch-проверки:
+
+```bash
+curl -sS -X POST \
+  -H "Authorization: Bearer ${TEZAURUS_API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"items":[{"client_id":"card-7121","category":"clothes","origin":"import"},{"client_id":"card-10369","category":"shoes","origin":"rf"}]}' \
+  "${TEZAURUS_BASE_URL}/api/v1/processing-companies/select-batch"
+```
+
+Batch endpoint возвращает HTTP `200`, если JSON и массив `items` корректны. Ошибки отдельных карточек приходят внутри элемента `items` с `ok=false`, `matched=false` и `status_code`; Markineris собирает все такие ошибки в один ответ пользователю, считает ситуацию ошибкой всей отправки и откатывает транзакцию.
+
+Админская проверка доступна только superuser:
+
+- страница: `/admin_control/module-testing`
+- backend POST: `/admin_control/module-testing/processing-companies/select`
+
+Форма админской проверки принимает категорию и страну, нормализует их на стороне Markineris, отправляет запрос в Tezaurus с существующим Bearer-токеном `TEZAURUS_API_TOKEN` и выводит ответ в блоке результата тестирования.
 
 ## Ключи Redis
 
@@ -71,6 +173,8 @@
 - `tezaurus:v1:colors` - JSON-снимок цветов
 - `tezaurus:v1:countries` - JSON-снимок стран
 - `tezaurus:v1:tnved` - JSON-снимки TNVED по категориям
+- `tezaurus:v1:processing_companies` - JSON-снимок обрабатывающих фирм
+- `tezaurus:v1:processing_companies:list` - нормализованный список фирм для runtime-чтения
 
 Ключи фильтров countries (category + our_rd):
 

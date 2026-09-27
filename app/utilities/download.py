@@ -12,7 +12,7 @@ from xlsxwriter import Workbook
 from xlsxwriter.worksheet import Worksheet
 
 from config import settings
-from models import Order, db, User
+from models import FastOrderCompanies, Order, db, User
 from .categories_data.accessories_data import HATS_DEC_DICT, GLOVES_DEC_DICT, SHAWLS_DEC_DICT
 from .categories_data.categories_codes.clothes_category_code_mapper import resolve_clothes_category_code
 from .categories_data.subcategories_data import ClothesSubcategories, Category
@@ -80,6 +80,43 @@ class OrdersProcessor(ProcessorInterface, ABC):
 
         archive.seek(0)
         return archive, filename
+
+    @staticmethod
+    def safe_filename_part(value: str | None, default: str = "company") -> str:
+        value = str(value or "").strip()
+        if not value:
+            value = default
+        value = re.sub(r'[\\/:*?"<>|]+', "_", value)
+        value = re.sub(r"\s+", "_", value)
+        return value.strip("._ ")[:80] or default
+
+    @staticmethod
+    def group_orders_by_fast_order_company(order_id: int, orders_list: list) -> list[tuple[FastOrderCompanies | None, list]]:
+        company_ids = {
+            item.fast_order_company_id
+            for item in orders_list
+            if getattr(item, "fast_order_company_id", None)
+        }
+        companies = (
+            FastOrderCompanies.query
+            .filter(
+                FastOrderCompanies.order_id == order_id,
+                FastOrderCompanies.id.in_(company_ids),
+            )
+            .all()
+        ) if company_ids else []
+        companies_by_id = {company.id: company for company in companies}
+        grouped: dict[str, dict] = {}
+        for item in orders_list:
+            company_id = getattr(item, "fast_order_company_id", None)
+            company = companies_by_id.get(company_id)
+            key = str(company.id) if company else "unknown"
+            bucket = grouped.setdefault(key, {"company": company, "items": []})
+            bucket["items"].append(item)
+        return sorted(
+            ((data["company"], data["items"]) for data in grouped.values()),
+            key=lambda row: (row[0].processing_company_label if row[0] else "Компания не указана"),
+        )
 
     @staticmethod
     def prepare_batches(orders_divided: list, batch_size=400):
@@ -374,6 +411,44 @@ class OrdersProcessor(ProcessorInterface, ABC):
                                       edo_type=edo_type, edo_id=edo_id, mark_type=mark_type,
                                       user_name=c_name, user_phone=c_phone,
                                       user_email=c_email, partner=c_partner_code)
+
+        if getattr(order, "is_moderation", False):
+            excel_files = []
+            for fast_company, company_orders in self.group_orders_by_fast_order_company(
+                order_id=order.id,
+                orders_list=self.source_orders_list,
+            ):
+                company_label = fast_company.processing_company_label if fast_company else "Компания не указана"
+                company_inn = fast_company.processing_company_inn if fast_company else ""
+                company_processor = self.__class__(
+                    category=self.category,
+                    company_idn=company_inn or company_idn,
+                    orders_list=company_orders,
+                    flag_046=self.flag_046,
+                    has_aggr=getattr(order, "has_aggr", False),
+                )
+                company_processor.excel_add_worksheet_data(
+                    company_idn=company_idn,
+                    company_name=company_name,
+                    company_type=company_type,
+                    edo_type=edo_type,
+                    edo_id=edo_id,
+                    mark_type=mark_type,
+                    user_name=c_name,
+                    user_phone=c_phone,
+                    user_email=c_email,
+                    partner=c_partner_code,
+                )
+                company_suffix = self.safe_filename_part(company_label)
+                batch_name = f"{e_name}_{company_suffix}"
+                excel_files.extend(
+                    company_processor.process_to_excel(
+                        list_of_orders=self.prepare_batches(
+                            orders_divided=[(company_processor.orders_list, batch_name)]
+                        )
+                    )
+                )
+            return OrdersProcessor.archive_excels(excel_files=excel_files, filename=self.path)
 
         excel_files = self.process_to_excel(list_of_orders=OrdersProcessor
                                             .prepare_batches(orders_divided=[(self.orders_list_outer, f"{e_name}_ВВЕЗЕН"),

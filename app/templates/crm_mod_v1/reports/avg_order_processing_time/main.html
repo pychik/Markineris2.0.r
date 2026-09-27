@@ -27,6 +27,8 @@
      data-daily-category-download-url="{{ url_for('crm_uoc.daily_operator_category_orders_rpt_excel') }}"
      data-full-metrics-download-url="{{ url_for('crm_uoc.full_operator_metrics_rpt_file') }}">
 
+    {% include 'crm_mod_v1/reports/avg_order_processing_time/report_description.html' %}
+
     <div class="order-filters">
       {% include 'crm_mod_v1/reports/avg_order_processing_time/filters.html' %}
     </div>

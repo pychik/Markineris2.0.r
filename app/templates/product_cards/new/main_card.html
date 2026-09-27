@@ -17,8 +17,8 @@
      data-card-id="{{ edit_card_id or '' }}">
 </div>
 
-<div class="container py-4">
-{% set category_name = category.capitalize() if category != 'одежда' or( category == 'одежда' and (not subcategory or subcategory == 'common')) else subcategories_dict[subcategory].capitalize() %}
+<div class="container-fluid px-5 py-4">
+{% set category_name = subcategory_title if subcategory_title is defined and subcategory_title else category.capitalize() %}
     <h3 class="mb-4">{%if edit_mode %}Редактирование{%else%}Создание{% endif %} карточки товара в категории <u>{{ category_name }}</u> </h3>
 
     <form id="pc-create-form" method="post" enctype="multipart/form-data">
@@ -30,6 +30,33 @@
           <input type="hidden" name="card_id" value="{{ edit_card_id }}">
         {% endif %}
         {% include "product_cards/new/categories/" + category_process_name  + "/category_inputs.html" %}
+        {% if not crm_ %}
+        <div id="pc-rd-replacement-consent-block" class="mt-4 p-3 border rounded d-none">
+            <div class="fw-bold mb-2">Разрешительная документация</div>
+            <div class="text-muted small mb-3">
+                В случае отказа системы „Честный ЗНАК“ в принятии вашей разрешительной документации даёте ли вы согласие на использование нашей разрешительной документации с возможным изменением страны происхождения товара?
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <label class="btn btn-outline-secondary mb-0">
+                    <input class="form-check-input me-2"
+                           type="radio"
+                           name="rd_replacement_consent"
+                           value="yes"
+                           {% if rd_replacement_consent is sameas true %}checked{% endif %}>
+                    Да
+                </label>
+                <label class="btn btn-outline-secondary mb-0">
+                    <input class="form-check-input me-2"
+                           type="radio"
+                           name="rd_replacement_consent"
+                           value="no"
+                           {% if rd_replacement_consent is sameas false %}checked{% endif %}>
+                    Нет
+                </label>
+            </div>
+            <div id="pc-rd-replacement-consent-error" class="text-danger small mt-2"></div>
+        </div>
+        {% endif %}
     </form>
 
 </div>
@@ -37,8 +64,8 @@
 {% include 'helpers/error_modal.html' %}
 
 
-<script src="{{url_for('static',filename='product_cards/users/' + category_process_name + '.js')}}"></script>
-<script src="{{url_for('static',filename='product_cards/users/common.js')}}"></script>
+<script src="{{ url_for('static',filename='product_cards/users/' + category_process_name + '.js', v='50') }}"></script>
+<script src="{{ url_for('static',filename='product_cards/users/common.js', v='15') }}"></script>
 
 <script>
     const excepted_articles = {{excepted_articles | tojson | safe}};

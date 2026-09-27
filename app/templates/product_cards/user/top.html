@@ -19,4 +19,23 @@
 
   {% include "product_cards/user/nav_pills.html" %}
 
+<div class="pc-category-search" aria-label="Поиск категории для новой карточки товара">
+  <div class="pc-category-search__inner">
+    <label for="pc-category-search-input" class="pc-category-search__label">
+      Определение категории карточки товара
+    </label>
+    <div class="pc-category-search__hint">
+      Введите ТНВЭД или вид товара, чтобы перейти на нужную страницу добавления карточки товара.
+    </div>
+    <input
+      id="pc-category-search-input"
+      type="text"
+      class="form-control"
+      placeholder="Введите ТНВЭД или вид товара..."
+      autocomplete="off"
+    >
+    <div id="pc-category-search-result" class="pc-category-search-result is-empty" aria-live="polite"></div>
+  </div>
+</div>
+
 {% include 'product_cards/user/search_bar.html' %}

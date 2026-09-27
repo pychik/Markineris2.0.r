@@ -3799,6 +3799,12 @@ def helper_get_filter_avg_order_time_processing_report(
     if date_to_dt > max_date_to_dt:
         date_to = max_date_to_dt.strftime('%Y-%m-%d')
 
+    date_from_dt = datetime.strptime(date_from, '%Y-%m-%d')
+    date_to_dt = datetime.strptime(date_to, '%Y-%m-%d')
+    max_date_to_dt = _add_months(date_from_dt, AVG_ORDER_PROCESSING_REPORT_MAX_MONTHS) + timedelta(days=1)
+    if date_to_dt > max_date_to_dt:
+        date_to = max_date_to_dt.strftime('%Y-%m-%d')
+
     return date_from, date_to, manager_id
 
 

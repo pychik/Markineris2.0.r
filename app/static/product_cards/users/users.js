@@ -1,4 +1,353 @@
 
+const PC_CATEGORY_GROUPS = {
+    clothes: {
+        mode: "clothes",
+        modeClass: "pc-category-tabs--clothes",
+        rootCategory: "clothes",
+        childCategories: ["socks"],
+        tabIds: [
+            "pills-clothes-tab",
+            "pills-underwear-tab",
+            "pills-swimming_accessories-tab",
+            "pills-hats-tab",
+            "pills-gloves-tab",
+            "pills-shawls-tab",
+            "pills-socks-tab",
+        ],
+    },
+    cosmetics: {
+        mode: "cosmetics",
+        modeClass: "pc-category-tabs--cosmetics",
+        rootCategory: "cosmetics",
+        childCategories: [],
+        tabIds: [
+            "pills-cosmetics-tab",
+            "pills-cosmetics-decor_ukhod-tab",
+            "pills-cosmetics-cosmetics_eye-tab",
+            "pills-cosmetics-cosmetics_lips-tab",
+            "pills-cosmetics-cosmetics_the_rest_hair-tab",
+            "pills-cosmetics-cosmetics_rascheski-tab",
+            "pills-cosmetics-razor_blades_and_cassettes-tab",
+            "pills-cosmetics-cosmetics_tooth-tab",
+            "pills-cosmetics-cosmetics_salt_bomb-tab",
+            "pills-cosmetics-cosmetics_mochalki-tab",
+            "pills-cosmetics-cosmetics_aroma-tab",
+            "pills-cosmetics-cosmetics_cleaning_products-tab",
+            "pills-cosmetics-cosmetics_deodorants-tab",
+            "pills-cosmetics-cosmetics_nails-tab",
+            "pills-cosmetics-cosmetics_toilet_paper-tab",
+            "pills-cosmetics-cosmetics_tweezers-tab",
+        ],
+    },
+    toys: {
+        mode: "toys",
+        modeClass: "pc-category-tabs--toys",
+        rootCategory: "toys",
+        childCategories: [],
+        tabIds: [
+            "pills-toys-tab",
+            "pills-toys-doll_accessories-tab",
+            "pills-toys-puzzles-tab",
+            "pills-toys-competition_cars-tab",
+            "pills-toys-sets_kits-tab",
+            "pills-toys-motorized_toys-tab",
+            "pills-toys-animal_creature-tab",
+            "pills-toys-scale_models_other-tab",
+            "pills-toys-musical_toy_instruments-tab",
+            "pills-toys-dolls_human_figures-tab",
+            "pills-toys-construction_sets-tab",
+            "pills-toys-card_games-tab",
+            "pills-toys-board_room_games_inventory-tab",
+            "pills-toys-toy_weapons-tab",
+            "pills-toys-play_tents-tab",
+            "pills-toys-electric_train_sets-tab",
+        ],
+    },
+};
+
+const PC_MAIN_CATEGORY_TAB_IDS = [
+    "pills-shoes-tab",
+    "pills-clothes-tab",
+    "pills-linen-tab",
+    "pills-parfum-tab",
+    "pills-cosmetics-tab",
+    "pills-toys-tab",
+];
+
+const PC_CATEGORY_CREATE_LABELS = {
+    shoes: "обувь",
+    clothes: "одежду",
+    linen: "белье",
+    parfum: "духи",
+    socks: "носки",
+    cosmetics: "косметику",
+    toys: "игрушку",
+};
+
+const PC_CLOTHES_CREATE_LABELS = {
+    common: "одежду",
+    underwear: "нижнее белье",
+    swimming_accessories: "плавательные аксессуары",
+    hats: "шляпы",
+    gloves: "перчатки",
+    shawls: "шали",
+};
+
+function pcInitViewTooltips(root) {
+    if (!window.bootstrap || !bootstrap.Tooltip || !root) return;
+    root.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
+        bootstrap.Tooltip.getOrCreateInstance(el);
+    });
+}
+
+const PC_SUBCATEGORY_CREATE_LABELS = {
+    cosmetics: {
+        decor_ukhod: "декоративную и уходовую косметику",
+        cosmetics_eye: "косметику для глаз",
+        cosmetics_lips: "косметику для губ",
+        cosmetics_the_rest_hair: "косметику для волос",
+        cosmetics_rascheski: "расческу",
+        razor_blades_and_cassettes: "бритвы/лезвия",
+        cosmetics_tooth: "средство для гигиены полости рта",
+        cosmetics_salt_bomb: "соль/бомбу для ванны",
+        cosmetics_mochalki: "мочалку",
+        cosmetics_aroma: "ароматизатор",
+        cosmetics_cleaning_products: "чистящее средство",
+        cosmetics_deodorants: "дезодорант",
+        cosmetics_nails: "косметику для ногтей",
+        cosmetics_toilet_paper: "туалетную бумагу",
+        cosmetics_tweezers: "пинцет",
+    },
+    toys: {
+        doll_accessories: "аксессуар для кукол",
+        puzzles: "пазл",
+        competition_cars: "гоночную машинку",
+        sets_kits: "набор/комплект игрушек",
+        motorized_toys: "игрушку с приводом",
+        animal_creature: "фигурку животного",
+        scale_models_other: "масштабную модель",
+        musical_toy_instruments: "музыкальную игрушку",
+        dolls_human_figures: "куклу/фигурку",
+        construction_sets: "конструктор",
+        card_games: "карточную игру",
+        board_room_games_inventory: "настольную игру",
+        toy_weapons: "игрушечное оружие",
+        play_tents: "игровую палатку",
+        electric_train_sets: "железную дорогу",
+    },
+};
+
+let pcCategoryTabsMode = "main";
+
+function pc_category_tab_wrapper(tabId) {
+    const tab = document.getElementById(tabId);
+    if (!tab) return null;
+    return tab.closest("[data-pc-category-tile]") || tab.closest("a") || tab;
+}
+
+function pc_order_category_tabs(tabIds) {
+    const tabs = document.getElementById("pills-tab");
+    if (!tabs) return;
+
+    tabIds.forEach(tabId => {
+        const wrapper = pc_category_tab_wrapper(tabId);
+        if (wrapper) tabs.appendChild(wrapper);
+    });
+}
+
+function pc_ensure_category_back_tab() {
+    const tabs = document.getElementById("pills-tab");
+    if (!tabs) return null;
+
+    let back = document.getElementById("pc-category-back");
+    if (back) return back.closest("a") || back;
+
+    const wrapper = document.createElement("a");
+    wrapper.href = "javascript:void(0)";
+    wrapper.className = "pc-category-back d-none";
+    wrapper.innerHTML = `
+        <li class="nav-link" id="pc-category-back" type="button" role="tab">
+            <button class="text-center border-0" type="button">
+                <span class="pc-category-back__arrow" aria-hidden="true">&larr;</span>
+                <div class="category-item__name text-center">Категории</div>
+            </button>
+        </li>
+    `;
+    wrapper.addEventListener("click", function (event) {
+        event.preventDefault();
+        pc_show_main_category_tabs();
+    });
+
+    tabs.appendChild(wrapper);
+    return wrapper;
+}
+
+function pc_show_main_category_tabs() {
+    pc_set_category_tabs_mode("main");
+}
+
+function pc_show_category_group(groupMode) {
+    pc_set_category_tabs_mode(groupMode);
+}
+
+function pc_set_category_tabs_mode(mode) {
+    const tabs = document.getElementById("pills-tab");
+    const group = Object.values(PC_CATEGORY_GROUPS).find(item => item.mode === mode) || null;
+
+    pcCategoryTabsMode = group ? group.mode : "main";
+    if (tabs) {
+        tabs.classList.toggle("pc-category-tabs--main", !group);
+        Object.values(PC_CATEGORY_GROUPS).forEach(item => {
+            tabs.classList.toggle(item.modeClass, Boolean(group && item.mode === group.mode));
+        });
+    }
+
+    const back = pc_ensure_category_back_tab();
+    if (back) back.classList.toggle("d-none", !group);
+
+    pc_order_category_tabs(group ? group.tabIds : PC_MAIN_CATEGORY_TAB_IDS);
+    if (tabs && back && group) tabs.appendChild(back);
+
+}
+
+function pc_get_category_group_for_click(category) {
+    return Object.values(PC_CATEGORY_GROUPS).find(group => {
+        return category === group.rootCategory || group.childCategories.includes(category);
+    }) || null;
+}
+
+function pc_get_category_group_for_initial(category, subcategory) {
+    return Object.values(PC_CATEGORY_GROUPS).find(group => {
+        const isRootSubcategory = category === group.rootCategory && Boolean(subcategory);
+        return isRootSubcategory || group.childCategories.includes(category);
+    }) || null;
+}
+
+function pc_init_category_tabs_mode(category, subcategory) {
+    const group = pc_get_category_group_for_initial(category, subcategory);
+    pc_set_category_tabs_mode(group ? group.mode : "main");
+}
+
+function pc_init_category_definition_search() {
+    const searchIndex = Array.isArray(window.PC_CATEGORY_SEARCH_INDEX) ? window.PC_CATEGORY_SEARCH_INDEX : [];
+    const input = document.getElementById("pc-category-search-input");
+    const resultEl = document.getElementById("pc-category-search-result");
+
+    if (!input || !resultEl || !searchIndex.length) return;
+
+    function normalizeText(value) {
+        return String(value || "").trim().toUpperCase().replace(/\s+/g, " ");
+    }
+
+    function extractDigits(value) {
+        return String(value || "").replace(/\D/g, "");
+    }
+
+    function escapeHtml(value) {
+        return String(value || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function findMatches(query) {
+        const normalizedQuery = normalizeText(query);
+        const digitQuery = extractDigits(query);
+        const matches = [];
+        const seen = new Set();
+
+        if (!normalizedQuery) return matches;
+
+        for (const item of searchIndex) {
+            if (digitQuery) {
+                for (const choice of (item.allowed_tnved_choices || [])) {
+                    const code = String(choice.code || "");
+                    const key = `${item.category}::${item.slug}::tnved::${code}`;
+                    if (!code.includes(digitQuery) || seen.has(key)) continue;
+                    seen.add(key);
+                    matches.push({
+                        item,
+                        reason: `ТН ВЭД: ${code}`,
+                        details: choice.label || "Категория определена по коду ТН ВЭД",
+                    });
+                }
+            }
+
+            for (const type of (item.product_types || [])) {
+                const key = `${item.category}::${item.slug}::type::${type}`;
+                if (!normalizeText(type).includes(normalizedQuery) || seen.has(key)) continue;
+                seen.add(key);
+                matches.push({
+                    item,
+                    reason: `Вид товара: ${type}`,
+                    details: "Категория определена по названию товара",
+                });
+            }
+        }
+
+        return matches;
+    }
+
+    function renderResult(matches, query) {
+        if (!matches.length) {
+            resultEl.classList.remove("is-empty");
+            resultEl.innerHTML = `
+                <div class="pc-category-search-result__title">Совпадений не найдено</div>
+                <div class="pc-category-search-result__meta">Запрос: ${escapeHtml(query)}</div>
+            `;
+            return;
+        }
+
+        const itemsHtml = matches.slice(0, 15).map((match) => {
+            const item = match.item || {};
+            return `
+                <li class="pc-category-search-result__item">
+                    <a class="pc-category-search-result__link" href="${escapeHtml(item.url)}">
+                        <div class="pc-category-search-result__link-title">
+                            ${escapeHtml(item.category_title)} / ${escapeHtml(item.title)}
+                        </div>
+                        <div class="pc-category-search-result__meta">${escapeHtml(match.reason)}</div>
+                        <div class="pc-category-search-result__meta">${escapeHtml(match.details)}</div>
+                    </a>
+                </li>
+            `;
+        }).join("");
+        const moreHtml = matches.length > 15
+            ? '<div class="pc-category-search-result__more">Результатов поиска больше 15 ...</div>'
+            : "";
+
+        resultEl.classList.remove("is-empty");
+        resultEl.innerHTML = `
+            <div class="pc-category-search-result__title">
+                ${matches.length === 1 ? "Найдена категория" : "Найдено несколько совпадений"}
+            </div>
+            <ul class="pc-category-search-result__list">${itemsHtml}</ul>
+            ${moreHtml}
+        `;
+    }
+
+    input.addEventListener("input", function () {
+        const query = input.value.trim();
+        if (query.length < 3) {
+            resultEl.classList.add("is-empty");
+            resultEl.innerHTML = "";
+            return;
+        }
+        renderResult(findMatches(query), query);
+    });
+
+    input.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+            event.preventDefault();
+            input.value = "";
+            resultEl.classList.add("is-empty");
+            resultEl.innerHTML = "";
+        }
+    });
+}
+
 // обновляет активные табы категорий/подкатегорий
 function pc_update_category(category, subcategory) {
     // снять active со всех табов
@@ -8,23 +357,30 @@ function pc_update_category(category, subcategory) {
 
     // основная категория
     const mainMap = {
-        shoes:   'pills-shoes-tab',
-        clothes: 'pills-clothes-tab',
-        linen:   'pills-linen-tab',
-        parfum:  'pills-parfum-tab',
-        socks:   'pills-socks-tab',
+        shoes: "pills-shoes-tab",
+        clothes: "pills-clothes-tab",
+        linen: "pills-linen-tab",
+        parfum: "pills-parfum-tab",
+        socks: "pills-socks-tab",
+        cosmetics: "pills-cosmetics-tab",
+        toys: "pills-toys-tab",
     };
 
     const mainId = mainMap[category];
     if (mainId) {
         const mainEl = document.getElementById(mainId);
-        if (category === 'clothes' && subcategory) {
-
+        if (category === "clothes" && subcategory) {
             const subId = `pills-${subcategory}-tab`; // underwear / swimming_accessories / hats / gloves / shawls
             const subEl = document.getElementById(subId);
-            if (subEl) subEl.classList.add('active');
-        return}
-        if (mainEl) mainEl.classList.add('active');
+            if (subEl) subEl.classList.add("active");
+            return;
+        }
+        if ((category === "cosmetics" || category === "toys") && subcategory) {
+            const subEl = document.getElementById(`pills-${category}-${subcategory}-tab`);
+            if (subEl) subEl.classList.add("active");
+            return;
+        }
+        if (mainEl) mainEl.classList.add("active");
     }
 
     // подкатегории одежды
@@ -56,6 +412,9 @@ document.addEventListener("DOMContentLoaded", function () {
     let   currentSubcategory = config.dataset.currentSubcategory || "";
     const csrfToken         = config.dataset.csrf;
     const NEW_PRODUCT_CARD_URL  = config.dataset.newCardUrl;
+    const createCurrentBtn = document.getElementById("pc-create-current-category");
+    const createCurrentLabel = document.getElementById("pc-create-current-category-label");
+    const createdCardsCount = document.getElementById("pc-created-cards-count");
 
     const searchInput  = form.querySelector('input[name="article_query"]');
     const catInput     = form.querySelector('input[name="category"]');
@@ -68,6 +427,52 @@ document.addEventListener("DOMContentLoaded", function () {
         subcatInput.name = 'subcategory';
         form.appendChild(subcatInput);
     }
+
+    function getCurrentCreateTitle() {
+        if (currentCategory === "clothes") {
+            return PC_CLOTHES_CREATE_LABELS[currentSubcategory || "common"] || PC_CATEGORY_CREATE_LABELS.clothes;
+        }
+        if (PC_SUBCATEGORY_CREATE_LABELS[currentCategory]) {
+            return PC_SUBCATEGORY_CREATE_LABELS[currentCategory][currentSubcategory] || PC_CATEGORY_CREATE_LABELS[currentCategory] || "товар";
+        }
+        return PC_CATEGORY_CREATE_LABELS[currentCategory] || "товар";
+    }
+
+    function buildCurrentCreateUrl() {
+        const params = new URLSearchParams();
+        params.set("category", currentCategory || "shoes");
+        if (
+            currentSubcategory
+            && currentSubcategory !== "common"
+            && (currentCategory === "clothes" || PC_SUBCATEGORY_CREATE_LABELS[currentCategory])
+        ) {
+            params.set("subcategory", currentSubcategory);
+        }
+        return NEW_PRODUCT_CARD_URL + "?" + params.toString();
+    }
+
+    function updateCreateCurrentButton() {
+        if (!createCurrentBtn || !createCurrentLabel) return;
+        createCurrentLabel.textContent = `Создать ${getCurrentCreateTitle()}`;
+    }
+
+    window.pcUpdateCreatedCardsCount = function (count) {
+        if (!createdCardsCount) return;
+        const value = Number.isFinite(Number(count)) ? Number(count) : 0;
+        createdCardsCount.textContent = String(value);
+        config.dataset.createdCardsCount = String(value);
+    };
+
+    if (createCurrentBtn) {
+        createCurrentBtn.addEventListener("click", function () {
+            if (!NEW_PRODUCT_CARD_URL) {
+                make_message("Не удалось определить адрес создания карточки", "error");
+                return;
+            }
+            window.location.href = buildCurrentCreateUrl();
+        });
+    }
+
     tableWrapper.addEventListener("click", function (e) {
         const btn = e.target.closest("[data-pc-action]");
         if (!btn) return;
@@ -151,6 +556,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
 
                 body.innerHTML = data.html;
+                pcInitViewTooltips(body);
 
                 // Bootstrap 5
                 const modal = new bootstrap.Modal(modalEl);
@@ -342,10 +748,11 @@ function loadTable(page = 1) {
     // Сигнатуру оставляем ту же, чтобы не трогать разметку:
     // href="javascript:get_category_history('...', 'clothes', 'underwear')"
     window.get_category_product_cards = function (_url, category, subcategory) {
-        // что сейчас считать "активным" табом (см. твой update_category)
-        let proc_category = category;
-        if (subcategory && subcategory !== 'common') {
-            proc_category = subcategory;
+        const group = pc_get_category_group_for_click(category);
+        if (group) {
+            pc_show_category_group(group.mode);
+        } else if (pcCategoryTabsMode !== "main") {
+            pc_show_main_category_tabs();
         }
 
         // обновляем текущие значения
@@ -378,6 +785,7 @@ function loadTable(page = 1) {
 
         // визуально переключаем активный таб
         pc_update_category(category, subcategory);
+        updateCreateCurrentButton();
 
         // перезагружаем таблицу по новой категории
         loadTable(1);
@@ -386,11 +794,33 @@ function loadTable(page = 1) {
     const subcatWrapper    = document.getElementById("pc-create-subcat-wrapper");
     const subcategorySelect = document.getElementById("pc-create-subcategory");
     const createContinueBtn = document.getElementById("pc-create-continue");
+    const subcategoryLabel = document.getElementById("pc-create-subcategory-label");
+
+    function pcCategoryHasSubcategories(category) {
+        return category === "clothes" || Boolean(PC_SUBCATEGORY_CREATE_LABELS[category]);
+    }
+
+    function syncCreateSubcategoryOptions(category) {
+        if (!subcategorySelect) return;
+        let firstVisible = null;
+        Array.from(subcategorySelect.options).forEach(option => {
+            const visible = option.dataset.category === category;
+            option.hidden = !visible;
+            option.disabled = !visible;
+            if (visible && !firstVisible) firstVisible = option;
+        });
+        if (firstVisible) subcategorySelect.value = firstVisible.value;
+        if (subcategoryLabel) {
+            const categoryTitle = PC_CATEGORY_CREATE_LABELS[category] || "";
+            subcategoryLabel.textContent = categoryTitle ? `Подкатегория: ${categoryTitle}` : "Подкатегория";
+        }
+    }
 
     if (categorySelect) {
         // показать/скрыть подкатегории
         categorySelect.addEventListener("change", function () {
-            if (this.value === "clothes") {
+            if (pcCategoryHasSubcategories(this.value)) {
+                syncCreateSubcategoryOptions(this.value);
                 subcatWrapper.classList.remove("d-none");
             } else {
                 subcatWrapper.classList.add("d-none");
@@ -408,7 +838,7 @@ function loadTable(page = 1) {
             }
 
             let subcat = "";
-            if (cat === "clothes" && subcategorySelect && !subcatWrapper.classList.contains("d-none")) {
+            if (pcCategoryHasSubcategories(cat) && subcategorySelect && !subcatWrapper.classList.contains("d-none")) {
                 subcat = subcategorySelect.value || "";
             }
 
@@ -422,7 +852,12 @@ function loadTable(page = 1) {
             window.location.href = targetUrl;
         });
     }
+    pc_init_category_tabs_mode(currentCategory, currentSubcategory);
+    updateCreateCurrentButton();
+    window.pcUpdateCreatedCardsCount(config.dataset.createdCardsCount);
+
     // первый старт
+    pc_init_category_definition_search();
     loadTable(1);
 });
 

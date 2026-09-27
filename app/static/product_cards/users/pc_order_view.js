@@ -26,11 +26,14 @@
     return isNaN(n) ? 0 : n;
   }
 
+  function hasRenderedPcOrderTable() {
+    return !!document.getElementById("pc-order-table-root");
+  }
+
   async function loadPcOrderTable() {
     const c = cfg();
     if (!c || !c.tableUrl) return;
 
-    // 1) спиннер + плейсхолдер в блоке
     const mount = document.getElementById("pc-order-table");
     if (mount) {
       mount.innerHTML = `
@@ -40,9 +43,6 @@
         </div>
       `;
     }
-
-    // если у тебя глобальный оверлей-спиннер:
-    try { loadingCircle(); } catch (e) {}
 
     try {
       const r = await fetch(c.tableUrl, { method: "GET" });
@@ -65,9 +65,6 @@
         `;
       }
       console.error("loadPcOrderTable error:", e);
-    } finally {
-      // закрыть оверлей-спиннер
-      try { close_Loading_circle(); } catch (e) {}
     }
   }
 
@@ -175,7 +172,9 @@
   };
 
   document.addEventListener("DOMContentLoaded", () => {
-    loadPcOrderTable();
+    if (!hasRenderedPcOrderTable()) {
+      loadPcOrderTable();
+    }
 
     const btn = document.getElementById("btnClearPcOrder");
     if (btn) {

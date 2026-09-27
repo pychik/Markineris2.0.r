@@ -37,10 +37,41 @@ function pcGetBulkMoveUrl() {
   return url;
 }
 
+function pcGetBulkAssignManagerUrl() {
+  const cfg = pcGetConfigEl().dataset;
+  const url = cfg.bulkAssignManagerUrl;
+  if (!url) throw new Error("bulkAssignManagerUrl missing in pc-config");
+  return url;
+}
+
+function pcGetFilteredManagerId() {
+  const select = document.getElementById("selectManager");
+  return (select?.value || "").trim();
+}
+
+function pcAppendCurrentCrmFilters(fd) {
+  const cfg = pcGetConfigEl().dataset;
+  const category = pcGetActiveCategory();
+  const subcategory = pcGetActiveSubcategory();
+  const filteredManagerId = pcGetFilteredManagerId();
+
+  if (cfg.csrf) fd.append("csrf_token", cfg.csrf);
+  if (category) fd.append("category", category);
+  if (subcategory) fd.append("subcategory", subcategory);
+  if (filteredManagerId) fd.append("filtered_manager_id", filteredManagerId);
+}
+
 function pcGetAssignManagerUrl(cardId) {
   const cfg = pcGetConfigEl().dataset;
   const tpl = cfg.assignManagerUrlTemplate;
   if (!tpl) throw new Error("assignManagerUrlTemplate missing in pc-config");
+  return pcUrlFromTemplate(tpl, cardId);
+}
+
+function pcGetChangeProcessingCompanyUrl(cardId) {
+  const cfg = pcGetConfigEl().dataset;
+  const tpl = cfg.changeProcessingCompanyUrlTemplate;
+  if (!tpl) throw new Error("changeProcessingCompanyUrlTemplate missing in pc-config");
   return pcUrlFromTemplate(tpl, cardId);
 }
 
@@ -66,9 +97,30 @@ function pcUpdateCardArticleValue(cardId, articleOrTrademark) {
   }, 2400);
 }
 
+function pcUpdateCardCompanyValue(cardId, processingCompany) {
+  if (!cardId || !processingCompany) return;
+  const cardEl = document.getElementById(`cardCommonBlock_${cardId}`);
+  if (!cardEl) return;
+
+  const companyEl = cardEl.querySelector("[data-pc-company-label]");
+  if (!companyEl) return;
+
+  companyEl.textContent = String(processingCompany.label || "").trim() || "-";
+
+  cardEl.classList.remove("order--card-updated");
+  void cardEl.offsetWidth;
+  cardEl.classList.add("order--card-updated");
+
+  window.clearTimeout(cardEl.__pcUpdatedFxTimer);
+  cardEl.__pcUpdatedFxTimer = window.setTimeout(() => {
+    cardEl.classList.remove("order--card-updated");
+  }, 2400);
+}
+
 function pcApplyExternalCardUpdate(data) {
   if (!data || data.type !== "pc_card_updated") return;
   pcUpdateCardArticleValue(data.card_id, data.article_or_trademark);
+  pcUpdateCardCompanyValue(data.card_id, data.processing_company);
 }
 
 window.addEventListener("storage", (event) => {
@@ -288,14 +340,10 @@ function pcTakeCardToProcessing(btnEl) {
     return;
   }
 
-  const cfg = pcGetConfigEl().dataset;
   const url = pcGetTakeUrl(cardId);
-  const category = pcGetActiveCategory();
 
   const form = new FormData();
-  if (cfg.csrf) form.append("csrf_token", cfg.csrf);
-  if (cfg.currentCategory) form.append("category", category);
-  if (cfg.currentSubcategory) form.append("subcategory", cfg.currentSubcategory);
+  pcAppendCurrentCrmFilters(form);
 
   loadingCircle();
 
@@ -333,19 +381,11 @@ function pcMoveCard(btnEl, target) {
   const cardId = btnEl?.dataset?.cardId;
   if (!cardId) return alert("card-id not found");
 
-  const cfg = pcGetConfigEl().dataset;
   const url = pcGetMoveUrl(cardId);
 
   const fd = new FormData();
-  if (cfg.csrf) fd.append("csrf_token", cfg.csrf);
   fd.append("target", target);
-
-  const category = pcGetActiveCategory();        // ✅ теперь из UI
-
-
-  // протаскиваем фильтры (чтобы бэк перерендерил правильные списки)
-  if (cfg.currentCategory) fd.append("category", category);
-  if (cfg.currentSubcategory) fd.append("subcategory", cfg.currentSubcategory);
+  pcAppendCurrentCrmFilters(fd);
 
   // если отклонение — пусть кнопка передаёт reason в data-reject-reason,
 
@@ -423,7 +463,6 @@ function pcApplyMoveResponse(data) {
     clarification: {qty: "clarification_cards_qty", list: "clarification_cards_list"},
     approved: {qty: "approved_cards_qty", list: "approved_cards_list"},
     rejected: {qty: "rejected_cards_qty", list: "rejected_cards_list"},
-    partially_approved: {qty: "partially_approved_cards_qty", list: "partially_approved_cards_list"},
   };
 
   function applyBlock(statusKey, qtyVal, htmlVal) {
@@ -469,7 +508,6 @@ function pcApplyBulkMoveResponse(data) {
     clarification: {qty: "clarification_cards_qty", list: "clarification_cards_list"},
     approved: {qty: "approved_cards_qty", list: "approved_cards_list"},
     rejected: {qty: "rejected_cards_qty", list: "rejected_cards_list"},
-    partially_approved: {qty: "partially_approved_cards_qty", list: "partially_approved_cards_list"},
   };
 
   Object.entries(data.updated_columns).forEach(([statusKey, payload]) => {
@@ -494,6 +532,10 @@ function pcBulkCheckboxes(statusKey) {
 }
 
 function pcSetBulkMode(statusKey, enabled) {
+  if (enabled && typeof pcSetBulkAssignMode === "function") {
+    pcSetBulkAssignMode(false);
+  }
+
   const panel = document.getElementById(`pc-bulk-panel-${statusKey}`);
   const startBtn = document.getElementById(`pc-bulk-start-${statusKey}`);
 
@@ -531,16 +573,11 @@ function pcBulkMoveSelected(fromStatus, target) {
     return;
   }
 
-  const cfg = pcGetConfigEl().dataset;
   const fd = new FormData();
-  if (cfg.csrf) fd.append("csrf_token", cfg.csrf);
   fd.append("target", target);
   selectedIds.forEach((cardId) => fd.append("card_ids[]", cardId));
 
-  const category = pcGetActiveCategory();
-  const subcategory = pcGetActiveSubcategory();
-  if (category) fd.append("category", category);
-  if (subcategory) fd.append("subcategory", subcategory);
+  pcAppendCurrentCrmFilters(fd);
 
   loadingCircle();
 
@@ -582,6 +619,129 @@ window.pcUpdateBulkCount = pcUpdateBulkCount;
 window.pcBulkMoveSelected = pcBulkMoveSelected;
 
 /* =========================
+   BULK ASSIGN MANAGER
+========================= */
+
+function pcBulkAssignCheckboxes() {
+  return Array.from(document.querySelectorAll(".pc-bulk-assign-check"));
+}
+
+function pcSetBulkAssignMode(enabled) {
+  const managerSelect = document.getElementById("pc-bulk-assign-manager-select");
+  const panel = document.getElementById("pc-bulk-assign-panel");
+  const startBtn = document.getElementById("pc-bulk-assign-start");
+
+  if (enabled && typeof pcSetBulkMode === "function") {
+    pcSetBulkMode("clarification", false);
+  }
+
+  if (enabled && !managerSelect?.value) {
+    if (typeof make_message === "function") make_message("Выберите оператора для назначения", "warning");
+    managerSelect?.focus();
+    enabled = false;
+  }
+
+  if (panel) panel.classList.toggle("d-none", !enabled);
+  if (startBtn) startBtn.classList.toggle("d-none", enabled);
+
+  document.querySelectorAll(".pc-bulk-assign-select").forEach((holder) => {
+    holder.classList.toggle("d-none", !enabled);
+  });
+
+  pcBulkAssignCheckboxes().forEach((checkbox) => {
+    checkbox.checked = false;
+  });
+
+  pcUpdateBulkAssignCount();
+}
+
+function pcBulkAssignManagerChanged() {
+  const panel = document.getElementById("pc-bulk-assign-panel");
+  if (panel && !panel.classList.contains("d-none")) {
+    pcSetBulkAssignMode(false);
+  }
+}
+
+function pcUpdateBulkAssignCount() {
+  const count = pcBulkAssignCheckboxes().filter((checkbox) => checkbox.checked).length;
+  const el = document.getElementById("pc-bulk-assign-count");
+  if (el) el.textContent = String(count);
+}
+
+function pcBulkAssignSelected() {
+  const managerId = (document.getElementById("pc-bulk-assign-manager-select")?.value || "").trim();
+  if (!managerId) {
+    if (typeof make_message === "function") make_message("Выберите оператора", "warning");
+    return;
+  }
+
+  const selectedIds = pcBulkAssignCheckboxes()
+      .filter((checkbox) => checkbox.checked)
+      .map((checkbox) => checkbox.value)
+      .filter(Boolean);
+
+  if (!selectedIds.length) {
+    if (typeof make_message === "function") make_message("Выберите карточки", "warning");
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append("manager_id", managerId);
+  selectedIds.forEach((cardId) => fd.append("card_ids[]", cardId));
+  pcAppendCurrentCrmFilters(fd);
+
+  loadingCircle();
+
+  fetch(pcGetBulkAssignManagerUrl(), {method: "POST", body: fd})
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.status !== "success") {
+          throw new Error(data.message || "Ошибка назначения оператора");
+        }
+        return data;
+      })
+      .then((data) => {
+        withTooltipsRefresh(() => {
+          pcApplyBulkMoveResponse(data);
+          pcSetBulkAssignMode(false);
+          if (typeof make_message === "function") {
+            make_message(data.message || "Готово", data.status || "success");
+          }
+        }, document);
+      })
+      .catch((e) => {
+        if (typeof make_message === "function") make_message(e.message || "Ошибка", "error");
+        else alert(e.message);
+      })
+      .finally(() => {
+        close_Loading_circle();
+      });
+}
+
+function pcFilterManager() {
+  const category = pcGetActiveCategory();
+  const params = new URLSearchParams();
+  params.set("bck", "1");
+  if (category) params.set("category", category);
+
+  const subcategory = pcGetActiveSubcategory();
+  if (subcategory) params.set("subcategory", subcategory);
+
+  const filteredManagerId = pcGetFilteredManagerId();
+  if (filteredManagerId) params.set("filtered_manager_id", filteredManagerId);
+
+  update_url_temp = `${UPDATE_PRODUCT_CARDS_CRM_URL.split("?")[0]}?${params.toString()}`;
+  pcSetBulkAssignMode(false);
+  update_crm_info();
+}
+
+window.pcSetBulkAssignMode = pcSetBulkAssignMode;
+window.pcBulkAssignManagerChanged = pcBulkAssignManagerChanged;
+window.pcUpdateBulkAssignCount = pcUpdateBulkAssignCount;
+window.pcBulkAssignSelected = pcBulkAssignSelected;
+window.pcFilterManager = pcFilterManager;
+
+/* =========================
    REJECT MODAL -> move rejected with reason
 ========================= */
 
@@ -615,13 +775,12 @@ function pcOpenRejectModal(btnEl) {
 window.pcOpenRejectModal = pcOpenRejectModal;
 
 function pcMoveCardWithReason(cardId, target, rejectReason) {
-  const cfg = pcGetConfigEl().dataset;
   const url = pcGetMoveUrl(cardId);
 
   const fd = new FormData();
-  if (cfg.csrf) fd.append("csrf_token", cfg.csrf);
   fd.append("target", target);
   fd.append("reject_reason", rejectReason);
+  pcAppendCurrentCrmFilters(fd);
 
   loadingCircle();
 
@@ -754,6 +913,122 @@ function pcUpdateManagerOnCard(cardId, managerId, managerLogin) {
 window.pcOpenAssignManagerModal = pcOpenAssignManagerModal;
 window.pcAssignManager = pcAssignManager;
 
+/* =========================
+   CHANGE PROCESSING COMPANY
+========================= */
+
+function pcToggleProcessingCompanySelect(el) {
+  const editor = document.getElementById("pc-card-processing-company-editor");
+  if (!editor) return;
+
+  editor.classList.toggle("d-none");
+  const select = document.getElementById("pc-card-processing-company-select");
+  if (select && !editor.classList.contains("d-none")) select.focus();
+}
+
+function pcChangeProcessingCompany(selectEl) {
+  const cardId = selectEl?.dataset?.cardId;
+  const companyKey = (selectEl?.value || "").trim();
+  const previousCompanyKey = selectEl?.dataset?.currentCompanyKey
+      || Array.from(selectEl?.options || []).find((option) => option.defaultSelected)?.value
+      || "";
+
+  if (!cardId) {
+    if (typeof make_message === "function") make_message("Не найден ID карточки", "error");
+    return;
+  }
+  if (!companyKey) {
+    if (typeof make_message === "function") make_message("Выберите компанию", "warning");
+    return;
+  }
+
+  const submitChange = (confirmed) => {
+    const cfg = pcGetConfigEl().dataset;
+    const fd = new FormData();
+    if (cfg.csrf) fd.append("csrf_token", cfg.csrf);
+    fd.append("company_key", companyKey);
+    if (confirmed) fd.append("confirm_all_sizes_company_change", "1");
+
+    return fetch(pcGetChangeProcessingCompanyUrl(cardId), {method: "POST", body: fd})
+        .then(async (res) => {
+          const data = await res.json().catch(() => ({}));
+          if (data.status === "confirm_required") {
+            if (window.confirm(data.message || "Подтвердите смену компании для всех размеров")) {
+              return submitChange(true);
+            }
+            return {status: "cancelled", message: "Смена компании отменена"};
+          }
+          if (!res.ok || data.status !== "success") {
+            throw new Error(data.message || "Ошибка смены компании");
+          }
+          return data;
+        });
+  };
+
+  selectEl.disabled = true;
+  loadingCircle();
+
+  submitChange(false)
+      .then((data) => {
+        if (data.status === "cancelled") {
+          selectEl.value = previousCompanyKey;
+          if (typeof make_message === "function") make_message(data.message, "warning");
+          return;
+        }
+
+        pcUpdateProcessingCompanyView(data);
+        if (typeof make_message === "function") {
+          make_message(data.message || "Компания изменена", data.status || "success");
+        }
+
+        const statusesToReload = Array.isArray(data.reload_statuses) ? data.reload_statuses : [];
+        if (data.status_value) statusesToReload.push(data.status_value);
+        if (typeof pcReloadColumn === "function") {
+          Array.from(new Set(statusesToReload.filter(Boolean))).forEach((statusKey) => {
+            requestAnimationFrame(() => pcReloadColumn(statusKey));
+          });
+        }
+
+        if (data.deleted_card_id && typeof pcCloseCardViewModal === "function") {
+          pcCloseCardViewModal();
+        }
+      })
+      .catch((e) => {
+        selectEl.value = previousCompanyKey;
+        if (typeof make_message === "function") make_message(e.message || "Ошибка", "error");
+        else alert(e.message);
+      })
+      .finally(() => {
+        selectEl.disabled = false;
+        close_Loading_circle();
+      });
+}
+
+function pcUpdateProcessingCompanyView(data) {
+  const company = data?.company || {};
+  const label = company.label || "-";
+  const assignedAt = company.assigned_at || "";
+
+  const modalLabel = document.getElementById("pc-card-processing-company-label");
+  if (modalLabel) modalLabel.textContent = label;
+
+  const modalDate = document.getElementById("pc-card-processing-company-date");
+  if (modalDate) modalDate.textContent = assignedAt ? `Дата смены: ${assignedAt}` : "";
+
+  const editor = document.getElementById("pc-card-processing-company-editor");
+  if (editor) editor.classList.add("d-none");
+
+  const select = document.getElementById("pc-card-processing-company-select");
+  if (select) select.dataset.currentCompanyKey = company.key || company.inn || company.external_id || company.title || "";
+
+  const cardEl = document.getElementById(`cardCommonBlock_${data.card_id}`);
+  const cardCompanyLabel = cardEl?.querySelector("[data-pc-company-label]");
+  if (cardCompanyLabel) cardCompanyLabel.textContent = label;
+}
+
+window.pcToggleProcessingCompanySelect = pcToggleProcessingCompanySelect;
+window.pcChangeProcessingCompany = pcChangeProcessingCompany;
+
 
 /* =========================
    BOOT
@@ -849,6 +1124,8 @@ function pcReloadColumn(statusKey) {
 
   if (category) params.set("category", category);
   if (subcategory) params.set("subcategory", subcategory);
+  const filteredManagerId = pcGetFilteredManagerId();
+  if (filteredManagerId) params.set("filtered_manager_id", filteredManagerId);
   if (statusKey === "in_moderation") {
       const sel = document.getElementById("in_moderation_company_select");
       const companyId = (sel?.value || "").trim();
@@ -867,12 +1144,12 @@ function pcReloadColumn(statusKey) {
       .then((data) => {
         withTooltipsRefresh(() => {
           const map = {
+            sent_no_rd: {qty: "sent_no_rd_cards_qty", list: "sent_no_rd_cards_list"},
             sent: {qty: "sent_cards_qty", list: "sent_cards_list"},
             in_progress: {qty: "in_progress_cards_qty", list: "in_progress_cards_list"},
             in_moderation: {qty: "in_moderation_cards_qty", list: "in_moderation_cards_list"},
             approved: {qty: "approved_cards_qty", list: "approved_cards_list"},
             rejected: {qty: "rejected_cards_qty", list: "rejected_cards_list"},
-            partially_approved: {qty: "partially_approved_cards_qty", list: "partially_approved_cards_list"},
           };
 
           const dest = map[statusKey];
@@ -1044,137 +1321,6 @@ if (!r.ok || data.status !== 'success') {
   }
 }
 
-async function pcSetCompanySlot(cardId, slot) {
-  const cfg = document.getElementById('pc-config');
-  const csrf = cfg.dataset.csrf;
-  const url = cfg.dataset.setCompanySlotUrl.replace(/0\b/, String(cardId));
-
-  const sel = document.getElementById(`pc-company-slot-${slot}`);
-  const companyId = sel ? sel.value : "";
-
-  const msg = document.getElementById('pc-companies-msg');
-  if (msg) msg.innerHTML = '';
-
-  if (!companyId) {
-    if (msg) msg.innerHTML = '<span class="text-danger">Выберите компанию</span>';
-    return;
-  }
-
-  const fd = new FormData();
-  fd.append('slot', String(slot));
-  fd.append('company_id', String(companyId));
-  fd.append('csrf_token', csrf);
-
-  const r = await fetch(url, {method:'POST', body:fd, headers:{'X-Requested-With':'XMLHttpRequest'}});
-  const data = await r.json();
-
-  if (data.status !== 'success') {
-    if (msg) msg.innerHTML = `<span class="text-danger">${data.message || 'Ошибка'}</span>`;
-    return;
-  }
-
-  const box = document.getElementById('pc-card-view-companies');
-  if (box) box.outerHTML = data.html;
-}
-
-function pcApproveFromPartially(cardId) {
-  const cfg = pcGetConfigEl().dataset;
-  const csrf = cfg.csrf;
-
-  const tpl = cfg.approveFromPartiallyUrlTemplate; // пробьём так же, как move template
-  if (!tpl) throw new Error("approveFromPartiallyUrlTemplate missing in pc-config");
-  const url = pcUrlFromTemplate(tpl, cardId);
-
-  const fd = new FormData();
-  if (csrf) fd.append("csrf_token", csrf);
-
-  loadingCircle();
-
-  fetch(url, { method: "POST", body: fd })
-    .then(async (res) => {
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.status !== "success") {
-        throw new Error(data.message || "Ошибка");
-      }
-      return data;
-    })
-    .then(async (data) => {
-      if (typeof make_message === "function") make_message("Карточка переведена в APPROVED", "success");
-
-      // сперва закрываем
-      pcCloseCardViewModal();
-
-      // потом обновляем колонку (можно без await)
-      pcReloadPartiallyApprovedColumn().catch(() => {});
-    })
-
-    .catch((e) => {
-      if (typeof make_message === "function") make_message(e.message || "Ошибка", "error");
-      else alert(e.message);
-    })
-    .finally(() => close_Loading_circle());
-}
-
-window.pcApproveFromPartially = pcApproveFromPartially;
-
-
-function pcReloadPartiallyApprovedColumn() {
-  const cfg = pcGetConfigEl().dataset;
-  const url = cfg.lazyColumnUrl; // data-lazy-column-url
-
-  if (!url) throw new Error("lazyColumnUrl missing in pc-config");
-
-  const category = pcGetActiveCategory ? pcGetActiveCategory() : (cfg.currentCategory || "");
-  const subcategory = cfg.currentSubcategory || "";
-
-  const qs = new URLSearchParams();
-  qs.set("status", "partially_approved");
-  if (category) qs.set("category", category);
-  if (subcategory) qs.set("subcategory", subcategory);
-
-  return fetch(`${url}?${qs.toString()}`, { headers: { "X-Requested-With": "XMLHttpRequest" } })
-    .then(async (res) => {
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.status !== "success") {
-        throw new Error(data.message || "Не удалось обновить partially_approved");
-      }
-      return data;
-    })
-    .then((data) => {
-      // ✅ ВАЖНО: поставь правильный id контейнера partially_approved списка
-      // Обычно это что-то вроде: partially_approved_list / partially_approved_cards / st_... и т.п.
-      const listEl =
-        document.getElementById("partially_approved_cards_list") ||
-        document.querySelector("[data-col='partially_approved'] .pc-cards-list") ||
-        document.getElementById("st_partially_approved_list");
-
-      if (!listEl) {
-        // не падаем, но сообщим
-        if (typeof make_message === "function") make_message("Колонка PARTIALLY_APPROVED не найдена в DOM", "warning");
-        return data;
-      }
-
-      listEl.innerHTML = data.list_html;
-
-      // qty — если у тебя есть счётчик
-      const qtyEl =
-        document.getElementById("partially_approved_qty") ||
-        document.querySelector("[data-col='partially_approved'] .pc-col-qty");
-
-      if (qtyEl) qtyEl.textContent = data.qty;
-
-      // если у тебя есть хелпер refresh тултипов
-      if (typeof withTooltipsRefresh === "function") {
-        withTooltipsRefresh(() => {}, document);
-      }
-
-      return data;
-    });
-}
-
-window.pcReloadPartiallyApprovedColumn = pcReloadPartiallyApprovedColumn;
-
-
 function pcCloseCardViewModal() {
   const el = document.getElementById("pc-view-modal");
   if (!el) return;
@@ -1209,6 +1355,121 @@ function pcCloseCardViewModal() {
 }
 
 window.pcCloseCardViewModal = pcCloseCardViewModal;
+
+/* =========================
+   COMPANY STATS DISTRIBUTION
+========================= */
+
+function pcCompanyStatsSetBody(html) {
+  const body = document.getElementById("pc-company-stats-modal-body");
+  if (body) body.innerHTML = html || "";
+}
+
+function pcCompanyStatsSetSubtitle(data) {
+  const subtitle = document.getElementById("pc-company-stats-modal-subtitle");
+  if (!subtitle) return;
+
+  if (!data || !data.has_data) {
+    subtitle.textContent = "";
+    return;
+  }
+
+  subtitle.textContent = `Последний срез: ${data.snapshot_at || data.snapshot_date || ""}`;
+}
+
+function pcShowCompanyStatsModal() {
+  const modalEl = document.getElementById("pc-company-stats-modal");
+  if (!modalEl) return null;
+
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  modal.show();
+  return modal;
+}
+
+async function pcLoadCompanyStatsDistribution() {
+  const cfg = pcGetConfigEl().dataset;
+  const url = cfg.companyStatsUrl;
+  if (!url) throw new Error("companyStatsUrl отсутствует в pc-config");
+
+  const resp = await fetch(url, {
+    method: "GET",
+    headers: {"X-Requested-With": "XMLHttpRequest"},
+    credentials: "same-origin",
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.status !== "success") {
+    throw new Error(data.message || "Не удалось загрузить распределение");
+  }
+  return data;
+}
+
+function pcOpenCompanyStatsModal() {
+  pcCompanyStatsSetBody('<div class="text-muted">Загрузка...</div>');
+  pcCompanyStatsSetSubtitle(null);
+  pcShowCompanyStatsModal();
+  loadingCircle();
+
+  pcLoadCompanyStatsDistribution()
+      .then((data) => {
+        pcCompanyStatsSetBody(data.html || "");
+        pcCompanyStatsSetSubtitle(data);
+      })
+      .catch((e) => {
+        pcCompanyStatsSetBody(`<div class="text-danger">${escapeHtml(e.message || "Ошибка")}</div>`);
+        if (typeof make_message === "function") make_message(e.message || "Ошибка", "error");
+      })
+      .finally(() => close_Loading_circle());
+}
+
+async function pcRefreshCompanyStatsSnapshot(btnEl) {
+  const cfg = pcGetConfigEl().dataset;
+  const url = cfg.companyStatsRefreshUrl;
+  const csrf = cfg.csrf;
+
+  if (!url) {
+    make_message("companyStatsRefreshUrl отсутствует в pc-config", "error");
+    return;
+  }
+
+  const originalText = btnEl?.textContent || "";
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.textContent = "Обновляем...";
+  }
+  loadingCircle();
+
+  try {
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+        "X-CSRFToken": csrf || "",
+      },
+      body: JSON.stringify({}),
+      credentials: "same-origin",
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || data.status !== "success") {
+      throw new Error(data.message || "Не удалось обновить срез");
+    }
+
+    pcCompanyStatsSetBody(data.html || "");
+    pcCompanyStatsSetSubtitle(data);
+    make_message(data.message || "Срез обновлен", "success");
+  } catch (e) {
+    make_message(e.message || "Ошибка", "error");
+  } finally {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.textContent = originalText || "Обновить срез";
+    }
+    close_Loading_circle();
+  }
+}
+
+window.pcOpenCompanyStatsModal = pcOpenCompanyStatsModal;
+window.pcRefreshCompanyStatsSnapshot = pcRefreshCompanyStatsSnapshot;
 
 function getPcdownloadConfig() {
   const el = document.getElementById("pc-config");

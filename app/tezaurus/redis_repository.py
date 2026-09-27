@@ -12,6 +12,7 @@ from logger import logger
 from .constants import (
     DICTIONARY_COLORS,
     DICTIONARY_COUNTRIES,
+    DICTIONARY_PROCESSING_COMPANIES,
     DICTIONARY_TNVED,
 )
 from .exceptions import TezaurusStorageError
@@ -59,6 +60,14 @@ class RedisTezaurusRepository:
     @property
     def tnved_key(self) -> str:
         return f"{self.prefix}:tnved"
+
+    @property
+    def processing_companies_key(self) -> str:
+        return f"{self.prefix}:processing_companies"
+
+    @property
+    def processing_companies_list_key(self) -> str:
+        return f"{self.processing_companies_key}:list"
 
     @property
     def countries_index_key(self) -> str:
@@ -164,6 +173,10 @@ class RedisTezaurusRepository:
         payload = self._get_json(self.tnved_key, default={})
         return payload if isinstance(payload, dict) else {}
 
+    def get_processing_companies_snapshot(self) -> dict[str, Any]:
+        payload = self._get_json(self.processing_companies_key, default={})
+        return payload if isinstance(payload, dict) else {}
+
     def has_colors_data(self) -> bool:
         return bool(self.redis.exists(self.colors_key))
 
@@ -172,6 +185,9 @@ class RedisTezaurusRepository:
 
     def has_tnved_category(self, category: str) -> bool:
         return bool(self.redis.exists(self.tnved_filtered_key(category=category)))
+
+    def has_processing_companies_data(self) -> bool:
+        return bool(self.redis.exists(self.processing_companies_list_key))
 
     def save_colors(
         self,
@@ -204,6 +220,91 @@ class RedisTezaurusRepository:
             pipe.execute()
 
         return next_versions
+
+    def save_processing_companies(
+        self,
+        *,
+        payload: dict[str, Any],
+        remote_revision: dict[str, Any],
+        current_versions: dict[str, Any],
+    ) -> dict[str, Any]:
+        if payload.get("ok") is not True:
+            raise TezaurusStorageError("Processing companies payload is not successful")
+
+        raw_items = payload.get("items")
+        if not isinstance(raw_items, list):
+            raise TezaurusStorageError("Processing companies payload has invalid items format")
+
+        companies = self._normalize_processing_companies(raw_items)
+        snapshot = {
+            "revision": _as_int(payload.get("revision"), default=_as_int(remote_revision.get("revision"), default=0)),
+            "items": companies,
+        }
+
+        next_versions = self._next_versions(
+            current_versions=current_versions,
+            dictionary_name=DICTIONARY_PROCESSING_COMPANIES,
+            remote_revision=remote_revision,
+        )
+
+        with self.redis.pipeline(transaction=True) as pipe:
+            self._set_json(self.processing_companies_key, snapshot, pipe=pipe)
+            self._set_json(self.processing_companies_list_key, companies, pipe=pipe)
+            self._set_json(self.version_key, next_versions, pipe=pipe)
+            pipe.execute()
+
+        return next_versions
+
+    def _normalize_processing_companies(self, raw_items: list[Any]) -> list[dict[str, Any]]:
+        companies: list[dict[str, Any]] = []
+        seen: set[str] = set()
+
+        for item in raw_items:
+            if not isinstance(item, dict):
+                continue
+
+            external_id = self._processing_company_value(item, "id", "external_id", "company_id")
+            title = self._processing_company_value(item, "title", "name", "company_name")
+            inn = self._processing_company_value(item, "inn", "company_idn")
+
+            if not any((external_id, title, inn)):
+                continue
+
+            key = inn or external_id or title
+            if key in seen:
+                continue
+            seen.add(key)
+
+            companies.append({
+                "key": key,
+                "external_id": external_id,
+                "inn": inn,
+                "title": title,
+                "is_active": item.get("is_active", item.get("active", True)),
+                "category": item.get("category"),
+                "categories": item.get("categories"),
+                "origin": item.get("origin"),
+                "origins": item.get("origins"),
+            })
+
+        return sorted(companies, key=lambda company: ((company.get("title") or "").lower(), company.get("inn") or ""))
+
+    def _processing_company_value(self, company: dict[str, Any], *keys: str) -> str:
+        for key in keys:
+            value = company.get(key)
+            if value in (None, ""):
+                continue
+            if isinstance(value, dict):
+                value = next(
+                    (
+                        value.get(nested_key)
+                        for nested_key in ("full", "short", "value", "title", "name")
+                        if value.get(nested_key) not in (None, "")
+                    ),
+                    "",
+                )
+            return str(value).strip()
+        return ""
 
     def save_countries(
         self,
@@ -395,3 +496,6 @@ class RedisTezaurusRepository:
             gender=gender,
         )
         return self._get_json(key, default=None)
+
+    def get_processing_companies(self) -> Any:
+        return self._get_json(self.processing_companies_list_key, default=None)

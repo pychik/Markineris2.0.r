@@ -28,6 +28,13 @@
             <a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('crm_product_cards.cards')}}"
                 title="Панель управления пользователями">CRM карточки товаров</a>
         </li>
+        <li>
+            <button type="button"
+                    class="dropdown-item d-flex align-items-center py-2"
+                    onclick="pcOpenCompanyStatsModal()">
+                Мониторинг компаний
+            </button>
+        </li>
         {% if current_user.role in ['superuser', 'supermanager', 'manager', ]%}
             <li>
                 <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_d.managers') }}"
@@ -59,13 +66,6 @@
                     title="Панель управления финансами">Финансы</a>
             </li>
 
-        {% endif %}
-        {% if current_user.role in ['superuser', 'supermanager'] %}
-            <li>
-                <a class="dropdown-item d-flex align-items-center py-2" style="cursor: pointer" onclick="pcCompaniesOpen()">
-                    Пул фирм
-                </a>
-            </li>
         {% endif %}
         <li>
             <a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('auth.logout')}}">

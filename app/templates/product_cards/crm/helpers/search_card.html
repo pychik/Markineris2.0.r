@@ -1,5 +1,5 @@
-  <div>
-    <form onsubmit="return crmSearchCardSubmit(event)">
+  <div class="pc-crm-search-tools d-flex align-items-start gap-2 flex-wrap">
+    <form onsubmit="return crmSearchCardSubmit(event)" class="pc-crm-search-form">
       <div class="input-group">
         <input
           id="crm-search-card-input"
@@ -36,6 +36,42 @@
       </div>
     </form>
 
+    {% if current_user.role == "supermanager" or current_user.role == "superuser" %}
+      <div class="pc-crm-manager-tools d-flex flex-column align-items-stretch gap-2">
+        <select class="form-control form-control-sm" id="selectManager" onchange="pcFilterManager()"
+                title="Фильтр карточек по оператору">
+          <option value="" {% if not filtered_manager_id %}selected{% endif %}>Все карточки</option>
+          {% for m in managers_list %}
+            <option value="{{ m[0] }}" {% if filtered_manager_id == m[0] %}selected{% endif %}>
+              Карточки {{ m[1] }}
+            </option>
+          {% endfor %}
+        </select>
+
+        <select class="form-control form-control-sm" id="pc-bulk-assign-manager-select"
+                onchange="pcBulkAssignManagerChanged()"
+                title="Оператор для назначения">
+          <option value="">Назначить оператора</option>
+          {% for m in managers_list %}
+            <option value="{{ m[0] }}">{{ m[1] }}</option>
+          {% endfor %}
+        </select>
+
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <button type="button"
+                  class="btn btn-sm btn-outline-warning"
+                  id="pc-bulk-assign-start"
+                  onclick="pcSetBulkAssignMode(true)">
+            Назначить
+          </button>
+
+          <div id="pc-bulk-assign-panel" class="d-none d-flex align-items-center gap-2 flex-wrap">
+            <span class="small text-muted">Выбрано: <b id="pc-bulk-assign-count">0</b></span>
+            <button type="button" class="btn btn-sm btn-warning" onclick="pcBulkAssignSelected()">OK</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pcSetBulkAssignMode(false)">×</button>
+          </div>
+        </div>
+      </div>
+    {% endif %}
 
   </div>
-

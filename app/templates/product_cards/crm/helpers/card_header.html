@@ -1,5 +1,16 @@
 <div class="order__header">
 
+  {% if c.status in ['in_progress', 'in_moderation', 'clarification'] %}
+    <div class="pc-bulk-assign-select d-none me-2" onclick="event.stopPropagation()">
+      <label class="form-check d-inline-flex align-items-center gap-2 mb-0">
+        <input type="checkbox"
+               class="form-check-input pc-bulk-assign-check"
+               value="{{ c.id }}"
+               onchange="pcUpdateBulkAssignCount()">
+        <span class="form-check-label small">Назначить</span>
+      </label>
+    </div>
+  {% endif %}
 
 
   <div class="order__name">

@@ -5,18 +5,19 @@ from uuid import uuid4
 
 from flask import jsonify, redirect, render_template, request, Response, flash, url_for
 from flask_login import current_user
+from markupsafe import escape
 from redis import Redis
 from rq import Queue
 from rq_scheduler.scheduler import Scheduler
 from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import joinedload, aliased
+from sqlalchemy.orm import joinedload, aliased, selectinload
 from werkzeug.utils import secure_filename
 
 from config import settings
 from logger import logger
-from models import User, Order, OrderStat, db, ServerParam, UserProcessingCompany
+from models import User, Order, OrderStat, FastOrderCompanies, db, ServerParam
 from redis_queue.callbacks import on_success_periodic_task, on_failure_periodic_task
 from utilities.download import crm_orders_common_preload
 from utilities.exceptions import EmptyFileToUploadError
@@ -30,6 +31,56 @@ from utilities.telegram import MarkinerisInform
 from .crm_support import h_cancel_order_process_payment
 from .order_chat import h_order_chat_unread_map
 from .schema import CompaniesOperators
+
+
+def _order_processing_company_options(order: Order) -> list[dict]:
+    return [
+        {
+            "value": str(company.id),
+            "label": company.processing_company_label or "Компания не указана",
+            "upd_number": company.upd_number or "",
+        }
+        for company in order.fast_order_companies
+    ]
+
+
+def _order_fast_companies_for_details(order_id: int) -> list[SimpleNamespace]:
+    companies = (
+        FastOrderCompanies.query
+        .filter(FastOrderCompanies.order_id == order_id)
+        .order_by(FastOrderCompanies.id.asc())
+        .all()
+    )
+    return [
+        SimpleNamespace(
+            slot=index,
+            title=company.processing_company_title or company.processing_company_external_id or "Компания не указана",
+            inn=company.processing_company_inn or "",
+            is_approved=True,
+        )
+        for index, company in enumerate(companies, start=1)
+    ]
+
+
+def _format_processing_info_rows(rows: list[tuple[str, str]]) -> str:
+    return "<br>".join(
+        f"{escape(company_label)} <br> УПД: {escape(upd_number)}"
+        for company_label, upd_number in rows
+    )
+
+
+def _processing_order_query():
+    return Order.query.options(
+        lazyload("*"),
+        selectinload(Order.fast_order_companies),
+        load_only(
+            Order.id,
+            Order.order_idn,
+            Order.processing_info,
+            Order.is_moderation,
+            Order.manager_id,
+        ),
+    )
 
 
 def _attach_order_chat_unread(rows, viewer_user_id: Optional[int]):
@@ -2018,13 +2069,27 @@ def helper_get_processing_order_info() -> Response:
         message = 'Ошибка- не указан номер заказа!'
         return jsonify({'status': status, 'message': message})
 
-    order_info = Order.query.with_entities(Order.processing_info, Order.order_idn).filter(Order.id == order_id).first()
+    order_info = (
+        Order.query.options(
+            selectinload(Order.fast_order_companies),
+        )
+        .filter(Order.id == order_id)
+        .first()
+    )
     if not order_info:
         message = 'Ошибка- заказ не найден, обратитесь к администратору.'
         return jsonify({'status': status, 'message': message})
 
     status = 'success'
-    companies_operators = [c.as_option() for c in CompaniesOperators]
+    message = "Организация и УПД заказа не закреплены"
+    is_pc_order = bool(order_info.is_moderation)
+    if is_pc_order:
+        companies_operators = _order_processing_company_options(order_info)
+    else:
+        companies_operators = [
+            {"value": f"g:{c.name}", "label": c.as_option()[1]}
+            for c in CompaniesOperators
+        ]
 
     if order_info:
         status = "success"
@@ -2037,32 +2102,106 @@ def helper_get_processing_order_info() -> Response:
 
 
 def helper_update_processing_order_info() -> tuple[Response, int]:
-    data = request.get_json()
+    data = request.get_json() or {}
 
     order_id = data.get("order_id")
-    company = data.get("company")
+    company_value = data.get("company")
     upd_number = data.get("upd_number")
-    if not all([order_id, company, upd_number]):
+    if not order_id:
         return jsonify({
             "status": "error",
             "message": "Все поля обязательны к заполнению"
         }), 400
 
-    order = Order.query.get(order_id)
-    if current_user.role == settings.MANAGER_USER and order.manager_id != current_user.id:
-        return jsonify({
-            "status": "error",
-            "message": "Этот заказ закреплен за другим оператором"
-        }), 404
+    order = (
+        Order.query.options(
+            selectinload(Order.fast_order_companies),
+        )
+        .filter(Order.id == order_id)
+        .first()
+    )
     if not order:
         return jsonify({
             "status": "error",
             "message": "Заказ не найден"
         }), 404
 
+    if current_user.role == settings.MANAGER_USER and order.manager_id != current_user.id:
+        return jsonify({
+            "status": "error",
+            "message": "Этот заказ закреплен за другим оператором"
+        }), 404
+
+    if order.is_moderation:
+        raw_items = data.get("companies_upd") or []
+        if not isinstance(raw_items, list) or not raw_items:
+            return jsonify({"status": "error", "message": "Все поля обязательны к заполнению"}), 400
+
+        companies_by_id = {str(company.id): company for company in order.fast_order_companies}
+        submitted_company_ids = {
+            str(raw_item.get("company") or "").strip()
+            for raw_item in raw_items
+            if isinstance(raw_item, dict)
+        }
+        if submitted_company_ids != set(companies_by_id):
+            return jsonify({"status": "error", "message": "Заполните УПД по всем компаниям заказа"}), 400
+
+        info_rows = []
+        for raw_item in raw_items:
+            if not isinstance(raw_item, dict):
+                continue
+            key = str(raw_item.get("company") or "").strip()
+            item_upd = str(raw_item.get("upd_number") or "").strip()
+            if not key or not item_upd:
+                return jsonify({"status": "error", "message": "Заполните УПД по всем компаниям заказа"}), 400
+            company = companies_by_id.get(key)
+            if not company:
+                return jsonify({"status": "error", "message": "Некорректная компания"}), 400
+            company.upd_number = item_upd
+            info_rows.append((company.processing_company_label or "Компания не указана", item_upd))
+
+        try:
+            order.processing_info = _format_processing_info_rows(info_rows)
+            db.session.commit()
+
+            return jsonify({
+                "status": "success",
+                "message": f"Информация по заказу № {order.order_idn} обновлена",
+                "order_idn": order.order_idn,
+                "processing_info": order.processing_info
+            }), 200
+
+        except Exception as e:
+            db.session.rollback()
+            logger.exception("Ошибка обновления информации по организациям проводящим заказ: ")
+            return jsonify({
+                "status": "error",
+                "message": f"Ошибка при обновлении: {str(e)}"
+            }), 500
+
+    if not all([company_value, upd_number]):
+        return jsonify({
+            "status": "error",
+            "message": "Все поля обязательны к заполнению"
+        }), 400
+
+    try:
+        kind, raw = company_value.split(":", 1)
+    except ValueError:
+        return jsonify({"status": "error", "message": "Некорректная компания"}), 400
+
+    if kind == "g":
+        try:
+            enum_item = CompaniesOperators[raw]
+        except KeyError:
+            return jsonify({"status": "error", "message": "Некорректная компания"}), 400
+        company_label = enum_item.as_option()[1]
+    else:
+        return jsonify({"status": "error", "message": "Некорректная компания"}), 400
+
     try:
 
-        order.processing_info = f"{company} <br> УПД: {upd_number}"
+        order.processing_info = _format_processing_info_rows([(company_label, str(upd_number).strip())])
         db.session.commit()
 
         return jsonify({
@@ -2436,29 +2575,6 @@ def _sanitize_order_desc_pii(order_row, user: User):
     return SimpleNamespace(**safe_data)
 
 
-def _get_user_companies_for_user(user_id: int):
-    rows = (
-        UserProcessingCompany.query
-        .options(joinedload(UserProcessingCompany.company))
-        .filter(UserProcessingCompany.user_id == user_id)
-        .order_by(UserProcessingCompany.slot.asc())
-        .all()
-    )
-
-    out = []
-    for r in rows:
-        comp = r.company
-        out.append({
-            "slot": r.slot,
-            "is_approved": bool(r.is_approved),
-            "assigned_at": r.assigned_at,
-            "title": comp.title if comp else "",
-            "inn": comp.inn if comp else "",
-            "is_active": bool(comp.is_active) if comp else True,
-        })
-    return out
-
-
 def h_order_details():
     src = (request.args.get("src") or "").strip()
 
@@ -2474,8 +2590,7 @@ def h_order_details():
         return jsonify(status="error", message="Access denied"), 403
 
     n = _sanitize_order_desc_pii(n, current_user)
-
-    user_companies = _get_user_companies_for_user(n.user_id)
+    user_companies = _order_fast_companies_for_details(order_id) if n.is_moderation else []
 
     html = render_template(
         "crm_mod_v1/helpers/order_description.html",

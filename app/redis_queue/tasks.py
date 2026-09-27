@@ -13,6 +13,7 @@ from models import db, RestoreLink, OrderFile, Order, OrderMessage, OrderMessage
 from utilities.admin.h_finance_control import h_su_wo_transactions
 from utilities.minio_service.services import get_s3_service
 from views.crm.helpers import helpers_move_orders_to_processed, helper_auto_new_cancel_order
+from views.main.product_cards.company_stats import save_product_card_company_stats_snapshot
 from views.main.product_cards.crm.helpers import helper_reject_cards_by_rd_date_to_today
 from utilities.chat_attachments import (
     DELETED_CHAT_ATTACHMENT_CONTENT_TYPE,

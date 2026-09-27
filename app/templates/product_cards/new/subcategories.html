@@ -1,0 +1,57 @@
+{% extends 'main/base_v2.html' %}
+
+{% block main %}
+{% for css_path in extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename=css_path, v='pc-subcategories-1') }}">
+{% endfor %}
+
+<div class="container pb-4">
+    <div class="front text-center">
+        <h1 class="mb-5 fs-2">{{ page_title }}</h1>
+    </div>
+
+    <div class="row justify-content-center mb-5">
+        <div class="col-12 col-lg-8">
+            <label for="{{ search_input_id }}" class="form-label fw-semibold">
+                Введите ТНВЭД или вид товара для определения категории
+            </label>
+            <input
+                id="{{ search_input_id }}"
+                type="text"
+                class="form-control form-control-lg"
+                placeholder="{{ search_placeholder }}"
+                autocomplete="off"
+            >
+            <div id="{{ search_result_id }}" class="cosmetics-search-result is-empty" aria-live="polite"></div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        {% for subcategory_item in category_tiles %}
+        <div class="col-12 col-md-6 col-lg-4">
+            <a href="{{ subcategory_item.url }}" class="category-item text-center h-100">
+                {% if category == 'toys' %}
+                <div class="toys-category-icon-frame mx-auto" aria-hidden="true">
+                    <img class="toys-category-icon {{ subcategory_item.icon_class }}"
+                         src="{{ url_for('static', filename=subcategory_item.icon, v=image_version) }}" alt="">
+                </div>
+                {% else %}
+                <div class="d-flex justify-content-center align-items-center">
+                    <img src="{{ url_for('static', filename=subcategory_item.icon, v=image_version) }}"
+                         width="92" height="92" alt="" aria-hidden="true">
+                </div>
+                {% endif %}
+                <div class="category-item__name text-center">
+                    {{ subcategory_item.title }}
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    window[{{ search_index_name | tojson }}] = {{ search_index | tojson | safe }};
+</script>
+<script src="{{ url_for('static', filename=script_path, v=script_version) }}"></script>
+{% endblock %}

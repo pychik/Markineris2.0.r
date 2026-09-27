@@ -718,7 +718,7 @@ function normalizeCosmeticsRussianTextInput(inputEl) {
     };
     const layoutPunctuationMap = {
         '`': 'ё', '~': 'Ё', '[': 'х', '{': 'Х', ']': 'ъ', '}': 'Ъ',
-        ';': 'ж', ':': 'Ж', "'": 'э', '"': 'Э', ',': 'б', '<': 'Б', '.': 'ю', '>': 'Ю'
+        ';': 'ж', ':': 'Ж', "'": 'э', '"': 'Э', '<': 'Б', '>': 'Ю'
     };
     const hasLatinNeighbor = (chars, index) => (
         /[A-Za-z]/.test(chars[index - 1] || '') || /[A-Za-z]/.test(chars[index + 1] || '')
@@ -1254,8 +1254,8 @@ function cosmetics_clear_pos() {
     } else {
         updateCosmeticsFullName();
     }
-
     cosmetics_clear_tnved_feedback();
+    cosmeticsApplyRazorSwitchState(false);
     cosmeticsUpdateNominalQuantityTypeOptions();
     cosmeticsUpdateCategoryCode();
     cosmeticsToggleContentTypeBlock();
@@ -1305,6 +1305,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     initCosmeticsCategorySearch();
+    cosmeticsApplyRazorSwitchState(false);
     updateCosmeticsFullName();
     cosmetics_validate_full_name_requirements();
     cosmeticsUpdateNominalQuantityTypeOptions();

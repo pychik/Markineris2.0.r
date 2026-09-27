@@ -48,8 +48,8 @@
 
       <hr class="my-3">
 
-      {# PARFUM: quantity одним полем #}
-      {% if category == 'парфюм' %}
+      {# Single-unit categories: quantity одним полем #}
+      {% if category in ['парфюм', 'косметика', 'игрушки'] %}
         <div>
           Количество: <b>{{ pos.quantity or 0 }}</b>
         </div>

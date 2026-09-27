@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from flask import Blueprint, jsonify
 from flask_login import login_required, current_user
 
@@ -8,15 +6,16 @@ from utilities.support import (
     sumausmumu_required,
     suausmumu_required,
     susmumu_required,
-    bck_sumausmumu_required, sumsuu_required, bck_susmu_required, bck_suausmumu_t2_required,
+    bck_sumausmumu_required, bck_suausmumu_t2_required,
 )
 
 
-from .handlers import h_crm_cards, h_download_product_card, h_pc_take_card_to_processing, h_companies_delete, \
-    h_companies_create, h_companies_update, h_companies_modal, h_pc_move_card, h_pc_cards, h_pc_lazy_column, \
-    h_search_crm_card, h_crm_set_company_slot, h_crm_approve_from_partially, h_download_cards_companies_in_progress, \
+from .handlers import h_crm_cards, h_download_product_card, h_pc_take_card_to_processing, \
+    h_pc_move_card, h_pc_cards, h_pc_lazy_column, \
+    h_search_crm_card, h_download_cards_companies_in_progress, \
     h_transfer_sent_to_in_progress, h_download_cards_companies_by_status, h_crm_reject_cards_by_rd_today, \
-    h_pc_bulk_move_cards, h_pc_managers_list, h_pc_assign_manager
+    h_pc_bulk_move_cards, h_pc_managers_list, h_pc_assign_manager, h_pc_change_processing_company, \
+    h_pc_company_stats_distribution, h_pc_refresh_company_stats_snapshot, h_pc_bulk_assign_manager
 from .helpers import get_crm_card_for_user
 
 
@@ -39,6 +38,22 @@ def cards():
 @bck_suausmumu_t2_required
 def pc_lazy_column():
     return h_pc_lazy_column()
+
+
+@crm_product_cards.route("/crm/company_stats_distribution", methods=["GET"])
+@login_required
+@user_activated
+@bck_sumausmumu_required
+def pc_company_stats_distribution():
+    return h_pc_company_stats_distribution()
+
+
+@crm_product_cards.route("/crm/company_stats_distribution/refresh", methods=["POST"])
+@login_required
+@user_activated
+@bck_sumausmumu_required
+def pc_refresh_company_stats_snapshot():
+    return h_pc_refresh_company_stats_snapshot()
 
 
 @crm_product_cards.route("/crm_card_view/<int:card_id>", methods=["GET"])
@@ -111,30 +126,6 @@ def pc_take_card_to_processing(pc_id: int):
     return h_pc_take_card_to_processing(pc_id=pc_id)
 
 
-@crm_product_cards.route("/crm/companies/modal", methods=["GET"])
-@login_required
-@user_activated
-@bck_sumausmumu_required
-def companies_modal():
-    return h_companies_modal()
-
-
-@crm_product_cards.route("/crm/companies/create", methods=["POST"])
-@login_required
-@user_activated
-@sumsuu_required
-def companies_create():
-    return h_companies_create()
-
-
-@crm_product_cards.route("/crm/companies/<int:company_id>/delete", methods=["POST"])
-@login_required
-@user_activated
-@sumsuu_required
-def companies_delete(company_id: int):
-    return h_companies_delete(company_id=company_id)
-
-
 @crm_product_cards.route("/crm/move_card/<int:pc_id>", methods=["POST"])
 @login_required
 @user_activated
@@ -175,6 +166,22 @@ def pc_assign_manager(pc_id: int):
     return h_pc_assign_manager(pc_id)
 
 
+@crm_product_cards.route("/crm/cards/bulk_assign_manager", methods=["POST"])
+@login_required
+@user_activated
+@bck_sumausmumu_required
+def pc_bulk_assign_manager():
+    return h_pc_bulk_assign_manager()
+
+
+@crm_product_cards.route("/crm/card/<int:pc_id>/processing_company", methods=["POST"])
+@login_required
+@user_activated
+@bck_sumausmumu_required
+def pc_change_processing_company(pc_id: int):
+    return h_pc_change_processing_company(pc_id)
+
+
 @crm_product_cards.route('/crm/search_card', methods=['POST'])
 @login_required
 @user_activated
@@ -182,22 +189,6 @@ def pc_assign_manager(pc_id: int):
 def search_card():
 
     return h_search_crm_card()
-
-
-@crm_product_cards.route("/crm/card/<int:card_id>/set_company_slot", methods=["POST"])
-@login_required
-@user_activated
-@susmumu_required
-def crm_set_company_slot(card_id: int):
-    return h_crm_set_company_slot(card_id)
-
-
-@crm_product_cards.route("/crm/card/<int:card_id>/approve_from_partially", methods=["POST"])
-@login_required
-@user_activated
-@susmumu_required
-def crm_approve_from_partially(card_id: int):
-    return h_crm_approve_from_partially(card_id)
 
 
 @crm_product_cards.route("/crm/cards/reject_by_rd_today", methods=["POST"])

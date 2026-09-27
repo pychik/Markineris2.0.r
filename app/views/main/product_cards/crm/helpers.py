@@ -10,15 +10,15 @@ from sqlalchemy import or_
 from sqlalchemy.orm import joinedload, selectinload
 
 from config import settings
-from models import User, db, ProductCard, ModerationStatus, Clothes, Socks, Linen, Shoe, UserProcessingCompany, \
-    ProcessingCompany, Parfum
-from utilities.download import ShoesProcessor, ClothesProcessor, SocksProcessor, LinenProcessor, ParfumProcessor
+from models import User, db, ProductCard, ModerationStatus, Clothes, Socks, Linen, Shoe, Parfum, Cosmetics, Toys
+from utilities.download import ShoesProcessor, ClothesProcessor, SocksProcessor, LinenProcessor, ParfumProcessor, \
+    CosmeticsProcessor, ToysProcessor
 
 from utilities.support import order_count
 
 from views.main.product_cards.chat.helpers import h_pc_chat_unread_count, h_unread_map_for_cards
 
-from views.main.product_cards.support import CATEGORIES_COMMON
+from views.main.product_cards.support import CATEGORIES_COMMON, card_has_rd
 
 CRM_STATUSES = [
     ModerationStatus.SENT.value,
@@ -32,6 +32,30 @@ CRM_STATUSES = [
 
 CRM_ADMIN_ROLES = {"superuser", "supermanager"}  # кто видит всё
 CRM_MANAGER_ROLE = "manager"
+
+
+def card_operator_rd_badge_text(card: ProductCard) -> str:
+    if not card_has_rd(card):
+        return ""
+
+    for line in (card.card_log or "").splitlines():
+        if " установил РД оператором" in line:
+            return "РД уточнен" if "(НУ)" in line else "РД: установлен оператором"
+
+        if " исправил (" not in line or "РД" not in line:
+            continue
+
+        actor_part, change_part = line.split(" исправил (", 1)
+        status_label, sep, field_part = change_part.partition("):")
+        if not sep or status_label not in {"ОБРД", "НУ"}:
+            continue
+        changed_fields = field_part.split(";", 1)[0]
+        if any(field.strip() == "РД" for field in changed_fields.split(",")):
+            if status_label == "НУ":
+                return "РД уточнен"
+            return "РД: установлен оператором"
+
+    return ""
 
 
 def is_at2_admin_user(user: User | None) -> bool:
@@ -96,7 +120,7 @@ def helper_categories_counter(all_cards: list | tuple) -> dict:
     return counters
 
 
-def crm_get_cards(category: str = None, subcategory: str = None, user: User = None):
+def crm_get_cards(category: str = None, subcategory: str = None, user: User = None, filtered_manager_id: int = None):
     q = ProductCard.query
 
     if category:
@@ -112,14 +136,18 @@ def crm_get_cards(category: str = None, subcategory: str = None, user: User = No
 
     q = apply_crm_cards_scope(q, user)
 
-    # subcategory только для clothes
-    if subcategory:
+    if filtered_manager_id and user and getattr(user, "role", None) in CRM_ADMIN_ROLES:
         q = q.filter(
-            exists().where(
-                (Clothes.card_id == ProductCard.id) &
-                (Clothes.subcategory == subcategory)
+            or_(
+                ProductCard.status.in_([ModerationStatus.SENT, ModerationStatus.SENT_NO_RD]),
+                ProductCard.manager_id == filtered_manager_id
             )
         )
+
+    if subcategory:
+        cfg = CATEGORIES_COMMON.get(category or "")
+        model = cfg.get("model") if cfg else Clothes
+        q = q.filter(exists().where((model.card_id == ProductCard.id) & (model.subcategory == subcategory)))
 
     # базовые связи (не раздувают)
     q = q.options(
@@ -138,6 +166,10 @@ def crm_get_cards(category: str = None, subcategory: str = None, user: User = No
         q = q.options(selectinload(ProductCard.socks).selectinload(Socks.sizes_quantities))
     elif category == settings.Parfum.CATEGORY_PROCESS:
         q = q.options(selectinload(ProductCard.parfum))
+    elif category == settings.Cosmetics.CATEGORY_PROCESS:
+        q = q.options(selectinload(ProductCard.cosmetics))
+    elif category == settings.Toys.CATEGORY_PROCESS:
+        q = q.options(selectinload(ProductCard.toys))
     else:
         # category не задана → список смешанный. Если sizes реально нужны в CRM-колонках всегда:
         q = q.options(
@@ -146,6 +178,8 @@ def crm_get_cards(category: str = None, subcategory: str = None, user: User = No
             selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities),
             selectinload(ProductCard.socks).selectinload(Socks.sizes_quantities),
             selectinload(ProductCard.parfum),
+            selectinload(ProductCard.cosmetics),
+            selectinload(ProductCard.toys),
         )
 
     q = q.order_by(ProductCard.created_at.desc())
@@ -160,7 +194,6 @@ def split_cards_by_status(cards: list[ProductCard]) -> dict[str, list[dict]]:
         ModerationStatus.IN_MODERATION.value: [],
         ModerationStatus.CLARIFICATION.value: [],
         ModerationStatus.APPROVED.value: [],
-        ModerationStatus.PARTIALLY_APPROVED.value: [],
         ModerationStatus.REJECTED.value: [],
     }
 
@@ -179,6 +212,8 @@ def split_cards_by_status(cards: list[ProductCard]) -> dict[str, list[dict]]:
         buckets.setdefault(st, [])
 
         sizes_count, sizes_label = crm_card_sizes_label(card)
+        has_user_rd = card_has_rd(card)
+        rd_operator_badge_text = card_operator_rd_badge_text(card)
 
         buckets[st].append({
             "id": card.id,
@@ -188,8 +223,15 @@ def split_cards_by_status(cards: list[ProductCard]) -> dict[str, list[dict]]:
             "status": st,
             "created_at": card.created_at,
             "sent_at": card.sent_at,
+            "has_user_rd": has_user_rd,
+            "operator_rd_updated": bool(rd_operator_badge_text),
+            "operator_rd_badge_text": rd_operator_badge_text,
+            "rd_replacement_consent": card.rd_replacement_consent,
             "crm_stage_tooltip": crm_card_stage_tooltip(card),
             "processing_info": card.processing_info,
+            "processing_company": card.processing_company_label,
+            "processing_company_inn": card.processing_company_inn,
+            "processing_company_title": card.processing_company_title,
             "user_id": card.user_id,
 
             "user_login": card.creator.login_name if card.creator else "",
@@ -218,8 +260,13 @@ def crm_card_article(card: ProductCard) -> str:
     rel_name = cfg["rel_name"]
     items = getattr(card, rel_name) or []
     main = items[0] if items else None
-    return getattr(main, "article", None) or "-" if card.category != settings.Parfum.CATEGORY_PROCESS \
-        else getattr(main, "trademark", None) or "-"
+    if not main:
+        return "-"
+    for attr in ("article", "model_article", "trademark", "type", "full_name_extra"):
+        value = getattr(main, attr, None)
+        if value:
+            return value
+    return "-"
 
 
 def crm_card_sizes_label(card: ProductCard) -> tuple[int, str]:
@@ -267,14 +314,19 @@ def crm_card_sizes_label(card: ProductCard) -> tuple[int, str]:
     # parfum: размеров нет
     if card.category == settings.Parfum.CATEGORY_PROCESS:
         return 1 , "-"
+    if card.category in (settings.Cosmetics.CATEGORY_PROCESS, settings.Toys.CATEGORY_PROCESS):
+        cfg = CATEGORIES_COMMON.get(card.category)
+        items = getattr(card, cfg["rel_name"], []) if cfg else []
+        return (1, "-") if items else (0, "-")
 
     return 0, "-"
 
 
 def crm_card_subcategory_slug(card: ProductCard) -> str | None:
-    if card.category != "clothes":
+    cfg = CATEGORIES_COMMON.get(card.category)
+    if not cfg or not cfg.get("has_subcategory"):
         return None
-    main = (card.clothes or [None])[0]
+    main = (getattr(card, cfg["rel_name"], []) or [None])[0]
     return getattr(main, "subcategory", None)
 
 
@@ -282,7 +334,7 @@ def crm_card_subcategory_title(card: ProductCard) -> str | None:
     slug = crm_card_subcategory_slug(card)
     if not slug:
         return None
-    return (CATEGORIES_COMMON.get("clothes", {}).get("subcategories") or {}).get(slug, slug)
+    return (CATEGORIES_COMMON.get(card.category, {}).get("subcategories") or {}).get(slug, slug)
 
 
 def crm_card_stage_tooltip(card: ProductCard) -> str:
@@ -352,6 +404,12 @@ def get_card_download_info(pc_id: int, user: User):
     elif category == settings.Parfum.CATEGORY:
         items = card.parfum
         processor_cls = ParfumProcessor
+    elif category == settings.Cosmetics.CATEGORY:
+        items = card.cosmetics
+        processor_cls = CosmeticsProcessor
+    elif category == settings.Toys.CATEGORY:
+        items = card.toys
+        processor_cls = ToysProcessor
 
     else:
         flash(message=settings.Messages.CATEGORY_UNKNOWN_ERROR, category="error")
@@ -404,81 +462,11 @@ def get_card_download_info(pc_id: int, user: User):
     )
 
 
-def move_user_approved_cards_to_partially(user_id: int):
-    (ProductCard.query
-     .filter(ProductCard.user_id == user_id,
-             ProductCard.status == ModerationStatus.APPROVED)
-     .update(
-         {ProductCard.status: ModerationStatus.PARTIALLY_APPROVED},
-         synchronize_session=False
-     ))
-
-
-def delete_company_from_pool_no_reassign(company_id: int) -> tuple[bool, str, dict]:
-    company = ProcessingCompany.query.get(company_id)
-    if not company:
-        return False, "Фирма не найдена", {}
-
-    total = db.session.query(ProcessingCompany.id).count()
-
-    # запрет удаления последней фирмы
-    if total <= 1:
-        affected_logins = (
-            db.session.query(User.login_name)
-            .join(UserProcessingCompany, UserProcessingCompany.user_id == User.id)
-            .filter(UserProcessingCompany.company_id == company_id)
-            .distinct()
-            .order_by(User.login_name.asc())
-            .all()
-        )
-        logins = [x[0] for x in affected_logins if x and x[0]]
-
-        # построчно
-        lines = "\n".join(logins) if logins else "(пользователей нет)"
-        msg = (
-            "Нельзя удалить последнюю компанию из пула.\n"
-            "Затронутые пользователи:\n"
-            f"{lines}"
-        )
-        return False, msg, {"affected_users": logins}
-
-    # пользователи, у кого была эта фирма
-    affected_user_ids = [
-        x[0] for x in (
-            db.session.query(UserProcessingCompany.user_id)
-            .filter(UserProcessingCompany.company_id == company_id)
-            .distinct()
-            .all()
-        )
-    ]
-
-    # 1) удалить привязки user->company
-    UserProcessingCompany.query.filter_by(company_id=company_id).delete(synchronize_session=False)
-
-    # 2) удалить фирму из пула
-    db.session.delete(company)
-
-    # 3) всем затронутым пользователям перевести APPROVED карточки -> PARTIALLY_APPROVED
-    if affected_user_ids:
-        (ProductCard.query
-         .filter(
-             ProductCard.user_id.in_(affected_user_ids),
-             ProductCard.status == ModerationStatus.APPROVED
-         )
-         .update(
-             {ProductCard.status: ModerationStatus.PARTIALLY_APPROVED},
-             synchronize_session=False
-         ))
-
-    meta = {"affected_users_count": len(affected_user_ids)}
-    msg = f"Фирма удалена. Затронутых пользователей: {len(affected_user_ids)}. APPROVED карточки переведены в PARTIALLY_APPROVED."
-    return True, msg, meta
-
-
 ALLOWED_BACK_ROLES = {"superuser", "supermanager", "markineris_admin"}
 
 
-def h_pc_move_get_cards_by_status(status_value: str, category=None, subcategory=None, company_id=None):
+def h_pc_move_get_cards_by_status(status_value: str, category=None, subcategory=None, company_key=None,
+                                  filtered_manager_id: int = None):
     q = (
         ProductCard.query
         .options(
@@ -502,6 +490,10 @@ def h_pc_move_get_cards_by_status(status_value: str, category=None, subcategory=
             q = q.options(selectinload(ProductCard.socks).selectinload(Socks.sizes_quantities))
         elif category == settings.Parfum.CATEGORY_PROCESS:
             q = q.options(selectinload(ProductCard.parfum))
+        elif category == settings.Cosmetics.CATEGORY_PROCESS:
+            q = q.options(selectinload(ProductCard.cosmetics))
+        elif category == settings.Toys.CATEGORY_PROCESS:
+            q = q.options(selectinload(ProductCard.toys))
 
     else:
         q = q.options(
@@ -510,20 +502,23 @@ def h_pc_move_get_cards_by_status(status_value: str, category=None, subcategory=
             selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities),
             selectinload(ProductCard.socks).selectinload(Socks.sizes_quantities),
             selectinload(ProductCard.parfum),
+            selectinload(ProductCard.cosmetics),
+            selectinload(ProductCard.toys),
         )
 
     if subcategory:
-        q = q.filter(ProductCard.clothes.any(Clothes.subcategory == subcategory))
+        cfg = CATEGORIES_COMMON.get(category or "")
+        model = cfg.get("model") if cfg else Clothes
+        rel_name = cfg.get("rel_name") if cfg else "clothes"
+        q = q.filter(getattr(ProductCard, rel_name).any(model.subcategory == subcategory))
 
-    if company_id:
-        q = (
-            q.join(UserProcessingCompany, UserProcessingCompany.user_id == ProductCard.user_id)
-             .join(ProcessingCompany, ProcessingCompany.id == UserProcessingCompany.company_id)
-             .filter(
-                 UserProcessingCompany.company_id == company_id,
-                 UserProcessingCompany.is_approved.is_(True),
-                 ProcessingCompany.is_active.is_(True),
-             )
+    if company_key:
+        q = q.filter(
+            or_(
+                ProductCard.processing_company_inn == company_key,
+                ProductCard.processing_company_external_id == company_key,
+                ProductCard.processing_company_title == company_key,
+            )
         )
 
     q = apply_crm_cards_scope(q, current_user)
@@ -531,6 +526,12 @@ def h_pc_move_get_cards_by_status(status_value: str, category=None, subcategory=
     if getattr(current_user, "role", None) == "manager":
         if status_value not in [ModerationStatus.SENT.value, ModerationStatus.SENT_NO_RD.value]:
             q = q.filter(ProductCard.manager_id == current_user.id)
+    elif (
+        filtered_manager_id
+        and getattr(current_user, "role", None) in CRM_ADMIN_ROLES
+        and status_value not in [ModerationStatus.SENT.value, ModerationStatus.SENT_NO_RD.value]
+    ):
+        q = q.filter(ProductCard.manager_id == filtered_manager_id)
 
     return q.all()
 
@@ -553,6 +554,8 @@ def h_pc_move_pack_cards(cards: list[ProductCard]) -> list[dict]:
         st = card.status.value if hasattr(card.status, "value") else card.status
 
         sizes_count, sizes_label = crm_card_sizes_label(card)  # вычислим 1 раз
+        has_user_rd = card_has_rd(card)
+        rd_operator_badge_text = card_operator_rd_badge_text(card)
         packed.append({
             "id": card.id,
             "category": card.category,
@@ -561,8 +564,15 @@ def h_pc_move_pack_cards(cards: list[ProductCard]) -> list[dict]:
             "status": st,
             "created_at": card.created_at,
             "sent_at": card.sent_at,
+            "has_user_rd": has_user_rd,
+            "operator_rd_updated": bool(rd_operator_badge_text),
+            "operator_rd_badge_text": rd_operator_badge_text,
+            "rd_replacement_consent": card.rd_replacement_consent,
             "crm_stage_tooltip": crm_card_stage_tooltip(card),
             "processing_info": card.processing_info,
+            "processing_company": card.processing_company_label,
+            "processing_company_inn": card.processing_company_inn,
+            "processing_company_title": card.processing_company_title,
 
             "user_id": card.user_id,
             "manager_id": card.manager_id,
@@ -595,7 +605,6 @@ def h_pc_move_template_for_status(status_value: str) -> str:
         ModerationStatus.CLARIFICATION.value: "product_cards/crm/cards/updated_stages/_clarification_list.html",
         ModerationStatus.APPROVED.value: "product_cards/crm/cards/updated_stages/_approved_list.html",
         ModerationStatus.REJECTED.value: "product_cards/crm/cards/updated_stages/_rejected_list.html",
-        ModerationStatus.PARTIALLY_APPROVED.value: "product_cards/crm/cards/updated_stages/_partially_approved_list.html",
     }
     return m.get(status_value)
 
@@ -609,7 +618,6 @@ def h_cards_ctx_key_for_status(st: str) -> str | None:
         ModerationStatus.CLARIFICATION.value: "clarification_cards",
         ModerationStatus.APPROVED.value: "approved_cards",
         ModerationStatus.REJECTED.value: "rejected_cards",
-        ModerationStatus.PARTIALLY_APPROVED.value: "partially_approved_cards",
     }.get(st)
 
 
@@ -659,16 +667,32 @@ def h_find_card_ids_by_article_or_tm(q: str) -> list[int]:
         .filter(Parfum.card_id.isnot(None), Parfum.trademark.ilike(like))
         .distinct().all()
     )
-    print(ids)
+    ids.update(
+        r[0] for r in db.session.query(Cosmetics.card_id)
+        .filter(Cosmetics.card_id.isnot(None), Cosmetics.trademark.ilike(like))
+        .distinct().all()
+    )
+    ids.update(
+        r[0] for r in db.session.query(Toys.card_id)
+        .filter(Toys.card_id.isnot(None), or_(Toys.trademark.ilike(like), Toys.model_article.ilike(like)))
+        .distinct().all()
+    )
+
     return sorted(ids)
 
 
-def h_pc_move_render_list_html(status_value: str, category=None, subcategory=None) -> tuple[str, int]:
+def h_pc_move_render_list_html(status_value: str, category=None, subcategory=None,
+                               filtered_manager_id: int = None) -> tuple[str, int]:
     tpl = h_pc_move_template_for_status(status_value)
     if not tpl:
         return "", 0
 
-    cards = h_pc_move_get_cards_by_status(status_value, category=category, subcategory=subcategory)
+    cards = h_pc_move_get_cards_by_status(
+        status_value,
+        category=category,
+        subcategory=subcategory,
+        filtered_manager_id=filtered_manager_id,
+    )
     packed = h_pc_move_pack_cards(cards)
 
     ctx = {
@@ -718,6 +742,8 @@ def h_pc_move_apply_status_transition(card: ProductCard, target: str, reject_rea
         card.card_log = h_append_card_log(card.card_log, f"\n{dt_str} отправил на уточнение {manager_login};")
 
     elif target == ModerationStatus.APPROVED.value:
+        if not card.processing_company_label:
+            raise ValueError("Нельзя одобрить карточку: не назначена компания обработки")
         card.status = ModerationStatus.APPROVED
         card.approved_at = dt
         card.card_log = h_append_card_log(card.card_log, f"\n{dt_str} одобрил {manager_login};")
@@ -767,31 +793,6 @@ def h_append_card_log(old: str | None, line: str) -> str:
     return ((old or "") + line)[-settings.ProducCards.MAX_LOG:]
 
 
-def get_users_processing_companies_map(user_ids: list[int]) -> dict[int, list[dict]]:
-    if not user_ids:
-        return {}
-
-    rows = (
-        UserProcessingCompany.query
-        .options(joinedload(UserProcessingCompany.company))
-        .filter(UserProcessingCompany.user_id.in_(user_ids))
-        .order_by(UserProcessingCompany.user_id.asc(), UserProcessingCompany.slot.asc())
-        .all()
-    )
-
-    out: dict[int, list[dict]] = {}
-    for r in rows:
-        out.setdefault(r.user_id, []).append({
-            "slot": r.slot,
-            "is_approved": bool(r.is_approved),
-            "company_id": r.company_id,
-            "title": r.company.title if r.company else "",
-            "inn": r.company.inn if r.company else "",
-            "is_active": bool(r.company.is_active) if r.company else True,
-        })
-    return out
-
-
 def helper_reject_cards_by_rd_date_to_today() -> dict:
     today = date.today()
     dt_str = datetime.now().strftime("%d.%m.%Y")
@@ -814,6 +815,8 @@ def helper_reject_cards_by_rd_date_to_today() -> dict:
             .outerjoin(Shoe,    Shoe.card_id == ProductCard.id)
             .outerjoin(Linen,   Linen.card_id == ProductCard.id)
             .outerjoin(Parfum,  Parfum.card_id == ProductCard.id)
+            .outerjoin(Cosmetics, Cosmetics.card_id == ProductCard.id)
+            .outerjoin(Toys, Toys.card_id == ProductCard.id)
             .filter(
                 or_(
                     Clothes.rd_date_to == today,
@@ -821,6 +824,8 @@ def helper_reject_cards_by_rd_date_to_today() -> dict:
                     Shoe.rd_date_to == today,
                     Linen.rd_date_to == today,
                     Parfum.rd_date_to == today,
+                    Cosmetics.rd_date_to == today,
+                    Toys.rd_date_to == today,
                 )
             )
             .distinct()

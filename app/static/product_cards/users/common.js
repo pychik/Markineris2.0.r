@@ -20,6 +20,77 @@ window.pc_check_rd_docs = function () {
   return errs;
 };
 
+function pcUpdateRdReplacementConsentBlock() {
+    const hasRdSwitch = document.getElementById("has-rd-switch");
+    const block = document.getElementById("pc-rd-replacement-consent-block");
+    if (!block) return;
+
+    const hasRd = !!(hasRdSwitch && hasRdSwitch.checked);
+    block.classList.toggle("d-none", !hasRd);
+    block.querySelectorAll('input[name="rd_replacement_consent"]').forEach((input) => {
+        input.disabled = !hasRd;
+        const label = input.closest("label");
+        if (label) {
+            label.classList.toggle("is-selected", hasRd && input.checked);
+        }
+    });
+
+    if (!hasRd) {
+        block.querySelectorAll('input[name="rd_replacement_consent"]').forEach((input) => {
+            input.checked = false;
+        });
+        const error = document.getElementById("pc-rd-replacement-consent-error");
+        if (error) error.textContent = "";
+    }
+}
+
+function pcPlaceRdReplacementConsentBlock() {
+    const block = document.getElementById("pc-rd-replacement-consent-block");
+    const submitButton = document.querySelector('#pc-create-form button[onclick*="product_card_submit"]');
+    if (!block || !submitButton) return;
+
+    const submitWrap = submitButton.closest(".mt-4") || submitButton.parentElement;
+    if (submitWrap && submitWrap.parentElement && submitWrap.previousElementSibling !== block) {
+        submitWrap.parentElement.insertBefore(block, submitWrap);
+    }
+}
+
+function pcValidateRdReplacementConsent(hasRd) {
+    const configEl = document.getElementById("pc-config");
+    const isCrmMode = configEl?.dataset?.crmFlag === "1";
+    const error = document.getElementById("pc-rd-replacement-consent-error");
+    if (!hasRd || isCrmMode) {
+        if (error) error.textContent = "";
+        return true;
+    }
+
+    const checked = document.querySelector('input[name="rd_replacement_consent"]:checked');
+    if (checked && ["yes", "no"].includes(checked.value)) {
+        if (error) error.textContent = "";
+        return true;
+    }
+
+    if (error) error.textContent = "Выберите «Да» или «Нет».";
+    return false;
+}
+
+function pcInitTooltips(root = document) {
+    if (!window.bootstrap || !bootstrap.Tooltip) return;
+    root.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+        bootstrap.Tooltip.getOrCreateInstance(el);
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    pcInitTooltips();
+    pcPlaceRdReplacementConsentBlock();
+    pcUpdateRdReplacementConsentBlock();
+    document.getElementById("has-rd-switch")?.addEventListener("change", pcUpdateRdReplacementConsentBlock);
+    document.querySelectorAll('input[name="rd_replacement_consent"]').forEach((input) => {
+        input.addEventListener("change", pcUpdateRdReplacementConsentBlock);
+    });
+});
+
 
 function product_card_submit(category = null) {
 
@@ -49,12 +120,20 @@ function product_card_submit(category = null) {
         return;
     }
 
+    if (cat === "toys" && typeof toysPrepareModelArticleBeforeSubmit === "function") {
+        toysPrepareModelArticleBeforeSubmit();
+    }
+
     const formData = new FormData(form);
     formData.append("category", cat);
 
     // Передаём тумблер на бэк (чтобы validate_rd_block работал от has_rd)
     const hasRdSwitch = document.getElementById("has-rd-switch");
-    formData.append("has_rd", (hasRdSwitch && hasRdSwitch.checked) ? "1" : "0");
+    const hasRd = !!(hasRdSwitch && hasRdSwitch.checked);
+    formData.append("has_rd", hasRd ? "1" : "0");
+    if (!hasRd) {
+        formData.delete("rd_replacement_consent");
+    }
 
     if (editMode) {
         if (!cardId) {
@@ -69,7 +148,13 @@ function product_card_submit(category = null) {
 
     // ===== 1) TNVED =====
     let tnvedOk = true;
-    if (typeof check_tnved === "function") {
+    if (cat === "cosmetics" && typeof cosmetics_check_tnved === "function") {
+        tnvedOk = !!cosmetics_check_tnved();
+        if (!tnvedOk) errors.push("Код ТН ВЭД. Выберите одно из разрешенных значений из списка.");
+    } else if (cat === "toys" && typeof toys_check_tnved === "function") {
+        tnvedOk = !!toys_check_tnved();
+        if (!tnvedOk) errors.push("Код ТН ВЭД. Выберите одно из разрешенных значений из списка.");
+    } else if (typeof check_tnved === "function") {
         tnvedOk = !!check_tnved("submit");
         if (!tnvedOk) {
             // В старых функциях отдельного текста не было, но оставим общее сообщение
@@ -87,10 +172,17 @@ function product_card_submit(category = null) {
       console.warn("pc_check_rd_docs not found");
     }
 
+    const rdConsentChecked = document.querySelector('input[name="rd_replacement_consent"]:checked');
+    if (!pcValidateRdReplacementConsent(hasRd)) {
+        errors.push("Разрешительная документация. Ответьте на вопрос о согласии использовать нашу РД.");
+    } else if (hasRd && rdConsentChecked) {
+        formData.set("rd_replacement_consent", rdConsentChecked.value);
+    }
+
     // ===== 3) content / состав =====
     const contentInput = document.getElementById("content");
     let contentOk = true;
-    if (contentInput) {
+    if (contentInput && contentInput.required) {
         if (contentInput.value.trim().length < 3) {
             contentOk = false;
         }
@@ -111,6 +203,39 @@ function product_card_submit(category = null) {
         sizesOk = !!socks_check_sizes_quantity_valid();
     }
 
+    let serviceLifeOk = true;
+    if (cat === "cosmetics" && typeof cosmetics_check_service_life_period === "function") {
+        serviceLifeOk = !!cosmetics_check_service_life_period();
+    }
+    if (cat === "toys" && typeof toys_check_service_life_period === "function") {
+        serviceLifeOk = !!toys_check_service_life_period();
+    }
+
+    let categoryOk = true;
+    let fullNameOk = true;
+    if (cat === "cosmetics" && typeof cosmetics_validate_full_name_requirements === "function") {
+        fullNameOk = !!cosmetics_validate_full_name_requirements();
+        categoryOk = fullNameOk && categoryOk;
+        if (typeof cosmetics_validate_razor_switch === "function") {
+            const razorSwitchOk = !!cosmetics_validate_razor_switch();
+            categoryOk = razorSwitchOk && categoryOk;
+            if (!razorSwitchOk) {
+                errors.push('Бритвы и лезвия. Проверьте переключатель "Бритва со сменными лезвиями / кассетами", ТН ВЭД, количество лезвий и комплектацию.');
+            }
+        }
+    }
+    if (cat === "toys") {
+        if (typeof toys_validate_full_name_requirements === "function") {
+            fullNameOk = !!toys_validate_full_name_requirements();
+            categoryOk = fullNameOk && categoryOk;
+        }
+        if (typeof toys_check_okpd2 === "function") {
+            const okpd2Ok = !!toys_check_okpd2();
+            categoryOk = okpd2Ok && categoryOk;
+            if (!okpd2Ok) errors.push("Код ОКПД2. Выберите значение из списка.");
+        }
+    }
+
     // ===== 5) HTML5-валидность формы =====
     const nativeValid = (typeof form.checkValidity === "function")
         ? form.checkValidity()
@@ -126,9 +251,7 @@ function product_card_submit(category = null) {
     // Если есть jQuery и check_valid — обойдём все инпуты и соберём подписи label'ов
     if (typeof check_valid === "function" && (window.$ || window.jQuery)) {
         const $ = window.$ || window.jQuery;
-        const hasRd = !!(hasRdSwitch && hasRdSwitch.checked);
-
-        const allInputs = $('#pc-create-form input, #pc-create-form select');
+        const allInputs = $('#pc-create-form input, #pc-create-form select, #pc-create-form textarea');
         const SKIP_IDS = new Set(["rd_type", "rd_name", "rd_date", "rd_date_to", "tnved_code"]);
         allInputs.each(function () {
             const el = this;
@@ -169,6 +292,18 @@ function product_card_submit(category = null) {
             errors.push("Размер обуви. Добавьте хотя бы один");
         } else if (cat === "socks") {
             errors.push("Размер чулочно-носочных изделий. Добавьте хотя бы один");
+        }
+    }
+
+    if (!serviceLifeOk) {
+        errors.push("Период годности. Проверьте дату от, дату до и срок годности.");
+    }
+
+    if (!fullNameOk) {
+        if (cat === "cosmetics") {
+            errors.push('Полное наименование. Если выбран вариант "БЕЗ ТОВАРНОГО ЗНАКА", заполните поле "Дополнить полное наименование".');
+        } else if (cat === "toys") {
+            errors.push('Полное наименование. Если выбран вариант "без товарного знака", заполните поле "Дополнить полное наименование".');
         }
     }
 
@@ -216,7 +351,8 @@ function product_card_submit(category = null) {
                     const crmUpdatePayload = {
                         type: "pc_card_updated",
                         card_id: data.card_id,
-                        article_or_trademark: data.article_or_trademark || ""
+                        article_or_trademark: data.article_or_trademark || "",
+                        processing_company: data.processing_company || null
                     };
 
                     // 1) Синхронизация между вкладками того же origin
@@ -244,6 +380,10 @@ function product_card_submit(category = null) {
                     // обычный редирект пользователя
                     const url = new URL(CARDS_URL, window.location.origin);
                     url.searchParams.set("category", cat);
+                    const subcategory = (formData.get("subcategory") || "").toString();
+                    if (subcategory && subcategory !== "common") {
+                        url.searchParams.set("subcategory", subcategory);
+                    }
 
                     setTimeout(() => {
                         window.location.href = url.toString();
@@ -265,4 +405,3 @@ function product_card_submit(category = null) {
         })
         .finally(() => close_Loading_circle());
 }
-

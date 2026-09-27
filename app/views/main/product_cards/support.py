@@ -1,29 +1,35 @@
 import time
 import functools
-import hashlib
-from typing import Iterable, Tuple, Optional
+from copy import deepcopy
 from datetime import datetime
-from flask import flash, jsonify, redirect, request, url_for, Response
+from flask import flash, jsonify, redirect, render_template, request, url_for, Response
 from flask_login import current_user
 from typing import Union, Any
 
 from sqlalchemy import event
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import joinedload
-from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries
 from werkzeug.datastructures import ImmutableMultiDict
 
 from config import settings
 from logger import logger
 from models import db, Clothes, LinenSizesUnits, ProductCard, ClothesQuantitySize, Shoe, ShoeQuantitySize, Socks, \
-    SocksQuantitySize, Linen, LinenQuantitySize, Parfum, UserProcessingCompany, ProcessingCompany, ModerationStatus
+    SocksQuantitySize, Linen, LinenQuantitySize, Parfum, Cosmetics, Toys, ModerationStatus
 from utilities.categories_data.subcategories_data import ClothesSubcategories
-from utilities.exceptions import SizeTypeException, CompanyPoolError
-from utilities.saving_helpers import get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, process_input_str
+from utilities.exceptions import SizeTypeException
+from utilities.helpers.helpers_checks import rd_name_clean
+from utilities.saving_helpers import get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, \
+    normalize_trademark_placeholder, process_input_str, validate_parfum_trademark
 from utilities.support import check_forbidden_words
 from utilities.validators import ValidatorProcessor
-from views.crm.schema import CompanyLite, is_forbidden_pair_by_inn
+from tezaurus.processing_companies import PROCESSING_COMPANIES_BATCH_LIMIT, ProcessingCompaniesClient
+from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries, get_clothes_tnved_pairs_for_types
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
+from views.main.categories.cosmetics.subcategories import CosmeticsSubcategories, \
+    get_subcategory_config as get_cosmetics_subcategory_config
+from views.main.categories.cosmetics.subcategories.registry import \
+    SUBCATEGORY_CONFIG as COSMETICS_SUBCATEGORY_CONFIG
+from views.main.categories.toys.subcategories import ToysSubcategories, \
+    get_subcategory_config as get_toys_subcategory_config
+from views.main.categories.toys.subcategories.registry import SUBCATEGORY_CONFIG as TOYS_SUBCATEGORY_CONFIG
 
 CATEGORIES_COMMON = {
     "shoes": {
@@ -48,6 +54,28 @@ CATEGORIES_COMMON = {
         "rel_name": "parfum",
         "has_subcategory": False,
         "subcategories": None,
+    },
+
+    "cosmetics": {
+        "title": "косметика",
+        "model": Cosmetics,
+        "rel_name": "cosmetics",
+        "has_subcategory": True,
+        "subcategories": {
+            cfg["slug"]: cfg["title"]
+            for cfg in COSMETICS_SUBCATEGORY_CONFIG.values()
+        },
+    },
+
+    "toys": {
+        "title": "игрушки",
+        "model": Toys,
+        "rel_name": "toys",
+        "has_subcategory": True,
+        "subcategories": {
+            cfg["slug"]: cfg["title"]
+            for cfg in TOYS_SUBCATEGORY_CONFIG.values()
+        },
     },
 
     "clothes": {
@@ -78,6 +106,98 @@ CATEGORY_TITLES = {
     key: cfg["title"]
     for key, cfg in CATEGORIES_COMMON.items()
 }
+
+
+def _pc_tnved_choices_from_pairs(pairs) -> list[dict[str, str]]:
+    choices = []
+    seen = set()
+    for pair in pairs or ():
+        if not pair:
+            continue
+        code = str(pair[0] or "").strip()
+        if not code or code in seen:
+            continue
+        seen.add(code)
+        label = str(pair[1] or "").strip() if len(pair) > 1 else ""
+        choices.append({"code": code, "label": label})
+    return choices
+
+
+def _pc_clothes_tnved_choices(subcategory: str, product_types: list[str] | tuple[str, ...]) -> list[dict[str, str]]:
+    return _pc_tnved_choices_from_pairs(get_clothes_tnved_pairs_for_types(subcategory, product_types, is_cards=True))
+
+
+def _pc_socks_tnved_choices() -> list[dict[str, str]]:
+    pairs = []
+    for product_type in settings.Socks.TYPES:
+        type_data = settings.Socks.SOCKS_TNVED_DICT.get(product_type) or ()
+        if len(type_data) > 1:
+            pairs.extend(type_data[1] or ())
+    return _pc_tnved_choices_from_pairs(pairs)
+
+
+def _pc_new_card_url(category: str, subcategory: str | None = None) -> str:
+    kwargs = {"category": category}
+    if subcategory and subcategory != ClothesSubcategories.common.value:
+        kwargs["subcategory"] = subcategory
+    return url_for("user_product_cards.new_product_card", **kwargs)
+
+
+def build_pc_category_search_index() -> list[dict[str, Any]]:
+    clothes_items = []
+    for slug, title in (
+        (ClothesSubcategories.common.value, "Одежда основная"),
+        (ClothesSubcategories.underwear.value, "Нижнее белье"),
+        (ClothesSubcategories.swimming_accessories.value, "Купальные принадлежности"),
+        (ClothesSubcategories.hats.value, "Шляпы"),
+        (ClothesSubcategories.gloves.value, "Перчатки"),
+        (ClothesSubcategories.shawls.value, "Шали"),
+    ):
+        creds = ClothesSubcategoryProcessor(subcategory=slug, is_cards=True).get_creds()
+        clothes_items.append({
+            "category": settings.Clothes.CATEGORY_PROCESS,
+            "category_title": CATEGORY_TITLES[settings.Clothes.CATEGORY_PROCESS],
+            "slug": slug,
+            "title": title,
+            "url": _pc_new_card_url(settings.Clothes.CATEGORY_PROCESS, slug),
+            "allowed_tnved_codes": list(creds.clothes_all_tnved),
+            "allowed_tnved_choices": _pc_clothes_tnved_choices(slug, creds.types),
+            "product_types": list(creds.types),
+        })
+
+    clothes_items.append({
+        "category": settings.Socks.CATEGORY_PROCESS,
+        "category_title": CATEGORY_TITLES[settings.Socks.CATEGORY_PROCESS],
+        "slug": "socks",
+        "title": CATEGORY_TITLES[settings.Socks.CATEGORY_PROCESS],
+        "url": _pc_new_card_url(settings.Socks.CATEGORY_PROCESS),
+        "allowed_tnved_codes": list(settings.Socks.TNVED_ALL),
+        "allowed_tnved_choices": _pc_socks_tnved_choices(),
+        "product_types": list(settings.Socks.TYPES),
+    })
+
+    registry_items = []
+    for category, category_title, registry in (
+        (settings.Cosmetics.CATEGORY_PROCESS, CATEGORY_TITLES[settings.Cosmetics.CATEGORY_PROCESS], COSMETICS_SUBCATEGORY_CONFIG),
+        (settings.Toys.CATEGORY_PROCESS, CATEGORY_TITLES[settings.Toys.CATEGORY_PROCESS], TOYS_SUBCATEGORY_CONFIG),
+    ):
+        for config in registry.values():
+            registry_items.append({
+                "category": category,
+                "category_title": category_title,
+                "slug": config["slug"],
+                "title": config["title"],
+                "url": _pc_new_card_url(category, config["slug"]),
+                "allowed_tnved_codes": list(config["allowed_tnved_codes"]),
+                "allowed_tnved_choices": [
+                    {"code": code, "label": label}
+                    for code, label in config["allowed_tnved_choices"]
+                ],
+                "product_types": list(config["product_types"]),
+            })
+
+    return [*clothes_items, *registry_items]
+
 
 CARD_FIELDS = {
     "clothes": {
@@ -135,7 +255,51 @@ CARD_FIELDS = {
         "material_package": "Материал упаковки",
         "country": "Страна",
         "tnved_code": "ТН ВЭД",
-    }
+    },
+
+    "cosmetics": {
+        "trademark": "Товарный знак",
+        "type": "Вид товара",
+        "full_name_extra": "Доп. наименование",
+        "country": "Страна",
+        "tnved_code": "ТН ВЭД",
+        "subcategory": "Подкатегория",
+        "nominal_quantity": "Номинальное количество",
+        "nominal_quantity_type": "Тип ном. кол-ва",
+        "blade_count": "Кол-во лезвий",
+        "complectation": "Комплектация",
+        "layers_characteristic": "Кол-во слоев",
+        "for_children": "Для детей",
+        "usage_term_type": "Хар-ка срока исп-ния",
+        "content_type": "Тип состава",
+        "content": "Состав",
+        "service_life": "Срок годности, мес.",
+        "sl_date_from": "Период годности: дата от",
+        "sl_date_to": "Период годности: дата до",
+    },
+
+    "toys": {
+        "trademark": "Товарный знак",
+        "type": "Вид товара",
+        "full_name_extra": "Доп. наименование",
+        "country": "Страна",
+        "tnved_code": "ТН ВЭД",
+        "subcategory": "Подкатегория",
+        "category_code": "Код категории",
+        "okpd2_code": "Код ОКПД2",
+        "okpd2_name": "Наименование ОКПД2",
+        "model_article_type": "Тип модели/артикула",
+        "model_article": "Модель / артикул",
+        "drive_type": "Тип привода",
+        "material": "Материал изделия",
+        "min_child_age": "Минимальный возраст",
+        "usage_term_type": "Хар-ка срока исп-ния",
+        "content": "Состав",
+        "service_life_type": "Ед. срока службы",
+        "service_life": "Срок годности, мес.",
+        "sl_date_from": "Период годности: дата от",
+        "sl_date_to": "Период годности: дата до",
+    },
 }
 
 WEAR_CARD_CATEGORIES = {
@@ -188,18 +352,20 @@ ALLOWED_CARDS_DELETE_STATUSES = {
 }
 
 
-def _is_russia_country(value: str | None) -> bool:
-    return (value or "").strip().upper() == "РОССИЯ"
-
-
-# Temporary product-cards-only restriction: hide and reject RUSSIA
-# without changing shared Redis/Tezaurus country dictionaries.
 def _get_product_cards_countries() -> list[str]:
-    return [country for country in get_all_countries() if not _is_russia_country(country)]
+    return get_all_countries()
 
 
 def _get_product_cards_rd_countries(category_process: str) -> list[str]:
-    return [country for country in get_rd_countries(category_process) if not _is_russia_country(country)]
+    return get_rd_countries(category_process)
+
+
+def _get_subcategory_default_countries(subcategory_config: dict[str, Any]) -> tuple[str, ...]:
+    return tuple(country.upper() for country in subcategory_config["default_countries"])
+
+
+def _get_all_countries_upper() -> tuple[str, ...]:
+    return tuple(country.upper() for country in get_all_countries())
 
 
 def helper_clothes_info(subcategory: str | None) -> Union[Response,  dict[str, Any]]:
@@ -216,8 +382,8 @@ def helper_clothes_info(subcategory: str | None) -> Union[Response,  dict[str, A
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = _get_product_cards_countries()
-    rd_countries = _get_product_cards_rd_countries(settings.Clothes.CATEGORY_PROCESS)
+    countries = _get_product_cards_rd_countries(settings.Clothes.CATEGORY_PROCESS)
+    rd_countries = _get_product_cards_countries()
 
     clothes_content = settings.Clothes.CLOTHES_CONTENT
     clothes_nat_content = settings.Clothes.CLOTHES_NAT_CONTENT
@@ -247,8 +413,8 @@ def helper_shoes_info(subcategory: str | None) -> Union[Response, dict[str, Any]
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = _get_product_cards_countries()
-    rd_countries = _get_product_cards_rd_countries(settings.Shoes.CATEGORY_PROCESS)
+    countries = _get_product_cards_rd_countries(settings.Shoes.CATEGORY_PROCESS)
+    rd_countries = _get_product_cards_countries()
     shoe_tnved = settings.Shoes.TNVED_CODE
     shoe_al = settings.Shoes.SHOE_AL
     shoe_ot = settings.Shoes.SHOE_OT
@@ -282,8 +448,8 @@ def helper_socks_info(subcategory: str | None) -> Union[Response,  dict[str, Any
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = _get_product_cards_countries()
-    rd_countries = _get_product_cards_rd_countries(settings.Socks.CATEGORY_PROCESS)
+    countries = _get_product_cards_rd_countries(settings.Socks.CATEGORY_PROCESS)
+    rd_countries = _get_product_cards_countries()
     socks_content = settings.Socks.CLOTHES_CONTENT
     socks_types_sizes_dict = settings.Socks.SIZE_ALL_DICT
 
@@ -316,8 +482,8 @@ def helper_linen_info(subcategory: str | None) -> Union[Response, dict[str, Any]
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = _get_product_cards_countries()
-    rd_countries = _get_product_cards_rd_countries(settings.Linen.CATEGORY_PROCESS)
+    countries = _get_product_cards_rd_countries(settings.Linen.CATEGORY_PROCESS)
+    rd_countries = _get_product_cards_countries()
 
     types = settings.Linen.TYPES_CARDS
     # colors = settings.Linen.COLORS
@@ -344,8 +510,8 @@ def helper_parfum_info(subcategory: str | None) -> Union[Response, dict[str, Any
     company_types = settings.COMPANY_TYPES
     edo_types = settings.EDO_TYPES
     tax_list = settings.TAX_LIST
-    countries = _get_product_cards_countries()
-    rd_countries = _get_product_cards_rd_countries(settings.Parfum.CATEGORY_PROCESS)
+    countries = _get_product_cards_rd_countries(settings.Parfum.CATEGORY_PROCESS)
+    rd_countries = _get_product_cards_countries()
 
     category = settings.Parfum.CATEGORY
     category_process_name = settings.Parfum.CATEGORY_PROCESS
@@ -361,6 +527,87 @@ def helper_parfum_info(subcategory: str | None) -> Union[Response, dict[str, Any
         return redirect(url_for(f'main.enter'))
 
     return locals()
+
+
+def helper_cosmetics_info(subcategory: str | None) -> Union[Response, dict[str, Any]]:
+    if not subcategory:
+        return redirect(url_for("user_product_cards.category_subcategories", category=settings.Cosmetics.CATEGORY_PROCESS))
+    if not CosmeticsSubcategories.has_value(subcategory):
+        flash("Неизвестная подкатегория косметики.", "error")
+        return redirect(url_for("user_product_cards.category_subcategories", category=settings.Cosmetics.CATEGORY_PROCESS))
+
+    subcategory_config = get_cosmetics_subcategory_config(subcategory)
+    if not subcategory_config:
+        flash("Подкатегория косметики пока не настроена.", "error")
+        return redirect(url_for("user_product_cards.category_subcategories", category=settings.Cosmetics.CATEGORY_PROCESS))
+
+    category = settings.Cosmetics.CATEGORY
+    category_process_name = settings.Cosmetics.CATEGORY_PROCESS
+    subcategory_title = subcategory_config["title"]
+    category_code = subcategory_config["category_code"]
+    allowed_tnved_codes = subcategory_config["allowed_tnved_codes"]
+    allowed_tnved_choices = subcategory_config["allowed_tnved_choices"]
+    nominal_quantity_types = subcategory_config["nominal_quantity_types"]
+    nominal_quantity_types_by_product_type = subcategory_config["nominal_quantity_types_by_product_type"]
+    product_types = subcategory_config["product_types"]
+    usage_term_types = subcategory_config["usage_term_types"]
+    content_type_choices = subcategory_config["content_type_choices"]
+    for_children_choices = subcategory_config["for_children_choices"]
+    countries = _get_subcategory_default_countries(subcategory_config)
+    rd_countries = _get_all_countries_upper()
+    rd_description = settings.RD_DESCRIPTION
+    rd_types_list = settings.RD_TYPES
+    with_packages = False
+    has_aggr = False
+    return locals()
+
+
+def helper_toys_info(subcategory: str | None) -> Union[Response, dict[str, Any]]:
+    if not subcategory:
+        return redirect(url_for("user_product_cards.category_subcategories", category=settings.Toys.CATEGORY_PROCESS))
+    if not ToysSubcategories.has_value(subcategory):
+        flash("Неизвестная подкатегория игрушек.", "error")
+        return redirect(url_for("user_product_cards.category_subcategories", category=settings.Toys.CATEGORY_PROCESS))
+
+    subcategory_config = get_toys_subcategory_config(subcategory)
+    if not subcategory_config:
+        flash("Подкатегория игрушек пока не настроена.", "error")
+        return redirect(url_for("user_product_cards.category_subcategories", category=settings.Toys.CATEGORY_PROCESS))
+
+    category = settings.Toys.CATEGORY
+    category_process_name = settings.Toys.CATEGORY_PROCESS
+    subcategory_title = subcategory_config["title"]
+    category_code = subcategory_config["category_code"]
+    category_code_by_tnved = subcategory_config.get("category_code_by_tnved", {})
+    allowed_tnved_codes = subcategory_config["allowed_tnved_codes"]
+    allowed_tnved_choices = subcategory_config["allowed_tnved_choices"]
+    allowed_tnved_codes_by_product_type = subcategory_config.get("allowed_tnved_codes_by_product_type", {})
+    tnved_group_choices = subcategory_config.get("tnved_group_choices", ())
+    okpd2_choices_by_tnved = subcategory_config["okpd2_choices_by_tnved"]
+    model_article_types = subcategory_config["model_article_types"]
+    product_types = subcategory_config["product_types"]
+    drive_type_choices = subcategory_config.get("drive_type_choices", ())
+    material_choices = subcategory_config["material_choices"]
+    min_child_age_choices = subcategory_config["min_child_age_choices"]
+    usage_term_types = subcategory_config["usage_term_types"]
+    service_life_types = subcategory_config["service_life_types"]
+    countries = _get_subcategory_default_countries(subcategory_config)
+    rd_countries = _get_all_countries_upper()
+    rd_description = settings.RD_DESCRIPTION
+    rd_types_list = settings.RD_TYPES
+    with_packages = False
+    has_aggr = False
+    return locals()
+
+
+def _is_valid_card_subcategory(category_process: str, subcategory: str | None) -> bool:
+    if category_process == settings.Clothes.CATEGORY_PROCESS:
+        return subcategory in {s.value for s in ClothesSubcategories}
+    if category_process == settings.Cosmetics.CATEGORY_PROCESS:
+        return CosmeticsSubcategories.has_value(subcategory)
+    if category_process == settings.Toys.CATEGORY_PROCESS:
+        return ToysSubcategories.has_value(subcategory)
+    return True
 
 
 def validate_card_form(category_process: str, subcategory: str, form_data: ImmutableMultiDict):
@@ -379,14 +626,13 @@ def validate_card_form(category_process: str, subcategory: str, form_data: Immut
     # -------------------------
 
     if has_subcat:
-        # категория (например clothes) ОБЯЗАТЕЛЬНО должна иметь подкатегорию
-        valid_subcats = [s.value for s in ClothesSubcategories]
-
         if not subcategory:
-            # по умолчанию "common"
-            subcategory = ClothesSubcategories.common.value
+            if category_process == settings.Clothes.CATEGORY_PROCESS:
+                subcategory = ClothesSubcategories.common.value
+            else:
+                raise ValueError(f"Для категории '{cfg.get('title')}' не указана подкатегория.")
 
-        if subcategory not in valid_subcats:
+        if not _is_valid_card_subcategory(category_process, subcategory):
             raise ValueError(f"Подкатегория '{subcategory}' не существует для категории '{cfg.get('title')}'.")
     # else:
     #     # Если категория НЕ поддерживает подкатегории, но subcategory передана → ошибка
@@ -396,17 +642,15 @@ def validate_card_form(category_process: str, subcategory: str, form_data: Immut
     # 1. Запрещённые слова
     check_forbidden_words(form_data.get("article", "").strip(), "article")
     check_forbidden_words(form_data.get("trademark", "").strip(), "trademark")
+    if category_process == settings.Parfum.CATEGORY_PROCESS:
+        validate_parfum_trademark(form_data.get("trademark"))
     category_title = CATEGORIES_COMMON.get(category_process).get('title').lower()
 
     # 2. Цвета (кроме парфюма)
-    if category_process != settings.Parfum.CATEGORY_PROCESS:
+    if "color" in CARD_FIELDS.get(category_process, {}):
         color = form_data.get("color")
         if ValidatorProcessor.check_colors(color=color):
             raise ValueError(settings.Messages.COLOR_INPUT_ERROR.format(color=color))
-
-    country = form_data.get("country")
-    if _is_russia_country(country):
-        raise ValueError("Страна РОССИЯ недоступна в разделе 'Мои карточки'.")
 
     # 3. TНВЭД
     if ValidatorProcessor.check_tnveds(
@@ -415,6 +659,16 @@ def validate_card_form(category_process: str, subcategory: str, form_data: Immut
             tnved_str=form_data.get("tnved_code")
     ):
         raise ValueError(settings.Messages.TNVED_ABSENCE_ERROR)
+
+    if category_process == settings.Cosmetics.CATEGORY_PROCESS:
+        error = ValidatorProcessor.validate_cosmetics_subcategory_payload(subcategory, form_data)
+        if error:
+            raise ValueError(error)
+
+    if category_process == settings.Toys.CATEGORY_PROCESS:
+        error = ValidatorProcessor.validate_toys_subcategory_payload(subcategory, form_data)
+        if error:
+            raise ValueError(error)
 
     # # 4. RD документация
     # rd_name = form_data.get("rd_name")
@@ -435,7 +689,6 @@ def parse_sizes_for_category(category: str, form_data_raw, subcategory: str | No
       - linen:          (size_str "X*Y", size_unit, quantity)
 
     form_data_raw — обычно request.form (ImmutableMultiDict).
-    subcategory сейчас не используется, но оставлен на будущее.
     """
     category_process = CATEGORIES_COMMON.get(category).get('title').lower()
     if category_process == settings.Clothes.CATEGORY:
@@ -447,6 +700,8 @@ def parse_sizes_for_category(category: str, form_data_raw, subcategory: str | No
             list(zip(sizes, quantities, size_types)),
             key=lambda x: x[0]
         )
+        for size, _qty, size_type in sizes_quantities:
+            get_clothes_size_type(size, size_type, subcategory=subcategory)
 
     elif category_process == settings.Socks.CATEGORY:
         sizes = form_data_raw.getlist("size")
@@ -570,7 +825,8 @@ def collect_existing_size_keys(user_id: int, category: str, subcategory: str | N
 
 def filter_new_sizes(category: str,
                      sizes_quantities: list,
-                     existing_keys: set) -> tuple[list, list]:
+                     existing_keys: set,
+                     subcategory: str | None = None) -> tuple[list, list]:
     """
     На вход:
       sizes_quantities — то, что вернул parse_sizes_for_category.
@@ -584,7 +840,7 @@ def filter_new_sizes(category: str,
     if category == settings.Clothes.CATEGORY_PROCESS:
         # [(size, qty, size_type_raw)]
         for size, qty, size_type_raw in sizes_quantities:
-            key = (size, get_clothes_size_type(size, size_type_raw))
+            key = (size, get_clothes_size_type(size, size_type_raw, subcategory=subcategory))
             if key in existing_keys:
                 skipped_labels.append(f"{size} ({size_type_raw})")
             else:
@@ -743,7 +999,7 @@ def save_clothes_card(
         ClothesQuantitySize(
             size=el[0],
             quantity=1,
-            size_type=get_clothes_size_type(el[0], el[2]),
+            size_type=get_clothes_size_type(el[0], el[2], subcategory=clothes.subcategory),
         )
         for el in sizes_quantities
     )
@@ -879,9 +1135,10 @@ def save_parfum_card(
     """
     rd_date = form_dict.get("_rd_date_obj")
     rd_date_to = form_dict.get("_rd_date_to_obj")
+    trademark = validate_parfum_trademark(form_dict.get("trademark"))
 
     parfum = Parfum(
-        trademark=process_input_str(form_dict.get("trademark") or ""),
+        trademark=trademark,
         volume_type=form_dict.get("volume_type"),
         volume=form_dict.get("volume"),
         package_type=form_dict.get("package_type"),
@@ -903,6 +1160,156 @@ def save_parfum_card(
     )
 
     db.session.add(parfum)
+    return card
+
+
+def _parse_optional_int(value) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_optional_ru_date(value):
+    value = (value or "").strip()
+    if not value:
+        return None
+    return datetime.strptime(value, "%d.%m.%Y").date()
+
+
+def _clean_optional_text(value) -> str:
+    value = process_input_str(value)
+    return "" if value.lower() in {"none", "null", "undefined"} else value
+
+
+def save_cosmetics_card(
+    card: ProductCard,
+    form_dict: dict,
+    sizes_quantities: list | None = None,
+    subcategory: str | None = None,
+) -> ProductCard:
+    rd_date = form_dict.get("_rd_date_obj")
+    rd_date_to = form_dict.get("_rd_date_to_obj")
+    sl_date_from = _parse_optional_ru_date(form_dict.get("sl_date_from"))
+    sl_date_to = _parse_optional_ru_date(form_dict.get("sl_date_to"))
+    subcategory_config = get_cosmetics_subcategory_config(subcategory) or {}
+    product_type = str(form_dict.get("type") or "").strip()
+    tnved_code = str(form_dict.get("tnved_code") or "").strip()
+
+    content_value_enabled = subcategory_config.get("content_value_enabled", True)
+    content_type_enabled = subcategory_config.get("content_type_enabled", True)
+    content_type_trigger_types = set(subcategory_config.get("content_type_trigger_product_types") or ())
+    content_type_trigger_tnveds = set(subcategory_config.get("content_type_trigger_tnved_codes") or ())
+    content_type_visible = content_value_enabled and content_type_enabled
+    if content_type_visible and (content_type_trigger_types or content_type_trigger_tnveds):
+        content_type_visible = product_type in content_type_trigger_types or tnved_code in content_type_trigger_tnveds
+
+    complectation_visible = (
+        product_type in set(subcategory_config.get("complectation_trigger_product_types") or ())
+        or tnved_code in set(subcategory_config.get("complectation_trigger_tnved_codes") or ())
+    )
+    nominal_quantity = _parse_optional_int(form_dict.get("nominal_quantity"))
+    nominal_quantity_type = form_dict.get("nominal_quantity_type")
+    blade_count = _parse_optional_int(form_dict.get("blade_count"))
+    if subcategory == "razor_blades_and_cassettes" and tnved_code != "8212109000":
+        blade_count = None
+        complectation_visible = False
+
+    layers_enabled = bool(subcategory_config.get("layers_characteristic_choices") or ())
+    for_children_enabled = subcategory_config.get("for_children_enabled", True)
+
+    cosmetics = Cosmetics(
+        trademark=normalize_trademark_placeholder(form_dict.get("trademark")),
+        type=product_type,
+        full_name_extra=process_input_str(form_dict.get("full_name_extra")),
+        country=form_dict.get("country"),
+        tnved_code=tnved_code,
+        rd_type=form_dict.get("rd_type"),
+        rd_name=rd_name_clean(form_dict.get("rd_name")),
+        rd_date=rd_date,
+        rd_date_to=rd_date_to,
+        subcategory=subcategory,
+        nominal_quantity=nominal_quantity,
+        nominal_quantity_type=nominal_quantity_type,
+        blade_count=blade_count,
+        complectation=_clean_optional_text(form_dict.get("complectation")) if complectation_visible else "",
+        layers_characteristic=_clean_optional_text(form_dict.get("layers_characteristic")) if layers_enabled else "",
+        for_children=form_dict.get("for_children") == "yes" if for_children_enabled else False,
+        usage_term_type=form_dict.get("usage_term_type"),
+        content_type=_clean_optional_text(form_dict.get("content_type")) if content_type_visible else "",
+        content=_clean_optional_text(form_dict.get("content")) if content_value_enabled else "",
+        service_life=_parse_optional_int(form_dict.get("service_life")),
+        sl_date_from=sl_date_from,
+        sl_date_to=sl_date_to,
+        card_id=card.id,
+    )
+
+    db.session.add(cosmetics)
+    return card
+
+
+def save_toys_card(
+    card: ProductCard,
+    form_dict: dict,
+    sizes_quantities: list | None = None,
+    subcategory: str | None = None,
+) -> ProductCard:
+    rd_date = form_dict.get("_rd_date_obj")
+    rd_date_to = form_dict.get("_rd_date_to_obj")
+    sl_date_from = _parse_optional_ru_date(form_dict.get("sl_date_from"))
+    sl_date_to = _parse_optional_ru_date(form_dict.get("sl_date_to"))
+
+    model_article = normalize_article_placeholder(form_dict.get("model_article"))
+    if form_dict.get("no_model_article") or not model_article:
+        model_article = "отсутствует"
+
+    okpd2_name = form_dict.get("okpd2_name")
+    category_code = form_dict.get("category_code")
+    subcategory_config = get_toys_subcategory_config(subcategory) or {}
+    tnved_code = str(form_dict.get("tnved_code") or "").strip()
+    if subcategory_config:
+        category_code = (
+            (subcategory_config.get("category_code_by_tnved") or {}).get(tnved_code)
+            or subcategory_config.get("category_code")
+            or ""
+        )
+        okpd2_choices = subcategory_config.get("okpd2_choices_by_tnved", {}).get(tnved_code, ())
+        okpd2_name = next(
+            (name for code, name in okpd2_choices if str(code).strip() == str(form_dict.get("okpd2_code") or "").strip()),
+            okpd2_name,
+        )
+
+    toys = Toys(
+        trademark=normalize_trademark_placeholder(form_dict.get("trademark")),
+        type=form_dict.get("type"),
+        full_name_extra=process_input_str(form_dict.get("full_name_extra")),
+        country=form_dict.get("country"),
+        tnved_code=form_dict.get("tnved_code"),
+        rd_type=form_dict.get("rd_type"),
+        rd_name=rd_name_clean(form_dict.get("rd_name")),
+        rd_date=rd_date,
+        rd_date_to=rd_date_to,
+        subcategory=subcategory,
+        category_code=category_code,
+        okpd2_code=form_dict.get("okpd2_code"),
+        okpd2_name=okpd2_name,
+        model_article_type=form_dict.get("model_article_type"),
+        model_article=model_article,
+        drive_type=form_dict.get("drive_type"),
+        material=form_dict.get("material"),
+        min_child_age=form_dict.get("min_child_age"),
+        usage_term_type=form_dict.get("usage_term_type"),
+        content=form_dict.get("content"),
+        service_life_type=form_dict.get("service_life_type") or "мес",
+        service_life=_parse_optional_int(form_dict.get("service_life")),
+        sl_date_from=sl_date_from,
+        sl_date_to=sl_date_to,
+        card_id=card.id,
+    )
+
+    db.session.add(toys)
     return card
 
 
@@ -954,6 +1361,8 @@ def extract_card_main_and_sizes(card: ProductCard):
 
     elif card.category == settings.Parfum.CATEGORY_PROCESS:
         sizes = []
+    elif card.category in (settings.Cosmetics.CATEGORY_PROCESS, settings.Toys.CATEGORY_PROCESS):
+        sizes = []
 
     return main, sizes
 
@@ -965,6 +1374,8 @@ def get_card_ctx(category: str, subcategory: str | None = None) -> dict:
         "linen": helper_linen_info,
         "parfum": helper_parfum_info,
         "shoes": helper_shoes_info,
+        "cosmetics": helper_cosmetics_info,
+        "toys": helper_toys_info,
     }
 
     builder = category_ctx_builder[category]
@@ -1077,6 +1488,52 @@ def check_same_fields_if_exists(*, category: str, subcategory: str | None, form_
             )
         return
 
+    if category in (settings.Cosmetics.CATEGORY_PROCESS, settings.Toys.CATEGORY_PROCESS):
+        query = (
+            db.session.query(model)
+            .join(ProductCard, ProductCard.id == model.card_id)
+            .filter(
+                ProductCard.user_id == current_user.id,
+                ProductCard.category == category,
+                ProductCard.status != ModerationStatus.REJECTED,
+            )
+        )
+        if subcategory and hasattr(model, "subcategory"):
+            query = query.filter(model.subcategory == subcategory)
+
+        def _form_cmp_value(field: str) -> str:
+            if field == "trademark":
+                return _norm(normalize_trademark_placeholder(form_dict.get(field)))
+            if field == "model_article":
+                value = normalize_article_placeholder(form_dict.get(field))
+                return _norm("отсутствует" if form_dict.get("no_model_article") or not value else value)
+            if field == "for_children":
+                return "1" if form_dict.get(field) == "yes" else "0"
+            if field in ("sl_date_from", "sl_date_to"):
+                return _norm(form_dict.get(field))
+            return _norm(form_dict.get(field))
+
+        def _db_cmp_value(existing_item, field: str) -> str:
+            value = getattr(existing_item, field, None)
+            if field == "for_children":
+                return "1" if value else "0"
+            if field in ("sl_date_from", "sl_date_to") and value:
+                return value.strftime("%d.%m.%Y")
+            return _norm(value)
+
+        for existing in query.all():
+            if all(
+                _db_cmp_value(existing, field) == _form_cmp_value(field)
+                for field in fields_to_lock
+                if field != "subcategory"
+            ):
+                title = cfg.get("title", category)
+                raise Exception(
+                    f"У вас уже есть такая карточка в категории '{title}' "
+                    f"(ID {existing.card_id}). Новая карточка не создана."
+                )
+        return
+
     # =========================
     # ОСТАЛЬНЫЕ: article + совпадение полей
     # =========================
@@ -1132,229 +1589,6 @@ def check_same_fields_if_exists(*, category: str, subcategory: str | None, form_
         )
 
 
-def handle_company_removed(company_id: int):
-    try:
-        bindings = UserProcessingCompany.query.filter_by(company_id=company_id).all()
-        affected_user_ids = sorted({b.user_id for b in bindings})
-
-        for b in bindings:
-            db.session.delete(b)
-
-        # если пул теперь <2, require_user_two_companies кинет CompanyPoolError -> rollback всего удаления
-        for uid in affected_user_ids:
-            require_user_two_companies(uid)
-
-            (ProductCard.query
-             .filter(ProductCard.user_id == uid,
-                     ProductCard.status != ModerationStatus.REJECTED)
-             .update({ProductCard.status: ModerationStatus.PARTIALLY_APPROVED},
-                     synchronize_session=False))
-
-        db.session.commit()
-
-    except CompanyPoolError:
-        db.session.rollback()
-        raise  # пусть админ-интерфейс покажет ошибку “в пуле меньше 2”
-    except SQLAlchemyError:
-        db.session.rollback()
-        raise
-
-
-def user_has_any_approved_company(user_id: int) -> bool:
-    return (UserProcessingCompany.query
-            .filter(UserProcessingCompany.user_id == user_id,
-                    UserProcessingCompany.is_approved.is_(True))
-            .first()) is not None
-
-
-def set_user_cards_partially_approved(user_id: int):
-    (ProductCard.query
-     .filter(ProductCard.user_id == user_id,
-             ProductCard.status.in_([
-                 ModerationStatus.SENT,
-                 ModerationStatus.SENT_NO_RD,
-                 ModerationStatus.IN_PROGRESS,
-                 ModerationStatus.IN_MODERATION,
-                 ModerationStatus.CLARIFICATION,
-                 ModerationStatus.APPROVED,
-                 ModerationStatus.PARTIALLY_APPROVED,
-             ]))
-     .update({ProductCard.status: ModerationStatus.PARTIALLY_APPROVED}, synchronize_session=False))
-
-
-def _hrw_score(user_id: int, company_id: int, salt: str) -> int:
-    payload = f"{salt}|u:{user_id}|c:{company_id}".encode("utf-8")
-    return int.from_bytes(
-        hashlib.blake2b(payload, digest_size=8).digest(),
-        "big"
-    )
-
-
-# def pick_two_companies_for_user(
-#     user_id: int,
-#     company_ids: Iterable[int],
-#     salt: str,
-# ) -> Optional[Tuple[int, int]]:
-#     ids = list(company_ids)
-#     if len(ids) < 2:
-#         return None
-#
-#     scored = [(cid, _hrw_score(user_id, cid, salt)) for cid in ids]
-#     scored.sort(key=lambda x: x[1], reverse=True)
-#     return scored[0][0], scored[1][0]
-
-
-def pick_two_companies_for_user_checked(
-        user_id: int,
-        companies: Iterable[CompanyLite],
-        salt: str,
-) -> Optional[Tuple[int, int]]:
-    items = list(companies)
-    if len(items) < 2:
-        return None
-
-    scored = [(c, _hrw_score(user_id, c.id, salt)) for c in items]
-    scored.sort(key=lambda x: x[1], reverse=True)
-    ordered = [c for c, _ in scored]
-
-    # первая допустимая пара в порядке HRW
-    for i in range(len(ordered) - 1):
-        c1 = ordered[i]
-        for j in range(i + 1, len(ordered)):
-            c2 = ordered[j]
-            if not is_forbidden_pair_by_inn(c1.inn, c2.inn):
-                return c1.id, c2.id
-    return None
-
-
-def require_user_two_companies(user_id: int) -> tuple[int, int]:
-    salt = "pc_companies_v1"
-
-    pool_rows = (
-        db.session.query(ProcessingCompany.id, ProcessingCompany.inn, ProcessingCompany.title)
-        .filter(ProcessingCompany.is_active.is_(True))
-        .order_by(ProcessingCompany.id.asc())
-        .all()
-    )
-    pool = [CompanyLite(id=cid, title=(title or ""), inn=(inn or "")) for cid, title, inn in pool_rows]
-
-    if len(pool) < 2:
-        raise CompanyPoolError("В пуле меньше двух активных компаний. Обратитесь к администратору.")
-
-    pool_by_id = {c.id: c for c in pool}
-
-    # 1) текущие привязки 1/2
-    rows = (
-        UserProcessingCompany.query
-        .options(joinedload(UserProcessingCompany.company))
-        .filter(UserProcessingCompany.user_id == user_id)
-        .filter(UserProcessingCompany.slot.in_([1, 2]))
-        .order_by(UserProcessingCompany.slot.asc())
-        .all()
-    )
-
-    by_slot = {r.slot: r for r in rows}
-
-    # удалить (или считать отсутствующими) только неактивные
-    active_bindings = []  # list[UserProcessingCompany] только с активной company
-    for slot, r in list(by_slot.items()):
-        if r.company and r.company.is_active:
-            active_bindings.append(r)
-        else:
-            db.session.delete(r)
-            by_slot.pop(slot, None)
-
-    # helper: upsert слота
-    def upsert(slot: int, company_id: int):
-        r = by_slot.get(slot)
-        if r:
-            if r.company_id != company_id:
-                r.company_id = company_id
-                r.is_approved = True
-            return
-        db.session.add(UserProcessingCompany(
-            user_id=user_id,
-            slot=slot,
-            company_id=company_id,
-            is_approved=True,
-        ))
-
-    # helper: проверка пары по ids
-    def ids_forbidden(cid1: int, cid2: int) -> bool:
-        c1 = pool_by_id.get(cid1)
-        c2 = pool_by_id.get(cid2)
-        if not c1 or not c2:
-            return False
-        return is_forbidden_pair_by_inn(c1.inn, c2.inn)
-
-    # если уже две активные и разные — и НЕ запрещённая пара — ничего не меняем
-    if len(active_bindings) >= 2 and by_slot.get(1) and by_slot.get(2):
-        cid1 = by_slot[1].company_id
-        cid2 = by_slot[2].company_id
-        if cid1 != cid2 and not ids_forbidden(cid1, cid2):
-            return cid1, cid2
-        # иначе (дубль или запрещённая пара) — пересобираем ниже
-
-    # если есть ровно одна активная — сохраняем её (но всё равно учитываем запрет пары)
-    keep_company_id = None
-    keep_slot = None
-    if len(active_bindings) == 1:
-        keep_company_id = active_bindings[0].company_id
-        keep_slot = active_bindings[0].slot
-
-        # на всякий случай: если keep уже не в пуле активных (не должно быть) — сбрасываем
-        if keep_company_id not in pool_by_id:
-            keep_company_id = None
-            keep_slot = None
-
-    # Выбор 2х компаний с учётом запрещённых пар
-    if keep_company_id is None:
-        picked = pick_two_companies_for_user_checked(user_id, pool, salt)
-        if not picked:
-            raise CompanyPoolError("Невозможно подобрать 2 компании без запрещённых сочетаний.")
-        c1_id, c2_id = picked
-    else:
-        keep = pool_by_id[keep_company_id]
-
-        # кандидаты для второй: все кроме keep, и чтобы пара была разрешена
-        candidates = [
-            c for c in pool
-            if c.id != keep_company_id and not is_forbidden_pair_by_inn(keep.inn, c.inn)
-        ]
-        if not candidates:
-            raise CompanyPoolError("Недостаточно компаний для назначения без запрещённых сочетаний.")
-
-        # детерминированно выбираем лучшую вторую по HRW
-        scored = [(c, _hrw_score(user_id, c.id, salt)) for c in candidates]
-        scored.sort(key=lambda x: x[1], reverse=True)
-        second = scored[0][0]
-
-        # раскладываем по слотам: сохраняем слот keep
-        if keep_slot == 1:
-            c1_id, c2_id = keep_company_id, second.id
-        else:
-            c1_id, c2_id = second.id, keep_company_id
-
-    # финальная страховка
-    if c1_id == c2_id:
-        # не должно случиться, но перестрахуемся
-        for c in pool:
-            if c.id != c1_id:
-                c2_id = c.id
-                break
-
-    if ids_forbidden(c1_id, c2_id):
-        # теоретически не должно случиться, но лучше явно упасть
-        raise CompanyPoolError("Подобралась запрещённая пара компаний. Обратитесь к администратору.")
-
-    # upsert слотов 1/2
-    upsert(1, c1_id)
-    upsert(2, c2_id)
-
-    db.session.flush()
-    return c1_id, c2_id
-
-
 def get_card_entity_for_prefill(card: ProductCard):
     if card.category == "clothes":
         return card.clothes[0] if card.clothes else None
@@ -1366,15 +1600,366 @@ def get_card_entity_for_prefill(card: ProductCard):
         return card.linen[0] if card.linen else None
     if card.category == "parfum":
         return card.parfum[0] if card.parfum else None
+    if card.category == "cosmetics":
+        return card.cosmetics[0] if card.cosmetics else None
+    if card.category == "toys":
+        return card.toys[0] if card.toys else None
     return None
 
 
-def build_size_keys_for_incoming(category: str, sizes_quantities: list) -> set:
+def _looks_like_processing_company(value: dict[str, Any]) -> bool:
+    return any(
+        key in value
+        for key in (
+            "id",
+            "external_id",
+            "company_id",
+            "company_idn",
+            "inn",
+            "title",
+            "name",
+            "company_name",
+        )
+    )
+
+
+def _find_processing_company_payload(payload: Any) -> dict[str, Any] | None:
+    if isinstance(payload, list):
+        for item in payload:
+            found = _find_processing_company_payload(item)
+            if found:
+                return found
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+
+    for key in (
+        "company",
+        "processing_company",
+        "selected_company",
+        "selected",
+        "item",
+        "result",
+    ):
+        found = _find_processing_company_payload(payload.get(key))
+        if found:
+            return found
+
+    for key in ("companies", "items", "results", "data"):
+        found = _find_processing_company_payload(payload.get(key))
+        if found:
+            return found
+
+    return payload if _looks_like_processing_company(payload) else None
+
+
+def _processing_company_value(company: dict[str, Any], *keys: str) -> str:
+    for key in keys:
+        value = company.get(key)
+        if value not in (None, ""):
+            if isinstance(value, dict):
+                value = next(
+                    (
+                        value.get(nested_key)
+                        for nested_key in ("full", "short", "value", "title", "name")
+                        if value.get(nested_key) not in (None, "")
+                    ),
+                    "",
+                )
+            return str(value).strip()
+    return ""
+
+
+def _processing_company_client_id(card: ProductCard) -> str:
+    return f"card-{card.id}"
+
+
+def _processing_company_chunks(items: list[Any], size: int) -> list[list[Any]]:
+    return [items[idx:idx + size] for idx in range(0, len(items), size)]
+
+
+def _format_processing_company_batch_errors(errors: list[dict[str, Any]]) -> str:
+    cards_text = ", ".join(
+        f"#{error['card_id']}: {error['message']}"
+        for error in errors
+    )
+    return (
+        "Отправка на модерацию не выполнена из-за ошибок назначения компаний "
+        f"в карточках: {cards_text}. "
+        "Отправьте остальные карточки отдельно, а ошибочные исправьте или попробуйте снова позже."
+    )
+
+
+def _card_processing_country(card: ProductCard) -> str:
+    entity = get_card_entity_for_prefill(card)
+    return (getattr(entity, "country", "") or "").strip()
+
+
+def clear_card_processing_company(card: ProductCard) -> None:
+    card.processing_info = ""
+    card.processing_company_external_id = ""
+    card.processing_company_title = ""
+    card.processing_company_inn = ""
+    card.processing_company_origin = ""
+    card.processing_company_category = ""
+    card.processing_company_payload = None
+    card.processing_company_assigned_at = None
+
+
+def copy_card_processing_company(
+    target: ProductCard,
+    source: ProductCard,
+    *,
+    assigned_at: datetime | None = None,
+) -> dict[str, Any]:
+    inherited_at = assigned_at or datetime.now()
+    target.processing_info = (source.processing_info or source.processing_company_label or "")[:100]
+    target.processing_company_external_id = source.processing_company_external_id or ""
+    target.processing_company_title = source.processing_company_title or ""
+    target.processing_company_inn = source.processing_company_inn or ""
+    target.processing_company_origin = source.processing_company_origin or ""
+    target.processing_company_category = source.processing_company_category or ""
+    target.processing_company_payload = {
+        "inherited_from_card_id": source.id,
+        "inherited_at": inherited_at.isoformat(),
+        "source_payload": deepcopy(source.processing_company_payload),
+    }
+    target.processing_company_assigned_at = inherited_at
+
+    return {
+        "source_card_id": source.id,
+        "label": target.processing_company_label or target.processing_info,
+    }
+
+
+def find_existing_processing_company_card(
+    card: ProductCard,
+    *,
+    processing_request,
+) -> ProductCard | None:
+    if not card.user_id:
+        return None
+
+    return (
+        db.session.query(ProductCard)
+        .filter(
+            ProductCard.id != card.id,
+            ProductCard.user_id == card.user_id,
+            ProductCard.status != ModerationStatus.REJECTED,
+            ProductCard.processing_company_origin == processing_request.origin,
+            ProductCard.processing_company_category == processing_request.category,
+            (
+                (ProductCard.processing_company_inn != "")
+                | (ProductCard.processing_company_external_id != "")
+                | (ProductCard.processing_company_title != "")
+            ),
+        )
+        .order_by(
+            ProductCard.processing_company_assigned_at.asc(),
+            ProductCard.created_at.asc(),
+            ProductCard.id.asc(),
+        )
+        .first()
+    )
+
+
+def _save_card_processing_company(
+    card: ProductCard,
+    *,
+    processing_request,
+    response_payload: dict[str, Any],
+    assigned_at: datetime | None = None,
+) -> dict[str, Any]:
+    company = _find_processing_company_payload(response_payload)
+    if not company:
+        raise ValueError(f"Тезаурус не вернул компанию для карточки {card.id}")
+
+    external_id = _processing_company_value(company, "id", "external_id", "company_id")
+    title = _processing_company_value(company, "title", "name", "company_name")
+    inn = _processing_company_value(company, "inn", "company_idn")
+
+    if not any((external_id, title, inn)):
+        raise ValueError(f"Тезаурус вернул компанию без идентификатора для карточки {card.id}")
+
+    label = " ".join(part for part in (inn, title) if part)
+    card.processing_info = (label or title or external_id)[:100]
+    card.processing_company_external_id = external_id[:100]
+    card.processing_company_title = title[:255]
+    card.processing_company_inn = inn[:20]
+    card.processing_company_origin = processing_request.origin[:20]
+    card.processing_company_category = processing_request.category[:50]
+    card.processing_company_payload = {
+        "request": processing_request.as_payload(),
+        "response": response_payload,
+        "company": company,
+    }
+    card.processing_company_assigned_at = assigned_at or datetime.now()
+
+    return {
+        "request": processing_request.as_payload(),
+        "company": company,
+        "label": card.processing_company_label or card.processing_info,
+    }
+
+
+def assign_tezaurus_processing_company(
+    card: ProductCard,
+    *,
+    client: ProcessingCompaniesClient | None = None,
+    assigned_at: datetime | None = None,
+) -> dict[str, Any]:
+    country = _card_processing_country(card)
+    if not country:
+        raise ValueError(f"Не указана страна для карточки {card.id}")
+
+    client = client or ProcessingCompaniesClient()
+    processing_request = client.build_request(category=card.category, country=country)
+    response_payload = client.select(
+        category=processing_request.category,
+        origin=processing_request.origin,
+    )
+    return _save_card_processing_company(
+        card,
+        processing_request=processing_request,
+        response_payload=response_payload,
+        assigned_at=assigned_at,
+    )
+
+
+def assign_tezaurus_processing_companies(
+    cards: list[ProductCard],
+    *,
+    client: ProcessingCompaniesClient | None = None,
+    assigned_at: datetime | None = None,
+) -> dict[int, dict[str, Any]]:
+    if not cards:
+        return {}
+
+    client = client or ProcessingCompaniesClient()
+    contexts_by_scope: dict[tuple[int, str, str], list[tuple[ProductCard, str, Any]]] = {}
+    errors: list[dict[str, Any]] = []
+    for card in cards:
+        country = _card_processing_country(card)
+        if not country:
+            errors.append({
+                "card_id": card.id,
+                "message": "не указана страна",
+            })
+            continue
+
+        try:
+            processing_request = client.build_request(category=card.category, country=country)
+        except ValueError as exc:
+            errors.append({
+                "card_id": card.id,
+                "message": str(exc),
+            })
+            continue
+
+        context = (card, _processing_company_client_id(card), processing_request)
+        scope_key = (card.user_id, processing_request.category, processing_request.origin)
+        contexts_by_scope.setdefault(scope_key, []).append(context)
+
+    if errors:
+        raise ValueError(_format_processing_company_batch_errors(errors))
+
+    assignments: dict[int, dict[str, Any]] = {}
+    representative_contexts = []
+    inherited_by_representative: dict[int, list[ProductCard]] = {}
+
+    for scope_contexts in contexts_by_scope.values():
+        first_card, _first_client_id, first_request = scope_contexts[0]
+        source_card = find_existing_processing_company_card(
+            first_card,
+            processing_request=first_request,
+        )
+
+        if source_card:
+            for card, _client_id, _processing_request in scope_contexts:
+                assignments[card.id] = copy_card_processing_company(
+                    target=card,
+                    source=source_card,
+                    assigned_at=assigned_at,
+                )
+            continue
+
+        representative_contexts.append(scope_contexts[0])
+        inherited_by_representative[first_card.id] = [
+            card for card, _client_id, _processing_request in scope_contexts[1:]
+        ]
+
+    response_contexts = []
+    for chunk in _processing_company_chunks(representative_contexts, PROCESSING_COMPANIES_BATCH_LIMIT):
+        batch_items = [
+            processing_request.as_batch_payload(client_id)
+            for _card, client_id, processing_request in chunk
+        ]
+        batch_payload = client.select_batch(batch_items)
+        response_items = batch_payload.get("items")
+        if not isinstance(response_items, list):
+            raise ValueError("Тезаурус вернул некорректный batch-ответ без items")
+
+        response_by_client_id = {
+            str(item.get("client_id")): item
+            for item in response_items
+            if isinstance(item, dict) and item.get("client_id")
+        }
+
+        for card, client_id, processing_request in chunk:
+            item_payload = response_by_client_id.get(client_id)
+            if not item_payload:
+                errors.append({
+                    "card_id": card.id,
+                    "message": "Тезаурус не вернул batch-item",
+                })
+                continue
+
+            if item_payload.get("ok") is False or item_payload.get("matched") is not True:
+                message = item_payload.get("message") or "компания не назначена"
+                status_code = item_payload.get("status_code")
+                status_text = f" ({status_code})" if status_code else ""
+                errors.append({
+                    "card_id": card.id,
+                    "message": f"{message}{status_text}",
+                })
+                continue
+
+            if not _find_processing_company_payload(item_payload):
+                errors.append({
+                    "card_id": card.id,
+                    "message": "Тезаурус вернул ответ без компании",
+                })
+                continue
+
+            response_contexts.append((card, processing_request, item_payload))
+
+    if errors:
+        raise ValueError(_format_processing_company_batch_errors(errors))
+
+    for card, processing_request, item_payload in response_contexts:
+        assignments[card.id] = _save_card_processing_company(
+            card,
+            processing_request=processing_request,
+            response_payload=item_payload,
+            assigned_at=assigned_at,
+        )
+        for inherited_card in inherited_by_representative.get(card.id, []):
+            assignments[inherited_card.id] = copy_card_processing_company(
+                target=inherited_card,
+                source=card,
+                assigned_at=assigned_at,
+            )
+
+    return assignments
+
+
+def build_size_keys_for_incoming(category: str, sizes_quantities: list, subcategory: str | None = None) -> set:
     keys = set()
 
     if category == settings.Clothes.CATEGORY_PROCESS:
         for size, qty, size_type_raw in sizes_quantities:
-            keys.add((size, get_clothes_size_type(size, size_type_raw)))
+            keys.add((size, get_clothes_size_type(size, size_type_raw, subcategory=subcategory)))
 
     elif category == settings.Socks.CATEGORY_PROCESS:
         for size, qty, size_type_raw in sizes_quantities:
@@ -1416,6 +2001,42 @@ def _card_merge_key(card: ProductCard) -> tuple | None:
         key.append(getattr(main, "subcategory", None) or ClothesSubcategories.common.value)
 
     return tuple(key)
+
+
+def find_approved_wear_card_for_size_extension(card: ProductCard) -> ProductCard | None:
+    key = _card_merge_key(card)
+    if not key:
+        return None
+
+    cfg = CATEGORIES_COMMON.get(card.category)
+    if not cfg:
+        return None
+
+    model = cfg["model"]
+    main = _card_merge_main_entity(card)
+    if not main:
+        return None
+
+    q = (
+        db.session.query(ProductCard)
+        .join(model, ProductCard.id == model.card_id)
+        .filter(
+            ProductCard.id != card.id,
+            ProductCard.user_id == card.user_id,
+            ProductCard.category == card.category,
+            ProductCard.status == ModerationStatus.APPROVED,
+            model.article == getattr(main, "article", None),
+        )
+        .order_by(ProductCard.created_at.asc(), ProductCard.id.asc())
+    )
+
+    if hasattr(model, "color"):
+        q = q.filter(model.color == getattr(main, "color", None))
+
+    if cfg.get("has_subcategory") and hasattr(model, "subcategory"):
+        q = q.filter(model.subcategory == getattr(main, "subcategory", None))
+
+    return q.first()
 
 
 def _card_merge_size_key(category: str, sq):
@@ -1573,6 +2194,11 @@ def assert_frozen_fields_unchanged(card: ProductCard, form_data):
         # sizes у парфюма нет — пропускаем
         return
 
+    if category in (settings.Cosmetics.CATEGORY_PROCESS, settings.Toys.CATEGORY_PROCESS):
+        if not get_card_entity_for_prefill(card):
+            raise ValueError("Не удалось прочитать данные карточки для сравнения.")
+        return
+
     # не парфюм:
     entity = get_card_entity_for_prefill(card)
     if not entity:
@@ -1606,7 +2232,11 @@ def assert_frozen_fields_unchanged(card: ProductCard, form_data):
             for sq in l.sizes_quantities:
                 current_keys.add((sq.size, sq.unit))
 
-    incoming_keys = build_size_keys_for_incoming(category, incoming_sq)
+    incoming_keys = build_size_keys_for_incoming(
+        category,
+        incoming_sq,
+        subcategory=getattr(entity, "subcategory", None),
+    )
 
     if not (incoming_keys <= current_keys):
         raise ValueError("Нельзя добавлять новые размеры")
@@ -1682,6 +2312,7 @@ def assert_frozen_fields_unchanged(card: ProductCard, form_data):
 FROZEN_FIELDS = {
     "default": {"color", "size", "size_type", "quantity", "sizeX", "sizeY", "sizeUnit"},
     "parfum": set(),
+    "single_unit": set(),
 }
 
 
@@ -1693,7 +2324,11 @@ def update_card_allowed_fields(card: ProductCard, form_dict: dict, form_data):
     if not entity:
         raise ValueError("Нет данных категории в карточке")
 
-    frozen = FROZEN_FIELDS["parfum"] if category == "parfum" else FROZEN_FIELDS["default"]
+    frozen = (
+        FROZEN_FIELDS["single_unit"]
+        if category in (settings.Parfum.CATEGORY_PROCESS, settings.Cosmetics.CATEGORY_PROCESS, settings.Toys.CATEGORY_PROCESS)
+        else FROZEN_FIELDS["default"]
+    )
 
     # разрешённые поля = CARD_FIELDS[category] - frozen(по смыслу)
     for field in CARD_FIELDS[category].keys():
@@ -1702,8 +2337,20 @@ def update_card_allowed_fields(card: ProductCard, form_dict: dict, form_data):
         if hasattr(entity, field) and field in form_dict:
             if field == "article":
                 setattr(entity, field, normalize_article_for_category(category, form_dict))
+            elif field == "model_article":
+                value = normalize_article_placeholder(form_dict.get(field))
+                setattr(entity, field, "отсутствует" if form_dict.get("no_model_article") or not value else value)
             elif field == "trademark":
-                setattr(entity, field, process_input_str(form_dict[field] or ""))
+                if category in (settings.Cosmetics.CATEGORY_PROCESS, settings.Toys.CATEGORY_PROCESS):
+                    setattr(entity, field, normalize_trademark_placeholder(form_dict.get(field)))
+                else:
+                    setattr(entity, field, process_input_str(form_dict[field] or ""))
+            elif field == "for_children":
+                setattr(entity, field, form_dict.get(field) == "yes")
+            elif field in ("nominal_quantity", "blade_count", "service_life"):
+                setattr(entity, field, _parse_optional_int(form_dict.get(field)))
+            elif field in ("sl_date_from", "sl_date_to"):
+                setattr(entity, field, _parse_optional_ru_date(form_dict.get(field)))
             else:
                 setattr(entity, field, form_dict[field])
 
@@ -1725,7 +2372,11 @@ def get_card_allowed_field_changes(card: ProductCard, form_dict: dict) -> list[s
     if not entity:
         return []
 
-    frozen = FROZEN_FIELDS["parfum"] if category == "parfum" else FROZEN_FIELDS["default"]
+    frozen = (
+        FROZEN_FIELDS["single_unit"]
+        if category in (settings.Parfum.CATEGORY_PROCESS, settings.Cosmetics.CATEGORY_PROCESS, settings.Toys.CATEGORY_PROCESS)
+        else FROZEN_FIELDS["default"]
+    )
     changes: list[str] = []
 
     def _norm(value):
@@ -1733,12 +2384,23 @@ def get_card_allowed_field_changes(card: ProductCard, form_dict: dict) -> list[s
             return ""
         if isinstance(value, str):
             return value.strip()
+        if hasattr(value, "strftime"):
+            return value.strftime("%d.%m.%Y")
         return value
 
     for field, label in CARD_FIELDS[category].items():
         if field in frozen or not hasattr(entity, field) or field not in form_dict:
             continue
-        if _norm(getattr(entity, field, None)) != _norm(form_dict.get(field)):
+        if field == "for_children":
+            form_value = form_dict.get(field) == "yes"
+        elif field == "model_article":
+            value = normalize_article_placeholder(form_dict.get(field))
+            form_value = "отсутствует" if form_dict.get("no_model_article") or not value else value
+        elif field in ("sl_date_from", "sl_date_to"):
+            form_value = form_dict.get(field)
+        else:
+            form_value = form_dict.get(field)
+        if _norm(getattr(entity, field, None)) != _norm(form_value):
             changes.append(label)
 
     rd_changed = False
@@ -1786,6 +2448,10 @@ def card_has_rd(card: ProductCard) -> bool:
         return any(_has_rd_on_item(it) for it in (card.linen or []))
     if cat == "parfum":
         return any(_has_rd_on_item(it) for it in (card.parfum or []))
+    if cat == "cosmetics":
+        return any(_has_rd_on_item(it) for it in (card.cosmetics or []))
+    if cat == "toys":
+        return any(_has_rd_on_item(it) for it in (card.toys or []))
 
     return False
 

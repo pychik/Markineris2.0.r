@@ -1,0 +1,73 @@
+<div class="pc-company-stats">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <div>
+      {% if stats.has_data %}
+        <div class="pc-company-stats__summary">
+          <span class="pc-company-stats__pill">Фирм: <b>{{ stats.company_count }}</b></span>
+          <span class="pc-company-stats__pill">Карточек: <b>{{ stats.cards_count }}</b></span>
+        </div>
+      {% else %}
+        <div class="text-muted">Срезов по компаниям пока нет.</div>
+      {% endif %}
+    </div>
+
+    {% if can_refresh_company_stats %}
+      <button type="button"
+              class="btn btn-sm btn-outline-secondary pc-company-stats__refresh-btn"
+              onclick="pcRefreshCompanyStatsSnapshot(this)">
+        Обновить срез
+      </button>
+    {% endif %}
+  </div>
+
+  {% if stats.has_data %}
+    <div class="table-responsive pc-company-stats__table-wrap">
+      <table class="table table-sm align-middle pc-company-stats__table">
+        <thead>
+          <tr>
+            <th>Фирма</th>
+            <th class="text-end">Всего</th>
+            <th>Категории / РФ / Не РФ</th>
+            <th>Статусы</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for company in stats.companies %}
+            <tr>
+              <td class="pc-company-stats__company">
+                <div class="fw-bold">{{ company.label }}</div>
+                {% if company.external_id %}
+                  <div class="text-muted small">ID: {{ company.external_id }}</div>
+                {% endif %}
+              </td>
+              <td class="text-end fw-bold">{{ company.total }}</td>
+              <td>
+                <div class="pc-company-stats__category-list">
+                  {% for category in company.categories %}
+                    <div class="pc-company-stats__category-row">
+                      <span class="pc-company-stats__category-title">
+                        {{ stats.category_titles.get(category.category, category.category or "Без категории") }}
+                      </span>
+                      <span class="pc-company-stats__origin">РФ: <b>{{ category.rf }}</b></span>
+                      <span class="pc-company-stats__origin">Не РФ: <b>{{ category["import"] }}</b></span>
+                      {% if category.unknown %}
+                        <span class="pc-company-stats__origin">Без origin: <b>{{ category.unknown }}</b></span>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                </div>
+              </td>
+              <td>
+                <div class="pc-company-stats__status-list">
+                  {% for item in company.statuses %}
+                    <span class="pc-company-stats__status">{{ item.title }}: <b>{{ item.count }}</b></span>
+                  {% endfor %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>

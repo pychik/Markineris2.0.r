@@ -12,6 +12,7 @@ from .constants import (
     API_PATH_DICTIONARIES_STATE,
     API_PATH_EXPORT_COLORS,
     API_PATH_EXPORT_COUNTRIES,
+    API_PATH_EXPORT_PROCESSING_COMPANIES,
     API_PATH_EXPORT_TNVED_TEMPLATE,
 )
 from .exceptions import TezaurusApiError, TezaurusConfigurationError
@@ -112,6 +113,35 @@ class TezaurusApiClient:
 
         return payload
 
+    def post_json(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        url = f"{self.base_url}{path}"
+        headers = {
+            **self._build_headers(),
+            "Content-Type": "application/json",
+        }
+
+        try:
+            response = self.session.post(
+                url,
+                json=payload,
+                headers=headers,
+                timeout=self.timeout,
+                verify=self.verify,
+            )
+            response.raise_for_status()
+        except requests.RequestException as exc:
+            raise TezaurusApiError(f"Tezaurus request failed for {path}: {exc}") from exc
+
+        try:
+            response_payload = response.json()
+        except ValueError as exc:
+            raise TezaurusApiError(f"Tezaurus response is not valid JSON for {path}") from exc
+
+        if not isinstance(response_payload, dict):
+            raise TezaurusApiError(f"Tezaurus response has unexpected payload type for {path}")
+
+        return response_payload
+
     def get_dictionaries_state(self) -> dict[str, Any]:
         return self._request_json(API_PATH_DICTIONARIES_STATE)
 
@@ -127,3 +157,6 @@ class TezaurusApiClient:
 
     def export_tnved_clothes(self) -> dict[str, Any]:
         return self.export_tnved("clothes")
+
+    def export_processing_companies(self) -> dict[str, Any]:
+        return self._request_json(API_PATH_EXPORT_PROCESSING_COMPANIES)

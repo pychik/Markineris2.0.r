@@ -26,6 +26,35 @@
 }
 .crm-download-icon-btn:hover{opacity:.7}
 
+.order__header .order__name {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.order__header .order__name span {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.order__header .pc-article-link,
+.order__header .pc-chat-btn,
+.order__header .pc-logs-btn {
+  display: block;
+  width: 21px;
+  height: 21px;
+  object-fit: contain;
+}
+
+.order__header .pc-chat-wrap,
+.order__header .pc-logs-wrap {
+  flex: 0 0 auto;
+}
+
 /* фон модалки (как хотели ранее) */
 #crmSearchModal .modal-body{
   background:#f2f3f5;
@@ -77,6 +106,86 @@
   min-width: 150px;
 }
 
+.pc-company-stats__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pc-company-stats__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 9px;
+  border: 1px solid #d9dee5;
+  border-radius: 6px;
+  background: #f8f9fb;
+  color: #3f4650;
+  font-size: 13px;
+}
+
+.pc-company-stats__refresh-btn {
+  white-space: nowrap;
+}
+
+.pc-company-stats__table-wrap {
+  border: 1px solid #e2e6ec;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pc-company-stats__table {
+  margin-bottom: 0;
+}
+
+.pc-company-stats__table thead th {
+  background: #f3f5f8;
+  color: #49515c;
+  font-size: 12px;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.pc-company-stats__table tbody tr + tr {
+  border-top: 1px solid #edf0f3;
+}
+
+.pc-company-stats__company {
+  min-width: 220px;
+}
+
+.pc-company-stats__category-list,
+.pc-company-stats__status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pc-company-stats__category-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.pc-company-stats__category-title {
+  min-width: 145px;
+  color: #343a40;
+  font-weight: 600;
+}
+
+.pc-company-stats__origin,
+.pc-company-stats__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: #eef6f8;
+  color: #2f4d55;
+  font-size: 12px;
+}
+
 
 .order.order--card-updated,
 .order.order--card-updated:hover,
@@ -117,5 +226,74 @@
       inset 0 0 0 0 rgba(255, 193, 7, 0),
       inset 0 0 0 0 rgba(255, 193, 7, 0),
       inset 0 0 0 0 rgba(255, 193, 7, 0);
+  }
+}
+
+.pc-rd-consent-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 150px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+
+.pc-rd-consent-detail {
+  margin: 6px 0 8px 0;
+}
+
+.pc-rd-consent-badge--yes {
+  background: #d1e7dd;
+  border-color: #badbcc;
+  color: #0f5132;
+}
+
+.pc-rd-consent-badge--no {
+  background: #f8d7da;
+  border-color: #f5c2c7;
+  color: #842029;
+}
+
+.pc-rd-consent-badge--operator {
+  background: #fff3cd;
+  border-color: #ffecb5;
+  color: #664d03;
+}
+
+.pc-crm-search-tools {
+  max-width: 660px;
+}
+
+.pc-crm-search-form {
+  width: 400px;
+  flex: 0 0 400px;
+}
+
+.pc-crm-manager-tools {
+  width: 220px;
+  flex: 0 0 220px;
+}
+
+.pc-crm-manager-tools select {
+  width: 100%;
+}
+
+.pc-bulk-assign-select {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 991.98px) {
+  .pc-crm-search-tools,
+  .pc-crm-search-form,
+  .pc-crm-manager-tools,
+  .pc-crm-manager-tools select {
+    width: 100%;
+    max-width: 100%;
   }
 }

@@ -1180,15 +1180,7 @@ function bck_crm_operator_report(reportKey, url) {
     let date_to = $('#date_to').val();
     let manager = $('#manager_filter').val();
 
-    ensure_crm_daily_report_manager(reportKey);
-    manager = $('#manager_filter').val();
-
-    if (!url) {
-        make_message('Не найден адрес отчета', 'warning');
-        return;
-    }
-
-    if (!validate_avg_order_processing_time_rpt_dates(date_from, date_to, get_crm_operator_report_month_limit(reportKey))) {
+    if (!validate_avg_order_processing_time_rpt_dates(date_from, date_to)) {
         return;
     }
 
@@ -1203,10 +1195,9 @@ function bck_crm_operator_report(reportKey, url) {
             manager: manager,
         },
         success: function (data) {
-            $(get_crm_operator_report_table_target(reportKey)).html(data.htmlresponse);
+            $('#avg_order_processing_time_table').html(data.htmlresponse);
         },
         error: function(xhr, status, error) {
-            show_crm_operator_report_ajax_error(xhr);
             console.error('Error:', error);
         },
         complete: function() {
@@ -1225,15 +1216,7 @@ function download_crm_operator_report_file(reportKey, url, csrf) {
     let date_to = $('#date_to').val();
     let manager = $('#manager_filter').val();
 
-    ensure_crm_daily_report_manager(reportKey);
-    manager = $('#manager_filter').val();
-
-    if (!url) {
-        make_message('Не найден адрес отчета', 'warning');
-        return;
-    }
-
-    if (!validate_avg_order_processing_time_rpt_dates(date_from, date_to, get_crm_operator_report_month_limit(reportKey))) {
+    if (!validate_avg_order_processing_time_rpt_dates(date_from, date_to)) {
         return;
     }
 
@@ -1278,136 +1261,6 @@ function download_crm_operator_report_file(reportKey, url, csrf) {
     });
 
 }
-
-function show_crm_operator_report_ajax_error(xhr) {
-    if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
-        make_message(xhr.responseJSON.message, 'warning');
-        return;
-    }
-    if (xhr && xhr.response instanceof Blob) {
-        xhr.response.text().then(function (text) {
-            try {
-                const data = JSON.parse(text);
-                make_message(data.message || 'Ошибка формирования отчета', 'warning');
-            } catch (e) {
-                make_message('Ошибка формирования отчета', 'warning');
-            }
-        });
-        return;
-    }
-    make_message('Ошибка формирования отчета', 'warning');
-}
-
-function get_avg_order_processing_time_rpt_excel(url, csrf) {
-    download_crm_operator_report_file('avg_processing', url, csrf);
-}
-
-function format_crm_operator_report_date(date) {
-    let day = String(date.getDate()).padStart(2, '0');
-    let month = String(date.getMonth() + 1).padStart(2, '0');
-    return day + '.' + month + '.' + date.getFullYear();
-}
-
-function set_crm_operator_report_dates(dateFrom, dateTo) {
-    $('#date_from').datepicker('option', 'maxDate', dateTo);
-    $('#date_to').datepicker('option', 'minDate', dateFrom);
-    $('#date_from').datepicker('setDate', dateFrom).val(format_crm_operator_report_date(dateFrom));
-    $('#date_to').datepicker('setDate', dateTo).val(format_crm_operator_report_date(dateTo));
-    update_crm_operator_month_picker_active();
-}
-
-const CRM_OPERATOR_REPORT_MIN_DATE = new Date(2022, 0, 1);
-const CRM_OPERATOR_REPORT_MIN_YEAR = CRM_OPERATOR_REPORT_MIN_DATE.getFullYear();
-
-function get_crm_report_month_range(year, monthIndex) {
-    const now = new Date();
-    const dateFrom = new Date(year, monthIndex, 1);
-    let dateTo = new Date(year, monthIndex + 1, 0);
-    if (dateTo > now) {
-        dateTo = now;
-    }
-    return {dateFrom: dateFrom, dateTo: dateTo};
-}
-
-function render_crm_operator_month_picker(year) {
-    const monthNames = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
-    const picker = $('#crm_report_month_picker');
-    if (!picker.length) {
-        return;
-    }
-    year = Math.max(year, CRM_OPERATOR_REPORT_MIN_YEAR);
-    const now = new Date();
-    picker.attr('data-year', year);
-    $('#crm_report_month_year').text(year);
-    $('#crm_report_month_prev').prop('disabled', year <= CRM_OPERATOR_REPORT_MIN_YEAR);
-    $('#crm_report_month_next').prop('disabled', year >= now.getFullYear());
-    picker.empty();
-    monthNames.forEach(function(monthName, monthIndex) {
-        const monthStart = new Date(year, monthIndex, 1);
-        const isFutureMonth = year > now.getFullYear() || (year === now.getFullYear() && monthIndex > now.getMonth());
-        const isBeforeMinMonth = monthStart < new Date(CRM_OPERATOR_REPORT_MIN_YEAR, CRM_OPERATOR_REPORT_MIN_DATE.getMonth(), 1);
-        const btn = $('<button type="button" class="btn btn-outline-secondary btn-sm crm-report-month-picker__btn"></button>');
-        btn.text(monthName);
-        btn.attr('data-month', monthIndex);
-        btn.prop('disabled', isFutureMonth || isBeforeMinMonth);
-        picker.append(btn);
-    });
-    update_crm_operator_month_picker_active();
-}
-
-function update_crm_operator_month_picker_active() {
-    const picker = $('#crm_report_month_picker');
-    if (!picker.length) {
-        return;
-    }
-    const dateFrom = parse_avg_order_processing_time_rpt_date($('#date_from').val());
-    picker.find('.crm-report-month-picker__btn').removeClass('active');
-    if (!dateFrom || dateFrom.getFullYear() !== parseInt(picker.attr('data-year'), 10)) {
-        return;
-    }
-    picker.find('[data-month="' + dateFrom.getMonth() + '"]').addClass('active');
-}
-
-function init_crm_operator_month_picker() {
-    const picker = $('#crm_report_month_picker');
-    if (!picker.length) {
-        return;
-    }
-    const initialYear = parseInt(picker.attr('data-year'), 10) || new Date().getFullYear();
-    render_crm_operator_month_picker(initialYear);
-}
-
-$(document).on('click', '.crm-report-month-picker__btn', function () {
-    const picker = $('#crm_report_month_picker');
-    const year = parseInt(picker.attr('data-year'), 10);
-    const monthIndex = parseInt($(this).attr('data-month'), 10);
-    const range = get_crm_report_month_range(year, monthIndex);
-    set_crm_operator_report_dates(range.dateFrom, range.dateTo);
-});
-
-$(document).on('click', '#crm_report_month_prev', function () {
-    if ($(this).prop('disabled')) {
-        return;
-    }
-    const picker = $('#crm_report_month_picker');
-    render_crm_operator_month_picker(parseInt(picker.attr('data-year'), 10) - 1);
-});
-
-$(document).on('click', '#crm_report_month_next', function () {
-    if ($(this).prop('disabled')) {
-        return;
-    }
-    const picker = $('#crm_report_month_picker');
-    render_crm_operator_month_picker(parseInt(picker.attr('data-year'), 10) + 1);
-});
-
-$(document).on('change', '#date_from, #date_to', function () {
-    update_crm_operator_month_picker_active();
-});
-
-$(function () {
-    init_crm_operator_month_picker();
-});
 
 function parse_avg_order_processing_time_rpt_date(dateText) {
     let parts = dateText.split('.');
@@ -1519,12 +1372,37 @@ function submitOrderCompanyOperatorForm() {
   if (!modalEl) return;
 
   const orderId = modalEl.dataset.orderId; // важно: data-order-id должен быть задан
-  const company = document.getElementById("companySelect")?.value;
-  const updNumber = document.getElementById("updInput")?.value;
+  const isPcOrder = modalEl.dataset.pcOrder === "1";
   const csrfToken = document.getElementById("csrf_token")?.value;
-  if (!company || !updNumber) {
-    make_message("Заполните все поля", "warning");
-    return;
+
+  let payload = {
+    order_id: orderId
+  };
+
+  if (isPcOrder) {
+    const rows = Array.from(modalEl.querySelectorAll("[data-pc-upd-row]"));
+    const companiesUpd = rows.map(row => ({
+      company: row.querySelector("[data-pc-company]")?.value || "",
+      upd_number: row.querySelector("[data-pc-upd-input]")?.value || ""
+    }));
+
+    if (!companiesUpd.length || companiesUpd.some(row => !row.company || !row.upd_number.trim())) {
+      make_message("Заполните УПД по всем компаниям заказа", "warning");
+      return;
+    }
+
+    payload.companies_upd = companiesUpd;
+  } else {
+    const company = document.getElementById("companySelect")?.value;
+    const updNumber = document.getElementById("updInput")?.value;
+
+    if (!company || !updNumber) {
+      make_message("Заполните все поля", "warning");
+      return;
+    }
+
+    payload.company = company;
+    payload.upd_number = updNumber;
   }
 
   fetch( UPDATE_ORDER_PROCESS_INFO_URL, {
@@ -1533,11 +1411,7 @@ function submitOrderCompanyOperatorForm() {
       "Content-Type": "application/json",
       "X-CSRFToken": csrfToken
     },
-    body: JSON.stringify({
-      order_id: orderId,
-      company: company,
-      upd_number: updNumber
-    })
+    body: JSON.stringify(payload)
   })
   .then(res => res.json())
   .then(data => {
