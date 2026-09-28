@@ -173,7 +173,7 @@ def _validate_card_access_and_status(pc: ProductCard, expected_category: str):
 
     if not pc.processing_company_label:
         return (
-            f"Карточка #{pc.id} не может быть добавлена в быстрый заказ: "
+            f"Карточка #{pc.id} не может быть добавлена в GTIN заказ: "
             "не назначена компания обработки"
         )
 

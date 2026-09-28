@@ -1539,14 +1539,14 @@ def h_pc_order_copy(o_id: int) -> Response:
 
     order_items = _get_pc_order_rows_by_category(category, order.id)
     if not order_items:
-        flash(message="Нельзя скопировать быстрый заказ: в заказе нет позиций", category="error")
+        flash(message="Нельзя скопировать GTIN заказа: в заказе нет позиций", category="error")
         return redirect(url_for("user_product_cards.pc_orders_drafts"))
 
     copyable_items = _filter_copyable_fast_order_items(order_items)
     skipped_count = len(order_items) - len(copyable_items)
     if not copyable_items:
         flash(
-            message="Нельзя скопировать быстрый заказ: в заказе нет позиций, доступных для копирования",
+            message="Нельзя скопировать GTIN заказа: в заказе нет позиций, доступных для копирования",
             category="error",
         )
         return redirect(url_for("user_product_cards.pc_orders_drafts"))

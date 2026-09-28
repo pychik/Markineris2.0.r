@@ -27,7 +27,7 @@
 
   {% if (not is_operator_view) and card.data_status == 'approved' and not card.processing_company_label %}
     <div class="alert alert-warning py-2 mb-3">
-      Карточку нельзя добавить в быстрый заказ: не назначена компания обработки.
+      Карточку нельзя добавить в GTIN заказа: не назначена компания обработки.
     </div>
   {% endif %}
 
