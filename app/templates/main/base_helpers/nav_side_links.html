@@ -15,8 +15,10 @@
            data-bs-toggle="collapse"
            href="#userProductCardsMenu"
            role="button"
-           aria-expanded="{% if 'user_product_cards' in request.path %}true{% else %}false{% endif %}"
+{#           aria-expanded="{% if 'user_product_cards' in request.path %}true{% else %}false{% endif %}"#}
+           aria-expanded="true"
            aria-controls="userProductCardsMenu">
+
 
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
                  xmlns="http://www.w3.org/2000/svg">
@@ -36,7 +38,8 @@
             <span class="ms-2">GTIN заказы</span>
         </a>
 
-        <div class="collapse {% if 'user_product_cards' in request.path %}show{% endif %}"
+{#        <div class="collapse {% if 'user_product_cards' in request.path %}show{% endif %}"#}
+        <div class="collapse show"
              id="userProductCardsMenu">
             <ul class="nav flex-column">
                 {% set pc_order_menu_active = request.endpoint and request.endpoint.startswith('user_product_cards.pc_order') %}
