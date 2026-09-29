@@ -31,30 +31,24 @@
         {% endif %}
         {% include "product_cards/new/categories/" + category_process_name  + "/category_inputs.html" %}
         {% if not crm_ %}
-        <div id="pc-rd-replacement-consent-block" class="mt-4 p-3 border rounded d-none">
-            <div class="fw-bold mb-2">Разрешительная документация</div>
-            <div class="text-muted small mb-3">
-                В случае отказа системы „Честный ЗНАК“ в принятии вашей разрешительной документации даёте ли вы согласие на использование нашей разрешительной документации с возможным изменением страны происхождения товара?
-            </div>
-            <div class="d-flex flex-wrap gap-2">
-                <label class="btn btn-outline-secondary mb-0">
-                    <input class="form-check-input me-2"
-                           type="radio"
-                           name="rd_replacement_consent"
-                           value="yes"
-                           {% if rd_replacement_consent is sameas true %}checked{% endif %}>
-                    Да
-                </label>
-                <label class="btn btn-outline-secondary mb-0">
-                    <input class="form-check-input me-2"
-                           type="radio"
-                           name="rd_replacement_consent"
-                           value="no"
-                           {% if rd_replacement_consent is sameas false %}checked{% endif %}>
-                    Нет
-                </label>
-            </div>
-            <div id="pc-rd-replacement-consent-error" class="text-danger small mt-2"></div>
+        <div class="pc-rd-replacement-consent mt-3 d-none" id="pc-rd-replacement-consent-block">
+                <div class="pc-rd-replacement-consent__title mb-2">Разрешительная документация</div>
+                <div class="pc-rd-replacement-consent__text mb-3">
+                    В случае отказа системы „Честный ЗНАК“ в принятии вашей разрешительной документации даёте ли вы согласие на использование нашей разрешительной документации с возможным изменением страны происхождения товара?
+                </div>
+                <div class="d-flex flex-column flex-sm-row gap-2">
+                    <label class="pc-rd-consent-choice pc-rd-consent-choice--yes mb-0">
+                        <input class="form-check-input me-2" type="radio" name="rd_replacement_consent" value="yes"
+                               {% if rd_replacement_consent is sameas true %}checked{% endif %}>
+                        Да
+                    </label>
+                    <label class="pc-rd-consent-choice pc-rd-consent-choice--no mb-0">
+                        <input class="form-check-input me-2" type="radio" name="rd_replacement_consent" value="no"
+                               {% if rd_replacement_consent is sameas false %}checked{% endif %}>
+                        Нет
+                    </label>
+                </div>
+                <div id="pc-rd-replacement-consent-error" class="text-danger small mt-2"></div>
         </div>
         {% endif %}
     </form>
@@ -63,6 +57,67 @@
 
 {% include 'helpers/error_modal.html' %}
 
+<style>
+    .pc-rd-replacement-consent {
+        border: 1px solid rgba(255, 224, 0, 0.62);
+        border-radius: 8px;
+        background: rgba(18, 18, 18, 0.28);
+        padding: 16px;
+        color: #fff;
+    }
+
+    .pc-rd-replacement-consent__title {
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .pc-rd-replacement-consent__text {
+        color: rgba(255, 255, 255, 0.86);
+        font-size: 13px;
+        line-height: 1.45;
+    }
+
+    .pc-rd-consent-choice {
+        display: inline-flex;
+        align-items: center;
+        min-height: 38px;
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.94);
+        color: #2d3338;
+        cursor: pointer;
+        font-weight: 600;
+        padding: 8px 12px;
+        transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .pc-rd-consent-choice input {
+        cursor: pointer;
+    }
+
+    .pc-rd-consent-choice .form-check-input {
+        accent-color: #6c757d;
+    }
+
+    .pc-rd-consent-choice .form-check-input:checked {
+        background-color: #6c757d;
+        border-color: #6c757d;
+    }
+
+    .pc-rd-consent-choice.is-selected {
+        color: #fff;
+        border-color: transparent;
+    }
+
+    .pc-rd-consent-choice--yes.is-selected {
+        background: #198754;
+    }
+
+    .pc-rd-consent-choice--no.is-selected {
+        background: #dc3545;
+    }
+</style>
 
 <script src="{{ url_for('static',filename='product_cards/users/' + category_process_name + '.js', v='50') }}"></script>
 <script src="{{ url_for('static',filename='product_cards/users/common.js', v='15') }}"></script>
