@@ -20,6 +20,13 @@
       <span class="pc-status pc-status-{{ card.status.value }}">
         {{ status_titles[card.status.value] }}
       </span>
+      {% if card.is_repeat_moderation %}
+        <span class="pc-repeat-moderation-badge ms-1"
+              data-bs-toggle="tooltip"
+              data-bs-title="Повторная модерация после редактирования одобренной карточки">
+          ПМ
+        </span>
+      {% endif %}
     </div>
   </div>
 

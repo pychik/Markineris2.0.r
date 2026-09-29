@@ -508,6 +508,7 @@ class ProductCard(db.Model, UserMixin):
     user_comment = db.Column(db.String(450), default="")
     reject_reason = db.Column(db.String(450), default="")  # если отклонено
     rd_replacement_consent = db.Column(db.Boolean, nullable=True)
+    is_repeat_moderation = db.Column(db.Boolean, default=False, nullable=False, server_default=text("false"))
 
     # --- тайминги по жизни карточки ---
 

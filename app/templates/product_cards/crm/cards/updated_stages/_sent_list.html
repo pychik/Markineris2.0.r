@@ -2,7 +2,7 @@
   {% for c in sent_cards %}
 
 
-    <div class="orders__item order" id="cardCommonBlock_{{ c.id }}">
+    <div class="orders__item order{% if c.is_repeat_moderation %} order--repeat-moderation{% endif %}" id="cardCommonBlock_{{ c.id }}">
 
       {% include 'product_cards/crm/helpers/card_header.html' %}
 
@@ -15,6 +15,7 @@
         <div class="order__all">
           {# Описание карточки (артикул, бренд, размеры) #}
           {% include 'product_cards/crm/helpers/card_description.html' %}
+          {% include 'product_cards/crm/helpers/card_edit_link.html' %}
 
           <div class="order__footer">
             {% include 'product_cards/crm/helpers/table_download.html' %}

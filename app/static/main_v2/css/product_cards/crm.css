@@ -245,6 +245,9 @@
 }
 
 .pc-rd-consent-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   margin: 6px 0 8px 0;
 }
 
@@ -264,6 +267,45 @@
   background: #fff3cd;
   border-color: #ffecb5;
   color: #664d03;
+}
+
+.order--repeat-moderation {
+  position: relative;
+  margin-top: 8px;
+  overflow: visible;
+}
+
+.pc-repeat-moderation-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 9px;
+  border: 1px solid rgba(255, 218, 140, 0.95);
+  border-radius: 6px;
+  background: rgba(255, 230, 170, 0.75);
+  color: rgba(125, 95, 25, 0.9);
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.pc-repeat-moderation-floating {
+  position: absolute;
+  top: -9px;
+  left: 18px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border: 1px solid rgba(255, 218, 140, 0.95);
+  border-radius: 999px;
+  background: rgba(255, 230, 170, 0.95);
+  color: rgba(125, 95, 25, 0.95);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  box-shadow: 0 1px 3px rgba(125, 95, 25, 0.14);
 }
 
 .pc-crm-search-tools {

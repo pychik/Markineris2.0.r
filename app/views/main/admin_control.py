@@ -236,6 +236,7 @@ def module_testing_product_cards_reset_created():
                 ProductCard.approved_at: None,
                 ProductCard.rejected_at: None,
                 ProductCard.reject_reason: "",
+                ProductCard.is_repeat_moderation: False,
             },
             synchronize_session=False,
         )

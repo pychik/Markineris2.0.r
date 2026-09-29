@@ -352,7 +352,9 @@ function product_card_submit(category = null) {
                         type: "pc_card_updated",
                         card_id: data.card_id,
                         article_or_trademark: data.article_or_trademark || "",
-                        processing_company: data.processing_company || null
+                        processing_company: data.processing_company || null,
+                        from_status: data.from_status || "",
+                        to_status: data.to_status || ""
                     };
 
                     // 1) Синхронизация между вкладками того же origin

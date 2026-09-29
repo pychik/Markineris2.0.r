@@ -1,0 +1,8 @@
+{% set can_crm_edit_card = current_user.role in ['superuser', 'supermanager'] or (current_user.role == 'manager' and c.manager_id == current_user.id) %}
+{% if can_crm_edit_card and c.status != 'rejected' %}
+  <a href="{{ url_for('crm_product_cards.crm_card_edit', card_id=c.id) }}" target="_blank" class="text-decoration-none">
+    <span class="badge badge-soft bg-warning bg-opacity-10 text-warning">
+       <b>Редактировать</b>
+    </span>
+  </a>
+{% endif %}

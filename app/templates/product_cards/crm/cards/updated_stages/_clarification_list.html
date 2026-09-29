@@ -2,7 +2,7 @@
   {% for c in clarification_cards %}
 
 
-    <div class="orders__item order" id="cardCommonBlock_{{ c.id }}">
+    <div class="orders__item order{% if c.is_repeat_moderation %} order--repeat-moderation{% endif %}" id="cardCommonBlock_{{ c.id }}">
     <div class="pc-bulk-select d-none px-2 pt-2" onclick="event.stopPropagation()">
       <label class="form-check d-inline-flex align-items-center gap-2 mb-0">
         <input type="checkbox"
@@ -24,13 +24,7 @@
 
       <div class="order__all">
         {% include 'product_cards/crm/helpers/card_description.html' %}
-        {% if current_user.role != 'admin' %}
-          <a href="{{url_for('crm_product_cards.crm_card_edit', card_id=c.id)}}" target="_blank" class="text-decoration-none">
-            <span class="badge badge-soft bg-warning bg-opacity-10 text-warning">
-               <b>Редактировать</b>
-            </span>
-          </a>
-        {% endif %}
+        {% include 'product_cards/crm/helpers/card_edit_link.html' %}
         <div class="order__footer">
           {% include 'product_cards/crm/helpers/table_download.html' %}
 
