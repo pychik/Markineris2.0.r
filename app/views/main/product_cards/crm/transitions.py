@@ -118,6 +118,7 @@ def apply_transition(user, card: ProductCard, to_status: str, reject_reason: str
     elif to_status == ModerationStatus.APPROVED.value:
         card.status = ModerationStatus.APPROVED
         card.approved_at = dt
+        card.is_repeat_moderation = False
         card.card_log = h_append_card_log((card.card_log or ""), f"\n{dt_str} одобрил {manager_login};")
 
     elif to_status == ModerationStatus.REJECTED.value:
@@ -126,6 +127,7 @@ def apply_transition(user, card: ProductCard, to_status: str, reject_reason: str
         card.status = ModerationStatus.REJECTED
         card.reject_reason = reject_reason
         card.rejected_at = dt
+        card.is_repeat_moderation = False
         card.card_log = h_append_card_log((card.card_log or ""), f"\n{dt_str} отменил {manager_login}; причина: {reject_reason};")
 
     else:

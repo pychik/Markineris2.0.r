@@ -108,6 +108,13 @@
                         {{ status_titles[card.status.value] }}
                     </span>
                   {% endif %}
+                  {% if card.is_repeat_moderation %}
+                    <span class="badge bg-info-subtle text-info border border-info-subtle ms-1"
+                          data-bs-toggle="tooltip"
+                          data-bs-title="Повторная модерация после редактирования одобренной карточки">
+                      ПМ
+                    </span>
+                  {% endif %}
                   {% set status_dt = get_card_status_datetime(card) %}
                   {{ status_dt.strftime('%Y-%m-%d') if status_dt else '' }}
                 </td>

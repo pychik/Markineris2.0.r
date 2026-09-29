@@ -245,6 +245,9 @@
 }
 
 .pc-rd-consent-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   margin: 6px 0 8px 0;
 }
 
@@ -264,6 +267,12 @@
   background: #fff3cd;
   border-color: #ffecb5;
   color: #664d03;
+}
+
+.pc-repeat-moderation-badge {
+  background: #cff4fc;
+  border-color: #9eeaf9;
+  color: #055160;
 }
 
 .pc-crm-search-tools {

@@ -119,6 +119,25 @@ function pcUpdateCardCompanyValue(cardId, processingCompany) {
 
 function pcApplyExternalCardUpdate(data) {
   if (!data || data.type !== "pc_card_updated") return;
+
+  const fromStatus = String(data.from_status || "");
+  const toStatus = String(data.to_status || "");
+  const changedColumn = fromStatus && toStatus && fromStatus !== toStatus;
+
+  if (changedColumn) {
+    const cardEl = document.getElementById(`cardCommonBlock_${data.card_id}`);
+    if (cardEl) cardEl.remove();
+
+    if (fromStatus) pcReloadColumn(fromStatus);
+    if (toStatus) pcReloadColumn(toStatus);
+
+    const searchCardEl = document
+        .getElementById("crmSearchModalBody")
+        ?.querySelector(`#cardCommonBlock_${data.card_id}`);
+    if (searchCardEl) searchCardEl.remove();
+    return;
+  }
+
   pcUpdateCardArticleValue(data.card_id, data.article_or_trademark);
   pcUpdateCardCompanyValue(data.card_id, data.processing_company);
 }

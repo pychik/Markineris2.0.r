@@ -174,6 +174,46 @@ def _card_processing_company_response(card: ProductCard) -> dict:
     }
 
 
+CRM_REPEAT_EDIT_ADMIN_ROLES = {settings.SUPER_USER, settings.SUPER_MANAGER}
+
+
+def _crm_card_edit_forbidden_message(card: ProductCard) -> str | None:
+    if card.status == ModerationStatus.REJECTED:
+        return "Редактирование отмененной карточки запрещено."
+
+    if current_user.role in CRM_REPEAT_EDIT_ADMIN_ROLES:
+        return None
+
+    if current_user.role == settings.MANAGER_USER and card.manager_id == current_user.id:
+        return None
+
+    if current_user.role == settings.MANAGER_USER:
+        return "Оператор может редактировать только закрепленные за ним карточки."
+
+    return "Недостаточно прав для редактирования карточки."
+
+
+def _reset_card_approved_units(card: ProductCard) -> None:
+    for unit in card._all_moderation_units():
+        if hasattr(unit, "is_approved"):
+            unit.is_approved = False
+
+
+def _send_approved_card_to_repeat_moderation(card: ProductCard, *, dt: datetime) -> None:
+    actor = getattr(current_user, "login_name", "") or str(current_user.id)
+    dt_str = dt.strftime("%d-%m-%Y %H:%M:%S")
+
+    _reset_card_approved_units(card)
+    card.status = ModerationStatus.IN_MODERATION
+    card.moderation_at = dt
+    card.approved_at = None
+    card.is_repeat_moderation = True
+    card.card_log = h_append_card_log(
+        card.card_log,
+        f"\n{dt_str} {actor} отправил карточку на повторную модерацию после редактирования (ПМ);",
+    )
+
+
 def h_cards():
     category = request.args.get("category", "shoes")
     subcategory = request.args.get("subcategory")
@@ -613,12 +653,14 @@ def h_save_product_card():
 
 def h_edit_product_card(card_id: int, crm_: bool = False):
     card = ProductCard.query.filter_by(id=card_id).first()
+    if not card:
+        flash("Карточка не найдена.", "error")
+        return redirect(url_for("crm_product_cards.cards")) if crm_ else redirect(url_for("user_product_cards.cards"))
 
     if crm_:
-        if (current_user.role == settings.MANAGER_USER
-                and card.status not in [ModerationStatus.SENT_NO_RD, ModerationStatus.SENT]
-                and card.manager_id != current_user.id):
-            flash("Ошибка! Вы пытаетесь редактировать не свою карточку.", "error")
+        forbidden_message = _crm_card_edit_forbidden_message(card)
+        if forbidden_message:
+            flash(forbidden_message, "error")
             return redirect(url_for('crm_product_cards.cards'))
     else:
         if current_user.role == settings.ORD_USER and card.user_id != current_user.id:
@@ -627,19 +669,10 @@ def h_edit_product_card(card_id: int, crm_: bool = False):
     # if card.category == 'shoes' and not crm_:
     #     flash("Ведется обновление раздела карточки категории обувь. Карточки категории обувь временно не обрабатываются", "error")
     #     return redirect(url_for("user_product_cards.cards"))
-    allowed_statuses = (
-        [ModerationStatus.SENT_NO_RD, ModerationStatus.CLARIFICATION]
-        if crm_
-        else [ModerationStatus.CLARIFICATION]
-    )
-    if card.status not in allowed_statuses:
-        message = (
-            "Редактирование доступно только для карточек 'На уточнении' и 'Отправлены без РД'."
-            if crm_
-            else "Редактирование доступно только для карточек 'На уточнении'."
-        )
+    if not crm_ and card.status != ModerationStatus.CLARIFICATION:
+        message = "Редактирование доступно только для карточек 'На уточнении'."
         flash(message, "error")
-        return redirect(url_for("user_product_cards.cards")) if not crm_ else redirect(url_for("crm_product_cards.cards"))
+        return redirect(url_for("user_product_cards.cards"))
 
     # достаём данные категории (первая запись)
     copied_order = get_card_entity_for_prefill(card=card)
@@ -674,19 +707,16 @@ def h_update_product_card(crm_: bool = False):
 
     if current_user.role == settings.ORD_USER and card.status != ModerationStatus.CLARIFICATION:
         return jsonify(status="error", message="Редактирование доступно только для карточек 'На уточнении'.")
-    if current_user.role != settings.ORD_USER and card.status not in [ModerationStatus.SENT_NO_RD,
-                                                                      ModerationStatus.CLARIFICATION]:
-        return jsonify(status="error",
-                       message="Редактирование доступно только для статусов 'Отправлены без РД' и 'На уточнении'")
-    if (
-            current_user.role == settings.MANAGER_USER
-            and card.status not in [ModerationStatus.SENT_NO_RD, ModerationStatus.SENT]
-            and card.manager_id != current_user.id
-    ):
-        return jsonify(status="error", message="Вы пытаетесь редактировать не свою карточку.")
+    if crm_:
+        forbidden_message = _crm_card_edit_forbidden_message(card)
+        if forbidden_message:
+            return jsonify(status="error", message=forbidden_message)
+    elif current_user.role != settings.ORD_USER:
+        return jsonify(status="error", message="Недостаточно прав для редактирования карточки.")
 
     category = card.category
     subcategory = form_data.get("subcategory")
+    original_status = card.status
     entity_before = get_card_entity_for_prefill(card)
     old_identity = ""
     old_country = (getattr(entity_before, "country", "") or "").strip() if entity_before else ""
@@ -775,9 +805,13 @@ def h_update_product_card(crm_: bool = False):
             user_login = getattr(current_user, "login_name", "") or str(current_user.id)
             actor_label = user_login if crm_ else f"Клиент {user_login}" if current_user.id == card.user_id else user_login
             status_log_label = {
+                ModerationStatus.SENT: "ОМ",
+                ModerationStatus.IN_PROGRESS: "ВО",
+                ModerationStatus.IN_MODERATION: "НМ",
                 ModerationStatus.CLARIFICATION: "НУ",
                 ModerationStatus.SENT_NO_RD: "ОБРД",
-            }.get(card.status, "")
+                ModerationStatus.APPROVED: "ОД",
+            }.get(original_status, "")
             card.card_log = h_append_card_log(
                 card.card_log,
                 f"\n{dt_str} {actor_label} исправил ({status_log_label}): {', '.join(changes)};"
@@ -795,6 +829,8 @@ def h_update_product_card(crm_: bool = False):
                 card.card_log,
                 f"\n{dt_str} {actor} изменил согласие на использование нашей РД: {value_label};"
             )
+        if crm_ and original_status == ModerationStatus.APPROVED:
+            _send_approved_card_to_repeat_moderation(card, dt=datetime.now())
         db.session.commit()
     except RuntimeError as e:
         db.session.rollback()
@@ -810,6 +846,8 @@ def h_update_product_card(crm_: bool = False):
         article_or_trademark=new_identity,
         processing_company_reassigned=processing_company_reassigned,
         processing_company=_card_processing_company_response(card),
+        from_status=original_status.value if hasattr(original_status, "value") else str(original_status),
+        to_status=card.status.value if hasattr(card.status, "value") else str(card.status),
     )
 
 

@@ -809,6 +809,7 @@ def h_pc_change_processing_company(pc_id: int):
             base_card.manager_id = current_user.id
             base_card.moderation_at = dt
             base_card.approved_at = None
+            base_card.is_repeat_moderation = True
             base_card.card_log = h_append_card_log(
                 base_card.card_log,
                 (

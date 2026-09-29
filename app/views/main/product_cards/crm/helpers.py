@@ -227,6 +227,7 @@ def split_cards_by_status(cards: list[ProductCard]) -> dict[str, list[dict]]:
             "operator_rd_updated": bool(rd_operator_badge_text),
             "operator_rd_badge_text": rd_operator_badge_text,
             "rd_replacement_consent": card.rd_replacement_consent,
+            "is_repeat_moderation": card.is_repeat_moderation,
             "crm_stage_tooltip": crm_card_stage_tooltip(card),
             "processing_info": card.processing_info,
             "processing_company": card.processing_company_label,
@@ -568,6 +569,7 @@ def h_pc_move_pack_cards(cards: list[ProductCard]) -> list[dict]:
             "operator_rd_updated": bool(rd_operator_badge_text),
             "operator_rd_badge_text": rd_operator_badge_text,
             "rd_replacement_consent": card.rd_replacement_consent,
+            "is_repeat_moderation": card.is_repeat_moderation,
             "crm_stage_tooltip": crm_card_stage_tooltip(card),
             "processing_info": card.processing_info,
             "processing_company": card.processing_company_label,
@@ -746,6 +748,7 @@ def h_pc_move_apply_status_transition(card: ProductCard, target: str, reject_rea
             raise ValueError("Нельзя одобрить карточку: не назначена компания обработки")
         card.status = ModerationStatus.APPROVED
         card.approved_at = dt
+        card.is_repeat_moderation = False
         card.card_log = h_append_card_log(card.card_log, f"\n{dt_str} одобрил {manager_login};")
 
     elif target == ModerationStatus.REJECTED.value:
@@ -754,6 +757,7 @@ def h_pc_move_apply_status_transition(card: ProductCard, target: str, reject_rea
         card.status = ModerationStatus.REJECTED
         card.reject_reason = reject_reason
         card.rejected_at = dt
+        card.is_repeat_moderation = False
         card.card_log = h_append_card_log(card.card_log, f"\n{dt_str} отменил {manager_login}; причина: {reject_reason};")
 
     else:
