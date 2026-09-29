@@ -1,4 +1,11 @@
 <div class="order__header">
+  {% if c.is_repeat_moderation %}
+    <span class="pc-repeat-moderation-floating"
+          data-bs-toggle="tooltip"
+          data-bs-title="Повторная модерация после редактирования одобренной карточки">
+      ПМ
+    </span>
+  {% endif %}
   {% if c.status in ['in_progress', 'in_moderation', 'clarification'] %}
     <div class="pc-bulk-assign-select d-none me-2" onclick="event.stopPropagation()">
       <label class="form-check d-inline-flex align-items-center gap-2 mb-0">

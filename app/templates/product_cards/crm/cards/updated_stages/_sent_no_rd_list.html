@@ -2,7 +2,7 @@
   {% for c in sent_no_rd_cards %}
 
 
-    <div class="orders__item order" id="cardCommonBlock_{{ c.id }}">
+    <div class="orders__item order{% if c.is_repeat_moderation %} order--repeat-moderation{% endif %}" id="cardCommonBlock_{{ c.id }}">
 
       {% include 'product_cards/crm/helpers/card_header.html' %}
 

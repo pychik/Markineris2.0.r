@@ -2,7 +2,7 @@
   {% for c in clarification_cards %}
 
 
-    <div class="orders__item order" id="cardCommonBlock_{{ c.id }}">
+    <div class="orders__item order{% if c.is_repeat_moderation %} order--repeat-moderation{% endif %}" id="cardCommonBlock_{{ c.id }}">
     <div class="pc-bulk-select d-none px-2 pt-2" onclick="event.stopPropagation()">
       <label class="form-check d-inline-flex align-items-center gap-2 mb-0">
         <input type="checkbox"
