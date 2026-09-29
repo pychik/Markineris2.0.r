@@ -270,9 +270,18 @@
 }
 
 .pc-repeat-moderation-badge {
-  background: #cff4fc;
-  border-color: #9eeaf9;
-  color: #055160;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 9px;
+  border: 1px solid rgba(255, 218, 140, 0.95);
+  border-radius: 6px;
+  background: rgba(255, 230, 170, 0.75);
+  color: rgba(125, 95, 25, 0.9);
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: middle;
 }
 
 .pc-crm-search-tools {
