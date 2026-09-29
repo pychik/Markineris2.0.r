@@ -13,6 +13,7 @@ from tezaurus.runtime_catalogs import (
     get_rd_countries,
 )
 from utilities.categories_data.subcategories_data import ClothesSubcategories, Category
+from utilities.categories_data.accessories_data import normalize_clothes_type_for_subcategory
 from utilities.support import helper_get_order_notification, helper_category_common_index
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
 
@@ -182,6 +183,11 @@ def helper_clothes_index(o_id: int, p_id: int = None, update_flag: int = None,
     if not Category.check_subcategory(category=category, subcategory=subcategory):
         flash(message=settings.Messages.STRANGE_REQUESTS + f' подкатегория неизвестна сервису', category='error')
         return redirect(url_for(f'main.enter'))
+    copied_order_type = (
+        normalize_clothes_type_for_subcategory(getattr(copied_order, "type", ""), subcategory)
+        if copied_order
+        else ""
+    )
     # cs = ClothesSubcategoryProcessor(subcategory=subcategory)
 
     # (clothes_all_tnved, clothes_sizes,
@@ -200,6 +206,7 @@ def h_bck_clothes_tnved() -> Response:
     message = settings.Messages.MANUAL_TNVED_ERROR
     cl_type = request.form.get('cl_type', '').replace('--', '')
     subcategory = request.args.get('subcategory', ClothesSubcategories.common.value)
+    cl_type = normalize_clothes_type_for_subcategory(cl_type, subcategory)
     cl_gender = request.form.get('gender', '').replace('--', '')
 
     if not cl_type or cl_type not in _allowed_clothes_types(subcategory):
@@ -227,6 +234,7 @@ def h_bck_clothes_genders():
 
     # в GET, как в вашем примере
     subcategory = request.args.get('subcategory', ClothesSubcategories.common.value)
+    cl_type = normalize_clothes_type_for_subcategory(cl_type, subcategory)
 
     if not cl_type or cl_type not in _allowed_clothes_types(subcategory):
         return jsonify(dict(

@@ -13,6 +13,7 @@ from models import User, Order, Shoe, ShoeQuantitySize, Socks, SocksQuantitySize
     Clothes, ClothesQuantitySize, Cosmetics, Toys, db
 
 from utilities.categories_data.subcategories_data import ClothesSubcategories
+from utilities.categories_data.accessories_data import normalize_clothes_type_for_subcategory
 from utilities.helpers.helpers_checks import _check_linen_compatibility, _check_clothes_compatibility, \
     _check_shoes_compatibility, rd_name_clean
 from utilities.exceptions import SizeTypeException
@@ -65,10 +66,11 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcateg
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
     article = normalize_article_placeholder(form_dict.get("article"))
     normalized_subcategory = subcategory if subcategory else ClothesSubcategories.common.value
+    clothes_type = normalize_clothes_type_for_subcategory(form_dict.get("type"), normalized_subcategory)
 
     new_clothes_order = Clothes(trademark=process_input_str(form_dict.get("trademark")),
                                 article=article,
-                                type=form_dict.get("type"),
+                                type=clothes_type,
                                 color=form_dict.get("color"),
                                 content=form_dict.get("content")[:101], box_quantity=form_dict.get("box_quantity"),
                                 gender=form_dict.get("gender"), country=form_dict.get("country"),
@@ -448,7 +450,8 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
 
         new_clothes = Clothes(
             trademark=normalize_trademark_placeholder(clothes.trademark),
-            article=normalize_article_placeholder(clothes.article), type=clothes.type,
+            article=normalize_article_placeholder(clothes.article),
+            type=normalize_clothes_type_for_subcategory(clothes.type, clothes.subcategory),
             color=clothes.color, content=clothes.content, box_quantity=clothes.box_quantity,
             gender=clothes.gender, country=clothes.country, tnved_code=clothes.tnved_code,
             article_price=clothes.article_price, tax=clothes.tax,

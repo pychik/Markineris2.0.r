@@ -16,7 +16,7 @@
                             <option disabled selected value="">Выберите из списка..</option>
                             {%for s in types%}
                               <option value="{{s}}" {% if copied_order %}
-                                                        {% if copied_order.type == s %}
+                                                        {% if copied_order_type == s %}
                                                             selected
                                                         {% endif %}
                                                     {% endif %}>{{s}}</option>

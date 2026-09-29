@@ -11,6 +11,7 @@ from logger import logger
 from models import db, ExceptionDataUsers, Order, ProductCard, Shoe, Linen, Parfum, Clothes, Socks, Cosmetics, Toys, \
     ModerationStatus
 from utilities.categories_data.subcategories_data import ClothesSubcategories
+from utilities.categories_data.accessories_data import normalize_clothes_type_for_subcategory
 from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll, SQLQueryFactory
@@ -144,11 +145,23 @@ def _pc_visible_fields_for_entity(category_process: str, entity):
 
 def _ensure_card_form_defaults(ctx: dict) -> dict:
     ctx.setdefault("copied_order", None)
+    ctx.setdefault("copied_order_type", "")
     ctx.setdefault("edit_mode", False)
     ctx.setdefault("edit_card_id", None)
     ctx.setdefault("crm_", False)
     ctx.setdefault("edit_order", "")
     ctx.setdefault("excepted_articles", settings.ExceptionOrders.EXCEPTED_ARTICLES)
+    return _apply_card_form_aliases(ctx)
+
+
+def _apply_card_form_aliases(ctx: dict) -> dict:
+    copied_order = ctx.get("copied_order")
+    if ctx.get("category") == settings.Clothes.CATEGORY and copied_order:
+        subcategory = getattr(copied_order, "subcategory", None) or ctx.get("subcategory")
+        ctx["copied_order_type"] = normalize_clothes_type_for_subcategory(
+            getattr(copied_order, "type", ""),
+            subcategory,
+        )
     return ctx
 
 
@@ -1234,6 +1247,7 @@ def h_card_edit(card_id: int):
         "card": card,
         "card_id": card.id,
     })
+    _apply_card_form_aliases(ctx)
 
     return render_template("product_cards/new/main_card.html", **ctx)
 

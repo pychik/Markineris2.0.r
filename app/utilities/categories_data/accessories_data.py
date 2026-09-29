@@ -340,8 +340,28 @@ SHAWLS_TYPES: list = [
     "ХИДЖАБ",
     "ЧОКЕР",
     "ШАЛЬ",
-    "ШАРФ",
+    "ШАРФ-СНУД",
 ]
+
+SHAWLS_TYPE_ALIASES: dict[str, str] = {
+    "ШАРФ": "ШАРФ-СНУД",
+}
+
+CLOTHES_TYPE_ALIASES_BY_SUBCATEGORY: dict[str, dict[str, str]] = {
+    "shawls": SHAWLS_TYPE_ALIASES,
+    SHAWLS_NAME: SHAWLS_TYPE_ALIASES,
+}
+
+
+def normalize_clothes_type_for_subcategory(value: str | None, subcategory: str | None) -> str:
+    normalized = str(value or "").strip().upper()
+    aliases = CLOTHES_TYPE_ALIASES_BY_SUBCATEGORY.get(str(subcategory or "").strip(), {})
+    return aliases.get(normalized, normalized)
+
+
+def normalize_shawls_type(value: str | None) -> str:
+    return normalize_clothes_type_for_subcategory(value, SHAWLS_NAME)
+
 
 # Аксессуары из списка с кодами <400…>
 SHAWLS_056: dict = {
@@ -401,7 +421,7 @@ SHAWLS_056: dict = {
     "ШАЛЬ": "<4000000047> ШАЛЬ",
     "ШАПКА-ШАРФ": "<4000000048> ШАПКА-ШАРФ",
     "ШАПОЧКА ДЛЯ ПЛАВАНИЯ": "<4000000053> ШАПОЧКА ДЛЯ ПЛАВАНИЯ",
-    "ШАРФ": "<4000000049> ШАРФ",
+    "ШАРФ-СНУД": "<4000000049> ШАРФ-СНУД",
 }
 
 SHAWLS_TNVEDS: list = [
@@ -490,7 +510,7 @@ SHAWLS_DEC_DICT: dict = {
     "ХИДЖАБ": {"Жен.": "женский", "Муж.": "мужской", "Унисекс": "унисекс", "УНИСЕКС": "унисекс", "Детск.": "детский"},
     "ЧОКЕР": {"Жен.": "женский", "Муж.": "мужской", "Унисекс": "унисекс", "УНИСЕКС": "унисекс", "Детск.": "детский"},
     "ШАЛЬ": {"Жен.": "женская", "Муж.": "мужская", "Унисекс": "унисекс", "УНИСЕКС": "унисекс", "Детск.": "детская"},
-    "ШАРФ": {"Жен.": "женский", "Муж.": "мужской", "Унисекс": "унисекс", "УНИСЕКС": "унисекс", "Детск.": "детский"},
+    "ШАРФ-СНУД": {"Жен.": "женский", "Муж.": "мужской", "Унисекс": "унисекс", "УНИСЕКС": "унисекс", "Детск.": "детский"},
 }
 
 

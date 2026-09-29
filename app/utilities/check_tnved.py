@@ -2,7 +2,7 @@ from typing import Optional
 
 from config import settings
 from tezaurus.runtime_catalogs import get_clothes_tnved_codes
-from utilities.categories_data.accessories_data import HATS_TNVED_DICT, GLOVES_TNVED_DICT, SHAWLS_TNVED_DICT
+from utilities.categories_data.accessories_data import HATS_TNVED_DICT, GLOVES_TNVED_DICT, SHAWLS_TNVED_DICT, normalize_clothes_type_for_subcategory
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVED_DICT
 
@@ -44,6 +44,7 @@ class TnvedChecker:
             answer = f"{tnved_code}{settings.Messages.TNVED_INPUT_ERROR_DIGITS}"
             return result_status, answer
         # good checks
+        cloth_type = normalize_clothes_type_for_subcategory(cloth_type, subcategory)
         match subcategory:
             case ClothesSubcategories.underwear.value:
                 big_tnved_tuple = get_clothes_tnved_codes(

@@ -14,6 +14,7 @@ from logger import logger
 from models import db, Clothes, LinenSizesUnits, ProductCard, ClothesQuantitySize, Shoe, ShoeQuantitySize, Socks, \
     SocksQuantitySize, Linen, LinenQuantitySize, Parfum, Cosmetics, Toys, ModerationStatus
 from utilities.categories_data.subcategories_data import ClothesSubcategories
+from utilities.categories_data.accessories_data import normalize_clothes_type_for_subcategory
 from utilities.exceptions import SizeTypeException
 from utilities.helpers.helpers_checks import rd_name_clean
 from utilities.saving_helpers import get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, \
@@ -973,11 +974,13 @@ def save_clothes_card(
     rd_date_to = form_dict.get("_rd_date_to_obj")
 
     article = normalize_article_placeholder(form_dict.get("article"))
+    normalized_subcategory = subcategory or ClothesSubcategories.common.value
+    clothes_type = normalize_clothes_type_for_subcategory(form_dict.get("type"), normalized_subcategory)
 
     clothes = Clothes(
         trademark=process_input_str(form_dict.get("trademark") or ""),
         article=article,
-        type=form_dict.get("type"),
+        type=clothes_type,
         color=form_dict.get("color"),
         content=(form_dict.get("content") or "")[:101],
         box_quantity=form_dict.get("box_quantity"),
@@ -990,7 +993,7 @@ def save_clothes_card(
         rd_name=form_dict.get("rd_name"),
         rd_date=rd_date,
         rd_date_to=rd_date_to,
-        subcategory=subcategory or ClothesSubcategories.common.value,
+        subcategory=normalized_subcategory,
         card_id=card.id,
         # order_id оставим None
     )

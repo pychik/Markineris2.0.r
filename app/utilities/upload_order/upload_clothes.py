@@ -13,7 +13,7 @@ from tezaurus.runtime_catalogs import (
     is_allowed_color,
     is_allowed_country,
 )
-from utilities.categories_data.accessories_data import HATS_TYPES, GLOVES_TYPES, SHAWLS_TYPES
+from utilities.categories_data.accessories_data import HATS_TYPES, GLOVES_TYPES, SHAWLS_TYPES, normalize_clothes_type_for_subcategory
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TYPES
 from utilities.categories_data.underwear_data import UNDERWEAR_TYPES
@@ -95,6 +95,8 @@ class ValidateClothesMixin:
 
         if subcategory in subcategory_types_map:
             message_ending = f', подкатегория {subcategory}'
+
+        value = normalize_clothes_type_for_subcategory(value, subcategory)
 
         order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = value
 

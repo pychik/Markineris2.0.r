@@ -10,6 +10,7 @@ from logger import logger
 from models import db, Order, ProductCard, FastOrderCompanies, Clothes, Parfum, Cosmetics, Toys, ClothesQuantitySize, Socks, \
     SocksQuantitySize, Shoe, ShoeQuantitySize, Linen, LinenQuantitySize, ModerationStatus, User
 from utilities.categories_data.subcategories_data import ClothesSubcategories
+from utilities.categories_data.accessories_data import normalize_clothes_type_for_subcategory
 from utilities.saving_helpers import get_clothes_size_type
 from utilities.saving_uts import save_copy_order_shoes, save_copy_order_clothes, \
     save_copy_order_socks, save_copy_order_linen, save_copy_order_parfum, save_copy_order_cosmetics, \
@@ -438,6 +439,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
         # ✅ article/trademark — из payload (как ты и описывал)
         new_obj.article = (item_payload.get("article") or "").strip()
         new_obj.trademark = (item_payload.get("trademark") or "").strip() or new_obj.trademark
+        new_obj.type = normalize_clothes_type_for_subcategory(new_obj.type, subcategory)
 
         for s in sizes:
             size = (s.get("size") or "").strip()
