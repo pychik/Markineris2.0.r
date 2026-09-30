@@ -188,6 +188,7 @@ def _card_processing_company_response(card: ProductCard) -> dict:
 
 
 CRM_REPEAT_EDIT_ADMIN_ROLES = {settings.SUPER_USER, settings.SUPER_MANAGER}
+CRM_MANAGER_POOL_EDIT_STATUSES = {ModerationStatus.SENT, ModerationStatus.SENT_NO_RD}
 
 
 def _crm_card_edit_forbidden_message(card: ProductCard) -> str | None:
@@ -197,10 +198,9 @@ def _crm_card_edit_forbidden_message(card: ProductCard) -> str | None:
     if current_user.role in CRM_REPEAT_EDIT_ADMIN_ROLES:
         return None
 
-    if current_user.role == settings.MANAGER_USER and card.manager_id == current_user.id:
-        return None
-
     if current_user.role == settings.MANAGER_USER:
+        if card.manager_id == current_user.id or card.status in CRM_MANAGER_POOL_EDIT_STATUSES:
+            return None
         return "Оператор может редактировать только закрепленные за ним карточки."
 
     return "Недостаточно прав для редактирования карточки."
