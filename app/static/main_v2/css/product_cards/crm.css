@@ -309,12 +309,30 @@
 }
 
 .pc-crm-search-tools {
-  max-width: 660px;
+  max-width: 480px;
 }
 
 .pc-crm-search-form {
-  width: 400px;
-  flex: 0 0 400px;
+  width: 240px;
+  flex: 0 0 240px;
+}
+
+.pc-crm-search-form .input-group {
+  flex-wrap: nowrap;
+}
+
+#crm-search-card-input {
+  min-width: 0;
+}
+
+.pc-crm-search-icon-btn {
+  width: 36px;
+  flex: 0 0 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .pc-crm-manager-tools {
