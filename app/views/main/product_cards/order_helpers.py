@@ -15,6 +15,7 @@ from utilities.saving_helpers import get_clothes_size_type
 from utilities.saving_uts import save_copy_order_shoes, save_copy_order_clothes, \
     save_copy_order_socks, save_copy_order_linen, save_copy_order_parfum, save_copy_order_cosmetics, \
     save_copy_order_toys
+from views.main.product_cards.constants import PC_DISABLED_ORDER_CATEGORIES
 
 ALLOWED_CARD_DATA_STATUSES: set[str] = {"approved"}
 PC_ORDER_ITEM_APPROVAL_CATEGORIES = {
@@ -660,6 +661,9 @@ def common_save_copy_pc_order(
     only_copyable_items: bool = False,
 ) -> int | None:
     try:
+        if category in PC_DISABLED_ORDER_CATEGORIES:
+            raise Exception("Копирование GTIN заказов категории игрушек временно недоступно")
+
         new_order = Order(
             company_type=order.company_type,
             company_name=order.company_name,

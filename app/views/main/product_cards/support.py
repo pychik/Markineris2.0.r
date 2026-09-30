@@ -31,6 +31,7 @@ from views.main.categories.cosmetics.subcategories.registry import \
 from views.main.categories.toys.subcategories import ToysSubcategories, \
     get_subcategory_config as get_toys_subcategory_config
 from views.main.categories.toys.subcategories.registry import SUBCATEGORY_CONFIG as TOYS_SUBCATEGORY_CONFIG
+from views.main.product_cards.constants import PC_DISABLED_CARD_CATEGORIES
 
 CATEGORIES_COMMON = {
     "shoes": {
@@ -182,6 +183,8 @@ def build_pc_category_search_index() -> list[dict[str, Any]]:
         (settings.Cosmetics.CATEGORY_PROCESS, CATEGORY_TITLES[settings.Cosmetics.CATEGORY_PROCESS], COSMETICS_SUBCATEGORY_CONFIG),
         (settings.Toys.CATEGORY_PROCESS, CATEGORY_TITLES[settings.Toys.CATEGORY_PROCESS], TOYS_SUBCATEGORY_CONFIG),
     ):
+        if category in PC_DISABLED_CARD_CATEGORIES:
+            continue
         for config in registry.values():
             registry_items.append({
                 "category": category,

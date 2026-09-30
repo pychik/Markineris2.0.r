@@ -32,6 +32,7 @@ from views.main.product_cards.order_helpers import _json_error, _add_order_item_
     _count_open_moderation_orders, _get_card_or_fail, _validate_card_access_and_status, _load_cards_for_order, \
     _count_open_pc_orders, _filter_copyable_fast_order_items, common_save_copy_pc_order, \
     get_or_create_fast_order_company, validate_pc_order_items_ready_for_process
+from views.main.product_cards.constants import PC_DISABLED_CARD_CATEGORIES, PC_DISABLED_ORDER_CATEGORIES
 from views.main.product_cards.support import validate_card_form, save_clothes_card, save_shoes_card, save_linen_card, \
     save_socks_card, save_parfum_card, save_cosmetics_card, save_toys_card, parse_sizes_for_category, \
     CATEGORIES_COMMON, MODERATION_STATUS_TITLES, MODERATION_STATUS_COLORS, normalize_article_for_category, \
@@ -95,6 +96,15 @@ PROCESSING_COMPANY_REASSIGNMENT_ERROR = (
     "Редактирование не сохранено: не удалось связаться с Tezaurus или подобрать новую "
     "компанию обработки после смены страны. Проверьте сеть/Tezaurus и попробуйте снова."
 )
+DISABLED_CARD_CATEGORY_MESSAGE = "Категория игрушек временно недоступна в карточках товаров."
+
+
+def _visible_card_categories() -> dict:
+    return {
+        key: cfg
+        for key, cfg in CATEGORIES_COMMON.items()
+        if key not in PC_DISABLED_CARD_CATEGORIES
+    }
 
 
 def _card_subcategory_registry(category: str):
@@ -232,6 +242,11 @@ def h_cards():
     subcategory = request.args.get("subcategory")
     article_query = request.args.get("article_query", "").strip()
 
+    if category in PC_DISABLED_CARD_CATEGORIES:
+        flash(DISABLED_CARD_CATEGORY_MESSAGE, "error")
+        category = settings.Shoes.CATEGORY_PROCESS
+        subcategory = None
+
     if category in CARD_SUBCATEGORY_DEFAULTS and not subcategory:
         subcategory = CARD_SUBCATEGORY_DEFAULTS[category]
 
@@ -245,7 +260,8 @@ def h_cards():
         current_category=category,
         current_subcategory=subcategory,
         article_query=article_query,
-        mapper_categories=CATEGORIES_COMMON,
+        mapper_categories=_visible_card_categories(),
+        pc_disabled_card_categories=PC_DISABLED_CARD_CATEGORIES,
         pc_subcategory_tiles=_card_subcategory_tiles(category),
         pc_category_search_index=build_pc_category_search_index(),
         created_cards_count=created_cards_count,
@@ -255,6 +271,10 @@ def h_cards():
 
 def h_card_category_subcategories(category: str):
     category = (category or "").strip()
+    if category in PC_DISABLED_CARD_CATEGORIES:
+        flash(DISABLED_CARD_CATEGORY_MESSAGE, "error")
+        return redirect(url_for("user_product_cards.cards"))
+
     cfg = CATEGORIES_COMMON.get(category)
     if not cfg or not cfg.get("has_subcategory"):
         flash("У выбранной категории нет страницы подкатегорий", "error")
@@ -357,6 +377,12 @@ def h_cards_table():
     article_query = request.form.get("article_query", "").strip()
     page = request.form.get("page", default=1, type=int)
     per_page = 20
+    if category in PC_DISABLED_CARD_CATEGORIES:
+        return jsonify({
+            "status": "error",
+            "message": DISABLED_CARD_CATEGORY_MESSAGE,
+        }), 400
+
     if category == settings.Clothes.CATEGORY_PROCESS and not subcategory:
         subcategory = ClothesSubcategories.common.value
     if category in CARD_SUBCATEGORY_DEFAULTS and not subcategory:
@@ -477,6 +503,9 @@ def h_new_product_card():
     if category not in CATEGORIES_COMMON:
         flash("Неизвестная категория", "error")
         return redirect(url_for('user_product_cards.cards'))
+    if category in PC_DISABLED_CARD_CATEGORIES:
+        flash(DISABLED_CARD_CATEGORY_MESSAGE, "error")
+        return redirect(url_for('user_product_cards.cards'))
 
     flash(
         message=f"Открыта страница добавления новой карточки товара, категория {CATEGORIES_COMMON[category]['title']}",
@@ -506,6 +535,8 @@ def h_save_product_card():
     #     return jsonify(status="error", message="Ведется обновление раздела карточки категории обувь. Карточки категории обувь временно не обрабатываются")
     if category not in CATEGORIES_COMMON:
         return jsonify(status="error", message="Неизвестная категория")
+    if category in PC_DISABLED_CARD_CATEGORIES:
+        return jsonify(status="error", message=DISABLED_CARD_CATEGORY_MESSAGE)
 
     # 1. Валидация
     try:
@@ -1351,6 +1382,8 @@ def h_make_pc_basket_order():
         # print(o)
         if category not in settings.CATEGORIES_PROCESS_NAMES or not isinstance(items, list) or not items:
             raise ValueError("Неверный формат заказа: category/items")
+        if category in PC_DISABLED_CARD_CATEGORIES:
+            raise ValueError(DISABLED_CARD_CATEGORY_MESSAGE)
         category_ru = CATEGORIES_COMMON.get(category, '').get('title')
 
         subcategory = ""
@@ -1587,6 +1620,9 @@ def h_pc_order_copy(o_id: int) -> Response:
     category = (order.category or "").strip()
     if category not in settings.CATEGORIES_DICT.keys():
         flash(message=settings.Messages.STRANGE_REQUESTS, category="error")
+        return redirect(url_for("user_product_cards.pc_orders_drafts"))
+    if category in PC_DISABLED_ORDER_CATEGORIES:
+        flash(message="Копирование GTIN заказов категории игрушек временно недоступно", category="error")
         return redirect(url_for("user_product_cards.pc_orders_drafts"))
 
     order_items = _get_pc_order_rows_by_category(category, order.id)

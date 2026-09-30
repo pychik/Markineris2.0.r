@@ -117,15 +117,17 @@
                 </li>
             </a>
 
-            <a data-pc-category-tile data-pc-category-root="toys" data-pc-category-order="10" href="{{ url_for('user_product_cards.cards', category='toys', subcategory='doll_accessories') }}">
-                <li class="nav-link" id="pills-toys-tab"
-                    type="button" role="tab">
-                    <button class="text-center border-0" type="button">
-                        <img src="{{ url_for('static', filename='main_v2/img/icons/toys/toys.png') }}" width="52" height="51" alt="" aria-hidden="true">
-                        <div class="category-item__name text-center">Игрушки</div>
-                    </button>
-                </li>
-            </a>
+            {% if 'toys' not in (pc_disabled_card_categories or []) %}
+                <a data-pc-category-tile data-pc-category-root="toys" data-pc-category-order="10" href="{{ url_for('user_product_cards.cards', category='toys', subcategory='doll_accessories') }}">
+                    <li class="nav-link" id="pills-toys-tab"
+                        type="button" role="tab">
+                        <button class="text-center border-0" type="button">
+                            <img src="{{ url_for('static', filename='main_v2/img/icons/toys/toys.png') }}" width="52" height="51" alt="" aria-hidden="true">
+                            <div class="category-item__name text-center">Игрушки</div>
+                        </button>
+                    </li>
+                </a>
+            {% endif %}
 
             <a data-pc-category-tile data-pc-category-child="clothes" data-pc-category-order="70" href="javascript:get_category_product_cards(`{{ url_for('user_product_cards.cards_table', category='носки и прочее', upload_flag=111)}}`, 'socks')">
                 <li class="nav-link" id="pills-socks-tab"
