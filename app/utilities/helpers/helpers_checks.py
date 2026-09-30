@@ -1,10 +1,17 @@
 from config import settings
 from models import Shoe, Linen, Parfum, Socks, Clothes
 from tezaurus.runtime_catalogs import get_all_countries, get_rd_countries
-from utilities.categories_data.accessories_data import HATS_TNVEDS, GLOVES_TNVEDS, SHAWLS_TNVEDS
+from utilities.categories_data.accessories_data import (
+    GLOVES_TNVEDS,
+    GLOVES_TYPES,
+    HATS_TNVEDS,
+    HATS_TYPES,
+    SHAWLS_TNVEDS,
+    SHAWLS_TYPES,
+)
 from utilities.categories_data.clothes_common.tnved_processor import get_tnved_codes_for_gender
 from utilities.categories_data.subcategories_data import ClothesSubcategories
-from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVEDS
+from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVEDS, SWIMMING_ACCESSORIES_TYPES
 from utilities.categories_data.underwear_data import UNDERWEAR_TYPE_GENDERS, UNDERWEAR_TNVED_DICT
 
 
@@ -96,6 +103,7 @@ def _check_clothes_compatibility(clothes) -> str | bool:
 
     # --- Проверка пола ---
     need_gender = _needs_gender(cl_subcat)
+    type_ok = True
 
     if need_gender:
         match cl_subcat:
@@ -112,14 +120,20 @@ def _check_clothes_compatibility(clothes) -> str | bool:
         match cl_subcat:
             case ClothesSubcategories.swimming_accessories.value:
                 allowed_tnveds = SWIMMING_ACCESSORIES_TNVEDS
+                allowed_types = SWIMMING_ACCESSORIES_TYPES
             case ClothesSubcategories.hats.value:
                 allowed_tnveds = HATS_TNVEDS
+                allowed_types = HATS_TYPES
             case ClothesSubcategories.gloves.value:
                 allowed_tnveds = GLOVES_TNVEDS
+                allowed_types = GLOVES_TYPES
             case ClothesSubcategories.shawls.value:
                 allowed_tnveds = SHAWLS_TNVEDS
+                allowed_types = SHAWLS_TYPES
             case _:
                 allowed_tnveds = ()
+                allowed_types = ()
+        type_ok = cl_type.upper() in allowed_types
 
     # --- Проверка ТНВЭД ---
     tnved_ok = True
@@ -150,7 +164,7 @@ def _check_clothes_compatibility(clothes) -> str | bool:
     # country_err = _check_country_by_rd(clothes)
 
     # if gender_ok and tnved_ok and sizes_ok and not country_err:
-    if gender_ok and tnved_ok and sizes_ok:
+    if type_ok and gender_ok and tnved_ok and sizes_ok:
         return False
 
     # Формируем короткое описание для отчёта
@@ -163,6 +177,8 @@ def _check_clothes_compatibility(clothes) -> str | bool:
     if size_errors:
         bad = ", ".join(size_errors)
         base = f"{base} — несоответствующие размеры: {bad}"
+    if not type_ok:
+        base = f"{base} — недопустимый вид товара для подкатегории {cl_subcat or 'common'}"
 
     # base = _append_err(base, country_err)
 
