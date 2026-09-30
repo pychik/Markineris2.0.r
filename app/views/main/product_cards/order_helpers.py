@@ -12,6 +12,7 @@ from models import db, Order, ProductCard, FastOrderCompanies, Clothes, Parfum, 
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.accessories_data import normalize_clothes_type_for_subcategory
 from utilities.saving_helpers import get_clothes_size_type
+from utilities.validators import normalize_mark_type_full
 from utilities.saving_uts import save_copy_order_shoes, save_copy_order_clothes, \
     save_copy_order_socks, save_copy_order_linen, save_copy_order_parfum, save_copy_order_cosmetics, \
     save_copy_order_toys
@@ -664,13 +665,15 @@ def common_save_copy_pc_order(
         if category in PC_DISABLED_ORDER_CATEGORIES:
             raise Exception("Копирование GTIN заказов категории игрушек временно недоступно")
 
+        normalized_mark_type = normalize_mark_type_full(order.mark_type, category=order.category or category)
+
         new_order = Order(
             company_type=order.company_type,
             company_name=order.company_name,
             edo_type=order.edo_type,
             edo_id=order.edo_id,
             company_idn=order.company_idn,
-            mark_type=order.mark_type,
+            mark_type=normalized_mark_type,
             category=order.category,
             processed=False,
             # has_aggr=order.has_aggr,

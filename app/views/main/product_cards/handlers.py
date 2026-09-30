@@ -19,7 +19,8 @@ from utilities.support import check_forbidden_words, helper_preload_common, help
     helper_check_user_order_in_archive, check_order_pos, process_admin_order_num, process_order_start, \
     parse_rd_replacement_consent
 from utilities.telegram import MarkinerisInform
-from utilities.validators import ValidatorProcessor, validate_and_build_contact_info, validate_order_comment_length
+from utilities.validators import ValidatorProcessor, validate_and_build_contact_info, validate_order_comment_length, \
+    is_valid_mark_type_full, normalize_mark_type_full
 from tezaurus.api_client import TezaurusApiClient
 from tezaurus.exceptions import TezaurusApiError, TezaurusConfigurationError
 from tezaurus.processing_companies import ProcessingCompaniesClient
@@ -1376,7 +1377,6 @@ def h_make_pc_basket_order():
 
     try:
         category = (o.get("category") or "").strip()
-        mark_type = (o.get("mark_type") or "").strip() or "МАРКИРОВКА НЕ ВЫБРАНА"
         company = o.get("company") or {}
         items = o.get("items") or []
         # print(o)
@@ -1385,6 +1385,9 @@ def h_make_pc_basket_order():
         if category in PC_DISABLED_CARD_CATEGORIES:
             raise ValueError(DISABLED_CARD_CATEGORY_MESSAGE)
         category_ru = CATEGORIES_COMMON.get(category, '').get('title')
+        mark_type = normalize_mark_type_full(o.get("mark_type"), category=category_ru)
+        if not is_valid_mark_type_full(mark_type):
+            raise ValueError("Указан некорректный тип этикетки для выбранной категории заказа")
 
         subcategory = ""
         if CATEGORIES_COMMON.get(category, {}).get("has_subcategory"):

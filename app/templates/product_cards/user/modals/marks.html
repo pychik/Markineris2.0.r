@@ -70,89 +70,84 @@
     <input type="hidden" id="mark_7" value="4 этикетка 43*25">
   </div>
 
-  {% if category == 'обувь' %}
-    <div class="col text-center" onclick="javascript:cart_process_mark('shoes_mark_8_1', 3)">
-      <a class="label" type="button" aria-label="Close">
-        <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/46_полное_описание_сокращенная_90х60.png') }}">
-        <div class="label-text text-center">
-          Тип 8 <br>90мм х 60мм
-        </div>
-      </a>
-      <input type="hidden" id="shoes_mark_8_1" value="46_полное_описание_сокращенная_90х60">
-    </div>
+  <div class="col text-center pc-mark-category-option" data-pc-mark-category="shoes" style="display: none;" onclick="javascript:cart_process_mark('shoes_mark_8_1', 3)">
+    <a class="label" type="button" aria-label="Close">
+      <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/46_полное_описание_сокращенная_90х60.png') }}">
+      <div class="label-text text-center">
+        Тип 8 <br>90мм х 60мм
+      </div>
+    </a>
+    <input type="hidden" id="shoes_mark_8_1" value="46_полное_описание_сокращенная_90х60">
+  </div>
 
-    <div class="col text-center" onclick="javascript:cart_process_mark('shoes_mark_8_2', 3)">
-      <a class="label" type="button" aria-label="Close">
-        <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/45_полное_описание_сокращенная_120х75.png') }}">
-        <div class="label-text text-center">
-          Тип 8 <br>120мм х 75мм
-        </div>
-      </a>
-      <input type="hidden" id="shoes_mark_8_2" value="45_полное_описание_сокращенная_120х75">
-    </div>
+  <div class="col text-center pc-mark-category-option" data-pc-mark-category="shoes" style="display: none;" onclick="javascript:cart_process_mark('shoes_mark_8_2', 3)">
+    <a class="label" type="button" aria-label="Close">
+      <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/45_полное_описание_сокращенная_120х75.png') }}">
+      <div class="label-text text-center">
+        Тип 8 <br>120мм х 75мм
+      </div>
+    </a>
+    <input type="hidden" id="shoes_mark_8_2" value="45_полное_описание_сокращенная_120х75">
+  </div>
 
-  {% elif category == 'одежда' %}
-    <div class="col text-center" onclick="javascript:cart_process_mark('clothes_mark_8_1', 3)">
-      <a class="label" type="button" aria-label="Close">
-        <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/44_полное_описание_сокращенная_90х60.png') }}">
-        <div class="label-text text-center">
-          Тип 8 <br>90мм х 60мм
-        </div>
-      </a>
-      <input type="hidden" id="clothes_mark_8_1" value="44_полное_описание_сокращенная_90х60">
-    </div>
+  <div class="col text-center pc-mark-category-option" data-pc-mark-category="clothes" style="display: none;" onclick="javascript:cart_process_mark('clothes_mark_8_1', 3)">
+    <a class="label" type="button" aria-label="Close">
+      <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/44_полное_описание_сокращенная_90х60.png') }}">
+      <div class="label-text text-center">
+        Тип 8 <br>90мм х 60мм
+      </div>
+    </a>
+    <input type="hidden" id="clothes_mark_8_1" value="44_полное_описание_сокращенная_90х60">
+  </div>
 
-    <div class="col text-center" onclick="javascript:cart_process_mark('clothes_mark_8_2', 3)">
-      <a class="label" type="button" aria-label="Close">
-        <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/43_полное_описание_сокращенная_120х75.png') }}">
-        <div class="label-text text-center">
-          Тип 8 <br>120мм х 75мм
-        </div>
-      </a>
-      <input type="hidden" id="clothes_mark_8_2" value="43_полное_описание_сокращенная_120х75">
-    </div>
+  <div class="col text-center pc-mark-category-option" data-pc-mark-category="clothes" style="display: none;" onclick="javascript:cart_process_mark('clothes_mark_8_2', 3)">
+    <a class="label" type="button" aria-label="Close">
+      <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/43_полное_описание_сокращенная_120х75.png') }}">
+      <div class="label-text text-center">
+        Тип 8 <br>120мм х 75мм
+      </div>
+    </a>
+    <input type="hidden" id="clothes_mark_8_2" value="43_полное_описание_сокращенная_120х75">
+  </div>
 
-  {% elif category == 'белье' %}
-    <div class="col text-center" onclick="javascript:cart_process_mark('linen_mark_8_1', 3)">
-      <a class="label" type="button" aria-label="Close">
-        <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/белье_90х60.png') }}">
-        <div class="label-text text-center">
-          Тип 8 <br>90мм х 60мм
-        </div>
-      </a>
-      <input type="hidden" id="linen_mark_8_1" value="30_полное_описание_сокращенная_90х60">
-    </div>
+  <div class="col text-center pc-mark-category-option" data-pc-mark-category="linen" style="display: none;" onclick="javascript:cart_process_mark('linen_mark_8_1', 3)">
+    <a class="label" type="button" aria-label="Close">
+      <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/белье_90х60.png') }}">
+      <div class="label-text text-center">
+        Тип 8 <br>90мм х 60мм
+      </div>
+    </a>
+    <input type="hidden" id="linen_mark_8_1" value="30_полное_описание_сокращенная_90х60">
+  </div>
 
-    <div class="col text-center" onclick="javascript:cart_process_mark('linen_mark_8_2', 3)">
-      <a class="label" type="button" aria-label="Close">
-        <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/белье_90х60.png') }}">
-        <div class="label-text text-center">
-          Тип 8 <br>120мм х 75мм
-        </div>
-      </a>
-      <input type="hidden" id="linen_mark_8_2" value="31_полное_описание_сокращенная_120х75">
-    </div>
+  <div class="col text-center pc-mark-category-option" data-pc-mark-category="linen" style="display: none;" onclick="javascript:cart_process_mark('linen_mark_8_2', 3)">
+    <a class="label" type="button" aria-label="Close">
+      <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/белье_90х60.png') }}">
+      <div class="label-text text-center">
+        Тип 8 <br>120мм х 75мм
+      </div>
+    </a>
+    <input type="hidden" id="linen_mark_8_2" value="31_полное_описание_сокращенная_120х75">
+  </div>
 
-  {% elif category == 'парфюм' %}
-    <div class="col text-center" onclick="javascript:cart_process_mark('parfum_mark_8_1', 3)">
-      <a class="label" type="button" aria-label="Close">
-        <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/парфюм_90х60.png') }}">
-        <div class="label-text text-center">
-          Тип 8 <br>90мм х 60мм
-        </div>
-      </a>
-      <input type="hidden" id="parfum_mark_8_1" value="20_полное_описание_сокращенная_90х60">
-    </div>
+  <div class="col text-center pc-mark-category-option" data-pc-mark-category="parfum" style="display: none;" onclick="javascript:cart_process_mark('parfum_mark_8_1', 3)">
+    <a class="label" type="button" aria-label="Close">
+      <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/парфюм_90х60.png') }}">
+      <div class="label-text text-center">
+        Тип 8 <br>90мм х 60мм
+      </div>
+    </a>
+    <input type="hidden" id="parfum_mark_8_1" value="20_полное_описание_сокращенная_90х60">
+  </div>
 
-    <div class="col text-center" onclick="javascript:cart_process_mark('parfum_mark_8_2', 3)">
-      <a class="label" type="button" aria-label="Close">
-        <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/парфюм_90х60.png') }}">
-        <div class="label-text text-center">
-          Тип 8 <br>120мм х 75мм
-        </div>
-      </a>
-      <input type="hidden" id="parfum_mark_8_2" value="21_полное_описание_сокращенная_120х75">
-    </div>
-  {% endif %}
+  <div class="col text-center pc-mark-category-option" data-pc-mark-category="parfum" style="display: none;" onclick="javascript:cart_process_mark('parfum_mark_8_2', 3)">
+    <a class="label" type="button" aria-label="Close">
+      <img class="img-fluid w-100" src="{{ url_for('static', filename='marks/парфюм_90х60.png') }}">
+      <div class="label-text text-center">
+        Тип 8 <br>120мм х 75мм
+      </div>
+    </a>
+    <input type="hidden" id="parfum_mark_8_2" value="21_полное_описание_сокращенная_120х75">
+  </div>
 
 </div>

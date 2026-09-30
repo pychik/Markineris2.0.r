@@ -112,6 +112,60 @@ function oBGetCurrentCategoryTitles() {
   };
 }
 
+const O_B_MARK_TYPE_CATEGORY = {
+  "46_полное_описание_сокращенная_90х60": "shoes",
+  "45_полное_описание_сокращенная_120х75": "shoes",
+  "44_полное_описание_сокращенная_90х60": "clothes",
+  "43_полное_описание_сокращенная_120х75": "clothes",
+  "30_полное_описание_сокращенная_90х60": "linen",
+  "31_полное_описание_сокращенная_120х75": "linen",
+  "20_полное_описание_сокращенная_90х60": "parfum",
+  "21_полное_описание_сокращенная_120х75": "parfum",
+};
+
+function oBGetCurrentProductCategory() {
+  const order = oBCartGetSingleOrder();
+  if (order?.category) return String(order.category).trim();
+
+  const formCategory = document.querySelector('#pc-search-form input[name="category"]')?.value;
+  if (formCategory) return String(formCategory).trim();
+
+  const configCategory = document.getElementById("pc-config")?.dataset?.currentCategory;
+  return String(configCategory || "").trim();
+}
+
+function oBIsMarkTypeAllowedForCategory(markType, category) {
+  const value = String(markType || "").trim();
+  if (!value || value === "МАРКИРОВКА НЕ ВЫБРАНА") return true;
+  const requiredCategory = O_B_MARK_TYPE_CATEGORY[value];
+  return !requiredCategory || requiredCategory === String(category || "").trim();
+}
+
+function oBClearMarkTypeInputs() {
+  const markField = document.getElementById("mark_type");
+  const markHidden = document.getElementById("mark_type_hidden");
+  if (markField) {
+    markField.value = "";
+    markField.classList.remove("is-valid");
+  }
+  if (markHidden) markHidden.value = "";
+}
+
+function oBUpdateAvailableMarkTypes({ clearInvalid = false } = {}) {
+  const category = oBGetCurrentProductCategory();
+  document.querySelectorAll(".pc-mark-category-option").forEach((el) => {
+    const isVisible = el.dataset.pcMarkCategory === category;
+    el.style.display = isVisible ? "" : "none";
+  });
+
+  const selected = document.getElementById("mark_type_hidden")?.value
+    || document.getElementById("mark_type")?.value
+    || "";
+  if (clearInvalid && !oBIsMarkTypeAllowedForCategory(selected, category)) {
+    oBClearMarkTypeInputs();
+  }
+}
+
 function pcSetApplyBtnState(btn, qty) {
   if (!btn) return;
   const q = parseInt(qty, 10) || 0;
@@ -179,7 +233,7 @@ function oBCartApplyDefaultSettingsToOrder(order) {
   const mt = (order.mark_type || "").trim();
   if (!mt || mt === "МАРКИРОВКА НЕ ВЫБРАНА") {
     const sMt = String(s.mark_type || "").trim();
-    if (sMt) order.mark_type = sMt;
+    if (sMt && oBIsMarkTypeAllowedForCategory(sMt, order.category)) order.mark_type = sMt;
   }
 
   return order;
@@ -246,6 +300,11 @@ function oBReadMarkTypeFromSettingsModal() {
 function oBCartApplyOrderSettings({ company, mark_type }) {
   const orders = oBCartLoad();
   const mt = String(mark_type || "").trim();
+  const category = orders[0]?.category || oBGetCurrentProductCategory();
+
+  if (mt && !oBIsMarkTypeAllowedForCategory(mt, category)) {
+    return { error: "Выбранный тип этикетки недоступен для текущей категории заказа." };
+  }
 
   // Корзина пуста: сохраняем как "настройки по умолчанию"
   if (!orders.length) {
@@ -1083,6 +1142,11 @@ function pcSyncApplyButtonsFromInputs() {
 document.addEventListener("DOMContentLoaded", () => {
   oBCartRender();
   oBCartUpdateBadge();
+  oBUpdateAvailableMarkTypes();
+
+  document.getElementById("markModal")?.addEventListener("show.bs.modal", () => {
+    oBUpdateAvailableMarkTypes({ clearInvalid: true });
+  });
 
   // Открытие настроек: если корзина пуста — подставим сохранённые defaults
   document.getElementById("o-b-cart-settings")?.addEventListener("click", () => {
@@ -1099,6 +1163,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const mt = (order?.mark_type) || (defaults.mark_type) || "";
     if (document.getElementById("mark_type")) document.getElementById("mark_type").value = mt;
     if (document.getElementById("mark_type_hidden")) document.getElementById("mark_type_hidden").value = mt;
+    oBUpdateAvailableMarkTypes({ clearInvalid: true });
   });
 
   document.getElementById("o-b-cart-settings-save")?.addEventListener("click", () => {
