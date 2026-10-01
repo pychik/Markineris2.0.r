@@ -29,7 +29,14 @@
                 <tr>
                     <td class="tablesaw-cell-content">{{t.created_at.strftime('%d.%m.%Y %H:%M')}}</td>
                     {%if not is_at2%}
-                        <td>{{t.amount}}</td>
+                        <td>
+                            {% if t.type %}
+                                <span class="text-success fw-semibold me-1" style="opacity: .75;">+</span>
+                            {% else %}
+                                <span class="text-danger fw-semibold me-1" style="opacity: .75;">-</span>
+                            {% endif %}
+                            {{t.amount}}
+                        </td>
                     {%else%}
                         <td></td>
                     {% endif %}
