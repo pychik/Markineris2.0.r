@@ -364,11 +364,21 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
     #     return o_id, None, None
 
     if o_id:
-        order = user.orders.filter_by(category=category, processed=False, id=o_id).filter(~Order.to_delete).first()
+        order = user.orders.filter(
+            Order.category == category,
+            Order.id == o_id,
+            Order.stage == settings.OrderStage.CREATING,
+            ~Order.processed,
+            ~Order.to_delete,
+        ).first()
+        if not order:
+            flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
+            return (None,) * 3
         if not check_order_pos(category=category, order=order):
             return o_id, None, None
         if p_id:
-            process_delete_order_pos(o_id=o_id, m_id=p_id, category=category, edit=True)
+            if process_delete_order_pos(o_id=o_id, m_id=p_id, category=category, edit=True) != 'success':
+                return (None,) * 3
 
     else:
         company_idn = form_dict.get("company_idn")
@@ -486,13 +496,29 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
             return (None, )*3
     else:
         try:
-            order = user.orders.filter_by(category=settings.Parfum.CATEGORY, processed=False, id=o_id).first()
+            order = user.orders.filter(
+                Order.category == settings.Parfum.CATEGORY,
+                Order.id == o_id,
+                Order.stage == settings.OrderStage.CREATING,
+                ~Order.processed,
+                ~Order.to_delete,
+            ).first()
+
+            if not order:
+                flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
+                return (None,) * 3
 
             if not check_order_pos(category=settings.Parfum.CATEGORY, order=order):
                 return (None, )*3
 
             if p_id:
-                process_delete_order_pos(o_id=o_id, m_id=p_id, category=settings.Parfum.CATEGORY, edit=True)
+                if process_delete_order_pos(
+                    o_id=o_id,
+                    m_id=p_id,
+                    category=settings.Parfum.CATEGORY,
+                    edit=True,
+                ) != 'success':
+                    return (None,) * 3
 
             updated_order = common_save_db(order=order, form_dict=form_dict,
                                            category=settings.Parfum.CATEGORY)

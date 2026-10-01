@@ -71,7 +71,12 @@ def process_order(o_id: int):
     user = current_user
     order_comment = request.form.to_dict().get("order_comment", "")
 
-    order = user.orders.filter_by(category=settings.Socks.CATEGORY, processed=False, id=o_id).filter(~Order.to_delete).first()
+    order = user.orders.filter_by(
+        category=settings.Socks.CATEGORY,
+        processed=False,
+        id=o_id,
+        stage=settings.OrderStage.CREATING,
+    ).filter(~Order.to_delete).first()
 
     return helper_process_category_order(user=user, order=order, category=settings.Socks.CATEGORY,
                                   order_comment=order_comment)

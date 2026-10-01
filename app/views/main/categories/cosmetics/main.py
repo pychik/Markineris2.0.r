@@ -108,7 +108,12 @@ def clean_orders(subcategory: str, o_id: int):
 def process_order(subcategory: str, o_id: int):
     user = current_user
     order_comment = request.form.to_dict().get("order_comment", "")
-    order = user.orders.filter_by(category=settings.Cosmetics.CATEGORY, processed=False, id=o_id).filter(~Order.to_delete).first()
+    order = user.orders.filter_by(
+        category=settings.Cosmetics.CATEGORY,
+        processed=False,
+        id=o_id,
+        stage=settings.OrderStage.CREATING,
+    ).filter(~Order.to_delete).first()
     return helper_process_category_order(
         user=user,
         order=order,
