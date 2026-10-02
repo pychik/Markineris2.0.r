@@ -16,7 +16,7 @@ from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll, SQLQueryFactory
 from utilities.support import check_forbidden_words, helper_preload_common, helper_check_uoabm, \
-    helper_check_user_order_in_archive, check_order_pos, process_admin_order_num, process_order_start, \
+    check_order_pos, process_admin_order_num, process_order_start, \
     parse_rd_replacement_consent
 from utilities.telegram import MarkinerisInform
 from utilities.validators import ValidatorProcessor, validate_and_build_contact_info, validate_order_comment_length, \
@@ -1967,7 +1967,6 @@ def h_pc_orders_drafts():
 def h_pc_order_check_before_process(o_id: int):
     """
         Проверки перед оформлением:
-        - дубль в архиве (helper_check_user_order_in_archive)
         - баланс/стоимость (helper_check_uoabm)
         """
     order = _get_pc_order_header(o_id, require_unprocessed=True)
@@ -1990,16 +1989,12 @@ def h_pc_order_check_before_process(o_id: int):
 
     rows_count, marks_count = _get_pc_order_counts_by_category(category=category, o_id=o_id)
 
-    # 1) дубль в архиве
-    status_order, answer_order = helper_check_user_order_in_archive(category=category, o_id=o_id)
-
-    # 2) баланс
     status_balance, total_order_price, agent_at2, answer_balance = helper_check_uoabm(user=current_user, o_id=o_id)
 
     return jsonify(dict(
         status="success",
-        status_order=status_order,
-        answer_orders=str(answer_order),
+        status_order=0,
+        answer_orders="",
         status_balance=status_balance,
         answer_balance=str(answer_balance),
         agent_at2=bool(agent_at2),

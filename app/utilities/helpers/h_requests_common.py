@@ -9,7 +9,7 @@ from models import db, Telegram, Order, ExceptionDataUsers
 from utilities.check_tnved import TnvedChecker
 from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.support import check_file_extension, send_file_tg, \
-    orders_list_common, helper_check_useroragent_balance, helper_check_uoabm, helper_check_user_order_in_archive, \
+    orders_list_common, helper_check_useroragent_balance, helper_check_uoabm, \
     order_has_user_rd_by_id
 from utilities.validators import is_valid_mark_type_full, validate_and_normalize_company_fields
 
@@ -206,13 +206,11 @@ def h_change_order_org_param_form(o_id: int) -> Response:
 
 
 def h_cubaa():
-    """ handler background: checks user balance and order in archieve"""
+    """ handler background: checks user balance before processing an order"""
 
     category = request.form.get('category').replace('--', '')
     o_id = int(request.form.get('o_id').replace('--', ''))
-    status_order, status_balance, answer_order, answer_balance = (0, 0,
-                                                                  settings.Messages.STRANGE_REQUESTS,
-                                                                  settings.Messages.STRANGE_REQUESTS)
+    status_order, status_balance, answer_order, answer_balance = (0, 0, "", settings.Messages.STRANGE_REQUESTS)
 
     order_exists = (
         Order.query.with_entities(Order.id)
@@ -222,8 +220,6 @@ def h_cubaa():
     if not order_exists:
         return jsonify(dict(status_order=status_order, answer_orders=f"{answer_order}",
                             status_balance=status_balance, answer_balance=answer_balance))
-
-    status_order, answer_order = helper_check_user_order_in_archive(category=category, o_id=o_id)
 
     status_balance, total_order_price, \
         agent_at2, answer_balance = helper_check_uoabm(user=current_user, o_id=o_id)
