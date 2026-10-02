@@ -1,3 +1,4 @@
+{% set is_linen_kpb = card.category == 'linen' and main and main.type == 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ' %}
 {# В корзину можно только в пользовательском режиме #}
 {% set can_card_to_cart = (not is_operator_view) and (card.data_status == 'approved') and card.processing_company_label %}
 
@@ -89,7 +90,63 @@
     </div>
   {% endif %}
 
-  {% if sizes %}
+  {% if is_linen_kpb and sizes %}
+    <div class="pc-card-view__block mb-3">
+      <h6 class="fw-semibold mb-2">Позиции комплекта</h6>
+
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Позиция</th>
+              <th>Размер</th>
+              <th>Ед.</th>
+              <th class="text-end">Кол-во</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in sizes %}
+              <tr>
+                <td>{{ s.position_type }}</td>
+                <td>{{ s.size }}</td>
+                <td>{{ s.unit }}</td>
+                <td class="text-end">{{ s.quantity }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mb-2">
+        {% if main.is_approved %}
+          <span class="badge bg-secondary-subtle text-muted">Одобрено</span>
+        {% else %}
+          <span class="badge bg-secondary-subtle text-muted">Проверка не пройдена</span>
+        {% endif %}
+      </div>
+
+      {% if can_card_to_cart %}
+        <div class="d-flex align-items-center gap-2">
+          <input type="number" id="pc-kpb-qty" class="o-b-qty pc-kpb-qty" min="0" value="0">
+          <button id="pc-kpb-add"
+                  class="pc-btn pc-btn-yellow pc-btn--sm pc-kpb-add"
+                  title="Применить количество в корзину"
+                  data-card-id="{{ card.id }}"
+                  data-category="{{ card.category }}"
+                  data-category-title="{{ cfg.title }}"
+                  data-subcategory="{{ main.subcategory or '' }}"
+                  data-subcategory-title="{{ subcat_title }}"
+                  data-article="{{ main.article if main else '' }}"
+                  data-trademark="{{ main.trademark if main else '' }}"
+                  data-color="{{ main.color if main else '' }}"
+                  data-product-type="{{ main.type if main else '' }}">
+            ✓
+          </button>
+        </div>
+      {% endif %}
+    </div>
+  {% elif sizes %}
+
     <div class="pc-card-view__block mb-3">
       <h6 class="fw-semibold mb-2">Размеры</h6>
 

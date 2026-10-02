@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from config import settings
 from logger import logger
 from models import db, Order, ProductCard, FastOrderCompanies, Clothes, Parfum, Cosmetics, Toys, ClothesQuantitySize, Socks, \
-    SocksQuantitySize, Shoe, ShoeQuantitySize, Linen, LinenQuantitySize, ModerationStatus, User
+    SocksQuantitySize, Shoe, ShoeQuantitySize, Linen, LinenQuantitySize, LinenSetItem, ModerationStatus, User
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.accessories_data import normalize_clothes_type_for_subcategory
 from utilities.saving_helpers import get_clothes_size_type
@@ -210,6 +210,11 @@ def validate_pc_order_items_ready_for_process(category: str, items: list) -> lis
             continue
 
         if category in PC_ORDER_SIZE_APPROVAL_CATEGORIES:
+            if category == settings.Linen.CATEGORY and getattr(item, "set_items", None):
+                if not getattr(item, "is_approved", False):
+                    errors.append(f"Позиция {label} не одобрена.")
+                continue
+
             sizes_quantities = list(getattr(item, "sizes_quantities", []) or [])
             if not sizes_quantities:
                 errors.append(f"Позиция {label} без размеров.")
@@ -254,6 +259,9 @@ def _units_map_for_card(pc: ProductCard):
         return { (u.size, "", ""): u for u in units if u.is_approved }
 
     if pc.category == "linen":
+        kpb_units = [l for l in pc.linen if l.set_items and getattr(l, "is_approved", False)]
+        if kpb_units:
+            return {"_linen_set_units": kpb_units}
         units = [s for l in pc.linen for s in l.sizes_quantities]
         # у linen есть unit
         return { (u.size, "", u.unit or ""): u for u in units if u.is_approved }
@@ -316,7 +324,10 @@ def _load_cards_for_order(card_ids: list[int], *, category: str) -> dict[int, Pr
     elif category == "shoes":
         q = q.options(selectinload(ProductCard.shoes).selectinload(Shoe.sizes_quantities))
     elif category == "linen":
-        q = q.options(selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities))
+        q = q.options(
+            selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities),
+            selectinload(ProductCard.linen).selectinload(Linen.set_items),
+        )
     elif category == "parfum":
         q = q.options(selectinload(ProductCard.parfum))
     elif category == "cosmetics":
@@ -421,7 +432,8 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
 
     # ---------- COMMON FOR NON-PARFUM ----------
     sizes = item_payload.get("sizes") or []
-    if not sizes:
+    is_linen_set_card = pc.category == "linen" and pc.linen and pc.linen[0].set_items
+    if not sizes and not is_linen_set_card:
         raise ValueError(f"Карточка #{pc.id}: не переданы размеры/количества")
 
     units_map = _units_map_for_card(pc)  # approved units map
@@ -553,6 +565,35 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
         new_obj.article = (item_payload.get("article") or "").strip()
         new_obj.trademark = (item_payload.get("trademark") or "").strip() or new_obj.trademark
 
+        if src.set_items:
+            if not getattr(src, "is_approved", False):
+                raise ValueError(f"Артикул {new_obj.article}: комплект не approved в карточке")
+
+            qty_raw = item_payload.get("qty", None)
+            if qty_raw is None:
+                qty_raw = item_payload.get("quantity", None)
+            try:
+                kpb_quantity = int(qty_raw or 0)
+            except Exception:
+                kpb_quantity = 0
+            if kpb_quantity < 1:
+                raise ValueError(f"Артикул {new_obj.article}: некорректное количество КПБ")
+
+            new_obj.kpb_quantity = kpb_quantity
+            new_obj.is_approved = True
+            for item in src.set_items:
+                new_obj.set_items.append(
+                    LinenSetItem(
+                        position_type=item.position_type,
+                        size=item.size,
+                        unit=item.unit,
+                        quantity=item.quantity,
+                        sort_order=item.sort_order,
+                    )
+                )
+            order.linen.append(new_obj)
+            return new_obj
+
         for s in sizes:
             size = (s.get("size") or "").strip()
             unit = (s.get("unit") or "").strip()
@@ -635,7 +676,9 @@ def _filter_copyable_fast_order_items(order_items):
     def is_copyable(item) -> bool:
         if not getattr(item, "fast_order_company_id", None):
             return False
-        if hasattr(item, "is_approved") and not item.is_approved:
+        if getattr(item, "set_items", None):
+            return bool(getattr(item, "is_approved", False))
+        if hasattr(item, "is_approved") and not isinstance(item, Linen) and not item.is_approved:
             return False
         sizes_quantities = getattr(item, "sizes_quantities", None)
         if sizes_quantities is not None:

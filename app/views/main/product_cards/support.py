@@ -12,14 +12,14 @@ from werkzeug.datastructures import ImmutableMultiDict
 from config import settings
 from logger import logger
 from models import db, Clothes, LinenSizesUnits, ProductCard, ClothesQuantitySize, Shoe, ShoeQuantitySize, Socks, \
-    SocksQuantitySize, Linen, LinenQuantitySize, Parfum, Cosmetics, Toys, ModerationStatus
+    SocksQuantitySize, Linen, LinenQuantitySize, LinenSetItem, Parfum, Cosmetics, Toys, ModerationStatus
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.accessories_data import normalize_clothes_type_for_subcategory
 from utilities.exceptions import SizeTypeException
 from utilities.helpers.helpers_checks import rd_name_clean
 from utilities.saving_helpers import get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, \
     normalize_trademark_placeholder, process_input_str, validate_parfum_trademark
-from utilities.support import check_forbidden_words
+from utilities.support import check_forbidden_words, is_linen_kpb_type, parse_linen_kpb_quantity, parse_linen_kpb_set_items
 from utilities.validators import ValidatorProcessor
 from tezaurus.processing_companies import PROCESSING_COMPANIES_BATCH_LIMIT, ProcessingCompaniesClient
 from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries, get_clothes_tnved_pairs_for_types
@@ -230,6 +230,7 @@ CARD_FIELDS = {
     "linen": {
         "article": "Артикул",
         "trademark": "Товарный знак",
+        "type": "Вид товара",
         "color": "Цвет",
         "customer_age": "Возраст",
         "textile_type": "Тип текстиля",
@@ -727,6 +728,9 @@ def parse_sizes_for_category(category: str, form_data_raw, subcategory: str | No
         )
 
     elif category_process == settings.Linen.CATEGORY:
+        if is_linen_kpb_type(form_data_raw.get("type")):
+            return parse_linen_kpb_set_items(form_data_raw)
+
         sizesX = form_data_raw.getlist("sizeX")
         sizesY = form_data_raw.getlist("sizeY")
         sizes = [f"{x}*{y}" for x, y in zip(sizesX, sizesY)]
@@ -1082,6 +1086,7 @@ def save_linen_card(
     rd_date_to = form_dict.get("_rd_date_to_obj")
 
     article = normalize_article_placeholder(form_dict.get("article"))
+    is_kpb = is_linen_kpb_type(form_dict.get("type"))
 
     linen = Linen(
         trademark=process_input_str(form_dict.get("trademark") or ""),
@@ -1090,6 +1095,7 @@ def save_linen_card(
         color=form_dict.get("color"),
         with_packages='да' if form_dict.get("with_packages") == "True" else 'нет',
         box_quantity=form_dict.get("box_quantity"),
+        kpb_quantity=parse_linen_kpb_quantity(form_dict) if is_kpb else 1,
         customer_age=form_dict.get("customer_age"),
         textile_type=form_dict.get("textile_type"),
         content=form_dict.get("content"),
@@ -1104,7 +1110,13 @@ def save_linen_card(
         card_id=card.id,
     )
 
-    if with_p == "True":
+    if is_kpb:
+        extend_set_items = (
+            LinenSetItem(position_type=el[0], size=el[1], unit=el[2], quantity=el[3], sort_order=el[4])
+            for el in sizes_quantities
+        )
+        linen.set_items.extend(extend_set_items)
+    elif with_p == "True":
         # максимум по площади X*Y
         def area(tuple_sq):
             size_str = tuple_sq[0]  # "X*Y"
@@ -1359,11 +1371,20 @@ def extract_card_main_and_sizes(card: ProductCard):
 
     elif card.category == settings.Linen.CATEGORY_PROCESS:
         for l in card.linen:
-            for sq in l.sizes_quantities:
-                sizes.append({
-                    "size": sq.size,
-                    "unit": sq.unit,
-                })
+            if l.set_items:
+                for item in l.set_items:
+                    sizes.append({
+                        "size": item.size,
+                        "unit": item.unit,
+                        "position_type": item.position_type,
+                        "quantity": item.quantity,
+                    })
+            else:
+                for sq in l.sizes_quantities:
+                    sizes.append({
+                        "size": sq.size,
+                        "unit": sq.unit,
+                    })
 
     elif card.category == settings.Parfum.CATEGORY_PROCESS:
         sizes = []
@@ -1977,6 +1998,8 @@ def build_size_keys_for_incoming(category: str, sizes_quantities: list, subcateg
             keys.add(size)
 
     elif category == settings.Linen.CATEGORY_PROCESS:
+        if any(len(item) == 5 for item in sizes_quantities or []):
+            return keys
         for size, unit, qty in sizes_quantities:
             keys.add((size, unit))
 
@@ -1997,6 +2020,8 @@ def _card_merge_key(card: ProductCard) -> tuple | None:
 
     main = _card_merge_main_entity(card)
     if not main:
+        return None
+    if card.category == settings.Linen.CATEGORY_PROCESS and getattr(main, "set_items", None):
         return None
 
     article = normalize_article_for_category(card.category, {"article": getattr(main, "article", "")})

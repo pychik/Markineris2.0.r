@@ -580,6 +580,21 @@ class ShoesProcessor(OrdersProcessor):
 class LinenProcessor(OrdersProcessor):
 
     @staticmethod
+    def build_set_item_quantity_text(position_type: str, quantity: int) -> str:
+        if quantity == 1 and position_type in {"ПОДОДЕЯЛЬНИК", "НАВОЛОЧКА"}:
+            return ""
+        return f" {quantity} шт."
+
+    @staticmethod
+    def build_set_items_description(el) -> str:
+        parts = []
+        for item in sorted(el.set_items, key=lambda value: value.sort_order or 0):
+            quantity = item.quantity or 0
+            quantity_text = LinenProcessor.build_set_item_quantity_text(item.position_type, quantity)
+            parts.append(f"{item.position_type} р. {item.size} {item.unit}{quantity_text}")
+        return "; ".join(parts)
+
+    @staticmethod
     def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
         res_list_common = []
         res_list_outer = []
@@ -588,7 +603,27 @@ class LinenProcessor(OrdersProcessor):
         for el in orders_list:
             tnved = settings.Linen.TNVED_CODE if not el.tnved_code else el.tnved_code
             declar_doc = f"{el.rd_type[0]} {el.rd_name} от {el.rd_date.strftime('%d.%m.%Y')}" if el.rd_date else ''
-            table_type = el.type if el.type != 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ' else 'КОМПЛЕКТ'
+            table_type = el.type if el.type != settings.Linen.KPB_TYPE else 'КОМПЛЕКТ'
+            if getattr(el, "set_items", None):
+                trademark = OrdersProcessor.placeholder_export_value(el.trademark, "trademark")
+                article = OrdersProcessor.placeholder_export_value(el.article, "article")
+                content = OrdersProcessor.normalize_export_content(el.content)
+                set_description = LinenProcessor.build_set_items_description(el)
+                full_name = f'{el.type} ({set_description}) {OrdersProcessor.eatp(value=el.trademark, field_type="trademark")} ' \
+                            f'{OrdersProcessor.eatp(value=el.article, field_type="article")} цвет {el.color}'
+                fin_quantity = el.kpb_quantity or 1
+                temp_list = [tnved, full_name,
+                             trademark, "Артикул", article,
+                             table_type, el.color, el.customer_age, el.textile_type, content, set_description,
+                             tnved, settings.Linen.NUMBER_STANDART, '', '', el.article_price, el.tax,
+                             fin_quantity, '', '', el.country, declar_doc, ]
+                res_list_common.append(temp_list)
+                if el.country.upper() in settings.COUNTRIES_INNER:
+                    res_list_inner.append(temp_list)
+                else:
+                    res_list_outer.append(temp_list)
+                continue
+
             for sq in el.sizes_quantities:
                 trademark = OrdersProcessor.placeholder_export_value(el.trademark, "trademark")
                 article = OrdersProcessor.placeholder_export_value(el.article, "article")

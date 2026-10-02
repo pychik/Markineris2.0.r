@@ -1517,6 +1517,10 @@ def h_pc_move_card(pc_id: int):
         return False
 
     def _set_all_sizes_approved(card: ProductCard) -> None:
+        if card.category == settings.Linen.CATEGORY_PROCESS:
+            for l in card.linen:
+                if l.set_items and hasattr(l, "is_approved"):
+                    l.is_approved = True
         for _, sq in _iter_sqs(card):
             if hasattr(sq, "is_approved"):
                 sq.is_approved = True

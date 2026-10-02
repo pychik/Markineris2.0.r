@@ -161,7 +161,10 @@ def crm_get_cards(category: str = None, subcategory: str = None, user: User = No
     elif category == settings.Shoes.CATEGORY_PROCESS:
         q = q.options(selectinload(ProductCard.shoes).selectinload(Shoe.sizes_quantities))
     elif category == settings.Linen.CATEGORY_PROCESS:
-        q = q.options(selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities))
+        q = q.options(
+            selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities),
+            selectinload(ProductCard.linen).selectinload(Linen.set_items),
+        )
     elif category == settings.Socks.CATEGORY_PROCESS:
         q = q.options(selectinload(ProductCard.socks).selectinload(Socks.sizes_quantities))
     elif category == settings.Parfum.CATEGORY_PROCESS:
@@ -176,6 +179,7 @@ def crm_get_cards(category: str = None, subcategory: str = None, user: User = No
             selectinload(ProductCard.clothes).selectinload(Clothes.sizes_quantities),
             selectinload(ProductCard.shoes).selectinload(Shoe.sizes_quantities),
             selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities),
+            selectinload(ProductCard.linen).selectinload(Linen.set_items),
             selectinload(ProductCard.socks).selectinload(Socks.sizes_quantities),
             selectinload(ProductCard.parfum),
             selectinload(ProductCard.cosmetics),
@@ -304,12 +308,16 @@ def crm_card_sizes_label(card: ProductCard) -> tuple[int, str]:
     if card.category == settings.Linen.CATEGORY_PROCESS:
         parts = []
         for l in card.linen:
-            for sq in l.sizes_quantities:
-                # size уже вида "70*140", unit отдельно
-                if getattr(sq, "unit", None):
-                    parts.append(f"{sq.size} {sq.unit}")
-                else:
-                    parts.append(f"{sq.size}")
+            if l.set_items:
+                for item in l.set_items:
+                    parts.append(f"{item.position_type} {item.size} {item.unit or ''}".strip())
+            else:
+                for sq in l.sizes_quantities:
+                    # size уже вида "70*140", unit отдельно
+                    if getattr(sq, "unit", None):
+                        parts.append(f"{sq.size} {sq.unit}")
+                    else:
+                        parts.append(f"{sq.size}")
         return len(parts), ", ".join(sorted(set(parts))) if parts else "-"
 
     # parfum: размеров нет
@@ -486,7 +494,10 @@ def h_pc_move_get_cards_by_status(status_value: str, category=None, subcategory=
         elif category == settings.Shoes.CATEGORY_PROCESS:
             q = q.options(selectinload(ProductCard.shoes).selectinload(Shoe.sizes_quantities))
         elif category == settings.Linen.CATEGORY_PROCESS:
-            q = q.options(selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities))
+            q = q.options(
+                selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities),
+                selectinload(ProductCard.linen).selectinload(Linen.set_items),
+            )
         elif category == settings.Socks.CATEGORY_PROCESS:
             q = q.options(selectinload(ProductCard.socks).selectinload(Socks.sizes_quantities))
         elif category == settings.Parfum.CATEGORY_PROCESS:
@@ -501,6 +512,7 @@ def h_pc_move_get_cards_by_status(status_value: str, category=None, subcategory=
             selectinload(ProductCard.clothes).selectinload(Clothes.sizes_quantities),
             selectinload(ProductCard.shoes).selectinload(Shoe.sizes_quantities),
             selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities),
+            selectinload(ProductCard.linen).selectinload(Linen.set_items),
             selectinload(ProductCard.socks).selectinload(Socks.sizes_quantities),
             selectinload(ProductCard.parfum),
             selectinload(ProductCard.cosmetics),

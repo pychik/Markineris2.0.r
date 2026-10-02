@@ -1,7 +1,28 @@
 
+const LINEN_KPB_TYPE = 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ';
+const LINEN_SET_ITEM_MAX = 5;
+
+function linenNormalizeValue(value) {
+    return (value || '').toString().trim().toUpperCase();
+}
+
+function linenIsKpbMode() {
+    const typeEl = document.getElementById('type');
+    return linenNormalizeValue(typeEl ? typeEl.value : '') === LINEN_KPB_TYPE;
+}
+
+function linenSetControlDisabled(container, disabled) {
+    if (!container) return;
+    container.querySelectorAll('input, select, textarea, button').forEach(el => {
+        el.disabled = disabled;
+    });
+}
+
 function linen_check_sizes_quantity_valid(){
+    if (linenIsKpbMode()) {
+        return document.querySelectorAll('.linen-set-item-row').length >= 2;
+    }
     var sizes = document.querySelectorAll('[id=sizeX_info]');
-    console.log(sizes.length);
     return sizes.length >= 1;
 }
 
@@ -27,6 +48,8 @@ function linen_clear_pos(){
     $('#rd_date').val("");
 
     $('#sizes_quantity').empty();
+    $('#kpb_quantity_order').val("1");
+    linenToggleKpbMode();
 
     check_valid(document.getElementById('tax'));
     check_valid(document.getElementById('article_price'));
@@ -43,20 +66,191 @@ function countLinen(){
 
 
 function setLinen(){
+    const titleEl = document.getElementById('linen_sizes_card_title');
+    if (titleEl) titleEl.textContent = linenIsKpbMode() ? 'Позиции комплекта' : 'Размеры';
+    linenRefreshSetOrders();
+
     var total = 0;
 
     var wp = document.getElementById('with_packages');
     var q_box = 1;
-    if (wp.value === "True"){
+    if (wp && wp.value === "True"){
         let q_box_raw = document.getElementById('box_quantity')
         if(q_box_raw){q_box = document.getElementById('box_quantity').value;}
 
     }
 
-    document.querySelectorAll('[id=quantity_info]').forEach(el=>total+=+parseInt(el.innerText, 10));
-    document.getElementById('linen_in_box_info').innerHTML = '';
-    document.getElementById('linen_in_box_info').innerText = total;
+    if (linenIsKpbMode()) {
+        total = parseInt(document.getElementById('kpb_quantity_order')?.value || '1', 10) || 1;
+    } else {
+        document.querySelectorAll('[id=quantity_info]').forEach(el=>total+=+parseInt(el.innerText, 10));
+    }
+    const linenInBoxInfo = document.getElementById('linen_in_box_info') || document.getElementById('linen_in_box');
+    if (linenInBoxInfo) {
+        linenInBoxInfo.innerHTML = '';
+        linenInBoxInfo.value = total;
+        linenInBoxInfo.innerText = total;
+    }
 }
+
+function linenSetItemQtyText(type, quantity) {
+    if (quantity === 1 && ['ПОДОДЕЯЛЬНИК', 'НАВОЛОЧКА'].includes(linenNormalizeValue(type))) {
+        return '';
+    }
+    return `${quantity} шт.`;
+}
+
+function linenRefreshSetOrders() {
+    document.querySelectorAll('.linen-set-item-row').forEach((row, index) => {
+        const orderInput = row.querySelector('.linen-set-order');
+        if (orderInput) orderInput.value = String(index + 1);
+    });
+}
+
+function linenResetSetItemForm() {
+    $('#linen_set_item_type_order').val('').trigger('change');
+    document.getElementById('linen_set_sizeX_order').value = '';
+    document.getElementById('linen_set_sizeY_order').value = '';
+    $('#linen_set_sizeUnitOrder').val('').trigger('change');
+    document.getElementById('linen_set_quantity_order').value = '1';
+}
+
+function linenMoveSetItem(btn, direction) {
+    const row = btn.closest('.linen-set-item-row');
+    if (!row) return;
+    if (direction < 0 && row.previousElementSibling) {
+        row.parentNode.insertBefore(row, row.previousElementSibling);
+    }
+    if (direction > 0 && row.nextElementSibling) {
+        row.parentNode.insertBefore(row.nextElementSibling, row);
+    }
+    setLinen();
+}
+
+function addLinenSetItem() {
+    const positionType = document.getElementById('linen_set_item_type_order').value;
+    const sizeX = document.getElementById('linen_set_sizeX_order').value;
+    const sizeY = document.getElementById('linen_set_sizeY_order').value;
+    const unit = document.getElementById('linen_set_sizeUnitOrder').value;
+    const quantity = parseInt(document.getElementById('linen_set_quantity_order').value || '0', 10);
+
+    if (!positionType) {
+        show_form_errors(['Выберите позицию комплекта']);
+        $('#form_errorModal').modal('show');
+        return false;
+    }
+    if (sizeX < 1 || sizeY < 1) {
+        show_form_errors(['Некорректный размер позиции комплекта']);
+        $('#form_errorModal').modal('show');
+        return false;
+    }
+    if (!unit) {
+        show_form_errors(['Не выбраны единицы измерения для позиции комплекта']);
+        $('#form_errorModal').modal('show');
+        return false;
+    }
+    if (!quantity || quantity < 1 || quantity > LINEN_SET_ITEM_MAX) {
+        show_form_errors(['Количество позиции комплекта должно быть от 1 до 5']);
+        $('#form_errorModal').modal('show');
+        return false;
+    }
+
+    const rows = Array.from(document.querySelectorAll('.linen-set-item-row'));
+    const duplicate = rows.find(row =>
+        row.querySelector('.linen-set-type')?.value === positionType &&
+        row.querySelector('.linen-set-sizeX')?.value === sizeX &&
+        row.querySelector('.linen-set-sizeY')?.value === sizeY &&
+        row.querySelector('.linen-set-unit')?.value === unit
+    );
+    if (duplicate) {
+        const quantityInput = duplicate.querySelector('.linen-set-quantity');
+        const quantityInfo = duplicate.querySelector('.linen-set-quantity-info');
+        const current = parseInt(quantityInput.value || '0', 10) || 0;
+        const nextQuantity = current + quantity;
+        if (nextQuantity > LINEN_SET_ITEM_MAX) {
+            show_form_errors(['Суммарное количество одинаковой позиции комплекта не должно превышать 5']);
+            $('#form_errorModal').modal('show');
+            return false;
+        }
+        quantityInput.value = String(nextQuantity);
+        const valBlock = duplicate.querySelector('.important-card__val');
+        const nextQuantityText = linenSetItemQtyText(positionType, nextQuantity);
+        if (valBlock) {
+            valBlock.innerHTML = nextQuantityText
+                ? `<span class="linen-set-quantity-info">${nextQuantity}</span> <span>шт.</span>`
+                : `<span class="linen-set-quantity-info"></span>`;
+        } else {
+            quantityInfo.textContent = nextQuantityText.replace(' шт.', '') || '';
+        }
+        linenResetSetItemForm();
+        setLinen();
+        return true;
+    }
+
+    if (rows.length >= LINEN_SET_ITEM_MAX) {
+        show_form_errors([`В комплект можно добавить максимум ${LINEN_SET_ITEM_MAX} позиций`]);
+        $('#form_errorModal').modal('show');
+        return false;
+    }
+
+    const f = document.getElementById('sizes_quantity');
+    const order = rows.length + 1;
+    const quantityText = linenSetItemQtyText(positionType, quantity);
+    f.insertAdjacentHTML('beforeend', `
+        <div class="important-card__item important-card__size linen-set-item-row ms-2">
+            <div class="d-flex align-items-center g-3">
+                <div class="d-flex flex-column me-1">
+                    <button type="button" class="btn btn-link p-0 text-light linen-set-arrow" onclick="linenMoveSetItem(this, -1)" title="Вверх">↑</button>
+                    <button type="button" class="btn btn-link p-0 text-light linen-set-arrow" onclick="linenMoveSetItem(this, 1)" title="Вниз">↓</button>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" onclick="$(this).closest('.important-card__size').remove(); setLinen();" viewBox="0 0 20 20" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M4.34074 0.312213C8.07158 -0.104071 11.9285 -0.104071 15.6593 0.312213C17.7413 0.544517 19.4209 2.18214 19.6655 4.26889C20.1115 8.07671 20.1115 11.9234 19.6655 15.7312C19.4209 17.8179 17.7413 19.4555 15.6593 19.6878C11.9285 20.1041 8.07158 20.1041 4.34074 19.6878C2.25873 19.4555 0.579043 17.8179 0.33457 15.7312C-0.111523 11.9234 -0.111523 8.07671 0.33457 4.26889C0.579043 2.18214 2.25873 0.544517 4.34074 0.312213ZM10 9.08981H10.9117H15.1575C15.661 9.08981 16.0692 9.49734 16.0692 10C16.0692 10.5027 15.661 10.9102 15.1575 10.9102H10.9117C10.9117 10.9102 10.2506 10.9102 10 10.9102C9.74947 10.9102 9.46208 10.9102 9.46208 10.9102H9.08832H4.84265C4.33912 10.9102 3.93094 10.5027 3.93094 10C3.93094 9.49734 4.33912 9.08981 4.84265 9.08981H9.08832H10Z" fill="white" /></svg>
+                <div class="ms-2"><span class="linen-set-position-info">${positionType}</span> р. <span class="linen-set-sizeX-info">${sizeX}</span>*<span class="linen-set-sizeY-info">${sizeY}</span>, <span class="linen-set-unit-info">${unit}</span></div>
+            </div>
+            <div class="important-card__val">
+                <span class="linen-set-quantity-info">${quantityText.replace(' шт.', '')}</span>${quantityText ? ' <span>шт.</span>' : ''}
+            </div>
+            <input type="hidden" name="linen_set_item_order" class="linen-set-order" value="${order}">
+            <input type="hidden" name="linen_set_item_type" class="linen-set-type" value="${positionType}">
+            <input type="hidden" name="linen_set_item_sizeX" class="linen-set-sizeX" value="${sizeX}">
+            <input type="hidden" name="linen_set_item_sizeY" class="linen-set-sizeY" value="${sizeY}">
+            <input type="hidden" name="linen_set_item_sizeUnit" class="linen-set-unit" value="${unit}">
+            <input type="hidden" name="linen_set_item_quantity" class="linen-set-quantity" value="${quantity}">
+        </div>`);
+
+    linenResetSetItemForm();
+    setLinen();
+    return true;
+}
+
+function linenToggleKpbMode() {
+    const isKpb = linenIsKpbMode();
+    const list = document.getElementById('sizes_quantity');
+    if (list) {
+        const nextMode = isKpb ? 'kpb' : 'regular';
+        if (list.dataset.linenMode && list.dataset.linenMode !== nextMode) {
+            list.innerHTML = '';
+        }
+        list.dataset.linenMode = nextMode;
+    }
+    const regularForm = document.getElementById('linen_regular_sizes_form');
+    const kpbForm = document.getElementById('linen_kpb_form');
+    if (regularForm) regularForm.style.display = isKpb ? 'none' : '';
+    if (kpbForm) kpbForm.style.display = isKpb ? '' : 'none';
+    linenSetControlDisabled(regularForm, isKpb);
+    linenSetControlDisabled(kpbForm, !isKpb);
+    setLinen();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    linenToggleKpbMode();
+    const typeEl = document.getElementById('type');
+    if (typeEl) {
+        typeEl.addEventListener('change', linenToggleKpbMode);
+        if (window.jQuery) {
+            window.jQuery(typeEl).on('change select2:select select2:unselect select2:clear', linenToggleKpbMode);
+        }
+    }
+});
 
 
 function addLinenCell(){

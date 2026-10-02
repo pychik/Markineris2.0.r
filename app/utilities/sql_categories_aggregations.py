@@ -26,7 +26,32 @@ class SQLQueryCategoriesAll:
             "fields": {
                 "subcategory": "coalesce(max(cl.subcategory), max(co.subcategory), max(ty.subcategory), 'common')",
                 "pos_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id, co.id, ty.id))",
-                "marks_count": "SUM(COALESCE(sh.box_quantity * sh_qs.quantity, cl.box_quantity * cl_qs.quantity, sk.box_quantity * sk_qs.quantity, l.box_quantity * l_qs.quantity, p.quantity, co.quantity, ty.quantity, 0))",
+                "marks_count": f"""
+                                SUM(
+                                    CASE
+                                        WHEN o.has_aggr THEN 0
+                                        ELSE
+                                            COALESCE(sh.box_quantity * sh_qs.quantity, 0) +
+                                            COALESCE(cl.box_quantity * cl_qs.quantity, 0) +
+                                            COALESCE(sk.box_quantity * sk_qs.quantity, 0) +
+                                            CASE
+                                                WHEN l.id IS NOT NULL AND l.type = '{settings.Linen.KPB_TYPE}'
+                                                    THEN COALESCE(l.kpb_quantity, 1)
+                                                ELSE COALESCE(l.box_quantity * l_qs.quantity, 0)
+                                            END +
+                                            COALESCE(p.quantity, 0) +
+                                            COALESCE(co.quantity, 0) +
+                                            COALESCE(ty.quantity, 0)
+                                    END
+                                ) +
+                                (SELECT COALESCE(SUM(ag_cl_qs.total_quantity), 0)
+                                 FROM aggr_orders ao
+                                 JOIN aggr_clothes_sizes ag_cl_qs ON ao.id = ag_cl_qs.aggr_order_id
+                                 WHERE ao.order_id = o.id) +
+                                (SELECT COALESCE(SUM(ag_sk_qs.total_quantity), 0)
+                                 FROM aggr_orders ao
+                                 JOIN aggr_socks_sizes ag_sk_qs ON ao.id = ag_sk_qs.aggr_order_id
+                                 WHERE ao.order_id = o.id)""",
                 "rows_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id, co.id, ty.id))",
                 "is_rf_order": f"""
                                 COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id, co.id, ty.id)) > 0
@@ -38,17 +63,21 @@ class SQLQueryCategoriesAll:
                 "category_pos_type": "COALESCE(sh.type, cl.type, sk.type, l.type, p.type, co.type, ty.type)",
                 "declar_doc": "COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date, co.rd_date, ty.rd_date))",
                 "orders_count_utm": "COUNT(DISTINCT CASE WHEN o.stage >= 8 AND o.stage != 9 THEN o.id END)",
-                "marks_count_utm": """SUM(COALESCE(
-                    CASE 
-                        WHEN o.stage >= 8 AND o.stage != 9 THEN 
-                            COALESCE(sh.box_quantity * sh_qs.quantity, 0) + 
-                            COALESCE(cl.box_quantity * cl_qs.quantity, 0) + 
-                            COALESCE(sk.box_quantity * sk_qs.quantity, 0) + 
-                            COALESCE(l.box_quantity * l_qs.quantity, 0) + 
+                "marks_count_utm": f"""SUM(COALESCE(
+                    CASE
+                        WHEN o.stage >= 8 AND o.stage != 9 THEN
+                            COALESCE(sh.box_quantity * sh_qs.quantity, 0) +
+                            COALESCE(cl.box_quantity * cl_qs.quantity, 0) +
+                            COALESCE(sk.box_quantity * sk_qs.quantity, 0) +
+                            CASE
+                                WHEN l.id IS NOT NULL AND l.type = '{settings.Linen.KPB_TYPE}'
+                                    THEN COALESCE(l.kpb_quantity, 1)
+                                ELSE COALESCE(l.box_quantity * l_qs.quantity, 0)
+                            END +
                             COALESCE(p.quantity, 0) +
                             COALESCE(co.quantity, 0) +
                             COALESCE(ty.quantity, 0)
-                        ELSE 0 
+                        ELSE 0
                     END, 0))"""
             }
         }
@@ -114,7 +143,15 @@ class SQLQueryFactory:
             """,
             "fields": {
                 "pos_count": "COUNT(l.id)",
-                "marks_count": "SUM(l.box_quantity * l_qs.quantity)",
+                "marks_count": f"""
+                    SUM(
+                        CASE
+                            WHEN l.id IS NOT NULL AND l.type = '{settings.Linen.KPB_TYPE}'
+                                THEN COALESCE(l.kpb_quantity, 1)
+                            ELSE COALESCE(l.box_quantity * l_qs.quantity, 0)
+                        END
+                    )
+                """,
                 "rows_count": "COUNT(l.id)",
                 "category_pos_type_max": "MAX(l.type)",
                 "category_pos_type": "l.type",

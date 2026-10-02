@@ -154,12 +154,17 @@
                     <div class="important-card__val" id="linen_in_box_info"></div>
                 </div>
                 <div class="important-card__item border-bottom-0">
-                    <div class="important-card__prop">
-                        Размеры
+                    <div class="important-card__prop d-flex align-items-center gap-2" id="linen_sizes_title">
+                        <span id="linen_sizes_title_text">Размеры</span>
                     </div>
                 </div>
                 <div id="sizes_quantity">
-                    {% if copied_order %}
+                    {% if copied_order and copied_order.type == 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ' and not copied_order.set_items %}
+                        <div class="alert alert-warning py-2 px-3 small" id="linen-legacy-kpb-warning">
+                            Старый формат комплекта: добавьте позиции комплекта заново.
+                        </div>
+                    {% endif %}
+                    {% if copied_order and not copied_order.set_items and copied_order.type != 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ' %}
                         {% for sq in copied_order.sizes_quantities %}
                             {% set sq_list = sq.size.split('*') %}
                             <div class="important-card__item important-card__size ms-2">
@@ -202,6 +207,30 @@
 
 
                 </div>
+                {% if copied_order and copied_order.set_items %}
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function(){
+                            const list = document.getElementById('sizes_quantity');
+                            if (!list || typeof linenSetItemHtml !== 'function') return;
+                            list.innerHTML = '';
+                            {% for item in copied_order.set_items|sort(attribute='sort_order') %}
+                                {% set item_size = item.size.split('*') %}
+                                list.insertAdjacentHTML(
+                                    'beforeend',
+                                    linenSetItemHtml(
+                                        {{ item.position_type|tojson }},
+                                        {{ item_size[0]|tojson }},
+                                        {{ item_size[1]|tojson }},
+                                        {{ item.unit|tojson }},
+                                        {{ item.quantity|tojson }}
+                                    )
+                                );
+                            {% endfor %}
+                            linenRenumberSetItems();
+                            setLinen();
+                        });
+                    </script>
+                {% endif %}
 
                 <div class="step-btns mt-4 d-flex flex-wrap justify-content-center">
 

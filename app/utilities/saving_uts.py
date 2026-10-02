@@ -9,7 +9,7 @@ from sqlalchemy.sql import desc, text
 
 from config import settings
 from logger import logger
-from models import User, Order, Shoe, ShoeQuantitySize, Socks, SocksQuantitySize, Linen, LinenQuantitySize, Parfum, \
+from models import User, Order, Shoe, ShoeQuantitySize, Socks, SocksQuantitySize, Linen, LinenQuantitySize, LinenSetItem, Parfum, \
     Clothes, ClothesQuantitySize, Cosmetics, Toys, db
 
 from utilities.categories_data.subcategories_data import ClothesSubcategories
@@ -127,6 +127,7 @@ def save_linen(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
                             color=form_dict.get("color"),
                             with_packages='да' if form_dict.get("with_packages") == "True" else 'нет',
                             box_quantity=form_dict.get("box_quantity"),
+                            kpb_quantity=form_dict.get("kpb_quantity") if form_dict.get("type") == settings.Linen.KPB_TYPE else 1,
                             customer_age=form_dict.get("customer_age"), textile_type=form_dict.get("textile_type"),
                             content=form_dict.get("content"), country=form_dict.get("country"),
                             tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
@@ -134,7 +135,13 @@ def save_linen(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
                             rd_name=rd_name_clean(form_dict.get("rd_name")),
                             rd_date=rd_date)
 
-    if with_p == "True":
+    if form_dict.get("type") == settings.Linen.KPB_TYPE:
+        extend_set_items = (
+            LinenSetItem(position_type=el[0], size=el[1], unit=el[2], quantity=el[3], sort_order=el[4])
+            for el in sizes_quantities
+        )
+        new_linen_order.set_items.extend(extend_set_items)
+    elif with_p == "True":
         max_sq = max(sizes_quantities, key=lambda x: int(x[0].split('*')[0] * int(x[0].split('*')[1])))
         append_sq = LinenQuantitySize(size=max_sq[0], unit=max_sq[1], quantity=max_sq[2])
         new_linen_order.sizes_quantities.append(append_sq)
@@ -319,8 +326,13 @@ def common_save_db(order: Order, form_dict: dict, category: str, subcategory: st
 
     form_dict.update({"tnved_code": tnved_code_raw if tnved_code_raw else ''})
 
-    for k in form_dict:
-        form_dict[k] = form_dict[k].replace('--', '')
+    for k, value in form_dict.items():
+        if value is None:
+            form_dict[k] = ''
+        elif isinstance(value, str):
+            form_dict[k] = value.replace('--', '')
+        else:
+            form_dict[k] = str(value).replace('--', '')
 
     match category:
         case settings.Shoes.CATEGORY:
@@ -517,6 +529,12 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
     incompatible_items = []
     kept_linen_count = 0
     for linen in order_category_list:
+        if linen.type == settings.Linen.KPB_TYPE and not linen.set_items:
+            incompatible_items.append(
+                f"[{linen.article or 'без артикула'}: комплект постельного белья старого формата без позиций комплекта]"
+            )
+            continue
+
         # Проверяем на совместимость типов полов тнвэдов
         result = _check_linen_compatibility(linen)
         if result:  # несовместима — сохраняем сообщение
@@ -527,6 +545,8 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
                                      article=normalize_article_placeholder(linen.article), type=linen.type,
                                      color=linen.color, with_packages=linen.with_packages,
                                      box_quantity=linen.box_quantity,
+                                     kpb_quantity=linen.kpb_quantity,
+                                     is_approved=_copy_pc_approval_flag(new_order, linen),
                                      customer_age=linen.customer_age, textile_type=linen.textile_type,
                                      content=linen.content,
                                      country=linen.country,
@@ -542,6 +562,16 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
                     is_approved=_copy_pc_approval_flag(new_order, sq),
                 )
                 for sq in linen.sizes_quantities
+            ],
+            set_items=[
+                LinenSetItem(
+                    position_type=item.position_type,
+                    size=item.size,
+                    unit=item.unit,
+                    quantity=item.quantity,
+                    sort_order=item.sort_order,
+                )
+                for item in linen.set_items
             ],
         )
         append_or_merge_position(new_order.linen, new_linen, settings.Linen.CATEGORY)
@@ -793,12 +823,16 @@ def get_delete_stmts(category: str, o_id: int) -> list:
                                                 USING public.linen AS ln, public.orders AS o
                                                 WHERE lqs.lin_id=ln.id AND ln.order_id={o_id}
                                             """
-            stmt2 = f"""DELETE FROM public.linen AS ln
+            stmt2 = f"""DELETE FROM public.linen_set_items AS lsi
+                                                USING public.linen AS ln, public.orders AS o
+                                                WHERE lsi.lin_id=ln.id AND ln.order_id={o_id}
+                                            """
+            stmt3 = f"""DELETE FROM public.linen AS ln
                                                 USING public.orders AS o
                                                 WHERE ln.order_id={o_id}
                                                 """
-            stmt3 = f"""DELETE FROM public.orders AS o WHERE o.id={o_id}"""
-            stmts.extend((stmt1, stmt2, stmt3))
+            stmt4 = f"""DELETE FROM public.orders AS o WHERE o.id={o_id}"""
+            stmts.extend((stmt1, stmt2, stmt3, stmt4))
         case settings.Parfum.CATEGORY:
             stmt1 = f"""DELETE FROM public.parfum AS pm
                                                 USING public.orders AS o

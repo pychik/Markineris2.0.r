@@ -43,6 +43,9 @@
             <tbody id="order_table_body_info">
 
             {% for t in order_list %}
+                {% set linen_quantity_items = t.set_items if t.set_items else t.sizes_quantities %}
+                {% set linen_pos_quantity = (t.kpb_quantity or 1) if t.set_items else (linen_quantity_items | count_quantity) %}
+                {% set linen_all_quantity = (t.kpb_quantity or 1) if t.set_items else ((linen_quantity_items | count_quantity) * t.box_quantity) %}
                 <tr>
                     <td class="tablesaw-cell-content">{{ offset+loop.index }}</td>
                     <td>
@@ -53,9 +56,9 @@
                     </td>
                     <td class="text-end actions">
                         <button type="button" onclick="show_linen_pos('{{loop.index}}', '{{t.trademark}}',
-                         '{{t.type}}', '{{t.color}}', '{{ t.sizes_quantities | count_quantity }}',
-                        '{{t.box_quantity}}', '{{ t.sizes_quantities | count_quantity * t.box_quantity }}',
-                        [{%for sq in t.sizes_quantities%}'{{sq.size}}##{{sq.unit}}##{{sq.quantity}}', {%endfor%}],
+                         '{{t.type}}', '{{t.color}}', '{{ linen_pos_quantity }}',
+                        '{{t.box_quantity}}', '{{ linen_all_quantity }}',
+                        [{% if t.set_items %}{%for sq in t.set_items%}'{{sq.position_type}}##{{sq.size}}##{{sq.unit}}##{{sq.quantity}}', {%endfor%}{% else %}{%for sq in t.sizes_quantities%}'{{sq.size}}##{{sq.unit}}##{{sq.quantity}}', {%endfor%}{% endif %}],
                         '{{t.age}}','{{t.textile_type}}','{{t.content}}',  '{{t.country}}',
                         '{{ url_for('linen.copy_order', o_id=o_id, p_id=t.id, edit_order='edit_order') }}',
                         '{{ url_for('linen.copy_order', o_id=o_id, p_id=t.id) }}',

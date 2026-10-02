@@ -46,7 +46,9 @@ class ValidateLinenMixin:
         # value is shoe_type
         type_value = value.upper()
         order_list[row_num - settings.Linen.UPLOAD_STANDART_ROW][pos] = type_value
-        if type_value not in settings.Linen.TYPES:
+        if type_value == settings.Linen.KPB_TYPE:
+            return f"{val_error_start(row_num=row_num, col=col)} {settings.Linen.UPLOAD_KPB_TYPE_ERROR}"
+        if type_value not in settings.Linen.TYPES_UPLOAD:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Linen.UPLOAD_TYPE_ERROR}"
 
     @staticmethod

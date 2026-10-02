@@ -1058,7 +1058,13 @@ class Settings(BaseSettings):
         CATEGORY: str = 'белье'
         CATEGORY_PROCESS: str = 'linen'
         TYPES: list = LINEN_TYPES
-        TYPES_CARDS: list = list(filter(lambda t: t != "КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ", LINEN_TYPES))
+        KPB_TYPE: str = "КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ"
+        KPB_SET_ITEM_TYPES: tuple = ("ПОДОДЕЯЛЬНИК", "ПРОСТЫНЯ", "ПРОСТЫНЯ НА РЕЗИНКЕ", "НАВОЛОЧКА")
+        KPB_SET_ITEMS_MIN_COUNT: int = 2
+        KPB_SET_ITEM_MAX_QUANTITY: int = 5
+        KPB_SET_ITEMS_MAX_COUNT: int = 5
+        TYPES_UPLOAD: list = list(filter(lambda t: t != "КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ", LINEN_TYPES))
+        TYPES_CARDS: list = LINEN_TYPES
         COLORS: tuple = COMMON_COLORS
         TEXTILE_TYPES: list = LINEN_TEXTILE_TYPES
         CUSTOMER_AGES: list = LINEN_CUSTOMER_AGES
@@ -1078,6 +1084,7 @@ class Settings(BaseSettings):
         MAX_QUANTITY: int = 100000000
         MIN_QUANTITY: int = 1
         UPLOAD_TYPE_ERROR: str = "Проверьте правильность выбора вида товара (посмотрите вкладку справочник)"
+        UPLOAD_KPB_TYPE_ERROR: str = "Комплект постельного белья заполняется через форму в сервисе, не через таблицу."
         UPLOAD_COLOR_ERROR: str = "Проверьте правильность указанного цвета белья (посмотрите вкладку справочник)"
         UPLOAD_SIZE_ERROR: str = "Проверьте правильность указанного размера белья (это должно быть целое число )"
         UPLOAD_TEXTYLE_TYPE_ERROR: str = "Проверьте правильность указанного типа текстиля (посмотрите вкладку справочник)"
