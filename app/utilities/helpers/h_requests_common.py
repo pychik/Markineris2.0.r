@@ -11,7 +11,7 @@ from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.support import check_file_extension, send_file_tg, \
     orders_list_common, helper_check_useroragent_balance, helper_check_uoabm, helper_check_user_order_in_archive, \
     order_has_user_rd_by_id
-from utilities.validators import is_valid_mark_type_full
+from utilities.validators import is_valid_mark_type_full, validate_and_normalize_company_fields
 
 
 def h_check_tnved_code_data(u_id: int, from_category: str, tnved_code: str) -> str:
@@ -88,6 +88,19 @@ def h_send_table_order() -> Response:
     elif not is_valid_mark_type_full(mark_type_hidden):
         flash(message="Произошла ошибка заполнения заказа. Указан некорректный тип маркировки.", category='error')
     else:
+        ok_company, company_fields, company_error = validate_and_normalize_company_fields(
+            company_type,
+            company_name,
+            company_idn,
+        )
+        if not ok_company:
+            flash(message=company_error, category='error')
+            return redirect(url_for('requests_common.send_table', company_type=company_type, company_name=company_name,
+                                    company_idn=company_idn, edo_type=edo_type, edo_id=edo_id,
+                                    mark_type=mark_type, mark_type_hidden=mark_type_hidden))
+        company_type = company_fields["company_type"]
+        company_name = company_fields["company_name"]
+        company_idn = company_fields["company_idn"]
         try:
             user = current_user
             send_file_tg(user=user, company_idn=company_idn, company_type=company_type,
@@ -152,7 +165,16 @@ def h_change_order_org_param_form(o_id: int) -> Response:
         return redirect(url_for('main.enter'))
 
     form_dict = request.form.to_dict()
-    new_company_idn = form_dict.get("company_idn")
+    ok_company, company_fields, company_error = validate_and_normalize_company_fields(
+        form_dict.get("company_type"),
+        form_dict.get("company_name"),
+        form_dict.get("company_idn"),
+    )
+    if not ok_company:
+        flash(message=company_error, category='error')
+        return _build_order_redirect()
+
+    new_company_idn = company_fields["company_idn"]
     # check excepted idn's
     if new_company_idn in ExceptionDataUsers.get_company_idns():
         flash(message=settings.ExceptionOrders.COMPANY_IDN_ERROR.format(company_idn=new_company_idn), category='error')
@@ -164,8 +186,8 @@ def h_change_order_org_param_form(o_id: int) -> Response:
         flash(message="Произошла ошибка заполнения заказа. Указан некорректный тип маркировки.", category='error')
         return _build_order_redirect()
     try:
-        order.company_type = form_dict.get("company_type")
-        order.company_name = form_dict.get("company_name")
+        order.company_type = company_fields["company_type"]
+        order.company_name = company_fields["company_name"]
         order.edo_type = form_dict.get("edo_type")
         order.edo_id = form_dict.get("edo_id")
         order.company_idn = new_company_idn

@@ -13,7 +13,7 @@ from utilities.upload_order.upload_parfum import UploadParfum
 from utilities.upload_order.upload_saving_uts import upload_table_common
 from utilities.upload_order.upload_shoes import UploadShoes
 from utilities.upload_order.upload_socks import UploadSocks
-from utilities.validators import is_valid_mark_type_full
+from utilities.validators import is_valid_mark_type_full, validate_and_normalize_company_fields
 
 
 def _is_upload_fetch_request() -> bool:
@@ -97,6 +97,18 @@ def helper_upload_common_post(category: str, category_process_name: str,
     if not is_valid_mark_type_full(mark_type_hidden):
         flash(message="некорректный тип маркировки", category='error')
         return _upload_redirect_response(url_for(f'{category_process_name}.upload', **params))
+
+    ok_company, company_fields, company_error = validate_and_normalize_company_fields(
+        company_type,
+        company_name,
+        company_idn,
+    )
+    if not ok_company:
+        flash(message=company_error, category='error')
+        return _upload_redirect_response(url_for(f'{category_process_name}.upload', **params))
+    company_type = company_fields["company_type"]
+    company_name = company_fields["company_name"]
+    company_idn = company_fields["company_idn"]
 
     if table_file is None or table_file is False or check_file_extension(filename=table_file.filename) is False:
         flash(message=settings.Messages.UPLOAD_FILE_EXTENSION_ERROR, category='error')

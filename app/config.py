@@ -145,7 +145,7 @@ class Settings(BaseSettings):
     CATEGORIES_PROCESS_NAMES: list = ['shoes', 'clothes', 'linen', 'parfum', 'cosmetics', 'toys', 'socks', 'send_table']
     CATEGORIES_UPLOAD: tuple = ('обувь', 'одежда', 'парфюм', 'белье', 'косметика', 'игрушки', 'носки и прочее')
     RZ_GENDERS_RD_LIST: tuple = ("Детские", "Мальчик", "Девочка", "Детск.",)
-    COMPANY_TYPES: list = ["ИП", "ООО", "АО"]
+    COMPANY_TYPES: list = ["ИП", "ООО", "АО", "ПАО", "НПАО"]
     CATEGORIES_DICT: dict = CATEGORIES_DICT
     SUB_CATEGORIES_DICT: dict = SUB_CATEGORIES_DICT
     COUNTRIES_LIST: list = COUNTRIES_LIST

@@ -20,7 +20,7 @@ from utilities.support import check_forbidden_words, helper_preload_common, help
     parse_rd_replacement_consent
 from utilities.telegram import MarkinerisInform
 from utilities.validators import ValidatorProcessor, validate_and_build_contact_info, validate_order_comment_length, \
-    is_valid_mark_type_full, normalize_mark_type_full
+    is_valid_mark_type_full, normalize_mark_type_full, validate_and_normalize_company_fields
 from tezaurus.api_client import TezaurusApiClient
 from tezaurus.exceptions import TezaurusApiError, TezaurusConfigurationError
 from tezaurus.processing_companies import ProcessingCompaniesClient
@@ -1411,9 +1411,17 @@ def h_make_pc_basket_order():
         )
 
         # company поля
-        new_order.company_idn = (company.get("company_idn") or "").strip()
-        new_order.company_type = (company.get("company_type") or "").strip()
-        new_order.company_name = (company.get("company_name") or "").strip()
+        ok_company, company_fields, company_error = validate_and_normalize_company_fields(
+            company.get("company_type"),
+            company.get("company_name"),
+            company.get("company_idn"),
+        )
+        if not ok_company:
+            raise ValueError(company_error)
+
+        new_order.company_idn = company_fields["company_idn"]
+        new_order.company_type = company_fields["company_type"]
+        new_order.company_name = company_fields["company_name"]
         new_order.edo_type = (company.get("edo_type") or "ЭДО-ЛАЙТ").strip()
         new_order.edo_id = (company.get("edo_id") or "").strip()
         new_order.mark_type = mark_type
@@ -1489,6 +1497,7 @@ def _get_pc_order_header(o_id: int, *, require_unprocessed: bool = False):
         db.session.query(
             Order.id,
             Order.category,
+            Order.company_type,
             Order.company_name,
             Order.company_idn,
         )
@@ -1503,6 +1512,14 @@ def _get_pc_order_header(o_id: int, *, require_unprocessed: bool = False):
     if require_unprocessed:
         query = query.filter(Order.processed.is_(False))
     return query.first()
+
+
+def _validate_pc_order_company_fields(order):
+    return validate_and_normalize_company_fields(
+        getattr(order, "company_type", None),
+        getattr(order, "company_name", None),
+        getattr(order, "company_idn", None),
+    )
 
 
 def _get_pc_order_pos_model(category: str):
@@ -1957,6 +1974,10 @@ def h_pc_order_check_before_process(o_id: int):
     if not order:
         return jsonify(status="error", message="Заказ не найден"), 404
 
+    ok_company, _, company_error = _validate_pc_order_company_fields(order)
+    if not ok_company:
+        return jsonify(status="error", message=company_error), 400
+
     category = (order.category or "").strip()
 
     order_items = _get_pc_order_rows_by_category(category, o_id)
@@ -2018,6 +2039,14 @@ def h_pc_order_process(o_id: int):
         return _back_to_list()
 
     category = (order.category or "").strip()
+
+    ok_company, company_fields, company_error = _validate_pc_order_company_fields(order)
+    if not ok_company:
+        flash(message=company_error, category="error")
+        return _back_to_order_view()
+    order.company_type = company_fields["company_type"]
+    order.company_name = company_fields["company_name"]
+    order.company_idn = company_fields["company_idn"]
 
     order_items = _get_pc_order_rows_by_category(category, order.id)
     card_errors = validate_pc_order_items_ready_for_process(category, order_items)

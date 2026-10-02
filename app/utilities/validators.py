@@ -616,3 +616,38 @@ def validate_and_build_contact_info(contact_type_raw: Optional[str],
 
     payload = json.dumps({"type": contact_type, "value": contact_value}, ensure_ascii=False)
     return True, payload, None
+
+
+def validate_and_normalize_company_fields(
+        company_type_raw: Optional[str],
+        company_name_raw: Optional[str],
+        company_idn_raw: Optional[str],
+) -> tuple[bool, dict[str, str], Optional[str]]:
+    company_type = (company_type_raw or "").strip()
+    company_name_source = company_name_raw or ""
+    company_idn = (company_idn_raw or "").strip()
+
+    if company_type not in settings.COMPANY_TYPES:
+        return False, {}, "Выберите допустимый тип организации."
+
+    if company_name_source != company_name_source.lstrip():
+        return False, {}, "Наименование организации не может начинаться с пробела."
+
+    company_name = company_name_source.strip()
+    if not company_name:
+        return False, {}, "Наименование организации обязательно."
+
+    if not company_idn:
+        return False, {}, "ИНН организации обязателен."
+    if not re.fullmatch(r"\d+", company_idn):
+        return False, {}, "ИНН организации должен состоять только из цифр."
+
+    expected_len = 12 if company_type == "ИП" else 10
+    if len(company_idn) != expected_len:
+        return False, {}, f"Для типа организации {company_type} ИНН должен содержать {expected_len} цифр."
+
+    return True, {
+        "company_type": company_type,
+        "company_name": company_name,
+        "company_idn": company_idn,
+    }, None
