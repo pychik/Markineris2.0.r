@@ -1754,6 +1754,18 @@ def helper_process_category_order(user: User, order: Order, category: str, order
     if not validate_order_comment_length(order_comment=order_comment):
         return redirect(url_for(f'{_category_name}.index', o_id=o_id, **redirect_kwargs))
 
+    ok_company, company_fields, company_error = validate_and_normalize_company_fields(
+        order.company_type,
+        order.company_name,
+        order.company_idn,
+    )
+    if not ok_company:
+        flash(message=company_error, category='error')
+        return redirect(url_for(f'{_category_name}.index', o_id=o_id, **redirect_kwargs))
+    order.company_type = company_fields["company_type"]
+    order.company_name = company_fields["company_name"]
+    order.company_idn = company_fields["company_idn"]
+
     # check for company_idn exception
     company_idn = order.company_idn
     if company_idn in ExceptionDataUsers.get_company_idns():

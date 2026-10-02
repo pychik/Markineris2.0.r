@@ -623,11 +623,13 @@ def validate_and_normalize_company_fields(
         company_name_raw: Optional[str],
         company_idn_raw: Optional[str],
 ) -> tuple[bool, dict[str, str], Optional[str]]:
-    company_type = (company_type_raw or "").strip()
+    company_type_source = (company_type_raw or "").strip()
+    company_types_map = {str(company_type).casefold(): company_type for company_type in settings.COMPANY_TYPES}
+    company_type = company_types_map.get(company_type_source.casefold())
     company_name_source = company_name_raw or ""
     company_idn = (company_idn_raw or "").strip()
 
-    if company_type not in settings.COMPANY_TYPES:
+    if not company_type:
         return False, {}, "Выберите допустимый тип организации."
 
     if company_name_source != company_name_source.lstrip():
@@ -642,7 +644,7 @@ def validate_and_normalize_company_fields(
     if not re.fullmatch(r"\d+", company_idn):
         return False, {}, "ИНН организации должен состоять только из цифр."
 
-    expected_len = 12 if company_type == "ИП" else 10
+    expected_len = 12 if company_type in {"ИП", "ГКФХ", "Рынок", "Магазин"} else 10
     if len(company_idn) != expected_len:
         return False, {}, f"Для типа организации {company_type} ИНН должен содержать {expected_len} цифр."
 
