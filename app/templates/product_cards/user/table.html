@@ -80,7 +80,10 @@
                 {% if item and card.category in ['clothes', 'shoes', 'linen', 'socks'] %}
                   <td>
 
-                    {% if item.sizes_quantities %}
+                    {% if card.category == 'linen' and item.set_items %}
+                      {% set set_list = item.set_items | map(attribute='position_type') | list %}
+                      {{ set_list|join(', ') }}
+                    {% elif item.sizes_quantities %}
                       {% set size_list = item.sizes_quantities | map(attribute='size') | list %}
                       {{ size_list|join(', ') }}
 

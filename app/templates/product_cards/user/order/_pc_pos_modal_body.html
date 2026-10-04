@@ -53,6 +53,31 @@
         <div>
           Количество: <b>{{ pos.quantity or 0 }}</b>
         </div>
+      {% elif category == 'белье' and pos.set_items %}
+       <h6 class="mb-2">Позиции комплекта</h6>
+        <div class="mb-2">
+          Количество КПБ: <b>{{ pos.kpb_quantity or 1 }}</b>
+        </div>
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Позиция</th>
+              <th>Размер</th>
+              <th>Ед.</th>
+              <th class="text-end">Кол-во</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in pos.set_items %}
+              <tr>
+                <td><b>{{ s.position_type }}</b></td>
+                <td>{{ s.size }}</td>
+                <td>{{ s.unit or '-' }}</td>
+                <td class="text-end"><b>{{ s.quantity }}</b></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
 
       {# Остальные категории: sizes_quantities #}
       {% else %}

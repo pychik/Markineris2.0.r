@@ -335,12 +335,34 @@ def build_position_key(item: Any, category: str) -> tuple:
                 normalize_key_value(item.content),
             )
         case settings.Linen.CATEGORY:
+            linen_set_marker = ("regular_linen",)
+            if getattr(item, "set_items", None):
+                linen_set_marker = (
+                    "linen_set",
+                    tuple(
+                        (
+                            normalize_key_value(set_item.position_type),
+                            normalize_key_value(set_item.size),
+                            normalize_key_value(set_item.unit),
+                            normalize_int_key(set_item.quantity),
+                        )
+                        for set_item in sorted(
+                            item.set_items,
+                            key=lambda value: (
+                                normalize_key_value(value.position_type),
+                                normalize_key_value(value.size),
+                                normalize_key_value(value.unit),
+                            )
+                        )
+                    ),
+                )
             return common + (
                 normalize_placeholder_value(item.article, NO_ARTICLE_PLACEHOLDERS, NO_ARTICLE_VALUE),
                 normalize_key_value(item.color),
                 normalize_key_value(item.customer_age),
                 normalize_key_value(item.textile_type),
                 normalize_key_value(item.content),
+                linen_set_marker,
             )
         case settings.Parfum.CATEGORY:
             return common + (
@@ -439,6 +461,12 @@ def append_or_merge_position(order_positions: Any, new_item: Any, category: str,
 
         if category in (settings.Parfum.CATEGORY, settings.Cosmetics.CATEGORY, settings.Toys.CATEGORY):
             existing_item.quantity = normalize_int_key(existing_item.quantity) + normalize_int_key(new_item.quantity)
+            return existing_item
+
+        if category == settings.Linen.CATEGORY and getattr(new_item, "set_items", None):
+            existing_kpb_quantity = normalize_int_key(getattr(existing_item, "kpb_quantity", None)) or 1
+            new_kpb_quantity = normalize_int_key(getattr(new_item, "kpb_quantity", None)) or 1
+            existing_item.kpb_quantity = existing_kpb_quantity + new_kpb_quantity
             return existing_item
 
         merge_size_quantities(existing_item, new_item, category, old_sq_map=old_sq_map,

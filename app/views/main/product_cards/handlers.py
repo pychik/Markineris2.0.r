@@ -451,7 +451,10 @@ def h_cards_table():
     elif category == settings.Shoes.CATEGORY_PROCESS:
         query = query.options(selectinload(ProductCard.shoes).selectinload(Shoe.sizes_quantities))
     elif category == settings.Linen.CATEGORY_PROCESS:
-        query = query.options(selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities))
+        query = query.options(
+            selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities),
+            selectinload(ProductCard.linen).selectinload(Linen.set_items),
+        )
     elif category == settings.Parfum.CATEGORY_PROCESS:
         query = query.options(selectinload(ProductCard.parfum))
     elif category == settings.Cosmetics.CATEGORY_PROCESS:
@@ -532,6 +535,10 @@ def h_save_product_card():
 
     category = form_data.get("category")
     subcategory = form_data.get("subcategory")
+    is_linen_kpb_form = (
+        category == settings.Linen.CATEGORY_PROCESS
+        and str(form_dict.get("type") or "").strip().upper() == settings.Linen.KPB_TYPE
+    )
     # if category == 'shoes':
     #     return jsonify(status="error", message="Ведется обновление раздела карточки категории обувь. Карточки категории обувь временно не обрабатываются")
     if category not in CATEGORIES_COMMON:
@@ -594,24 +601,29 @@ def h_save_product_card():
         except Exception as e:
             return jsonify(status="error", message=str(e))
 
-        # 2.1 Нормализованный артикул и поиск уже существующих размеров
-        article_norm = normalize_article_for_category(category, form_dict)
-        color_norm = normalize_color_for_category(form_dict)
+        if is_linen_kpb_form:
+            filtered_sq = sizes_quantities
+            skipped_labels = []
+            existing_card_ids = set()
+        else:
+            # 2.1 Нормализованный артикул и поиск уже существующих размеров
+            article_norm = normalize_article_for_category(category, form_dict)
+            color_norm = normalize_color_for_category(form_dict)
 
-        existing_keys, existing_card_ids = collect_existing_size_keys(user_id=current_user.id,
-            category=category,
-            subcategory=subcategory,
-            article=article_norm,
-            color=color_norm,
-        )
+            existing_keys, existing_card_ids = collect_existing_size_keys(user_id=current_user.id,
+                category=category,
+                subcategory=subcategory,
+                article=article_norm,
+                color=color_norm,
+            )
 
-        # 2.2 Фильтруем дублирующиеся размеры
-        filtered_sq, skipped_labels = filter_new_sizes(
-            category=category,
-            sizes_quantities=sizes_quantities,
-            existing_keys=existing_keys,
-            subcategory=subcategory,
-        )
+            # 2.2 Фильтруем дублирующиеся размеры
+            filtered_sq, skipped_labels = filter_new_sizes(
+                category=category,
+                sizes_quantities=sizes_quantities,
+                existing_keys=existing_keys,
+                subcategory=subcategory,
+            )
 
         if not filtered_sq:
             # все размеры — дубликаты, карточку не создаём
@@ -922,7 +934,10 @@ def h_get_created_cards():
     if settings.Shoes.CATEGORY_PROCESS in cats:
         q = q.options(selectinload(ProductCard.shoes).selectinload(Shoe.sizes_quantities))
     if settings.Linen.CATEGORY_PROCESS in cats:
-        q = q.options(selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities))
+        q = q.options(
+            selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities),
+            selectinload(ProductCard.linen).selectinload(Linen.set_items),
+        )
     if settings.Socks.CATEGORY_PROCESS in cats:
         q = q.options(selectinload(ProductCard.socks).selectinload(Socks.sizes_quantities))
     if settings.Parfum.CATEGORY_PROCESS in cats:
@@ -995,7 +1010,10 @@ def h_send_cards_moderate():
             elif cat == "socks":
                 q = q.options(joinedload(ProductCard.socks).joinedload(Socks.sizes_quantities))
             elif cat == "linen":
-                q = q.options(joinedload(ProductCard.linen).joinedload(Linen.sizes_quantities))
+                q = q.options(
+                    joinedload(ProductCard.linen).joinedload(Linen.sizes_quantities),
+                    joinedload(ProductCard.linen).joinedload(Linen.set_items),
+                )
             elif cat == "parfum":
                 q = q.options(joinedload(ProductCard.parfum))
             elif cat == "cosmetics":
@@ -1154,7 +1172,10 @@ def h_card_view(card_id: int, crm_: bool = False):
         elif cat == settings.Shoes.CATEGORY_PROCESS:
             q = q.options(selectinload(ProductCard.shoes).selectinload(Shoe.sizes_quantities))
         elif cat == settings.Linen.CATEGORY_PROCESS:
-            q = q.options(selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities))
+            q = q.options(
+                selectinload(ProductCard.linen).selectinload(Linen.sizes_quantities),
+                selectinload(ProductCard.linen).selectinload(Linen.set_items),
+            )
         elif cat == settings.Parfum.CATEGORY_PROCESS:
             q = q.options(selectinload(ProductCard.parfum))
         elif cat == settings.Cosmetics.CATEGORY_PROCESS:
@@ -1209,13 +1230,24 @@ def h_card_view(card_id: int, crm_: bool = False):
 
     elif card.category == settings.Linen.CATEGORY_PROCESS:
         for l in card.linen:
-            for sq in l.sizes_quantities:
-                sizes.append({
-                    "size": sq.size,
-                    "unit": sq.unit,
-                    # "quantity": sq.quantity,
-                    "is_approved": getattr(sq, "is_approved", False),
-                })
+            if l.set_items:
+                for item in l.set_items:
+                    sizes.append({
+                        "size": item.size,
+                        "unit": item.unit,
+                        "position_type": item.position_type,
+                        "quantity": item.quantity,
+                        "is_approved": getattr(l, "is_approved", False),
+                        "is_set_item": True,
+                    })
+            else:
+                for sq in l.sizes_quantities:
+                    sizes.append({
+                        "size": sq.size,
+                        "unit": sq.unit,
+                        # "quantity": sq.quantity,
+                        "is_approved": getattr(sq, "is_approved", False),
+                    })
 
     elif card.category == settings.Parfum.CATEGORY_PROCESS:
         # у парфюма нет размеров – всё в одной записи

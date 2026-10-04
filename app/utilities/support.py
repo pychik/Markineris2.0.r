@@ -68,6 +68,91 @@ from .telegram import TelegramProcessor, MarkinerisInform
 from .useful_objects import Olc, OLC_NONE, OLC_PARFUM_NONE, OLC_PARFUM_9NONE
 
 
+def is_linen_kpb_type(product_type: str | None) -> bool:
+    return str(product_type or "").strip().upper() == settings.Linen.KPB_TYPE
+
+
+def parse_linen_kpb_set_items(form_data_raw: ImmutableMultiDict) -> list[tuple[str, str, str, int, int]]:
+    orders = form_data_raw.getlist("linen_set_item_order")
+    types = form_data_raw.getlist("linen_set_item_type")
+    sizes_x = form_data_raw.getlist("linen_set_item_sizeX")
+    sizes_y = form_data_raw.getlist("linen_set_item_sizeY")
+    units = form_data_raw.getlist("linen_set_item_sizeUnit")
+    quantities = form_data_raw.getlist("linen_set_item_quantity")
+    set_items = []
+
+    if len({len(types), len(sizes_x), len(sizes_y), len(units), len(quantities)}) != 1:
+        raise SizeTypeException("Проверьте заполнение позиций комплекта.")
+
+    for index, values in enumerate(zip(types, sizes_x, sizes_y, units, quantities)):
+        item_type, size_x, size_y, unit, quantity_raw = values
+        try:
+            quantity = int(quantity_raw)
+            sort_order = int(orders[index]) if index < len(orders) and orders[index] else index + 1
+        except (TypeError, ValueError):
+            raise SizeTypeException("Проверьте количество и порядок позиций комплекта.")
+
+        item_type = str(item_type or "").strip().upper()
+        size_x = str(size_x or "").strip()
+        size_y = str(size_y or "").strip()
+        unit = str(unit or "").strip()
+
+        if item_type not in settings.Linen.KPB_SET_ITEM_TYPES:
+            raise SizeTypeException("Выберите корректную позицию комплекта.")
+        try:
+            size_x_number = float(size_x.replace(",", "."))
+            size_y_number = float(size_y.replace(",", "."))
+        except ValueError:
+            raise SizeTypeException("Проверьте размеры позиции комплекта.")
+        if size_x_number <= 0 or size_y_number <= 0:
+            raise SizeTypeException("Проверьте размеры позиции комплекта.")
+        if not unit:
+            raise SizeTypeException("Выберите единицы измерения позиции комплекта.")
+        if quantity < 1 or quantity > settings.Linen.KPB_SET_ITEM_MAX_QUANTITY:
+            raise SizeTypeException(
+                f"Количество позиции комплекта должно быть от 1 до {settings.Linen.KPB_SET_ITEM_MAX_QUANTITY}."
+            )
+
+        set_items.append((item_type, f"{size_x}*{size_y}", unit, quantity, sort_order))
+
+    merged_items = {}
+    for item_type, size, unit, quantity, sort_order in set_items:
+        key = (item_type, size, unit)
+        if key in merged_items:
+            old_item_type, old_size, old_unit, old_quantity, old_sort_order = merged_items[key]
+            merged_items[key] = (old_item_type, old_size, old_unit, old_quantity + quantity, old_sort_order)
+        else:
+            merged_items[key] = (item_type, size, unit, quantity, sort_order)
+
+    set_items = list(merged_items.values())
+
+    if len(set_items) < settings.Linen.KPB_SET_ITEMS_MIN_COUNT:
+        raise SizeTypeException(
+            "Комплект постельного белья с одной позицией не обрабатывается. "
+            "Дополните еще хотя бы одну позицию."
+        )
+    if len(set_items) > settings.Linen.KPB_SET_ITEMS_MAX_COUNT:
+        raise SizeTypeException(f"В комплект можно добавить максимум {settings.Linen.KPB_SET_ITEMS_MAX_COUNT} позиций.")
+    for item in set_items:
+        if item[3] > settings.Linen.KPB_SET_ITEM_MAX_QUANTITY:
+            raise SizeTypeException(
+                f"Суммарное количество одинаковой позиции комплекта не должно превышать "
+                f"{settings.Linen.KPB_SET_ITEM_MAX_QUANTITY}."
+            )
+
+    return sorted(set_items, key=lambda item: item[4])
+
+
+def parse_linen_kpb_quantity(form_dict: dict) -> int:
+    try:
+        quantity = int(form_dict.get("kpb_quantity") or 0)
+    except (TypeError, ValueError):
+        raise SizeTypeException("Проверьте количество КПБ.")
+    if quantity < 1:
+        raise SizeTypeException("Количество КПБ должно быть не меньше 1.")
+    return quantity
+
+
 def time_count(func):
     @wraps(func)
     def wrapper(*args, **kw):
@@ -123,8 +208,12 @@ def order_count(category: str, order_list) -> tuple:
                                  for el in order_list]
 
         case settings.Linen.CATEGORY:
-            quantity_list_raw = [[(e.quantity, el.article_price, el.box_quantity, el.with_packages) for e in el.sizes_quantities]
-                                 for el in order_list]
+            quantity_list_raw = []
+            for el in order_list:
+                if getattr(el, "set_items", None):
+                    quantity_list_raw.append([(el.kpb_quantity or 1, el.article_price, 1, 'нет')])
+                else:
+                    quantity_list_raw.append([(e.quantity, el.article_price, el.box_quantity, el.with_packages) for e in el.sizes_quantities])
 
             quantity_list = [item[2] if item[3] == 'да' else item[0] * item[2] for sublist in quantity_list_raw for item in sublist]
             rd_exist = True if [el.rd_type for el in order_list if el.rd_type] else False
@@ -418,12 +507,17 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
             quantities = form_data_raw.getlist("quantity")
             sizes_quantities = sorted(list(zip(sizes, quantities)), key=lambda x: x[0])
         elif category == settings.Linen.CATEGORY:
-            sizesX = form_data_raw.getlist("sizeX")
-            sizesY = form_data_raw.getlist("sizeY")
-            sizes = list(map(lambda x: f"{x[0]}*{x[1]}", zip(sizesX, sizesY)))
-            sizes_units = form_data_raw.getlist("sizeUnit")
-            quantities = form_data_raw.getlist("quantity")
-            sizes_quantities = sorted(list(zip(sizes, sizes_units,  quantities)), key=lambda x: x[0])
+            if is_linen_kpb_type(form_dict.get("type")):
+                parse_linen_kpb_quantity(form_dict)
+                sizes_quantities = parse_linen_kpb_set_items(form_data_raw)
+            else:
+                sizesX = form_data_raw.getlist("sizeX")
+                sizesY = form_data_raw.getlist("sizeY")
+                sizes = list(map(lambda x: f"{x[0]}*{x[1]}", zip(sizesX, sizesY)))
+                sizes_units = form_data_raw.getlist("sizeUnit")
+                quantities = form_data_raw.getlist("quantity")
+                sizes_quantities = sorted(list(zip(sizes, sizes_units,  quantities)), key=lambda x: x[0])
+
         elif category == settings.Cosmetics.CATEGORY:
             sizes_quantities = []
         elif category == settings.Toys.CATEGORY:

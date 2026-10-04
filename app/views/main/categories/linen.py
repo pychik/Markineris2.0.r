@@ -37,6 +37,11 @@ def copy_order(o_id: int, p_id: int = None, edit_order: str = None):
     if not copied_order:
         flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
         return redirect(url_for('shoes.index'))
+    if copied_order.type == settings.Linen.KPB_TYPE and not copied_order.set_items:
+        flash(
+            message="Это комплект постельного белья старого формата. Заполните позиции комплекта заново.",
+            category='warning',
+        )
     return helper_linen_index(o_id=o_id, p_id=p_id, copied_order=copied_order, edit_order=edit_order)
 
 

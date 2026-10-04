@@ -183,6 +183,24 @@ function oBIsSingleUnitCategory(category) {
   return ["parfum", "cosmetics", "toys"].includes((category || "").trim());
 }
 
+function oBIsKpbItem(itemOrCategory, productType = "") {
+  const category = typeof itemOrCategory === "object"
+    ? (itemOrCategory.category || "")
+    : (itemOrCategory || "");
+  const type = typeof itemOrCategory === "object"
+    ? (itemOrCategory.product_type || itemOrCategory.type || "")
+    : productType;
+  return (category || "").trim() === "linen"
+    && (type || "").trim().toUpperCase() === "КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ";
+}
+
+function oBIsQuantityOnlyItem(itemOrCategory, productType = "") {
+  const category = typeof itemOrCategory === "object"
+    ? (itemOrCategory.category || "")
+    : (itemOrCategory || "");
+  return oBIsSingleUnitCategory(category) || oBIsKpbItem(itemOrCategory, productType);
+}
+
 // ключ позиции:
 // - single-unit categories: category + card_id
 // - остальные: card_id + size + size_type + unit
@@ -193,7 +211,7 @@ function oBItemKey(item) {
   const st = (item.size_type || "").trim();
   const unit = (item.unit || "").trim();
 
-  if (oBIsSingleUnitCategory(category)) {
+  if (oBIsQuantityOnlyItem(item)) {
     return oBSingleUnitKey(category, cardId);
   }
 
@@ -378,7 +396,8 @@ function oBCartAddOrMergeItem(payload) {
       size_type: payload.size_type || "",
       unit: payload.unit || "",
       qty: parseInt(payload.qty, 10),
-      color: payload.color || ""
+      color: payload.color || "",
+      product_type: payload.product_type || ""
     });
   }
 
@@ -566,7 +585,7 @@ function oBCartRender() {
   // группируем по артикулу (одна "шапка" артикула + список размеров)
   const groups = new Map();
   order.items.forEach((it, idx) => {
-    const gKey = oBIsSingleUnitCategory(it.category)
+    const gKey = oBIsQuantityOnlyItem(it)
       ? oBSingleUnitKey(it.category, it.card_id)
       : `${it.card_id}||${(it.article||"").trim()}||${(it.trademark||"").trim()}`;
 
@@ -583,13 +602,13 @@ function oBCartRender() {
 
 
     const sizesHtml = g.rows.map(({ it, idx }) => {
-      const isSingleUnit = oBIsSingleUnitCategory(it.category);
-      const sizeLine = isSingleUnit
-        ? "Количество"
+      const isQuantityOnly = oBIsQuantityOnlyItem(it);
+      const sizeLine = isQuantityOnly
+        ? (oBIsKpbItem(it) ? "Количество КПБ" : "Количество")
         : (it.size
           ? `Размер: ${it.size}${it.size_type ? " · " + it.size_type : ""}${it.unit ? " · " + it.unit : ""}`
           : `Без размеров`);
-      const removeTitle = isSingleUnit ? "Удалить позицию" : "Удалить размер";
+      const removeTitle = isQuantityOnly ? "Удалить позицию" : "Удалить размер";
 
       return `
         <div class="o-b-size-row">
@@ -628,7 +647,7 @@ function oBCartRender() {
             ${oBCartItemTitleHtml(it0)}
           
             ${
-              !oBIsSingleUnitCategory(it0.category) && it0.color
+              !oBIsQuantityOnlyItem(it0) && it0.color
                 ? `<div class="o-b-cart-meta small text-muted" style="font-size: 8px">${it0.color}</div>`
                 : ""
             }
@@ -759,20 +778,32 @@ function oBCartBuildPayloadOrError() {
         category: it.category,
         subcategory: it.subcategory || "",
         color: it.color || "",
+        product_type: it.product_type || "",
+        qty: 0,
         sizes: []
       };
 
-      byCardId[cardId].sizes.push({
-        size: it.size || "",
-        size_type: it.size_type || "",
-        unit: it.unit || "",
-        qty: parseInt(it.qty, 10) || 0
-      });
+      if (oBIsKpbItem(it)) {
+        byCardId[cardId].qty += parseInt(it.qty, 10) || 0;
+      } else {
+        byCardId[cardId].sizes.push({
+          size: it.size || "",
+          size_type: it.size_type || "",
+          unit: it.unit || "",
+          qty: parseInt(it.qty, 10) || 0
+        });
+      }
     }
 
     const articles = Object.values(byCardId);
 
     for (const a of articles) {
+      if (oBIsKpbItem(a)) {
+        if (!a.qty || a.qty < 1) {
+          return { error: `Некорректное количество КПБ для артикула ${a.article}` };
+        }
+        continue;
+      }
       const bad = a.sizes.find(s => !s.qty || s.qty < 1);
       if (bad) {
         return { error: `Некорректное количество для артикула ${a.article}` };
@@ -906,6 +937,7 @@ function oBGetOpenCardModalContext() {
   // ✅ берем данные из любой подходящей кнопки в модалке
   const anyBtn =
     body.querySelector(".pc-apply-qty-btn") ||
+    body.querySelector(".pc-kpb-add") ||
     body.querySelector(".pc-add-to-cart-btn") ||   // fallback на старое
     body.querySelector(".pc-single-add") ||
     body.querySelector("#pc-parfum-add");          // fallback на старые модалки
@@ -964,13 +996,18 @@ function oBCartSyncOpenCardModalInputsFromCart() {
 
 function oBCartGetSingleUnitQtyFromCart() {
   const order = oBCartGetSingleOrder();
-  if (!order || !oBIsSingleUnitCategory(order.category)) return 0;
+  if (!order) return 0;
 
-  const btn = document.querySelector(".pc-single-add") || document.getElementById("pc-parfum-add");
+  const btn = document.querySelector(".pc-kpb-add")
+    || document.querySelector(".pc-single-add")
+    || document.getElementById("pc-parfum-add");
   const cardId = oBNormalizeCardId(btn?.dataset?.cardId);
   if (!cardId) return 0;
 
   const category = (btn?.dataset?.category || order.category || "").trim();
+  const productType = (btn?.dataset?.productType || "").trim();
+  if (!oBIsSingleUnitCategory(category) && !oBIsKpbItem(category, productType)) return 0;
+
   const key = oBSingleUnitKey(category, cardId);
   const it = (order.items || []).find(
     x => oBSingleUnitKey(x.category, x.card_id) === key
@@ -984,7 +1021,9 @@ function oBCartGetParfumQtyFromCart() {
 }
 
 function oBCartSyncSingleUnitQtyFromCart() {
-  const inp = document.querySelector(".pc-single-qty") || document.getElementById("pc-parfum-qty");
+  const inp = document.querySelector(".pc-kpb-qty")
+    || document.querySelector(".pc-single-qty")
+    || document.getElementById("pc-parfum-qty");
   if (!inp) return;
 
   inp.value = String(oBCartGetSingleUnitQtyFromCart() || 0);
@@ -1044,7 +1083,7 @@ function oBCartUpsertFromModalQty(payload) {
   orders = res.orders;
   const order = res.order;
 
-  if (oBIsSingleUnitCategory(payload.category)) {
+  if (oBIsQuantityOnlyItem(payload)) {
     const k = oBSingleUnitKey(payload.category, payload.card_id);
     const idx = order.items.findIndex(x => oBSingleUnitKey(x.category, x.card_id) === k);
 
@@ -1058,6 +1097,7 @@ function oBCartUpsertFromModalQty(payload) {
       order.items[idx].qty = qty;
       order.items[idx].article = payload.article || order.items[idx].article || "";
       order.items[idx].trademark = payload.trademark || order.items[idx].trademark || "";
+      order.items[idx].product_type = payload.product_type || order.items[idx].product_type || "";
 
     } else {
       order.items.push({
@@ -1070,7 +1110,9 @@ function oBCartUpsertFromModalQty(payload) {
         size: payload.size || "",
         size_type: payload.size_type || "",
         unit: payload.unit || "",
-        qty: qty
+        qty: qty,
+        color: payload.color || "",
+        product_type: payload.product_type || ""
       });
     }
 
@@ -1112,7 +1154,8 @@ function oBCartUpsertFromModalQty(payload) {
       size: payload.size || "",
       size_type: payload.size_type || "",
       unit: payload.unit || "",
-      qty: qty
+      qty: qty,
+      product_type: payload.product_type || ""
     });
   }
 
@@ -1134,8 +1177,12 @@ function pcSyncApplyButtonsFromInputs() {
   });
 
   // parfum
-  const pInp = document.querySelector(".pc-single-qty") || document.getElementById("pc-parfum-qty");
-  const pBtn = document.querySelector(".pc-single-add") || document.getElementById("pc-parfum-add");
+  const pInp = document.querySelector(".pc-kpb-qty")
+    || document.querySelector(".pc-single-qty")
+    || document.getElementById("pc-parfum-qty");
+  const pBtn = document.querySelector(".pc-kpb-add")
+    || document.querySelector(".pc-single-add")
+    || document.getElementById("pc-parfum-add");
   if (pInp && pBtn) pcSetApplyBtnState(pBtn, pInp.value);
 }
 
@@ -1239,10 +1286,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // single-unit add
   document.addEventListener("click", (e) => {
-    const btn = e.target.closest(".pc-single-add") || e.target.closest("#pc-parfum-add");
+    const btn = e.target.closest(".pc-kpb-add")
+      || e.target.closest(".pc-single-add")
+      || e.target.closest("#pc-parfum-add");
     if (!btn) return;
 
-    const qtyEl = document.querySelector(".pc-single-qty") || document.getElementById("pc-parfum-qty");
+    const qtyEl = document.querySelector(".pc-kpb-qty")
+      || document.querySelector(".pc-single-qty")
+      || document.getElementById("pc-parfum-qty");
     if (!qtyEl) return;
 
     const nextQty = Math.max(0, parseInt(qtyEl.value, 10) || 0);
@@ -1254,6 +1305,8 @@ document.addEventListener("DOMContentLoaded", () => {
       subcategory: (btn.dataset.subcategory || "").trim(),
       article: (btn.dataset.article || "").trim(),
       trademark: (btn.dataset.trademark || "").trim(),
+      color: (btn.dataset.color || "").trim(),
+      product_type: (btn.dataset.productType || "").trim(),
       size: "", size_type: "", unit: "",
       qty: nextQty,
     });
@@ -1273,8 +1326,14 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (e.target && (e.target.classList?.contains("pc-single-qty") || e.target.id === "pc-parfum-qty")) {
-      const btn = document.querySelector(".pc-single-add") || document.getElementById("pc-parfum-add");
+    if (e.target && (
+      e.target.classList?.contains("pc-kpb-qty")
+      || e.target.classList?.contains("pc-single-qty")
+      || e.target.id === "pc-parfum-qty"
+    )) {
+      const btn = document.querySelector(".pc-kpb-add")
+        || document.querySelector(".pc-single-add")
+        || document.getElementById("pc-parfum-add");
       pcSetApplyBtnState(btn, 0);
     }
   });

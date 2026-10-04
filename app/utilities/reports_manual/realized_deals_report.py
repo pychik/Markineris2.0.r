@@ -130,10 +130,15 @@ def _realized_deals_sql(date_from=None, date_to=None):
             SELECT
                 l.order_id,
                 COALESCE(NULLIF(BTRIM(l.country), ''), 'НЕ УКАЗАНО') AS country,
-                SUM(COALESCE(l.box_quantity, 0) * COALESCE(l_qs.quantity, 0))::bigint AS marks_count
+                SUM(
+                    CASE
+                        WHEN l.type = '{settings.Linen.KPB_TYPE}' THEN COALESCE(l.kpb_quantity, 1)
+                        ELSE COALESCE(l.box_quantity, 0) * COALESCE(l_qs.quantity, 0)
+                    END
+                )::bigint AS marks_count
             FROM paid_orders po
             JOIN public.linen l ON l.order_id = po.order_id
-            JOIN public.linen_quantity_sizes l_qs ON l_qs.lin_id = l.id
+            LEFT JOIN public.linen_quantity_sizes l_qs ON l_qs.lin_id = l.id
             GROUP BY l.order_id, COALESCE(NULLIF(BTRIM(l.country), ''), 'НЕ УКАЗАНО')
             UNION ALL
             SELECT

@@ -1,7 +1,9 @@
 
 function linen_check_sizes_quantity_valid(){
+    if (linenIsKpbMode()) {
+        return document.querySelectorAll('#sizes_quantity .linen-set-item').length >= LINEN_SET_ITEM_MIN;
+    }
     var sizes = document.querySelectorAll('[id=sizeX_info]');
-    console.log(sizes.length);
     return sizes.length >= 1;
 }
 
@@ -51,7 +53,9 @@ function linen_perform_pos_add(async_flag, url){
             }
         })
         if (scsq === false){
-            errors_list.push("Размер белья. Добавьте хотя бы один");
+            errors_list.push(linenIsKpbMode()
+                ? "Комплект постельного белья с одной позицией не обрабатывается. Дополните еще хотя бы одну позицию."
+                : "Размер белья. Добавьте хотя бы один");
         }
         if (crd === false){
             errors_list.push("Разрешительная документация. Должны быть заполнены все поля формы разрешительной документации, либо все должны быть пусты!");
@@ -69,16 +73,24 @@ function show_linen_pos(index, trademark, type, color, pos_quantity, box_quantit
     let main = document.getElementById('ShowModalTable');
     main.innerHTML = '';
     let sq_block = ''
+    const isSetItemsList = sq_list.some((el) => el.split('##').length >= 4);
     sq_list.forEach(function (el) {
-        let size_temp = el.split('##')[0];
-        let unit_temp = el.split('##')[1];
-        let quantity_temp = el.split('##')[2];
+        let parts = el.split('##');
+        let isSetItem = parts.length >= 4;
+        let item_type_temp = isSetItem ? parts[0] : '';
+        let size_temp = isSetItem ? parts[1] : parts[0];
+        let unit_temp = isSetItem ? parts[2] : parts[1];
+        let quantity_temp = isSetItem ? parts[3] : parts[2];
+        let setQtyText = isSetItem ? linenSetItemDisplayQuantity(item_type_temp, quantity_temp) : '';
+        let label_temp = isSetItem
+            ? `${item_type_temp} р. ${size_temp}, ${unit_temp}${setQtyText ? ' ' + setQtyText : ''}`
+            : `${size_temp}, ${unit_temp} размер`;
         sq_block += `<div class="important-card__item important-card__size ms-2">
                         <div class="d-flex align-items-center g-3">
 <!--                            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26" fill="none">-->
 <!--                                <path fill-rule="evenodd" clip-rule="evenodd" d="M5.50501 0.396617C10.2365 -0.132206 15.1279 -0.132206 19.8595 0.396617C22.4999 0.691723 24.63 2.77206 24.9402 5.42294C25.5058 10.2602 25.5058 15.1468 24.9402 19.9839C24.63 22.6348 22.4999 24.7152 19.8595 25.0102C15.1279 25.539 10.2365 25.539 5.50501 25.0102C2.86457 24.7152 0.734354 22.6348 0.424309 19.9839C-0.141436 15.1468 -0.141436 10.2602 0.424309 5.42294C0.734354 2.77206 2.86457 0.691723 5.50501 0.396617ZM12.6822 11.5472H13.8385H19.2231C19.8616 11.5472 20.3793 12.0649 20.3793 12.7034C20.3793 13.342 19.8616 13.8597 19.2231 13.8597H13.8385C13.8385 13.8597 13 13.8597 12.6822 13.8597C12.3645 13.8597 12 13.8597 12 13.8597H11.526H6.14155C5.50296 13.8597 4.9853 13.342 4.9853 12.7034C4.9853 12.0649 5.50296 11.5472 6.14155 11.5472H11.526H12.6822Z" fill="#575757"/>-->
 <!--                              </svg>-->
-                            <span class="ms-2">${size_temp}, ${unit_temp} размер</span>
+                            <span class="ms-2">${label_temp}</span>
                         </div>
                         <div class="important-card__val">${quantity_temp} <span>шт.</span></div>
                     </div>`;
@@ -169,25 +181,25 @@ function show_linen_pos(index, trademark, type, color, pos_quantity, box_quantit
                     </div>
                     <div class="important-card__item">
                         <div class="important-card__prop">
-                            Пар в коробке
+                            ${isSetItemsList ? 'Количество КПБ' : 'Пар в коробке'}
                         </div>
                         <div class="important-card__val">${pos_quantity}</div>
                     </div>
-                    <div class="important-card__item">
+                    ${isSetItemsList ? '' : `<div class="important-card__item">
                         <div class="important-card__prop">
                             Кол-во коробок
                         </div>
                         <div class="important-card__val">${box_quantity}</div>
-                    </div>
+                    </div>`}
                     <div class="important-card__item">
                         <div class="important-card__prop">
-                            Общее количество
+                            ${isSetItemsList ? 'Количество марок' : 'Общее количество'}
                         </div>
                         <div class="important-card__val">${all_quantity}</div>
                     </div>
                     <div class="important-card__item border-bottom-0">
                         <div class="important-card__prop">
-                            Размеры
+                            ${isSetItemsList ? 'Позиции комплекта' : 'Размеры'}
                         </div>
                     </div>
                     ${sq_block}
@@ -390,8 +402,8 @@ function linen_clear_pos(){
     $('#trademark').val("");
 
     $('#type').val('').trigger("change");
-    $('#customColor').val("");
     $('#color').val('').trigger("change");
+    $('#customColor').val("");
     $('#gender').val('').trigger("change");
     $('#customer_age').val('').trigger("change");
     $('#textile_type').val('').trigger("change");
@@ -406,6 +418,7 @@ function linen_clear_pos(){
     $('#rd_date').val("");
 
     $('#sizes_quantity').empty();
+    linenResetSetItemForm();
 
     check_valid(document.getElementById('tax'));
     check_valid(document.getElementById('article_price'));
@@ -414,6 +427,9 @@ function linen_clear_pos(){
 }
 
 function countLinen(){
+    if (linenIsKpbMode()) {
+        return linenGetKpbQuantity();
+    }
     var total = 0;
     document.querySelectorAll('[id=quantity_info]').forEach(el=>total+=+parseInt(el.innerText, 10));
     return total
@@ -432,10 +448,294 @@ function setLinen(){
 
     }
 
-    document.querySelectorAll('[id=quantity_info]').forEach(el=>total+=+parseInt(el.innerText, 10));
+    if (linenIsKpbMode()) {
+        total = linenGetKpbQuantity();
+    } else {
+        document.querySelectorAll('[id=quantity_info]').forEach(el=>total+=+parseInt(el.innerText, 10));
+    }
     document.getElementById('linen_in_box_info').innerHTML = '';
     document.getElementById('linen_in_box_info').innerText = total;
 }
+
+const LINEN_KPB_TYPE = 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ';
+const LINEN_SET_ITEM_MIN = 2;
+const LINEN_SET_ITEM_MAX = 5;
+const LINEN_SET_ITEM_TYPES = ['ПОДОДЕЯЛЬНИК', 'ПРОСТЫНЯ', 'ПРОСТЫНЯ НА РЕЗИНКЕ', 'НАВОЛОЧКА'];
+
+function linenNormalizeValue(value) {
+    return (value || '').toString().trim().toUpperCase();
+}
+
+function linenIsKpbMode() {
+    const typeEl = document.getElementById('type');
+    return linenNormalizeValue(typeEl ? typeEl.value : '') === LINEN_KPB_TYPE;
+}
+
+function linenShowFormErrors(errors) {
+    show_form_errors(errors);
+    $('#form_errorModal').modal('show');
+}
+
+function linenSetSelectValue(selector, value) {
+    const el = document.querySelector(selector);
+    if (!el) return;
+    if (window.jQuery) {
+        window.jQuery(el).val(value || '').trigger('change');
+    } else {
+        el.value = value || '';
+    }
+}
+
+function linenResetSetItemForm() {
+    linenSetSelectValue('#linen_set_item_type', '');
+    const sizeX = document.getElementById('linen_set_sizeX_order');
+    const sizeY = document.getElementById('linen_set_sizeY_order');
+    const quantity = document.getElementById('linen_set_quantity_order');
+    if (sizeX) sizeX.value = '';
+    if (sizeY) sizeY.value = '';
+    linenSetSelectValue('#linen_set_sizeUnit_order', '');
+    if (quantity) quantity.value = '1';
+}
+
+function linenGetKpbQuantity() {
+    const quantity = parseInt(document.getElementById('kpb_quantity_order')?.value || '1', 10);
+    return isNaN(quantity) || quantity < 1 ? 0 : quantity;
+}
+
+function linenSetItemDisplayQuantity(type, quantity) {
+    const normalizedType = linenNormalizeValue(type);
+    const qty = parseInt(quantity, 10);
+    if (qty > 1) return `${qty} шт.`;
+    if (normalizedType === 'ПОДОДЕЯЛЬНИК' || normalizedType === 'НАВОЛОЧКА') return '';
+    return '1 шт.';
+}
+
+function linenRefreshSetItemQuantity(item) {
+    if (!item) return;
+
+    const type = item.querySelector('[name="linen_set_item_type"]')?.value || '';
+    const quantity = item.querySelector('[name="linen_set_item_quantity"]')?.value || '1';
+    const display = linenSetItemDisplayQuantity(type, quantity);
+    const displayEl = item.querySelector('.linen-set-quantity-display');
+
+    if (displayEl) {
+        displayEl.textContent = display;
+        displayEl.classList.toggle('d-none', !display);
+    }
+
+    const quantityInfo = item.querySelector('.linen-set-quantity-info');
+    if (quantityInfo) quantityInfo.textContent = quantity;
+}
+
+function linenRenumberSetItems() {
+    document.querySelectorAll('#sizes_quantity .linen-set-item').forEach((el, index) => {
+        const order = index + 1;
+        const orderEl = el.querySelector('.linen-set-order-info');
+        const hiddenOrder = el.querySelector('[name="linen_set_item_order"]');
+        const upBtn = el.querySelector('[data-linen-set-move="up"]');
+        const downBtn = el.querySelector('[data-linen-set-move="down"]');
+
+        if (orderEl) orderEl.textContent = String(order);
+        if (hiddenOrder) hiddenOrder.value = String(order);
+        if (upBtn) upBtn.disabled = index === 0;
+        if (downBtn) downBtn.disabled = index === el.parentElement.querySelectorAll('.linen-set-item').length - 1;
+    });
+}
+
+function linenSetItemHtml(type, sizeX, sizeY, sizeUnit, quantity) {
+    const qtyText = linenSetItemDisplayQuantity(type, quantity);
+    const qtyBlock = `<span class="linen-set-quantity-display${qtyText ? '' : ' d-none'}">${qtyText}</span>`;
+
+    return `<div class="important-card__item important-card__size ms-2 linen-set-item">
+        <div class="d-flex align-items-center g-3 flex-wrap">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                 onclick="this.closest('.linen-set-item').remove(); linenRenumberSetItems(); setLinen();"
+                 viewBox="0 0 20 20" fill="none" style="cursor:pointer">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M4.34074 0.312213C8.07158 -0.104071 11.9285 -0.104071 15.6593 0.312213C17.7413 0.544517 19.4209 2.18214 19.6655 4.26889C20.1115 8.07671 20.1115 11.9234 19.6655 15.7312C19.4209 17.8179 17.7413 19.4555 15.6593 19.6878C11.9285 20.1041 8.07158 20.1041 4.34074 19.6878C2.25873 19.4555 0.579043 17.8179 0.33457 15.7312C-0.111523 11.9234 -0.111523 8.07671 0.33457 4.26889C0.579043 2.18214 2.25873 0.544517 4.34074 0.312213ZM10 9.08981H10.9117H15.1575C15.661 9.08981 16.0692 9.49734 16.0692 10C16.0692 10.5027 15.661 10.9102 15.1575 10.9102H10.9117C10.9117 10.9102 10.2506 10.9102 10 10.9102C9.74947 10.9102 9.46208 10.9102 9.46208 10.9102H9.08832H4.84265C4.33912 10.9102 3.93094 10.5027 3.93094 10C3.93094 9.49734 4.33912 9.08981 4.84265 9.08981H9.08832H10Z" fill="white" />
+            </svg>
+            <div class="d-flex flex-column align-items-center" style="gap:2px; width:18px;">
+                <span role="button" data-linen-set-move="up"
+                      onclick="linenMoveSetItem(this, -1)" title="Переместить выше"
+                      style="width:14px; height:13px; line-height:13px; font-size:12px; text-align:center; cursor:pointer;">↑</span>
+                <span role="button" data-linen-set-move="down"
+                      onclick="linenMoveSetItem(this, 1)" title="Переместить ниже"
+                      style="width:14px; height:13px; line-height:13px; font-size:12px; text-align:center; cursor:pointer;">↓</span>
+            </div>
+            <div class="ms-2">
+                <span class="linen-set-order-info"></span>.
+                <b class="linen-set-type-info">${type}</b>
+                <span>р. <span class="linen-set-sizeX-info">${sizeX}</span> * <span class="linen-set-sizeY-info">${sizeY}</span>, <span class="linen-set-unit-info">${sizeUnit}</span></span>
+                ${qtyBlock}
+            </div>
+        </div>
+        <div class="important-card__val">
+            <span class="linen-set-quantity-info">${quantity}</span> <span>шт.</span>
+        </div>
+        <input type="hidden" name="linen_set_item_order" value="">
+        <input type="hidden" name="linen_set_item_type" value="${type}">
+        <input type="hidden" name="linen_set_item_sizeX" value="${sizeX}">
+        <input type="hidden" name="linen_set_item_sizeY" value="${sizeY}">
+        <input type="hidden" name="linen_set_item_sizeUnit" value="${sizeUnit}">
+        <input type="hidden" name="linen_set_item_quantity" value="${quantity}">
+    </div>`;
+}
+
+function linenMoveSetItem(btn, direction) {
+    const item = btn.closest('.linen-set-item');
+    if (!item) return;
+
+    if (direction < 0 && item.previousElementSibling) {
+        item.parentNode.insertBefore(item, item.previousElementSibling);
+    }
+    if (direction > 0 && item.nextElementSibling) {
+        item.parentNode.insertBefore(item.nextElementSibling, item);
+    }
+
+    linenRenumberSetItems();
+}
+
+function addLinenSetItem() {
+    if (!linenIsKpbMode()) return false;
+
+    const type = document.getElementById('linen_set_item_type')?.value || '';
+    const sizeX = document.getElementById('linen_set_sizeX_order')?.value || '';
+    const sizeY = document.getElementById('linen_set_sizeY_order')?.value || '';
+    const sizeUnit = document.getElementById('linen_set_sizeUnit_order')?.value || '';
+    const quantityRaw = document.getElementById('linen_set_quantity_order')?.value || '';
+    const quantity = parseInt(quantityRaw, 10);
+
+    if (!LINEN_SET_ITEM_TYPES.includes(type)) {
+        linenShowFormErrors(['Выберите позицию комплекта']);
+        return false;
+    }
+    if (sizeX < 1 || sizeY < 1) {
+        linenShowFormErrors(['Некорректный размер позиции комплекта']);
+        return false;
+    }
+    if (!sizeUnit) {
+        linenShowFormErrors(['Не выбраны единицы измерения для позиции комплекта']);
+        return false;
+    }
+    if (isNaN(quantity) || quantity < 1 || quantity > 5) {
+        linenShowFormErrors(['Количество позиции комплекта должно быть от 1 до 5']);
+        return false;
+    }
+
+    const currentItems = document.querySelectorAll('#sizes_quantity .linen-set-item');
+    const sameItem = Array.from(currentItems).find((item) => {
+        return (item.querySelector('[name="linen_set_item_type"]')?.value || '') === type
+            && (item.querySelector('[name="linen_set_item_sizeX"]')?.value || '') === sizeX
+            && (item.querySelector('[name="linen_set_item_sizeY"]')?.value || '') === sizeY
+            && (item.querySelector('[name="linen_set_item_sizeUnit"]')?.value || '') === sizeUnit;
+    });
+
+    if (sameItem) {
+        const quantityInput = sameItem.querySelector('[name="linen_set_item_quantity"]');
+        const currentQuantity = parseInt(quantityInput?.value || '0', 10);
+        const nextQuantity = currentQuantity + quantity;
+
+        if (nextQuantity > 5) {
+            linenShowFormErrors(['Суммарное количество одинаковой позиции комплекта не должно превышать 5']);
+            return false;
+        }
+
+        if (quantityInput) quantityInput.value = String(nextQuantity);
+        linenRefreshSetItemQuantity(sameItem);
+        setLinen();
+        linenResetSetItemForm();
+        return true;
+    }
+
+    if (currentItems.length >= LINEN_SET_ITEM_MAX) {
+        linenShowFormErrors([`В комплект можно добавить максимум ${LINEN_SET_ITEM_MAX} позиций`]);
+        return false;
+    }
+
+    const f = document.getElementById('sizes_quantity');
+    const legacyWarning = document.getElementById('linen-legacy-kpb-warning');
+    if (legacyWarning) legacyWarning.remove();
+    f.insertAdjacentHTML('beforeend', linenSetItemHtml(type, sizeX, sizeY, sizeUnit, quantity));
+    linenRenumberSetItems();
+    setLinen();
+    linenResetSetItemForm();
+    return true;
+}
+
+function linenSyncKpbMode(clearRows = false) {
+    const isKpb = linenIsKpbMode();
+    const simpleForm = document.getElementById('linen-simple-size-form');
+    const setForm = document.getElementById('linen-set-item-form');
+    const titleText = document.getElementById('linen_sizes_title_text');
+    const list = document.getElementById('sizes_quantity');
+
+    if (simpleForm) simpleForm.classList.toggle('d-none', isKpb);
+    if (setForm) setForm.classList.toggle('d-none', !isKpb);
+    if (titleText) titleText.textContent = isKpb ? 'Позиции комплекта' : 'Размеры';
+    if (titleText) {
+        titleText.classList.toggle('badge', isKpb);
+        titleText.classList.toggle('bg-warning-subtle', isKpb);
+        titleText.classList.toggle('text-secondary', isKpb);
+        titleText.classList.toggle('border', isKpb);
+        titleText.classList.toggle('border-warning', isKpb);
+        titleText.classList.toggle('fw-normal', isKpb);
+        titleText.classList.toggle('px-2', isKpb);
+        titleText.classList.toggle('py-1', isKpb);
+    }
+    if (clearRows && list) list.innerHTML = '';
+
+    if (clearRows) {
+        document.getElementById('sizeX_order') && (document.getElementById('sizeX_order').value = '');
+        document.getElementById('sizeY_order') && (document.getElementById('sizeY_order').value = '');
+        document.getElementById('quantity_order') && (document.getElementById('quantity_order').value = '1');
+        linenSetSelectValue('#sizeUnitOrder', '');
+        linenResetSetItemForm();
+    }
+    if (isKpb && clearRows) {
+        linenPulseKpbMode();
+    }
+    setLinen();
+}
+
+function linenPulseKpbMode() {
+    const targets = [
+        document.getElementById('linen-kpb-mode-alert'),
+        document.getElementById('linen_sizes_title_text'),
+    ].filter(Boolean);
+
+    targets.forEach((el) => {
+        el.style.transition = 'box-shadow .2s ease, outline-color .2s ease';
+        el.style.outline = '2px solid rgba(255, 193, 7, .95)';
+        el.style.boxShadow = '0 0 0 4px rgba(255, 193, 7, .25)';
+        window.setTimeout(() => {
+            el.style.outline = '';
+            el.style.boxShadow = '';
+        }, 1800);
+    });
+}
+
+(function initLinenKpbUi(){
+    document.addEventListener('DOMContentLoaded', function(){
+        const typeEl = document.getElementById('type');
+        if (!typeEl) return;
+
+        let previousValue = typeEl.value || '';
+        linenSyncKpbMode(false);
+
+        const syncWithClear = function(){
+            const nextValue = typeEl.value || '';
+            const changed = nextValue !== previousValue;
+            previousValue = nextValue;
+            linenSyncKpbMode(changed);
+        };
+
+        typeEl.addEventListener('change', syncWithClear);
+        typeEl.addEventListener('input', syncWithClear);
+
+        if (window.jQuery) {
+            window.jQuery(typeEl).on('change select2:select select2:unselect select2:clear', syncWithClear);
+        }
+    });
+})();
 
 
 function addLinenCell(){
@@ -517,7 +817,6 @@ function addLinenCell(){
     document.getElementById('sizeY_order').value = '';
     $('#sizeUnitOrder').val('').trigger("change");
     document.getElementById('quantity_order').value = '1';
-
 }
 
 // function linen_edit_size(parent_block){
@@ -562,7 +861,7 @@ function linen_edit_size(el) {
             // If the input is empty, set it to 1 (auto-correct)
             if (newQuantity === '' || parseInt(newQuantity) < 1) {
                 newQuantity = 1;
-                 quantityInput.val(1);
+                quantityInput.val(1);
             }
 
             // Update the hidden input and quantity span
@@ -571,12 +870,13 @@ function linen_edit_size(el) {
 
             // Hide input and show quantity span
             quantityInput.hide()
-            $(el).closest('.important-card__size').find('span:contains("шт.")').show();
+            $(el).closest('.important-card__size').find('span:contains("шт.")').show();;
             quantitySpan.show();
             setLinen();
         }
     });
 }
+
 
 function check_add_same_size(sizeX, sizeY, sizeUnit, quantity){
     var sizesX = document.querySelectorAll('[id=sizeX_info]');
@@ -635,7 +935,6 @@ function deleteCell(){
     }
 
     function getTypeText(){
-        // тут проще брать value — у тебя он уже текстовый ("ПОЛОТЕНЦЕ ...")
         return normStr(typeEl.value);
     }
 

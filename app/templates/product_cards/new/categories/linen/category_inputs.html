@@ -103,11 +103,55 @@
 
                 <div class="important-card__item border-bottom-0">
                     <div class="important-card__prop">
-                        Размеры
+                        <span id="linen_sizes_card_title">
+                            {% if copied_order and copied_order.type == 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ' %}
+                                Позиции комплекта
+                            {% else %}
+                                Размеры
+                            {% endif %}
+                        </span>
                     </div>
                 </div>
                 <div id="sizes_quantity">
                     {% if copied_order %}
+                        {% if copied_order.type == 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ' and copied_order.set_items %}
+                            {% for item in copied_order.set_items %}
+                                {% set sq_list = item.size.split('*') %}
+                                <div class="important-card__item important-card__size linen-set-item-row ms-2">
+                                    <div class="d-flex align-items-center g-3">
+                                        {% if not edit_mode %}
+                                        <div class="d-flex flex-column me-1">
+                                            <button type="button" class="btn btn-link p-0 text-light linen-set-arrow"
+                                                    onclick="linenMoveSetItem(this, -1)" title="Вверх">↑</button>
+                                            <button type="button" class="btn btn-link p-0 text-light linen-set-arrow"
+                                                    onclick="linenMoveSetItem(this, 1)" title="Вниз">↓</button>
+                                        </div>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             onclick="$(this).closest('.important-card__size').remove(); setLinen();"
+                                             viewBox="0 0 20 20" fill="none">
+                                            <path fill-rule="evenodd" clip-rule="evenodd"
+                                                  d="M4.34074 0.312213C8.07158 -0.104071 11.9285 -0.104071 15.6593 0.312213C17.7413 0.544517 19.4209 2.18214 19.6655 4.26889C20.1115 8.07671 20.1115 11.9234 19.6655 15.7312C19.4209 17.8179 17.7413 19.4555 15.6593 19.6878C11.9285 20.1041 8.07158 20.1041 4.34074 19.6878C2.25873 19.4555 0.579043 17.8179 0.33457 15.7312C-0.111523 11.9234 -0.111523 8.07671 0.33457 4.26889C0.579043 2.18214 2.25873 0.544517 4.34074 0.312213ZM10 9.08981H10.9117H15.1575C15.661 9.08981 16.0692 9.49734 16.0692 10C16.0692 10.5027 15.661 10.9102 15.1575 10.9102H10.9117C10.9117 10.9102 10.2506 10.9102 10 10.9102C9.74947 10.9102 9.46208 10.9102 9.46208 10.9102H9.08832H4.84265C4.33912 10.9102 3.93094 10.5027 3.93094 10C3.93094 9.49734 4.33912 9.08981 4.84265 9.08981H9.08832H10Z"
+                                                  fill="white" />
+                                        </svg>
+                                        {% endif %}
+                                        <div class="ms-2">
+                                            <span class="linen-set-position-info">{{ item.position_type }}</span>
+                                            р. <span class="linen-set-sizeX-info">{{ sq_list[0] }}</span>*<span class="linen-set-sizeY-info">{{ sq_list[1] }}</span>,
+                                            <span class="linen-set-unit-info">{{ item.unit }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="important-card__val">
+                                        <span class="linen-set-quantity-info">{{ item.quantity }}</span> <span>шт.</span>
+                                    </div>
+                                    <input type="hidden" name="linen_set_item_order" class="linen-set-order" value="{{ loop.index }}">
+                                    <input type="hidden" name="linen_set_item_type" class="linen-set-type" value="{{ item.position_type }}">
+                                    <input type="hidden" name="linen_set_item_sizeX" class="linen-set-sizeX" value="{{ sq_list[0] }}">
+                                    <input type="hidden" name="linen_set_item_sizeY" class="linen-set-sizeY" value="{{ sq_list[1] }}">
+                                    <input type="hidden" name="linen_set_item_sizeUnit" class="linen-set-unit" value="{{ item.unit }}">
+                                    <input type="hidden" name="linen_set_item_quantity" class="linen-set-quantity" value="{{ item.quantity }}">
+                                </div>
+                            {% endfor %}
+                        {% else %}
                         {% for sq in copied_order.sizes_quantities %}
                             {% set sq_list = sq.size.split('*') %}
                             <div class="important-card__item important-card__size ms-2">
@@ -142,6 +186,7 @@
                             </div>
 
                         {% endfor %}
+                        {% endif %}
                     {% endif %}
 
 

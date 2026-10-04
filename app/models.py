@@ -602,7 +602,13 @@ class ProductCard(db.Model, UserMixin):
             return [s for c in self.clothes for s in c.sizes_quantities]
 
         if self.category == 'linen':
-            return [s for l in self.linen for s in l.sizes_quantities]
+            units = []
+            for l in self.linen:
+                if l.set_items:
+                    units.append(l)
+                else:
+                    units.extend(l.sizes_quantities)
+            return units
 
         if self.category == 'shoes':
             return [s for sh in self.shoes for s in sh.sizes_quantities]
@@ -935,8 +941,22 @@ class Linen(db.Model, UserMixin, OrderCommon):
     textile_type = db.Column(db.String(50))
     content = db.Column(db.String(100))
     with_packages = db.Column(db.String(50), default="нет")
+    kpb_quantity = db.Column(db.Integer(), default=1, server_default="1")
+    is_approved = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+    )
     fast_order_company_id = _fast_order_company_fk()
     sizes_quantities = db.relationship('LinenQuantitySize', backref='linen', cascade="all,delete", lazy='joined')
+    set_items = db.relationship(
+        'LinenSetItem',
+        backref='linen',
+        cascade="all,delete",
+        lazy='joined',
+        order_by='LinenSetItem.sort_order',
+    )
     order_id = db.Column(
         db.Integer,
         db.ForeignKey('orders.id', ondelete='CASCADE'),
@@ -974,6 +994,18 @@ class LinenQuantitySize(db.Model, UserMixin):
         default=False,
         server_default="false",
     )
+    lin_id = db.Column(db.Integer, db.ForeignKey('linen.id', ondelete='CASCADE'), index=True)
+
+
+class LinenSetItem(db.Model, UserMixin):
+    __tablename__ = "linen_set_items"
+    id = db.Column(db.BigInteger, primary_key=True)
+    position_type = db.Column(db.String(50), nullable=False)
+    size = db.Column(db.String())
+    quantity = db.Column(db.Integer())
+    unit = db.Column(db.String(10), default=LinenSizesUnits.sm.value, server_default=LinenSizesUnits.sm.value)
+    sort_order = db.Column(db.Integer(), nullable=False, default=0, server_default="0")
+
     lin_id = db.Column(db.Integer, db.ForeignKey('linen.id', ondelete='CASCADE'), index=True)
 
 
