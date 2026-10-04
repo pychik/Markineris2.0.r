@@ -28,30 +28,18 @@ class SQLQueryCategoriesAll:
                 "pos_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id, co.id, ty.id))",
                 "marks_count": f"""
                                 SUM(
+                                    COALESCE(sh.box_quantity * sh_qs.quantity, 0) +
+                                    COALESCE(cl.box_quantity * cl_qs.quantity, 0) +
+                                    COALESCE(sk.box_quantity * sk_qs.quantity, 0) +
                                     CASE
-                                        WHEN o.has_aggr THEN 0
-                                        ELSE
-                                            COALESCE(sh.box_quantity * sh_qs.quantity, 0) +
-                                            COALESCE(cl.box_quantity * cl_qs.quantity, 0) +
-                                            COALESCE(sk.box_quantity * sk_qs.quantity, 0) +
-                                            CASE
-                                                WHEN l.id IS NOT NULL AND l.type = '{settings.Linen.KPB_TYPE}'
-                                                    THEN COALESCE(l.kpb_quantity, 1)
-                                                ELSE COALESCE(l.box_quantity * l_qs.quantity, 0)
-                                            END +
-                                            COALESCE(p.quantity, 0) +
-                                            COALESCE(co.quantity, 0) +
-                                            COALESCE(ty.quantity, 0)
-                                    END
-                                ) +
-                                (SELECT COALESCE(SUM(ag_cl_qs.total_quantity), 0)
-                                 FROM aggr_orders ao
-                                 JOIN aggr_clothes_sizes ag_cl_qs ON ao.id = ag_cl_qs.aggr_order_id
-                                 WHERE ao.order_id = o.id) +
-                                (SELECT COALESCE(SUM(ag_sk_qs.total_quantity), 0)
-                                 FROM aggr_orders ao
-                                 JOIN aggr_socks_sizes ag_sk_qs ON ao.id = ag_sk_qs.aggr_order_id
-                                 WHERE ao.order_id = o.id)""",
+                                        WHEN l.id IS NOT NULL AND l.type = '{settings.Linen.KPB_TYPE}'
+                                            THEN COALESCE(l.kpb_quantity, 1)
+                                        ELSE COALESCE(l.box_quantity * l_qs.quantity, 0)
+                                    END +
+                                    COALESCE(p.quantity, 0) +
+                                    COALESCE(co.quantity, 0) +
+                                    COALESCE(ty.quantity, 0)
+                                )""",
                 "rows_count": "COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id, co.id, ty.id))",
                 "is_rf_order": f"""
                                 COUNT(COALESCE(sh.id, cl.id, sk.id, l.id, p.id, co.id, ty.id)) > 0

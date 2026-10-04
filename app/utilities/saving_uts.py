@@ -711,6 +711,13 @@ def save_copy_order_toys(order_category_list: list[Toys], new_order: Order) -> O
 
 
 def get_rows_marks(o_id: int, category: str) -> tuple[int, int]:
+    def _fetch_counts(res) -> tuple[int, int]:
+        row = res.fetchone()
+        if not row:
+            return 0, 0
+        row_count, mark_count = row
+        return int(row_count or 0), int(mark_count or 0)
+
     match category:
         case settings.Shoes.CATEGORY:
             res = db.session.execute(text(f"""
@@ -722,7 +729,7 @@ def get_rows_marks(o_id: int, category: str) -> tuple[int, int]:
                        WHERE public.orders.category=:category AND public.orders.id=:o_id
                        GROUP BY public.orders.id
                        """).bindparams(category=settings.Shoes.CATEGORY, o_id=o_id))
-            row_count, mark_count = res.fetchall()[0]
+            row_count, mark_count = _fetch_counts(res)
         case settings.Clothes.CATEGORY:
             res = db.session.execute(text("""
                 SELECT COUNT(cl_quantity_sizes.quantity),
@@ -733,7 +740,7 @@ def get_rows_marks(o_id: int, category: str) -> tuple[int, int]:
                    WHERE public.orders.category=:category AND public.orders.id=:o_id
                    GROUP BY public.orders.id
                    """).bindparams(category=settings.Clothes.CATEGORY, o_id=o_id))
-            row_count, mark_count = res.fetchall()[0]
+            row_count, mark_count = _fetch_counts(res)
         case settings.Socks.CATEGORY:
             res = db.session.execute(text(f"""
                         SELECT COUNT(public.socks_quantity_sizes.quantity),
@@ -744,18 +751,29 @@ def get_rows_marks(o_id: int, category: str) -> tuple[int, int]:
                            WHERE public.orders.category='{settings.Socks.CATEGORY}' AND public.orders.id={o_id}
                            GROUP BY public.orders.id
                            """))
-            row_count, mark_count = res.fetchall()[0]
+            row_count, mark_count = _fetch_counts(res)
         case settings.Linen.CATEGORY:
             res = db.session.execute(text("""
-                SELECT COUNT(linen_quantity_sizes.quantity),
-                    SUM(public.linen.box_quantity*public.linen_quantity_sizes.quantity)
-                    FROM public.orders 
+                SELECT
+                    COUNT(
+                        CASE
+                            WHEN public.linen.type = :kpb_type THEN public.linen.id
+                            ELSE public.linen_quantity_sizes.quantity
+                        END
+                    ),
+                    SUM(
+                        CASE
+                            WHEN public.linen.type = :kpb_type THEN COALESCE(public.linen.kpb_quantity, 1)
+                            ELSE COALESCE(public.linen.box_quantity * public.linen_quantity_sizes.quantity, 0)
+                        END
+                    )
+                    FROM public.orders
                       JOIN public.linen ON public.orders.id = public.linen.order_id
-                      JOIN  public.linen_quantity_sizes ON public.linen.id=public.linen_quantity_sizes.lin_id
+                      LEFT JOIN public.linen_quantity_sizes ON public.linen.id=public.linen_quantity_sizes.lin_id
                     WHERE public.orders.category=:category AND public.orders.id=:o_id
                     GROUP BY public.orders.id
-                    """).bindparams(category=settings.Linen.CATEGORY, o_id=o_id))
-            row_count, mark_count = res.fetchall()[0]
+                    """).bindparams(category=settings.Linen.CATEGORY, o_id=o_id, kpb_type=settings.Linen.KPB_TYPE))
+            row_count, mark_count = _fetch_counts(res)
         case settings.Parfum.CATEGORY:
             res = db.session.execute(text("""
                 SELECT COUNT(parfum.quantity), SUM(parfum.quantity)
@@ -764,7 +782,7 @@ def get_rows_marks(o_id: int, category: str) -> tuple[int, int]:
                     WHERE public.orders.category=:category AND public.orders.id=:o_id
                     GROUP BY public.orders.id
                     """).bindparams(category=settings.Parfum.CATEGORY, o_id=o_id))
-            row_count, mark_count = res.fetchall()[0]
+            row_count, mark_count = _fetch_counts(res)
         case settings.Cosmetics.CATEGORY:
             res = db.session.execute(text("""
                 SELECT COUNT(cosmetics.id), COALESCE(SUM(public.cosmetics.quantity), 0)
@@ -773,7 +791,7 @@ def get_rows_marks(o_id: int, category: str) -> tuple[int, int]:
                     WHERE public.orders.category=:category AND public.orders.id=:o_id
                     GROUP BY public.orders.id
                     """).bindparams(category=settings.Cosmetics.CATEGORY, o_id=o_id))
-            row_count, mark_count = res.fetchall()[0]
+            row_count, mark_count = _fetch_counts(res)
 
         case _:
             row_count, mark_count = 0, 0

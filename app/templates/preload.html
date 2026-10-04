@@ -4,15 +4,23 @@
 
 {% block preload %}
 
+{% set is_pc_order_preview = is_pc_order_preview|default(false) %}
 {% set preview_title =
     'Просмотр исходной накладной' if archive_flag else 'Предпросмотр'
 %}
 <div class="no-selection">
     <div class="top-content d-flex justify-content-between flex-wrap g-5 mb-5">
         <div class="breadcrumbs">
-           <a href="{{url_for('main.enter')}}" class="">Категории </a>
-            /
-            {% if stage == order_stages.CREATING %}
+            {% if is_pc_order_preview %}
+                <a href="{{ url_for('user_product_cards.cards') }}" class="">Карточки товаров</a>
+                /
+                <a href="{{ url_for('user_product_cards.pc_order_view', o_id=o_id) }}">Черновик заказа</a>
+                /
+            {% else %}
+                <a href="{{url_for('main.enter')}}" class="">Категории </a>
+                /
+            {% endif %}
+            {% if stage == order_stages.CREATING and not is_pc_order_preview %}
                 <a href="{{ url_for(category_process_name + '.index', o_id=o_id, subcategory=subcategory) }}"> {% if subcategory in subcategories_dict.keys() %}{{ subcategories_dict[subcategory].capitalize() }}{% else %}{{category.capitalize()}}{% endif %} активный заказ</a>
                 /
             {% elif  stage >= order_stages.TELEGRAM_PROCESSED%}

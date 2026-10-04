@@ -1290,7 +1290,8 @@ def h_pc_order_preview(o_id: int):
         Order.query
         .filter(
             Order.id == o_id,
-            Order.user_id == user.id
+            Order.user_id == user.id,
+            Order.is_moderation.is_(True),
         )
         .with_entities(Order.id, Order.stage, Order.category)
         .first()
@@ -1314,7 +1315,8 @@ def h_pc_order_preview(o_id: int):
         o_id=o_id,
         stage=settings.OrderStage.CREATING,
         category=order.category,
-        category_process_name=settings.CATEGORIES_DICT.get(order.category)
+        category_process_name=settings.CATEGORIES_DICT.get(order.category),
+        is_pc_order_preview=True,
     )
 
 

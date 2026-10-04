@@ -458,6 +458,7 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
             Order.category == category,
             Order.id == o_id,
             Order.stage == settings.OrderStage.CREATING,
+            Order.is_moderation.is_(False),
             ~Order.processed,
             ~Order.to_delete,
         ).first()
@@ -615,6 +616,7 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
                 Order.category == settings.Parfum.CATEGORY,
                 Order.id == o_id,
                 Order.stage == settings.OrderStage.CREATING,
+                Order.is_moderation.is_(False),
                 ~Order.processed,
                 ~Order.to_delete,
             ).first()
@@ -684,6 +686,9 @@ def helper_category_common_index(o_id: int, category: str, category_process_name
             #     del subcategory
     else:
         specific_order = True
+        if _is_product_card_order(user=user, category=category, o_id=o_id):
+            return _redirect_product_card_order(o_id=o_id)
+
         orders, company_type, company_name, company_idn, \
             edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
             total_price, price_exist, subcategory = orders_list_common(category=category, user=user, o_id=o_id)
@@ -881,6 +886,9 @@ def helper_parfum_index(o_id: int, p_id: int = None, update_flag: int = None,
                 orders_pos_count, pos_count, price_exist, total_price = parfum_orders(user=user, new=True)
     else:
         specific_order = True
+        if _is_product_card_order(user=user, category=category, o_id=o_id):
+            return _redirect_product_card_order(o_id=o_id)
+
         orders, trademark, mark_type, company_idn, company_type, company_name, edo_type, edo_id, \
             orders_pos_count, pos_count, price_exist, total_price = parfum_orders(user=user, o_id=o_id)
         mark_type_hidden = mark_type
@@ -905,6 +913,24 @@ def helper_get_sort_order(sort_type_order: str) -> tuple:
         sto: list = sort_type_order.split(';')
         sort_type, sort_order = sto[0], sto[1]
     return sort_type, sort_order
+
+
+def _is_product_card_order(user: User, category: str, o_id: int, stage: int = settings.OrderStage.CREATING) -> bool:
+    if not o_id:
+        return False
+    order = (
+        user.orders
+        .filter_by(category=category, id=o_id, stage=stage)
+        .filter(~Order.to_delete)
+        .with_entities(Order.is_moderation)
+        .first()
+    )
+    return bool(order and order.is_moderation)
+
+
+def _redirect_product_card_order(o_id: int) -> Response:
+    flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
+    return redirect(url_for('user_product_cards.pc_order_view', o_id=o_id))
 
 
 def order_has_user_rd(order: Order) -> bool:
@@ -960,11 +986,20 @@ def parse_rd_replacement_consent(value: str | None, *, required: bool) -> bool |
     return None
 
 
-def helper_preload_common(o_id: int, stage: int, category: str, category_process_name: str):
+def helper_preload_common(
+        o_id: int,
+        stage: int,
+        category: str,
+        category_process_name: str,
+        is_pc_order_preview: bool = False,
+):
     user = current_user
 
     admin_id = user.admin_parent_id
     order_notification, admin_name, crm = helper_get_order_notification(admin_id=admin_id if admin_id else user.id)
+
+    if not is_pc_order_preview and _is_product_card_order(user=user, category=category, o_id=o_id, stage=stage):
+        return _redirect_product_card_order(o_id=o_id)
 
     orders, company_type, company_name, company_idn, \
         edo_type, edo_id, mark_type, trademark, orders_pos_count, pos_count, \
@@ -1160,9 +1195,14 @@ def process_complete_delete_order(order: Order) -> None:
 def common_process_delete_order(o_id: int, stage: int,) -> Optional[str]:
 
     order = current_user.orders.with_entities(Order.id, Order.category, Order.company_type,
-                                              Order.company_name, Order.created_at, Order.stage)\
+                                              Order.company_name, Order.created_at, Order.stage,
+                                              Order.is_moderation)\
                         .filter(Order.id == o_id, Order.stage == stage, ~Order.to_delete).first()
     if order:
+        if order.is_moderation:
+            flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
+            return settings.Messages.NO_SUCH_ORDER
+
         if order.stage not in (settings.OrderStage.CREATING, settings.OrderStage.NEW,
                                settings.OrderStage.CANCELLED, settings.OrderStage.TELEGRAM_PROCESSED, settings.OrderStage.CRM_PROCESSED):
             flash(message=settings.Messages.ORDER_DELETE_STAGE, category='error')
@@ -1202,11 +1242,14 @@ def common_process_delete_order(o_id: int, stage: int,) -> Optional[str]:
 def process_delete_order_pos(category: str, o_id: int, m_id: int, edit: bool = False,
                              async_type: int = None) -> Optional[str]:
     order = current_user.orders.with_entities(Order.id, Order.category, Order.company_type,
-                                              Order.company_name, Order.created_at) \
+                                              Order.company_name, Order.created_at, Order.is_moderation) \
         .filter(Order.id == o_id, Order.stage == settings.OrderStage.CREATING, ~Order.to_delete).first()
     if not order:
         flash(message=settings.Messages.CLEAN_EMPTY, category='error')
         return settings.Messages.CLEAN_EMPTY
+    if order.is_moderation:
+        flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
+        return settings.Messages.NO_SUCH_ORDER
     else:
 
         try:
@@ -1233,6 +1276,11 @@ def helper_delete_order_pos(o_id: int, m_id: int, category: str, model: db.Model
     if not Category.check_subcategory(category=category, subcategory=subcategory):
         return jsonify(
             dict(status='error', message=settings.Messages.STRANGE_REQUESTS + ' нет такой подкатегории'))
+    if _is_product_card_order(user=current_user, category=category, o_id=o_id):
+        if async_type:
+            return jsonify(dict(status='error', message=settings.Messages.NO_SUCH_ORDER))
+        return _redirect_product_card_order(o_id=o_id)
+
     if not pos_exists:
         if async_type:
             return jsonify(dict(status='error', message=settings.Messages.STRANGE_REQUESTS))
@@ -1841,6 +1889,9 @@ def helper_process_category_order(user: User, order: Order, category: str, order
     if not order:
         flash(message=settings.Messages.EMPTY_ORDER, category='error')
         return redirect(url_for(f'{_category_name}.index'))
+    if getattr(order, "is_moderation", False):
+        return _redirect_product_card_order(o_id=order.id)
+
     o_id = order.id
     subcategory = get_subcategory(order_id=o_id, category=category)
     redirect_kwargs = {'subcategory': subcategory} if subcategory else {}
