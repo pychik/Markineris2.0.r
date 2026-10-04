@@ -19,7 +19,7 @@ from utilities.exceptions import SizeTypeException
 from utilities.helpers.helpers_checks import rd_name_clean
 from utilities.saving_helpers import get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, \
     normalize_trademark_placeholder, process_input_str, validate_parfum_trademark
-from utilities.support import check_forbidden_words, is_linen_kpb_type, parse_linen_kpb_quantity, parse_linen_kpb_set_items
+from utilities.support import check_forbidden_words, is_linen_kpb_type, parse_linen_kpb_set_items
 from utilities.validators import ValidatorProcessor
 from tezaurus.processing_companies import PROCESSING_COMPANIES_BATCH_LIMIT, ProcessingCompaniesClient
 from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries, get_clothes_tnved_pairs_for_types
@@ -1095,7 +1095,7 @@ def save_linen_card(
         color=form_dict.get("color"),
         with_packages='да' if form_dict.get("with_packages") == "True" else 'нет',
         box_quantity=form_dict.get("box_quantity"),
-        kpb_quantity=parse_linen_kpb_quantity(form_dict) if is_kpb else 1,
+        kpb_quantity=1,
         customer_age=form_dict.get("customer_age"),
         textile_type=form_dict.get("textile_type"),
         content=form_dict.get("content"),

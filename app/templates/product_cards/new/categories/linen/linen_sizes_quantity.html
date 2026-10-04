@@ -38,12 +38,6 @@
         </div>
 
         <div id="linen_kpb_form" style="display:none;">
-            <div class="form-group mb-2">
-                <label class="control-label mb-1" for="kpb_quantity_order">Количество КПБ</label>
-                <input type="number" name="kpb_quantity" id="kpb_quantity_order"
-                       placeholder="Количество КПБ" class="form-control" value="{% if copied_order and copied_order.type == 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ' %}{{ copied_order.kpb_quantity or 1 }}{% else %}1{% endif %}"
-                       min="1" step="1" oninput="validity.valid||(value='');javascript:setLinen();">
-            </div>
             <div class="alert alert-warning py-2 px-3 mb-2">
                 <b>Режим комплекта:</b> добавляйте позиции КПБ отдельными строками.
                 <span class="ms-1 text-danger" data-bs-toggle="tooltip"
