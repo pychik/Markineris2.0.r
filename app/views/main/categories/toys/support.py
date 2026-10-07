@@ -3,7 +3,7 @@ from flask_login import current_user
 
 from config import settings
 from models import Order
-from tezaurus.runtime_catalogs import get_all_countries
+from tezaurus.runtime_catalogs import get_all_countries, get_rd_countries
 from utilities.support import (
     get_category_p_orders,
     helper_get_order_notification,
@@ -106,7 +106,7 @@ def helper_toys_index(
     service_life_types = subcategory_config["service_life_types"]
     step_2_template = subcategory_config.get("step_2_template", "helpers/toys/doll_accessories/2nd_step.html")
     step_3_template = subcategory_config.get("step_3_template", "helpers/toys/doll_accessories/3rd_step.html")
-    countries = tuple(country.upper() for country in subcategory_config["default_countries"])
+    countries = tuple(country.upper() for country in (get_rd_countries(settings.Toys.CATEGORY_PROCESS) or subcategory_config["default_countries"]))
     rd_countries = tuple(country.upper() for country in get_all_countries())
     rd_types_list = settings.RD_TYPES
     company_types = settings.COMPANY_TYPES

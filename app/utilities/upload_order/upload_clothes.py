@@ -11,7 +11,7 @@ from tezaurus.runtime_catalogs import (
     get_clothes_tnved_genders,
     get_clothes_tnved_types,
     is_allowed_color,
-    is_allowed_country,
+    is_allowed_country_for_rd,
 )
 from utilities.categories_data.accessories_data import HATS_TYPES, GLOVES_TYPES, SHAWLS_TYPES, normalize_clothes_type_for_subcategory
 from utilities.categories_data.subcategories_data import ClothesSubcategories
@@ -237,19 +237,8 @@ class ValidateClothesMixin:
         """
         country_value = value.upper().strip()
         order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = country_value
-        if not is_allowed_country(country_value):
+        if not is_allowed_country_for_rd(country_value, settings.Clothes.CATEGORY_PROCESS, has_rd):
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_COUNTRY_ERROR}"
-        # if has_rd:
-        #     allowed = settings.COUNTRIES_LIST
-        #     if country_value not in allowed:
-        #         return f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_COUNTRY_ERROR}"
-        # else:
-        #     allowed = settings.CLOTHES_COUNTRIES_RD
-        #     if country_value not in allowed:
-        #         return (
-        #             f"{val_error_start(row_num=row_num, col=col)} {settings.Clothes.UPLOAD_COUNTRY_ERROR} "
-        #             f"Допустимые страны без РД: {allowed}"
-        #         )
 
     @staticmethod
     @empty_value

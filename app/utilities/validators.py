@@ -8,8 +8,8 @@ from typing import Optional
 from config import settings
 from models import ExceptionDataUsers, Order
 from tezaurus.runtime_catalogs import (
-    get_all_countries,
     get_clothes_tnved_codes,
+    is_allowed_country_for_rd,
     is_allowed_color,
 )
 from utilities.categories_data.accessories_data import HATS_TNVEDS, GLOVES_TNVEDS, SHAWLS_TNVEDS
@@ -322,6 +322,13 @@ class ValidatorProcessor:
         if not subcategory_config:
             return None
 
+        has_rd = str(form_data.get("has_rd") or "").strip().lower() in {"on", "1", "true", "yes"}
+        if not is_allowed_country_for_rd(
+            form_data.get("country"), settings.Cosmetics.CATEGORY_PROCESS, has_rd,
+            default_countries=subcategory_config.get("default_countries") or (),
+        ):
+            return "Выберите допустимое значение поля 'Страна'."
+
         product_type = str(form_data.get("type") or "").strip()
         tnved_code = str(form_data.get("tnved_code") or "").strip()
         blade_count_raw = str(form_data.get("blade_count") or "").strip()
@@ -500,12 +507,10 @@ class ValidatorProcessor:
             return "Наименование ОКПД2 не соответствует выбранному коду ОКПД2 и ТН ВЭД."
 
         has_rd = str(form_data.get("has_rd") or "").strip().lower() in {"on", "1", "true", "yes"}
-        allowed_countries = (
-            {str(item).strip().upper() for item in get_all_countries()}
-            if has_rd
-            else {str(item).strip().upper() for item in subcategory_config.get("default_countries") or ()}
-        )
-        if country not in allowed_countries:
+        if not is_allowed_country_for_rd(
+            country, settings.Toys.CATEGORY_PROCESS, has_rd,
+            default_countries=subcategory_config.get("default_countries") or (),
+        ):
             return "Выберите допустимое значение поля 'Страна'."
 
         date_from_raw = str(form_data.get("sl_date_from") or "").strip()

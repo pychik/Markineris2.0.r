@@ -15,8 +15,7 @@ from models import User, Order, Shoe, ShoeQuantitySize, Socks, SocksQuantitySize
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.accessories_data import normalize_clothes_type_for_subcategory
 from utilities.helpers.helpers_checks import _check_linen_compatibility, _check_clothes_compatibility, \
-    _check_shoes_compatibility, _has_rd_fields, rd_name_clean
-from tezaurus.runtime_catalogs import get_rd_countries
+    _check_shoes_compatibility, _check_socks_compatibility, _check_parfum_compatibility, _check_country_by_rd, rd_name_clean
 from utilities.exceptions import SizeTypeException
 from utilities.saving_helpers import append_or_merge_position, get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, \
     normalize_length_width_size_type, normalize_length_width_size_value, normalize_trademark_placeholder, process_input_str, \
@@ -488,14 +487,14 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
 
 
 def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) -> Order:
-    # incompatible_items = []
-    # kept_socks_count = 0
+    incompatible_items = []
+    kept_socks_count = 0
     old_sq_map = {}
     for sock in order_category_list:
-        # result = _check_socks_compatibility(sock)
-        # if result:  # несовместима — сохраняем сообщение
-        #     incompatible_items.append(result)
-        #     continue
+        result = _check_socks_compatibility(sock)
+        if result:
+            incompatible_items.append(result)
+            continue
 
         new_sizes = []
         for sq in sock.sizes_quantities:
@@ -522,7 +521,12 @@ def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) ->
                                  old_sq_map=old_sq_map,
                                  source_size_pairs=[(sq.id, new_sq) for sq, new_sq in
                                                     zip(sock.sizes_quantities, new_sizes)])
+        kept_socks_count += 1
 
+    if kept_socks_count == 0:
+        raise Exception("Не удалось скопировать ни одной позиции: " + ", ".join(incompatible_items))
+    if incompatible_items:
+        flash(message="Из скопированного заказа были удалены позиции: " + ", ".join(incompatible_items), category="warning")
     return new_order
 
 
@@ -589,11 +593,6 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
 def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) -> Order:
     incompatible_items = []
     kept_parfum_count = 0
-    countries_without_rd = {
-        country.strip().upper()
-        for country in get_rd_countries(settings.Parfum.CATEGORY_PROCESS)
-    }
-
     for parfum in order_category_list:
         try:
             trademark = validate_parfum_trademark(parfum.trademark)
@@ -604,10 +603,10 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
             )
             continue
 
-        if not _has_rd_fields(parfum) and (parfum.country or '').strip().upper() not in countries_without_rd:
+        if _check_parfum_compatibility(parfum):
             incompatible_items.append(
                 f"позиция с товарным знаком '{trademark}' не скопирована: "
-                f"страна '{parfum.country or ''}' отсутствует в списке стран для парфюма без РД"
+                f"страна '{parfum.country or ''}' отсутствует в допустимом списке для парфюма"
             )
             continue
 
@@ -651,7 +650,12 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
 
 
 def save_copy_order_cosmetics(order_category_list: list[Cosmetics], new_order: Order) -> Order:
+    incompatible_items = []
     for cosmetics in order_category_list:
+        country_error = _check_country_by_rd(cosmetics)
+        if country_error:
+            incompatible_items.append(str(country_error))
+            continue
         new_cosmetics = Cosmetics(
             trademark=normalize_trademark_placeholder(cosmetics.trademark),
             type=cosmetics.type,
@@ -682,11 +686,20 @@ def save_copy_order_cosmetics(order_category_list: list[Cosmetics], new_order: O
             fast_order_company_id=cosmetics.fast_order_company_id,
         )
         append_or_merge_position(new_order.cosmetics, new_cosmetics, settings.Cosmetics.CATEGORY)
+    if not new_order.cosmetics:
+        raise Exception("Не удалось скопировать ни одной позиции: " + ", ".join(incompatible_items))
+    if incompatible_items:
+        flash(message="Из скопированного заказа были удалены позиции: " + ", ".join(incompatible_items), category="warning")
     return new_order
 
 
 def save_copy_order_toys(order_category_list: list[Toys], new_order: Order) -> Order:
+    incompatible_items = []
     for toy in order_category_list:
+        country_error = _check_country_by_rd(toy)
+        if country_error:
+            incompatible_items.append(str(country_error))
+            continue
         new_toys = Toys(
             trademark=normalize_trademark_placeholder(toy.trademark),
             type=toy.type,
@@ -719,6 +732,10 @@ def save_copy_order_toys(order_category_list: list[Toys], new_order: Order) -> O
             fast_order_company_id=toy.fast_order_company_id,
         )
         append_or_merge_position(new_order.toys, new_toys, settings.Toys.CATEGORY)
+    if not new_order.toys:
+        raise Exception("Не удалось скопировать ни одной позиции: " + ", ".join(incompatible_items))
+    if incompatible_items:
+        flash(message="Из скопированного заказа были удалены позиции: " + ", ".join(incompatible_items), category="warning")
     return new_order
 
 

@@ -7,7 +7,7 @@ from typing import Optional, Union
 
 from config import settings
 from logger import logger
-from tezaurus.runtime_catalogs import is_allowed_color, is_allowed_country
+from tezaurus.runtime_catalogs import is_allowed_color, is_allowed_country_for_rd
 from utilities.check_tnved import TnvedChecker
 from utilities.download import ShoesProcessor
 from utilities.support import upload_divide_sizes_quantities
@@ -167,20 +167,9 @@ class ValidateShoesMixin:
         country_value = value.upper().strip()
         order_list[row_num - settings.Shoes.UPLOAD_STANDART_ROW][pos] = country_value
 
-        if not is_allowed_country(country_value):
+        if not is_allowed_country_for_rd(country_value, settings.Shoes.CATEGORY_PROCESS, has_rd):
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Shoes.UPLOAD_COUNTRY_ERROR}"
 
-        # if has_rd:
-        #     allowed = settings.COUNTRIES_LIST
-        #     if country_value not in allowed:
-        #         return f"{val_error_start(row_num=row_num, col=col)} {settings.Shoes.UPLOAD_COUNTRY_ERROR}"
-        # else:
-        #     allowed = settings.SHOES_COUNTRIES_RD
-        #     if country_value not in allowed:
-        #         return (
-        #             f"{val_error_start(row_num=row_num, col=col)} {settings.Shoes.UPLOAD_COUNTRY_ERROR} "
-        #             f"Допустимые страны без РД: {allowed}"
-        #         )
 
     @staticmethod
     @empty_value

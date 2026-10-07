@@ -22,7 +22,7 @@ from utilities.saving_helpers import get_clothes_size_type, get_socks_size_type,
 from utilities.support import check_forbidden_words, is_linen_kpb_type, parse_linen_kpb_set_items
 from utilities.validators import ValidatorProcessor
 from tezaurus.processing_companies import PROCESSING_COMPANIES_BATCH_LIMIT, ProcessingCompaniesClient
-from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries, get_clothes_tnved_pairs_for_types
+from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries, get_clothes_tnved_pairs_for_types, is_allowed_country_for_rd
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
 from views.main.categories.cosmetics.subcategories import CosmeticsSubcategories, \
     get_subcategory_config as get_cosmetics_subcategory_config
@@ -365,8 +365,9 @@ def _get_product_cards_rd_countries(category_process: str) -> list[str]:
     return get_rd_countries(category_process)
 
 
-def _get_subcategory_default_countries(subcategory_config: dict[str, Any]) -> tuple[str, ...]:
-    return tuple(country.upper() for country in subcategory_config["default_countries"])
+def _get_subcategory_default_countries(subcategory_config: dict[str, Any], category: str) -> tuple[str, ...]:
+    countries = get_rd_countries(category) or subcategory_config["default_countries"]
+    return tuple(country.upper() for country in countries)
 
 
 def _get_all_countries_upper() -> tuple[str, ...]:
@@ -558,7 +559,7 @@ def helper_cosmetics_info(subcategory: str | None) -> Union[Response, dict[str, 
     usage_term_types = subcategory_config["usage_term_types"]
     content_type_choices = subcategory_config["content_type_choices"]
     for_children_choices = subcategory_config["for_children_choices"]
-    countries = _get_subcategory_default_countries(subcategory_config)
+    countries = _get_subcategory_default_countries(subcategory_config, settings.Cosmetics.CATEGORY_PROCESS)
     rd_countries = _get_all_countries_upper()
     rd_description = settings.RD_DESCRIPTION
     rd_types_list = settings.RD_TYPES
@@ -596,7 +597,7 @@ def helper_toys_info(subcategory: str | None) -> Union[Response, dict[str, Any]]
     min_child_age_choices = subcategory_config["min_child_age_choices"]
     usage_term_types = subcategory_config["usage_term_types"]
     service_life_types = subcategory_config["service_life_types"]
-    countries = _get_subcategory_default_countries(subcategory_config)
+    countries = _get_subcategory_default_countries(subcategory_config, settings.Toys.CATEGORY_PROCESS)
     rd_countries = _get_all_countries_upper()
     rd_description = settings.RD_DESCRIPTION
     rd_types_list = settings.RD_TYPES
@@ -649,6 +650,10 @@ def validate_card_form(category_process: str, subcategory: str, form_data: Immut
     check_forbidden_words(form_data.get("trademark", "").strip(), "trademark")
     if category_process == settings.Parfum.CATEGORY_PROCESS:
         validate_parfum_trademark(form_data.get("trademark"))
+    if category_process not in (settings.Cosmetics.CATEGORY_PROCESS, settings.Toys.CATEGORY_PROCESS):
+        has_rd = str(form_data.get("has_rd") or "").strip().lower() in {"on", "1", "true", "yes"}
+        if not is_allowed_country_for_rd(form_data.get("country"), category_process, has_rd):
+            raise ValueError("Выберите допустимое значение поля 'Страна'.")
     category_title = CATEGORIES_COMMON.get(category_process).get('title').lower()
 
     # 2. Цвета (кроме парфюма)

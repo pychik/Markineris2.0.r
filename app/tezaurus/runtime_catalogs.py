@@ -358,6 +358,12 @@ def is_allowed_country(country: str) -> bool:
     return (country or "").strip().upper() in set(get_all_countries())
 
 
+def is_allowed_country_for_rd(country: str, category: str, has_rd: bool, *, default_countries=()) -> bool:
+    """Check a country against the active catalog for this category and RD state."""
+    allowed = get_all_countries() if has_rd else (get_rd_countries(category) or default_countries)
+    return (country or "").strip().upper() in {str(value).strip().upper() for value in allowed}
+
+
 def get_clothes_tnved_types(subcategory: str | None, *, is_cards: bool = False) -> list[str]:
     normalized_subcategory = _normalize_subcategory(subcategory)
     if not _is_supported_clothes_subcategory(normalized_subcategory):

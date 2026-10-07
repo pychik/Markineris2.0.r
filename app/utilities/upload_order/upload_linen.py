@@ -6,7 +6,7 @@ from typing import Optional, Union
 
 from config import settings
 from logger import logger
-from tezaurus.runtime_catalogs import is_allowed_color, is_allowed_country
+from tezaurus.runtime_catalogs import is_allowed_color, is_allowed_country_for_rd
 from utilities.check_tnved import TnvedChecker
 from utilities.upload_order.upload_common import empty_value, val_error_start, UploadCategory, handle_upload_exceptions, \
     check_article_value, normalize_article_placeholder, normalize_trademark_placeholder
@@ -166,19 +166,8 @@ class ValidateLinenMixin:
         """
         country_value = value.upper().strip()
         order_list[row_num - settings.Linen.UPLOAD_STANDART_ROW][pos] = country_value
-        if not is_allowed_country(country_value):
+        if not is_allowed_country_for_rd(country_value, settings.Linen.CATEGORY_PROCESS, has_rd):
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Linen.UPLOAD_COUNTRY_ERROR}"
-        # if has_rd:
-        #     allowed = settings.COUNTRIES_LIST
-        #     if country_value not in allowed:
-        #         return f"{val_error_start(row_num=row_num, col=col)} {settings.Linen.UPLOAD_COUNTRY_ERROR}"
-        # else:
-        #     allowed = settings.LINEN_COUNTRIES_RD
-        #     if country_value not in allowed:
-        #         return (
-        #             f"{val_error_start(row_num=row_num, col=col)} {settings.Linen.UPLOAD_COUNTRY_ERROR} "
-        #             f"Допустимые страны без РД: {allowed}"
-        #         )
 
     @staticmethod
     @empty_value

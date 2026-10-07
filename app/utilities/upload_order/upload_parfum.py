@@ -7,7 +7,7 @@ from typing import Optional, Union
 
 from config import settings
 from logger import logger
-from tezaurus.runtime_catalogs import get_all_countries, get_rd_countries
+from tezaurus.runtime_catalogs import is_allowed_country_for_rd
 from utilities.check_tnved import TnvedChecker
 from utilities.download import ParfumProcessor
 from utilities.saving_helpers import PARFUM_TRADEMARK_REQUIRED_ERROR, validate_parfum_trademark
@@ -100,10 +100,7 @@ class ValidateParfumMixin:
         """
         country_value = value.upper().strip()
         order_list[row_num - settings.Parfum.UPLOAD_STANDART_ROW][pos] = country_value
-        allowed_countries = (
-            get_all_countries() if has_rd else get_rd_countries(settings.Parfum.CATEGORY_PROCESS)
-        )
-        if country_value not in allowed_countries:
+        if not is_allowed_country_for_rd(country_value, settings.Parfum.CATEGORY_PROCESS, has_rd):
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Parfum.UPLOAD_COUNTRY_ERROR}"
 
     @staticmethod

@@ -52,7 +52,7 @@ from utilities.pdf_processor import get_first_page_as_image
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.validators import ValidatorProcessor, is_valid_mark_type_full, validate_order_comment_length, \
     validate_and_normalize_company_fields
-from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries
+from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries, is_allowed_country_for_rd
 from views.crm.schema import CrmDefaults
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
 from .categories_data.subcategories_data import ClothesSubcategories, Category
@@ -353,6 +353,22 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
         subcategory = request.view_args.get('subcategory', '')
     if not Category.check_subcategory(category=category, subcategory=subcategory):
         return jsonify(dict(status='error', message=settings.Messages.STRANGE_REQUESTS + 'нет такой подкатегории'))
+
+    country_categories = {
+        settings.Clothes.CATEGORY: settings.Clothes.CATEGORY_PROCESS,
+        settings.Socks.CATEGORY: settings.Socks.CATEGORY_PROCESS,
+        settings.Shoes.CATEGORY: settings.Shoes.CATEGORY_PROCESS,
+        settings.Linen.CATEGORY: settings.Linen.CATEGORY_PROCESS,
+        settings.Parfum.CATEGORY: settings.Parfum.CATEGORY_PROCESS,
+    }
+    if category in country_categories:
+        has_rd = all(form_data_raw.get(field) for field in ("rd_type", "rd_name", "rd_date"))
+        if not is_allowed_country_for_rd(form_data_raw.get("country"), country_categories[category], has_rd):
+            message = "Выберите допустимое значение поля 'Страна'."
+            if o_id and not p_id:
+                return jsonify(dict(status='error', message=message))
+            flash(message=message, category='error')
+            return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=o_id, subcategory=subcategory))
 
     # optimise it
     color = form_data_raw.get('color')

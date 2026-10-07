@@ -1,5 +1,5 @@
 from config import settings
-from models import Shoe, Linen, Parfum, Socks, Clothes
+from models import Shoe, Linen, Parfum, Socks, Clothes, Cosmetics, Toys
 from tezaurus.runtime_catalogs import (
     get_all_countries,
     get_clothes_tnved_codes,
@@ -47,7 +47,15 @@ def _get_countries_without_rd(item) -> list[str]:
     if isinstance(item, Parfum):
         return get_rd_countries(settings.Parfum.CATEGORY_PROCESS)
 
+    if isinstance(item, Cosmetics):
+        from views.main.categories.cosmetics.subcategories import get_subcategory_config
+        config = get_subcategory_config(item.subcategory) or {}
+        return get_rd_countries(settings.Cosmetics.CATEGORY_PROCESS) or list(config.get("default_countries") or ())
 
+    if isinstance(item, Toys):
+        from views.main.categories.toys.subcategories import get_subcategory_config
+        config = get_subcategory_config(item.subcategory) or {}
+        return get_rd_countries(settings.Toys.CATEGORY_PROCESS) or list(config.get("default_countries") or ())
 
     # если вдруг неизвестная модель — безопасный дефолт
     return get_all_countries()
@@ -154,10 +162,8 @@ def _check_clothes_compatibility(clothes) -> str | bool:
     sizes_ok = not size_errors
 
     # --- Итог ---
-    # country_err = _check_country_by_rd(clothes)
-
-    # if gender_ok and tnved_ok and sizes_ok and not country_err:
-    if type_ok and gender_ok and tnved_ok and sizes_ok:
+    country_err = _check_country_by_rd(clothes)
+    if type_ok and gender_ok and tnved_ok and sizes_ok and not country_err:
         return False
 
     # Формируем короткое описание для отчёта
@@ -173,7 +179,7 @@ def _check_clothes_compatibility(clothes) -> str | bool:
     if not type_ok:
         base = f"{base} — недопустимый вид товара для подкатегории {cl_subcat or 'common'}"
 
-    # base = _append_err(base, country_err)
+    base = _append_err(base, country_err)
 
     return base
 
@@ -222,12 +228,9 @@ def _check_linen_compatibility(linen) -> str | bool:
         errors.append(f"[{t_bad} {tt_bad}]")
 
     # --- Страна (универсально) ---
-    # country_err = _check_country_by_rd(linen)
-    # if country_err:
-    #     if errors:
-    #         errors[-1] = _append_err(errors[-1], country_err)
-    #     else:
-    #         errors.append(str(country_err))
+    country_err = _check_country_by_rd(linen)
+    if country_err:
+        errors.append(str(country_err))
 
     if not errors:
         return False
@@ -252,11 +255,10 @@ def _check_shoes_compatibility(shoe: Shoe) -> str | bool:
     lining_bad = s_material_lining in excepted
 
     # --- Страна ---
-    # country_err = _check_country_by_rd(shoe)
+    country_err = _check_country_by_rd(shoe)
 
     # --- Всё корректно ---
-    # if not top_bad and not lining_bad and not country_err:
-    if not top_bad and not lining_bad:
+    if not top_bad and not lining_bad and not country_err:
         return False
 
     # --- База по материалам ---
@@ -265,7 +267,7 @@ def _check_shoes_compatibility(shoe: Shoe) -> str | bool:
     base = f"[Материал верха {top}, Материал подкладки {linen}]"
 
     # --- Добавляем страну ---
-    # base = _append_err(base, country_err)
+    base = _append_err(base, country_err)
 
     return base
 
