@@ -186,6 +186,8 @@ def module_testing_processing_companies_select():
             category=processing_request.category,
             origin=processing_request.origin,
         )
+        if response_payload.get('ok') is False:
+            return jsonify({'status': 'error', 'message': response_payload.get('message', '')}), 409
     except ValueError as exc:
         return jsonify({'status': 'error', 'message': str(exc)}), 400
     except TezaurusConfigurationError as exc:

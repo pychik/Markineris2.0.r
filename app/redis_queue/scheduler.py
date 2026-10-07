@@ -88,13 +88,14 @@ scheduler_dynamic.cron(
     queue_name=settings.RQ_DYNSCHEDULER_QUEUE_NAME
 )
 
-scheduler.cron(
-    settings.TEZAURUS_SYNC_CRON,
-    func=sync_tezaurus_cache,
-    on_success=on_success_periodic_task,
-    on_failure=on_failure_periodic_task,
-    queue_name=settings.RQ_SCHEDULER_QUEUE_NAME,
-)
+if settings.TEZAURUS_SYNC_ENABLED:
+    scheduler.cron(
+        settings.TEZAURUS_SYNC_CRON,
+        func=sync_tezaurus_cache,
+        on_success=on_success_periodic_task,
+        on_failure=on_failure_periodic_task,
+        queue_name=settings.RQ_SCHEDULER_QUEUE_NAME,
+    )
 
 scheduler.cron(
     "5 9,21 * * *",

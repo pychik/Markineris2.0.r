@@ -1,6 +1,11 @@
 from config import settings
 from models import Shoe, Linen, Parfum, Socks, Clothes
-from tezaurus.runtime_catalogs import get_all_countries, get_rd_countries
+from tezaurus.runtime_catalogs import (
+    get_all_countries,
+    get_clothes_tnved_codes,
+    get_clothes_tnved_genders,
+    get_rd_countries,
+)
 from utilities.categories_data.accessories_data import (
     GLOVES_TNVEDS,
     GLOVES_TYPES,
@@ -9,10 +14,8 @@ from utilities.categories_data.accessories_data import (
     SHAWLS_TNVEDS,
     SHAWLS_TYPES,
 )
-from utilities.categories_data.clothes_common.tnved_processor import get_tnved_codes_for_gender
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVEDS, SWIMMING_ACCESSORIES_TYPES
-from utilities.categories_data.underwear_data import UNDERWEAR_TYPE_GENDERS, UNDERWEAR_TNVED_DICT
 
 
 def rd_name_clean(value) -> str:
@@ -106,15 +109,8 @@ def _check_clothes_compatibility(clothes) -> str | bool:
     type_ok = True
 
     if need_gender:
-        match cl_subcat:
-            case ClothesSubcategories.underwear.value:
-                correct_genders = UNDERWEAR_TYPE_GENDERS.get(cl_type.upper(), [])
-                gender_ok = bool(cl_gender) and (cl_gender in correct_genders)
-                data = UNDERWEAR_TNVED_DICT
-            case _:
-                correct_genders = settings.Clothes.CLOTHES_TYPE_GENDERS.get(cl_type.upper(), [])
-                gender_ok = bool(cl_gender) and (cl_gender in correct_genders)
-                data = settings.Clothes.CLOTHES_TNVED_DICT
+        correct_genders = get_clothes_tnved_genders(cl_subcat, cl_type)
+        gender_ok = bool(cl_gender) and cl_gender in correct_genders
     else:
         gender_ok = True
         match cl_subcat:
@@ -139,10 +135,7 @@ def _check_clothes_compatibility(clothes) -> str | bool:
     tnved_ok = True
     if cl_tnved:
         if need_gender:
-            try:
-                allowed_tnveds = get_tnved_codes_for_gender(type_name=cl_type, gender=cl_gender, data=data) or ()
-            except Exception:
-                allowed_tnveds = ()
+            allowed_tnveds = get_clothes_tnved_codes(cl_subcat, cl_type, cl_gender)
         allowed_tnveds = {_norm_tnved(x) for x in allowed_tnveds}
         tnved_ok = _norm_tnved(cl_tnved) in allowed_tnveds
 

@@ -1800,14 +1800,14 @@ def _save_card_processing_company(
 ) -> dict[str, Any]:
     company = _find_processing_company_payload(response_payload)
     if not company:
-        raise ValueError(f"Тезаурус не вернул компанию для карточки {card.id}")
+        raise ValueError(f"Компания обработки не найдена для карточки {card.id}")
 
     external_id = _processing_company_value(company, "id", "external_id", "company_id")
     title = _processing_company_value(company, "title", "name", "company_name")
     inn = _processing_company_value(company, "inn", "company_idn")
 
     if not any((external_id, title, inn)):
-        raise ValueError(f"Тезаурус вернул компанию без идентификатора для карточки {card.id}")
+        raise ValueError(f"У компании обработки нет идентификатора для карточки {card.id}")
 
     label = " ".join(part for part in (inn, title) if part)
     card.processing_info = (label or title or external_id)[:100]
@@ -1925,7 +1925,7 @@ def assign_tezaurus_processing_companies(
         batch_payload = client.select_batch(batch_items)
         response_items = batch_payload.get("items")
         if not isinstance(response_items, list):
-            raise ValueError("Тезаурус вернул некорректный batch-ответ без items")
+            raise ValueError("Локальный подбор вернул некорректный ответ без items")
 
         response_by_client_id = {
             str(item.get("client_id")): item
@@ -1938,7 +1938,7 @@ def assign_tezaurus_processing_companies(
             if not item_payload:
                 errors.append({
                     "card_id": card.id,
-                    "message": "Тезаурус не вернул batch-item",
+                    "message": "локальный подбор не вернул карточку",
                 })
                 continue
 
@@ -1955,7 +1955,7 @@ def assign_tezaurus_processing_companies(
             if not _find_processing_company_payload(item_payload):
                 errors.append({
                     "card_id": card.id,
-                    "message": "Тезаурус вернул ответ без компании",
+                    "message": "локальный подбор не нашёл компанию",
                 })
                 continue
 

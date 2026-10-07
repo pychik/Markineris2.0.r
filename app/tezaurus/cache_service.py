@@ -2,15 +2,20 @@ from __future__ import annotations
 
 from typing import Any
 
+from config import settings
+from tezaurus_fallback.repository import LocalTezaurusRepository
+
 from .constants import DEFAULT_TNVED_CATEGORY_SLUG
 from .redis_repository import RedisTezaurusRepository
 
 
 class TezaurusCacheService:
-    """Read-only API for getting dictionaries from Redis cache."""
+    """Read-only API for the configured Tezaurus catalog source."""
 
-    def __init__(self, *, repository: RedisTezaurusRepository | None = None) -> None:
-        self.repository = repository or RedisTezaurusRepository()
+    def __init__(self, *, repository: RedisTezaurusRepository | LocalTezaurusRepository | None = None) -> None:
+        self.repository = repository if repository is not None else (
+            RedisTezaurusRepository() if settings.TEZAURUS_SYNC_ENABLED else LocalTezaurusRepository()
+        )
 
     def get_versions(self) -> dict[str, Any]:
         return self.repository.get_versions()

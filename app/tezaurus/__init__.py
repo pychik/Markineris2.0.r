@@ -1,4 +1,4 @@
-"""Redis-backed Tezaurus cache module."""
+"""Tezaurus integration facade for Markineris catalogs and company selection."""
 
 from .api_client import TezaurusApiClient
 from .cache_service import TezaurusCacheService

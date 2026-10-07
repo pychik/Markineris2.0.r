@@ -94,8 +94,8 @@ CARD_SUBCATEGORY_ORDER = {
 
 INTERACTIVE_TEZAURUS_TIMEOUT = 8
 PROCESSING_COMPANY_REASSIGNMENT_ERROR = (
-    "Редактирование не сохранено: не удалось связаться с Tezaurus или подобрать новую "
-    "компанию обработки после смены страны. Проверьте сеть/Tezaurus и попробуйте снова."
+    "Редактирование не сохранено: не удалось подобрать новую компанию обработки "
+    "после смены страны. Попробуйте снова позже."
 )
 DISABLED_CARD_CATEGORY_MESSAGE = "Категория игрушек временно недоступна в карточках товаров."
 
@@ -184,7 +184,9 @@ def _card_processing_origin(*, category: str, country: str | None) -> str:
 
 
 def _interactive_processing_companies_client() -> ProcessingCompaniesClient:
-    return ProcessingCompaniesClient(api_client=TezaurusApiClient(timeout=INTERACTIVE_TEZAURUS_TIMEOUT))
+    if settings.TEZAURUS_SYNC_ENABLED:
+        return ProcessingCompaniesClient(api_client=TezaurusApiClient(timeout=INTERACTIVE_TEZAURUS_TIMEOUT))
+    return ProcessingCompaniesClient()
 
 
 def _card_processing_company_response(card: ProductCard) -> dict:
@@ -1130,7 +1132,7 @@ def h_send_cards_moderate():
         return jsonify({"status": "error", "error": str(exc)}), 503
     except TezaurusApiError as exc:
         db.session.rollback()
-        logger.exception("Tezaurus API error in send_cards_moderate")
+        logger.exception("Processing company selection error in send_cards_moderate")
         return jsonify({"status": "error", "error": str(exc)}), 502
     except Exception:
         db.session.rollback()

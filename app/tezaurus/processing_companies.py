@@ -4,9 +4,13 @@ from dataclasses import dataclass
 from typing import Any
 
 from config import settings
+from redis.exceptions import RedisError
+
+from tezaurus_fallback.processing_companies import LocalProcessingCompanySelector
 
 from .api_client import TezaurusApiClient
 from .constants import API_PATH_PROCESSING_COMPANIES_SELECT, API_PATH_PROCESSING_COMPANIES_SELECT_BATCH
+from .exceptions import TezaurusApiError
 
 
 PROCESSING_COMPANIES_BATCH_LIMIT = 200
@@ -90,7 +94,12 @@ class ProcessingCompaniesRequest:
 
 class ProcessingCompaniesClient:
     def __init__(self, *, api_client: TezaurusApiClient | None = None) -> None:
-        self.api_client = api_client or TezaurusApiClient()
+        if settings.TEZAURUS_SYNC_ENABLED:
+            self.api_client = api_client or TezaurusApiClient()
+            self.local_selector = None
+        else:
+            self.api_client = None
+            self.local_selector = LocalProcessingCompanySelector()
 
     @staticmethod
     def normalize_category(category: str) -> str:
@@ -141,11 +150,16 @@ class ProcessingCompaniesClient:
 
     def select(self, *, category: str, origin: str) -> dict[str, Any]:
         request_payload = self.build_request(category=category, origin=origin).as_payload()
+        if self.local_selector is not None:
+            try:
+                return self.local_selector.select(**request_payload)
+            except RedisError as exc:
+                raise TezaurusApiError("Локальный выбор компании временно недоступен") from exc
         return self.api_client.post_json(API_PATH_PROCESSING_COMPANIES_SELECT, request_payload)
 
     def select_by_country(self, *, category: str, country: str) -> dict[str, Any]:
         request_payload = self.build_request(category=category, country=country).as_payload()
-        return self.api_client.post_json(API_PATH_PROCESSING_COMPANIES_SELECT, request_payload)
+        return self.select(**request_payload)
 
     def select_batch(self, items: list[dict[str, str]]) -> dict[str, Any]:
         if not items:
@@ -165,10 +179,13 @@ class ProcessingCompaniesClient:
             )
             request_items.append(processing_request.as_batch_payload(client_id))
 
-        return self.api_client.post_json(
-            API_PATH_PROCESSING_COMPANIES_SELECT_BATCH,
-            {"items": request_items},
-        )
+        if self.local_selector is not None:
+            try:
+                return self.local_selector.select_batch(request_items)
+            except RedisError as exc:
+                raise TezaurusApiError("Локальный выбор компании временно недоступен") from exc
+
+        return self.api_client.post_json(API_PATH_PROCESSING_COMPANIES_SELECT_BATCH, {"items": request_items})
 
 
 def build_default_processing_companies_client() -> ProcessingCompaniesClient:

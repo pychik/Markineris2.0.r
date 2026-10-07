@@ -182,7 +182,7 @@ class Settings(BaseSettings):
     TEZAURUS_CA_CERT: str = os.getenv('TEZAURUS_CA_CERT', '')
     TEZAURUS_REDIS_PREFIX: str = os.getenv('TEZAURUS_REDIS_PREFIX', 'tezaurus:v1')
     TEZAURUS_SYNC_CRON: str = os.getenv('TEZAURUS_SYNC_CRON', '*/5 * * * *')
-    TEZAURUS_SYNC_ENABLED: bool = _env_flag('TEZAURUS_SYNC_ENABLED', '1')
+    TEZAURUS_SYNC_ENABLED: bool = _env_flag('TEZAURUS_SYNC_ENABLED', '0')
     FSA_BASE_URL: str = os.getenv('FSA_BASE_URL', 'https://pub.fsa.gov.ru')
     FSA_LOGIN_USERNAME: str = os.getenv('FSA_LOGIN_USERNAME', 'anonymous')
     FSA_LOGIN_PASSWORD: str = os.getenv('FSA_LOGIN_PASSWORD', 'hrgesf7HDR67Bd')
