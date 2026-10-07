@@ -4,6 +4,7 @@ from functools import lru_cache
 
 from config import settings
 from logger import logger
+from tezaurus_fallback.repository import LocalTezaurusRepository
 
 from .cache_service import TezaurusCacheService
 from .key_builder import normalize_tnved_subcategory
@@ -180,6 +181,11 @@ def _get_cache_service() -> TezaurusCacheService:
     return TezaurusCacheService()
 
 
+@lru_cache(maxsize=1)
+def _get_local_cache_service() -> TezaurusCacheService:
+    return TezaurusCacheService(repository=LocalTezaurusRepository())
+
+
 def _normalize_subcategory(subcategory: str | None) -> str:
     if subcategory in ("", None, "None"):
         return ClothesSubcategories.common.value
@@ -306,7 +312,15 @@ def get_all_countries() -> list[str]:
         if countries:
             return countries
     except Exception:
-        logger.exception("Failed to read countries from Tezaurus Redis cache")
+        logger.exception("Failed to read countries from active Tezaurus catalog")
+
+    if settings.TEZAURUS_SYNC_ENABLED:
+        try:
+            countries = _normalize_str_list(_get_local_cache_service().get_countries(our_rd=False))
+            if countries:
+                return countries
+        except Exception:
+            logger.exception("Failed to read countries from Tezaurus fallback snapshot")
 
     return _normalize_str_list(list(settings.COUNTRIES_LIST))
 
@@ -320,7 +334,17 @@ def get_rd_countries(category: str) -> list[str]:
         if countries:
             return countries
     except Exception:
-        logger.exception("Failed to read RD countries from Tezaurus Redis cache for category %s", normalized_category)
+        logger.exception("Failed to read RD countries from active Tezaurus catalog for category %s", normalized_category)
+
+    if settings.TEZAURUS_SYNC_ENABLED:
+        try:
+            countries = _normalize_str_list(
+                _get_local_cache_service().get_countries(category=normalized_category, our_rd=True)
+            )
+            if countries:
+                return countries
+        except Exception:
+            logger.exception("Failed to read RD countries from Tezaurus fallback snapshot for category %s", normalized_category)
 
     fallback = _RD_FALLBACKS.get(normalized_category, settings.COUNTRIES_LIST)
     return _normalize_str_list(list(fallback))

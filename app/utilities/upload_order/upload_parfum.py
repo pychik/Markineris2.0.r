@@ -7,7 +7,7 @@ from typing import Optional, Union
 
 from config import settings
 from logger import logger
-from tezaurus.runtime_catalogs import is_allowed_country
+from tezaurus.runtime_catalogs import get_all_countries, get_rd_countries
 from utilities.check_tnved import TnvedChecker
 from utilities.download import ParfumProcessor
 from utilities.saving_helpers import PARFUM_TRADEMARK_REQUIRED_ERROR, validate_parfum_trademark
@@ -95,25 +95,16 @@ class ValidateParfumMixin:
     @empty_value
     def _country(value: str, row_num: int, col: str, pos: int, order_list: list, has_rd: bool = False) -> Optional[str]:
         """
-        Если есть хоть одно поле РД -> страна проверяется по общему списку COUNTRIES_LIST.
-        Если РД нет -> страна проверяется по спец-списку PARFUM_COUNTRIES_RD и при ошибке
-        возвращаем список допустимых стран.
+        С РД используем общий список стран, без РД — список парфюма из
+        активного источника Tezaurus.
         """
         country_value = value.upper().strip()
         order_list[row_num - settings.Parfum.UPLOAD_STANDART_ROW][pos] = country_value
-        if not is_allowed_country(country_value):
+        allowed_countries = (
+            get_all_countries() if has_rd else get_rd_countries(settings.Parfum.CATEGORY_PROCESS)
+        )
+        if country_value not in allowed_countries:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Parfum.UPLOAD_COUNTRY_ERROR}"
-        # if has_rd:
-        #     allowed = settings.COUNTRIES_LIST
-        #     if country_value not in allowed:
-        #         return f"{val_error_start(row_num=row_num, col=col)} {settings.Parfum.UPLOAD_COUNTRY_ERROR}"
-        # else:
-        #     allowed = settings.PARFUM_COUNTRIES_RD
-        #     if country_value not in allowed:
-        #         return (
-        #             f"{val_error_start(row_num=row_num, col=col)} {settings.Parfum.UPLOAD_COUNTRY_ERROR} "
-        #             f"Допустимые страны без РД: {allowed}"
-        #         )
 
     @staticmethod
     @empty_value

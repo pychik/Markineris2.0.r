@@ -9,6 +9,8 @@
 При `TEZAURUS_SYNC_ENABLED=1` возвращается прежняя схема: `TezaurusCacheService`
 читает словари из Redis-кэша, планировщик синхронизирует его с Tezaurus, а
 `ProcessingCompaniesClient` обращается к API Tezaurus. Значение по умолчанию — `0`.
+Для проверок стран при пустом или недоступном Redis-кэше сначала используется
+снимок из `tezaurus_fallback`, затем прежние списки из `settings`.
 После смены флага перезапустите приложение, воркеры и планировщик. Подробности
 локального режима — в `app/tezaurus_fallback/README.md`.
 
