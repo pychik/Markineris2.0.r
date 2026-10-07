@@ -15,7 +15,8 @@ from models import User, Order, Shoe, ShoeQuantitySize, Socks, SocksQuantitySize
 from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.accessories_data import normalize_clothes_type_for_subcategory
 from utilities.helpers.helpers_checks import _check_linen_compatibility, _check_clothes_compatibility, \
-    _check_shoes_compatibility, rd_name_clean
+    _check_shoes_compatibility, _has_rd_fields, rd_name_clean
+from tezaurus.runtime_catalogs import get_rd_countries
 from utilities.exceptions import SizeTypeException
 from utilities.saving_helpers import append_or_merge_position, get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, \
     normalize_length_width_size_type, normalize_length_width_size_value, normalize_trademark_placeholder, process_input_str, \
@@ -588,6 +589,10 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
 def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) -> Order:
     incompatible_items = []
     kept_parfum_count = 0
+    countries_without_rd = {
+        country.strip().upper()
+        for country in get_rd_countries(settings.Parfum.CATEGORY_PROCESS)
+    }
 
     for parfum in order_category_list:
         try:
@@ -596,6 +601,13 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
             incompatible_items.append(
                 f"позиция с товарным знаком '{parfum.trademark or ''}' не скопирована: "
                 f"для парфюма нужен корректный товарный знак"
+            )
+            continue
+
+        if not _has_rd_fields(parfum) and (parfum.country or '').strip().upper() not in countries_without_rd:
+            incompatible_items.append(
+                f"позиция с товарным знаком '{trademark}' не скопирована: "
+                f"страна '{parfum.country or ''}' отсутствует в списке стран для парфюма без РД"
             )
             continue
 
@@ -624,13 +636,13 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
 
     if kept_parfum_count == 0:
         raise Exception(
-            "Не удалось скопировать ни одной позиции: все позиции парфюма без корректного товарного знака."
+            "Не удалось скопировать ни одной позиции парфюма: товарный знак или страна без РД не соответствуют текущим требованиям."
             + (" Подробности: " + ", ".join(incompatible_items) if incompatible_items else "")
         )
 
     if incompatible_items:
         flash(
-            message="Из скопированного заказа были удалены позиции парфюма без корректного товарного знака. "
+            message="Из скопированного заказа были удалены позиции парфюма с некорректным товарным знаком или страной без РД. "
                     "Обратите внимание: " + ", ".join(incompatible_items),
             category="warning"
         )

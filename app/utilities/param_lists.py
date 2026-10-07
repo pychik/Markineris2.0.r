@@ -840,7 +840,6 @@ PARFUM_COUNTRIES_RD = [
     "ФРАНЦИЯ",
     "РОССИЯ",
     "КИТАЙ",
-    "ОАЭ"
 ]
 
 LINEN_COUNTRIES_RD = [
