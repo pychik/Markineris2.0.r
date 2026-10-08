@@ -10,11 +10,8 @@ from redis_queue.connection import conn
 from config import settings
 from logger import logger
 from models import db, RestoreLink, OrderFile, Order, OrderMessage, OrderMessageAttachment
-from utilities.admin.h_finance_control import h_su_wo_transactions
 from utilities.minio_service.services import get_s3_service
-from views.crm.helpers import helpers_move_orders_to_processed, helper_auto_new_cancel_order
 from views.main.product_cards.company_stats import save_product_card_company_stats_snapshot
-from views.main.product_cards.crm.helpers import helper_reject_cards_by_rd_date_to_today
 from utilities.chat_attachments import (
     DELETED_CHAT_ATTACHMENT_CONTENT_TYPE,
     build_deleted_chat_attachment_storage_name,
@@ -154,28 +151,6 @@ def delete_old_order_chat_attachments(retention_days: int = 14) -> dict[str, int
         "marked_order_chat_attachment_placeholders": marked_placeholders,
         "failed_order_chat_attachment_files": failed_files,
         "retention_days": retention_days,
-    }
-
-
-def daily_tasks():
-    """
-    scheduler daily tasks united in one func
-    :return:
-    """
-
-    # change maintenance mode to ON Hhere
-    h_su_wo_transactions()
-    helpers_move_orders_to_processed()
-    helper_auto_new_cancel_order()
-    helper_reject_cards_by_rd_date_to_today()
-    order_chat_cleanup = delete_old_order_chat_attachments()
-    # change maintenance mode to OFF here
-    return {
-        "status": "transactions performed; orders stage changes performed",
-        "order_chat_attachments_eligible": order_chat_cleanup["eligible_order_chat_attachments"],
-        "order_chat_attachment_files_deleted": order_chat_cleanup["deleted_order_chat_attachment_files"],
-        "order_chat_attachment_placeholders_marked": order_chat_cleanup["marked_order_chat_attachment_placeholders"],
-        "order_chat_attachment_files_failed": order_chat_cleanup["failed_order_chat_attachment_files"],
     }
 
 

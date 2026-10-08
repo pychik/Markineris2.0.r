@@ -6,9 +6,13 @@ from rq_scheduler.scheduler import Scheduler
 from config import settings
 from redis_queue.callbacks import on_success_periodic_task, on_failure_periodic_task
 from redis_queue.connection import conn
-from redis_queue.tasks import (daily_tasks, delete_order_files_from_server, delete_restore_link_periodic_task,
+from redis_queue.tasks import (delete_old_order_chat_attachments, delete_order_files_from_server,
+                               delete_restore_link_periodic_task,
                                backup_database, sync_tezaurus_cache, save_product_card_company_stats_snapshot)
-from views.crm.helpers import helpers_crm_mpo_so_task, helper_auto_problem_cancel_order
+from utilities.admin.h_finance_control import h_su_wo_transactions
+from views.crm.helpers import (helpers_crm_mpo_so_task, helper_auto_problem_cancel_order,
+                               helpers_move_orders_to_processed, helper_auto_new_cancel_order)
+from views.main.product_cards.crm.helpers import helper_reject_cards_by_rd_date_to_today
 
 warnings.filterwarnings("ignore")
 
@@ -42,10 +46,42 @@ for job in scheduler_dynamic.get_jobs():
 
 scheduler.cron(
     "0 0 * * *",
-    func=daily_tasks,
+    func=h_su_wo_transactions,
     on_success=on_success_periodic_task,
     on_failure=on_failure_periodic_task,
     queue_name=settings.RQ_SCHEDULER_QUEUE_NAME
+)
+
+scheduler.cron(
+    "5 0 * * *",
+    func=helpers_move_orders_to_processed,
+    on_success=on_success_periodic_task,
+    on_failure=on_failure_periodic_task,
+    queue_name=settings.RQ_SCHEDULER_QUEUE_NAME,
+)
+
+scheduler.cron(
+    "10 0 * * *",
+    func=helper_auto_new_cancel_order,
+    on_success=on_success_periodic_task,
+    on_failure=on_failure_periodic_task,
+    queue_name=settings.RQ_SCHEDULER_QUEUE_NAME,
+)
+
+scheduler.cron(
+    "15 0 * * *",
+    func=helper_reject_cards_by_rd_date_to_today,
+    on_success=on_success_periodic_task,
+    on_failure=on_failure_periodic_task,
+    queue_name=settings.RQ_SCHEDULER_QUEUE_NAME,
+)
+
+scheduler.cron(
+    "20 0 * * *",
+    func=delete_old_order_chat_attachments,
+    on_success=on_success_periodic_task,
+    on_failure=on_failure_periodic_task,
+    queue_name=settings.RQ_SCHEDULER_QUEUE_NAME,
 )
 
 scheduler.cron(
