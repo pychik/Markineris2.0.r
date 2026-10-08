@@ -74,7 +74,7 @@ _DEFAULT_PROCESSING_COMPANIES = [
         "origins": ["rf"],
     },
     {
-        "title": "ИП Хузин Булат Денисович",
+        "title": 'ИП "Хузин Булат Денисович"',
         "inn": "023104386702",
         "is_active": True,
         "categories": ["clothes", "shoes", "parfum"],
@@ -88,21 +88,21 @@ _DEFAULT_PROCESSING_COMPANIES = [
         "origins": ["rf", "import"],
     },
     {
-        "title": "Аврора",
+        "title": 'ООО "Аврора"',
         "inn": "4400023120",
         "is_active": True,
         "categories": ["clothes", "shoes", "parfum"],
         "origins": ["rf", "import"],
     },
     {
-        "title": "Гренада",
+        "title": 'ООО "Гренада"',
         "inn": "4400023137",
         "is_active": True,
         "categories": ["clothes", "shoes", "parfum", "toys", "cosmetics", "home_goods"],
         "origins": ["rf", "import"],
     },
     {
-        "title": "ИП Ишмитов Илья Алексеевич",
+        "title": 'ИП "Ишмитов Илья Алексеевич"',
         "inn": "023103006891",
         "is_active": True,
         "categories": ["clothes", "shoes", "parfum"],
