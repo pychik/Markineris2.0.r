@@ -2,6 +2,7 @@ import time
 import functools
 from copy import deepcopy
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from flask import flash, jsonify, redirect, render_template, request, url_for, Response
 from flask_login import current_user
 from typing import Union, Any
@@ -1418,6 +1419,41 @@ def get_card_ctx(category: str, subcategory: str | None = None) -> dict:
     return ctx
 
 
+def _parfum_card_key(trademark, volume, volume_type) -> tuple:
+    """One perfume card represents one trademark and one stated volume/unit."""
+    volume_value = str(volume or "").strip()
+    try:
+        numeric_volume = Decimal(volume_value.replace(",", "."))
+        if numeric_volume.is_finite():
+            volume_value = numeric_volume
+    except InvalidOperation:
+        pass
+    return (
+        process_input_str(trademark or ""),
+        volume_value,
+        str(volume_type or "").strip(),
+    )
+
+
+def _find_existing_parfum_card(user_id: int, key: tuple, exclude_card_id: int | None = None):
+    query = (
+        db.session.query(Parfum)
+        .join(ProductCard, ProductCard.id == Parfum.card_id)
+        .filter(
+            ProductCard.user_id == user_id,
+            ProductCard.category == settings.Parfum.CATEGORY_PROCESS,
+            ProductCard.status != ModerationStatus.REJECTED,
+            Parfum.trademark == key[0],
+        )
+    )
+    if exclude_card_id is not None:
+        query = query.filter(ProductCard.id != exclude_card_id)
+    return next(
+        (item for item in query if _parfum_card_key(item.trademark, item.volume, item.volume_type) == key),
+        None,
+    )
+
+
 def check_same_fields_if_exists(*, category: str, subcategory: str | None, form_dict: dict):
     """
     Проверяет, существует ли у текущего пользователя товар с тем же ключом
@@ -1428,11 +1464,11 @@ def check_same_fields_if_exists(*, category: str, subcategory: str | None, form_
 
     1. Категория "parfum"
        ------------------
-       Для парфюма товарный знак (trademark) считается уникальным ключом
-       товара у пользователя.
+       Для парфюма ключ товара у пользователя: товарный знак, объём и
+       единица объёма.
 
        Если у текущего пользователя уже существует карточка парфюма
-       с таким же trademark, создание новой карточки запрещено.
+       с таким же ключом, создание новой карточки запрещено.
 
        В этом случае выбрасывается исключение с сообщением:
        - что карточка с таким товарным знаком уже существует;
@@ -1475,7 +1511,7 @@ def check_same_fields_if_exists(*, category: str, subcategory: str | None, form_
         Exception:
             Выбрасывается, если:
             - категория не существует;
-            - для парфюма уже существует карточка с таким trademark;
+            - для парфюма уже существует карточка с таким знаком и объёмом;
             - для остальных категорий найден товар с тем же article + color,
               но значения защищённых полей не совпадают.
 
@@ -1494,29 +1530,23 @@ def check_same_fields_if_exists(*, category: str, subcategory: str | None, form_
     fields_to_lock = list(CARD_FIELDS[category].keys())
 
     # =========================
-    # PARFUM: trademark уникален
+    # PARFUM: товарный знак + объём + единица объёма
     # =========================
     if category == settings.Parfum.CATEGORY_PROCESS:
         trademark = _norm(form_dict.get("trademark"))
         if not trademark:
             return  # или raise
-
-        existing = (
-            db.session.query(model)
-            .join(ProductCard, ProductCard.id == model.card_id)
-            .filter(
-                ProductCard.user_id == current_user.id,
-                ProductCard.category == category,
-                ProductCard.status != ModerationStatus.REJECTED,
-                model.trademark == trademark,
-            )
-            .first()
+        key = _parfum_card_key(trademark, form_dict.get("volume"), form_dict.get("volume_type"))
+        existing = _find_existing_parfum_card(
+            user_id=current_user.id,
+            key=key,
         )
 
         if existing:
             raise Exception(
-                f"У вас уже есть карточка парфюма с товарным знаком '{trademark}' (ID {existing.card_id}). "
-                f"Удалите существующую карточку или измените товарный знак в текущей."
+                f"У вас уже есть карточка парфюма с товарным знаком '{key[0]}' "
+                f"и объёмом {form_dict.get('volume')} {key[2]} (ID {existing.card_id}). "
+                f"Удалите существующую карточку или измените товарный знак, объём либо единицу объёма в текущей."
             )
         return
 
@@ -2204,26 +2234,19 @@ def assert_frozen_fields_unchanged(card: ProductCard, form_data):
 
     if category == settings.Parfum.CATEGORY_PROCESS:
         parfum = card.parfum[0]
-        incoming_trademark = process_input_str(form_data.get("trademark") or "")
-        db_trademark = process_input_str(parfum.trademark or "")
+        incoming_key = _parfum_card_key(
+            form_data.get("trademark"), form_data.get("volume"), form_data.get("volume_type")
+        )
+        current_key = _parfum_card_key(parfum.trademark, parfum.volume, parfum.volume_type)
 
-        if incoming_trademark != db_trademark:
-            existing = (
-                db.session.query(Parfum)
-                .join(ProductCard, ProductCard.id == Parfum.card_id)
-                .filter(
-                    ProductCard.id != card.id,
-                    ProductCard.user_id == card.user_id,
-                    ProductCard.category == category,
-                    ProductCard.status != ModerationStatus.REJECTED,
-                    Parfum.trademark == incoming_trademark,
-                )
-                .first()
+        if incoming_key != current_key:
+            existing = _find_existing_parfum_card(
+                user_id=card.user_id, key=incoming_key, exclude_card_id=card.id
             )
             if existing:
                 raise ValueError(
-                    f"У вас уже есть карточка парфюма с товарным знаком '{incoming_trademark}' "
-                    f"(ID {existing.card_id})."
+                    f"У вас уже есть карточка парфюма с товарным знаком '{incoming_key[0]}' "
+                    f"и объёмом {form_data.get('volume')} {incoming_key[2]} (ID {existing.card_id})."
                 )
 
         # цвета у парфюма нет — пропускаем

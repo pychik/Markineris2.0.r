@@ -392,6 +392,8 @@ function oBCartAddOrMergeItem(payload) {
       subcategory_title: order.subcategory_title || "",
       article: payload.article || "",
       trademark: payload.trademark || "",
+      volume: payload.volume || "",
+      volume_type: payload.volume_type || "",
       size: payload.size || "",
       size_type: payload.size_type || "",
       unit: payload.unit || "",
@@ -483,7 +485,16 @@ function oBCartItemTitleHtml(it) {
   const article = (it.article || "").trim();
   const trademark = (it.trademark || "").trim();
 
-  if (category === "cosmetics" || category === "parfum") {
+  if (category === "parfum") {
+    const volume = String(it.volume || "").trim();
+    const volumeType = String(it.volume_type || "").trim();
+    const volumeLabel = volume
+      ? `<span class="o-b-cart-meta">Объём: ${volume} ${volumeType}</span>`
+      : "";
+    return `<span class="text-truncate">${trademark || "—"}</span>${volumeLabel}`;
+  }
+
+  if (category === "cosmetics") {
     return `<span class="text-truncate">${trademark || "—"}</span>`;
   }
 
@@ -1097,6 +1108,8 @@ function oBCartUpsertFromModalQty(payload) {
       order.items[idx].qty = qty;
       order.items[idx].article = payload.article || order.items[idx].article || "";
       order.items[idx].trademark = payload.trademark || order.items[idx].trademark || "";
+      order.items[idx].volume = payload.volume || order.items[idx].volume || "";
+      order.items[idx].volume_type = payload.volume_type || order.items[idx].volume_type || "";
       order.items[idx].product_type = payload.product_type || order.items[idx].product_type || "";
 
     } else {
@@ -1107,6 +1120,8 @@ function oBCartUpsertFromModalQty(payload) {
         subcategory: payload.subcategory || "",
         article: payload.article || "",
         trademark: payload.trademark || "",
+        volume: payload.volume || "",
+        volume_type: payload.volume_type || "",
         size: payload.size || "",
         size_type: payload.size_type || "",
         unit: payload.unit || "",
@@ -1305,6 +1320,8 @@ document.addEventListener("DOMContentLoaded", () => {
       subcategory: (btn.dataset.subcategory || "").trim(),
       article: (btn.dataset.article || "").trim(),
       trademark: (btn.dataset.trademark || "").trim(),
+      volume: (btn.dataset.volume || "").trim(),
+      volume_type: (btn.dataset.volumeType || "").trim(),
       color: (btn.dataset.color || "").trim(),
       product_type: (btn.dataset.productType || "").trim(),
       size: "", size_type: "", unit: "",

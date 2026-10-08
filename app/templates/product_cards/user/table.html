@@ -59,7 +59,8 @@
                 <td title="Карточка создана пользователем {{ card.created_at.strftime('%Y-%m-%d') }}">
                   {% if item %}
                     {% if card.category == 'parfum' %}
-                      {{ item.trademark or "-" }}
+                      <div>{{ item.trademark or "-" }}</div>
+                      <div class="text-muted" style="font-size: 0.72rem;">{{ item.volume or "-" }} {{ item.volume_type or "" }}</div>
                     {% elif card.category == 'cosmetics' %}
                       <div>{{ item.trademark or "-" }}</div>
                       <div class="text-muted" style="font-size: 0.72rem;">{{ item.type or "-" }}</div>

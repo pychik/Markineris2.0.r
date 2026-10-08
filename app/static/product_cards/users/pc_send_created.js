@@ -53,6 +53,11 @@ function pcRenderSendCreated(cards) {
     return `<div class="text-muted">Нет карточек со статусом “Создана”.</div>`;
   }
 
+  const hasParfum = cards.some(c => c.category === "parfum");
+  const volumeColumnTitle = cards.every(c => c.category === "parfum")
+    ? "Объём и ед. изм."
+    : hasParfum ? "Размеры / объём" : "Размеры";
+
   return `
     <div class="mb-2 d-flex align-items-center gap-2">
       <div class="form-check m-0">
@@ -72,7 +77,7 @@ function pcRenderSendCreated(cards) {
             <th></th>
             <th>Категория</th>
             <th>Артикул / Товарный знак</th>
-            <th>Размеры</th>
+            <th>${volumeColumnTitle}</th>
           </tr>
         </thead>
         <tbody>
@@ -89,7 +94,9 @@ function pcRenderSendCreated(cards) {
                 <div>${c.article || "-"}</div>
                 ${c.color ? `<div class="text-muted" style="font-size:0.72rem;">${c.color}</div>` : ""}
               </td>
-              <td>${c.sizes || "-"}</td>
+              <td>${c.category === "parfum"
+                ? `${c.volume || "-"} ${c.volume_type || ""}`.trim()
+                : (c.sizes || "-")}</td>
             </tr>
           `).join("")}
         </tbody>

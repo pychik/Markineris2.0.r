@@ -956,15 +956,17 @@ def h_get_created_cards():
     cards = []
     for card in cards_raw:
         cfg = CATEGORIES_COMMON.get(card.category, {})
+        main = get_card_entity_for_prefill(card)
         cards.append({
             "id": card.id,
             "category": card.category,
             "category_title": cfg.get("title", card.category),
             "subcategory": crm_card_subcategory_title(card),
             "article": crm_card_article(card),
-            "color": getattr(get_card_entity_for_prefill(card), "color",
-                             None) if card.category != settings.Parfum.CATEGORY_PROCESS else None,
+            "color": getattr(main, "color", None) if card.category != settings.Parfum.CATEGORY_PROCESS else None,
             "sizes": crm_card_sizes_label(card)[1],
+            "volume": getattr(main, "volume", None) if card.category == settings.Parfum.CATEGORY_PROCESS else None,
+            "volume_type": getattr(main, "volume_type", None) if card.category == settings.Parfum.CATEGORY_PROCESS else None,
         })
 
     return jsonify(status="success", cards=cards)

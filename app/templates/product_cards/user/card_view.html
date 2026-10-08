@@ -243,6 +243,10 @@
               data-subcategory-title="{% if cfg.has_subcategory and main and main.subcategory not in [None,'','common'] %}{{ cfg.get('subcategories', {}).get(main.subcategory, '') }}{% endif %}"
               data-article="{{ single_card_article }}"
               data-trademark="{{ main.trademark if main else '' }}"
+              {% if card.category == 'parfum' %}
+              data-volume="{{ main.volume if main else '' }}"
+              data-volume-type="{{ main.volume_type if main else '' }}"
+              {% endif %}
               data-color="{{ main.color if main else '' }}"
               >
         ✓

@@ -1,3 +1,4 @@
+{% set is_parfum = category_process_name == 'parfum' %}
 <div class="col-md-12 mt-3"
      id="pc-order-table-root"
      data-orders-pos-count="{{ order_list|length }}">
@@ -11,7 +12,7 @@
         <input type="text"
                class="form-control border-bottom"
                id="search_by_article_text"
-               placeholder="Поиск по артикулу / товарному знаку"
+               placeholder="{{ 'Поиск по товарному знаку' if is_parfum else 'Поиск по артикулу / товарному знаку' }}"
                onkeyup="pcFilterTable(this.value)">
       </form>
 
@@ -27,8 +28,14 @@
     <thead class="text-dark">
       <tr>
         <th scope="col">#</th>
-        <th scope="col"><font size="2">Товар</font></th>
-        <th scope="col"><font size="2">Товарный знак</font></th>
+        {% if is_parfum %}
+          <th scope="col"><font size="2">Товарный знак</font></th>
+          <th scope="col"><font size="2">Объём</font></th>
+          <th scope="col"><font size="2">Тип объёма</font></th>
+        {% else %}
+          <th scope="col"><font size="2">Товар</font></th>
+          <th scope="col"><font size="2">Товарный знак</font></th>
+        {% endif %}
         <th scope="col" ><font size="2">Действия</font></th>
       </tr>
     </thead>
@@ -45,6 +52,8 @@
             {% if not item_title and t.model_article is defined and t.model_article %}
               {% set item_title = t.model_article %}
             {% endif %}
+          {% elif is_parfum %}
+            {% set item_title = '' %}
           {% else %}
             {% set item_title = t.article if t.article is defined and t.article else '' %}
           {% endif %}
@@ -52,11 +61,14 @@
               data-trademark="{{ (t.trademark or '')|lower }}">
             <td>{{ loop.index }}</td>
 
-            <td>
-              {{ item_title or '-' }}
-            </td>
-
-            <td>{{ t.trademark }}</td>
+            {% if is_parfum %}
+              <td>{{ t.trademark or '-' }}</td>
+              <td>{{ t.volume or '-' }}</td>
+              <td>{{ t.volume_type or '-' }}</td>
+            {% else %}
+              <td>{{ item_title or '-' }}</td>
+              <td>{{ t.trademark }}</td>
+            {% endif %}
 
             <td class="text-end actions">
               <button type="button"
@@ -90,7 +102,7 @@
         {% endfor %}
       {% else %}
         <tr>
-          <td colspan="4" class="text-center text-muted py-3">
+          <td colspan="{{ 5 if is_parfum else 4 }}" class="text-center text-muted py-3">
             Позиции отсутствуют
           </td>
         </tr>
