@@ -6,7 +6,9 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/product_cards/user.css', v='22') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/product_cards/chat_user.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='main_v2/video/css/fancybox.css') }}">
-<script src="{{ url_for('static', filename='product_cards/users/users.js', v='13') }}"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='product_cards/users/table_loading.css', v='1') }}">
+<script src="{{ url_for('static', filename='product_cards/users/table_loading.js', v='1') }}"></script>
+<script src="{{ url_for('static', filename='product_cards/users/users.js', v='14') }}"></script>
 <script src="{{ url_for('static', filename='product_cards/users/pc_send_created.js', v='6') }}"></script>
 <script src="{{url_for('static', filename='product_cards/crm/js/card_chat.js')}}"></script>
 <script src="{{ url_for('static', filename='product_cards/users/pc_cart.js', v='20') }}"></script>
@@ -79,7 +81,7 @@
     </button>
   </div>
 
-  <div id="pc-table-wrapper">
+  <div id="pc-table-wrapper" class="pc-table-fade">
     {#{% include "product_cards/user/table.html" %}#}
   </div>
 

@@ -3,9 +3,11 @@
     const typeSelector = '[name="type"]';
     const emptyTrademarks = new Set(['без товарного знака', 'без бренда', 'нет']);
     const genderWords = new Set([
-        'жен', 'женский', 'женская', 'женское', 'женские',
-        'муж', 'мужской', 'мужская', 'мужское', 'мужские',
-        'дет', 'детский', 'детская', 'детское', 'детские'
+        'жен', 'женск', 'женский', 'женская', 'женское', 'женские', 'женщин', 'женщины', 'женщина',
+        'муж', 'мужск', 'мужской', 'мужская', 'мужское', 'мужские', 'мужчин', 'мужчины', 'мужчина',
+        'дет', 'детск', 'детский', 'детская', 'детское', 'детские', 'детей',
+        'мальчик', 'мальчика', 'мальчики', 'мальчиков', 'девочка', 'девочки', 'девочек',
+        'унисекс', 'unisex', 'уник'
     ]);
 
     function normalize(value) {
@@ -18,9 +20,21 @@
     }
 
     function withoutGenderWords(value) {
-        const words = value.split(' ');
+        const tokens = value.split(' ');
+        const words = [];
+        for (let index = 0; index < tokens.length; index++) {
+            if (tokens[index] === 'без' && tokens[index + 1] === 'указания' && tokens[index + 2] === 'пола') {
+                index += 2;
+            } else {
+                words.push(tokens[index]);
+            }
+        }
         const hasGender = words.some(word => genderWords.has(word));
-        return words.filter(word => !genderWords.has(word) && !(hasGender && word === 'пол')).join(' ');
+        return words.filter((word, index) =>
+            !genderWords.has(word)
+            && !(hasGender && word === 'пол')
+            && !(word === 'для' && genderWords.has(words[index + 1]))
+        ).join(' ');
     }
 
     function oneEditApart(left, right) {

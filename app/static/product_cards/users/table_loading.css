@@ -1,0 +1,11 @@
+.pc-table-fade{opacity:0;transition:opacity .35s ease}
+.pc-table-fade.is-visible{opacity:1}
+.pc-table-fade.is-loading.is-visible{opacity:.45}
+@media (prefers-reduced-motion:reduce){.pc-table-fade{transition:none}}
+
+#overlay_loading.pc-loading{background:rgba(40,43,47,.48);backdrop-filter:blur(3px);cursor:wait}
+#overlay_loading.pc-loading .pc-loading__panel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:18px;min-width:250px;max-width:calc(100vw - 32px);padding:22px 28px;background:#f8f9fa;border:1px solid #d9dde1;border-radius:18px;box-shadow:0 20px 60px rgba(33,37,41,.2);color:#343a40}
+#overlay_loading.pc-loading .pc-loading__spinner{width:38px;height:38px;flex:0 0 38px;border:4px solid #e6e8eb;border-top-color:#f5c542;border-radius:50%;animation:pcTableSpin .7s linear infinite}
+#overlay_loading.pc-loading .pc-loading__title{font-size:16px;font-weight:700;line-height:1.3}
+#overlay_loading.pc-loading .pc-loading__hint{font-size:13px;color:#6c757d;line-height:1.35;margin-top:3px}
+@keyframes pcTableSpin{to{transform:rotate(360deg)}}

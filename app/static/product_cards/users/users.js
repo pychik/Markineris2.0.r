@@ -671,7 +671,7 @@ function loadTable(page = 1) {
     params.append("subcategory", currentSubcategory);
     params.append("page", String(page));
     params.append("article_query", searchInput.value.trim());
-    loadingCircle();
+    PcTableLoading.start(tableWrapper);
     fetch(CARDS_TABLE_URL, {
         method: "POST",
         headers: {
@@ -699,7 +699,7 @@ function loadTable(page = 1) {
         console.error(err);
         make_message("Ошибка сети или сервера", "error");
     })
-    .finally(() => close_Loading_circle());
+    .finally(() => PcTableLoading.finish(tableWrapper));
 }
 
 

@@ -21,9 +21,11 @@ TRADEMARK_PRODUCT_TYPE_ERROR = (
     "Укажите товарный знак, отличный от вида товара, его части и обозначения пола."
 )
 _TRADEMARK_GENDER_WORDS = frozenset({
-    "жен", "женский", "женская", "женское", "женские",
-    "муж", "мужской", "мужская", "мужское", "мужские",
-    "дет", "детский", "детская", "детское", "детские",
+    "жен", "женск", "женский", "женская", "женское", "женские", "женщин", "женщины", "женщина",
+    "муж", "мужск", "мужской", "мужская", "мужское", "мужские", "мужчин", "мужчины", "мужчина",
+    "дет", "детск", "детский", "детская", "детское", "детские", "детей",
+    "мальчик", "мальчика", "мальчики", "мальчиков", "девочка", "девочки", "девочек",
+    "унисекс", "unisex", "уник",
 })
 
 
@@ -34,10 +36,22 @@ def _normalize_trademark_comparison(value: str | None) -> str:
 
 def _without_gender_words(value: str) -> str:
     words = value.split()
+    # The category selector also uses "Без указания пола" as a gender value.
+    index = 0
+    without_unspecified_gender = []
+    while index < len(words):
+        if words[index:index + 3] == ["без", "указания", "пола"]:
+            index += 3
+        else:
+            without_unspecified_gender.append(words[index])
+            index += 1
+    words = without_unspecified_gender
     has_gender = any(word in _TRADEMARK_GENDER_WORDS for word in words)
     return " ".join(
-        word for word in words
-        if word not in _TRADEMARK_GENDER_WORDS and not (has_gender and word == "пол")
+        word for index, word in enumerate(words)
+        if word not in _TRADEMARK_GENDER_WORDS
+        and not (has_gender and word == "пол")
+        and not (word == "для" and index + 1 < len(words) and words[index + 1] in _TRADEMARK_GENDER_WORDS)
     )
 
 
