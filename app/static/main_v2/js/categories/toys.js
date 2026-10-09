@@ -1,5 +1,6 @@
 function toys_perform_pos_add(async_flag, url) {
     var pos_form = document.getElementById('form_process_main');
+    if (!window.validateTrademarkProductType(pos_form)) return;
     toysPrepareModelArticleBeforeSubmit();
     var crd = toys_check_rd_docs();
     var serviceLifePeriodValid = toys_check_service_life_period();

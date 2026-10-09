@@ -6,6 +6,7 @@ function clothes_check_sizes_quantity_valid() {
 function clothes_perform_pos_add(async_flag, url) {
 
     var pos_form = document.getElementById('form_process_main');
+    if (!window.validateTrademarkProductType(pos_form)) return;
     // let isValid = pos_form.reportValidity(); // не подходит
 
     var chtn = check_tnved('submit');

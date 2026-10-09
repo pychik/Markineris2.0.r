@@ -51,7 +51,7 @@ from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
 from utilities.pdf_processor import get_first_page_as_image
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.validators import ValidatorProcessor, is_valid_mark_type_full, validate_order_comment_length, \
-    validate_and_normalize_company_fields
+    validate_and_normalize_company_fields, trademark_matches_product_type, TRADEMARK_PRODUCT_TYPE_ERROR
 from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries, is_allowed_country_for_rd
 from views.crm.schema import CrmDefaults
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
@@ -353,6 +353,12 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
         subcategory = request.view_args.get('subcategory', '')
     if not Category.check_subcategory(category=category, subcategory=subcategory):
         return jsonify(dict(status='error', message=settings.Messages.STRANGE_REQUESTS + 'нет такой подкатегории'))
+
+    if trademark_matches_product_type(form_data_raw.get('trademark'), form_data_raw.get('type')):
+        if o_id and not p_id:
+            return jsonify(dict(status='error', field='trademark', message=TRADEMARK_PRODUCT_TYPE_ERROR))
+        flash(message=TRADEMARK_PRODUCT_TYPE_ERROR, category='error')
+        return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=o_id, subcategory=subcategory))
 
     country_categories = {
         settings.Clothes.CATEGORY: settings.Clothes.CATEGORY_PROCESS,

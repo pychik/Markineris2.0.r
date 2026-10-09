@@ -17,6 +17,67 @@ from utilities.categories_data.subcategories_data import ClothesSubcategories
 from utilities.categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_TNVEDS
 from utilities.categories_data.underwear_data import UNDERWEAR_TNVEDS
 
+TRADEMARK_PRODUCT_TYPE_ERROR = (
+    "Укажите товарный знак, отличный от вида товара, его части и обозначения пола."
+)
+_TRADEMARK_GENDER_WORDS = frozenset({
+    "жен", "женский", "женская", "женское", "женские",
+    "муж", "мужской", "мужская", "мужское", "мужские",
+    "дет", "детский", "детская", "детское", "детские",
+})
+
+
+def _normalize_trademark_comparison(value: str | None) -> str:
+    words = re.findall(r"[^\W_]+", str(value or "").casefold().replace("ё", "е"), re.UNICODE)
+    return " ".join(words)
+
+
+def _without_gender_words(value: str) -> str:
+    words = value.split()
+    has_gender = any(word in _TRADEMARK_GENDER_WORDS for word in words)
+    return " ".join(
+        word for word in words
+        if word not in _TRADEMARK_GENDER_WORDS and not (has_gender and word == "пол")
+    )
+
+
+def _one_edit_apart(left: str, right: str) -> bool:
+    if abs(len(left) - len(right)) > 1:
+        return False
+    if len(left) == len(right):
+        return sum(a != b for a, b in zip(left, right)) == 1
+    short, long = sorted((left, right), key=len)
+    index_short = index_long = differences = 0
+    while index_short < len(short):
+        if short[index_short] != long[index_long]:
+            differences += 1
+            if differences > 1:
+                return False
+            index_long += 1
+        else:
+            index_short += 1
+            index_long += 1
+    return True
+
+
+def trademark_matches_product_type(trademark: str | None, product_type: str | None) -> bool:
+    """Reject product words with gender words in either order or one letter typo."""
+    mark = _normalize_trademark_comparison(trademark)
+    product = _normalize_trademark_comparison(product_type)
+    if not mark or not product or mark in {"без товарного знака", "без бренда", "нет"}:
+        return False
+    base_product = _without_gender_words(product)
+    base_mark = _without_gender_words(mark)
+    if not base_product or not base_mark:
+        return False
+    if f" {base_mark} " in f" {base_product} ":
+        return True
+    return bool(re.fullmatch(r"[а-я]{4,}", base_mark)) and any(
+        re.fullmatch(r"[а-я]{5,}", word) and _one_edit_apart(base_mark, word)
+        for word in base_product.split()
+    )
+
+
 ALLOWED_MARK_TYPES_FULL = (
     "11 макет 58*40",
     "10 макет 58*30",

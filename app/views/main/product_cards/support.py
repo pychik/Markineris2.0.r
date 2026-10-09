@@ -21,7 +21,7 @@ from utilities.helpers.helpers_checks import rd_name_clean
 from utilities.saving_helpers import get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, \
     normalize_trademark_placeholder, process_input_str, validate_parfum_trademark
 from utilities.support import check_forbidden_words, is_linen_kpb_type, parse_linen_kpb_set_items
-from utilities.validators import ValidatorProcessor
+from utilities.validators import ValidatorProcessor, trademark_matches_product_type, TRADEMARK_PRODUCT_TYPE_ERROR
 from tezaurus.processing_companies import PROCESSING_COMPANIES_BATCH_LIMIT, ProcessingCompaniesClient
 from tezaurus.runtime_catalogs import get_all_countries, get_colors, get_rd_countries, get_clothes_tnved_pairs_for_types, is_allowed_country_for_rd
 from views.main.categories.clothes.subcategories import ClothesSubcategoryProcessor
@@ -647,6 +647,8 @@ def validate_card_form(category_process: str, subcategory: str, form_data: Immut
     #         raise ValueError(f"Категория '{category}' не имеет подкатегорий.")
 
     # 1. Запрещённые слова
+    if trademark_matches_product_type(form_data.get('trademark'), form_data.get('type')):
+        raise ValueError(TRADEMARK_PRODUCT_TYPE_ERROR)
     check_forbidden_words(form_data.get("article", "").strip(), "article")
     check_forbidden_words(form_data.get("trademark", "").strip(), "trademark")
     if category_process == settings.Parfum.CATEGORY_PROCESS:

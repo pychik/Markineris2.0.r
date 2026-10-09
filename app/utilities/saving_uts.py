@@ -20,7 +20,7 @@ from utilities.exceptions import SizeTypeException
 from utilities.saving_helpers import append_or_merge_position, get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, \
     normalize_length_width_size_type, normalize_length_width_size_value, normalize_trademark_placeholder, process_input_str, \
     validate_clothes_size_type_for_subcategory, validate_parfum_trademark
-from utilities.validators import normalize_mark_type_full
+from utilities.validators import normalize_mark_type_full, trademark_matches_product_type, TRADEMARK_PRODUCT_TYPE_ERROR
 
 
 def time_count(func):
@@ -355,6 +355,19 @@ def common_save_db(order: Order, form_dict: dict, category: str, subcategory: st
 def common_save_copy_order(u_id: int, user: User, category: str, order: Order) -> Optional[int]:
 
     try:
+        category_position_attribute = {
+            settings.Shoes.CATEGORY: 'shoes',
+            settings.Clothes.CATEGORY: 'clothes',
+            settings.Socks.CATEGORY: 'socks',
+            settings.Linen.CATEGORY: 'linen',
+            settings.Parfum.CATEGORY: 'parfum',
+            settings.Cosmetics.CATEGORY: 'cosmetics',
+            settings.Toys.CATEGORY: 'toys',
+        }
+        for position_num, position in enumerate(getattr(order, category_position_attribute.get(category, ''), ()), start=1):
+            if trademark_matches_product_type(position.trademark, position.type):
+                raise ValueError(f"Позиция {position_num}: {TRADEMARK_PRODUCT_TYPE_ERROR}")
+
         normalized_mark_type = normalize_mark_type_full(order.mark_type, category=order.category or category)
 
         new_order = Order(company_type=order.company_type, company_name=order.company_name,

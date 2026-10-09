@@ -13,7 +13,10 @@ from utilities.upload_order.upload_parfum import UploadParfum
 from utilities.upload_order.upload_saving_uts import upload_table_common
 from utilities.upload_order.upload_shoes import UploadShoes
 from utilities.upload_order.upload_socks import UploadSocks
-from utilities.validators import is_valid_mark_type_full, validate_and_normalize_company_fields
+from utilities.validators import (
+    is_valid_mark_type_full, validate_and_normalize_company_fields,
+    trademark_matches_product_type, TRADEMARK_PRODUCT_TYPE_ERROR,
+)
 
 
 def _is_upload_fetch_request() -> bool:
@@ -125,6 +128,10 @@ def helper_upload_common_post(category: str, category_process_name: str,
         if order_list[0] == settings.ORDER_LIMIT_ARTICLES:
             flash(message=f"{settings.Messages.ORDER_UPLOAD_POS_LIMIT} {order_list[1]}", category='error')
             return _upload_redirect_response(url_for(f'{category_process_name}.upload', **params))
+        trademark_index = 1 if category == settings.Shoes.CATEGORY and table_type == settings.Upload.EXTENDED else 0
+        for row_num, row in enumerate(order_list, start=7):
+            if trademark_matches_product_type(row[trademark_index], row[2]):
+                error_list.append(f"Строка {row_num} Столбец C: {TRADEMARK_PRODUCT_TYPE_ERROR}")
         if not error_list:
             order_id = upload_table_common(user=current_user, company_type=company_type, company_name=company_name,
                                            company_idn=company_idn, edo_type=edo_type, edo_id=edo_id,

@@ -1,5 +1,6 @@
 function cosmetics_perform_pos_add(async_flag, url) {
     var pos_form = document.getElementById('form_process_main');
+    if (!window.validateTrademarkProductType(pos_form)) return;
     var crd = cosmetics_check_rd_docs();
     var serviceLifePeriodValid = cosmetics_check_service_life_period();
     var tnvedValid = cosmetics_check_tnved();

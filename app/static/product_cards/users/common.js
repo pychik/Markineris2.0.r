@@ -119,6 +119,7 @@ function product_card_submit(category = null) {
         console.error("pc-create-form not found");
         return;
     }
+    if (!window.validateTrademarkProductType(form)) return;
 
     if (cat === "toys" && typeof toysPrepareModelArticleBeforeSubmit === "function") {
         toysPrepareModelArticleBeforeSubmit();
