@@ -21,6 +21,7 @@ def register_blueprints(app: Flask) -> None:
     from views.main.product_cards.crm.main import crm_product_cards as crm_product_cards_blueprint
     from views.main.product_cards.chat.main import chat_product_cards as chat_product_cards_blueprint
     from views.api.transactions import api as api_blueprint
+    from rd_registry.routes import rd_registry as rd_registry_blueprint
 
     app.register_blueprint(auth_blueprint)
     app.register_blueprint(main_blueprint)
@@ -41,3 +42,4 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(crm_d_blueprint, url_prefix='/crm_dashboard')
     app.register_blueprint(crm_uoc_blueprint, url_prefix='/crm_uoc')
     app.register_blueprint(api_blueprint, url_prefix='/api')
+    app.register_blueprint(rd_registry_blueprint, url_prefix='/rd_registry')

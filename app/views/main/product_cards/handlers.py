@@ -21,6 +21,7 @@ from utilities.support import check_forbidden_words, helper_preload_common, help
 from utilities.telegram import MarkinerisInform
 from utilities.validators import ValidatorProcessor, validate_and_build_contact_info, validate_order_comment_length, \
     is_valid_mark_type_full, normalize_mark_type_full, validate_and_normalize_company_fields
+from rd_registry.service import remember_rd
 from tezaurus.api_client import TezaurusApiClient
 from tezaurus.exceptions import TezaurusApiError, TezaurusConfigurationError
 from tezaurus.processing_companies import ProcessingCompaniesClient
@@ -880,6 +881,17 @@ def h_update_product_card(crm_: bool = False):
                     card.card_log,
                     f"\n{dt_str} {actor_label} установил РД оператором ({status_log_label});"
                 )
+                if entity_after.rd_date:
+                    remember_rd(
+                        rd_type=entity_after.rd_type,
+                        rd_name=entity_after.rd_name,
+                        rd_date=entity_after.rd_date,
+                        rd_date_to=entity_after.rd_date_to,
+                        category=category,
+                        subcategory=getattr(entity_after, "subcategory", None),
+                        tnved_code=entity_after.tnved_code,
+                        user_id=current_user.id,
+                    )
         if old_rd_replacement_consent != card.rd_replacement_consent:
             dt_str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
             actor = getattr(current_user, "login_name", "") or str(current_user.id)

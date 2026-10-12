@@ -1,0 +1,41 @@
+<div class="modal fade" id="rdRegistryModal" tabindex="-1" aria-labelledby="rdRegistryModalLabel" aria-hidden="true"
+     data-search-url="{{ url_for('rd_registry.search') }}">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="rdRegistryModalLabel">Реестр РД</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group">
+          <input type="search" id="rdRegistryQuery" class="form-control" autocomplete="off"
+                 placeholder="Номер РД, например 23280/26 или РА02.В.23280">
+          <button type="button" id="rdRegistryApply" class="btn btn-outline-secondary" style="min-width:0;" disabled
+                  title="Подставить введённый номер в карточку">
+            Применить
+          </button>
+        </div>
+        <small class="form-text text-muted">
+          Сразу показаны РД с ТНВЭД карточки. Поиск по всему реестру - с 5 символов, регистр, пробелы, точки и раскладка не важны.
+          Нет в реестре - "Применить" подставит введённый номер в карточку, тип и даты заполните вручную.
+        </small>
+        <div id="rdRegistryStatus" class="small text-muted mt-2"></div>
+        <table id="rdRegistryTable" class="table table-sm table-hover mt-2 mb-0 d-none">
+          <thead>
+            <tr>
+              <th>Категория</th>
+              <th>ТНВЭД</th>
+              <th>Тип</th>
+              <th>Номер</th>
+              <th>От</th>
+              <th>До</th>
+              <th class="text-end">Осталось дней</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='rd_registry/rd_picker.js') }}"></script>

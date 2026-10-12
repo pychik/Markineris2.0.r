@@ -28,6 +28,12 @@
             <a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('crm_product_cards.cards')}}"
                 title="Панель управления пользователями">CRM карточки товаров</a>
         </li>
+        {% if current_user.role in rd_registry_access_roles %}
+            <li>
+                <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('rd_registry.index') }}"
+                   title="Реестр наших разрешительных документов">Реестр РД</a>
+            </li>
+        {% endif %}
         <li>
             <button type="button"
                     class="dropdown-item d-flex align-items-center py-2"

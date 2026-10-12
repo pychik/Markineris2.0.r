@@ -81,6 +81,12 @@
                 title="Панель управления пользователями">&nbspCRM карточки товаров</a>
         </li>
     {% endif %}
+    {% if current_user.role in rd_registry_access_roles %}
+        <li>
+            <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('rd_registry.index') }}"
+               title="Реестр наших разрешительных документов">&nbspРеестр РД</a>
+        </li>
+    {% endif %}
     {% if current_user.role =='admin' and current_user.is_at2%}
         <li>
             <a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('crm_d.agents')}}"

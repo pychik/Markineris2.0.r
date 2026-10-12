@@ -1,0 +1,189 @@
+{% extends "main/base_v2.html" %}
+
+{% block fc_panel %}
+<div class="container-fluid">
+    <div class="top-content d-flex justify-content-between align-items-center flex-wrap g-5 mb-4">
+        <div class="breadcrumbs">
+            {% if current_user.role == 'superuser' %}
+                <a href="{{ url_for('admin_control.index') }}">Панель администратора</a>
+            {% else %}
+                <a href="{{ url_for('crm_product_cards.cards') }}">CRM карточки товаров</a>
+            {% endif %}
+            /
+            <span>Реестр РД</span>
+        </div>
+        <button type="button" class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#rdEditModal">
+            Добавить РД
+        </button>
+    </div>
+
+    <div id="rdResults">
+        {% include 'rd_registry/_results.html' %}
+    </div>
+</div>
+
+<div class="modal fade" id="rdEditModal" tabindex="-1" aria-labelledby="rdEditModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form class="modal-content" method="post" action="{{ url_for('rd_registry.save') }}">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rdEditModalLabel">Добавить РД</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="next" value="{{ request.full_path }}">
+                <input type="hidden" name="entry_id" id="rdEntryId">
+
+                <label class="form-label" for="rdCategory">Категория</label>
+                <select class="form-select mb-2" name="category" id="rdCategory" required>
+                    <option value="">Выберите категорию</option>
+                    {% for slug, cfg in categories.items() %}<option value="{{ slug }}">{{ cfg.title }}</option>{% endfor %}
+                </select>
+
+                <div id="rdSubcategoryWrap" class="d-none">
+                    <label class="form-label" for="rdSubcategory">Подкатегория <span class="text-muted">(необязательно)</span></label>
+                    <select class="form-select mb-2" name="subcategory" id="rdSubcategory"></select>
+                </div>
+
+                <label class="form-label" for="rdTnved">ТНВЭД</label>
+                <input class="form-control mb-2" name="tnved_code" id="rdTnved" required pattern="\d{10}" maxlength="10"
+                       inputmode="numeric" autocomplete="off" placeholder="10 цифр, как в карточке" title="10 цифр">
+
+                <label class="form-label" for="rdType">Тип документа</label>
+                <select class="form-select mb-2" name="rd_type" id="rdType" required>
+                    <option value="">Выберите тип документа</option>
+                    {% for t in rd_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+                </select>
+
+                <label class="form-label" for="rdName">Номер</label>
+                <input class="form-control mb-1" name="rd_name" id="rdName" required minlength="3" maxlength="100"
+                       autocomplete="off">
+                <small class="form-text text-muted d-block mb-2">
+                    Например: ЕАЭС N RU Д-CN.РА02.В.23280/26. Значок <b>№</b> не указывается
+                </small>
+
+                <div class="row g-2">
+                    <div class="col">
+                        <label class="form-label" for="rdDate">От</label>
+                        <input type="date" class="form-control" name="rd_date" id="rdDate" required
+                               min="{{ rd_min_date.isoformat() }}" max="{{ today.isoformat() }}">
+                    </div>
+                    <div class="col">
+                        <label class="form-label" for="rdDateTo">До</label>
+                        <input type="date" class="form-control" name="rd_date_to" id="rdDateTo" required
+                               min="{{ rd_min_date.isoformat() }}">
+                    </div>
+                </div>
+                <small class="form-text text-muted d-block mt-2">
+                    Изменение записи не меняет РД в карточках, где он уже стоит.
+                </small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" style="min-width:0;" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-accent" style="min-width:0;">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const CATEGORIES = {{ categories | tojson }};
+        const categorySelect = document.getElementById("rdCategory");
+        const subWrap = document.getElementById("rdSubcategoryWrap");
+        const subSelect = document.getElementById("rdSubcategory");
+
+        // подкатегории показываем, только если они есть у выбранной категории
+        function fillSubcategories(category, selected) {
+            const subs = (CATEGORIES[category] || {}).subcategories || {};
+            subSelect.innerHTML = "";
+            subSelect.add(new Option("Без подкатегории", ""));
+            Object.entries(subs).forEach(([slug, title]) => subSelect.add(new Option(title, slug)));
+            subSelect.value = selected && subs[selected] ? selected : "";
+            subWrap.classList.toggle("d-none", !Object.keys(subs).length);
+        }
+
+        categorySelect.addEventListener("change", () => fillSubcategories(categorySelect.value, ""));
+
+        // одна модалка на добавление и правку: поля берём из data-* кнопки «Изменить», у «Добавить РД» их нет
+        document.getElementById("rdEditModal").addEventListener("show.bs.modal", function (event) {
+            const d = (event.relatedTarget && event.relatedTarget.dataset) || {};
+            document.getElementById("rdEditModalLabel").textContent = d.entryId ? "Изменить РД" : "Добавить РД";
+            document.getElementById("rdEntryId").value = d.entryId || "";
+            categorySelect.value = d.category || "";
+            fillSubcategories(categorySelect.value, d.subcategory);
+            document.getElementById("rdTnved").value = d.tnved || "";
+            document.getElementById("rdType").value = d.rdType || "";
+            document.getElementById("rdName").value = d.rdName || "";
+            document.getElementById("rdDate").value = d.rdDate || "";
+            document.getElementById("rdDateTo").value = d.rdDateTo || "";
+            // после AJAX-навигации адрес мог смениться: возвращаемся туда, где были
+            document.querySelector('#rdEditModal input[name="next"]').value = location.pathname + location.search;
+        });
+    })();
+
+    // Сортировка, вкладки, пагинация, поиск и фильтры перерисовывают только #rdResults, адрес обновляем через history.
+    (function () {
+        const results = document.getElementById("rdResults");
+        const indexPath = {{ url_for('rd_registry.index') | tojson }};
+        let controller = null;
+
+        function load(url, push) {
+            if (controller) controller.abort();
+            controller = new AbortController();
+            const keepSearchFocus = document.activeElement && document.activeElement.name === "q";
+            results.style.opacity = "0.5";
+            fetch(url, {headers: {"X-Requested-With": "XMLHttpRequest"}, signal: controller.signal})
+                .then(r => {
+                    // сессия истекла (редирект на вход) или ошибка - уходим обычным переходом
+                    if (!r.ok || r.redirected) throw new Error("fallback");
+                    return r.text();
+                })
+                .then(html => {
+                    results.innerHTML = html;
+                    results.style.opacity = "";
+                    if (push) history.pushState(null, "", url);
+                    if (keepSearchFocus) {
+                        const q = results.querySelector('input[name="q"]');
+                        q.focus();
+                        q.setSelectionRange(q.value.length, q.value.length);
+                    }
+                })
+                .catch(err => {
+                    if (err.name !== "AbortError") location.href = url;
+                });
+        }
+
+        results.addEventListener("click", event => {
+            const link = event.target.closest("a[href]");
+            if (!link || event.ctrlKey || event.metaKey || event.shiftKey) return;  // в новой вкладке - как обычно
+            const url = new URL(link.href);
+            if (url.origin !== location.origin || url.pathname !== indexPath) return;
+            event.preventDefault();
+            load(url, true);
+        });
+
+        // форма фильтров (GET); архив и возврат (POST) уходят обычным запросом
+        results.addEventListener("submit", event => {
+            const form = event.target;
+            if (form.method.toLowerCase() !== "get") return;
+            event.preventDefault();
+            const url = new URL(form.action);
+            for (const [name, value] of new FormData(form)) {
+                if (value) url.searchParams.append(name, value);
+            }
+            load(url, true);
+        });
+
+        // категория, тип и «Скрыть истёкшие» применяются сразу, поиск - по Enter или «Найти»
+        results.addEventListener("change", event => {
+            const form = event.target.form;
+            if (form && form.method.toLowerCase() === "get" && event.target.matches("select, input[type=checkbox]")) {
+                form.requestSubmit();
+            }
+        });
+
+        window.addEventListener("popstate", () => load(location.href, false));
+    })();
+</script>
+{% endblock %}
