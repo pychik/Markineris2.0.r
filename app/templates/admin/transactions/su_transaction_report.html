@@ -53,6 +53,11 @@
 
     {% endif %}
     <div><b>Сумма:</b> {{ transaction.amount }} р.</div>
+    {# 2 - успешная; баланс до и после пишется только при изменении баланса #}
+    {% if transaction.status == 2 and transaction.balance_after is not none %}
+        <div><b>Баланс до:</b> {{ transaction.balance_before }} р.</div>
+        <div><b>Баланс после:</b> {{ transaction.balance_after }} р.</div>
+    {% endif %}
     <div class="col mt-3" title="Скрин транзакции">{{transaction_image | safe}}</div>
     {% if transaction.status == 1 %}
         <div class="text-center mt-5">

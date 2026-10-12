@@ -728,6 +728,8 @@ def h_su_control_ut(user_ids: list = None):
         UserTransaction.user_id,
         UserTransaction.transaction_type,
         UserTransaction.sa_id,
+        UserTransaction.balance_before,
+        UserTransaction.balance_after,
         User.login_name,
         User.email,
         ServiceAccount.sa_type,
@@ -785,6 +787,8 @@ def h_bck_control_ut():
         UserTransaction.created_at,
         UserTransaction.user_id,
         UserTransaction.sa_id,
+        UserTransaction.balance_before,
+        UserTransaction.balance_after,
         User.login_name,
         User.email,
         ServiceAccount.sa_type,
@@ -1319,6 +1323,8 @@ def h_su_transaction_detail(u_id: int, t_id: int):
         UserTransaction.sa_id,
         UserTransaction.created_at,
         UserTransaction.is_bonus,
+        UserTransaction.balance_before,
+        UserTransaction.balance_after,
         User.login_name,
         User.email,
         User.phone,
@@ -1375,6 +1381,8 @@ def h_aus_transaction_detail(u_id: int, t_id: int):
         UserTransaction.sa_id,
         UserTransaction.created_at,
         UserTransaction.is_bonus,
+        UserTransaction.balance_before,
+        UserTransaction.balance_after,
         User.login_name,
         User.email,
         User.phone,
@@ -1566,7 +1574,7 @@ def update_user_balance(user_id: int, data: UpdateBalanceSchema):
             bill_path=create_bill_path(filename=f"{current_user.login_name}.{user.login_name}.update_balance"),
         )
 
-        user.balance += update_sum
+        new_transaction.change_user_balance(user, update_sum)
 
         db.session.add(new_transaction)
         db.session.commit()

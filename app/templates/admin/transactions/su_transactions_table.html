@@ -25,6 +25,8 @@
                     <th scope="col">Дата</th>
                     <th scope="col">Пользователь</th>
                     <th scope="col">Сумма</th>
+                    <th scope="col">Баланс до</th>
+                    <th scope="col">Баланс после</th>
                     <th scope="col">Тип транзакции</th>
                     <th scope="col">Статус</th>
                     <th scope="col">Счет</th>
@@ -39,6 +41,8 @@
                     <td class="tablesaw-cell-content">{{t.created_at.strftime('%d.%m.%Y %H:%M')}}</td>
                     <td>{{ t.email }}</td>
                     <td>{{t.amount}}</td>
+                    <td>{{ t.balance_before if t.balance_before is not none else '—' }}</td>
+                    <td>{{ t.balance_after if t.balance_after is not none else '—' }}</td>
                     <td>{{transaction_types.get(t.transaction_type)}}</td>
                     <td>{{transaction_statuses[t.status]}}</td>
                     {% if t.sa_id %}
