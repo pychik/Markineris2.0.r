@@ -56,6 +56,9 @@
 </div>
 
 {% include 'helpers/error_modal.html' %}
+{% if crm_ %}
+    {% include 'rd_registry/picker_modal.html' %}
+{% endif %}
 
 <style>
     .pc-rd-replacement-consent {

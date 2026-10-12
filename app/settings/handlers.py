@@ -45,7 +45,7 @@ def register_handlers(app: Flask) -> None:
         ):
             return
         # ✅ allow crm_product_cards for all 3 roles
-        allowed_blueprints = {'crm_product_cards', 'chat_product_cards', }
+        allowed_blueprints = {'crm_product_cards', 'chat_product_cards', 'rd_registry', }
         if request.blueprint in allowed_blueprints:
             return
         operator_allowed_endpoints = {

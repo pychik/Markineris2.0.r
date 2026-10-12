@@ -1,0 +1,163 @@
+{# Вкладки, фильтры, таблица и пагинация реестра. Отдаётся целиком в index.html и отдельно на AJAX-запрос
+   (rd_registry.index при X-Requested-With) - JS в index.html подменяет этот блок без перезагрузки страницы. #}
+{# текущие фильтры и сортировка - переносим во все ссылки страницы #}
+{% set filters = {
+    'q': q or None,
+    'archived': '1' if archived else None,
+    'hide_expired': '1' if hide_expired else None,
+    'category': category or None,
+    'rd_type': rd_type or None,
+    'sort': sort,
+    'dir': dir,
+} %}
+
+{% macro sort_link(column, title) %}
+    {% set is_active = sort == column %}
+    {% set next_dir = 'asc' if is_active and dir == 'desc' else 'desc' %}
+    <a class="text-reset text-decoration-none text-nowrap" title="Сортировать"
+       href="{{ url_for('rd_registry.index', **dict(filters, sort=column, dir=next_dir)) }}">
+        {{ title }}
+        {% if is_active %}<span>{{ '↓' if dir == 'desc' else '↑' }}</span>{% else %}<span class="text-muted">↕</span>{% endif %}
+    </a>
+{% endmacro %}
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {% if not archived %}active{% endif %}"
+           href="{{ url_for('rd_registry.index', **dict(filters, archived=None)) }}">Активные</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if archived %}active{% endif %}"
+           href="{{ url_for('rd_registry.index', **dict(filters, archived='1')) }}">Архив</a>
+    </li>
+</ul>
+
+<form class="row g-2 align-items-center mb-3" method="get" action="{{ url_for('rd_registry.index') }}">
+    {% if archived %}<input type="hidden" name="archived" value="1">{% endif %}
+    <input type="hidden" name="sort" value="{{ sort }}">
+    <input type="hidden" name="dir" value="{{ dir }}">
+    <div class="col-md-4">
+        <input type="search" class="form-control" name="q" value="{{ q }}" autocomplete="off"
+               placeholder="Номер РД или начало ТНВЭД" title="Номер РД (23280/26, РА02.В.23280) или начало ТНВЭД (6214)">
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" name="category" title="Категория">
+            <option value="">Все категории</option>
+            {% for slug, cfg in categories.items() %}
+                <option value="{{ slug }}" {% if slug == category %}selected{% endif %}>{{ cfg.title }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" name="rd_type" title="Тип документа">
+            <option value="">Все типы</option>
+            {% for t in rd_types %}
+                <option value="{{ t }}" {% if t == rd_type %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto form-check ms-2">
+        <input class="form-check-input" type="checkbox" name="hide_expired" value="1" id="rdHideExpired"
+               {% if hide_expired %}checked{% endif %}>
+        <label class="form-check-label" for="rdHideExpired">Скрыть истёкшие</label>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-secondary" style="min-width:0;">Найти</button>
+        <a href="{{ url_for('rd_registry.index', archived='1' if archived else None) }}" class="btn btn-link" style="min-width:0;">Сбросить</a>
+    </div>
+</form>
+
+<div class="small text-muted mb-2">
+    <span class="badge bg-danger-subtle text-danger-emphasis border">истёк</span>
+    <span class="badge bg-warning-subtle text-warning-emphasis border">меньше месяца — не показывается в поиске «Реестр РД» в карточке</span>
+</div>
+
+<div class="table-responsive">
+    {# small + «От-До» в одной колонке: таблица должна влезать в контент без горизонтального скролла #}
+    <table class="table table-hover table-result align-middle mt-1 small">
+        <thead class="text-dark">
+        <tr>
+            <th scope="col">Номер</th>
+            <th scope="col">Категория</th>
+            <th scope="col">ТНВЭД</th>
+            <th scope="col">Тип</th>
+            <th scope="col">Действует</th>
+            <th scope="col" class="text-end" title="Осталось дней">Дней</th>
+            <th scope="col" class="text-end" title="Сколько раз оператор ставил этот РД в карточку">Исп.</th>
+            <th scope="col">{{ sort_link('created', 'Добавил') }}</th>
+            <th scope="col">{{ sort_link('updated', 'Изменил') }}</th>
+            <th scope="col"></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for e in pagination.items %}
+            {% set days_left = (e.rd_date_to - today).days %}
+            <tr class="{% if days_left < 0 %}table-danger{% elif e.rd_date_to < min_suggest_date %}table-warning{% endif %}">
+                <td>{{ e.rd_name }}</td>
+                <td>{{ category_label(e.category, e.subcategory) }}</td>
+                <td>{{ e.tnved_code or '—' }}</td>
+                <td>{{ e.rd_type }}</td>
+                <td class="text-nowrap">{{ e.rd_date.strftime('%d.%m.%Y') }} –<br>{{ e.rd_date_to.strftime('%d.%m.%Y') }}</td>
+                <td class="text-end">{{ days_left }}</td>
+                <td class="text-end">{{ e.usage_count }}</td>
+                <td class="small">
+                    {{ e.created_by.login_name if e.created_by else '—' }}<br>
+                    <span class="text-muted">{{ e.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                </td>
+                <td class="small">
+                    {% if e.updated_at %}
+                        {{ e.updated_by.login_name if e.updated_by else '—' }}<br>
+                        <span class="text-muted">{{ e.updated_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                    {% else %}—{% endif %}
+                </td>
+                <td class="text-end">
+                    <div class="d-flex flex-column gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-2" style="min-width:0;"
+                            data-bs-toggle="modal" data-bs-target="#rdEditModal"
+                            data-entry-id="{{ e.id }}" data-rd-type="{{ e.rd_type }}" data-rd-name="{{ e.rd_name }}"
+                            data-category="{{ e.category }}" data-subcategory="{{ e.subcategory }}"
+                            data-tnved="{{ e.tnved_code }}"
+                            data-rd-date="{{ e.rd_date.isoformat() }}" data-rd-date-to="{{ e.rd_date_to.isoformat() }}">
+                        Изменить
+                    </button>
+                    {% if can_archive %}
+                        <form method="post" action="{{ url_for('rd_registry.archive', entry_id=e.id) }}"
+                              onsubmit="return confirm('{{ 'Вернуть РД из архива?' if archived else 'Перенести РД в архив? Он перестанет показываться в поиске.' }}');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="next" value="{{ request.full_path }}">
+                            <input type="hidden" name="archived" value="{{ '0' if archived else '1' }}">
+                            {% if archived %}
+                                <button type="submit" class="btn btn-sm btn-outline-success px-2 w-100" style="min-width:0;">Вернуть</button>
+                            {% else %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger px-2 w-100" style="min-width:0;">В архив</button>
+                            {% endif %}
+                        </form>
+                    {% endif %}
+                    </div>
+                </td>
+            </tr>
+        {% else %}
+            <tr><td colspan="10" class="text-center text-muted py-4">Записей нет</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="pagination-page-info text-center">
+    Всего: <b>{{ pagination.total }}</b>{% if pagination.pages > 1 %}, страница {{ pagination.page }} из {{ pagination.pages }}{% endif %}
+</div>
+{% if pagination.pages > 1 %}
+    <nav class="d-flex justify-content-center mt-2">
+        <ul class="pagination pagination-sm">
+            {% for p in pagination.iter_pages() %}
+                {% if p %}
+                    <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('rd_registry.index', page=p, **filters) }}">{{ p }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </nav>
+{% endif %}
