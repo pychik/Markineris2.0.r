@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from math import floor as m_floor
 from sqlalchemy import text
 from uuid import uuid4
-from models import db, TransactionStatuses, TransactionTypes
+from models import db, TransactionStatuses, TransactionTypes, balance_change_sql
 from config import settings
 
 
@@ -44,7 +44,9 @@ def agent_fee_edit_on_cancel_order(total_order_price: int, admin_info: dict, ord
                             );
                             """
     )
-    agent_balance_stmt = f"""UPDATE public.users set balance=balance-{agent_fee_part} WHERE id = {admin_id};"""
+    agent_balance_stmt = balance_change_sql(
+        admin_id, -agent_fee_part, bill_path=f'{bill_path}_{TransactionTypes.agent_commission_cancel.value}',
+    )
     agent_balance_and_commission_stmt = transaction_agent_commission_stmt + agent_balance_stmt
     return agent_balance_and_commission_stmt
 
@@ -88,8 +90,7 @@ def build_refund_sql_on_order_cancel(order_idn: str, user_info: dict, order_cost
                 True, {order_cost}, {op_cost}, {TransactionStatuses.success.value},
                 '{TransactionTypes.refund_funds.value}', '{bill_path}', '{created_at}', {admin_id}, '{order_idn}'
             );
-            UPDATE public.users SET balance = balance + {order_cost} WHERE id = {admin_id};
-        """
+        """ + balance_change_sql(admin_id, order_cost, bill_path=bill_path)
 
     # --- Тип1 агент ---
     elif not is_at2 and role == settings.ORD_USER:
@@ -103,8 +104,7 @@ def build_refund_sql_on_order_cancel(order_idn: str, user_info: dict, order_cost
                 True, {order_cost}, {op_cost}, {TransactionStatuses.success.value},
                 '{TransactionTypes.refund_funds.value}', '{bill_path}', '{created_at}', {user_id}, '{order_idn}'
             );
-            UPDATE public.users SET balance = balance + {order_cost} WHERE id = {user_id};
-        """
+        """ + balance_change_sql(user_id, order_cost, bill_path=bill_path)
 
         # 2. Списание комиссии с админа, если у него роль 'admin'
         admin_info = db.session.execute(text("""
@@ -124,8 +124,7 @@ def build_refund_sql_on_order_cancel(order_idn: str, user_info: dict, order_cost
                 True, {order_cost}, {op_cost}, {TransactionStatuses.success.value},
                 '{TransactionTypes.refund_funds.value}', '{bill_path}', '{created_at}', {user_id}, '{order_idn}'
             );
-            UPDATE public.users SET balance = balance + {order_cost} WHERE id = {user_id};
-        """
+        """ + balance_change_sql(user_id, order_cost, bill_path=bill_path)
 
     # Общие действия
     sql += f"""

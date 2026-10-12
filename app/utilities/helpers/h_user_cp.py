@@ -228,7 +228,8 @@ def h_transaction_detail(u_id: int, t_id: int):
                                                       UserTransaction.bill_path, UserTransaction.promo_info,
                                                       UserTransaction.wo_account_info, UserTransaction.sa_id,
                                                       UserTransaction.created_at,
-                                                      UserTransaction.transaction_type, UserTransaction.is_bonus) \
+                                                      UserTransaction.transaction_type, UserTransaction.is_bonus,
+                                                      UserTransaction.balance_before, UserTransaction.balance_after) \
         .filter(UserTransaction.user_id == u_id, UserTransaction.id == t_id).first()
 
     transaction_dict = settings.Transactions.TRANSACTIONS

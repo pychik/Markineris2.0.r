@@ -45,6 +45,7 @@ from models import (
     TransactionTypes,
     TransactionStatuses,
     LinenSizesUnits, ExceptionDataUsers,
+    balance_change_sql,
 )
 from utilities.daily_price import get_cocmd
 from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
@@ -2642,7 +2643,7 @@ def helper_refill_transaction(amount: int, status: int, promo_info: str, transac
             """ if not only_promo else \
         f"""INSERT into public.user_transactions (type, status, amount, transaction_type, promo_info, user_id, sa_id, bill_path, created_at)
                 VALUES(True, {status}, {amount}, '{transaction_type}', '{promo_info}', {user_id}, {sa_id}, '{bill_path}', '{created_at}');
-                UPDATE public.users SET balance=balance + {amount} WHERE public.users.id = {user_id};"""
+                """ + balance_change_sql(user_id, amount, bill_path=bill_path)
     try:
         db.session.execute(text(query))
         db.session.commit()
@@ -2746,9 +2747,8 @@ def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: in
             if operation_type:
                 sp_query = f"""UPDATE public.server_params SET pending_balance_rf=pending_balance_rf - 
                        {amount};"""
-                u_query = f"""UPDATE public.users SET pending_balance_rf=
-                      pending_balance_rf -  
-                      {amount}, balance=balance + {amount} WHERE id={u_id};"""
+                u_query = f"""UPDATE public.users SET pending_balance_rf=pending_balance_rf - {amount} WHERE id={u_id};
+                """ + balance_change_sql(u_id, amount, tr_id=t_id)
 
                 sa_id_request = UserTransaction.query.with_entities(UserTransaction.sa_id).filter(
                     UserTransaction.id == t_id, UserTransaction.sa_id.isnot(None)).first()
@@ -2762,8 +2762,8 @@ def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: in
                 # check if agent balance is ok
                 if helper_get_user_balance(u_id=u_id)[0] < amount:
                     return False, settings.Messages.WO_TRANSACTION_BALANCE_ERROR_2
-                u_query = f"""UPDATE public.users SET balance=balance - {amount} WHERE id={u_id};"""
-    t_query = f"""UPDATE public.user_transactions SET status={tr_status} WHERE id={t_id};"""
+                u_query = balance_change_sql(u_id, -amount, tr_id=t_id)
+    t_query =f"""UPDATE public.user_transactions SET status={tr_status} WHERE id={t_id};"""
 
     try:
         db.session.execute(text(f"{sp_query}{u_query}{sa_query}{t_query}"))
@@ -3325,7 +3325,7 @@ def helper_perform_ut_wo_test(users: list[User]):
             new_transaction_wo = UserTransaction(amount=total_order_price, status=settings.Transactions.SUCCESS,
                                                  bill_path=bill_path, user_id=u.id, orders=pending_orders)
 
-            u.balance = u.balance - total_order_price
+            new_transaction_wo.change_user_balance(u, -total_order_price)
             total_amount += total_order_price
 
             db.session.add(new_transaction_wo)
@@ -3438,7 +3438,10 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
                         );
                         """
                     )
-                    agent_balance_stmt = f"""UPDATE public.users set balance=balance+{agent_fee_part} WHERE id = {admin_id};"""
+                    agent_balance_stmt = balance_change_sql(
+                        admin_id, agent_fee_part,
+                        bill_path=f'patch_{login_name}{uuid_postfix}_{TransactionTypes.agent_commission.value}',
+                    )
                     agent_balance_and_commission_stmt = transaction_agent_commission_stmt + agent_balance_stmt
 
                 create_transaction = (
@@ -3518,7 +3521,7 @@ def helper_perform_ut_wo_mod(user_ids: list[tuple[int]]) -> tuple[int, int | str
 
                 update_orders_stmt = f"""UPDATE public.orders set transaction_id={tr_id}, payment=True WHERE order_idn in ({order_idns});"""
 
-                user_balance_stmt = f"""UPDATE public.users set balance=balance-{total_order_price} WHERE id = {relevant_user_id};"""
+                user_balance_stmt = balance_change_sql(relevant_user_id, -total_order_price, tr_id=tr_id)
 
                 db.session.execute(text(upsert_orders_stats_stmt + user_balance_stmt + update_orders_stmt + agent_balance_and_commission_stmt))
                 total_amount += total_order_price

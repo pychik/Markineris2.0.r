@@ -17,6 +17,10 @@
                 <tr>
                     <th scope="col">Дата</th>
                     <th scope="col">Сумма</th>
+                    {% if not is_at2 %}
+                    <th scope="col">Баланс до</th>
+                    <th scope="col">Баланс после</th>
+                    {% endif %}
                     <th scope="col">Тип транзакции</th>
                     <th scope="col">Статус</th>
                     <th scope="col">Детализация</th>
@@ -37,6 +41,8 @@
                             {% endif %}
                             {{t.amount}}
                         </td>
+                        <td>{{ t.balance_before if t.balance_before is not none else '—' }}</td>
+                        <td>{{ t.balance_after if t.balance_after is not none else '—' }}</td>
                     {%else%}
                         <td></td>
                     {% endif %}

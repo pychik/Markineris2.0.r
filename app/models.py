@@ -276,6 +276,34 @@ class UserTransaction(db.Model, UserMixin):
     # orders = db.relationship('Order', backref='user_transactions',  foreign_keys='Order.transaction_id')
     is_bonus = db.Column(db.Boolean, default=False)
 
+    # users.balance до и после проведения. Пусто у старых транзакций и у тех, что баланс не меняют
+    # (ожидающие, отменённые). Пишутся через change_user_balance() или balance_change_sql()
+    balance_before = db.Column(db.Integer, nullable=True)
+    balance_after = db.Column(db.Integer, nullable=True)
+
+    def change_user_balance(self, user: 'User', delta: int) -> None:
+        """Меняет user.balance на delta (ORM) и запоминает баланс до и после."""
+        self.balance_before = user.balance
+        user.balance += delta
+        self.balance_after = user.balance
+
+
+def balance_change_sql(user_id: int, delta: int | float, *, tr_id: int | None = None,
+                       bill_path: str | None = None) -> str:
+    """SQL: меняет users.balance на delta и пишет баланс до и после в транзакцию (по id или bill_path)"""
+    user_id = int(user_id)
+    if tr_id is not None:
+        where = f"id = {int(tr_id)}"
+    else:
+        where = "bill_path = '{}'".format(bill_path.replace("'", "''"))
+    return f"""
+        UPDATE public.user_transactions
+        SET balance_before = (SELECT balance FROM public.users WHERE id = {user_id} FOR NO KEY UPDATE)
+        WHERE {where};
+        WITH u AS (UPDATE public.users SET balance = balance + ({delta}) WHERE id = {user_id} RETURNING balance)
+        UPDATE public.user_transactions SET balance_after = u.balance FROM u WHERE {where};
+    """
+
 
 class TelegramMessage(db.Model, UserMixin):
     __tablename__ = 'telegram_messages'
