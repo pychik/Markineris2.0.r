@@ -321,6 +321,27 @@
   flex-wrap: nowrap;
 }
 
+.pc-crm-search-mode-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding-left: 0;
+}
+
+.pc-crm-search-mode-toggle .form-check-input {
+  flex: 0 0 auto;
+  margin: 2px 0 0;
+}
+
+.pc-crm-search-mode-toggle .form-check-label {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+#crm-search-mode-label {
+  font-size: 12px;
+}
+
 #crm-search-card-input {
   min-width: 0;
 }

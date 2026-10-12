@@ -2,10 +2,9 @@ let __pcEventsBound = false;
 
 function bindCrmDelegates(root = document) {
   if (__pcEventsBound) return;
-  __pcEventsBound = true;
-
-  const wrapper = root.querySelector(".crm__wrapper");
+  const wrapper = document.getElementById("update_all_info");
   if (!wrapper) return;
+  __pcEventsBound = true;
 
   wrapper.addEventListener("click", (e) => {
     // === 0) INTERACTIVE BUTTONS (не должны раскрывать карточку) ===
@@ -363,15 +362,20 @@ function pcOpenViewModal(viewUrl) {
 
 function update_crm_info(){
    loadingCircle();
+   const boardHost = document.getElementById('update_all_info');
+   const boardSequence = boardHost ? Number(boardHost.dataset.boardSequence || 0) + 1 : 0;
+   if (boardHost) boardHost.dataset.boardSequence = String(boardSequence);
 
    $.ajax({
     url: update_url_temp,
     method:"GET",
     success:function(data)
     {
+        if (boardHost && Number(boardHost.dataset.boardSequence) !== boardSequence) return;
 
         if (data.status === 'success') {
             $('#update_all_info').html(data.htmlresponse || data);
+            if (typeof crmApplyBoardSummary === 'function') crmApplyBoardSummary(data);
             initializeJSPage(document);
             make_message('Данные успешно обновлены ', 'success');
             // make_message(msg, data.status);
@@ -385,6 +389,7 @@ function update_crm_info(){
         }
     },
      error: function() {
+        if (boardHost && Number(boardHost.dataset.boardSequence) !== boardSequence) return;
         make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
     },
     complete: function() {

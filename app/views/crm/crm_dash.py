@@ -66,6 +66,16 @@ def order_chat_mark_read(o_id: int):
 @user_activated
 @aus_mod_required
 def agents():
+    bck = request.args.get('bck', 0, int)
+    if not bck:
+        user = current_user
+        managers_list = []
+        categories_counter = {key: '…' for key in (
+            'all', 'одежда', 'обувь', 'белье', 'парфюм', 'косметика', 'игрушки', 'носки и прочее'
+        )}
+        search_order_url = url_for('crm_d.search_crma_order')
+        return render_template('crm_mod_v1/crm_agent.html', **locals())
+
     # attempt to decrease sql queries
     category = request.args.get('category')
     all_orders_no_limit = helper_get_agent_orders(user=current_user, category=category)
@@ -97,12 +107,20 @@ def agents():
                                      User.role in [settings.MANAGER_USER, settings.SUPER_MANAGER]).all()))
         search_order_url = url_for('crm_d.search_crma_order')
         # using bck upload flag as 1
+    else:
+        cancelled_orders = crm_processed_orders = new_orders = pool_orders = []
+        m_start_orders = m_edo_orders = m_processed_orders = m_problem_orders = m_solved_orders = sent_orders = []
+        ps_limit_qry = ServerParam.query.get(1)
+        problem_order_time_limit = ps_limit_qry.crm_manager_ps_limit if ps_limit_qry and ps_limit_qry.crm_manager_ps_limit \
+            else settings.OrderStage.DEFAULT_PS_LIMIT
+        cur_time = datetime.now()
+        of_max_size = settings.OrderStage.MAX_ORDER_FILE_SIZE
+        managers_list = []
+        search_order_url = url_for('crm_d.search_crma_order')
 
-    bck = request.args.get('bck', 0, int)
     categories_counter = helper_categories_counter(all_cards=all_orders_no_limit)
-    return render_template('crm_mod_v1/crm_agent.html', **locals()) if not bck \
-        else jsonify({'htmlresponse': render_template(f'crm_mod_v1/crma/crma_main_block.html', **locals()),
-                      'status': 'success' if all_orders_no_limit else ''})
+    return jsonify({'htmlresponse': render_template('crm_mod_v1/crma/crma_main_block.html', **locals()),
+                    'categories_counter': categories_counter, 'status': 'success'})
 
 
 @crm_d.route('/update_agent_stage', methods=["POST"])
@@ -218,6 +236,18 @@ def ceps(o_id: int, ep: int):
 @susmumu_required
 def managers(filtered_manager_id: int = None):
     user = current_user
+    bck = request.args.get('bck', 0, int)
+    if not bck:
+        filtered_manager_id = request.args.get('filtered_manager_id', None, int)
+        managers_list = list(map(lambda x: (x.id, x.login_name),
+                                 User.query.with_entities(User.id, User.login_name).filter(
+                                     (User.role == settings.MANAGER_USER) | (User.role == settings.SUPER_MANAGER)).all()))
+        categories_counter = {key: '…' for key in (
+            'all', 'одежда', 'обувь', 'белье', 'парфюм', 'косметика', 'игрушки', 'носки и прочее'
+        )}
+        oper_orders_string = '…'
+        search_order_url = url_for('crm_d.search_crmm_order')
+        return render_template('crm_mod_v1/crm_manager.html', **locals())
 
     category = request.args.get('category')
     filtered_manager_id = request.args.get('filtered_manager_id', None, int)
@@ -241,14 +271,13 @@ def managers(filtered_manager_id: int = None):
                                  (User.role == settings.MANAGER_USER) | (User.role == settings.SUPER_MANAGER)).all()))
     search_order_url = url_for('crm_d.search_crmm_order')
 
-    bck = request.args.get('bck', 0, int)
     categories_counter = helper_categories_counter(all_cards=all_orders_raw)
 
     oper_orders_string = get_weekly_order_summary(user_id=current_user.id)
 
-    return render_template('crm_mod_v1/crm_manager.html', **locals()) if not bck \
-        else jsonify({'htmlresponse': render_template(f'crm_mod_v1/crmm/crmm_main_block.html', **locals()),
-                      'status': 'success' if all_orders_raw else ''})
+    return jsonify({'htmlresponse': render_template('crm_mod_v1/crmm/crmm_main_block.html', **locals()),
+                    'categories_counter': categories_counter,
+                    'weekly_order_summary': oper_orders_string, 'status': 'success'})
 
 
 @crm_d.route('/m_take_order/<int:o_id>', methods=["POST"])

@@ -329,6 +329,25 @@ def h_crm_cards():
     category = request.args.get("category")  # slug: clothes/shoes/...
     subcategory = request.args.get("subcategory")  # только для clothes
     filtered_manager_id = request.args.get("filtered_manager_id", None, type=int)
+    bck = request.args.get("bck", 0, type=int)
+
+    if not bck:
+        categories_counter = {key: "…" for key in (
+            "all", "clothes", "shoes", "linen", "parfum", "socks", "cosmetics", "toys"
+        )}
+        managers_list = []
+        if current_user.role in [settings.SUPER_USER, settings.SUPER_MANAGER]:
+            managers_list = (
+                User.query
+                .filter(
+                    User.status.is_(True),
+                    User.role.in_([settings.MANAGER_USER, settings.SUPER_MANAGER]),
+                )
+                .with_entities(User.id, User.login_name)
+                .order_by(User.login_name.asc())
+                .all()
+            )
+        return render_template("product_cards/crm/crm_main.html", **locals())
 
     cards = crm_get_cards(
         category=category,
@@ -349,27 +368,11 @@ def h_crm_cards():
     status_counter = {k: len(v) for k, v in buckets.items()}
 
     companies_pool = get_processing_companies()
-    managers_list = []
-    if current_user.role in [settings.SUPER_USER, settings.SUPER_MANAGER]:
-        managers_list = (
-            User.query
-            .filter(
-                User.status.is_(True),
-                User.role.in_([settings.MANAGER_USER, settings.SUPER_MANAGER]),
-            )
-            .with_entities(User.id, User.login_name)
-            .order_by(User.login_name.asc())
-            .all()
-        )
-    bck = request.args.get("bck", 0, type=int)
-
-    if bck:
-        return jsonify({
-            "status": "success",
-            "htmlresponse": render_template("product_cards/crm/cards/data_block.html", **locals())
-        })
-
-    return render_template("product_cards/crm/crm_main.html", **locals())
+    return jsonify({
+        "status": "success",
+        "htmlresponse": render_template("product_cards/crm/cards/data_block.html", **locals()),
+        "categories_counter": categories_counter,
+    })
 
 
 def h_pc_company_stats_distribution():

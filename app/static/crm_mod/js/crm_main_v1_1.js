@@ -414,14 +414,19 @@ function update_crm_info(url){
        update_url_temp = update_url;
    }
 
+   const boardHost = document.getElementById('update_all_info');
+   const boardSequence = boardHost ? Number(boardHost.dataset.boardSequence || 0) + 1 : 0;
+   if (boardHost) boardHost.dataset.boardSequence = String(boardSequence);
+
    $.ajax({
     url:update_url_temp,
     method:"GET",
     success:function(data)
     {
+        if (boardHost && Number(boardHost.dataset.boardSequence) !== boardSequence) return;
         if (data.status === 'success') {
-            $('#update_all_info').html(data);
-            $("#update_all_info").append(data.htmlresponse);
+            $('#update_all_info').html(data.htmlresponse);
+            if (typeof crmApplyBoardSummary === 'function') crmApplyBoardSummary(data);
             initializeJSPage(document);
             make_message('Данные успешно обновлены ', 'success');
             // make_message(msg, data.status);
@@ -432,6 +437,7 @@ function update_crm_info(url){
         }
     },
      error: function() {
+        if (boardHost && Number(boardHost.dataset.boardSequence) !== boardSequence) return;
         make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
     }
    });
@@ -1521,7 +1527,7 @@ function closeOrderCompanyOperatorModal() {
 
 function submitOrderCompanyOperatorForm() {
   const modalEl = document.getElementById("modal-process-order");
-  if (!modalEl) return;
+  if (!modalEl || modalEl.dataset.saving === "1") return;
 
   const orderId = modalEl.dataset.orderId; // важно: data-order-id должен быть задан
   const isPcOrder = modalEl.dataset.pcOrder === "1";
@@ -1556,6 +1562,11 @@ function submitOrderCompanyOperatorForm() {
     payload.company = company;
     payload.upd_number = updNumber;
   }
+
+  modalEl.dataset.saving = "1";
+  const saveButton = modalEl.querySelector(".modal-footer .btn-warning");
+  if (saveButton) saveButton.disabled = true;
+  loadingCircle();
 
   fetch( UPDATE_ORDER_PROCESS_INFO_URL, {
     method: "POST",
@@ -1597,5 +1608,10 @@ function submitOrderCompanyOperatorForm() {
   .catch(err => {
     make_message("Сервер не отвечает. Повторите позже.", "danger");
     console.error(err);
+  })
+  .finally(() => {
+    close_Loading_circle();
+    modalEl.dataset.saving = "0";
+    if (saveButton) saveButton.disabled = false;
   });
 }

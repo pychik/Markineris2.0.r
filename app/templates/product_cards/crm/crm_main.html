@@ -34,9 +34,8 @@
 ></div>
 {#
 {% include "product_cards/crm/helpers/helper_button_reject_cards_with_rd.html" %}#}
-<div id="update_all_info">
-
-    {% include 'product_cards/crm/cards/data_block.html'%}
+<div id="update_all_info" data-initial-board-url="{{ url_for('crm_product_cards.cards', bck=1, category=category, subcategory=subcategory, filtered_manager_id=filtered_manager_id) }}">
+    {% include 'crm_mod_v1/helpers/initial_board_loading.html' %}
 </div>
 {% include 'product_cards/crm/helpers/manager_alert.html' %}
 
