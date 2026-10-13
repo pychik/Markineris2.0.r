@@ -78,14 +78,14 @@
                         <li>
                             <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_d.agents') }}"
                                title="Перейти в CRM">
-                                Заказы CRM
+                                CRM заказы
                             </a>
                         </li>
                      {%endif%}
                     {% if current_user.role in ['superuser', 'm2r_admin'] or (current_user.role =='admin' and current_user.is_at2)%}
                         <li>
                             <a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('crm_product_cards.cards')}}"
-                                title="Модерация CRM">Модерация CRM</a>
+                                title="CRM карточки товаров">CRM карточки товаров</a>
                         </li>
                     {%endif%}
                     {% if current_user.role == 'admin' and current_user.is_at2%}
@@ -178,14 +178,14 @@
                     <li>
                         <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_d.agents') }}"
                            title="Перейти в CRM">
-                            Заказы CRM
+                            CRM заказы
                         </a>
                     </li>
                 {%endif%}
                 {% if current_user.role in ['superuser', 'supermanager', 'manager'] or (current_user.role =='admin' and current_user.is_at2)%}
                     <li>
                         <a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('crm_product_cards.cards')}}"
-                            title="Модерация CRM">Модерация CRM</a>
+                            title="CRM карточки товаров">CRM карточки товаров</a>
                     </li>
                 {%endif%}
                 {% if current_user.role == 'admin' and current_user.is_at2%}
