@@ -1528,6 +1528,21 @@ function closeOrderCompanyOperatorModal() {
 function submitOrderCompanyOperatorForm() {
   const modalEl = document.getElementById("modal-process-order");
   if (!modalEl || modalEl.dataset.saving === "1") return;
+  const saveButton = modalEl.querySelector("#order-process-save-button");
+  if (saveButton?.disabled) return;
+  const errorEl = modalEl.querySelector("#order-process-save-error");
+  if (errorEl) {
+    errorEl.textContent = "";
+    errorEl.classList.add("d-none");
+  }
+
+  function showSaveError(message) {
+    if (errorEl) {
+      errorEl.textContent = message;
+      errorEl.classList.remove("d-none");
+    }
+    make_message(message, "danger");
+  }
 
   const orderId = modalEl.dataset.orderId; // важно: data-order-id должен быть задан
   const isPcOrder = modalEl.dataset.pcOrder === "1";
@@ -1545,7 +1560,7 @@ function submitOrderCompanyOperatorForm() {
     }));
 
     if (!companiesUpd.length || companiesUpd.some(row => !row.company || !row.upd_number.trim())) {
-      make_message("Заполните УПД по всем компаниям заказа", "warning");
+      showSaveError("Заполните УПД по всем компаниям заказа");
       return;
     }
 
@@ -1555,7 +1570,7 @@ function submitOrderCompanyOperatorForm() {
     const updNumber = document.getElementById("updInput")?.value;
 
     if (!company || !updNumber) {
-      make_message("Заполните все поля", "warning");
+      showSaveError("Заполните все поля");
       return;
     }
 
@@ -1564,10 +1579,8 @@ function submitOrderCompanyOperatorForm() {
   }
 
   modalEl.dataset.saving = "1";
-  const saveButton = modalEl.querySelector(".modal-footer .btn-warning");
   if (saveButton) saveButton.disabled = true;
   loadingCircle();
-
   fetch( UPDATE_ORDER_PROCESS_INFO_URL, {
     method: "POST",
     headers: {
@@ -1576,9 +1589,9 @@ function submitOrderCompanyOperatorForm() {
     },
     body: JSON.stringify(payload)
   })
-  .then(res => res.json())
-  .then(data => {
-    if (data.status === "success") {
+  .then(async res => ({ ok: res.ok, data: await res.json().catch(() => ({})) }))
+  .then(({ ok, data }) => {
+    if (ok && data.status === "success") {
       make_message(data.message, "success");
       closeOrderCompanyOperatorModal();
       const iconSelector = `#cardCommonBlock_${orderId} [data-role="upd-icon"]`;
@@ -1602,11 +1615,11 @@ function submitOrderCompanyOperatorForm() {
       }
 
     } else {
-      make_message(data.message || "Ошибка при сохранении", "danger");
+      showSaveError(data.message || "Ошибка при сохранении");
     }
   })
   .catch(err => {
-    make_message("Сервер не отвечает. Повторите позже.", "danger");
+    showSaveError("Сервер не отвечает. Повторите позже.");
     console.error(err);
   })
   .finally(() => {

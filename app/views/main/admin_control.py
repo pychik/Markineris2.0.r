@@ -9,6 +9,7 @@ from data_migrations.instance import etl_service
 from data_migrations.utils import make_password
 from loguru import logger
 from models import CardChatRead, ModerationStatus, Order, ProductCard, User, db
+from utilities.admin.eco_sbor_report import eco_sbor_report as render_eco_sbor_report
 from tezaurus.exceptions import TezaurusApiError, TezaurusConfigurationError
 from tezaurus.processing_companies import ProcessingCompaniesClient
 from tezaurus.runtime_catalogs import get_all_countries
@@ -152,6 +153,13 @@ def _delete_product_card_orders() -> int:
 @aus_required
 def index(expanded: str = None):
     return h_index()
+
+
+@admin_control.route('/eco-sbor', methods=['GET'])
+@login_required
+@su_required
+def eco_sbor_report():
+    return render_eco_sbor_report()
 
 
 @admin_control.route('/module-testing', methods=['GET'])

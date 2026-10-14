@@ -1,4 +1,5 @@
 from typing import Union
+from numbers import Integral, Real
 
 from flask import flash, jsonify, redirect, url_for, request, Response, render_template, send_file
 from flask_login import current_user
@@ -128,6 +129,20 @@ def helper_upload_common_post(category: str, category_process_name: str,
         if order_list[0] == settings.ORDER_LIMIT_ARTICLES:
             flash(message=f"{settings.Messages.ORDER_UPLOAD_POS_LIMIT} {order_list[1]}", category='error')
             return _upload_redirect_response(url_for(f'{category_process_name}.upload', **params))
+        weight_columns = [column for column in us.df.columns if str(column).strip() == "Вес в граммах"]
+        if not weight_columns:
+            flash("Шаблон Excel устарел: добавьте обязательную колонку «Вес в граммах» и скачайте новый шаблон.", "error")
+            return _upload_redirect_response(url_for(f'{category_process_name}.upload', **params))
+        weight_column = weight_columns[0]
+        for position, (row_index, row) in enumerate(zip(us.data_row_indexes, order_list), start=1):
+            raw_weight = us.df.loc[row_index, weight_column]
+            valid_weight = (isinstance(raw_weight, (Integral, Real)) and
+                            not isinstance(raw_weight, bool) and
+                            float(raw_weight).is_integer() and raw_weight > 0)
+            if not valid_weight:
+                error_list.append(f"Строка {row_index + 2}, колонка «Вес в граммах»: укажите целое число больше 0")
+            else:
+                row.append(int(raw_weight))
         trademark_index = 1 if category == settings.Shoes.CATEGORY and table_type == settings.Upload.EXTENDED else 0
         for row_num, row in enumerate(order_list, start=7):
             if trademark_matches_product_type(row[trademark_index], row[2]):

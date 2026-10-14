@@ -1919,6 +1919,19 @@ def helper_process_category_order(user: User, order: Order, category: str, order
     subcategory = get_subcategory(order_id=o_id, category=category)
     redirect_kwargs = {'subcategory': subcategory} if subcategory else {}
 
+    relation = {
+        settings.Shoes.CATEGORY: order.shoes,
+        settings.Clothes.CATEGORY: order.clothes,
+        settings.Socks.CATEGORY: order.socks,
+        settings.Linen.CATEGORY: order.linen,
+        settings.Parfum.CATEGORY: order.parfum,
+        settings.Cosmetics.CATEGORY: order.cosmetics,
+        settings.Toys.CATEGORY: order.toys,
+    }.get(category, ())
+    if any(not position.weight_grams or position.weight_grams <= 0 for position in relation):
+        flash("Для оформления заказа укажите общий вес каждой позиции в граммах (целое число больше 0).", "error")
+        return redirect(url_for(f'{_category_name}.index', o_id=o_id, **redirect_kwargs))
+
     if not validate_order_comment_length(order_comment=order_comment):
         return redirect(url_for(f'{_category_name}.index', o_id=o_id, **redirect_kwargs))
 

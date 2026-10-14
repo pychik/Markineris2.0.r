@@ -22,7 +22,7 @@
     <link rel="stylesheet" href="{{url_for('static',filename='main_v2/css/style.css')}}">
     <link rel="stylesheet" href="{{url_for('static',filename='main_v2/css/style-08.css')}}">
     <link rel="stylesheet" href="{{url_for('static',filename='main_v2/css/update_1.css')}}">
-    <link rel="stylesheet" href="{{url_for('static',filename='main_v2/css/special_v3.css', v='3')}}">
+    <link rel="stylesheet" href="{{url_for('static',filename='main_v2/css/special_v3.css', v='4')}}">
     <link rel="stylesheet" href="{{url_for('static',filename='main_v2/assets/lib/tablestack/tablesaw.stackonly.css')}}">
     <link rel="stylesheet" href="{{url_for('static',filename='main_v2/video/css/video.css')}}">
 
@@ -284,15 +284,13 @@
     <div id="obDetaildiv"></div>
     <div id="tgNotifydiv"></div>
 
-    <div class="overlay" id="overlay_loading" >
-        <div class="d-flex justify-content-center">
-          <div class="text-warning over_text text-center">
-             <h3>Производится обработка запроса...</h3>
-             <h5>Если процесс длится более 3 мин, обновите страницу!</h5>
-             <div class="spinner-border" style="width: 5rem; height: 5rem;" role="status">
-                 <span class="visually-hidden">Loading...</span>
+    <div class="overlay" id="overlay_loading">
+        <div class="crm-loading__panel" role="status" aria-live="polite">
+            <span class="crm-loading__spinner" aria-hidden="true"></span>
+            <div>
+                <div class="crm-loading__title">Обновляем данные</div>
+                <div class="crm-loading__hint">Пожалуйста, подождите</div>
             </div>
-          </div>
         </div>
     </div>
 

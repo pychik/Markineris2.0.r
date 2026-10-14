@@ -14,7 +14,7 @@ from utilities.saving_helpers import append_or_merge_position, validate_parfum_t
 def upload_shoe_st(order_list: list, order: Order) -> Order:
     for el in order_list:
         rd_date = datetime.strptime(el[14].strip(), '%d.%m.%Y').date() if el[14].strip() else None
-        new_shoe_order = Shoe(trademark=el[0].strip(),
+        new_shoe_order = Shoe(weight_grams=el[-1], trademark=el[0].strip(),
                               article=el[1].strip(), type=el[2].strip(),
                               color=el[3].strip(), box_quantity=1,
                               material_top=el[5].strip(),
@@ -35,7 +35,7 @@ def upload_shoe_st(order_list: list, order: Order) -> Order:
 def upload_shoe_ext(order_list: list, order: Order) -> Order:
     for el in order_list:
         rd_date = datetime.strptime(el[14].strip(), '%d.%m.%Y').date() if el[14].strip() else None
-        new_shoe_order = Shoe(article=el[0].strip(),
+        new_shoe_order = Shoe(weight_grams=el[-1], article=el[0].strip(),
                               trademark=el[1].strip(), type=el[2].strip(),
                               material_top=el[3].strip(),
                               material_lining=el[4].strip(),
@@ -58,7 +58,7 @@ def upload_shoe_ext(order_list: list, order: Order) -> Order:
 def upload_clothes_st(order_list: list, order: Order, subcategory: str = None) -> Order:
     for el in order_list:
         rd_date = datetime.strptime(el[13].strip(), '%d.%m.%Y').date() if (el[13].strip() and el[13] != 'nan') else None
-        new_clothes_order = Clothes(trademark=el[0].strip(),
+        new_clothes_order = Clothes(weight_grams=el[-1], trademark=el[0].strip(),
                                     article=el[1].strip(), type=el[2].strip(),
                                     color=el[3].strip(), box_quantity=1,
                                     gender=el[4].strip(),
@@ -84,7 +84,7 @@ def upload_clothes_st(order_list: list, order: Order, subcategory: str = None) -
 def upload_socks_st(order_list: list, order: Order) -> Order:
     for el in order_list:
         rd_date = datetime.strptime(el[13].strip(), '%d.%m.%Y').date() if (el[13].strip() and el[13] != 'nan') else None
-        new_socks_order = Socks(trademark=el[0].strip(),
+        new_socks_order = Socks(weight_grams=el[-1], trademark=el[0].strip(),
                                 article=el[1].strip(), type=el[2].strip(),
                                 color=el[3].strip(), box_quantity=1,
                                 gender=el[4].strip(),
@@ -105,7 +105,7 @@ def upload_parfum_st(order_list: list, order: Order) -> Order:
 
     for el in order_list:
         trademark = validate_parfum_trademark(el[0])
-        new_parfum_order = Parfum(trademark=trademark, volume_type=el[1].strip(), volume=el[2].strip(),
+        new_parfum_order = Parfum(weight_grams=el[-1], trademark=trademark, volume_type=el[1].strip(), volume=el[2].strip(),
                                   package_type=el[3].strip(), material_package=el[4].strip(), type=el[5].strip(),
                                   with_packages="нет", box_quantity=1, quantity=el[7].strip(), country=el[8].strip(),
                                   rd_type=el[9].strip(), rd_name=el[10].replace('№', ''),
@@ -118,7 +118,7 @@ def upload_parfum_st(order_list: list, order: Order) -> Order:
 def upload_parfum_ext(order_list: list, order: Order) -> Order:
     for el in order_list:
         trademark = validate_parfum_trademark(el[0])
-        new_parfum_order = Parfum(trademark=trademark, volume_type=el[1].strip(), volume=el[2].strip(),
+        new_parfum_order = Parfum(weight_grams=el[-1], trademark=trademark, volume_type=el[1].strip(), volume=el[2].strip(),
                                   package_type=el[3].strip(), material_package=el[4].strip(), type=el[5].strip(),
                                   with_packages="да", box_quantity=el[7].strip(), quantity=el[8].strip(),
                                   country=el[9].strip(),
@@ -132,7 +132,7 @@ def upload_parfum_ext(order_list: list, order: Order) -> Order:
 def upload_linen_st(order_list: list, order: Order) -> Order:
     for el in order_list:
         rd_date = datetime.strptime(el[14].strip(), '%d.%m.%Y').date() if el[14].strip() else None
-        new_linen_order = Linen(trademark=el[0].strip(),
+        new_linen_order = Linen(weight_grams=el[-1], trademark=el[0].strip(),
                                 article=el[1].strip(), type=el[2].strip(),
                                 color=el[3].strip(), with_packages="нет", box_quantity=1,
                                 customer_age=el[4].strip(),
@@ -153,7 +153,7 @@ def upload_linen_st(order_list: list, order: Order) -> Order:
 def upload_linen_ext(order_list: list, order: Order) -> Order:
     for el in order_list:
         rd_date = datetime.strptime(el[15].strip(), '%d.%m.%Y').date() if el[15].strip() else None
-        new_linen_order = Linen(trademark=el[0].strip(),
+        new_linen_order = Linen(weight_grams=el[-1], trademark=el[0].strip(),
                                 article=el[1].strip(), type=el[2].strip(),
                                 color=el[3].strip(), with_packages="да", box_quantity=el[10].strip(),
                                 customer_age=el[4].strip(),

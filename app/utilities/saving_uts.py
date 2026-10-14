@@ -42,7 +42,7 @@ def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
     article = normalize_article_placeholder(form_dict.get("article"))
 
-    new_shoe_order = Shoe(trademark=process_input_str(form_dict.get("trademark")),
+    new_shoe_order = Shoe(weight_grams=form_dict["weight_grams"], trademark=process_input_str(form_dict.get("trademark")),
                           article=article, type=form_dict.get("type"),
                           color=form_dict.get("color"), box_quantity=form_dict.get("box_quantity"),
                           material_top=form_dict.get("material_top"),
@@ -68,7 +68,7 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcateg
     normalized_subcategory = subcategory if subcategory else ClothesSubcategories.common.value
     clothes_type = normalize_clothes_type_for_subcategory(form_dict.get("type"), normalized_subcategory)
 
-    new_clothes_order = Clothes(trademark=process_input_str(form_dict.get("trademark")),
+    new_clothes_order = Clothes(weight_grams=form_dict["weight_grams"], trademark=process_input_str(form_dict.get("trademark")),
                                 article=article,
                                 type=clothes_type,
                                 color=form_dict.get("color"),
@@ -96,7 +96,7 @@ def save_socks(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
     article = normalize_article_placeholder(form_dict.get("article"))
 
-    new_socks_order = Socks(trademark=process_input_str(form_dict.get("trademark")),
+    new_socks_order = Socks(weight_grams=form_dict["weight_grams"], trademark=process_input_str(form_dict.get("trademark")),
                               article=article,
                               type=form_dict.get("type"),
                               color=form_dict.get("color"),
@@ -121,7 +121,7 @@ def save_linen(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
     article = normalize_article_placeholder(form_dict.get("article"))
 
-    new_linen_order = Linen(trademark=process_input_str(form_dict.get("trademark")),
+    new_linen_order = Linen(weight_grams=form_dict["weight_grams"], trademark=process_input_str(form_dict.get("trademark")),
                             article=article,
                             type=form_dict.get("type"),
                             color=form_dict.get("color"),
@@ -158,7 +158,7 @@ def save_parfum(order: Order, form_dict: dict) -> Order:
     with_p = form_dict.get("with_packages")
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
     trademark = validate_parfum_trademark(form_dict.get("trademark"))
-    new_parfum_order = Parfum(trademark=trademark,
+    new_parfum_order = Parfum(weight_grams=form_dict["weight_grams"], trademark=trademark,
                               volume_type=form_dict.get("volume_type"),
                               volume=form_dict.get("volume"), package_type=form_dict.get("package_type"),
                               material_package=form_dict.get("material_package"), type=form_dict.get("type"),
@@ -216,6 +216,7 @@ def save_cosmetics(order: Order, form_dict: dict, subcategory: str) -> Order:
     sl_date_to = datetime.strptime(form_dict.get("sl_date_to"), '%d.%m.%Y').date() if form_dict.get("sl_date_to") else None
 
     new_cosmetics_order = Cosmetics(
+        weight_grams=form_dict["weight_grams"],
         trademark=normalize_trademark_placeholder(form_dict.get("trademark")),
         type=form_dict.get("type"),
         full_name_extra=process_input_str(form_dict.get("full_name_extra")),
@@ -289,6 +290,7 @@ def save_toys(order: Order, form_dict: dict, subcategory: str) -> Order:
         pass
 
     new_toys_order = Toys(
+        weight_grams=form_dict["weight_grams"],
         trademark=normalize_trademark_placeholder(form_dict.get("trademark")),
         type=form_dict.get("type"),
         full_name_extra=process_input_str(form_dict.get("full_name_extra")),
@@ -322,11 +324,17 @@ def save_toys(order: Order, form_dict: dict, subcategory: str) -> Order:
 
 
 def common_save_db(order: Order, form_dict: dict, category: str, subcategory: str = None, sizes_quantities: list = None) -> Order:
+    weight_raw = str(form_dict.get("weight_grams") or "").strip()
+    if not weight_raw.isdecimal() or int(weight_raw) <= 0:
+        raise ValueError("Укажите общий вес позиции в граммах: целое число больше 0")
+    form_dict["weight_grams"] = int(weight_raw)
     tnved_code_raw = form_dict.get("tnved_code")
 
     form_dict.update({"tnved_code": tnved_code_raw if tnved_code_raw else ''})
 
     for k, value in form_dict.items():
+        if k == "weight_grams":
+            continue
         if value is None:
             form_dict[k] = ''
         elif isinstance(value, str):
@@ -364,7 +372,14 @@ def common_save_copy_order(u_id: int, user: User, category: str, order: Order) -
             settings.Cosmetics.CATEGORY: 'cosmetics',
             settings.Toys.CATEGORY: 'toys',
         }
-        for position_num, position in enumerate(getattr(order, category_position_attribute.get(category, ''), ()), start=1):
+        source_positions = getattr(order, category_position_attribute.get(category, ''), ())
+        copyable_positions = [position for position in source_positions if position.weight_grams and position.weight_grams > 0]
+        skipped_count = len(source_positions) - len(copyable_positions)
+        if skipped_count:
+            flash(f"Не скопировано позиций без веса: {skipped_count}. По новым правилам необходимо указывать вес позиции в граммах.", "warning")
+        if not copyable_positions:
+            raise ValueError("Нет позиций с указанным весом для копирования")
+        for position_num, position in enumerate(copyable_positions, start=1):
             if trademark_matches_product_type(position.trademark, position.type):
                 raise ValueError(f"Позиция {position_num}: {TRADEMARK_PRODUCT_TYPE_ERROR}")
 
@@ -377,19 +392,19 @@ def common_save_copy_order(u_id: int, user: User, category: str, order: Order) -
 
         match category:
             case settings.Shoes.CATEGORY:
-                new_order = save_copy_order_shoes(order_category_list=order.shoes, new_order=new_order)
+                new_order = save_copy_order_shoes(order_category_list=copyable_positions, new_order=new_order)
             case settings.Clothes.CATEGORY:
-                new_order = save_copy_order_clothes(order_category_list=order.clothes, new_order=new_order)
+                new_order = save_copy_order_clothes(order_category_list=copyable_positions, new_order=new_order)
             case settings.Socks.CATEGORY:
-                new_order = save_copy_order_socks(order_category_list=order.socks, new_order=new_order)
+                new_order = save_copy_order_socks(order_category_list=copyable_positions, new_order=new_order)
             case settings.Linen.CATEGORY:
-                new_order = save_copy_order_linen(order_category_list=order.linen, new_order=new_order)
+                new_order = save_copy_order_linen(order_category_list=copyable_positions, new_order=new_order)
             case settings.Parfum.CATEGORY:
-                new_order = save_copy_order_parfum(order_category_list=order.parfum, new_order=new_order)
+                new_order = save_copy_order_parfum(order_category_list=copyable_positions, new_order=new_order)
             case settings.Cosmetics.CATEGORY:
-                new_order = save_copy_order_cosmetics(order_category_list=order.cosmetics, new_order=new_order)
+                new_order = save_copy_order_cosmetics(order_category_list=copyable_positions, new_order=new_order)
             case settings.Toys.CATEGORY:
-                new_order = save_copy_order_toys(order_category_list=order.toys, new_order=new_order)
+                new_order = save_copy_order_toys(order_category_list=copyable_positions, new_order=new_order)
 
         user.orders.append(new_order)
         db.session.commit()
@@ -414,7 +429,7 @@ def save_copy_order_shoes(order_category_list: list[Shoe], new_order: Order) -> 
             incompatible_items.append(result)
             continue
 
-        new_shoes = Shoe(trademark=normalize_trademark_placeholder(shoe.trademark),
+        new_shoes = Shoe(weight_grams=shoe.weight_grams, trademark=normalize_trademark_placeholder(shoe.trademark),
                                 article=normalize_article_placeholder(shoe.article), type=shoe.type,
                                 color=shoe.color, box_quantity=shoe.box_quantity,
                                 material_top=shoe.material_top,
@@ -473,7 +488,7 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
         if not new_sizes:
             continue
 
-        new_clothes = Clothes(
+        new_clothes = Clothes(weight_grams=clothes.weight_grams,
             trademark=normalize_trademark_placeholder(clothes.trademark),
             article=normalize_article_placeholder(clothes.article),
             type=normalize_clothes_type_for_subcategory(clothes.type, clothes.subcategory),
@@ -519,7 +534,7 @@ def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) ->
             )
             new_sizes.append(new_sq)
 
-        new_socks = Socks(
+        new_socks = Socks(weight_grams=sock.weight_grams,
             trademark=normalize_trademark_placeholder(sock.trademark),
             article=normalize_article_placeholder(sock.article), type=sock.type,
             color=sock.color, content=sock.content, box_quantity=sock.box_quantity,
@@ -559,7 +574,7 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
             incompatible_items.append(result)
             continue
 
-        new_linen = Linen(trademark=normalize_trademark_placeholder(linen.trademark),
+        new_linen = Linen(weight_grams=linen.weight_grams, trademark=normalize_trademark_placeholder(linen.trademark),
                                      article=normalize_article_placeholder(linen.article), type=linen.type,
                                      color=linen.color, with_packages=linen.with_packages,
                                      box_quantity=linen.box_quantity,
@@ -623,7 +638,7 @@ def save_copy_order_parfum(order_category_list: list[Parfum], new_order: Order) 
             )
             continue
 
-        new_parfum = Parfum(
+        new_parfum = Parfum(weight_grams=parfum.weight_grams,
             trademark=trademark,
             volume_type=parfum.volume_type,
             volume=parfum.volume,
@@ -669,7 +684,7 @@ def save_copy_order_cosmetics(order_category_list: list[Cosmetics], new_order: O
         if country_error:
             incompatible_items.append(str(country_error))
             continue
-        new_cosmetics = Cosmetics(
+        new_cosmetics = Cosmetics(weight_grams=cosmetics.weight_grams,
             trademark=normalize_trademark_placeholder(cosmetics.trademark),
             type=cosmetics.type,
             full_name_extra=cosmetics.full_name_extra,
@@ -713,7 +728,7 @@ def save_copy_order_toys(order_category_list: list[Toys], new_order: Order) -> O
         if country_error:
             incompatible_items.append(str(country_error))
             continue
-        new_toys = Toys(
+        new_toys = Toys(weight_grams=toy.weight_grams,
             trademark=normalize_trademark_placeholder(toy.trademark),
             type=toy.type,
             full_name_extra=toy.full_name_extra,
@@ -939,7 +954,7 @@ def get_delete_pos_stmts(category: str, m_id: int, o_id: int) -> str:
 def helper_check_partner_codes_admin(partner_id: int, admin_id: int) -> tuple[bool, any]:
     try:
         res = db.session.execute(text("""
-                                    SELECT 
+                                    SELECT
                                         u.login_name as admin_name,
                                         u.is_at2 as admin_is_at2,
                                         u.phone as admin_phone
@@ -965,10 +980,10 @@ def helper_check_partner_codes_admin(partner_id: int, admin_id: int) -> tuple[bo
 
 def get_sql_admin_partner_codes(u_id: int) -> Optional[list]:
     res = db.session.execute(text(f"""
-                            SELECT partner_codes.id, partner_codes.code, users_partners.partner_code_id, users.login_name 
+                            SELECT partner_codes.id, partner_codes.code, users_partners.partner_code_id, users.login_name
                             FROM users
                              JOIN users_partners ON users_partners.user_id=users.id
                              JOIN partner_codes on partner_codes.id=users_partners.partner_code_id
-                            WHERE users.id={u_id}; 
+                            WHERE users.id={u_id};
                             """)).fetchall()
     return res

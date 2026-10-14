@@ -27,7 +27,7 @@
 
                     </td>
                     <td class="text-end actions">
-                        <button type="button" onclick="show_socks_pos('{{loop.index}}', '{{t.trademark}}',
+                        <button type="button" data-weight-grams="{{ t.weight_grams if t.weight_grams is not none else '' }}" onclick="show_socks_pos('{{loop.index}}', '{{t.trademark}}',
                          '{{t.type}}', '{{t.color}}', '{{ t.sizes_quantities | count_quantity }}',
                                         '{{t.box_quantity}}', '{{ t.sizes_quantities | count_quantity * t.box_quantity }}',
                         [{%for sq in t.sizes_quantities%}'{{sq.size}}##{{sq.quantity}}##{{sq.size_type}}', {%endfor%}],

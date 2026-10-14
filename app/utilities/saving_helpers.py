@@ -306,6 +306,7 @@ def build_position_key(item: Any, category: str) -> tuple:
         normalize_float_key(item.article_price),
         normalize_int_key(item.tax),
         normalize_key_value(item.type),
+        getattr(item, "weight_grams", None) is None,
         normalize_int_key(getattr(item, "fast_order_company_id", None)),
     )
 
@@ -458,6 +459,9 @@ def append_or_merge_position(order_positions: Any, new_item: Any, category: str,
         # logger.info(f"merge compare category={category} existing_key={existing_key}")
         if existing_key != new_key:
             continue
+
+        if new_item.weight_grams is not None:
+            existing_item.weight_grams = (existing_item.weight_grams or 0) + new_item.weight_grams
 
         if category in (settings.Parfum.CATEGORY, settings.Cosmetics.CATEGORY, settings.Toys.CATEGORY):
             existing_item.quantity = normalize_int_key(existing_item.quantity) + normalize_int_key(new_item.quantity)
