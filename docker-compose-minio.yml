@@ -40,6 +40,20 @@ services:
     env_file:
     - .env
 
+  static_sync:
+    build:
+      context: .
+      dockerfile: Dockerfile.static
+    container_name: static_sync
+    env_file:
+      - .env
+    volumes:
+      - ./app/static:/app/static:ro
+    networks:
+      - minio_network
+    environment:
+      - PYTHONPATH=/app
+
 volumes:
   minio_dir:
 

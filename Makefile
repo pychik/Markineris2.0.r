@@ -150,13 +150,6 @@ logrotate-check:				## Принудительно проверить и выпо
 help:       					## Показать все команды.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m (default: help)\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
-run-static-synchronize:        ## Синхронизация статики s3 хранилища со статикой репы
-		@bash -c '\
-    export PYTHONPATH=$(shell pwd)/app:$$PYTHONPATH && \
-    echo "PYTHONPATH: $$PYTHONPATH" && \
-	export $$(grep -v "^#" .env | grep -E "^[a-zA-Z_][a-zA-Z0-9_]*=.*" | xargs -d "\n"); \
-	export MINIO_API_URL=0.0.0.0:9000 && \
-	python3 -m venv venv && \
-	. venv/bin/activate && \
-	pip install -r app/requirements.txt && \
-	python3 app/data_migrations/static_synchronize_script.py'
+run-static-synchronize:        ## Синхронизация статики s3 хранилища со статикой репы (контейнер static_sync)
+	$(DOCKER_COMPOSE_COMMAND) $(COMPOSE_S3_STORAGE) build static_sync
+	$(DOCKER_COMPOSE_COMMAND) $(COMPOSE_S3_STORAGE) run --rm static_sync

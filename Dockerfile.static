@@ -1,0 +1,19 @@
+# Синхронизация app/static с бакетом static в MinIO: make run-static-synchronize (сервис static_sync).
+# Контекст сборки - корень репозитория, всё лишнее отсекает .dockerignore в корне.
+# Статику в образ не копируем: сервис монтирует ./app/static:/app/static:ro, иначе синхронизировать нечего.
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+
+WORKDIR /app
+
+# Скрипту нужны только config, logger и MinIO-сервис. Версии берём из app/requirements.txt, чтобы не разъезжались
+COPY app/requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir \
+    $(grep -iE '^(flask|werkzeug|minio|pydantic|pydantic-settings|loguru)==' /tmp/requirements.txt | cut -d' ' -f1)
+
+COPY app/ ./
+
+CMD ["python", "data_migrations/static_synchronize_script.py"]

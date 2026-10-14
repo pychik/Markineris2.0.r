@@ -1,0 +1,10 @@
+# Корень репозитория как контекст сборки нужен только Dockerfile.static (синхронизация статики в MinIO).
+# Без этого списка в Docker уезжали бы postgres_volume, minio_dir, дампы и бэкапы.
+# app/static (~700 МБ) в образ не копируем: сервис монтирует его томом ./app/static:/app/static:ro.
+*
+!app/requirements.txt
+!app/config.py
+!app/logger.py
+!app/utilities
+!app/data_migrations
+**/__pycache__
