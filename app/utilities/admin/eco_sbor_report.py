@@ -130,7 +130,8 @@ def _positions_query(filters, *, include_company=True):
             continue
         stmt = (select(literal(category).label("category"), model.id.label("position_id"),
                        Order.id.label("order_id"), Order.order_idn.label("order_idn"),
-                       Order.sent_at.label("sort_date"), company.label("company"),
+                       Order.sent_at.label("sort_date"), Order.is_moderation.label("is_moderation"),
+                       company.label("company"),
                        subcategory.label("subcategory"),
                        getattr(model, "article", getattr(model, "model_article", literal(""))).label("article"),
                        model.type.label("product"), model.tnved_code.label("tnved"),
@@ -164,12 +165,20 @@ def _position_rows(records):
             "tnved": record.tnved or "",
             "quantity": record.quantity or 0,
             "weight": record.weight,
+            "is_moderation": record.is_moderation,
         } for record in records]
 
 
 HEADERS = ("Дата", "Заказ", "Проводящая фирма", "Категория", "Подкатегория",
            "Артикул", "Вид товара", "ТН ВЭД", "Количество марок", "Вес позиции, г")
 KEYS = ("date", "order", "company", "category", "subcategory", "article", "product", "tnved", "quantity", "weight")
+
+
+def _missing_weight_expr(positions):
+    """Only missing weight in ordinary orders makes a report total incomplete."""
+    return case((and_(positions.c.weight.is_(None), positions.c.is_moderation.is_(False)), 1), else_=0)
+
+
 COMPANY_CATEGORY_LABELS = {
     settings.Clothes.CATEGORY: "Одежда",
     settings.Shoes.CATEGORY: "Обувь",
@@ -210,7 +219,7 @@ def _company_summary(positions, filters):
                                 func.count().label("positions"),
                                 func.coalesce(func.sum(positions.c.quantity), 0).label("quantity"),
                                 func.coalesce(func.sum(positions.c.weight), 0).label("weight"),
-                                func.sum(case((positions.c.weight.is_(None), 1), else_=0)).label("missing"))
+                                func.sum(_missing_weight_expr(positions)).label("missing"))
                          .group_by(positions.c.company, positions.c.category))
         for row in db.session.execute(summary_query):
             identity = _company_identity(row.company)
@@ -362,7 +371,8 @@ def eco_sbor_report():
                     sheet_lengths[key] += 1
                     sheet_totals[key]["quantity"] += item["quantity"]
                     if item["weight"] is None:
-                        sheet_totals[key]["missing"] += 1
+                        if not item["is_moderation"]:
+                            sheet_totals[key]["missing"] += 1
                     else:
                         sheet_totals[key]["weight"] += item["weight"]
         for key, sheet in sheets.items():
@@ -391,8 +401,8 @@ def eco_sbor_report():
         group_query = (select(positions.c.category, positions.c.subcategory,
                               func.count().label("position_count"),
                               func.coalesce(func.sum(positions.c.quantity), 0).label("quantity_total"),
-                              func.sum(positions.c.weight).label("weight_total"),
-                              func.sum(case((positions.c.weight.is_(None), 1), else_=0)).label("missing_weight"))
+                              func.coalesce(func.sum(positions.c.weight), 0).label("weight_total"),
+                              func.sum(_missing_weight_expr(positions)).label("missing_weight"))
                        .group_by(positions.c.category, positions.c.subcategory)
                        .order_by(positions.c.category, positions.c.subcategory))
         groups = {(row.category, row.subcategory or ""):
