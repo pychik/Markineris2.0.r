@@ -11,11 +11,11 @@ from logger import logger
 @with_appcontext
 def create_superuser():
     from models import User, PartnerCode, TelegramMessage
-    from werkzeug.security import generate_password_hash
+    from utilities.passwords import hash_password
     from .start import db
     try:
         super_user = User(admin_order_num=0, phone=settings.SU_PHONE, login_name=settings.SU_NAME, email=settings.SU_EMAIL,
-                          password=generate_password_hash(settings.SU_PASSWORD, method='sha256'),
+                          password=hash_password(settings.SU_PASSWORD),
                           role=settings.SUPER_USER, client_code=settings.SU_PARTNER, is_crm=True, status=True,
                           is_send_excel=True, agent_fee=20)
 
@@ -42,11 +42,11 @@ def create_superuser():
 @with_appcontext
 def create_superuser_custom(name: str, email: str, password: str):
     from models import User, PartnerCode, TelegramMessage
-    from werkzeug.security import generate_password_hash
+    from utilities.passwords import hash_password
     from .start import db
     try:
         super_user = User(admin_order_num=0, phone=settings.SU_PHONE, login_name=name, email=email,
-                          password=generate_password_hash(password, method='sha256'),
+                          password=hash_password(password),
                           role=settings.SUPER_USER, client_code=settings.SU_PARTNER, is_crm=True, status=True,
                           is_send_excel=True, agent_fee=20)
 

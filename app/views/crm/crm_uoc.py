@@ -7,12 +7,12 @@ from flask import Blueprint, flash, render_template, redirect, url_for, request,
 from flask_login import current_user, login_required
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from werkzeug.security import generate_password_hash
 
 from config import settings
 from logger import logger
 from models import User, Order, db
 from utilities.admin.excel_report import ExcelReport
+from utilities.passwords import hash_password
 from utilities.support import (user_activated, su_required, susmu_required, susmumu_required, manager_exist_check,
                                helper_get_filter_avg_order_time_processing_report,
                                helper_get_stmt_avg_order_time_processing_report,
@@ -140,7 +140,7 @@ def create_manager():
         new_manager = User(admin_order_num=0, login_name=login_name, phone=settings.SU_PHONE,
                            email=login_name + settings.MANAGER_EMAIL_POSTFIX,
                            is_crm=True, is_send_excel=True,
-                           password=generate_password_hash(password, method='sha256'),
+                           password=hash_password(password),
                            role=settings.MANAGER_USER, client_code=settings.MU_PARTNER, status=True)
 
         db.session.add(new_manager)
@@ -290,7 +290,7 @@ def change_worker_password(u_id: int):
         return jsonify({'status': 'error', 'message': settings.Messages.NO_SUCH_USER}), 404
 
     try:
-        user.password = generate_password_hash(password, method='sha256')
+        user.password = hash_password(password)
         db.session.commit()
         return jsonify({'status': 'success', 'message': f'Пароль пользователя {user.login_name} изменен.'})
     except Exception as e:
@@ -600,7 +600,7 @@ def create_moderator():
         new_moderator = User(admin_order_num=0, login_name=login_name, phone=settings.SU_PHONE,
                              email=login_name + settings.MANAGER_EMAIL_POSTFIX,
                              is_crm=False, is_send_excel=False, is_at2=False,
-                             password=generate_password_hash(password, method='sha256'),
+                             password=hash_password(password),
                              role=settings.MARKINERIS_ADMIN_USER, client_code=settings.MM_PARTNER, status=True)
 
         db.session.add(new_moderator)
