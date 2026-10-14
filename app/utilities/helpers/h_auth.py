@@ -1,15 +1,16 @@
 from typing import Union
 
-from flask import Blueprint, jsonify, render_template, redirect, url_for, request, Response, flash, Markup, session
+from flask import Blueprint, jsonify, render_template, redirect, url_for, request, Response, flash, session
 from flask_login import login_user, logout_user, current_user
+from markupsafe import Markup
 
 from sqlalchemy.exc import IntegrityError
-from werkzeug.security import generate_password_hash, check_password_hash
 
 from config import settings
 from logger import logger
 from models import User, PartnerCode, db, ExceptionDataUsers
 from settings.start import SIMPLE_CAPTCHA
+from utilities.passwords import check_password, hash_password, is_legacy_hash
 from utilities.sms.sms_service import SmsOTP
 from utilities.saving_uts import helper_check_partner_codes_admin
 from utilities.support import url_decrypt, check_email
@@ -54,7 +55,7 @@ def h_login_post() -> Response:
 
     next_page = request.form.get('next')
 
-    if not user or not check_password_hash(user.password, password):
+    if not user or not check_password(user.password, password):
         message = Markup(f"<span class=\"text-secondary\"><b>{email}</span> {settings.Messages.INCORRECT_AUTH}")
         flash(message=message, category='error')
         return redirect(url_for('auth.login'))
@@ -65,6 +66,9 @@ def h_login_post() -> Response:
                                  f"{settings.Messages.USER_NOT_ACTIVATED_2}")
         flash(message=message, category='warning')
         return redirect(url_for('auth.login'))
+    if is_legacy_hash(user.password):
+        user.password = hash_password(password)
+        db.session.commit()
     login_user(user=user, remember=remember)
     session.permanent = True
 
@@ -167,7 +171,7 @@ def h_sign_up_post() -> Union[Response, str]:
     try:
         new_user = User(email=email, phone=phone, login_name=login_name,
                         role=settings.ORD_USER, is_crm=is_crm, is_at2=is_at2,
-                        password=generate_password_hash(password, method='sha256'),
+                        password=hash_password(password),
                         status=True, phone_verified=True)
         if telegram:
             new_user.telegram.append(telegram)

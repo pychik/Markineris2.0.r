@@ -6,7 +6,6 @@ from flask import flash, jsonify, render_template, redirect, url_for, request, R
 from flask_login import current_user
 from sqlalchemy import text, desc, func
 from sqlalchemy.exc import IntegrityError
-from werkzeug.security import generate_password_hash, check_password_hash
 
 from config import settings
 from logger import logger
@@ -29,6 +28,7 @@ from utilities.daily_price import get_cocmd
 from utilities.exceptions import EmptyFileToUploadError
 from utilities.mailer import MailSender
 from utilities.minio_service.services import get_s3_service
+from utilities.passwords import check_password, hash_password
 from utilities.support import (
     url_encrypt,
     url_decrypt,
@@ -73,9 +73,9 @@ def h_change_user_password(u_id: int) -> Response:
     form_dict = request.form.to_dict()
     previous_password = form_dict.get('previous_password')
 
-    new_password = generate_password_hash(form_dict.get('new_password'), method='sha256')
+    new_password = hash_password(form_dict.get('new_password'))
 
-    if not check_password_hash(user_info.password, previous_password):
+    if not check_password(user_info.password, previous_password):
         flash(message=f"{settings.Messages.CHANGE_PASSWORD_ERROR} Введенный старый пароль {previous_password} не"
                       f" корректен!", category='error')
     else:
@@ -591,7 +591,7 @@ def h_change_user_password_na() -> Response:
         flash(message=settings.Messages.RESTORE_LINK_EXPIRED, category='error')
         return redirect(url_for('auth.login'))
 
-    new_password = generate_password_hash(form_dict.get('new_password'), method='sha256')
+    new_password = hash_password(form_dict.get('new_password'))
 
     try:
         user_info.password = new_password

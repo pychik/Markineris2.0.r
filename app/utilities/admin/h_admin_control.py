@@ -13,13 +13,13 @@ from sqlalchemy.exc import NoResultFound
 
 from sqlalchemy.exc import IntegrityError
 from urllib import parse
-from werkzeug.security import generate_password_hash
 
 from config import settings
 from logger import logger
 from models import db, Order, OrderStat, PartnerCode, RestoreLink, Telegram, TelegramMessage, User, users_partners, \
     Price, TgUser, ReanimateStatus, ExceptionDataUsers, ValidExceptionsUserDataKinds
 from utilities.download import orders_process_send_order
+from utilities.passwords import hash_password
 from utilities.reports_manual.at2_transactions_report import create_at2_transactions_report
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll, SQLQueryFactory
 from utilities.support import (url_encrypt, helper_check_form, helper_update_order_note, helper_paginate_data,
@@ -1403,7 +1403,7 @@ def helper_create_at2_admin(login_name: str, email: str, password: str, tg_id: s
     try:
         new_admin = User(admin_order_num=0, login_name=login_name, email=email, phone=settings.SU_PHONE,
                          is_crm=True, is_at2=True, is_send_excel=True,
-                         password=generate_password_hash(password, method='sha256'),
+                         password=hash_password(password),
                          role=settings.ADMIN_USER, client_code=settings.AU_CLIENT_CODE, status=True,
                          trust_limit=settings.TRUST_LIMIT_DEFAULT)
 
@@ -1442,7 +1442,7 @@ def h_bck_change_user_password(u_id: int) -> Response:
         if not new_password:
             message = f"{settings.Messages.NO_USER_PASSWORD}"
             return jsonify(dict(status=status, message=message))
-        user.password = generate_password_hash(new_password, method='sha256')
+        user.password = hash_password(new_password)
         db.session.commit()
         message = f"{settings.Messages.USER_PASSWORD_CHANGE} {user.login_name}"
         status = 'success'
@@ -1683,7 +1683,7 @@ def h_bck_ar_orders(u_id: int):
 def helper_create_crm_admin(login_name: str, email: str, password: str) -> Response:
     try:
         new_admin = User(admin_order_num=0, login_name=login_name, email=email, phone=settings.SU_PHONE, is_crm=True,
-                         is_at2=False, password=generate_password_hash(password, method='sha256'),
+                         is_at2=False, password=hash_password(password),
                          role=settings.ADMIN_USER, client_code=settings.AU_CLIENT_CODE, status=True)
 
         db.session.add(new_admin)

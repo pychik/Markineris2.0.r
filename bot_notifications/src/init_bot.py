@@ -1,6 +1,7 @@
 import logging
 
 from aiogram import Bot
+from aiogram.client.default import DefaultBotProperties
 from aiogram.client.session.aiohttp import AiohttpSession
 
 from src.core.config import settings
@@ -25,4 +26,4 @@ except RuntimeError as exc:
     else:
         raise
 
-bot = Bot(token=TOKEN, session=session, parse_mode="markdown")
+bot = Bot(token=TOKEN, session=session, default=DefaultBotProperties(parse_mode="markdown"))

@@ -1,4 +1,4 @@
-import fitz
+import pymupdf
 from io import BytesIO
 import rarfile
 import zipfile
@@ -115,11 +115,11 @@ class RarZipPdfProcessor:
 
 def get_first_page_as_image(pdf_file_stream: bytes):
     try:
-        pdf_document = fitz.open(stream=pdf_file_stream, filetype='pdf')
+        pdf_document = pymupdf.open(stream=pdf_file_stream, filetype='pdf')
         first_page = pdf_document.load_page(0)  # Load the first page
 
         zoom = 2  # Adjust this value for higher/lower DPI
-        mat = fitz.Matrix(zoom, zoom)
+        mat = pymupdf.Matrix(zoom, zoom)
         pix = first_page.get_pixmap(matrix=mat)
 
         img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)

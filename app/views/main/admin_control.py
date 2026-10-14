@@ -1,7 +1,6 @@
 from flask import Blueprint, jsonify, request, redirect, url_for, flash, render_template
 from flask_login import current_user, login_required
 from pydantic import ValidationError
-from werkzeug.security import check_password_hash
 
 from config import settings
 from data_migrations.etl_service import ETLMigrateUserData, run_migration
@@ -109,6 +108,7 @@ from utilities.admin.h_rd_check import (
     rd_check_access_required,
 )
 from utilities.exceptions import UserNotFoundError, NegativeBalanceError, BalanceUpdateError
+from utilities.passwords import check_password
 from utilities.support import (
     au_required,
     aus_required,
@@ -283,7 +283,7 @@ def module_testing_product_cards_delete_all():
             'message': 'Введите пароль учетной записи.',
         }), 400
 
-    if not check_password_hash(current_user.password or '', password):
+    if not check_password(current_user.password or '', password):
         return jsonify({
             'status': 'error',
             'message': 'Неверный пароль учетной записи.',

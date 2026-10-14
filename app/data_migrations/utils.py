@@ -1,6 +1,6 @@
 import hashlib
 
-from werkzeug.security import generate_password_hash
+from utilities.passwords import hash_password
 
 
 def make_login_name(code: str) -> str:
@@ -12,7 +12,7 @@ def make_email(login_name: str) -> str:
 
 
 def get_hashed_password(password: str) -> str:
-    return generate_password_hash(password)
+    return hash_password(password)
 
 
 def make_password(email: str, salt: str) -> str:

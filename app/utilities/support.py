@@ -9,8 +9,9 @@ from time import time
 from typing import Any, Optional, Union, Mapping, Tuple, List
 from uuid import uuid4
 
-from flask import flash, jsonify, Markup, redirect, url_for, request, Response, render_template
+from flask import flash, jsonify, redirect, url_for, request, Response, render_template
 from flask_login import current_user, logout_user
+from markupsafe import Markup
 from flask_paginate import Pagination
 from flask_sqlalchemy.pagination import QueryPagination
 from sqlalchemy import asc, create_engine, desc, text, or_, not_, select, UnaryExpression, func
