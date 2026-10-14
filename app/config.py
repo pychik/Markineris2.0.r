@@ -183,6 +183,17 @@ class Settings(BaseSettings):
     TEZAURUS_REDIS_PREFIX: str = os.getenv('TEZAURUS_REDIS_PREFIX', 'tezaurus:v1')
     TEZAURUS_SYNC_CRON: str = os.getenv('TEZAURUS_SYNC_CRON', '*/5 * * * *')
     TEZAURUS_SYNC_ENABLED: bool = _env_flag('TEZAURUS_SYNC_ENABLED', '0')
+    TEZAURUS_FALLBACK_SNAPSHOT_ENABLED: bool = _env_flag('TEZAURUS_FALLBACK_SNAPSHOT_ENABLED', '1')
+    TEZAURUS_FALLBACK_SNAPSHOT_CRON: str = os.getenv('TEZAURUS_FALLBACK_SNAPSHOT_CRON', '15 0 * * *')
+    TEZAURUS_FALLBACK_S3_BUCKET_NAME: str = os.getenv('TEZAURUS_FALLBACK_S3_BUCKET_NAME', 'static')
+    TEZAURUS_FALLBACK_S3_PREFIX: str = os.getenv(
+        'TEZAURUS_FALLBACK_S3_PREFIX',
+        'tezaurus_fallback/current',
+    )
+    TEZAURUS_FALLBACK_RUNTIME_DATA_DIR: str = os.getenv(
+        'TEZAURUS_FALLBACK_RUNTIME_DATA_DIR',
+        f'{CUR_PATH}/runtime/tezaurus_fallback/data',
+    )
     FSA_BASE_URL: str = os.getenv('FSA_BASE_URL', 'https://pub.fsa.gov.ru')
     FSA_LOGIN_USERNAME: str = os.getenv('FSA_LOGIN_USERNAME', 'anonymous')
     FSA_LOGIN_PASSWORD: str = os.getenv('FSA_LOGIN_PASSWORD', 'hrgesf7HDR67Bd')

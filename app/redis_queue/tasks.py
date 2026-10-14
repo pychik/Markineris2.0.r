@@ -243,3 +243,24 @@ def sync_tezaurus_cache() -> dict[str, object]:
             "skipped": False,
             "reason": "unexpected_sync_error",
         }
+
+
+def export_tezaurus_fallback_snapshot_task() -> dict[str, object]:
+    if not settings.TEZAURUS_FALLBACK_SNAPSHOT_ENABLED:
+        return {
+            "ok": True,
+            "skipped": True,
+            "reason": "disabled_by_config",
+        }
+
+    try:
+        from tezaurus_fallback.s3_snapshot import export_tezaurus_fallback_snapshot_to_s3
+
+        return export_tezaurus_fallback_snapshot_to_s3()
+    except Exception:
+        logger.exception("Tezaurus fallback snapshot export task failed")
+        return {
+            "ok": False,
+            "skipped": False,
+            "reason": "unexpected_export_error",
+        }

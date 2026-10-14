@@ -8,7 +8,8 @@ from redis_queue.callbacks import on_success_periodic_task, on_failure_periodic_
 from redis_queue.connection import conn
 from redis_queue.tasks import (delete_old_order_chat_attachments, delete_order_files_from_server,
                                delete_restore_link_periodic_task,
-                               backup_database, sync_tezaurus_cache, save_product_card_company_stats_snapshot)
+                               backup_database, sync_tezaurus_cache, save_product_card_company_stats_snapshot,
+                               export_tezaurus_fallback_snapshot_task)
 from utilities.admin.h_finance_control import h_su_wo_transactions
 from views.crm.helpers import (helpers_crm_mpo_so_task, helper_auto_problem_cancel_order,
                                helpers_move_orders_to_processed, helper_auto_new_cancel_order)
@@ -128,6 +129,15 @@ if settings.TEZAURUS_SYNC_ENABLED:
     scheduler.cron(
         settings.TEZAURUS_SYNC_CRON,
         func=sync_tezaurus_cache,
+        on_success=on_success_periodic_task,
+        on_failure=on_failure_periodic_task,
+        queue_name=settings.RQ_SCHEDULER_QUEUE_NAME,
+    )
+
+if settings.TEZAURUS_FALLBACK_SNAPSHOT_ENABLED:
+    scheduler.cron(
+        settings.TEZAURUS_FALLBACK_SNAPSHOT_CRON,
+        func=export_tezaurus_fallback_snapshot_task,
         on_success=on_success_periodic_task,
         on_failure=on_failure_periodic_task,
         queue_name=settings.RQ_SCHEDULER_QUEUE_NAME,

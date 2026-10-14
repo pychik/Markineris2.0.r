@@ -5,12 +5,39 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-_DATA_DIR = Path(__file__).resolve().parent / "data"
+from config import settings
+
+_SEED_DATA_DIR = Path(__file__).resolve().parent / "data"
+_REQUIRED_FILES = (
+    "versions.json",
+    "colors.json",
+    "countries.json",
+    "clothes_tnved.json",
+    "processing_companies.json",
+)
+
+
+def _is_valid_data_dir(data_dir: Path) -> bool:
+    try:
+        for filename in _REQUIRED_FILES:
+            with (data_dir / filename).open(encoding="utf-8") as source:
+                json.load(source)
+    except (OSError, ValueError, TypeError):
+        return False
+    return True
+
+
+@lru_cache(maxsize=1)
+def _data_dir() -> Path:
+    runtime_dir = Path(settings.TEZAURUS_FALLBACK_RUNTIME_DATA_DIR)
+    if _is_valid_data_dir(runtime_dir):
+        return runtime_dir
+    return _SEED_DATA_DIR
 
 
 @lru_cache(maxsize=None)
 def _load(filename: str) -> Any:
-    with (_DATA_DIR / filename).open(encoding="utf-8") as source:
+    with (_data_dir() / filename).open(encoding="utf-8") as source:
         return json.load(source)
 
 

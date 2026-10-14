@@ -75,6 +75,9 @@ docs/_build/
 # PyBuilder
 target/
 
+# Runtime snapshots restored from MinIO.
+runtime/
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
