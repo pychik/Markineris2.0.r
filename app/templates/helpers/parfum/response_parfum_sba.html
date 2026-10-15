@@ -27,7 +27,7 @@
 
                     </td>
                     <td class="text-end actions">
-                        <button type="button" onclick="show_parfum_pos('{{loop.index}}', '{{t.trademark}}','{{t.volume}}',
+                        <button type="button" data-weight-grams="{{ t.weight_grams if t.weight_grams is not none else '' }}" onclick="show_parfum_pos('{{loop.index}}', '{{t.trademark}}','{{t.volume}}',
                             '{{t.volume_type}}', '{{t.package_type}}', '{{t.material_package}}',
                             '{{t.type}}', '{{ t.quantity }}', '{{t.box_quantity}}', '{{t.country}}',
                             '{{ url_for('parfum.copy_order', o_id=o_id, p_id=t.id, edit_order='edit_order') }}',

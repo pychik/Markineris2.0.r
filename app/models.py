@@ -360,8 +360,12 @@ class Order(db.Model, UserMixin):
     comment_problem = db.Column(db.String(230), default='')
     comment_cancel = db.Column(db.String(230), default='')
 
-    # Информация по заказау УПД и компания проводящая доки
+    # Информация по УПД и компании, проводящей документы заказа.
     processing_info = db.Column(db.Text, default="")
+    # Структурированные реквизиты обычного заказа; для модерации используется FastOrderCompanies.
+    processing_company_key = db.Column(db.String(100), nullable=True)
+    processing_company_label = db.Column(db.String(255), nullable=True, index=True)
+    upd_number = db.Column(db.String(100), nullable=True)
 
     p_started = db.Column(db.DateTime())  # pool strated
     m_started = db.Column(db.DateTime())  # manager has taken order
@@ -892,6 +896,7 @@ class OrderChatRead(db.Model):
 class CommonMixin:
     id = db.Column(db.BigInteger, primary_key=True)
     type = db.Column(db.String(100))
+    weight_grams = db.Column(db.Integer(), nullable=True)
 
     article_price = db.Column(db.Float(), default=0)
     tnved_code = db.Column(db.String(50), default='')

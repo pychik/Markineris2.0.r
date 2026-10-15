@@ -2,7 +2,7 @@
 {% set full_name = (((t.type or '') ~ ' ' ~ trademark ~ ' ' ~ (t.full_name_extra or '')) | trim) %}
 {% set content_type_value = '' if (t.content_type or '')|lower in ['none', 'null', 'undefined'] else (t.content_type or '') %}
 {% set complectation_value = '' if (t.complectation or '')|lower in ['none', 'null', 'undefined'] else (t.complectation or '') %}
-<button type="button" onclick='show_cosmetics_pos(
+<button type="button" data-weight-grams="{{ t.weight_grams if t.weight_grams is not none else '' }}" onclick='show_cosmetics_pos(
     {{ loop.index | tojson }},
     {{ full_name | tojson }},
     {{ (t.trademark or '') | tojson }},

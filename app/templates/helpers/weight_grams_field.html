@@ -1,0 +1,51 @@
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const step = document.getElementById('step-2');
+    if (!step || document.getElementById('weight_grams')) return;
+    const block = document.createElement('div');
+    block.className = 'form-group eco-weight-field mt-2';
+    block.innerHTML = '<label for="weight_grams" class="control-label">Общий вес позиции ' +
+        '<span class="badge badge-secondary eco-weight-help" data-bs-toggle="tooltip" data-bs-placement="top" title="Укажите актуальный суммарный вес всех товаров этой позиции в ГРАММАХ для отчетности РОСПРИРОДНАДЗОР">' +
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">' +
+        '<circle cx="9" cy="9" r="7.45" stroke="#D12600" stroke-width="1.5"/>' +
+        '<path d="M9 8v3.25M9 6.75h.01" stroke="#D12600" stroke-width="1.5" stroke-linecap="round"/></svg></span></label>' +
+        '<input id="weight_grams" name="weight_grams" type="number" min="1" step="1" required class="form-control" placeholder="Пример 10000" title="Укажите актуальный суммарный вес всех товаров этой позиции в ГРАММАХ для отчетности РОСПРИРОДНАДЗОР">';
+    block.querySelector('input').value = {{ (copied_order.weight_grams if copied_order and copied_order.weight_grams else '') | tojson }};
+    const quantity = step.querySelector('input#quantity_order:not([type="hidden"]), input#quantity:not([type="hidden"]), input#kpb_quantity_order:not([type="hidden"])');
+    const target = quantity ? quantity.closest('.form-group, .col-md-4, .col-md-3') : step.querySelector('#sizes_quantity_order');
+    if (target && target.parentElement) target.parentElement.insertBefore(block, target.nextSibling);
+    else step.appendChild(block);
+    const tooltip = block.querySelector('.eco-weight-help');
+    const sizeIcon = step.querySelector('#sizes_quantity_order a[data-bs-toggle="tooltip"] svg, label.control-label a[data-bs-toggle="tooltip"] svg');
+    if (sizeIcon) tooltip.replaceChildren(sizeIcon.cloneNode(true));
+    if (window.bootstrap && bootstrap.Tooltip) bootstrap.Tooltip.getOrCreateInstance(tooltip);
+    const input = block.querySelector('input');
+    const summary = step.querySelector('.important-card.text-light');
+    if (summary) {
+        const line = document.createElement('div');
+        line.className = 'important-card__item';
+        line.innerHTML = '<div class="important-card__prop">Общий вес позиции</div><div class="important-card__val" id="weight_grams_summary"></div>';
+        summary.appendChild(line);
+        const updateSummary = () => line.querySelector('#weight_grams_summary').textContent = input.value ? input.value + ' г' : '—';
+        input.addEventListener('input', updateSummary);
+        updateSummary();
+    }
+});
+document.addEventListener('click', function (event) {
+    const button = event.target.closest('[data-weight-grams]');
+    if (!button) return;
+    const weight = button.dataset.weightGrams;
+    setTimeout(function () {
+        const card = document.querySelector('#ShowModalTable #showElementTable .important-card');
+        if (!card) return;
+        const line = document.createElement('div');
+        line.className = 'important-card__item';
+        line.innerHTML = '<div class="important-card__prop">Общий вес позиции</div>';
+        const value = document.createElement('div');
+        value.className = 'important-card__val';
+        value.textContent = weight ? weight + ' г' : 'Не указан';
+        line.appendChild(value);
+        card.appendChild(line);
+    }, 0);
+}, true);
+</script>

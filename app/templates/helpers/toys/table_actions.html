@@ -1,6 +1,6 @@
 {% set trademark = '' if (t.trademark or '')|upper == 'БЕЗ ТОВАРНОГО ЗНАКА' else (t.trademark or '') %}
 {% set full_name = (((t.type or '') ~ ' ' ~ trademark ~ ' ' ~ (t.full_name_extra or '')) | trim) %}
-<button type="button" onclick='show_toys_pos(
+<button type="button" data-weight-grams="{{ t.weight_grams if t.weight_grams is not none else '' }}" onclick='show_toys_pos(
     {{ loop.index | tojson }},
     {{ full_name | tojson }},
     {{ (t.trademark or '') | tojson }},

@@ -237,6 +237,7 @@ class UploadShoes(UploadCategory):
         process_df = self.df.iloc[5:settings.ORDER_LIMIT_UPLOAD_ARTICLES, [2, 4, 5, 6, 7, 8, 9, 10, 11, 14, 16, 19, 20, 21, 22]]\
             .dropna(how='all').astype(str)
 
+        self.data_row_indexes = list(process_df.index)
         res_list = list(process_df.values.tolist())
         if len(res_list) > settings.ORDER_LIMIT_ARTICLES:
             return (settings.ORDER_LIMIT_ARTICLES, len(res_list),), None
@@ -256,6 +257,7 @@ class UploadShoes(UploadCategory):
 
         process_df = df_raw.dropna(how='all').astype(str)
 
+        self.data_row_indexes = list(process_df.index)
         res_list = list(process_df.values.tolist())
 
         ve = UploadShoes.ValidateExtended()

@@ -96,7 +96,8 @@ def _copy_fast_order_companies(source_order: Order, new_order: Order, category: 
             processing_company_external_id=source_company.processing_company_external_id or "",
             processing_company_title=source_company.processing_company_title or "",
             processing_company_inn=source_company.processing_company_inn or "",
-            upd_number=source_company.upd_number or "",
+            # УПД относится к исходной отгрузке и для нового заказа вводится заново.
+            upd_number="",
         )
         db.session.add(new_company)
         companies_by_old_id[source_company.id] = new_company

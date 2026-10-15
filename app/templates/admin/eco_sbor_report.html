@@ -1,0 +1,174 @@
+{% extends 'main/base_v2.html' %}
+{% block admin_panel %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/service/jquery-ui.min.css') }}">
+<script src="{{ url_for('static', filename='main_v2/js/assets/jquery-ui.min.js') }}"></script>
+<script src="{{ url_for('static', filename='main_v2/js/datepicker-ru.js') }}"></script>
+<style>
+#overlay_loading.eco-loading{background:rgba(40,43,47,.48);backdrop-filter:blur(3px);cursor:wait}
+#overlay_loading.eco-loading .crm-loading__panel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:18px;min-width:250px;max-width:calc(100vw - 32px);padding:22px 28px;background:#f8f9fa;border:1px solid #d9dde1;border-radius:18px;box-shadow:0 20px 60px rgba(33,37,41,.2);color:#343a40}
+#overlay_loading.eco-loading .crm-loading__spinner{width:38px;height:38px;flex:0 0 38px;border:4px solid #e6e8eb;border-top-color:#f5c542;border-radius:50%;animation:ecoLoadingSpin .7s linear infinite}
+#overlay_loading.eco-loading .crm-loading__title{font-size:16px;font-weight:700;line-height:1.3}
+#overlay_loading.eco-loading .crm-loading__hint{font-size:13px;color:#6c757d;line-height:1.35;margin-top:3px}
+.eco-pagination{display:flex;justify-content:center;align-items:center;width:100%}
+.eco-pagination .pagination{display:inline-flex;justify-content:center;align-items:center;gap:6px;margin:0;padding:0;list-style:none}
+.eco-pagination .pagination li{list-style:none}
+.eco-companies{display:grid;gap:10px;margin-top:16px}
+.eco-company{border:1px solid #dee2e6;border-radius:8px;background:#fff;overflow:hidden}
+.eco-company summary{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:18px;align-items:center;cursor:pointer;padding:12px 16px;font-weight:600;list-style:none}
+.eco-company summary::-webkit-details-marker{display:none}
+.eco-company summary:before{content:'▸';margin-right:8px;color:#6c757d}
+.eco-company[open] summary:before{content:'▾'}
+.eco-company__categories{border-top:1px solid #dee2e6;padding:4px 16px 12px}
+.eco-company__categories table{margin-bottom:0}
+@media(max-width:640px){.eco-company summary{grid-template-columns:auto minmax(0,1fr);gap:4px 8px}.eco-company__metric{grid-column:2}}
+@keyframes ecoLoadingSpin{to{transform:rotate(360deg)}}
+</style>
+<div class="container-fluid py-4">
+    <nav aria-label="Навигация" class="mb-3"><a href="{{ url_for('admin_control.index') }}">Панель администратора</a> / <span>Отчет экосбор</span></nav>
+    <h1 class="h3 mb-4">Отчет экосбор</h1>
+    <form id="eco_filters" class="mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-2"><label class="form-label" for="eco_from">Дата от</label><input class="form-control" id="eco_from" type="text" name="date_from" value="{{ filters.date_from.strftime('%d.%m.%Y') }}" readonly autocomplete="off"></div>
+            <div class="col-md-2"><label class="form-label" for="eco_to">Дата до</label><input class="form-control" id="eco_to" type="text" name="date_to" value="{{ filters.date_to.strftime('%d.%m.%Y') }}" readonly autocomplete="off"></div>
+            <div class="col-md-2"><label class="form-label" for="eco_category">Категория</label><select class="form-select" id="eco_category" name="category"><option value="">Все</option>{% for category in categories %}<option value="{{ category }}" {% if filters.category == category %}selected{% endif %}>{{ category }}</option>{% endfor %}</select></div>
+            <div class="col-md-3"><label class="form-label" for="eco_subcategory">Подкатегория</label><select class="form-select" id="eco_subcategory" name="subcategory"><option value="">Все</option>{% for key, title in subcategories.items() %}<option value="{{ key }}" data-category="{{ subcategory_categories[key] }}" {% if filters.subcategory == key %}selected{% endif %}>{{ title }}</option>{% endfor %}</select></div>
+            <div class="col-md-3"><label class="form-label" for="eco_company">Проводящая фирма</label><select class="form-select" id="eco_company" name="company"><option value="">Все</option>{% if filters.company %}<option value="{{ filters.company }}" selected>{{ filters.company }}</option>{% endif %}</select></div>
+        </div>
+        <input type="hidden" id="eco_sort" name="sort" value="{{ filters.sort }}">
+        <div class="row mt-3">
+            <div class="col-md-6 mb-1"><button class="btn btn-accent" type="submit">Обновить</button></div>
+            <div class="col-md-6"><button class="btn btn-secondary" id="eco_export" type="button">Скачать отчет</button></div>
+        </div>
+    </form>
+    <div id="eco_results" aria-live="polite"></div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const overlay = document.getElementById('overlay_loading');
+    overlay.classList.add('eco-loading');
+    overlay.innerHTML = '<div class="crm-loading__panel" role="status" aria-live="polite"><span class="crm-loading__spinner" aria-hidden="true"></span><div><div class="crm-loading__title">Обновляем данные</div><div class="crm-loading__hint">Пожалуйста, подождите</div></div></div>';
+    const form = document.getElementById('eco_filters');
+    const result = document.getElementById('eco_results');
+    const category = document.getElementById('eco_category');
+    const subcategory = document.getElementById('eco_subcategory');
+    const company = document.getElementById('eco_company');
+    const sort = document.getElementById('eco_sort');
+    $('#eco_from, #eco_to').datepicker({
+        dateFormat: 'dd.mm.yy',
+        changeMonth: true,
+        changeYear: true,
+        firstDay: 1,
+        onSelect: () => { company.value = ''; loadReport(); }
+    });
+    const allSubcategories = Array.from(subcategory.options).slice(1).map(option => option.cloneNode(true));
+    let currentRequest = 0;
+    let activeController = null;
+
+    function updateSubcategories(keepSelection = true) {
+        const selected = keepSelection ? subcategory.value : '';
+        subcategory.replaceChildren(new Option('Все', ''));
+        allSubcategories.filter(option => !category.value || option.dataset.category === category.value)
+            .forEach(option => subcategory.add(option.cloneNode(true)));
+        if (Array.from(subcategory.options).some(option => option.value === selected)) subcategory.value = selected;
+    }
+
+    category.addEventListener('change', () => { updateSubcategories(false); company.value = ''; loadReport(); });
+    subcategory.addEventListener('change', () => {
+        const option = subcategory.selectedOptions[0];
+        if (option && option.value && !category.value && option.dataset.category) {
+            category.value = option.dataset.category;
+            updateSubcategories();
+            subcategory.value = option.value;
+        }
+        company.value = '';
+        loadReport();
+    });
+    company.addEventListener('change', () => loadReport());
+    ['eco_from', 'eco_to'].forEach(id => document.getElementById(id).addEventListener('change', () => { company.value = ''; loadReport(); }));
+    form.addEventListener('submit', event => { event.preventDefault(); loadReport(); });
+
+    async function loadReport(page = 1, group = -1, refreshCompanies = true) {
+        if (!form.reportValidity()) return;
+        if (activeController) activeController.abort();
+        const controller = new AbortController();
+        activeController = controller;
+        const requestId = ++currentRequest;
+        const params = new URLSearchParams(new FormData(form));
+        params.set('format', 'json');
+        params.set('page', page);
+        params.set('group', group);
+        params.set('companies', refreshCompanies ? '1' : '0');
+        loadingCircle();
+        const timeout = setTimeout(() => controller.abort(), 60000);
+        try {
+            const response = await fetch(`${window.location.pathname}?${params}`, {headers: {'Accept': 'application/json'}, signal: controller.signal});
+            if (!response.ok) throw new Error(`Ошибка загрузки отчета (${response.status})`);
+            const data = await response.json();
+            if (requestId !== currentRequest) return;
+            result.innerHTML = data.htmlresponse;
+            if (data.companies !== null) {
+                const selectedCompany = company.value;
+                company.replaceChildren(new Option('Все', ''));
+                data.companies.forEach(name => company.add(new Option(name, name)));
+                if (selectedCompany && !data.companies.includes(selectedCompany)) company.add(new Option(selectedCompany, selectedCompany));
+                company.value = selectedCompany;
+            }
+            history.replaceState(null, '', `${window.location.pathname}?${new URLSearchParams(new FormData(form))}`);
+        } catch (error) {
+            if (requestId === currentRequest) result.textContent = error.name === 'AbortError' ? 'Превышено время ожидания отчета. Уточните период и повторите запрос.' : error.message;
+        } finally {
+            clearTimeout(timeout);
+            if (requestId === currentRequest) { activeController = null; close_Loading_circle(); }
+        }
+    }
+
+    result.addEventListener('click', event => {
+        const groupButton = event.target.closest('[data-eco-group]:not([data-eco-page]):not([data-eco-sort])');
+        const pageButton = event.target.closest('[data-eco-page]');
+        const sortButton = event.target.closest('[data-eco-sort]');
+        if (groupButton) loadReport(1, Number(groupButton.dataset.ecoGroup), false);
+        if (pageButton) { event.preventDefault(); loadReport(Number(pageButton.dataset.ecoPage), Number(pageButton.dataset.ecoGroup), false); }
+        if (sortButton) {
+            sort.value = sort.value === 'desc' ? 'asc' : 'desc';
+            loadReport(1, Number(sortButton.dataset.ecoGroup), false);
+        }
+    });
+
+    document.getElementById('eco_export').addEventListener('click', async () => {
+        if (!form.reportValidity()) return;
+        const from = $.datepicker.parseDate('dd.mm.yy', document.getElementById('eco_from').value);
+        const to = $.datepicker.parseDate('dd.mm.yy', document.getElementById('eco_to').value);
+        const maxDay = new Date(from.getFullYear() + 1, from.getMonth() + 1, 0).getDate();
+        const maxTo = new Date(from.getFullYear() + 1, from.getMonth(), Math.min(from.getDate(), maxDay));
+        if (to > maxTo) {
+            result.textContent = 'Для Excel выберите период не более 12 месяцев.';
+            return;
+        }
+        const params = new URLSearchParams(new FormData(form));
+        params.set('format', 'xlsx');
+        loadingCircle();
+        try {
+            const response = await fetch(`${window.location.pathname}?${params}`);
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.message || `Ошибка выгрузки отчета (${response.status})`);
+            }
+            const url = URL.createObjectURL(await response.blob());
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'eco_sbor.xlsx';
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) {
+            result.textContent = error.message;
+        } finally {
+            close_Loading_circle();
+        }
+    });
+
+    if (subcategory.value && !category.value && subcategory.selectedOptions[0].dataset.category) category.value = subcategory.selectedOptions[0].dataset.category;
+    updateSubcategories();
+    loadReport();
+});
+</script>
+{% endblock %}

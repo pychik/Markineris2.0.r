@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+from time import perf_counter
 from types import SimpleNamespace
 from typing import Optional
 from uuid import uuid4
@@ -12,7 +13,7 @@ from rq_scheduler.scheduler import Scheduler
 from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import joinedload, aliased, selectinload
+from sqlalchemy.orm import joinedload, aliased, selectinload, lazyload, load_only
 from werkzeug.utils import secure_filename
 
 from config import settings
@@ -25,6 +26,7 @@ from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify, help
 from utilities.minio_service.services import get_s3_service, download_file_from_minio
 from utilities.pdf_processor import helper_check_attached_file
 from utilities.saving_uts import get_rows_marks
+from utilities.order_processing_info import parse_single_processing_info
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.support import (helper_get_at2_pending_balance, helper_get_limits, orders_list_common)
 from utilities.telegram import MarkinerisInform
@@ -33,12 +35,12 @@ from .order_chat import h_order_chat_unread_map
 from .schema import CompaniesOperators
 
 
-def _order_processing_company_options(order: Order) -> list[dict]:
+def _order_processing_company_options(order: Order, *, show_upd: bool = True) -> list[dict]:
     return [
         {
             "value": str(company.id),
             "label": company.processing_company_label or "Компания не указана",
-            "upd_number": company.upd_number or "",
+            "upd_number": (company.upd_number or "") if show_upd else "",
         }
         for company in order.fast_order_companies
     ]
@@ -72,15 +74,28 @@ def _format_processing_info_rows(rows: list[tuple[str, str]]) -> str:
 def _processing_order_query():
     return Order.query.options(
         lazyload("*"),
-        selectinload(Order.fast_order_companies),
         load_only(
             Order.id,
             Order.order_idn,
             Order.processing_info,
+            Order.processing_company_key,
+            Order.processing_company_label,
+            Order.upd_number,
             Order.is_moderation,
             Order.manager_id,
+            Order.user_id,
         ),
     )
+
+
+def _log_slow_upd_save(order_id, is_moderation, started, loaded, committing):
+    finished = perf_counter()
+    if finished - started >= 2:
+        logger.warning(
+            "UPD save slow: order_id=%s fast=%s load_ms=%.0f prepare_ms=%.0f commit_ms=%.0f",
+            order_id, is_moderation, (loaded - started) * 1000,
+            (committing - loaded) * 1000, (finished - committing) * 1000,
+        )
 
 
 def _attach_order_chat_unread(rows, viewer_user_id: Optional[int]):
@@ -1188,6 +1203,7 @@ def helper_change_agent_stage(o_id: int, stage: int, user: User):
                             o.m_finished as m_finished,
                             o.crm_created_at as crm_created_at,
                             o.sent_at as sent_at,
+                            o.stage as stage,
                             o.stage_setter_name as stage_setter_name,
                             o.payment as payment,
                             o.to_delete as to_delete,
@@ -1215,6 +1231,10 @@ def helper_change_agent_stage(o_id: int, stage: int, user: User):
     if stage not in settings.OrderStage.CHECK_TUPLE or \
             ((user_order_agent_check or agent_order_agent_check) and user.role not in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]):
         flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
+        return redirect(url_for('crm_d.agents'))
+    if stage == settings.OrderStage.CRM_PROCESSED and (
+            order_info.stage != settings.OrderStage.SENT or not order_info.sent_at):
+        flash(message='Завершить можно только отправленный заказ с датой отправки.', category='error')
         return redirect(url_for('crm_d.agents'))
     # update order stage
     dt_agent = datetime.now()
@@ -1289,6 +1309,7 @@ def helper_change_agent_stage_bck(o_id: int, stage: int, user: User) -> tuple[bo
                             o.m_finished as m_finished,
                             o.crm_created_at as crm_created_at,
                             o.sent_at as sent_at,
+                            o.stage as stage,
                             o.stage_setter_name as stage_setter_name,
                             o.payment as payment,
                             o.to_delete as to_delete,
@@ -1314,6 +1335,9 @@ def helper_change_agent_stage_bck(o_id: int, stage: int, user: User) -> tuple[bo
     if stage not in settings.OrderStage.CHECK_TUPLE  or \
             ((user_order_agent_check or agent_order_agent_check) and user.role not in [settings.SUPER_USER, settings.MARKINERIS_ADMIN_USER]):
         return False, settings.Messages.STRANGE_REQUESTS
+    if stage == settings.OrderStage.CRM_PROCESSED and (
+            order_info.stage != settings.OrderStage.SENT or not order_info.sent_at):
+        return False, 'Завершить можно только отправленный заказ с датой отправки.'
     # update order stage
     dt_agent = datetime.now()
     additional_stmt = ''
@@ -2062,75 +2086,72 @@ def helper_search_crmm_order() -> Response:
 
 
 def helper_get_processing_order_info() -> Response:
-    status = 'danger'
+    status = "danger"
 
     order_id = request.args.get("order_id", type=int)
     if not order_id:
-        message = 'Ошибка- не указан номер заказа!'
-        return jsonify({'status': status, 'message': message})
+        return jsonify({"status": status, "message": "Ошибка- не указан номер заказа!"})
 
-    order_info = (
-        Order.query.options(
-            selectinload(Order.fast_order_companies),
-        )
-        .filter(Order.id == order_id)
-        .first()
-    )
+    order_info = _processing_order_query().filter(Order.id == order_id).first()
     if not order_info:
-        message = 'Ошибка- заказ не найден, обратитесь к администратору.'
-        return jsonify({'status': status, 'message': message})
+        return jsonify({"status": status, "message": "Ошибка- заказ не найден, обратитесь к администратору."})
 
-    status = 'success'
+    companies_operators = []
     message = "Организация и УПД заказа не закреплены"
+
     is_pc_order = bool(order_info.is_moderation)
+    selected_company_key = ""
+    selected_upd_number = ""
+    processing_info_display = order_info.processing_info or ""
+
     if is_pc_order:
-        companies_operators = _order_processing_company_options(order_info)
+        companies_operators = _order_processing_company_options(
+            order_info, show_upd=bool(processing_info_display))
     else:
-        companies_operators = [
-            {"value": f"g:{c.name}", "label": c.as_option()[1]}
-            for c in CompaniesOperators
-        ]
+        legacy_info = parse_single_processing_info(order_info.processing_info)
+        company_label = order_info.processing_company_label or (legacy_info[0] if legacy_info else "")
+        selected_upd_number = order_info.upd_number or (legacy_info[1] if legacy_info else "")
+        selected_company_key = order_info.processing_company_key or next(
+            (f"g:{company.name}" for company in CompaniesOperators
+             if company.as_option()[1] == company_label), ""
+        )
+        if not processing_info_display and company_label and selected_upd_number:
+            processing_info_display = _format_processing_info_rows([(company_label, selected_upd_number)])
+        for c in CompaniesOperators:
+            # value стабильный: enum.name
+            _, label = c.as_option()
+            companies_operators.append({"value": f"g:{c.name}", "label": label})
+        if selected_company_key not in {item["value"] for item in companies_operators}:
+            selected_company_key = ""
 
-    if order_info:
-        status = "success"
-    else:
+    if not companies_operators:
         message = "Данные по организации не установлены"
+        htmlresponse = render_template("crm_mod_v1/helpers/modals/modal_order_process_info.html", **locals())
+        return jsonify({"status": "danger", "htmlresponse": htmlresponse})
 
-    htmlresponse = render_template(f'crm_mod_v1/helpers/modals/modal_order_process_info.html', **locals())
-
-    return jsonify({'status': status, 'htmlresponse': htmlresponse})
+    status = "success"
+    htmlresponse = render_template("crm_mod_v1/helpers/modals/modal_order_process_info.html", **locals())
+    return jsonify({"status": status, "htmlresponse": htmlresponse})
 
 
 def helper_update_processing_order_info() -> tuple[Response, int]:
+    started = perf_counter()
     data = request.get_json() or {}
 
     order_id = data.get("order_id")
-    company_value = data.get("company")
-    upd_number = data.get("upd_number")
-    if not order_id:
-        return jsonify({
-            "status": "error",
-            "message": "Все поля обязательны к заполнению"
-        }), 400
+    company_value = str(data.get("company") or "").strip()  # "g:AVRORA"
+    upd_number = str(data.get("upd_number") or "").strip()
 
-    order = (
-        Order.query.options(
-            selectinload(Order.fast_order_companies),
-        )
-        .filter(Order.id == order_id)
-        .first()
-    )
+    if not order_id:
+        return jsonify({"status": "error", "message": "Все поля обязательны к заполнению"}), 400
+
+    order = _processing_order_query().filter(Order.id == order_id).first()
+    loaded = perf_counter()
     if not order:
-        return jsonify({
-            "status": "error",
-            "message": "Заказ не найден"
-        }), 404
+        return jsonify({"status": "error", "message": "Заказ не найден"}), 404
 
     if current_user.role == settings.MANAGER_USER and order.manager_id != current_user.id:
-        return jsonify({
-            "status": "error",
-            "message": "Этот заказ закреплен за другим оператором"
-        }), 404
+        return jsonify({"status": "error", "message": "Этот заказ закреплен за другим оператором"}), 404
 
     if order.is_moderation:
         raw_items = data.get("companies_upd") or []
@@ -2161,63 +2182,71 @@ def helper_update_processing_order_info() -> tuple[Response, int]:
             info_rows.append((company.processing_company_label or "Компания не указана", item_upd))
 
         try:
-            order.processing_info = _format_processing_info_rows(info_rows)
+            order_idn = order.order_idn
+            processing_info = _format_processing_info_rows(info_rows)
+            order.processing_info = processing_info
+            committing = perf_counter()
             db.session.commit()
-
+            _log_slow_upd_save(order_id, True, started, loaded, committing)
             return jsonify({
                 "status": "success",
-                "message": f"Информация по заказу № {order.order_idn} обновлена",
-                "order_idn": order.order_idn,
-                "processing_info": order.processing_info
+                "message": f"Информация по заказу № {order_idn} обновлена",
+                "order_idn": order_idn,
+                "processing_info": processing_info
             }), 200
 
         except Exception as e:
             db.session.rollback()
             logger.exception("Ошибка обновления информации по организациям проводящим заказ: ")
-            return jsonify({
-                "status": "error",
-                "message": f"Ошибка при обновлении: {str(e)}"
-            }), 500
+            return jsonify({"status": "error", "message": f"Ошибка при обновлении: {str(e)}"}), 500
 
     if not all([company_value, upd_number]):
-        return jsonify({
-            "status": "error",
-            "message": "Все поля обязательны к заполнению"
-        }), 400
+        return jsonify({"status": "error", "message": "Все поля обязательны к заполнению"}), 400
 
     try:
         kind, raw = company_value.split(":", 1)
     except ValueError:
         return jsonify({"status": "error", "message": "Некорректная компания"}), 400
 
+    company_label = None
+
     if kind == "g":
+        # Глобальная (Enum)
         try:
-            enum_item = CompaniesOperators[raw]
+            enum_item = CompaniesOperators[raw]  # raw = enum.name
         except KeyError:
             return jsonify({"status": "error", "message": "Некорректная компания"}), 400
-        company_label = enum_item.as_option()[1]
+
+        # На всякий случай можно дополнительно сверить, что заказ НЕ в модерации
+        if order.is_moderation:
+            return jsonify({"status": "error", "message": "Некорректный тип компании для этого заказа"}), 400
+
+        company_label = enum_item.as_option()[1]  # "Аврора (4400...)"
+
     else:
         return jsonify({"status": "error", "message": "Некорректная компания"}), 400
 
     try:
-
-        order.processing_info = _format_processing_info_rows([(company_label, str(upd_number).strip())])
+        order_idn = order.order_idn
+        processing_info = _format_processing_info_rows([(company_label, upd_number)])
+        order.processing_company_key = company_value
+        order.processing_company_label = company_label
+        order.upd_number = upd_number
+        order.processing_info = processing_info
+        committing = perf_counter()
         db.session.commit()
-
+        _log_slow_upd_save(order_id, False, started, loaded, committing)
         return jsonify({
             "status": "success",
-            "message": f"Информация по заказу № {order.order_idn} обновлена",
-            "order_idn": order.order_idn,
-            "processing_info": order.processing_info
+            "message": f"Информация по заказу № {order_idn} обновлена",
+            "order_idn": order_idn,
+            "processing_info": processing_info
         }), 200
 
     except Exception as e:
         db.session.rollback()
-        logger.exception('Ошибка обновления информации по организации проводящей заказ: ')
-        return jsonify({
-            "status": "error",
-            "message": f"Ошибка при обновлении: {str(e)}"
-        }), 500
+        logger.exception("Ошибка обновления информации по организации проводящей заказ: ")
+        return jsonify({"status": "error", "message": f"Ошибка при обновлении: {str(e)}"}), 500
 
 
 def h_set_dynamic_jobs(minutes: int) -> bool:

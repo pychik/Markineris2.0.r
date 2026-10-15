@@ -7,8 +7,8 @@
         <button type="button" class="btn-close" onclick="closeOrderCompanyOperatorModal()" aria-label="Закрыть"></button>
       </div>
       <div class="modal-body">
-        {% if order_info.processing_info %}
-          <p><strong>Закрепленная информация:</strong> <br>{{ order_info.processing_info.replace('/', '<br>') | safe }}</p>
+        {% if processing_info_display %}
+          <p><strong>Закрепленная информация:</strong> <br>{{ processing_info_display.replace('/', '<br>') | safe }}</p>
         {% else %}
           <p class="text-danger"><strong>{{ message }}</strong></p>
         {% endif %}
@@ -27,23 +27,24 @@
             <div class="mb-3">
               <label for="companySelect" class="form-label">Компания:</label>
               <select id="companySelect" name="company" class="form-select">
-                <option value="" disabled selected>Выберите компанию</option>
+                <option value="" disabled {% if not selected_company_key %}selected{% endif %}>Выберите компанию</option>
                 {% for c in companies_operators %}
-                  <option value="{{ c.value }}">{{ c.label }}</option>
+                  <option value="{{ c.value }}" {% if selected_company_key == c.value %}selected{% endif %}>{{ c.label }}</option>
                 {% endfor %}
               </select>
             </div>
 
             <div class="mb-3">
               <label for="updInput" class="form-label">Номер УПД:</label>
-              <input type="text" id="updInput" name="upd_number" class="form-control" maxlength="100">
+              <input type="text" id="updInput" name="upd_number" class="form-control" maxlength="100" value="{{ selected_upd_number }}">
             </div>
           {% endif %}
         </form>
+        <div id="order-process-save-error" class="alert alert-danger d-none" role="alert"></div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="closeOrderCompanyOperatorModal()">Отмена</button>
-        <button type="button" class="btn btn-warning" onclick="submitOrderCompanyOperatorForm()">Сохранить</button>
+        <button type="button" class="btn btn-warning" id="order-process-save-button" onclick="submitOrderCompanyOperatorForm()">Сохранить</button>
       </div>
     </div>
   </div>
