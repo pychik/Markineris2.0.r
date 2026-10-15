@@ -32,7 +32,7 @@
             <div class="col-md-2"><label class="form-label" for="eco_to">Дата до</label><input class="form-control" id="eco_to" type="text" name="date_to" value="{{ filters.date_to.strftime('%d.%m.%Y') }}" readonly autocomplete="off"></div>
             <div class="col-md-2"><label class="form-label" for="eco_category">Категория</label><select class="form-select" id="eco_category" name="category"><option value="">Все</option>{% for category in categories %}<option value="{{ category }}" {% if filters.category == category %}selected{% endif %}>{{ category }}</option>{% endfor %}</select></div>
             <div class="col-md-3"><label class="form-label" for="eco_subcategory">Подкатегория</label><select class="form-select" id="eco_subcategory" name="subcategory"><option value="">Все</option>{% for key, title in subcategories.items() %}<option value="{{ key }}" data-category="{{ subcategory_categories[key] }}" {% if filters.subcategory == key %}selected{% endif %}>{{ title }}</option>{% endfor %}</select></div>
-            <div class="col-md-3"><label class="form-label" for="eco_company">Проводящая фирма</label><select class="form-select" id="eco_company" name="company"><option value="">Все</option>{% if filters.company %}<option value="{{ filters.company }}" selected>{{ filters.company }}</option>{% endif %}</select></div>
+            <div class="col-md-3"><label class="form-label" for="eco_company">Проводящая фирма</label><select class="form-select" id="eco_company" name="company"><option value="">Все</option>{% if filters.company %}<option value="{{ filters.company }}" selected>{{ company_label }}</option>{% endif %}</select></div>
         </div>
         <input type="hidden" id="eco_sort" name="sort" value="{{ filters.sort }}">
         <div class="row mt-3">
@@ -108,9 +108,12 @@ document.addEventListener('DOMContentLoaded', () => {
             result.innerHTML = data.htmlresponse;
             if (data.companies !== null) {
                 const selectedCompany = company.value;
+                const selectedLabel = company.selectedOptions[0]?.textContent || selectedCompany;
                 company.replaceChildren(new Option('Все', ''));
-                data.companies.forEach(name => company.add(new Option(name, name)));
-                if (selectedCompany && !data.companies.includes(selectedCompany)) company.add(new Option(selectedCompany, selectedCompany));
+                data.companies.forEach(item => company.add(new Option(item.label, item.value)));
+                if (selectedCompany && !data.companies.some(item => item.value === selectedCompany)) {
+                    company.add(new Option(selectedLabel, selectedCompany));
+                }
                 company.value = selectedCompany;
             }
             history.replaceState(null, '', `${window.location.pathname}?${new URLSearchParams(new FormData(form))}`);

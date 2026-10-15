@@ -3,6 +3,7 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 from decimal import Decimal
+from html import unescape
 from io import BytesIO
 import re
 
@@ -297,7 +298,8 @@ def eco_sbor_report():
         }
         return render_template("admin/eco_sbor_report.html", filters=filters,
                                categories=POSITION_RELATIONS, subcategories=subcategories,
-                               subcategory_categories=subcategory_categories)
+                               subcategory_categories=subcategory_categories,
+                               company_label=unescape(filters["company"]))
 
     if report_format == "xlsx" and filters["date_to"] > filters["date_from"] + relativedelta(months=12):
         return jsonify(message="Для Excel выберите период не более 12 месяцев."), 400
@@ -411,9 +413,11 @@ def eco_sbor_report():
                   for row in db.session.execute(group_query)}
         if request.args.get("companies") != "0":
             unfiltered_positions = _positions_query(filters, include_company=False)
-            companies = db.session.execute(
+            company_names = db.session.execute(
                 select(unfiltered_positions.c.company).distinct().order_by(unfiltered_positions.c.company)
             ).scalars().all()
+            companies = [{"value": name, "label": unescape(name or "")}
+                         for name in company_names]
     keys = list(groups)
     try:
         group_index = int(request.args.get("group", -1))
