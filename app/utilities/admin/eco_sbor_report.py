@@ -209,7 +209,7 @@ def _company_summary(positions, filters):
         key = inn or _company_identity(name)
         if key and key not in companies:
             companies[key] = {"name": name or inn, "positions": 0, "quantity": 0, "weight": Decimal(0),
-                              "missing": 0, "categories": {}}
+                              "known_weights": 0, "missing": 0, "categories": {}}
         if key:
             aliases[_company_identity(name)] = key
             if item.get("external_id"):
@@ -220,6 +220,7 @@ def _company_summary(positions, filters):
                                 func.count().label("positions"),
                                 func.coalesce(func.sum(positions.c.quantity), 0).label("quantity"),
                                 func.coalesce(func.sum(positions.c.weight), 0).label("weight"),
+                                func.count(positions.c.weight).label("known_weights"),
                                 func.sum(_missing_weight_expr(positions)).label("missing"))
                          .group_by(positions.c.company, positions.c.category))
         for row in db.session.execute(summary_query):
@@ -227,23 +228,26 @@ def _company_summary(positions, filters):
             key = aliases.get(identity, identity) or "Без фирмы"
             if key not in companies:
                 companies[key] = {"name": row.company or "Без фирмы", "positions": 0, "quantity": 0,
-                                  "weight": Decimal(0), "missing": 0, "categories": {}}
+                                  "weight": Decimal(0), "known_weights": 0, "missing": 0, "categories": {}}
             company = companies[key]
             category = company["categories"].setdefault(row.category, {
                 "name": COMPANY_CATEGORY_LABELS.get(row.category, row.category.capitalize()),
-                "positions": 0, "quantity": 0, "weight": Decimal(0), "missing": 0,
+                "positions": 0, "quantity": 0, "weight": Decimal(0), "known_weights": 0, "missing": 0,
             })
             positions_count = int(row.positions or 0)
             quantity = int(row.quantity or 0)
             weight = Decimal(row.weight or 0)
+            known_weights = int(row.known_weights or 0)
             missing = int(row.missing or 0)
             company["positions"] += positions_count
             company["quantity"] += quantity
             company["weight"] += weight
+            company["known_weights"] += known_weights
             company["missing"] += missing
             category["positions"] += positions_count
             category["quantity"] += quantity
             category["weight"] += weight
+            category["known_weights"] += known_weights
             category["missing"] += missing
 
     if filters["company"]:
@@ -252,10 +256,10 @@ def _company_summary(positions, filters):
         companies = {key: value for key, value in companies.items() if key == selected}
         if not companies:
             companies[selected] = {"name": filters["company"], "positions": 0, "quantity": 0,
-                                   "weight": Decimal(0), "missing": 0, "categories": {}}
+                                   "weight": Decimal(0), "known_weights": 0, "missing": 0, "categories": {}}
 
     def weight_values(item):
-        if item["missing"]:
+        if item["missing"] or not item["known_weights"]:
             return None, "—"
         tonnes = item["weight"] / Decimal(1000000)
         label = f"{tonnes:,.6f}".rstrip("0").rstrip(".").replace(",", " ").replace(".", ",")
@@ -346,7 +350,7 @@ def eco_sbor_report():
                 company_sheet.append(category_cells)
         sheets = {}
         sheet_lengths = {}
-        sheet_totals = defaultdict(lambda: {"quantity": 0, "weight": 0, "missing": 0})
+        sheet_totals = defaultdict(lambda: {"quantity": 0, "weight": 0, "known_weights": 0, "missing": 0})
         if positions is not None:
             stmt = select(positions).order_by(positions.c.category, positions.c.subcategory,
                                                order_direction, positions.c.position_id)
@@ -377,11 +381,12 @@ def eco_sbor_report():
                             sheet_totals[key]["missing"] += 1
                     else:
                         sheet_totals[key]["weight"] += item["weight"]
+                        sheet_totals[key]["known_weights"] += 1
         for key, sheet in sheets.items():
             sheet.auto_filter.ref = f"A1:J{sheet_lengths[key]}"
             totals = sheet_totals[key]
             footer = ["ИТОГО", None, None, None, None, None, None, None,
-                      totals["quantity"], "—" if totals["missing"] else totals["weight"]]
+                      totals["quantity"], "—" if totals["missing"] or not totals["known_weights"] else totals["weight"]]
             footer_cells = []
             for column, value in enumerate(footer, 1):
                 cell = WriteOnlyCell(sheet, value=value)
@@ -404,12 +409,14 @@ def eco_sbor_report():
                               func.count().label("position_count"),
                               func.coalesce(func.sum(positions.c.quantity), 0).label("quantity_total"),
                               func.coalesce(func.sum(positions.c.weight), 0).label("weight_total"),
+                              func.count(positions.c.weight).label("known_weights"),
                               func.sum(_missing_weight_expr(positions)).label("missing_weight"))
                        .group_by(positions.c.category, positions.c.subcategory)
                        .order_by(positions.c.category, positions.c.subcategory))
         groups = {(row.category, row.subcategory or ""):
                   {"count": row.position_count, "quantity": row.quantity_total,
-                   "weight": row.weight_total, "missing_weight": row.missing_weight}
+                   "weight": row.weight_total, "known_weights": row.known_weights,
+                   "missing_weight": row.missing_weight}
                   for row in db.session.execute(group_query)}
         if request.args.get("companies") != "0":
             unfiltered_positions = _positions_query(filters, include_company=False)
@@ -425,7 +432,7 @@ def eco_sbor_report():
         group_index = -1
     if group_index < -1 or group_index >= len(keys):
         group_index = -1
-    group_stats = groups[keys[group_index]] if group_index >= 0 else {"count": 0, "quantity": 0, "weight": None, "missing_weight": 0}
+    group_stats = groups[keys[group_index]] if group_index >= 0 else {"count": 0, "quantity": 0, "weight": None, "known_weights": 0, "missing_weight": 0}
     group_total = group_stats["count"]
     try:
         page = max(1, int(request.args.get("page", 1)))
@@ -450,6 +457,7 @@ def eco_sbor_report():
                            total=sum(group["count"] for group in groups.values()),
                            total_quantity=sum(group["quantity"] for group in groups.values()),
                            total_weight=sum(group["weight"] or 0 for group in groups.values()) if any(group["weight"] is not None for group in groups.values()) else None,
+                           total_known_weights=sum(group["known_weights"] for group in groups.values()),
                            total_missing=sum(group["missing_weight"] for group in groups.values()),
                            subcategory_names=settings.SUB_CATEGORIES_DICT)
     return jsonify(htmlresponse=html, companies=companies)
