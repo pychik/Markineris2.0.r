@@ -1,4 +1,6 @@
 # handlers.py
+import hmac
+
 from flask import Flask, render_template, redirect, url_for, flash, request
 from flask_login import LoginManager
 from flask_login import current_user
@@ -147,4 +149,8 @@ def setup_login(app: Flask) -> None:
 
     @login_manager.user_loader
     def load_user(user_id):
-        return User.query.get(int(user_id))
+        try:
+            user = User.query.get(int(user_id.split(':', 1)[0]))
+        except (TypeError, ValueError):
+            return None
+        return user if user and hmac.compare_digest(user.get_id(), user_id) else None

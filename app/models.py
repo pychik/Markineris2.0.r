@@ -1,6 +1,9 @@
 from datetime import date, datetime
 from enum import Enum as PyEnum
+import hashlib
+import hmac
 
+from flask import current_app
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func, Index, text
@@ -55,6 +58,13 @@ class User(db.Model, UserMixin):
     order_notification = db.Column(db.String(600), default=settings.AGENT_DEFAULT_NOTE)
     agent_fee = db.Column(db.Integer, default=20)
     phone_verified = db.Column(db.Boolean, default=False)
+
+    def get_id(self):
+        user_id = str(self.id)
+        # Old session and remember cookies stop matching after a password change.
+        payload = f"{user_id}:{self.password or ''}".encode()
+        signature = hmac.new(current_app.secret_key.encode(), payload, hashlib.sha256).hexdigest()
+        return f"{user_id}:{signature}"
 
     balance = db.Column(db.Integer, default=0)
     pending_balance_rf = db.Column(db.Integer, default=0)  # pending refill balance
