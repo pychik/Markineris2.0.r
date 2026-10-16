@@ -158,7 +158,7 @@ def _position_rows(records):
     return [{
             "date": record.sort_date.strftime("%d.%m.%Y"),
             "order": record.order_idn or str(record.order_id),
-            "company": record.company,
+            "company": _display_company(record.company),
             "category": record.category,
             "subcategory": record.subcategory or "",
             "article": record.article or "",
@@ -189,8 +189,19 @@ COMPANY_CATEGORY_LABELS = {
 COMPANY_INN_RE = re.compile(r"(?<!\d)\d{10}(?:\d{2})?(?!\d)")
 
 
+def _display_company(label):
+    """Decode stored HTML entities for display, leaving the filter value unchanged."""
+    label = label or ""
+    for _ in range(3):
+        decoded = unescape(label)
+        if decoded == label:
+            break
+        label = decoded
+    return label
+
+
 def _company_identity(label):
-    label = (label or "").strip()
+    label = _display_company(label).strip()
     match = COMPANY_INN_RE.search(label)
     if match:
         return match.group()
@@ -208,7 +219,7 @@ def _company_summary(positions, filters):
         inn = (item.get("inn") or "").strip()
         key = inn or _company_identity(name)
         if key and key not in companies:
-            companies[key] = {"name": name or inn, "positions": 0, "quantity": 0, "weight": Decimal(0),
+            companies[key] = {"name": _display_company(name or inn), "positions": 0, "quantity": 0, "weight": Decimal(0),
                               "known_weights": 0, "missing": 0, "categories": {}}
         if key:
             aliases[_company_identity(name)] = key
@@ -227,7 +238,7 @@ def _company_summary(positions, filters):
             identity = _company_identity(row.company)
             key = aliases.get(identity, identity) or "Без фирмы"
             if key not in companies:
-                companies[key] = {"name": row.company or "Без фирмы", "positions": 0, "quantity": 0,
+                companies[key] = {"name": _display_company(row.company or "Без фирмы"), "positions": 0, "quantity": 0,
                                   "weight": Decimal(0), "known_weights": 0, "missing": 0, "categories": {}}
             company = companies[key]
             category = company["categories"].setdefault(row.category, {
@@ -255,7 +266,7 @@ def _company_summary(positions, filters):
         selected = aliases.get(identity, identity)
         companies = {key: value for key, value in companies.items() if key == selected}
         if not companies:
-            companies[selected] = {"name": filters["company"], "positions": 0, "quantity": 0,
+            companies[selected] = {"name": _display_company(filters["company"]), "positions": 0, "quantity": 0,
                                    "weight": Decimal(0), "known_weights": 0, "missing": 0, "categories": {}}
 
     def weight_values(item):
@@ -293,7 +304,7 @@ def _subcategory_label(value):
 def eco_sbor_report():
     filters = _filters(request.args)
     report_format = request.args.get("format")
-    if report_format not in ("xlsx", "json"):
+    if report_format not in ("xlsx", "json", "companies"):
         subcategories = settings.SUB_CATEGORIES_DICT
         subcategory_categories = {
             key: (settings.Cosmetics.CATEGORY if key in COSMETICS_SUBCATEGORY_NOTE_KEYS else
@@ -303,7 +314,17 @@ def eco_sbor_report():
         return render_template("admin/eco_sbor_report.html", filters=filters,
                                categories=POSITION_RELATIONS, subcategories=subcategories,
                                subcategory_categories=subcategory_categories,
-                               company_label=unescape(filters["company"]))
+                               company_label=_display_company(filters["company"]))
+
+    if report_format == "companies":
+        positions = _positions_query(filters, include_company=False)
+        if positions is None:
+            return jsonify(companies=[])
+        names = db.session.execute(
+            select(positions.c.company).distinct().order_by(positions.c.company)
+        ).scalars().all()
+        return jsonify(companies=[{"value": name, "label": _display_company(name)}
+                                  for name in names])
 
     if report_format == "xlsx" and filters["date_to"] > filters["date_from"] + relativedelta(months=12):
         return jsonify(message="Для Excel выберите период не более 12 месяцев."), 400
@@ -423,7 +444,7 @@ def eco_sbor_report():
             company_names = db.session.execute(
                 select(unfiltered_positions.c.company).distinct().order_by(unfiltered_positions.c.company)
             ).scalars().all()
-            companies = [{"value": name, "label": unescape(name or "")}
+            companies = [{"value": name, "label": _display_company(name)}
                          for name in company_names]
     keys = list(groups)
     try:
@@ -432,27 +453,42 @@ def eco_sbor_report():
         group_index = -1
     if group_index < -1 or group_index >= len(keys):
         group_index = -1
-    group_stats = groups[keys[group_index]] if group_index >= 0 else {"count": 0, "quantity": 0, "weight": None, "known_weights": 0, "missing_weight": 0}
-    group_total = group_stats["count"]
     try:
         page = max(1, int(request.args.get("page", 1)))
     except ValueError:
         page = 1
     per_page = settings.PAGINATION_PER_PAGE
-    page = min(page, max(1, (group_total + per_page - 1) // per_page))
-    offset = (page - 1) * per_page
-    items = []
-    if group_index >= 0:
+    group_pages = {index: {"items": [], "page": 1, "offset": 0}
+                   for index in range(len(keys))}
+    if positions is not None and keys:
+        # Return the first page of every tab in one query, so switching tabs needs no request.
+        ranked = (select(positions,
+                         func.row_number().over(
+                             partition_by=(positions.c.category, positions.c.subcategory),
+                             order_by=(order_direction, positions.c.position_id),
+                         ).label("row_number"))
+                  .subquery("eco_ranked_positions"))
+        first_pages = (select(ranked)
+                       .where(ranked.c.row_number <= per_page)
+                       .order_by(ranked.c.category, ranked.c.subcategory, ranked.c.row_number))
+        key_indexes = {key: index for index, key in enumerate(keys)}
+        for row in db.session.execute(first_pages):
+            index = key_indexes[(row.category, row.subcategory or "")]
+            group_pages[index]["items"].extend(_position_rows([row]))
+    if group_index >= 0 and page > 1:
+        group_total = groups[keys[group_index]]["count"]
+        page = min(page, max(1, (group_total + per_page - 1) // per_page))
+        offset = (page - 1) * per_page
         category, subcategory = keys[group_index]
         stmt = (select(positions)
                 .where(positions.c.category == category, positions.c.subcategory == subcategory)
                 .order_by(order_direction, positions.c.position_id)
                 .offset(offset).limit(per_page))
-        items = _position_rows(db.session.execute(stmt).all())
+        group_pages[group_index] = {"items": _position_rows(db.session.execute(stmt).all()),
+                                    "page": page, "offset": offset}
     html = render_template("admin/eco_sbor_table.html", filters=filters, groups=groups,
-                           keys=keys, group_index=group_index, items=items,
+                           keys=keys, group_index=group_index, group_pages=group_pages,
                            company_summary=company_summary,
-                           group_stats=group_stats, group_total=group_total, offset=offset, page=page,
                            per_page=per_page,
                            total=sum(group["count"] for group in groups.values()),
                            total_quantity=sum(group["quantity"] for group in groups.values()),

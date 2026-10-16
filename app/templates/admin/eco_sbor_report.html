@@ -12,6 +12,11 @@
 .eco-pagination{display:flex;justify-content:center;align-items:center;width:100%}
 .eco-pagination .pagination{display:inline-flex;justify-content:center;align-items:center;gap:6px;margin:0;padding:0;list-style:none}
 .eco-pagination .pagination li{list-style:none}
+.eco-report-tabs{gap:6px;border-bottom:1px solid #adb5bd}
+.eco-report-tabs .nav-link{margin-bottom:-1px;padding:9px 16px;border:1px solid #d5d9dd;border-bottom-color:#adb5bd;border-radius:7px 7px 0 0;background:#f1f3f5;color:#343a40;text-decoration:none;transition:background-color .15s ease,border-color .15s ease}
+.eco-report-tabs .nav-link:hover,.eco-report-tabs .nav-link:focus-visible{background:#dee2e6;color:#212529;border-color:#adb5bd;box-shadow:none}
+.eco-report-tabs .nav-link.active,.eco-report-tabs .nav-link.active:hover,.eco-report-tabs .nav-link.active:focus-visible{background:#adb5bd;color:#212529;border-color:#8e959c;border-bottom-color:#adb5bd;font-weight:600}
+.eco-report-panel[hidden]{display:none}
 .eco-companies{display:grid;gap:10px;margin-top:16px}
 .eco-company{border:1px solid #dee2e6;border-radius:8px;background:#fff;overflow:hidden}
 .eco-company summary{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:18px;align-items:center;cursor:pointer;padding:12px 16px;font-weight:600;list-style:none}
@@ -40,7 +45,7 @@
             <div class="col-md-6"><button class="btn btn-secondary" id="eco_export" type="button">Скачать отчет</button></div>
         </div>
     </form>
-    <div id="eco_results" aria-live="polite"></div>
+    <div id="eco_results" aria-live="polite">Выберите фильтры и нажмите «Обновить», чтобы загрузить отчет.</div>
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -58,11 +63,13 @@ document.addEventListener('DOMContentLoaded', () => {
         changeMonth: true,
         changeYear: true,
         firstDay: 1,
-        onSelect: () => { company.value = ''; loadReport(); }
+        onSelect: () => { company.value = ''; invalidateResults(); loadCompanies(); }
     });
     const allSubcategories = Array.from(subcategory.options).slice(1).map(option => option.cloneNode(true));
     let currentRequest = 0;
     let activeController = null;
+    let companyRequest = 0;
+    let companyController = null;
 
     function updateSubcategories(keepSelection = true) {
         const selected = keepSelection ? subcategory.value : '';
@@ -72,7 +79,44 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Array.from(subcategory.options).some(option => option.value === selected)) subcategory.value = selected;
     }
 
-    category.addEventListener('change', () => { updateSubcategories(false); company.value = ''; loadReport(); });
+    function invalidateResults() {
+        if (activeController) {
+            activeController.abort();
+            activeController = null;
+            ++currentRequest;
+            close_Loading_circle();
+        }
+        result.textContent = 'Фильтры изменены. Нажмите «Обновить», чтобы загрузить отчет.';
+    }
+
+    async function loadCompanies() {
+        if (companyController) companyController.abort();
+        const controller = new AbortController();
+        companyController = controller;
+        const requestId = ++companyRequest;
+        const selectedCompany = company.value;
+        const selectedLabel = company.selectedOptions[0]?.textContent || selectedCompany;
+        const params = new URLSearchParams(new FormData(form));
+        params.set('format', 'companies');
+        try {
+            const response = await fetch(`${window.location.pathname}?${params}`, {headers: {'Accept': 'application/json'}, signal: controller.signal});
+            if (!response.ok) throw new Error(`Ошибка загрузки фирм (${response.status})`);
+            const data = await response.json();
+            if (requestId !== companyRequest) return;
+            company.replaceChildren(new Option('Все', ''));
+            data.companies.forEach(item => company.add(new Option(item.label, item.value)));
+            if (selectedCompany && !data.companies.some(item => item.value === selectedCompany)) {
+                company.add(new Option(selectedLabel, selectedCompany));
+            }
+            company.value = selectedCompany;
+        } catch (error) {
+            if (error.name !== 'AbortError' && requestId === companyRequest) console.error(error);
+        } finally {
+            if (requestId === companyRequest) companyController = null;
+        }
+    }
+
+    category.addEventListener('change', () => { updateSubcategories(false); company.value = ''; invalidateResults(); loadCompanies(); });
     subcategory.addEventListener('change', () => {
         const option = subcategory.selectedOptions[0];
         if (option && option.value && !category.value && option.dataset.category) {
@@ -81,11 +125,12 @@ document.addEventListener('DOMContentLoaded', () => {
             subcategory.value = option.value;
         }
         company.value = '';
-        loadReport();
+        invalidateResults();
+        loadCompanies();
     });
-    company.addEventListener('change', () => loadReport());
-    ['eco_from', 'eco_to'].forEach(id => document.getElementById(id).addEventListener('change', () => { company.value = ''; loadReport(); }));
-    form.addEventListener('submit', event => { event.preventDefault(); loadReport(); });
+    company.addEventListener('change', invalidateResults);
+    ['eco_from', 'eco_to'].forEach(id => document.getElementById(id).addEventListener('change', () => { company.value = ''; invalidateResults(); loadCompanies(); }));
+    form.addEventListener('submit', event => { event.preventDefault(); loadReport(1, -1, false); });
 
     async function loadReport(page = 1, group = -1, refreshCompanies = true) {
         if (!form.reportValidity()) return;
@@ -129,7 +174,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const groupButton = event.target.closest('[data-eco-group]:not([data-eco-page]):not([data-eco-sort])');
         const pageButton = event.target.closest('[data-eco-page]');
         const sortButton = event.target.closest('[data-eco-sort]');
-        if (groupButton) loadReport(1, Number(groupButton.dataset.ecoGroup), false);
+        if (groupButton) {
+            const selectedGroup = groupButton.dataset.ecoGroup;
+            result.querySelectorAll('.eco-report-tabs [data-eco-group]').forEach(button => {
+                const active = button.dataset.ecoGroup === selectedGroup;
+                button.classList.toggle('active', active);
+                button.setAttribute('aria-selected', String(active));
+            });
+            result.querySelectorAll('[data-eco-panel]').forEach(panel => {
+                panel.hidden = panel.dataset.ecoPanel !== selectedGroup;
+            });
+        }
         if (pageButton) { event.preventDefault(); loadReport(Number(pageButton.dataset.ecoPage), Number(pageButton.dataset.ecoGroup), false); }
         if (sortButton) {
             sort.value = sort.value === 'desc' ? 'asc' : 'desc';

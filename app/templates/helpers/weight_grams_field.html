@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
         '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">' +
         '<circle cx="9" cy="9" r="7.45" stroke="#D12600" stroke-width="1.5"/>' +
         '<path d="M9 8v3.25M9 6.75h.01" stroke="#D12600" stroke-width="1.5" stroke-linecap="round"/></svg></span></label>' +
-        '<input id="weight_grams" name="weight_grams" type="number" min="1" step="1" required class="form-control" placeholder="Пример 10000" title="Укажите актуальный суммарный вес всех товаров этой позиции в ГРАММАХ для отчетности РОСПРИРОДНАДЗОР">';
+        '<input id="weight_grams" name="weight_grams" type="number" min="1" step="1" required class="form-control" placeholder="Пример 100" title="Укажите актуальный суммарный вес всех товаров этой позиции в ГРАММАХ для отчетности РОСПРИРОДНАДЗОР">';
     block.querySelector('input').value = {{ (copied_order.weight_grams if copied_order and copied_order.weight_grams else '') | tojson }};
     const quantity = step.querySelector('input#quantity_order:not([type="hidden"]), input#quantity:not([type="hidden"]), input#kpb_quantity_order:not([type="hidden"])');
     const target = quantity ? quantity.closest('.form-group, .col-md-4, .col-md-3') : step.querySelector('#sizes_quantity_order');
