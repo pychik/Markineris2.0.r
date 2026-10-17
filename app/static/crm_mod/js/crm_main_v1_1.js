@@ -140,11 +140,14 @@ function problem_order(url, block, stage, csrf, clicked_block_id, order_id, orde
           </form>
           <div class="modal-footer">
             <button type="button" class="btn btn-sm btn-secondary" onclick="clear_problem_order()" data-bs-dismiss="modal">Отмена</button>
-            <button class="btn btn-sm bg-error mt-1" type="button"
-                onclick="provide_problem_order('${url}', '${block}', '${stage}', '${csrf}', '${clicked_block_id}', '${order_id}', '${order_idn}', '${decrement_id}')">
+            <button class="btn btn-sm bg-error mt-1" type="submit" form="problem_order_form">
             Отправить заказ в проблемные</button>
           </div>
         </div>`
+    document.getElementById('problem_order_form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        provide_problem_order(url, block, stage, csrf, clicked_block_id, order_id, order_idn, decrement_id);
+    });
     $('#problem_orderModal').modal('show')
 }
 
@@ -154,7 +157,9 @@ function clear_problem_order(){
 }
 
 function provide_problem_order(url, block, stage, csrf, clicked_block_id, order_id, order_idn, decrement_id){
-    if(document.getElementById('problem_order_form').reportValidity()){
+    const form = document.getElementById('problem_order_form');
+    if(form && form.dataset.submitting !== 'true' && form.reportValidity()){
+        form.dataset.submitting = 'true';
         loadingCircle();
         let category = get_current_category();
 
@@ -169,7 +174,6 @@ function provide_problem_order(url, block, stage, csrf, clicked_block_id, order_
         {
             // console.log(data);
 
-          close_Loading_circle();
           if (data.status === 'success') {
                console.log(data);
                removeOrder(document.getElementById(clicked_block_id), order_id, decrement_id);
@@ -190,8 +194,11 @@ function provide_problem_order(url, block, stage, csrf, clicked_block_id, order_
           }
         },
          error: function() {
-            close_Loading_circle();
             make_message('Ошибка CSRF. Обновите страницу и попробуйте снова', 'danger');
+        },
+        complete: function() {
+            close_Loading_circle();
+            delete form.dataset.submitting;
         }
        });
 
