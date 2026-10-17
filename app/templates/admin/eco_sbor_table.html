@@ -2,8 +2,8 @@
 <div class="mt-3 mb-3 d-flex flex-wrap gap-2 align-items-center" aria-label="Итоги отчета">
     <span class="badge badge-soft bg-primary bg-opacity-10 text-primary">Позиций: <b>{{ total }}</b></span>
     <span class="badge badge-soft bg-success bg-opacity-10 text-success">Марок: <b>{{ total_quantity }} шт.</b></span>
-    <span class="badge badge-soft bg-warning bg-opacity-10 text-warning">Вес: <b>{% if total_missing or not total_known_weights %}—{% else %}{{ total_weight }} г{% endif %}</b></span>
-    {% if total_missing %}<span class="badge badge-soft bg-secondary bg-opacity-10 text-secondary">Без веса: <b>{{ total_missing }}</b></span>{% endif %}
+    <span class="badge badge-soft bg-warning bg-opacity-10 text-warning">Вес: <b>{% if total_known_weights %}{{ total_weight }} г{% else %}—{% endif %}</b></span>
+    {% if total_missing %}<span class="eco-weight-note badge bg-secondary bg-opacity-10 text-secondary" title="Есть позиции без веса" tabindex="0">ЕПБВ: <b>{{ total_missing }} поз.</b></span>{% endif %}
 </div>
 <ul class="nav nav-tabs eco-report-tabs" role="tablist">
     <li class="nav-item"><button class="nav-link {% if group_index == -1 %}active{% endif %}" type="button" role="tab" aria-selected="{{ 'true' if group_index == -1 else 'false' }}" data-eco-group="-1">Фирмы</button></li>
@@ -15,10 +15,10 @@
 <div class="eco-companies">
     {% for company in company_summary if company.positions %}
     <details class="eco-company">
-        <summary><span>{{ loop.index }}. {{ company.name }}</span><span class="eco-company__metric">{{ '{:,}'.format(company.quantity).replace(',', ' ') }} КМ</span><span class="eco-company__metric">{{ company.weight_label }}{% if company.weight_tonnes is not none %} т{% endif %}</span></summary>
+        <summary><span>{{ loop.index }}. {{ company.name }}</span><span class="eco-company__metric">{{ '{:,}'.format(company.quantity).replace(',', ' ') }} КМ</span><span class="eco-company__metric">{{ company.weight_label }}{% if company.weight_tonnes is not none %} т{% endif %}{% if company.missing %} <span class="eco-weight-note badge bg-secondary bg-opacity-10 text-secondary" title="Есть позиции без веса" tabindex="0">ЕПБВ: {{ company.missing }} поз.</span>{% endif %}</span></summary>
         <div class="eco-company__categories table-responsive"><table class="table table-striped table-sm align-middle">
             <thead><tr><th>Категория</th><th>Количество КМ</th><th>Вес, т</th></tr></thead>
-            <tbody>{% for category in company.categories %}<tr><td>{{ category.name }}</td><td>{{ '{:,}'.format(category.quantity).replace(',', ' ') }} КМ</td><td>{{ category.weight_label }}{% if category.weight_tonnes is not none %} т{% endif %}</td></tr>{% endfor %}</tbody>
+            <tbody>{% for category in company.categories %}<tr><td>{{ category.name }}</td><td>{{ '{:,}'.format(category.quantity).replace(',', ' ') }} КМ</td><td>{{ category.weight_label }}{% if category.weight_tonnes is not none %} т{% endif %}{% if category.missing %} <span class="eco-weight-note badge bg-secondary bg-opacity-10 text-secondary" title="Есть позиции без веса" tabindex="0">ЕПБВ: {{ category.missing }} поз.</span>{% endif %}</td></tr>{% endfor %}</tbody>
         </table></div>
     </details>
     {% else %}<div class="alert alert-secondary">За выбранный период данных нет.</div>{% endfor %}

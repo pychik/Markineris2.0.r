@@ -176,8 +176,8 @@ KEYS = ("date", "order", "company", "category", "subcategory", "article", "produ
 
 
 def _missing_weight_expr(positions):
-    """Only missing weight in ordinary orders makes a report total incomplete."""
-    return case((and_(positions.c.weight.is_(None), positions.c.is_moderation.is_(False)), 1), else_=0)
+    """Count every position omitted from the weight total."""
+    return case((positions.c.weight.is_(None), 1), else_=0)
 
 
 COMPANY_CATEGORY_LABELS = {
@@ -270,7 +270,7 @@ def _company_summary(positions, filters):
                                    "weight": Decimal(0), "known_weights": 0, "missing": 0, "categories": {}}
 
     def weight_values(item):
-        if item["missing"] or not item["known_weights"]:
+        if not item["known_weights"]:
             return None, "—"
         tonnes = item["weight"] / Decimal(1000000)
         label = f"{tonnes:,.6f}".rstrip("0").rstrip(".").replace(",", " ").replace(".", ",")
@@ -398,16 +398,16 @@ def eco_sbor_report():
                     sheet_lengths[key] += 1
                     sheet_totals[key]["quantity"] += item["quantity"]
                     if item["weight"] is None:
-                        if not item["is_moderation"]:
-                            sheet_totals[key]["missing"] += 1
+                        sheet_totals[key]["missing"] += 1
                     else:
                         sheet_totals[key]["weight"] += item["weight"]
                         sheet_totals[key]["known_weights"] += 1
         for key, sheet in sheets.items():
             sheet.auto_filter.ref = f"A1:J{sheet_lengths[key]}"
             totals = sheet_totals[key]
-            footer = ["ИТОГО", None, None, None, None, None, None, None,
-                      totals["quantity"], "—" if totals["missing"] or not totals["known_weights"] else totals["weight"]]
+            footer = ["ИТОГО", None, f"Без веса: {totals['missing']} поз." if totals["missing"] else None,
+                      None, None, None, None, None,
+                      totals["quantity"], "—" if not totals["known_weights"] else totals["weight"]]
             footer_cells = []
             for column, value in enumerate(footer, 1):
                 cell = WriteOnlyCell(sheet, value=value)
@@ -492,7 +492,7 @@ def eco_sbor_report():
                            per_page=per_page,
                            total=sum(group["count"] for group in groups.values()),
                            total_quantity=sum(group["quantity"] for group in groups.values()),
-                           total_weight=sum(group["weight"] or 0 for group in groups.values()) if any(group["weight"] is not None for group in groups.values()) else None,
+                           total_weight=sum(group["weight"] or 0 for group in groups.values()),
                            total_known_weights=sum(group["known_weights"] for group in groups.values()),
                            total_missing=sum(group["missing_weight"] for group in groups.values()),
                            subcategory_names=settings.SUB_CATEGORIES_DICT)
