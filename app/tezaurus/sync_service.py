@@ -15,7 +15,9 @@ from .constants import (
     DICTIONARY_COLORS,
     DICTIONARY_COUNTRIES,
     DICTIONARY_PROCESSING_COMPANIES,
+    DICTIONARY_RD,
     DICTIONARY_TNVED,
+    OPTIONAL_DICTIONARIES,
 )
 from .redis_repository import RedisTezaurusRepository
 
@@ -94,6 +96,7 @@ class TezaurusSyncService:
                 remote_revisions=remote_revisions,
                 result=result,
             )
+            versions = self._sync_rd(versions=versions, remote_revisions=remote_revisions, result=result)
 
             result["ok"] = not result["failed"]
             result["versions"] = versions
@@ -250,6 +253,41 @@ class TezaurusSyncService:
             result["failed"].append(DICTIONARY_PROCESSING_COMPANIES)
             return versions
 
+    def _sync_rd(
+        self,
+        *,
+        versions: dict[str, Any],
+        remote_revisions: dict[str, dict[str, Any]],
+        result: dict[str, Any],
+    ) -> dict[str, Any]:
+        remote_revision = remote_revisions.get(DICTIONARY_RD)
+        if not remote_revision:
+            result["skipped"].append(DICTIONARY_RD)
+            return versions
+
+        if not self._needs_update(
+            dictionary_name=DICTIONARY_RD,
+            remote_revisions=remote_revisions,
+            current_versions=versions,
+            has_data=self.repository.has_rd_data(),
+        ):
+            result["skipped"].append(DICTIONARY_RD)
+            return versions
+
+        try:
+            payload = self.api_client.export_rd()
+            versions = self.repository.save_rd(
+                payload=payload,
+                remote_revision=remote_revision,
+                current_versions=versions,
+            )
+            result["updated"].append(DICTIONARY_RD)
+            return versions
+        except Exception:
+            logger.exception("Failed to sync rd dictionary")
+            result["failed"].append(DICTIONARY_RD)
+            return versions
+
     def _needs_update(
         self,
         *,
@@ -277,7 +315,7 @@ class TezaurusSyncService:
         parsed: dict[str, dict[str, Any]] = {}
         for dictionary_name in DICTIONARIES:
             raw_entry = revisions_payload.get(dictionary_name)
-            if raw_entry is None and dictionary_name == DICTIONARY_PROCESSING_COMPANIES:
+            if raw_entry is None and dictionary_name in OPTIONAL_DICTIONARIES:
                 continue
             if not isinstance(raw_entry, dict):
                 raise ValueError(f"Missing revision entry for {dictionary_name}")

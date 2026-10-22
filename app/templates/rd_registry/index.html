@@ -45,6 +45,12 @@
                     <select class="form-select mb-2" name="subcategory" id="rdSubcategory"></select>
                 </div>
 
+                <label class="form-label" for="rdCountry">Страна</label>
+                <select class="form-select mb-2" name="country" id="rdCountry" required>
+                    <option value="">Выберите страну</option>
+                    {% for c in countries %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+                </select>
+
                 <label class="form-label" for="rdTnved">ТНВЭД</label>
                 <input class="form-control mb-2" name="tnved_code" id="rdTnved" required pattern="\d{10}" maxlength="10"
                        inputmode="numeric" autocomplete="off" placeholder="10 цифр, как в карточке" title="10 цифр">
@@ -113,6 +119,7 @@
             categorySelect.value = d.category || "";
             fillSubcategories(categorySelect.value, d.subcategory);
             document.getElementById("rdTnved").value = d.tnved || "";
+            document.getElementById("rdCountry").value = d.country || "";
             document.getElementById("rdType").value = d.rdType || "";
             document.getElementById("rdName").value = d.rdName || "";
             document.getElementById("rdDate").value = d.rdDate || "";
@@ -175,7 +182,7 @@
             load(url, true);
         });
 
-        // категория, тип и «Скрыть истёкшие» применяются сразу, поиск - по Enter или «Найти»
+        // категория, тип, страна и «Скрыть истёкшие» применяются сразу, поиск - по Enter или «Найти»
         results.addEventListener("change", event => {
             const form = event.target.form;
             if (form && form.method.toLowerCase() === "get" && event.target.matches("select, input[type=checkbox]")) {

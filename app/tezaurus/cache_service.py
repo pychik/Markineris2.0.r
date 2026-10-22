@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
+
+from dateutil.relativedelta import relativedelta
 
 from config import settings
 from tezaurus_fallback.repository import LocalTezaurusRepository
@@ -28,6 +31,17 @@ class TezaurusCacheService:
     def get_processing_companies(self) -> list[Any]:
         companies = self.repository.get_processing_companies()
         return companies if isinstance(companies, list) else []
+
+    def get_valid_rd(self) -> list[dict[str, Any]]:
+        """РД Tezaurus, с которыми карточку можно сохранить: «До» не раньше чем через месяц, как в validate_rd_block.
+
+        Tezaurus отдаёт все неистёкшие РД, а кэш живёт до следующей ревизии, поэтому срок проверяем при чтении.
+        """
+        items = self.repository.get_rd_snapshot().get("items")
+        if not isinstance(items, list):
+            return []
+        min_date_to = (date.today() + relativedelta(months=+1)).isoformat()
+        return [item for item in items if isinstance(item, dict) and str(item.get("rd_date_to") or "") >= min_date_to]
 
     def get_countries(self, *, category: str | None = None, our_rd: bool = False) -> Any:
         value = self.repository.get_countries_by_filter(category=category, our_rd=our_rd)

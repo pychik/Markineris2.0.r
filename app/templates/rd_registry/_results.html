@@ -7,6 +7,7 @@
     'hide_expired': '1' if hide_expired else None,
     'category': category or None,
     'rd_type': rd_type or None,
+    'country': country or None,
     'sort': sort,
     'dir': dir,
 } %}
@@ -36,7 +37,7 @@
     {% if archived %}<input type="hidden" name="archived" value="1">{% endif %}
     <input type="hidden" name="sort" value="{{ sort }}">
     <input type="hidden" name="dir" value="{{ dir }}">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <input type="search" class="form-control" name="q" value="{{ q }}" autocomplete="off"
                placeholder="Номер РД или начало ТНВЭД" title="Номер РД (23280/26, РА02.В.23280) или начало ТНВЭД (6214)">
     </div>
@@ -53,6 +54,15 @@
             <option value="">Все типы</option>
             {% for t in rd_types %}
                 <option value="{{ t }}" {% if t == rd_type %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" name="country" title="Страна">
+            <option value="">Все страны</option>
+            <option value="{{ no_country }}" {% if country == no_country %}selected{% endif %}>Без страны</option>
+            {% for c in countries %}
+                <option value="{{ c }}" {% if c == country %}selected{% endif %}>{{ c }}</option>
             {% endfor %}
         </select>
     </div>
@@ -78,7 +88,7 @@
         <thead class="text-dark">
         <tr>
             <th scope="col">Номер</th>
-            <th scope="col">Категория</th>
+            <th scope="col">Категория / страна</th>
             <th scope="col">ТНВЭД</th>
             <th scope="col">Тип</th>
             <th scope="col">Действует</th>
@@ -94,7 +104,11 @@
             {% set days_left = (e.rd_date_to - today).days %}
             <tr class="{% if days_left < 0 %}table-danger{% elif e.rd_date_to < min_suggest_date %}table-warning{% endif %}">
                 <td>{{ e.rd_name }}</td>
-                <td>{{ category_label(e.category, e.subcategory) }}</td>
+                <td>
+                    {{ category_label(e.category, e.subcategory) }}<br>
+                    {% if e.country %}<span class="text-muted">{{ e.country }}</span>
+                    {% else %}<span class="text-danger" title="Без страны РД не находится в карточке - укажите страну">страна не указана</span>{% endif %}
+                </td>
                 <td>{{ e.tnved_code or '—' }}</td>
                 <td>{{ e.rd_type }}</td>
                 <td class="text-nowrap">{{ e.rd_date.strftime('%d.%m.%Y') }} –<br>{{ e.rd_date_to.strftime('%d.%m.%Y') }}</td>
@@ -116,7 +130,7 @@
                             data-bs-toggle="modal" data-bs-target="#rdEditModal"
                             data-entry-id="{{ e.id }}" data-rd-type="{{ e.rd_type }}" data-rd-name="{{ e.rd_name }}"
                             data-category="{{ e.category }}" data-subcategory="{{ e.subcategory }}"
-                            data-tnved="{{ e.tnved_code }}"
+                            data-tnved="{{ e.tnved_code }}" data-country="{{ e.country }}"
                             data-rd-date="{{ e.rd_date.isoformat() }}" data-rd-date-to="{{ e.rd_date_to.isoformat() }}">
                         Изменить
                     </button>

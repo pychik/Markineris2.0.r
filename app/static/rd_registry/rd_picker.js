@@ -14,6 +14,10 @@
   if (!modal) return;
 
   const searchUrl = modal.dataset.searchUrl;
+  const recommendedUrl = modal.dataset.recommendedUrl;
+  const recStatus = document.getElementById("rdRecommendedStatus");
+  const recTable = document.getElementById("rdRecommendedTable");
+  const recBody = recTable.querySelector("tbody");
   const input = document.getElementById("rdRegistryQuery");
   const applyBtn = document.getElementById("rdRegistryApply");
   const statusEl = document.getElementById("rdRegistryStatus");
@@ -21,6 +25,9 @@
   const tbody = table.querySelector("tbody");
 
   let tnved = "";      // ТНВЭД карточки на момент открытия модалки
+  let country = "";    // страна карточки - сужает и рекомендации, и реестр
+  let productType = "";  // вид товара - только поднимает подходящие рекомендации выше
+  let openId = 0;      // ответ рекомендаций от прошлого открытия модалки не рисуем
   let preload = null;  // {items, has_more}: РД с ТНВЭД карточки, грузим один раз за открытие
   let deadKey = null;  // по этому куску сервер ничего не нашёл - строки, которые его содержат, не ищем
   let fullSet = null;  // {key, items}: сервер отдал все совпадения (has_more=false) - дальше фильтруем сами
@@ -28,27 +35,62 @@
   let timer = null;
   let controller = null;
 
+  // Строка обеих таблиц: колонки одинаковые, первая - категория реестра или вид товара из Tezaurus.
+  function buildRow(item, first, firstClass) {
+    const tr = document.createElement("tr");
+    tr.style.cursor = "pointer";
+    tr.title = "Подставить в карточку";
+    [first, item.tnved_code, item.rd_type, item.rd_name, item.rd_date, item.rd_date_to, item.country || "—", item.days_left]
+      .forEach((value, i) => {
+        const td = document.createElement("td");
+        td.textContent = value;
+        if (i === 0 && firstClass) {
+          td.className = firstClass;
+          td.title = value;
+        }
+        if (i === 1 && value && value === tnved) td.className = "fw-semibold";  // ТНВЭД как в карточке
+        if (i === 7) td.className = "text-end";
+        tr.appendChild(td);
+      });
+    tr.addEventListener("click", () => applyRd(item));
+    return tr;
+  }
+
   function render(items, message) {
     tbody.innerHTML = "";
     table.classList.toggle("d-none", !items || !items.length);
     statusEl.textContent = message || (items && !items.length ? "Ничего не найдено" : "");
+    (items || []).forEach(item => tbody.appendChild(buildRow(item, item.category)));
+  }
 
-    (items || []).forEach(item => {
-      const tr = document.createElement("tr");
-      tr.style.cursor = "pointer";
-      tr.title = "Подставить в карточку";
-      [item.category, item.tnved_code, item.rd_type, item.rd_name, item.rd_date, item.rd_date_to, item.days_left]
-        .forEach((value, i) => {
-          const td = document.createElement("td");
-          td.textContent = value;
-          if (i === 1 && value && value === tnved) td.className = "fw-semibold";  // ТНВЭД как в карточке
-          if (i === 3) td.className = "text-nowrap";
-          if (i === 6) td.className = "text-end";
-          tr.appendChild(td);
-        });
-      tr.addEventListener("click", () => applyRd(item));
-      tbody.appendChild(tr);
-    });
+  // Проверенные РД из Tezaurus: один запрос на открытие, поиск по реестру их не трогает.
+  function renderRecommended(items, message) {
+    recBody.innerHTML = "";
+    recTable.classList.toggle("d-none", !items || !items.length);
+    recStatus.textContent = message || "";
+    (items || []).forEach(item => recBody.appendChild(
+      buildRow(item, item.description, "rd-recommended-desc" + (item.type_match ? " fw-semibold" : ""))));
+  }
+
+  function loadRecommended() {
+    if (!tnved || !country) return renderRecommended(null, "Укажите в карточке ТНВЭД и страну - подберём проверенные РД");
+    const current = ++openId;
+    renderRecommended(null, "Подбираем…");
+    fetch(`${recommendedUrl}?${new URLSearchParams({tnved, country, type: productType})}`,
+          {headers: {"X-Requested-With": "XMLHttpRequest"}})
+      .then(r => r.json())
+      .then(data => {
+        if (current !== openId) return;
+        if (data.status !== "success") throw new Error(data.message || "recommended failed");
+        renderRecommended(data.items, data.items.length ? "" : `Под ТНВЭД ${tnved} и страну ${country} проверенных РД нет`);
+      })
+      .catch(() => {
+        if (current === openId) renderRecommended(null, "Не удалось подобрать проверенные РД");
+      });
+  }
+
+  function scope() {
+    return `ТНВЭД ${tnved}` + (country ? ` и страной ${country}` : "");
   }
 
   function request(params) {
@@ -75,18 +117,18 @@
   // Ключ короче 5 символов: показываем РД с ТНВЭД карточки, отфильтрованные по введённому.
   function drawPreload() {
     const key = rdKey(input.value);
-    if (!preload.items.length) return render(null, `С ТНВЭД ${tnved} в реестре РД нет - найдите РД по номеру`);
+    if (!preload.items.length) return render(null, `С ${scope()} в реестре РД нет - найдите РД по номеру`);
     const items = preload.items.filter(item => item.search_key.includes(key));
     const more = preload.has_more ? `, показаны первые ${preload.items.length}` : "";
     render(items, items.length
-      ? `РД с ТНВЭД ${tnved}${more}`
-      : `Среди РД с ТНВЭД ${tnved} такого нет - от ${MIN_LEN} символов ищем по всему реестру`);
+      ? `РД с ${scope()}${more}`
+      : `Среди РД с ${scope()} такого нет - от ${MIN_LEN} символов ищем по всему реестру`);
   }
 
   function showPreload(key) {
     if (!tnved) return render(null, key ? `Введите ещё ${MIN_LEN - key.length} симв.` : `Поиск с ${MIN_LEN} символов номера`);
     if (preload) return drawPreload();
-    request({tnved})
+    request({tnved, country})
       .then(data => {
         preload = data;
         if (rdKey(input.value).length < MIN_LEN) drawPreload();
@@ -106,8 +148,8 @@
       return render(fullSet.items.filter(item => item.search_key.includes(key)));
     }
 
-    // поиск по всему реестру, РД с ТНВЭД карточки сервер ставит первыми
-    request({q: key, tnved})
+    // поиск по всему реестру страны карточки, РД с ТНВЭД карточки сервер ставит первыми
+    request({q: key, tnved, country})
       .then(data => {
         if (!data.items.length) deadKey = key;
         else if (!data.has_more) fullSet = {key, items: data.items};
@@ -132,7 +174,7 @@
   // РД нет в реестре: подставляем только введённый номер, тип и даты оператор заполнит сам
   function applyTyped() {
     const name = input.value.replace(/№/g, "").trim();
-    if (!name) return;
+    if (!name) return input.focus();  // кнопка всегда активна, как основные кнопки карточки
     enableRd();
     setRdInput("rd_name", name);
     bootstrap.Modal.getOrCreateInstance(modal).hide();
@@ -152,7 +194,6 @@
   applyBtn.addEventListener("click", applyTyped);
 
   input.addEventListener("input", () => {
-    applyBtn.disabled = !input.value.trim();
     clearTimeout(timer);
     timer = setTimeout(lookup, DEBOUNCE_MS);
   });
@@ -161,11 +202,13 @@
     // реестр мог пополниться, а ТНВЭД карточки - измениться, пока страница открыта
     const tnvedInput = document.getElementById("tnved_code");
     tnved = tnvedInput ? tnvedInput.value.trim() : "";
+    country = ($("#country").val() || "").trim();
+    productType = ($("#type").val() || "").trim();
+    loadRecommended();
     preload = null;
     deadKey = null;
     fullSet = null;
     lastKey = null;
-    applyBtn.disabled = !input.value.trim();
   });
 
   modal.addEventListener("shown.bs.modal", () => {

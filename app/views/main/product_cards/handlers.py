@@ -890,6 +890,7 @@ def h_update_product_card(crm_: bool = False):
                         category=category,
                         subcategory=getattr(entity_after, "subcategory", None),
                         tnved_code=entity_after.tnved_code,
+                        country=getattr(entity_after, "country", None),
                         user_id=current_user.id,
                     )
         if old_rd_replacement_consent != card.rd_replacement_consent:

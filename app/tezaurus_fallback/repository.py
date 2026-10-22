@@ -54,6 +54,14 @@ class LocalTezaurusRepository:
     def get_processing_companies(self) -> list[dict[str, Any]]:
         return _load("processing_companies.json")
 
+    def get_rd_snapshot(self) -> dict[str, Any]:
+        # rd.json необязателен: в снимках, выгруженных до РД, и в seed-файлах его нет
+        try:
+            snapshot = _load("rd.json")
+        except (OSError, ValueError):
+            return {}
+        return snapshot if isinstance(snapshot, dict) else {}
+
     def get_countries_by_filter(self, *, category: str | None, our_rd: bool) -> Any:
         items = self.get_countries_snapshot()["items"]
         if not our_rd:

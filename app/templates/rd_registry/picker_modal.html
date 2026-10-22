@@ -1,5 +1,33 @@
+<style>
+  /* блок проверенных РД из Tezaurus: выделен, но спокойно */
+  #rdRegistryModal .rd-recommended {
+    background: #fffbeb;
+    border: 1px solid #f5e6b3;
+    border-radius: .5rem;
+    padding: .75rem 1rem;
+  }
+  #rdRegistryModal .rd-recommended .table { --bs-table-bg: transparent; }
+  #rdRegistryModal .rd-recommended-rows { max-height: 35vh; overflow-y: auto; }
+  /* у таблицы реестра те же отступы, что у жёлтого блока, чтобы колонки обеих таблиц стояли друг под другом */
+  #rdRegistryModal .rd-registry-rows { padding: 0 1rem; border: 1px solid transparent; }
+  #rdRegistryModal .rd-picker-table { table-layout: fixed; }
+  #rdRegistryModal .rd-picker-table th:nth-child(1) { width: 20%; }
+  #rdRegistryModal .rd-picker-table th:nth-child(2) { width: 11%; }
+  #rdRegistryModal .rd-picker-table th:nth-child(3) { width: 13%; }
+  #rdRegistryModal .rd-picker-table th:nth-child(4) { width: 22%; }
+  #rdRegistryModal .rd-picker-table th:nth-child(5),
+  #rdRegistryModal .rd-picker-table th:nth-child(6) { width: 8.5%; }
+  #rdRegistryModal .rd-picker-table th:nth-child(7) { width: 10%; }
+  #rdRegistryModal .rd-picker-table th:nth-child(8) { width: 7%; }
+  #rdRegistryModal .rd-recommended-desc {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+</style>
 <div class="modal fade" id="rdRegistryModal" tabindex="-1" aria-labelledby="rdRegistryModalLabel" aria-hidden="true"
-     data-search-url="{{ url_for('rd_registry.search') }}">
+     data-search-url="{{ url_for('rd_registry.search') }}"
+     data-recommended-url="{{ url_for('rd_registry.recommended') }}">
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
@@ -10,30 +38,59 @@
         <div class="input-group">
           <input type="search" id="rdRegistryQuery" class="form-control" autocomplete="off"
                  placeholder="Номер РД, например 23280/26 или РА02.В.23280">
-          <button type="button" id="rdRegistryApply" class="btn btn-outline-secondary" style="min-width:0;" disabled
+          <button type="button" id="rdRegistryApply" class="btn btn-accent border-0 text-dark px-4" style="min-width:0;"
                   title="Подставить введённый номер в карточку">
             Применить
           </button>
         </div>
+        {# подбирается один раз при открытии и не меняется от поиска #}
+        <div class="rd-recommended mt-3 mb-2">
+          <div class="d-flex flex-wrap align-items-baseline gap-2 mb-1">
+            <span class="fw-semibold">Проверенные РД</span>
+            <small class="text-muted">подобраны под ТНВЭД и страну карточки</small>
+          </div>
+          <div id="rdRecommendedStatus" class="small text-muted"></div>
+          <div class="rd-recommended-rows">
+            <table id="rdRecommendedTable" class="table table-sm table-hover rd-picker-table mb-0 d-none">
+              <thead>
+                <tr>
+                  <th>Вид</th>
+                  <th>ТНВЭД</th>
+                  <th>Тип</th>
+                  <th>Номер</th>
+                  <th>От</th>
+                  <th>До</th>
+                  <th>Страна</th>
+                  <th class="text-end">Осталось дней</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
         <small class="form-text text-muted">
-          Сразу показаны РД с ТНВЭД карточки. Поиск по всему реестру - с 5 символов, регистр, пробелы, точки и раскладка не важны.
-          Нет в реестре - "Применить" подставит введённый номер в карточку, тип и даты заполните вручную.
+          Реестр РД, которые вводили операторы. Сразу показаны РД с ТНВЭД и страной карточки. Поиск по всему реестру - с 5 символов,
+          регистр, пробелы, точки и раскладка не важны. Нет в реестре - "Применить" подставит введённый номер в карточку,
+          тип и даты заполните вручную.
         </small>
         <div id="rdRegistryStatus" class="small text-muted mt-2"></div>
-        <table id="rdRegistryTable" class="table table-sm table-hover mt-2 mb-0 d-none">
-          <thead>
-            <tr>
-              <th>Категория</th>
-              <th>ТНВЭД</th>
-              <th>Тип</th>
-              <th>Номер</th>
-              <th>От</th>
-              <th>До</th>
-              <th class="text-end">Осталось дней</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+        <div class="rd-registry-rows">
+          <table id="rdRegistryTable" class="table table-sm table-hover rd-picker-table mt-2 mb-0 d-none">
+            <thead>
+              <tr>
+                <th>Категория</th>
+                <th>ТНВЭД</th>
+                <th>Тип</th>
+                <th>Номер</th>
+                <th>От</th>
+                <th>До</th>
+                <th>Страна</th>
+                <th class="text-end">Осталось дней</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>

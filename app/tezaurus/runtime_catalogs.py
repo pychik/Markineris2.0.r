@@ -325,6 +325,15 @@ def get_all_countries() -> list[str]:
     return _normalize_str_list(list(settings.COUNTRIES_LIST))
 
 
+def get_valid_rd() -> list[dict]:
+    """РД из Tezaurus, с которыми карточку можно сохранить. Пустой список, если кэш недоступен."""
+    try:
+        return _get_cache_service().get_valid_rd()
+    except Exception:
+        logger.exception("Failed to read RD from Tezaurus Redis cache")
+        return []
+
+
 def get_rd_countries(category: str) -> list[str]:
     normalized_category = _RD_CATEGORY_MAP.get(category, category)
     try:
