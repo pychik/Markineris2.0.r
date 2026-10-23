@@ -373,9 +373,9 @@
     if (status_balance !== 1 && status_order === 0) {
       setFooterOkOnly();
       if (!agent_at2) {
-        setCheckMessage(`<span style="color:red"><b>${data.answer_balance}</b></span><br>`);
+        setCheckMessage(`<div class="order-balance-warning" role="alert"><strong class="order-balance-warning-title">Внимание</strong>${data.answer_balance}</div>`);
       } else {
-        setCheckMessage(`<span style="color:red"><b>${agent_2_str}</b></span><br>`);
+        setCheckMessage(`<div class="order-balance-warning" role="alert"><strong class="order-balance-warning-title">Внимание</strong>${agent_2_str}</div>`);
       }
       return;
     }
@@ -384,9 +384,9 @@
     if (status_balance !== 1 && status_order !== 0) {
       setFooterOkOnly();
       if (!agent_at2) {
-        setCheckMessage(`<span style="color:red"><b>${data.answer_balance}</b></span><br>`);
+        setCheckMessage(`<div class="order-balance-warning" role="alert"><strong class="order-balance-warning-title">Внимание</strong>${data.answer_balance}</div>`);
       } else {
-        setCheckMessage(`<span style="color:red"><b>${agent_2_str}</b></span><br>`);
+        setCheckMessage(`<div class="order-balance-warning" role="alert"><strong class="order-balance-warning-title">Внимание</strong>${agent_2_str}</div>`);
       }
       return;
     }

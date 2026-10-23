@@ -724,10 +724,10 @@ function perform_balance_order_check(url, csrf, o_id, category){
             // console.log("balance needs refill");
 
             if (!data.agent_at2) {
-                document.getElementById("data_order_check_insert").innerHTML = `<span style="color:red"><b>${data.answer_balance}</b></span><br>`;
+                document.getElementById("data_order_check_insert").innerHTML = `<div class="order-balance-warning" role="alert"><strong class="order-balance-warning-title">Внимание</strong>${data.answer_balance}</div>`;
             }
             else{
-                document.getElementById("data_order_check_insert").innerHTML = `<span style="color:red"><b>${agent_2_str}</b></span><br>`;
+                document.getElementById("data_order_check_insert").innerHTML = `<div class="order-balance-warning" role="alert"><strong class="order-balance-warning-title">Внимание</strong>${agent_2_str}</div>`;
             }
             document.getElementById('process_modal_footer').innerHTML = `<button type="button" class="btn btn-secondary" onclick="perfom_process_model_update('${url}', '${csrf}', ${o_id}, '${category}');" data-bs-dismiss="modal">Ок</button>`;
         }
@@ -735,10 +735,10 @@ function perform_balance_order_check(url, csrf, o_id, category){
             // console.log("balance not ok, orders - duplicates");
             document.getElementById('process_modal_footer').innerHTML = `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="perfom_process_model_update('${url}', '${csrf}', ${o_id}, '${category}');">Ок</button>`;
             if (!data.agent_at2) {
-                document.getElementById("data_order_check_insert").innerHTML = `<span style="color:red"><b>${data.answer_balance}</b></span><br>`;
+                document.getElementById("data_order_check_insert").innerHTML = `<div class="order-balance-warning" role="alert"><strong class="order-balance-warning-title">Внимание</strong>${data.answer_balance}</div>`;
             }
             else{
-                document.getElementById("data_order_check_insert").innerHTML = `<span style="color:red"><b>${agent_2_str}</b></span><br>`;
+                document.getElementById("data_order_check_insert").innerHTML = `<div class="order-balance-warning" role="alert"><strong class="order-balance-warning-title">Внимание</strong>${agent_2_str}</div>`;
             }
 
         }

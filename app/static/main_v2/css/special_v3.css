@@ -448,6 +448,22 @@ a[aria-expanded="true"] .nav-chevron {
     color: #6c757d;
 }
 
+.order-balance-warning {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border: 1px solid #e7a9a9;
+    border-left: 4px solid #c34b4b;
+    border-radius: 8px;
+    background-color: #fff1f1;
+    color: #842727;
+    line-height: 1.45;
+}
+
+.order-balance-warning-title {
+    display: block;
+    margin-bottom: 4px;
+}
+
 #contact_form_wrap .input-invalid {
     border-color: #dc3545 !important;
     background-color: #fff5f5;
