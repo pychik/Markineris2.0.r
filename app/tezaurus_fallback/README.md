@@ -12,6 +12,7 @@
 | `data/countries.json` | Страны для пользовательских и наших РД |
 | `data/processing_companies.json` | 10 фирм, их активность, категории и `rf`/`import` |
 | `data/versions.json` | Ревизии исходных словарей |
+| `rd.json` | Действующие РД из Tezaurus. Только в runtime-снимке из MinIO, seed-файла нет |
 
 При `TEZAURUS_SYNC_ENABLED=0` `TezaurusCacheService` читает runtime-снимок через
 `LocalTezaurusRepository`; если runtime-снимок недоступен или неполный,
@@ -62,3 +63,12 @@ python3 -m tezaurus_fallback.s3_snapshot restore
 Ежедневная задача `export_tezaurus_fallback_snapshot_task` выгружает текущий Redis
 Tezaurus в MinIO. Расписание задаёт `TEZAURUS_FALLBACK_SNAPSHOT_CRON`, включение —
 `TEZAURUS_FALLBACK_SNAPSHOT_ENABLED`.
+
+`rd.json` (РД из `tezaurus:v1:rd`) в снимке необязателен (`OPTIONAL_SNAPSHOT_FILES`):
+- манифест, выгруженный до появления РД, восстанавливается как раньше, без файла РД;
+- если в Redis РД нет (Tezaurus без выгрузки РД), снимок выгружается без `rd.json`;
+- старая версия приложения при откате восстанавливает новый манифест и `rd.json` не берёт.
+
+В идентификатор снимка входит ревизия `rd`. `LocalTezaurusRepository.get_rd_snapshot()` читает `rd.json`, если он есть,
+иначе отдаёт пустой снимок, и `get_valid_rd()` возвращает пустой список. Правило «до окончания не меньше месяца»
+применяется при чтении, как и для Redis.

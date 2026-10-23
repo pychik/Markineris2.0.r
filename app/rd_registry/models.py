@@ -8,10 +8,10 @@ class RdRegistryEntry(db.Model):
 
     __tablename__ = "rd_registry"
     __table_args__ = (
-        # один и тот же РД в разных категориях или с другим ТНВЭД - разные записи
+        # один и тот же РД в разных категориях, с другим ТНВЭД или на другую страну - разные записи
         db.UniqueConstraint(
-            "search_key", "rd_date", "rd_date_to", "category", "subcategory", "tnved_code",
-            name="uq_rd_registry_key_dates_category_tnved",
+            "search_key", "rd_date", "rd_date_to", "category", "subcategory", "tnved_code", "country",
+            name="uq_rd_registry_key_dates_category_tnved_country",
         ),
     )
 
@@ -24,6 +24,7 @@ class RdRegistryEntry(db.Model):
     category = db.Column(db.String(100), nullable=False, server_default="", index=True)
     subcategory = db.Column(db.String(64), nullable=False, server_default="")
     tnved_code = db.Column(db.String(50), nullable=False, server_default="", index=True)
+    country = db.Column(db.String(58), nullable=False, server_default="", index=True)
 
     usage_count = db.Column(db.Integer, nullable=False, default=1, server_default="1")
     created_by_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)

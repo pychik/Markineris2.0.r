@@ -40,8 +40,21 @@ def _extract_product_origin_oksm(card: dict[str, Any]) -> str | None:
     return str(origin) if origin else None
 
 
+# Портал режет запросы без браузерных заголовков: голый python-requests получает 403 уже на /login.
+# С этими заголовками через тот же прокси проходят логин, поиск и карточка (проверено в Tezaurus 22.10.2026).
+_BROWSER_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json, text/plain, */*",
+}
+
+
 def _build_session() -> requests.Session:
     session = requests.Session()
+    base_url = settings.FSA_BASE_URL.rstrip("/")
+    session.headers.update({**_BROWSER_HEADERS, "Origin": base_url, "Referer": f"{base_url}/rds/declaration"})
     retry = Retry(
         total=2,
         connect=0,

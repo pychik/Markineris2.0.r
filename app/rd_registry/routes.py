@@ -5,8 +5,9 @@ from flask_login import current_user, login_required
 
 from config import settings
 from models import db
-from rd_registry.service import RD_MIN_DATE, category_choices, category_label, list_rd, min_suggest_date, save_rd, \
-    search_rd, set_archived
+from rd_registry.service import NO_COUNTRY, RD_MIN_DATE, category_choices, category_label, list_rd, min_suggest_date, \
+    recommend_rd, save_rd, search_rd, set_archived
+from tezaurus.runtime_catalogs import get_all_countries
 from utilities.support import bck_sumausmumu_required, user_activated
 
 rd_registry = Blueprint("rd_registry", __name__)
@@ -37,8 +38,19 @@ def _back():
 @user_activated
 @bck_sumausmumu_required
 def search():
-    items, has_more = search_rd(request.args.get("q"), tnved=request.args.get("tnved"))
+    items, has_more = search_rd(request.args.get("q"), tnved=request.args.get("tnved"),
+                                country=request.args.get("country"))
     return jsonify(status="success", items=items, has_more=has_more)
+
+
+@rd_registry.route("/recommended", methods=["GET"])
+@login_required
+@user_activated
+@bck_sumausmumu_required
+def recommended():
+    """Проверенные РД из Tezaurus под ТНВЭД, страну и вид товара карточки."""
+    items = recommend_rd(request.args.get("tnved"), request.args.get("country"), request.args.get("type"))
+    return jsonify(status="success", items=items)
 
 
 @rd_registry.route("/", methods=["GET"])
@@ -52,6 +64,7 @@ def index():
         "hide_expired": request.args.get("hide_expired") == "1",
         "category": request.args.get("category", ""),
         "rd_type": request.args.get("rd_type", ""),
+        "country": request.args.get("country", ""),
         "sort": "updated" if request.args.get("sort") == "updated" else "created",
         "dir": "asc" if request.args.get("dir") == "asc" else "desc",
     }
@@ -61,6 +74,7 @@ def index():
         hide_expired=filters["hide_expired"],
         category=filters["category"],
         rd_type=filters["rd_type"],
+        country=filters["country"],
         sort=filters["sort"],
         direction=filters["dir"],
         page=request.args.get("page", 1, type=int),
@@ -73,6 +87,8 @@ def index():
         **filters,
         rd_types=settings.RD_TYPES,
         categories=category_choices(),
+        countries=get_all_countries(),
+        no_country=NO_COUNTRY,
         category_label=category_label,
         rd_min_date=RD_MIN_DATE,
         today=date.today(),

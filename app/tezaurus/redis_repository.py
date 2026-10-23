@@ -13,6 +13,7 @@ from .constants import (
     DICTIONARY_COLORS,
     DICTIONARY_COUNTRIES,
     DICTIONARY_PROCESSING_COMPANIES,
+    DICTIONARY_RD,
     DICTIONARY_TNVED,
 )
 from .exceptions import TezaurusStorageError
@@ -68,6 +69,10 @@ class RedisTezaurusRepository:
     @property
     def processing_companies_list_key(self) -> str:
         return f"{self.processing_companies_key}:list"
+
+    @property
+    def rd_key(self) -> str:
+        return f"{self.prefix}:rd"
 
     @property
     def countries_index_key(self) -> str:
@@ -177,6 +182,10 @@ class RedisTezaurusRepository:
         payload = self._get_json(self.processing_companies_key, default={})
         return payload if isinstance(payload, dict) else {}
 
+    def get_rd_snapshot(self) -> dict[str, Any]:
+        payload = self._get_json(self.rd_key, default={})
+        return payload if isinstance(payload, dict) else {}
+
     def has_colors_data(self) -> bool:
         return bool(self.redis.exists(self.colors_key))
 
@@ -188,6 +197,9 @@ class RedisTezaurusRepository:
 
     def has_processing_companies_data(self) -> bool:
         return bool(self.redis.exists(self.processing_companies_list_key))
+
+    def has_rd_data(self) -> bool:
+        return bool(self.redis.exists(self.rd_key))
 
     def save_colors(
         self,
@@ -250,6 +262,38 @@ class RedisTezaurusRepository:
         with self.redis.pipeline(transaction=True) as pipe:
             self._set_json(self.processing_companies_key, snapshot, pipe=pipe)
             self._set_json(self.processing_companies_list_key, companies, pipe=pipe)
+            self._set_json(self.version_key, next_versions, pipe=pipe)
+            pipe.execute()
+
+        return next_versions
+
+    def save_rd(
+        self,
+        *,
+        payload: dict[str, Any],
+        remote_revision: dict[str, Any],
+        current_versions: dict[str, Any],
+    ) -> dict[str, Any]:
+        if payload.get("ok") is not True:
+            raise TezaurusStorageError("RD payload is not successful")
+
+        items = payload.get("items")
+        if not isinstance(items, list) or not all(isinstance(item, dict) for item in items):
+            raise TezaurusStorageError("RD payload has invalid items format")
+
+        snapshot = {
+            "revision": _as_int(payload.get("revision"), default=_as_int(remote_revision.get("revision"), default=0)),
+            "items": items,
+        }
+
+        next_versions = self._next_versions(
+            current_versions=current_versions,
+            dictionary_name=DICTIONARY_RD,
+            remote_revision=remote_revision,
+        )
+
+        with self.redis.pipeline(transaction=True) as pipe:
+            self._set_json(self.rd_key, snapshot, pipe=pipe)
             self._set_json(self.version_key, next_versions, pipe=pipe)
             pipe.execute()
 

@@ -1,10 +1,13 @@
 """Наполнение реестра РД историей: РД, которые операторы вводили в карточки товаров.
 
 Запуск из flask shell:
-    from utilities.scripts_manual.rd_registry_backfill import preview_rd_registry_backfill, backfill_rd_registry
+    from utilities.scripts_manual.rd_registry_backfill import preview_rd_registry_backfill, backfill_rd_registry, \
+        fill_rd_registry_countries
 
     preview_rd_registry_backfill()
     backfill_rd_registry()
+
+После добавления страны в реестр сначала fill_rd_registry_countries(), затем backfill_rd_registry().
 """
 
 from __future__ import annotations
@@ -19,7 +22,7 @@ from sqlalchemy.dialects.postgresql import insert
 from models import ModerationStatus, ProductCard, User, db
 from rd_registry.models import RdRegistryEntry
 from rd_registry.normalize import rd_key
-from rd_registry.service import _clean_subcategory, category_label
+from rd_registry.service import _clean_country, _clean_subcategory, category_label
 from views.main.product_cards.support import CATEGORIES_COMMON
 
 # Строки правки карточки из h_update_product_card (пишутся с 13.04.2026, вторая - с 25.09.2026):
@@ -58,6 +61,7 @@ def _card_rd_rows():
         parts.append(
             select(
                 model.card_id, model.rd_type, model.rd_name, model.rd_date, model.rd_date_to, model.tnved_code,
+                model.country,
                 (subcategory if subcategory is not None else literal(None, db.String)).label("subcategory"),
             ).where(model.card_id.isnot(None), model.rd_date.isnot(None))
         )
@@ -109,7 +113,8 @@ def collect_operator_rds(include_same_rd: bool = False) -> tuple[dict, Counter]:
         if not (row.rd_type and key and row.rd_date_to):  # как в remember_rd
             continue
         subcategory = _clean_subcategory(row.category, row.subcategory)
-        unique = (key, row.rd_date, row.rd_date_to, row.category, subcategory, (row.tnved_code or "").strip())
+        unique = (key, row.rd_date, row.rd_date_to, row.category, subcategory, (row.tnved_code or "").strip(),
+                  _clean_country(row.country))
         entry = entries.setdefault(unique, {"card_ids": set(), "first": (used_at, login), "last": (used_at, row)})
         entry["card_ids"].add(row.card_id)
         if used_at < entry["first"][0]:
@@ -123,7 +128,7 @@ def collect_operator_rds(include_same_rd: bool = False) -> tuple[dict, Counter]:
 def _summary(entries: dict, stats: Counter) -> dict:
     existing = {tuple(r) for r in db.session.execute(select(
         RdRegistryEntry.search_key, RdRegistryEntry.rd_date, RdRegistryEntry.rd_date_to,
-        RdRegistryEntry.category, RdRegistryEntry.subcategory, RdRegistryEntry.tnved_code,
+        RdRegistryEntry.category, RdRegistryEntry.subcategory, RdRegistryEntry.tnved_code, RdRegistryEntry.country,
     )).all()}
     new_count = sum(1 for unique in entries if unique not in existing)
     top = sorted(entries.items(), key=lambda item: -len(item[1]["card_ids"]))[:SAMPLE_SIZE]
@@ -140,6 +145,7 @@ def _summary(entries: dict, stats: Counter) -> dict:
                 "rd_date": f"{unique[1]:%d.%m.%Y}-{unique[2]:%d.%m.%Y}",
                 "category": category_label(unique[3], unique[4]),
                 "tnved_code": unique[5],
+                "country": unique[6],
                 "cards": len(entry["card_ids"]),
             }
             for unique, entry in top
@@ -170,7 +176,7 @@ def backfill_rd_registry(include_same_rd: bool = False) -> dict:
     ).all()) if logins else {}
 
     values = []
-    for (key, rd_date, rd_date_to, category, subcategory, tnved_code), entry in entries.items():
+    for (key, rd_date, rd_date_to, category, subcategory, tnved_code, country), entry in entries.items():
         (created_at, login), (last_used_at, row) = entry["first"], entry["last"]
         values.append({
             "rd_type": row.rd_type,
@@ -181,6 +187,7 @@ def backfill_rd_registry(include_same_rd: bool = False) -> dict:
             "category": category,
             "subcategory": subcategory,
             "tnved_code": tnved_code,
+            "country": country,
             "usage_count": len(entry["card_ids"]),
             "created_by_id": user_ids.get(login),
             "created_at": created_at,
@@ -188,7 +195,7 @@ def backfill_rd_registry(include_same_rd: bool = False) -> dict:
         })
     stmt = insert(RdRegistryEntry).values(values)
     stmt = stmt.on_conflict_do_update(
-        constraint="uq_rd_registry_key_dates_category_tnved",
+        constraint="uq_rd_registry_key_dates_category_tnved_country",
         set_={
             "usage_count": func.greatest(RdRegistryEntry.usage_count, stmt.excluded.usage_count),
             "last_used_at": func.greatest(RdRegistryEntry.last_used_at, stmt.excluded.last_used_at),
@@ -201,3 +208,41 @@ def backfill_rd_registry(include_same_rd: bool = False) -> dict:
         db.session.rollback()
         raise
     return summary
+
+
+def fill_rd_registry_countries() -> dict:
+    """Проставляет страну записям реестра, внесённым до появления поля. Коммитит.
+
+    Страну берём у карточек с этим РД (ключ реестра без страны). Если карточки с ним есть на разные страны,
+    запись получает самую частую, остальные допишет backfill_rd_registry() отдельными записями. Записи
+    без карточек (добавлены вручную) и те, чья пара уже есть в реестре со страной, остаются без страны:
+    их правят на странице реестра, фильтр «Без страны».
+    """
+    entries, _ = collect_operator_rds(include_same_rd=True)
+    countries_by_key: dict[tuple, Counter] = {}
+    for unique, entry in entries.items():
+        if unique[6]:
+            countries_by_key.setdefault(unique[:6], Counter())[unique[6]] += len(entry["card_ids"])
+
+    taken = {tuple(r) for r in db.session.execute(select(
+        RdRegistryEntry.search_key, RdRegistryEntry.rd_date, RdRegistryEntry.rd_date_to,
+        RdRegistryEntry.category, RdRegistryEntry.subcategory, RdRegistryEntry.tnved_code, RdRegistryEntry.country,
+    ).where(RdRegistryEntry.country != "")).all()}
+    rows = db.session.execute(select(RdRegistryEntry).where(RdRegistryEntry.country == "")).scalars().all()
+
+    stats = Counter(without_country=len(rows))
+    for row in rows:
+        key = (row.search_key, row.rd_date, row.rd_date_to, row.category, row.subcategory, row.tnved_code)
+        countries = countries_by_key.get(key)
+        if not countries:
+            stats["no_cards"] += 1
+            continue
+        country = countries.most_common(1)[0][0]
+        if key + (country,) in taken:
+            stats["already_with_country"] += 1
+            continue
+        row.country = country
+        taken.add(key + (country,))
+        stats["filled"] += 1
+    db.session.commit()
+    return dict(stats)

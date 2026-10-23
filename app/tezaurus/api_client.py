@@ -13,6 +13,7 @@ from .constants import (
     API_PATH_EXPORT_COLORS,
     API_PATH_EXPORT_COUNTRIES,
     API_PATH_EXPORT_PROCESSING_COMPANIES,
+    API_PATH_EXPORT_RD,
     API_PATH_EXPORT_TNVED_TEMPLATE,
 )
 from .exceptions import TezaurusApiError, TezaurusConfigurationError
@@ -160,3 +161,6 @@ class TezaurusApiClient:
 
     def export_processing_companies(self) -> dict[str, Any]:
         return self._request_json(API_PATH_EXPORT_PROCESSING_COMPANIES)
+
+    def export_rd(self) -> dict[str, Any]:
+        return self._request_json(API_PATH_EXPORT_RD)

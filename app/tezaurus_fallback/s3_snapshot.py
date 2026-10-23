@@ -21,6 +21,9 @@ SNAPSHOT_FILES = (
     "clothes_tnved.json",
     "processing_companies.json",
 )
+# rd.json появился позже остальных: манифест без него (выгружен до РД) восстанавливается как раньше,
+# а если РД в Redis ещё нет, снимок выгружается без файла
+OPTIONAL_SNAPSHOT_FILES = ("rd.json",)
 MANIFEST_FILE = "manifest.json"
 
 
@@ -41,7 +44,7 @@ def _snapshot_prefix(versions: dict[str, Any]) -> str:
     base_prefix = settings.TEZAURUS_FALLBACK_S3_PREFIX.strip("/")
     root = base_prefix.rsplit("/", 1)[0] if "/" in base_prefix else "tezaurus_fallback"
     parts = []
-    for key in ("colors", "countries", "tnved", "processing_companies"):
+    for key in ("colors", "countries", "tnved", "processing_companies", "rd"):
         revision = (versions.get(key) or {}).get("revision")
         parts.append(f"{key}-{revision or 0}")
     snapshot_id = "_".join(parts)
@@ -66,6 +69,7 @@ def _snapshot_payloads_from_redis() -> dict[str, Any]:
     tnved_snapshot = repository.get_tnved_snapshot()
     clothes_tnved = tnved_snapshot.get("clothes") if isinstance(tnved_snapshot, dict) else None
     processing_companies = repository.get_processing_companies()
+    rd = repository.get_rd_snapshot()
 
     payloads = {
         "versions.json": versions,
@@ -74,6 +78,8 @@ def _snapshot_payloads_from_redis() -> dict[str, Any]:
         "clothes_tnved.json": clothes_tnved,
         "processing_companies.json": processing_companies,
     }
+    if rd:
+        payloads["rd.json"] = rd
     _validate_snapshot_payloads(payloads)
     return payloads
 
@@ -95,6 +101,11 @@ def _validate_snapshot_payloads(payloads: dict[str, Any]) -> None:
     subcategories = ((payloads["clothes_tnved.json"].get("items") or {}).get("subcategories") or {})
     if not isinstance(subcategories, dict) or not subcategories:
         raise ValueError("Tezaurus fallback snapshot has empty clothes TNVED subcategories")
+
+    # пустой список РД допустим: в Tezaurus может не быть действующих РД
+    rd = payloads.get("rd.json")
+    if rd is not None and not (isinstance(rd, dict) and isinstance(rd.get("items"), list)):
+        raise ValueError("Tezaurus fallback snapshot has invalid rd.json")
 
 
 def export_tezaurus_fallback_snapshot_to_s3() -> dict[str, Any]:
@@ -162,8 +173,10 @@ def restore_tezaurus_fallback_snapshot_from_s3() -> dict[str, Any]:
         return {"ok": False, "reason": "invalid_manifest"}
 
     downloaded: dict[str, bytes] = {}
-    for filename in SNAPSHOT_FILES:
+    for filename in SNAPSHOT_FILES + OPTIONAL_SNAPSHOT_FILES:
         file_meta = files.get(filename)
+        if filename in OPTIONAL_SNAPSHOT_FILES and file_meta is None:
+            continue
         if not isinstance(file_meta, dict):
             return {"ok": False, "reason": f"missing_manifest_file:{filename}"}
 

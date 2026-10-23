@@ -80,6 +80,26 @@
 - countries: `GET /api/v1/export/countries`
 - tnved (clothes): `GET /api/v1/export/tnved/clothes`
 - processing_companies: `GET /api/v1/export/processing-companies`
+- rd: `GET /api/v1/export/rd`
+
+## РД
+
+Tezaurus отдаёт все неистёкшие РД с обеими датами, в том числе ещё не проверенные в ФСА:
+- отдаются: не проверялись или проверяются сейчас, проверка не удалась (портал недоступен), не из реестра РФ
+  (`foreign`, например `ЕАЭС KG417/…`), подтверждены ФСА (`active`);
+- не отдаются: ФСА ответил, что РД истёк (`expired`) или его нет в реестре (`not_found`).
+
+Если проверка ФСА изменит РД (вердикт, даты, страну), в Tezaurus растёт ревизия `rd`, и ближайший синк заменит снимок:
+РД, ставший недействительным, из кэша пропадёт.
+
+Снимок лежит в `tezaurus:v1:rd` (`{"revision", "items"}`), поля записи как у блока РД карточки:
+`rd_type`, `rd_name`, `rd_date`, `rd_date_to` (ISO), плюс `country`, `description`, `material`, `tnved_codes`,
+`fsa_status`. `TezaurusCacheService.get_valid_rd()` оставляет РД с «До» не раньше чем через месяц, как
+`validate_rd_block`: кэш живёт до следующей ревизии, а РД выпадает из окна каждый день, поэтому срок проверяется
+при чтении. При `TEZAURUS_SYNC_ENABLED=0` РД берутся из `rd.json` локального снимка (MinIO), если его нет - список пустой.
+
+Ревизия `rd`, как и `processing_companies`, необязательна в `dictionaries-state` (`OPTIONAL_DICTIONARIES`): со старым
+Tezaurus остальные словари синхронизируются как раньше.
 
 Для `processing_companies` Tezaurus должен отдавать ревизию в `GET /api/v1/meta/dictionaries-state`.
 Если Redis-снимок еще не создан или недоступен, `runtime_catalogs.py` использует локальный default-список компаний,
