@@ -1594,6 +1594,7 @@ def helper_paginate_sql_with_window(
     stmt: TextClause,
     *,
     per_page: int,
+    sum_columns: tuple[str, ...] = (),
     page: int | None = None,
     key_page: str = "page",
     href: str | None = None,
@@ -1605,6 +1606,7 @@ def helper_paginate_sql_with_window(
     """
     Пагинация сырых SQL за 1 поездку: SELECT sub.*, COUNT(*) OVER() AS __total FROM (<stmt>) sub LIMIT/OFFSET.
     Все bind-параметры исходного stmt автоматически прокидываются внутрь.
+    sum_columns добавляет суммы по всей выборке в каждую строку как __sum_<column>.
     """
 
     def _extract_bound_params(stmt: TextClause) -> dict:
@@ -1626,8 +1628,14 @@ def helper_paginate_sql_with_window(
 
     # 3) сам запрос
     inner_sql = str(stmt).rstrip().rstrip(";")
+    if any(not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", column) for column in sum_columns):
+        raise ValueError("Invalid sum column name")
+    sums_sql = "".join(
+        f", COALESCE(SUM(sub.{column}) OVER(), 0) AS __sum_{column}"
+        for column in sum_columns
+    )
     paged_sql = text(f"""
-        SELECT sub.*, COUNT(*) OVER() AS __total
+        SELECT sub.*, COUNT(*) OVER() AS __total{sums_sql}
         FROM (
             {inner_sql}
         ) AS sub

@@ -1161,8 +1161,11 @@ def h_su_fin_order_report():
     page, per_page, offset, pagination, orders_list = helper_paginate_sql_with_window(
         stmt,
         per_page=settings.PAGINATION_PER_PAGE,
+        sum_columns=("pos_count", "amount"),
         href=link,
     )
+    total_marks = orders_list[0].__sum_pos_count if orders_list else 0
+    total_rubles = orders_list[0].__sum_amount if orders_list else 0
     return render_template('admin/finance/fin_order_report/su_order_report.html', **locals())
 
 
@@ -1181,8 +1184,11 @@ def h_bck_fin_order_report():
     page, per_page, offset, pagination, orders_list = helper_paginate_sql_with_window(
         stmt,
         per_page=settings.PAGINATION_PER_PAGE,
+        sum_columns=("pos_count", "amount"),
         href=link,
     )
+    total_marks = orders_list[0].__sum_pos_count if orders_list else 0
+    total_rubles = orders_list[0].__sum_amount if orders_list else 0
     return jsonify({'htmlresponse': render_template(f'admin/finance/fin_order_report/su_order_table.html', **locals())})
 
 
