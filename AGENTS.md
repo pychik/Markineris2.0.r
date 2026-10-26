@@ -1,7 +1,7 @@
 # Production environment
 
-- SSH: `ssh root@82.97.252.99`
-- Project directory on the server: `/root/Markineris-2.0`
+- SSH: `ssh root@109.68.214.71`
+- Project directory on the server: `/root/Markineris2.0.r`
 
 # Связанный проект
 

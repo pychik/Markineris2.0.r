@@ -2252,12 +2252,17 @@ def helper_get_filter_fin_order_report(report: bool = False):
 
 
 def helper_get_stmt_for_fin_order_report(
-        date_from: str = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d'),
-        date_to: str = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d'),
+        date_from: str | None = None,
+        date_to: str | None = None,
         order_type: tuple[int] = (settings.OrderStage.SENT, settings.OrderStage.CRM_PROCESSED),
         payment_status: tuple[bool] = (True, ),
         sort_type: str = 'DESC'
 ) -> TextClause:
+    if date_from is None or date_to is None:
+        today = datetime.today()
+        date_from = date_from if date_from is not None else (today - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d')
+        date_to = date_to if date_to is not None else (today + timedelta(days=1)).strftime('%Y-%m-%d')
+
     sort_type = 'desc' if sort_type.lower() == 'desc' else 'asc'
     subcategory_value = SQLQueryCategoriesAll.get_stmt(field='subcategory')
     case_mapping = "CASE "
@@ -2377,11 +2382,15 @@ def h_choose_sa_id(cur_sa: ServiceAccount, cur_sa_ids_list: list[ServiceAccount.
 
 
 def helper_get_stmt_for_fin_promo_history(
-        date_from: str = (datetime.today() - timedelta(settings.PROMO_HISTORY_TIMEDELTA)).strftime('%Y-%m-%d'),
-        date_to: str = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d'),
+        date_from: str | None = None,
+        date_to: str | None = None,
         promo_code: Optional[str] = None,
         sort_type: str = 'DESC'
 ) -> TextClause:
+    if date_from is None or date_to is None:
+        today = datetime.today()
+        date_from = date_from if date_from is not None else (today - timedelta(settings.PROMO_HISTORY_TIMEDELTA)).strftime('%Y-%m-%d')
+        date_to = date_to if date_to is not None else (today + timedelta(days=1)).strftime('%Y-%m-%d')
 
     sort_type = 'desc' if str(sort_type).lower() == 'desc' else 'asc'
 
@@ -2472,11 +2481,16 @@ def helper_get_filter_fin_promo_history(report: bool = False) -> tuple[str, str,
 
 
 def helper_get_stmt_for_fin_bonus_history(
-        date_from: str = (datetime.today() - timedelta(settings.PROMO_HISTORY_TIMEDELTA)).strftime('%Y-%m-%d'),
-        date_to: str = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d'),
+        date_from: str | None = None,
+        date_to: str | None = None,
         bonus_code: Optional[str] = None,
         sort_type: str = 'DESC'
 ) -> TextClause:
+    if date_from is None or date_to is None:
+        today = datetime.today()
+        date_from = date_from if date_from is not None else (today - timedelta(settings.PROMO_HISTORY_TIMEDELTA)).strftime('%Y-%m-%d')
+        date_to = date_to if date_to is not None else (today + timedelta(days=1)).strftime('%Y-%m-%d')
+
     stmt = text(f"""select
                         usr_bonus.activated_at as activate_date,
                         cli.email as user_email,
@@ -2632,7 +2646,10 @@ def helper_check_form(on: str) -> bool:
 
 
 def helper_get_transactions(u_id: int, date_from: str = settings.Transactions.DEFAULT_DATE_FROM,
-                            date_to: str = (datetime.today() + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S"), sort_type: str = 'desc'):
+                            date_to: str | None = None, sort_type: str = 'desc'):
+    if date_to is None:
+        date_to = (datetime.today() + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+
     model_order_type = desc(UserTransaction.created_at) if sort_type == 'desc'  \
         else asc(UserTransaction.created_at)
 
@@ -4046,10 +4063,14 @@ def helper_get_filter_avg_order_time_processing_report(
 
 
 def helper_get_stmt_avg_order_time_processing_report(
-        date_from: str = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d'),
-        date_to: str = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d'),
+        date_from: str | None = None,
+        date_to: str | None = None,
         manager_id: int = 0,
 ) -> TextClause:
+    if date_from is None or date_to is None:
+        today = datetime.today()
+        date_from = date_from if date_from is not None else (today - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d')
+        date_to = date_to if date_to is not None else (today + timedelta(days=1)).strftime('%Y-%m-%d')
 
     stmt = text(f"""
         WITH order_stats AS (
@@ -4108,10 +4129,15 @@ def helper_get_stmt_avg_order_time_processing_report(
 
 
 def helper_get_stmt_operator_category_orders_report(
-        date_from: str = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d'),
-        date_to: str = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d'),
+        date_from: str | None = None,
+        date_to: str | None = None,
         manager_id: int = 0,
 ) -> TextClause:
+    if date_from is None or date_to is None:
+        today = datetime.today()
+        date_from = date_from if date_from is not None else (today - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d')
+        date_to = date_to if date_to is not None else (today + timedelta(days=1)).strftime('%Y-%m-%d')
+
     stmt = text("""
         WITH category_stats AS (
             SELECT
@@ -4168,10 +4194,15 @@ def helper_get_stmt_operator_category_orders_report(
 
 
 def helper_get_stmt_daily_operator_category_orders_report(
-        date_from: str = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d'),
-        date_to: str = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d'),
+        date_from: str | None = None,
+        date_to: str | None = None,
         manager_id: int = 0,
 ) -> TextClause:
+    if date_from is None or date_to is None:
+        today = datetime.today()
+        date_from = date_from if date_from is not None else (today - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d')
+        date_to = date_to if date_to is not None else (today + timedelta(days=1)).strftime('%Y-%m-%d')
+
     stmt = text("""
         WITH category_stats AS (
             SELECT
@@ -4227,10 +4258,15 @@ def helper_get_stmt_daily_operator_category_orders_report(
 
 
 def helper_get_stmt_full_operator_metrics_report(
-        date_from: str = (datetime.today() - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d'),
-        date_to: str = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d'),
+        date_from: str | None = None,
+        date_to: str | None = None,
         manager_id: int = 0,
 ) -> TextClause:
+    if date_from is None or date_to is None:
+        today = datetime.today()
+        date_from = date_from if date_from is not None else (today - timedelta(days=settings.ORDERS_REPORT_TIMEDELTA)).strftime('%Y-%m-%d')
+        date_to = date_to if date_to is not None else (today + timedelta(days=1)).strftime('%Y-%m-%d')
+
     stmt = text(f"""
         WITH order_stats AS (
             SELECT
