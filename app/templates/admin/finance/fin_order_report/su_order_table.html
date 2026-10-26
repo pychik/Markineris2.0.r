@@ -81,7 +81,7 @@
         </table>
         <div class="pagination-page-info text-center">
             На этой странице <b>{{ offset + 1 if orders_list else 0 }} - {{ offset + (orders_list|length) if orders_list else 0 }}</b>.
-            Итого: заказов <b>{{ pagination.total }}</b>, марок <b>{{ total_marks }}</b>, рублей <b>{{ total_rubles }}</b>.
+            Итого: <b>{{ pagination.total }}</b> заказов, <b>{{ total_marks }}</b> марок, <b>{{ total_rubles }}</b> рублей.
         </div>
         <div class="pagination_section my-1" >
         <div class="d-flex">
