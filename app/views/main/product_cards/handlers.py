@@ -1690,7 +1690,7 @@ def h_pc_order_copy(o_id: int) -> Response:
         return redirect(url_for("user_product_cards.pc_orders_drafts"))
 
     if is_company_replacement_copy_blocked(order):
-        flash(message="Этот заказ отменён из-за повторной модерации карточек и недоступен для копирования", category="error")
+        flash(message="Этот GTIN-заказ содержит компанию проводчика, выведенную из распределения, и недоступен для копирования", category="error")
         return redirect(url_for("user_product_cards.pc_orders_drafts"))
 
     category = (order.category or "").strip()

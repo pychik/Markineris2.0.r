@@ -35,13 +35,11 @@ _COLUMNS_CACHE: dict[type, list[str]] = {}
 
 
 def is_company_replacement_copy_blocked(order: Order) -> bool:
-    """Block old cancelled GTIN orders with the removed position conductor."""
+    """Block GTIN order copies containing a retired position conductor."""
     if not order.is_moderation:
         return False
     if (order.comment_cancel or "").startswith("[SERVICE_COMPANY_REPLACEMENT_2026]"):
         return True
-    if order.stage != settings.OrderStage.CANCELLED:
-        return False
 
     if order.category == settings.Shoes.CATEGORY:
         model, inn = Shoe, "023103006891"

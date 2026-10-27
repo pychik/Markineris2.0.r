@@ -83,7 +83,7 @@ def _candidate_orders() -> list[Order]:
     return Order.query.filter(
         Order.is_moderation.is_(True),
         Order.to_delete.is_(False),
-        Order.stage != settings.OrderStage.CANCELLED,
+        Order.stage < settings.OrderStage.SENT,
         or_(
             and_(Order.category == settings.Shoes.CATEGORY, ishmitov_shoes),
             and_(Order.category == settings.Parfum.CATEGORY, ishmitov_parfum),
