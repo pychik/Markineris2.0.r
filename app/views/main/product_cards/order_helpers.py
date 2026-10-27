@@ -34,6 +34,36 @@ PC_ORDER_SIZE_APPROVAL_CATEGORIES = {
 _COLUMNS_CACHE: dict[type, list[str]] = {}
 
 
+def is_company_replacement_copy_blocked(order: Order) -> bool:
+    """Block old cancelled GTIN orders with the removed position conductor."""
+    if not order.is_moderation:
+        return False
+    if (order.comment_cancel or "").startswith("[SERVICE_COMPANY_REPLACEMENT_2026]"):
+        return True
+    if order.stage != settings.OrderStage.CANCELLED:
+        return False
+
+    if order.category == settings.Shoes.CATEGORY:
+        model, inn = Shoe, "023103006891"
+    elif order.category == settings.Parfum.CATEGORY:
+        model, inn = Parfum, "023103006891"
+    elif order.category == settings.Clothes.CATEGORY:
+        model, inn = Clothes, "023104386702"
+    else:
+        return False
+
+    query = (
+        db.session.query(model.id)
+        .join(FastOrderCompanies, model.fast_order_company_id == FastOrderCompanies.id)
+        .filter(model.order_id == order.id,
+                FastOrderCompanies.order_id == order.id,
+                FastOrderCompanies.processing_company_inn == inn)
+    )
+    if model is Clothes:
+        query = query.filter(Clothes.country.ilike("РОССИЯ"))
+    return query.first() is not None
+
+
 def _order_items_for_category(order: Order, category: str) -> list:
     if category == settings.Shoes.CATEGORY:
         return list(order.shoes)
