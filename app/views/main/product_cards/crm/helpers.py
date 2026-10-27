@@ -18,7 +18,7 @@ from utilities.support import order_count
 
 from views.main.product_cards.chat.helpers import h_pc_chat_unread_count, h_unread_map_for_cards
 
-from views.main.product_cards.support import CATEGORIES_COMMON, card_has_rd
+from views.main.product_cards.support import CATEGORIES_COMMON, card_has_rd, clear_card_processing_company
 
 CRM_STATUSES = [
     ModerationStatus.SENT.value,
@@ -770,6 +770,7 @@ def h_pc_move_apply_status_transition(card: ProductCard, target: str, reject_rea
         card.reject_reason = reject_reason
         card.rejected_at = dt
         card.is_repeat_moderation = False
+        clear_card_processing_company(card)
         card.card_log = h_append_card_log(card.card_log, f"\n{dt_str} отменил {manager_login}; причина: {reject_reason};")
 
     else:
@@ -856,6 +857,8 @@ def helper_reject_cards_by_rd_date_to_today() -> dict:
         card.status = ModerationStatus.REJECTED
         card.rejected_at = datetime.now()
         card.reject_reason = reject_reason
+        card.is_repeat_moderation = False
+        clear_card_processing_company(card)
 
         card.card_log = h_append_card_log((card.card_log or ""), log_line)
         rejected_cnt += 1

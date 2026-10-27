@@ -77,7 +77,7 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {{s.crm_created_at.strftime('%d.%m.%Y %H:%M:%S')}}
+                                        {{ s.crm_created_at.strftime('%d.%m.%Y %H:%M:%S') if s.crm_created_at else '—' }}
                                     </td>
                                     <td>
                                         {% if s.processing_info %}
