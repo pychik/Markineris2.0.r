@@ -1,0 +1,6 @@
+# Install as /etc/fail2ban/jail.d/nginx-limit-req.local.
+# Normal CRM bursts must not cause a network ban after a handful of 429s.
+[nginx-limit-req]
+maxretry = 50
+findtime = 10m
+bantime = 10m
