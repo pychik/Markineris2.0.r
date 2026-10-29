@@ -11,6 +11,7 @@ from sqlalchemy import event
 from werkzeug.datastructures import ImmutableMultiDict
 
 from config import settings
+from utilities.clothes_tnved_content import LEATHER_TNVED_CONTENT_RULE, clothes_tnved_content_error
 from logger import logger
 from models import db, Clothes, LinenSizesUnits, ProductCard, ClothesQuantitySize, Shoe, ShoeQuantitySize, Socks, \
     SocksQuantitySize, Linen, LinenQuantitySize, LinenSetItem, Parfum, Cosmetics, Toys, ModerationStatus
@@ -394,6 +395,7 @@ def helper_clothes_info(subcategory: str | None) -> Union[Response,  dict[str, A
 
     clothes_content = settings.Clothes.CLOTHES_CONTENT
     clothes_nat_content = settings.Clothes.CLOTHES_NAT_CONTENT
+    clothes_tnved_content_rule = LEATHER_TNVED_CONTENT_RULE
     # colors = settings.Clothes.COLORS
     colors = get_colors()
     genders = settings.Clothes.GENDERS
@@ -664,6 +666,11 @@ def validate_card_form(category_process: str, subcategory: str, form_data: Immut
         color = form_data.get("color")
         if ValidatorProcessor.check_colors(color=color):
             raise ValueError(settings.Messages.COLOR_INPUT_ERROR.format(color=color))
+
+    if category_process == settings.Clothes.CATEGORY_PROCESS:
+        content_error = clothes_tnved_content_error(form_data.get("tnved_code"), form_data.get("content"))
+        if content_error:
+            raise ValueError(content_error)
 
     # 3. TНВЭД
     if ValidatorProcessor.check_tnveds(

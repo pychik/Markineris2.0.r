@@ -1,4 +1,5 @@
 from config import settings
+from utilities.clothes_tnved_content import clothes_tnved_content_error
 from models import Shoe, Linen, Parfum, Socks, Clothes, Cosmetics, Toys
 from tezaurus.runtime_catalogs import (
     get_all_countries,
@@ -111,6 +112,10 @@ def _check_clothes_compatibility(clothes) -> str | bool:
     cl_gender = (clothes.gender or '').strip()
     cl_tnved  = (clothes.tnved_code or '').strip()
     cl_subcat = getattr(clothes, 'subcategory', None)
+
+    content_error = clothes_tnved_content_error(cl_tnved, getattr(clothes, "content", None))
+    if content_error:
+        return f"[{clothes.article or cl_type}, {cl_tnved}] {content_error}"
 
     # --- Проверка пола ---
     need_gender = _needs_gender(cl_subcat)

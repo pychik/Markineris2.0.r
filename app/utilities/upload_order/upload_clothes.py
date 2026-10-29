@@ -6,6 +6,7 @@ from pandas import isna
 from typing import Optional, Union
 
 from config import settings
+from utilities.clothes_tnved_content import clothes_tnved_content_error
 from logger import logger
 from tezaurus.runtime_catalogs import (
     get_clothes_tnved_genders,
@@ -199,6 +200,10 @@ class ValidateClothesMixin:
                gender: str = None) -> Optional[str]:
         # value is tnved
         value = value.replace('.0', '').strip()
+        content = order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][7]
+        content_error = clothes_tnved_content_error(value, content)
+        if content_error:
+            return f"{val_error_start(row_num=row_num, col=col)} {content_error}"
 
         result_status, answer = TnvedChecker.tnved_clothes_parse(cloth_type=clothes_type, tnved_code=value,
                                                                  subcategory=subcategory, gender=gender)

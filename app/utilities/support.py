@@ -21,6 +21,7 @@ from sqlalchemy.sql.elements import TextClause
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
 from config import settings
+from utilities.clothes_tnved_content import clothes_tnved_content_error
 from logger import logger
 from models import (
     Order,
@@ -390,6 +391,16 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
             flash(message=message, category='error')
             return redirect(
                 url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=o_id, subcategory=subcategory))
+
+    if category == settings.Clothes.CATEGORY:
+        content_error = clothes_tnved_content_error(
+            form_data_raw.get('tnved_code'), form_data_raw.get('content')
+        )
+        if content_error:
+            if o_id and not p_id:
+                return jsonify(dict(status='error', field='tnved_code', message=content_error))
+            flash(message=content_error, category='error')
+            return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=o_id, subcategory=subcategory))
 
     check_tnved_condition = ValidatorProcessor.check_tnveds(category=category,
                                                             subcategory=subcategory,
