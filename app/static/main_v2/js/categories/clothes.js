@@ -425,6 +425,7 @@ function clothes_content_add() {
 
     content_box.value += add_content;
     content_box.value = content_box.value.slice(0, 101);
+    window.ClothesTnvedContent?.sync();
 }
 
 function check_nat_content(content) {
@@ -1034,6 +1035,7 @@ function deleteCell() {
 
 
 function check_tnved(submit){
+  if (window.ClothesTnvedContent?.check(document.getElementById('tnved_code').value) === false) return false;
 
     if (submit === 'submit'){
         if (document.getElementById('tnved_code').value.length < 10){
@@ -1318,6 +1320,7 @@ function initGenderFieldBindings() {
 }
 
 function clothes_manual_tnved(){
+    if (window.ClothesTnvedContent?.check(document.getElementById('manual_tnved_input').value) === false) return;
     const m_tnved = (document.getElementById("manual_tnved_input").value || "").trim();
 
     // 1. Базовая валидация: должно быть 10 цифр
@@ -1400,6 +1403,7 @@ function showNotAllowedModal(code){
 }
 
 function selectTnved(code){
+    if (window.ClothesTnvedContent?.check(code) === false) return;
     // если включён аггрегатор — проверим по префиксам
     // if (window.HAS_AGGR) {
     //     const ok = window.HAS_AGGR_LIST.some(prefix => code.startsWith(prefix));

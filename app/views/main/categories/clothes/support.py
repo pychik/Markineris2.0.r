@@ -3,6 +3,7 @@ from typing import Union
 from flask import flash, jsonify, render_template, request, Response, redirect, url_for
 from flask_login import current_user
 from config import settings
+from utilities.clothes_tnved_content import LEATHER_TNVED_CONTENT_RULE
 from settings.start import db
 from tezaurus.runtime_catalogs import (
     get_all_countries,
@@ -167,6 +168,7 @@ def helper_clothes_index(o_id: int, p_id: int = None, update_flag: int = None,
     rd_countries = get_rd_countries(settings.Clothes.CATEGORY_PROCESS)
     clothes_content = settings.Clothes.CLOTHES_CONTENT
     clothes_nat_content = settings.Clothes.CLOTHES_NAT_CONTENT
+    clothes_tnved_content_rule = LEATHER_TNVED_CONTENT_RULE
     # colors = settings.Clothes.COLORS
     colors = get_colors()
     genders = settings.Clothes.GENDERS
