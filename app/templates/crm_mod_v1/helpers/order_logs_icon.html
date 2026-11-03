@@ -1,8 +1,8 @@
-<button type="button" class="order-logs-btn border-0 bg-transparent p-0 me-1 flex-shrink-0"
+<button type="button" class="order-logs-btn border-0 bg-transparent p-0 me-1 flex-shrink-0 d-inline-flex align-items-center lh-1"
         onclick="orderLogsOpen(event, this)"
         data-bs-toggle="tooltip" data-bs-title="Логи заказа" aria-label="Логи заказа"
         data-order-idn="{{ n.order_idn | default('', true) }}"
         data-logs-url="{{ url_for('crm_d.order_logs', o_id=n.id) }}">
   <img src="{{ url_for('static', filename='crm_mod/img/icons/logs.svg') }}"
-       width="20" height="20" alt="">
+       class="d-block" width="24" height="24" alt="">
 </button>
