@@ -125,6 +125,9 @@ function product_card_submit(category = null) {
         toysPrepareModelArticleBeforeSubmit();
     }
 
+    // pcWeightCheck нужен до FormData: он добавляет input weight в строки размеров, где его ещё нет
+    const weightError = typeof pcWeightCheck === "function" ? pcWeightCheck() : null;
+
     const formData = new FormData(form);
     formData.append("category", cat);
 
@@ -298,6 +301,10 @@ function product_card_submit(category = null) {
 
     if (!serviceLifeOk) {
         errors.push("Период годности. Проверьте дату от, дату до и срок годности.");
+    }
+
+    if (weightError) {
+        errors.push(weightError);
     }
 
     if (!fullNameOk) {

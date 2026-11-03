@@ -120,9 +120,9 @@ function setSocks() {
     }
 
     document.querySelectorAll('[id=quantity_info]').forEach(el => total += parseInt(el.innerText, 10));
-    document.getElementById('socks_in_box_info').innerHTML = '';
     if (isNaN(total)){total=0;}
-    document.getElementById('socks_in_box_info').innerText = total;
+    const inBoxInfo = document.getElementById('socks_in_box_info');
+    if (inBoxInfo) inBoxInfo.innerText = total;
 }
 
 
@@ -550,8 +550,8 @@ function addSocksCell(){
                     </div>`);
 
     var total = countSocks();
-    document.getElementById('socks_in_box_info').innerHTML = '';
-    document.getElementById('socks_in_box_info').innerText = total;
+    const inBoxInfo = document.getElementById('socks_in_box_info');
+    if (inBoxInfo) inBoxInfo.innerText = total;
     document.getElementById('size_order').value = '';
     document.getElementById('quantity_order').value = '1';
 
@@ -787,6 +787,7 @@ function selectTnved(code){
 
 document.addEventListener('DOMContentLoaded', function () {
     const switchInput = document.getElementById('aggrModeSwitch');
+    if (!switchInput) return;  // переключателя наборов нет на странице карточки
 
     function updateSwitchStyle() {
         const label = document.getElementById('aggrModeLabel');

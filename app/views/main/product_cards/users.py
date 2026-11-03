@@ -8,7 +8,7 @@ from views.main.product_cards.handlers import h_cards, h_cards_table, h_new_prod
     h_send_cards_moderate, h_make_pc_basket_order, h_pc_order_view, h_pc_orders_drafts, h_pc_order_table, \
     h_pc_order_pos_view, h_pc_order_delete_pos, h_pc_order_delete, h_pc_order_preview, h_pc_order_check_before_process, \
     h_pc_order_process, h_update_product_card, h_edit_product_card, h_pc_order_copy, h_pc_order_draft_delete, \
-    h_card_category_subcategories
+    h_card_category_subcategories, h_card_weights
 
 user_product_cards = Blueprint('user_product_cards', __name__)
 
@@ -95,6 +95,13 @@ def card_edit(card_id: int):
 @user_activated
 def card_delete(card_id: int):
     return h_card_delete(card_id=card_id)
+
+
+@user_product_cards.route("/card_weights/<int:card_id>", methods=["POST"])
+@login_required
+@user_activated
+def card_weights(card_id: int):
+    return h_card_weights(card_id=card_id)
 
 
 @user_product_cards.route("/make_pc_basket_order", methods=["POST"])

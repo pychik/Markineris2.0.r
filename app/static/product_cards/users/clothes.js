@@ -108,9 +108,9 @@ function setClothes() {
     }
 
     document.querySelectorAll('[id=quantity_info]').forEach(el => total += parseInt(el.innerText, 10));
-    document.getElementById('clothes_in_box_info').innerHTML = '';
     if (isNaN(total)){total=0;}
-    document.getElementById('clothes_in_box_info').innerText = total;
+    const inBoxInfo = document.getElementById('clothes_in_box_info');
+    if (inBoxInfo) inBoxInfo.innerText = total;
 }
 
 function check_add_same_size(size, quantity) {

@@ -229,6 +229,10 @@ function linenToggleKpbMode() {
         const nextMode = isKpb ? 'kpb' : 'regular';
         if (list.dataset.linenMode && list.dataset.linenMode !== nextMode) {
             list.innerHTML = '';
+            // вес КПБ относится к составу комплекта, который только что очистили
+            const weightInput = document.getElementById('weight_grams');
+            if (weightInput) weightInput.value = '';
+            if (typeof pcWeightRenderAll === 'function') pcWeightRenderAll();
         }
         list.dataset.linenMode = nextMode;
     }
@@ -326,8 +330,8 @@ function addLinenCell(){
 
     var total = countLinen();
 
-    document.getElementById('linen_in_box_info').innerHTML = '';
-    document.getElementById('linen_in_box_info').innerText = total;
+    const inBoxInfo = document.getElementById('linen_in_box_info');
+    if (inBoxInfo) inBoxInfo.innerText = total;
     document.getElementById('sizeX_order').value = '';
     document.getElementById('sizeY_order').value = '';
     $('#sizeUnitOrder').val('').trigger("change");

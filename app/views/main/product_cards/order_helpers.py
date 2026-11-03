@@ -17,6 +17,7 @@ from utilities.saving_uts import save_copy_order_shoes, save_copy_order_clothes,
     save_copy_order_socks, save_copy_order_linen, save_copy_order_parfum, save_copy_order_cosmetics, \
     save_copy_order_toys
 from views.main.product_cards.constants import PC_DISABLED_ORDER_CATEGORIES
+from views.main.product_cards.support import card_weight_unit_label
 
 ALLOWED_CARD_DATA_STATUSES: set[str] = {"approved"}
 PC_ORDER_ITEM_APPROVAL_CATEGORIES = {
@@ -204,6 +205,9 @@ def validate_pc_order_items_ready_for_process(category: str, items: list) -> lis
         if not getattr(item, "fast_order_company_id", None):
             errors.append(f"Позиция {label} без компании обработки.")
             continue
+        # у черновиков, собранных до обязательного веса, его нет: вес позиции считается только при сборке из корзины
+        if not getattr(item, "weight_grams", None):
+            errors.append(f"Позиция {label} без веса. Удалите черновик и соберите заказ из корзины заново.")
 
         if category in PC_ORDER_ITEM_APPROVAL_CATEGORIES:
             if not getattr(item, "is_approved", False):
@@ -340,6 +344,24 @@ def _load_cards_for_order(card_ids: list[int], *, category: str) -> dict[int, Pr
     return {c.id: c for c in cards}
 
 
+MAX_POSITION_WEIGHT_GRAMS = 2_147_483_647  # предел Integer-колонки weight_grams
+
+
+def _position_weight_grams(pc: ProductCard, units_qty: list) -> int:
+    """Общий вес позиции заказа: сумма по размерам, вес одной штуки x количество."""
+    total = 0
+    for unit, qty in units_qty:
+        if not unit.weight_grams:
+            raise ValueError(
+                f"Карточка #{pc.id}: не указан вес ({card_weight_unit_label(unit)}). "
+                f"Откройте карточку и нажмите «Указать вес»."
+            )
+        total += unit.weight_grams * qty
+    if total > MAX_POSITION_WEIGHT_GRAMS:
+        raise ValueError(f"Карточка #{pc.id}: слишком большой общий вес позиции, уменьшите количество.")
+    return total
+
+
 def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict):
     """
     Создаёт строку заказа из ProductCard.
@@ -382,6 +404,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
             raise ValueError(f"Карточка #{pc.id}: некорректное количество парфюма")
 
         new_obj.quantity = qty
+        new_obj.weight_grams = _position_weight_grams(pc, [(src, qty)])
 
         tm = (item_payload.get("trademark") or "").strip()
         if tm:
@@ -420,6 +443,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
             raise ValueError(f"Карточка #{pc.id}: некорректное количество")
 
         new_obj.quantity = qty
+        new_obj.weight_grams = _position_weight_grams(pc, [(src, qty)])
 
         tm = (item_payload.get("trademark") or "").strip()
         if tm:
@@ -456,6 +480,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
         new_obj.trademark = (item_payload.get("trademark") or "").strip() or new_obj.trademark
         new_obj.type = normalize_clothes_type_for_subcategory(new_obj.type, subcategory)
 
+        weighed_units = []
         for s in sizes:
             size = (s.get("size") or "").strip()
             st = (s.get("size_type") or "").strip()
@@ -466,6 +491,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
             key = (size, st, "")
             if key not in units_map:
                 raise ValueError(f"Артикул {new_obj.article}: размер '{size}' ({st}) не approved в карточке")
+            weighed_units.append((units_map[key], qty))
 
             new_obj.sizes_quantities.append(
                 ClothesQuantitySize(
@@ -477,6 +503,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
                 )
             )
 
+        new_obj.weight_grams = _position_weight_grams(pc, weighed_units)
         order.clothes.append(new_obj)
         return new_obj
 
@@ -494,6 +521,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
         new_obj.article = (item_payload.get("article") or "").strip()
         new_obj.trademark = (item_payload.get("trademark") or "").strip() or new_obj.trademark
 
+        weighed_units = []
         for s in sizes:
             size = (s.get("size") or "").strip()
             st = (s.get("size_type") or "").strip()
@@ -504,6 +532,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
             key = (size, st, "")
             if key not in units_map:
                 raise ValueError(f"Артикул {new_obj.article}: размер '{size}' ({st}) не approved в карточке")
+            weighed_units.append((units_map[key], qty))
 
             new_obj.sizes_quantities.append(
                 SocksQuantitySize(
@@ -514,6 +543,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
                 )
             )
 
+        new_obj.weight_grams = _position_weight_grams(pc, weighed_units)
         order.socks.append(new_obj)
         return new_obj
 
@@ -531,6 +561,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
         new_obj.article = (item_payload.get("article") or "").strip()
         new_obj.trademark = (item_payload.get("trademark") or "").strip() or new_obj.trademark
 
+        weighed_units = []
         for s in sizes:
             size = (s.get("size") or "").strip()
             qty = int(s.get("qty") or 0)
@@ -540,6 +571,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
             key = (size, "", "")
             if key not in units_map:
                 raise ValueError(f"Артикул {new_obj.article}: размер '{size}' не approved в карточке")
+            weighed_units.append((units_map[key], qty))
 
             new_obj.sizes_quantities.append(
                 ShoeQuantitySize(
@@ -549,6 +581,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
                 )
             )
 
+        new_obj.weight_grams = _position_weight_grams(pc, weighed_units)
         order.shoes.append(new_obj)
         return new_obj
 
@@ -581,6 +614,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
                 raise ValueError(f"Артикул {new_obj.article}: некорректное количество КПБ")
 
             new_obj.kpb_quantity = kpb_quantity
+            new_obj.weight_grams = _position_weight_grams(pc, [(src, kpb_quantity)])
             new_obj.is_approved = True
             for item in src.set_items:
                 new_obj.set_items.append(
@@ -595,6 +629,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
             order.linen.append(new_obj)
             return new_obj
 
+        weighed_units = []
         for s in sizes:
             size = (s.get("size") or "").strip()
             unit = (s.get("unit") or "").strip()
@@ -605,6 +640,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
             key = (size, "", unit)
             if key not in units_map:
                 raise ValueError(f"Артикул {new_obj.article}: размер '{size}' ({unit}) не approved в карточке")
+            weighed_units.append((units_map[key], qty))
 
             new_obj.sizes_quantities.append(
                 LinenQuantitySize(
@@ -615,6 +651,7 @@ def _add_order_item_from_card(order: Order, pc: ProductCard, item_payload: dict)
                 )
             )
 
+        new_obj.weight_grams = _position_weight_grams(pc, weighed_units)
         order.linen.append(new_obj)
         return new_obj
 
@@ -626,6 +663,8 @@ def copy_model_columns(src, dst, *, exclude: set[str] | None = None):
     default_exclude = {
         "id", "order_id", "card_id",
         "created_at", "sent_at", "taken_at", "approved_at", "rejected_at",
+        # в карточке тут вес одной штуки, а в заказе общий вес позиции: его считает _position_weight_grams
+        "weight_grams",
     }
     exclude = exclude.union(default_exclude)
 
@@ -676,6 +715,9 @@ def _count_open_pc_orders(user_id: int, category: str, subcategory: str | None =
 def _filter_copyable_fast_order_items(order_items):
     def is_copyable(item) -> bool:
         if not getattr(item, "fast_order_company_id", None):
+            return False
+        # старые позиции без веса всё равно не пройдут validate_pc_order_items_ready_for_process
+        if not getattr(item, "weight_grams", None):
             return False
         if getattr(item, "set_items", None):
             return bool(getattr(item, "is_approved", False))

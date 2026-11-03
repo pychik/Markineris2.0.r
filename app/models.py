@@ -963,6 +963,8 @@ class ShoeQuantitySize(db.Model, UserMixin):
     id = db.Column(db.BigInteger, primary_key=True)
     size = db.Column(db.String())
     quantity = db.Column(db.Integer())
+    # вес одной штуки этого размера в граммах, заполняется только в карточках товара
+    weight_grams = db.Column(db.Integer(), nullable=True)
 
     is_approved = db.Column(
         db.Boolean,
@@ -1033,6 +1035,8 @@ class LinenQuantitySize(db.Model, UserMixin):
     size = db.Column(db.String())
     quantity = db.Column(db.Integer())
     unit = db.Column(db.String(10), default=LinenSizesUnits.sm.value, server_default=LinenSizesUnits.mm.value)
+    # вес одной штуки этого размера в граммах, заполняется только в карточках товара
+    weight_grams = db.Column(db.Integer(), nullable=True)
     is_approved = db.Column(
         db.Boolean,
         nullable=False,
@@ -1191,6 +1195,8 @@ class CQSMixin(db.Model, UserMixin):
     size = db.Column(db.String())
     quantity = db.Column(db.Integer())
     size_type = db.Column(db.String(50))
+    # вес одной штуки этого размера в граммах, заполняется только в карточках товара
+    weight_grams = db.Column(db.Integer(), nullable=True)
     is_approved = db.Column(
         db.Boolean,
         nullable=False,

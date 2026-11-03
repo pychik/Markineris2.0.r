@@ -44,7 +44,8 @@ from views.main.product_cards.support import validate_card_form, save_clothes_ca
     update_card_allowed_fields, ALLOWED_CARDS_DELETE_STATUSES, card_has_rd, CARD_STATUS_DATETIME_ATTR, \
     get_card_allowed_field_changes, merge_selected_created_wear_cards, assign_tezaurus_processing_companies, \
     assign_tezaurus_processing_company, build_pc_category_search_index, find_approved_wear_card_for_size_extension, \
-    copy_card_processing_company
+    copy_card_processing_company, parse_card_form_weights, apply_card_weights, parse_unit_weight, \
+    card_weight_unit_label, set_unit_weight, WEIGHT_ROWS_MISMATCH_MESSAGE
 from views.main.product_cards.utils import validate_rd_block
 from views.main.categories.cosmetics.subcategories.registry import \
     SUBCATEGORY_CONFIG as COSMETICS_SUBCATEGORY_CONFIG
@@ -587,6 +588,12 @@ def h_save_product_card():
     except Exception as e:
         return jsonify(status="error", message=str(e))
 
+    # 1.4 У новой карточки вес обязателен: у каждого размера или у позиции без размеров
+    try:
+        form_dict.update(parse_card_form_weights(category, form_data, required=True))
+    except ValueError as e:
+        return jsonify(status="error", message=str(e))
+
     if category in single_unit_categories:
         sizes_quantities = []
         filtered_sq = []
@@ -683,6 +690,10 @@ def h_save_product_card():
                 subcategory=subcategory,
             )
 
+        db.session.flush()
+        # save_*_card ищут вес по ключу размера из формы. Если ключи разошлись, пусть будет ошибка, а не карточка без веса
+        if any(unit.weight_grams is None for unit in card._all_moderation_units()):
+            raise ValueError(WEIGHT_ROWS_MISMATCH_MESSAGE)
         db.session.commit()
     except Exception as e:
         logger.exception('save_product_card category')
@@ -810,6 +821,10 @@ def h_update_product_card(crm_: bool = False):
         assert_frozen_fields_unchanged(card=card, form_data=form_data)
     except Exception as e:
         return jsonify(status="error", message=str(e))
+    try:
+        form_weights = parse_card_form_weights(category, form_data, required=False)
+    except ValueError as e:
+        return jsonify(status="error", message=str(e))
 
     # 3) обновляем только разрешённые поля; identity-поля уже проверены выше
     try:
@@ -823,6 +838,8 @@ def h_update_product_card(crm_: bool = False):
         old_rd_replacement_consent = card.rd_replacement_consent
         update_card_allowed_fields(card=card, form_dict=form_dict, form_data=form_data)
         card.rd_replacement_consent = rd_replacement_consent
+        weight_changes = apply_card_weights(card, form_weights)
+        _log_card_weight_changes(card, weight_changes)
         entity_after = get_card_entity_for_prefill(card)
         new_identity = ""
         processing_company_reassigned = False
@@ -901,7 +918,9 @@ def h_update_product_card(crm_: bool = False):
                 card.card_log,
                 f"\n{dt_str} {actor} изменил согласие на использование нашей РД: {value_label};"
             )
-        if crm_ and original_status == ModerationStatus.APPROVED:
+        # вес не модерируется: если оператор поменял только его, карточка остаётся одобренной
+        only_weight_changed = not changes and old_identity == new_identity and not processing_company_reassigned
+        if crm_ and original_status == ModerationStatus.APPROVED and not only_weight_changed:
             _send_approved_card_to_repeat_moderation(card, dt=datetime.now())
         db.session.commit()
     except RuntimeError as e:
@@ -909,6 +928,7 @@ def h_update_product_card(crm_: bool = False):
         return jsonify(status="error", message=str(e))
     except Exception as e:
         db.session.rollback()
+        logger.exception("update_product_card failed")
         return jsonify(status="error", message=str(e))
 
     return jsonify(
@@ -1224,6 +1244,8 @@ def h_card_view(card_id: int, crm_: bool = False):
                     # "quantity": sq.quantity,
                     "size_type": sq.size_type,
                     "is_approved": getattr(sq, "is_approved", False),
+                    "id": sq.id,
+                    "weight": sq.weight_grams,
                 })
 
     elif card.category == settings.Socks.CATEGORY_PROCESS:
@@ -1234,6 +1256,8 @@ def h_card_view(card_id: int, crm_: bool = False):
                     # "quantity": sq.quantity,
                     "size_type": sq.size_type,
                     "is_approved": getattr(sq, "is_approved", False),
+                    "id": sq.id,
+                    "weight": sq.weight_grams,
                 })
 
     elif card.category == settings.Shoes.CATEGORY_PROCESS:
@@ -1243,6 +1267,8 @@ def h_card_view(card_id: int, crm_: bool = False):
                     "size": sq.size,
                     # "quantity": sq.quantity,
                     "is_approved": getattr(sq, "is_approved", False),
+                    "id": sq.id,
+                    "weight": sq.weight_grams,
                 })
 
     elif card.category == settings.Linen.CATEGORY_PROCESS:
@@ -1264,6 +1290,8 @@ def h_card_view(card_id: int, crm_: bool = False):
                         "unit": sq.unit,
                         # "quantity": sq.quantity,
                         "is_approved": getattr(sq, "is_approved", False),
+                    "id": sq.id,
+                    "weight": sq.weight_grams,
                     })
 
     elif card.category == settings.Parfum.CATEGORY_PROCESS:
@@ -1275,6 +1303,10 @@ def h_card_view(card_id: int, crm_: bool = False):
 
     rd_description = settings.RD_DESCRIPTION
     rd_types_list = settings.RD_TYPES
+    weight_units = [
+        {"id": unit.id, "label": card_weight_unit_label(unit), "weight": unit.weight_grams}
+        for unit in card._all_moderation_units()
+    ]
     card_status_value = card.status.value if hasattr(card.status, "value") else card.status
     can_change_processing_company = (
         crm_
@@ -1288,6 +1320,8 @@ def h_card_view(card_id: int, crm_: bool = False):
         cfg=cfg,
         main=main,
         sizes=sizes,
+        weight_units=weight_units,
+        weight_missing=any(unit["weight"] is None for unit in weight_units),
         status_titles=MODERATION_STATUS_TITLES,
         fields=fields.items(),
         rd_description=rd_description,
@@ -1297,6 +1331,54 @@ def h_card_view(card_id: int, crm_: bool = False):
         processing_companies=get_processing_companies() if crm_ else [],
     )
     return jsonify(status="success", html=html)
+
+
+def _log_card_weight_changes(card: ProductCard, changes: list[str]) -> None:
+    if not changes:
+        return
+    dt_str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+    actor = getattr(current_user, "login_name", "") or str(current_user.id)
+    # подписи размеров вводит клиент: убираем переводы строк и режем длину, иначе правкой веса
+    # можно вытеснить из card_log историю модерации или подделать её строки
+    summary = "; ".join(" ".join(change.split())[:40] for change in changes)[:300]
+    card.card_log = h_append_card_log(
+        card.card_log, f"\n{dt_str} {actor} указал вес 1 шт. ({len(changes)} поз.): {summary};"
+    )
+
+
+def h_card_weights(card_id: int):
+    """
+    Правка одного веса из модалки карточки. Остальные поля не меняются, на повторную модерацию
+    карточка не уходит. Нужна одобренным карточкам, которые создали до того, как вес стал обязательным.
+    payload: {"weights": {"<id единицы карточки>": "<граммы>"}}
+    """
+    card = ProductCard.query.filter_by(id=card_id, user_id=current_user.id).first()
+    if not card:
+        return _json_error("Карточка не найдена", 404)
+    payload = request.get_json(silent=True)
+    raw = payload.get("weights") if isinstance(payload, dict) else None
+    if not isinstance(raw, dict):
+        return _json_error("Неверный формат запроса", 400)
+
+    units = {str(unit.id): unit for unit in card._all_moderation_units()}
+    if set(raw) - set(units):
+        return _json_error("Размеры карточки изменились, обновите страницу.", 400)
+    try:
+        weights = {unit_id: parse_unit_weight(value) for unit_id, value in raw.items()}
+    except ValueError as e:
+        return _json_error(str(e), 400)
+    if any(weights.get(unit_id, unit.weight_grams) is None for unit_id, unit in units.items()):
+        return _json_error("Заполните вес во всех строках.", 400)
+
+    changes = [change for unit_id, weight in weights.items() if (change := set_unit_weight(units[unit_id], weight))]
+    _log_card_weight_changes(card, changes)
+    try:
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        logger.exception("card_weights commit failed")
+        return _json_error("Не удалось сохранить вес, попробуйте ещё раз", 500)
+    return jsonify(status="success", message="Вес сохранён")
 
 
 def h_pc_order_preview(o_id: int):
@@ -1531,6 +1613,7 @@ def h_make_pc_basket_order():
         return _json_error(str(ve), 400)
     except Exception as e:
         db.session.rollback()
+        logger.exception("make_pc_basket_order failed")
         return _json_error(f"Ошибка при создании заказа: {e}", 500)
 
     sub = f" / {subcategory}" if subcategory else ""

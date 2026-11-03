@@ -56,6 +56,24 @@
 </div>
 
 {% include 'helpers/error_modal.html' %}
+<div class="modal fade" id="pcWeightModal" tabindex="-1" aria-labelledby="pcWeightModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pcWeightModalTitle">Вес 1 шт. в граммах</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted">Укажите вес одной штуки. Общий вес позиции в заказе система посчитает сама по количеству.</p>
+                <div id="pcWeightModalList"></div>
+                <div id="pcWeightModalError" class="text-danger small mt-2" role="alert"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-accent border-0 text-dark px-4" style="min-width:0;" onclick="pcWeightSave()">Ок</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% if crm_ %}
     {% include 'rd_registry/picker_modal.html' %}
 {% endif %}
@@ -127,6 +145,7 @@
 {% endif %}
 <script src="{{ url_for('static',filename='product_cards/users/' + category_process_name + '.js', v='51') }}"></script>
 <script src="{{ url_for('static',filename='product_cards/users/common.js', v='16') }}"></script>
+<script src="{{ url_for('static',filename='product_cards/users/pc_weight.js') }}"></script>
 
 <script>
     const excepted_articles = {{excepted_articles | tojson | safe}};

@@ -763,6 +763,117 @@ def parse_sizes_for_category(category: str, form_data_raw, subcategory: str | No
     return sizes_quantities
 
 
+# Вес одной штуки в граммах лежит там же, где отметка модерации (ProductCard._all_moderation_units):
+# у одежды, носков, обуви и белья в строках размеров, у парфюма, косметики, игрушек и КПБ в самой позиции.
+# Из него order_helpers._add_order_item_from_card считает общий вес позиции заказа.
+MAX_UNIT_WEIGHT_GRAMS = 100_000
+CARD_SIZE_UNIT_MODELS = (ClothesQuantitySize, SocksQuantitySize, ShoeQuantitySize, LinenQuantitySize)
+WEIGHT_REQUIRED_MESSAGE = "Укажите вес каждого размера кнопкой «Указать вес»."
+SINGLE_WEIGHT_REQUIRED_MESSAGE = "Укажите вес 1 шт. кнопкой «Указать вес»."
+WEIGHT_ROWS_MISMATCH_MESSAGE = "Вес не совпал с размерами карточки. Обновите страницу и попробуйте ещё раз."
+
+
+def parse_unit_weight(value) -> int | None:
+    """Пустое значение даёт None, остальное должно быть целым числом граммов от 1 до MAX_UNIT_WEIGHT_GRAMS."""
+    raw = str(value if value is not None else "").strip()
+    if not raw:
+        return None
+    if not (raw.isascii() and raw.isdigit() and len(raw) <= 6) or not 0 < int(raw) <= MAX_UNIT_WEIGHT_GRAMS:
+        raise ValueError(f"Вес 1 шт. нужно указать в граммах, целым числом от 1 до {MAX_UNIT_WEIGHT_GRAMS}.")
+    return int(raw)
+
+
+def parse_card_form_weights(category: str, form_data, *, required: bool) -> dict:
+    """
+    Достаёт вес из формы карточки и возвращает поля для form_dict, как с _rd_date_obj:
+      _weight_grams - вес одной штуки у позиции без размеров (parfum, cosmetics, toys, КПБ);
+      _size_weights - {ключ размера в том виде, как он пришёл из формы: вес одной штуки}.
+    При создании (required=True) вес обязателен. Ждать размеры или один вес, у белья решает type (КПБ).
+    При редактировании (required=False) разбираются оба поля, а пустой вес оставляет сохранённый.
+    Какое поле применить, apply_card_weights решает по сохранённым размерам карточки.
+    """
+    single = category in (
+        settings.Parfum.CATEGORY_PROCESS,
+        settings.Cosmetics.CATEGORY_PROCESS,
+        settings.Toys.CATEGORY_PROCESS,
+    ) or (category == settings.Linen.CATEGORY_PROCESS and is_linen_kpb_type(form_data.get("type")))
+    result = {"_weight_grams": parse_unit_weight(form_data.get("weight_grams")), "_size_weights": {}}
+    if required and single:
+        if result["_weight_grams"] is None:
+            raise ValueError(SINGLE_WEIGHT_REQUIRED_MESSAGE)
+        return result
+
+    if category in (settings.Clothes.CATEGORY_PROCESS, settings.Socks.CATEGORY_PROCESS):
+        keys = list(zip(form_data.getlist("size"), form_data.getlist("size_type")))
+    elif category == settings.Shoes.CATEGORY_PROCESS:
+        keys = form_data.getlist("size")
+    elif category == settings.Linen.CATEGORY_PROCESS:
+        keys = [
+            (f"{x}*{y}", unit)
+            for x, y, unit in zip(form_data.getlist("sizeX"), form_data.getlist("sizeY"), form_data.getlist("sizeUnit"))
+        ]
+    else:
+        return result
+
+    weights = form_data.getlist("weight")
+    if not weights and not required:
+        return result
+    # input weight стоит в каждой строке размера, поэтому size[i] и weight[i] из одной строки
+    if len(weights) != len(keys):
+        logger.warning(f"card weights mismatch: category={category} sizes={len(keys)} weights={len(weights)}")
+        raise ValueError(WEIGHT_ROWS_MISMATCH_MESSAGE)
+
+    for key, value in zip(keys, weights):
+        weight = parse_unit_weight(value)
+        if weight is None:
+            if required:
+                raise ValueError(WEIGHT_REQUIRED_MESSAGE)
+            continue
+        result["_size_weights"][key] = weight
+    return result
+
+
+def card_weight_unit_label(unit) -> str:
+    if isinstance(unit, LinenQuantitySize):
+        return f"{unit.size} {unit.unit or ''}".strip()
+    if isinstance(unit, (ClothesQuantitySize, SocksQuantitySize)):
+        return f"{unit.size} {unit.size_type or ''}".strip()
+    if isinstance(unit, ShoeQuantitySize):
+        return unit.size or ""
+    if isinstance(unit, Linen):
+        return "1 комплект"
+    return "1 шт."
+
+
+def set_unit_weight(unit, weight: int | None) -> str | None:
+    """Меняет вес и возвращает строку для card_log, или None, если менять нечего."""
+    if weight is None or weight == unit.weight_grams:
+        return None
+    change = f"{card_weight_unit_label(unit)}: {unit.weight_grams or '-'} -> {weight} г"
+    unit.weight_grams = weight
+    return change
+
+
+def apply_card_weights(card: ProductCard, form_weights: dict) -> list[str]:
+    """Раскладывает вес из parse_card_form_weights по размерам карточки и возвращает изменения для card_log."""
+    units = card._all_moderation_units()
+    unit_keys = {_card_merge_size_key(card.category, unit) for unit in units if isinstance(unit, CARD_SIZE_UNIT_MODELS)}
+    # форма правки присылает сохранённые размеры как есть, незнакомый ключ бывает только со старой страницы
+    if set(form_weights["_size_weights"]) - unit_keys:
+        raise ValueError(WEIGHT_ROWS_MISMATCH_MESSAGE)
+
+    changes = []
+    for unit in units:
+        if isinstance(unit, CARD_SIZE_UNIT_MODELS):
+            weight = form_weights["_size_weights"].get(_card_merge_size_key(card.category, unit))
+        else:
+            weight = form_weights["_weight_grams"]
+        change = set_unit_weight(unit, weight)
+        if change:
+            changes.append(change)
+    return changes
+
+
 def normalize_article_for_category(category: str, form_dict: dict) -> str:
     """Приводим артикул к тому виду, в котором он лежит в БД."""
     return normalize_article_placeholder(form_dict.get("article"))
@@ -942,8 +1053,9 @@ def save_shoes_card(
         # order_id оставляем None
     )
 
+    size_weights = form_dict.get("_size_weights") or {}
     extend_sq = (
-        ShoeQuantitySize(size=el[0], quantity=1)
+        ShoeQuantitySize(size=el[0], quantity=1, weight_grams=size_weights.get(el[0]))
         for el in sizes_quantities
     )
     shoe.sizes_quantities.extend(extend_sq)
@@ -1020,11 +1132,13 @@ def save_clothes_card(
         # order_id оставим None
     )
 
+    size_weights = form_dict.get("_size_weights") or {}
     extend_sq = (
         ClothesQuantitySize(
             size=el[0],
             quantity=1,
             size_type=get_clothes_size_type(el[0], el[2], subcategory=clothes.subcategory),
+            weight_grams=size_weights.get((el[0], el[2])),
         )
         for el in sizes_quantities
     )
@@ -1069,11 +1183,13 @@ def save_socks_card(
         card_id=card.id,
     )
 
+    size_weights = form_dict.get("_size_weights") or {}
     extend_sq = (
         SocksQuantitySize(
             size=el[0],
             quantity=1,
             size_type=get_socks_size_type(el[0], el[2]),
+            weight_grams=size_weights.get((el[0], el[2])),
         )
         for el in sizes_quantities
     )
@@ -1123,7 +1239,9 @@ def save_linen_card(
         rd_date=rd_date,
         rd_date_to=rd_date_to,
         card_id=card.id,
+        weight_grams=form_dict.get("_weight_grams") if is_kpb else None,
     )
+    size_weights = form_dict.get("_size_weights") or {}
 
     if is_kpb:
         extend_set_items = (
@@ -1142,11 +1260,12 @@ def save_linen_card(
                 return 0
 
         max_sq = max(sizes_quantities, key=area)
-        append_sq = LinenQuantitySize(size=max_sq[0], unit=max_sq[1], quantity=1)
+        append_sq = LinenQuantitySize(size=max_sq[0], unit=max_sq[1], quantity=1,
+                                      weight_grams=size_weights.get((max_sq[0], max_sq[1])))
         linen.sizes_quantities.append(append_sq)
     else:
         extend_sq = (
-            LinenQuantitySize(size=el[0], unit=el[1], quantity=el[2])
+            LinenQuantitySize(size=el[0], unit=el[1], quantity=el[2], weight_grams=size_weights.get((el[0], el[1])))
             for el in sizes_quantities
         )
         linen.sizes_quantities.extend(extend_sq)
@@ -1189,6 +1308,7 @@ def save_parfum_card(
         rd_date=rd_date,
         rd_date_to=rd_date_to,
         card_id=card.id,
+        weight_grams=form_dict.get("_weight_grams"),
         # is_approved оставляем по default=False
     )
 
@@ -1254,6 +1374,7 @@ def save_cosmetics_card(
     for_children_enabled = subcategory_config.get("for_children_enabled", True)
 
     cosmetics = Cosmetics(
+        weight_grams=form_dict.get("_weight_grams"),
         trademark=normalize_trademark_placeholder(form_dict.get("trademark")),
         type=product_type,
         full_name_extra=process_input_str(form_dict.get("full_name_extra")),
@@ -1315,6 +1436,7 @@ def save_toys_card(
         )
 
     toys = Toys(
+        weight_grams=form_dict.get("_weight_grams"),
         trademark=normalize_trademark_placeholder(form_dict.get("trademark")),
         type=form_dict.get("type"),
         full_name_extra=process_input_str(form_dict.get("full_name_extra")),
@@ -2126,13 +2248,13 @@ def _card_merge_size_key(category: str, sq):
 
 def _card_merge_clone_size(category: str, sq):
     if category == settings.Clothes.CATEGORY_PROCESS:
-        return ClothesQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
+        return ClothesQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type, weight_grams=sq.weight_grams)
     if category == settings.Socks.CATEGORY_PROCESS:
-        return SocksQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type)
+        return SocksQuantitySize(size=sq.size, quantity=sq.quantity, size_type=sq.size_type, weight_grams=sq.weight_grams)
     if category == settings.Shoes.CATEGORY_PROCESS:
-        return ShoeQuantitySize(size=sq.size, quantity=sq.quantity)
+        return ShoeQuantitySize(size=sq.size, quantity=sq.quantity, weight_grams=sq.weight_grams)
     if category == settings.Linen.CATEGORY_PROCESS:
-        return LinenQuantitySize(size=sq.size, unit=sq.unit, quantity=sq.quantity)
+        return LinenQuantitySize(size=sq.size, unit=sq.unit, quantity=sq.quantity, weight_grams=sq.weight_grams)
     return None
 
 
