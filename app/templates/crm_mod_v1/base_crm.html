@@ -92,6 +92,7 @@
     <!-- Модальное окно - Файл -->
     <div id="blockModalFileLinkAttach"></div>
     {% include 'crm_mod_v1/helpers/modals/order_chat_modal.html' %}
+    {% include 'crm_mod_v1/helpers/modals/order_logs_modal.html' %}
 
 
     <!-- УВЕДОМЛЕНИЯ  https://getbootstrap.ru/docs/5.1/components/toasts/ -->
@@ -149,6 +150,7 @@
     <script src="{{ url_for('static', filename='crm_mod/js/crm_main_v1_1.js', v='17') }}"></script>
     <script src="{{ url_for('static', filename='crm_mod/js/initial_board.js', v='1') }}"></script>
     <script src="{{ url_for('static', filename='crm_mod/js/order_chat.js', v='5') }}"></script>
+    <script src="{{ url_for('static', filename='crm_mod/js/order_logs.js', v='1') }}"></script>
     <script src="{{url_for('static', filename='crm_mod/libs/scrollbooster/scrollbooster.min.js')}}" defer></script>
     <script src="{{ url_for('static',filename='main_v2/js/new_messages.js', v='1') }}"></script>
 

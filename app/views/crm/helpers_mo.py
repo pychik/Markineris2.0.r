@@ -5,6 +5,7 @@ from flask_login import current_user
 from sqlalchemy import text, update, null
 from sqlalchemy.sql import bindparam
 
+from utilities.order_log import log_order_stage
 from config import settings
 from logger import logger
 from models import db, Order
@@ -83,6 +84,8 @@ def h_all_new_multi_pool():
         # db.session.execute(update_orders_stmt, bulk_array)
         db.session.execute(update_orders_stmt)
 
+        for order in all_new_orders:
+            log_order_stage(order.id, settings.OrderStage.POOL)
         db.session.commit()
 
         orders_stats_stmt = h_create_multi_os_stmt(orders=all_new_orders)

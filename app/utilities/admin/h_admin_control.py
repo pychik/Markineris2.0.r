@@ -14,6 +14,7 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.exc import IntegrityError
 from urllib import parse
 
+from utilities.order_log import log_order_stage
 from config import settings
 from logger import logger
 from models import db, Order, OrderStat, PartnerCode, RestoreLink, Telegram, TelegramMessage, User, users_partners, \
@@ -1295,6 +1296,7 @@ def h_at2_orders_process(o_id: int, change_stage: int) -> Response:
                              .bindparams(o_id=o_id, change_stage=change_stage))
 
         db.session.execute(update_order_stmt)
+        log_order_stage(o_id, change_stage)
 
         order_idn = order_check.order_idn
 

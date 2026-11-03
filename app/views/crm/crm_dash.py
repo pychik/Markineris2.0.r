@@ -21,7 +21,7 @@ from .helpers import (helper_get_agent_orders, helper_get_manager_orders, helper
                       helper_get_agent_stage_orders, helper_categories_counter,
                       helper_change_agent_stage_bck, helper_a_order_bp, helper_m_order_bp,
                       helpers_problem_order_response,
-                      helper_get_processing_order_info, helper_update_processing_order_info, h_order_details, )
+                      helper_get_processing_order_info, helper_update_processing_order_info, h_order_details, h_order_logs, )
 from .helpers_mo import h_all_new_multi_pool
 from .order_chat import (
     h_order_chat_download_attachment,
@@ -477,3 +477,11 @@ def update_processing_order_info():
 @bck_not_ordinary_user_required
 def order_details():
     return h_order_details()
+
+
+@crm_d.route("/orders/<int:o_id>/logs", methods=["GET"])
+@login_required
+@user_activated
+@bck_not_ordinary_user_required
+def order_logs(o_id: int):
+    return h_order_logs(o_id)

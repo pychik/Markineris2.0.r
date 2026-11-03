@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session, aliased
 from sqlalchemy.sql.elements import TextClause
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
+from utilities.order_log import CRM_STAGE_LABELS, h_append_order_log, order_log_line
 from config import settings
 from utilities.clothes_tnved_content import clothes_tnved_content_error
 from logger import logger
@@ -1186,6 +1187,10 @@ def process_order_start(user: User, category: str, o_id: int, order_idn: str, or
             dt = datetime.now()
             order.stage = _stage  # settings.OrderStage.NEW
             order.crm_created_at = dt
+            actor = current_user.login_name if current_user.is_authenticated else user.login_name
+            order.order_log = h_append_order_log(
+                order.order_log, order_log_line(f"отправил заказ в CRM, этап «{CRM_STAGE_LABELS[_stage]}»", actor, at=dt)
+            )
             order.order_idn = order_idn
             order.user_comment = order_comment
             if _stage == settings.OrderStage.POOL:

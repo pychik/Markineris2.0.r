@@ -350,6 +350,8 @@ class Order(db.Model, UserMixin):
     __tablename__ = "orders"
     id = db.Column(db.Integer, primary_key=True)
 
+    order_log = db.Column(db.String(1000), default="", server_default="")
+
     category = db.Column(db.String(100), nullable=False, default='')
     is_moderation = db.Column(db.Boolean, default=False, nullable=False, server_default=text("false"), index=True)
     company_idn = db.Column(db.String(100))

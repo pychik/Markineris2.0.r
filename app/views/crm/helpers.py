@@ -16,6 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, aliased, selectinload, lazyload, load_only
 from werkzeug.utils import secure_filename
 
+from utilities.order_log import append_order_log, log_order_stage
 from config import settings
 from logger import logger
 from models import User, Order, OrderStat, FastOrderCompanies, db, ServerParam
@@ -559,6 +560,7 @@ def helper_m_order_processed(user: User, o_id: int, manager_id: int, f_manager_i
                """).bindparams(o_id=o_id, stage_setter_name=user.login_name, stage=settings.OrderStage.MANAGER_PROCESSED, m_finished=dt_manager )
     try:
         db.session.execute(stmt)
+        log_order_stage(o_id, settings.OrderStage.MANAGER_PROCESSED)
         db.session.commit()
         message = settings.Messages.ORDER_MANAGER_PROCESSED.format(order_idn=order_info.order_idn)
         status = settings.SUCCESS
@@ -640,6 +642,7 @@ def helper_m_order_ps(user: User, o_id: int, manager_id: int, allowed_roles: lis
                """).bindparams(o_id=o_id, stage_setter_name=user.login_name, stage=settings.OrderStage.MANAGER_SOLVED, m_finished=dt_manager)
     try:
         db.session.execute(stmt)
+        log_order_stage(o_id, settings.OrderStage.MANAGER_SOLVED)
         db.session.commit()
 
     except IntegrityError:
@@ -708,6 +711,7 @@ def helper_m_order_bp(user: User, o_id: int, manager_id: int) -> Response:
                """).bindparams(o_id=o_id, stage=settings.OrderStage.MANAGER_START)
     try:
         db.session.execute(stmt)
+        log_order_stage(o_id, settings.OrderStage.MANAGER_START)
         db.session.commit()
 
     except IntegrityError:
@@ -771,6 +775,7 @@ def helper_a_order_bp(user: User, o_id: int, manager_id: int, f_manager_id: int 
                """).bindparams(o_id=o_id)
     try:
         db.session.execute(stmt)
+        log_order_stage(o_id, settings.OrderStage.MANAGER_START)
         db.session.commit()
         status = settings.SUCCESS
         message = settings.Messages.ORDER_MANAGER_BP.format(order_idn=order_info.order_idn)
@@ -874,6 +879,7 @@ def helper_attach_file(manager: str, manager_id: int, o_id: int) -> Response:
                                 'status': status, 'message': message})
 
         db.session.execute(stmt)
+        append_order_log(o_id, f"прикрепил файл: {filename}")
         db.session.commit()
 
         status = settings.SUCCESS
@@ -946,6 +952,7 @@ def helper_attach_of_link(manager: str, manager_id: int, o_id: int) -> Response:
 
     try:
         db.session.execute(text(stmt))
+        append_order_log(o_id, "прикрепил ссылку на файл результата")
         db.session.commit()
         status = settings.SUCCESS
         message = settings.Messages.ORDER_ATTACH_FILE_LINK.format(order_idn=order_info.order_idn)
@@ -1056,6 +1063,7 @@ def helper_delete_order_file(manager_id: int, o_id: int) -> Response:
 
     try:
         db.session.execute(text(stmt))
+        append_order_log(o_id, "удалил файл / ссылку результата")
         db.session.commit()
         stage = request.args.get('stage', 0, int)
         delete_flag = True
@@ -1103,7 +1111,9 @@ def helper_change_manager(manager_id: int, o_id: int) -> Response:
         stmt = (text("UPDATE public.orders SET manager_id=:new_manager_id WHERE id=:o_id;")
                 .bindparams(new_manager_id=new_manager_id, o_id=o_id))
         try:
+            manager_data = User.query.with_entities(User.id, User.login_name).filter(User.id == new_manager_id).first()
             db.session.execute(stmt)
+            append_order_log(o_id, f"назначил оператора: {manager_data.login_name}")
             db.session.commit()
             status = settings.SUCCESS
             message = settings.Messages.ORDER_MANAGER_CHANGE
@@ -1158,6 +1168,7 @@ def helper_cancel_order(user: User, o_id: int, cancel_comment: str):
 
     try:
         db.session.execute(order_query)
+        append_order_log(o_id, f"отменил заказ, причина: {cancel_comment}")
 
         if order_info.payment:
             # make restore balance and cancel userTransaction and update orders_stats
@@ -1273,6 +1284,7 @@ def helper_change_agent_stage(o_id: int, stage: int, user: User):
                 """
     try:
         db.session.execute(text(stmt))
+        log_order_stage(o_id, stage)
         db.session.commit()
         flash(message=settings.Messages.ORDER_STAGE_CHANGE)
     except IntegrityError:
@@ -1373,6 +1385,7 @@ def helper_change_agent_stage_bck(o_id: int, stage: int, user: User) -> tuple[bo
                 """
     try:
         db.session.execute(text(stmt))
+        log_order_stage(o_id, stage)
         db.session.commit()
         status = True
         message = settings.Messages.ORDER_STAGE_CHANGE
@@ -1398,6 +1411,7 @@ def helper_crm_process_order_stats(o_id: int, order_info, stage: int, additional
                                    """
     try:
         db.session.execute(text(stmt))
+        log_order_stage(o_id, stage)
         db.session.commit()  # not sure
 
         row_count, mark_count = get_rows_marks(o_id=o_id, category=order_info.category)
@@ -1474,6 +1488,7 @@ def helpers_problem_order(problem_order: Order, problem_comment: str, with_check
                            DELETE from public.order_files WHERE order_id={problem_order.id};
                            """
             db.session.execute(text(delete_stmt))
+        append_order_log(problem_order.id, f"установил проблему: {problem_comment}")
         db.session.commit()
         message = settings.Messages.ORDER_PROBLEM
     except IntegrityError:
@@ -1519,6 +1534,7 @@ def helpers_problem_order_response(user: User, o_id: int) -> Response:
         problem_order.comment_problem = problem_comment
         problem_order.cp_created = datetime.now()
         problem_order.m_finished = None
+        append_order_log(problem_order.id, f"установил проблему: {problem_comment}")
         db.session.commit()
 
     except IntegrityError:
@@ -1552,6 +1568,7 @@ def helpers_ceps_order(o_id: int, ep: int, executor: str):
         query = text("UPDATE public.orders SET external_problem=:ep WHERE id=:o_id;").bindparams(o_id=o_id, ep=ep)
 
         db.session.execute(query)
+        append_order_log(o_id, "установил внешнюю проблему" if ep else "снял внешнюю проблему")
         db.session.commit()
 
         status = 'success'
@@ -1625,6 +1642,7 @@ def helpers_m_take_order(user: User, o_id: int) -> Response:
                """
     try:
         db.session.execute(text(stmt))
+        append_order_log(o_id, f"взял заказ в работу, оператор: {user.login_name}")
         db.session.commit()
 
         update_orders = helper_get_manager_orders(user=user, filtered_manager_id=filtered_manager_id,
@@ -1759,7 +1777,8 @@ def helpers_move_orders_to_processed() -> Response:
                SET stage=:new_stage,
                    closed_at=:closed_at, processed={True}
                WHERE stage=:stage
-                AND sent_at < :date_compare AND payment=True AND to_delete != True; 
+                AND sent_at < :date_compare AND payment=True AND to_delete != True
+               RETURNING id;
             """).bindparams(
         new_stage=settings.OrderStage.CRM_PROCESSED,
         closed_at=closed_at,
@@ -1767,7 +1786,9 @@ def helpers_move_orders_to_processed() -> Response:
         date_compare=date_compare
     )
     try:
-        db.session.execute(stmt)
+        moved_ids = [row.id for row in db.session.execute(stmt).fetchall()]
+        for order_id in moved_ids:
+            log_order_stage(order_id, settings.OrderStage.CRM_PROCESSED)
         db.session.commit()
         status = settings.SUCCESS
         message = settings.Messages.OS_CHANGE_SUCCESS \
@@ -2185,6 +2206,7 @@ def helper_update_processing_order_info() -> tuple[Response, int]:
             order_idn = order.order_idn
             processing_info = _format_processing_info_rows(info_rows)
             order.processing_info = processing_info
+            append_order_log(order.id, "изменил УПД: " + "; ".join(f"{label}: {number}" for label, number in info_rows))
             committing = perf_counter()
             db.session.commit()
             _log_slow_upd_save(order_id, True, started, loaded, committing)
@@ -2233,6 +2255,7 @@ def helper_update_processing_order_info() -> tuple[Response, int]:
         order.processing_company_label = company_label
         order.upd_number = upd_number
         order.processing_info = processing_info
+        append_order_log(order.id, f"изменил УПД: {company_label}, {upd_number}")
         committing = perf_counter()
         db.session.commit()
         _log_slow_upd_save(order_id, False, started, loaded, committing)
@@ -2298,11 +2321,13 @@ def helpers_crm_mpo_so_task():
                      UPDATE public.orders 
                      SET stage=:new_stage,
                          sent_at=:sent_at
-                     WHERE stage=:stage AND to_delete != True; 
+                     WHERE stage=:stage AND to_delete != True RETURNING id;
                   """).bindparams(new_stage=settings.OrderStage.SENT, sent_at=sent_at, stage=settings.OrderStage.MANAGER_PROCESSED)
 
     try:
-        db.session.execute(stmt)
+        moved_ids = [row.id for row in db.session.execute(stmt).fetchall()]
+        for order_id in moved_ids:
+            log_order_stage(order_id, settings.OrderStage.SENT, actor="Система")
         db.session.commit()
         status = 'success'
         message = settings.Messages.OS_CHANGE_SUCCESS \
@@ -2389,6 +2414,7 @@ def helper_auto_problem_cancel_order():
 
         try:
             db.session.execute(order_query)
+            append_order_log(order.id, "автоматически отменил заказ по сроку ожидания", actor="Система")
 
             if order.payment:
                 # make restore balance and cancel userTransaction and update orders_stats
@@ -2456,6 +2482,7 @@ def helper_auto_new_cancel_order():
 
         try:
             db.session.execute(order_query)
+            append_order_log(order.id, "автоматически отменил заказ по сроку ожидания", actor="Система")
 
             if order.payment:
                 # make restore balance and cancel userTransaction and update orders_stats
@@ -2542,6 +2569,7 @@ def _get_order_desc_row(order_id: int):
             Order.edo_type,
             Order.mark_type,
             Order.user_comment,
+            Order.order_log,
             Order.is_moderation,
             Order.rd_replacement_consent,
 
@@ -2628,3 +2656,14 @@ def h_order_details():
         user_companies=user_companies,
     )
     return jsonify(status="success", html=html)
+
+
+def h_order_logs(o_id: int):
+    order = _get_order_desc_row(o_id)
+    if not order:
+        return jsonify(status="error", message="Заказ не найден"), 404
+    if not _can_view_order_desc(order, current_user):
+        return jsonify(status="error", message="Нет доступа к заказу"), 403
+    response = jsonify(status="success", logs=order.order_log or "", order_idn=order.order_idn)
+    response.headers["Cache-Control"] = "no-store"
+    return response
