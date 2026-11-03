@@ -154,8 +154,8 @@ def recommend_rd(tnved: str | None, country: str | None, product_type: str | Non
     """Проверенные РД из Tezaurus под карточку - блок над таблицей реестра в модалке.
 
     РД подходит, если ТНВЭД карточки начинается с одного из его кодов (у РД бывают и группы «6204»,
-    и полные коды) и страна совпадает. Вид товара только поднимает РД выше: описания в Tezaurus
-    свободным текстом. «До» не раньше чем через месяц - уже в get_valid_rd().
+    и полные коды), страна совпадает и в описании РД («ВИД» в Tezaurus) есть вид товара карточки.
+    Если вид в карточке не выбран, по нему не отбираем. «До» не раньше чем через месяц - уже в get_valid_rd().
     """
     tnved = re.sub(r"\D", "", tnved or "")
     country = _clean_country(country)
@@ -173,6 +173,8 @@ def recommend_rd(tnved: str | None, country: str | None, product_type: str | Non
         except (KeyError, TypeError, ValueError):
             continue
         description = rd.get("description") or ""
+        if stem and stem not in description.lower():
+            continue
         items.append({
             "rd_type": rd.get("rd_type") or "",
             "rd_name": rd.get("rd_name") or "",
@@ -182,9 +184,9 @@ def recommend_rd(tnved: str | None, country: str | None, product_type: str | Non
             "country": country,
             "tnved_code": max(codes, key=len),  # самый точный из совпавших кодов
             "description": description,
-            "type_match": bool(stem) and stem in description.lower(),
+            "type_match": bool(stem),  # вид совпал - описание в модалке выделяется
         })
-    items.sort(key=lambda item: (not item["type_match"], -item["days_left"]))
+    items.sort(key=lambda item: -item["days_left"])
     return items[:RECOMMEND_LIMIT]
 
 
