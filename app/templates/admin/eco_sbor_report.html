@@ -1,6 +1,24 @@
 {% extends 'main/base_v2.html' %}
+{% macro eco_date_field(id, name, label, value) %}
+    <div class="col-md-2">
+        <label class="form-label" for="{{ id }}">{{ label }}</label>
+        <div class="input-group">
+            <input class="form-control eco-date-input" id="{{ id }}" type="text" name="{{ name }}"
+                   value="{{ value.strftime('%d.%m.%Y') }}" placeholder="ДД.ММ.ГГГГ" readonly autocomplete="off" required>
+            <button class="eco-date-toggle" type="button" data-eco-calendar="{{ id }}"
+                    aria-label="{{ label }}: открыть календарь" aria-expanded="false" aria-controls="ui-datepicker-div">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="3" y="5" width="18" height="16" rx="3" stroke="currentColor" stroke-width="1.6"/>
+                    <path d="M7 3v4m10-4v4M3 11h18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                    <path d="M7 15h2m3 0h2m3 0h1M7 18h2m3 0h2" stroke="currentColor" stroke-width="1.6"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+{% endmacro %}
 {% block admin_panel %}
 <link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/service/jquery-ui.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/eco_sbor_report.css', v='1') }}">
 <script src="{{ url_for('static', filename='main_v2/js/assets/jquery-ui.min.js') }}"></script>
 <script src="{{ url_for('static', filename='main_v2/js/datepicker-ru.js') }}"></script>
 <style>
@@ -34,8 +52,8 @@
     <h1 class="h3 mb-4">Отчет экосбор</h1>
     <form id="eco_filters" class="mb-4">
         <div class="row g-3 align-items-end">
-            <div class="col-md-2"><label class="form-label" for="eco_from">Дата от</label><input class="form-control" id="eco_from" type="text" name="date_from" value="{{ filters.date_from.strftime('%d.%m.%Y') }}" readonly autocomplete="off"></div>
-            <div class="col-md-2"><label class="form-label" for="eco_to">Дата до</label><input class="form-control" id="eco_to" type="text" name="date_to" value="{{ filters.date_to.strftime('%d.%m.%Y') }}" readonly autocomplete="off"></div>
+            {{ eco_date_field('eco_from', 'date_from', 'Дата от', filters.date_from) }}
+            {{ eco_date_field('eco_to', 'date_to', 'Дата до', filters.date_to) }}
             <div class="col-md-2"><label class="form-label" for="eco_category">Категория</label><select class="form-select" id="eco_category" name="category"><option value="">Все</option>{% for category in categories %}<option value="{{ category }}" {% if filters.category == category %}selected{% endif %}>{{ category }}</option>{% endfor %}</select></div>
             <div class="col-md-3"><label class="form-label" for="eco_subcategory">Подкатегория</label><select class="form-select" id="eco_subcategory" name="subcategory"><option value="">Все</option>{% for key, title in subcategories.items() %}<option value="{{ key }}" data-category="{{ subcategory_categories[key] }}" {% if filters.subcategory == key %}selected{% endif %}>{{ title }}</option>{% endfor %}</select></div>
             <div class="col-md-3"><label class="form-label" for="eco_company">Проводящая фирма</label><select class="form-select" id="eco_company" name="company"><option value="">Все</option>{% if filters.company %}<option value="{{ filters.company }}" selected>{{ company_label }}</option>{% endif %}</select></div>
@@ -60,11 +78,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const company = document.getElementById('eco_company');
     const sort = document.getElementById('eco_sort');
     $('#eco_from, #eco_to').datepicker({
+        ...$.datepicker.regional.ru,
         dateFormat: 'dd.mm.yy',
         changeMonth: true,
         changeYear: true,
         firstDay: 1,
+        beforeShow: (input, instance) => {
+            instance.dpDiv.addClass('eco-datepicker');
+            form.querySelectorAll('[data-eco-calendar]').forEach(button => {
+                button.setAttribute('aria-expanded', String(button.dataset.ecoCalendar === input.id));
+            });
+        },
+        onClose: (_, instance) => {
+            instance.dpDiv.removeClass('eco-datepicker');
+            form.querySelectorAll('[data-eco-calendar]').forEach(button => button.setAttribute('aria-expanded', 'false'));
+        },
         onSelect: () => { company.value = ''; invalidateResults(); loadCompanies(); }
+    });
+    form.querySelectorAll('[data-eco-calendar]').forEach(button => {
+        button.addEventListener('click', () => {
+            const input = document.getElementById(button.dataset.ecoCalendar);
+            if (button.getAttribute('aria-expanded') === 'true') $(input).datepicker('hide');
+            else $(input).datepicker('show');
+        });
     });
     const allSubcategories = Array.from(subcategory.options).slice(1).map(option => option.cloneNode(true));
     let currentRequest = 0;
