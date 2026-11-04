@@ -1,0 +1,79 @@
+{% extends "main/base_v2.html" %}
+
+{% macro date_field(name, label, value) %}
+    <div class="col-sm-6 col-lg-3 first-order-picker" data-first-order-picker>
+        <label class="form-label" for="{{ name }}">{{ label }}</label>
+        <div class="input-group">
+            <input class="form-control first-order-picker__input" id="{{ name }}" name="{{ name }}" type="text"
+                   value="{{ value.strftime('%d.%m.%Y %H:%M') }}" placeholder="ДД.ММ.ГГГГ ЧЧ:ММ"
+                   autocomplete="off" maxlength="16" required>
+            <button class="first-order-picker__toggle" type="button" aria-label="Выбрать {{ label|lower }}"
+                    aria-controls="{{ name }}_calendar" aria-expanded="false">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="3" y="5" width="18" height="16" rx="3" stroke="currentColor" stroke-width="1.6"/>
+                    <path d="M7 3v4m10-4v4M3 11h18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                    <path d="M7 15h2m3 0h2m3 0h1M7 18h2m3 0h2" stroke="currentColor" stroke-width="1.6"/>
+                </svg>
+            </button>
+        </div>
+        <div class="first-order-picker__panel" id="{{ name }}_calendar" role="group" aria-label="{{ label }}: календарь и время" hidden>
+            <div class="first-order-picker__calendar"></div>
+            <div class="first-order-picker__footer">
+                <label class="first-order-picker__time-label" for="{{ name }}_time">Время
+                    <input class="form-control" id="{{ name }}_time" type="time" value="{{ value.strftime('%H:%M') }}" step="60">
+                </label>
+                <button class="first-order-picker__done" type="button">Готово</button>
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+
+{% block admin_panel %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/service/jquery-ui.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/first_order_report.css', v='5') }}">
+<div class="container-fluid pb-4" id="firstOrderReport"
+     data-report-url="{{ url_for('admin_control.first_order_report') }}"
+     data-excel-url="{{ url_for('admin_control.first_order_report_excel') }}">
+    <div class="breadcrumbs mb-4">
+        <a href="{{ url_for('admin_control.index') }}">Управление пользователями</a>
+        / <span>Отчёт первичного заказа</span>
+    </div>
+    <h1 class="fs-3 mb-3">Отчёт первичного заказа</h1>
+    <form id="firstOrderReportFilters" method="get" class="row g-3 align-items-end mb-4">
+        {{ date_field('date_from', 'Дата с', params.date_from) }}
+        {{ date_field('date_to', 'Дата по', params.date_to) }}
+        <input type="hidden" name="sort" value="{{ params.sort }}">
+        <input type="hidden" name="direction" value="{{ params.direction }}">
+        <div class="col-auto">
+            <button class="btn btn-accent" type="submit">Показать</button>
+        </div>
+        <div class="col-auto">
+            <a class="btn btn-secondary" id="firstOrderReportExcel"
+               href="{{ url_for('admin_control.first_order_report_excel', **params.query_args()) }}">Скачать Excel</a>
+        </div>
+        <div class="col-12">
+            <div class="first-order-months" role="group" aria-label="Выбрать месяц {{ months[0].year }} года">
+                {% for month in months %}
+                <button class="first-order-months__button" type="button" data-first-order-month
+                        data-date-from="{{ month.date_from }}" data-date-to="{{ month.date_to }}"
+                        aria-label="{{ month.label }} {{ month.year }}" aria-pressed="false"
+                        {% if month.disabled %}disabled title="Этот месяц ещё не наступил"{% endif %}>
+                    <span class="first-order-months__full">{{ month.label }}</span>
+                    <span class="first-order-months__short" aria-hidden="true">{{ month.label[:3] }}</span>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+    </form>
+    <div class="alert alert-danger{% if not error %} d-none{% endif %}" id="firstOrderReportError" role="alert">{{ error or '' }}</div>
+    <div class="small text-muted mb-2 d-none" id="firstOrderReportLoading" role="status">Обновление отчёта…</div>
+    <div id="firstOrderReportTable" aria-live="polite" aria-busy="false">
+        {% if rows is defined %}
+            {% include 'admin/first_order_report/table.html' %}
+        {% endif %}
+    </div>
+</div>
+<script src="{{ url_for('static', filename='main_v2/js/assets/jquery-ui.min.js') }}"></script>
+<script src="{{ url_for('static', filename='main_v2/js/datepicker-ru.js') }}"></script>
+<script src="{{ url_for('static', filename='main_v2/js/admin/first_order_report.js', v='4') }}" defer></script>
+{% endblock %}

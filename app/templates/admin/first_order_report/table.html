@@ -1,0 +1,77 @@
+{% macro sort_header(key, label) %}
+    <th scope="col" aria-sort="{{ ('ascending' if params.direction == 'asc' else 'descending') if params.sort == key else 'none' }}">
+        <a class="first-order-report__sort" data-first-order-nav
+           data-first-order-sort="{{ key }}" data-first-order-direction="{{ 'desc' if params.sort == key and params.direction == 'asc' else 'asc' }}"
+           href="{{ url_for('admin_control.first_order_report', **params.query_args(sort=key, direction=('desc' if params.sort == key and params.direction == 'asc' else 'asc'), page=1)) }}"
+           aria-label="{{ label }}: сортировать {{ 'по убыванию' if params.sort == key and params.direction == 'asc' else 'по возрастанию' }}">
+            {{ label }}
+            <span aria-hidden="true" class="first-order-report__arrows"><span class="{{ 'active' if params.sort == key and params.direction == 'asc' }}">↑</span><span class="{{ 'active' if params.sort == key and params.direction == 'desc' }}">↓</span></span>
+        </a>
+    </th>
+{% endmacro %}
+{% macro page_link(number) %}
+    <li><a data-first-order-nav data-first-order-page="{{ number }}"
+           class="{{ 'active' if number == params.page }}" {% if number == params.page %}aria-current="page"{% endif %}
+           href="{{ url_for('admin_control.first_order_report', **params.query_args(page=number)) }}">{{ number }}</a></li>
+{% endmacro %}
+{% set offset = (params.page - 1) * params.per_page %}
+<div class="first-order-report__result" data-sort="{{ params.sort }}" data-direction="{{ params.direction }}"
+     data-page="{{ params.page }}" data-date-from="{{ params.date_from.strftime('%d.%m.%Y %H:%M') }}"
+     data-date-to="{{ params.date_to.strftime('%d.%m.%Y %H:%M') }}">
+    <p class="mb-3">Пользователей: <strong>{{ totals.users_count }}</strong>; заказов за период: <strong>{{ totals.orders_count }}</strong></p>
+    <div class="table-responsive">
+        <table class="table table-result align-middle">
+            <thead class="text-dark">
+                <tr>
+                    <th scope="col">№</th>
+                    <th scope="col">Пользователь</th>
+                    <th scope="col" class="text-end">Текущий баланс, ₽</th>
+                    {{ sort_header('registered_at', 'Дата регистрации') }}
+                    {{ sort_header('first_order_at', 'Дата первого заказа') }}
+                    <th scope="col">Откуда пришёл</th>
+                    <th scope="col">Почта</th>
+                    <th scope="col">Телефон</th>
+                    <th scope="col">Агент пользователя</th>
+                    <th scope="col">Заказов за период</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>{{ offset + loop.index }}</td>
+                    <td>{{ row.login_name or '—' }}</td>
+                    <td class="text-end text-nowrap">{{ '{:,.2f}'.format(row.balance or 0).replace(',', ' ') }}</td>
+                    <td class="text-nowrap">{{ row.registered_at.strftime('%d.%m.%Y %H:%M') if row.registered_at else '—' }}</td>
+                    <td class="text-nowrap">{{ row.first_order_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                    <td>{{ source_labels.get(row.source, row.source or 'Не указан') }}</td>
+                    <td>{{ row.email or '—' }}</td>
+                    <td class="text-nowrap">{{ row.phone or '—' }}</td>
+                    <td>{{ row.agent_name or 'Без агента' }}</td>
+                    <td>{{ row.orders_count }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="10" class="text-center text-muted py-4">За выбранный период первичных заказов нет.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="pagination-page-info text-center">
+        На этой странице <b>{{ offset + 1 if totals.users_count else 0 }} - {{ offset + rows|length }}</b>
+        Всего: <b>{{ totals.users_count }}</b>
+    </div>
+    {% set first_page = [1, params.page - 2]|max %}
+    {% set last_page = [pages, params.page + 2]|min %}
+    {% if pages > 1 %}
+        <nav class="pagination_section first-order-pagination my-3" aria-label="Страницы отчёта первичного заказа">
+            <ul class="pagination mb-0">
+                {% if first_page > 1 %}{{ page_link(1) }}{% endif %}
+                {% if first_page > 2 %}<li><span>…</span></li>{% endif %}
+                {% for number in range(first_page, last_page + 1) %}
+                    {{ page_link(number) }}
+                {% endfor %}
+                {% if last_page < pages - 1 %}<li><span>…</span></li>{% endif %}
+                {% if last_page < pages %}{{ page_link(pages) }}{% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+</div>

@@ -9,6 +9,7 @@ from data_migrations.utils import make_password
 from loguru import logger
 from models import CardChatRead, ModerationStatus, Order, ProductCard, User, db
 from utilities.admin.eco_sbor_report import eco_sbor_report as render_eco_sbor_report
+from utilities.admin.first_order_report import first_order_report as render_first_order_report
 from tezaurus.exceptions import TezaurusApiError, TezaurusConfigurationError
 from tezaurus.processing_companies import ProcessingCompaniesClient
 from tezaurus.runtime_catalogs import get_all_countries
@@ -973,6 +974,20 @@ def etl_process_upload():
     data['users_total'] = users_total
     data['agents_total'] = agents_total
     return jsonify(dict(status=status, info=data)), 200
+
+
+@admin_control.route('/first_order_report/', methods=['GET'])
+@login_required
+@su_required
+def first_order_report():
+    return render_first_order_report()
+
+
+@admin_control.route('/first_order_report/excel', methods=['GET'])
+@login_required
+@su_required
+def first_order_report_excel():
+    return render_first_order_report(excel=True)
 
 
 @admin_control.route('/users_orders_stats/', defaults={'admin_id': None}, methods=['GET', ])
