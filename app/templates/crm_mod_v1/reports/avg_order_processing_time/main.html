@@ -22,6 +22,12 @@
 
 {% include 'crm_mod_v1/reports/avg_order_processing_time/report_description.html' %}
 
+{% macro bonus_notice() %}
+  <aside class="avg-report-bonus-notice" role="note" aria-label="Примечание к бонусам операторов">
+    УЧЕСТЬ, ЧТОБЫ CLAUDE НЕ УЧИТЫВАЛ ЗАКАЗЫ СО СТАТУСОМ IS MODERATION В БОНУСЕ ОПЕРАТОРОВ
+  </aside>
+{% endmacro %}
+
 {% set default_manager = managers[0] if managers else none %}
 <div class="container"
      id="crm_operator_reports_page"
@@ -119,8 +125,11 @@
             </div>
           </div>
         </div>
-        <div id="avg_order_processing_time_table">
-          {% include 'crm_mod_v1/reports/avg_order_processing_time/table.html' %}
+        <div class="avg-report-layout">
+          <div class="avg-report-table-content" id="avg_order_processing_time_table">
+            {% include 'crm_mod_v1/reports/avg_order_processing_time/table.html' %}
+          </div>
+          {{ bonus_notice() }}
         </div>
       </div>
 
@@ -157,8 +166,11 @@
             </div>
           </div>
         </div>
-        <div id="operator_category_table">
-          <div class="alert alert-secondary mt-3">Отчет еще не сформирован.</div>
+        <div class="avg-report-layout">
+          <div class="avg-report-table-content" id="operator_category_table">
+            <div class="alert alert-secondary">Отчет еще не сформирован.</div>
+          </div>
+          {{ bonus_notice() }}
         </div>
       </div>
 
@@ -195,8 +207,11 @@
             </div>
           </div>
         </div>
-        <div id="daily_category_table">
-          <div class="alert alert-secondary mt-3">Отчет еще не сформирован.</div>
+        <div class="avg-report-layout">
+          <div class="avg-report-table-content" id="daily_category_table">
+            <div class="alert alert-secondary">Отчет еще не сформирован.</div>
+          </div>
+          {{ bonus_notice() }}
         </div>
       </div>
 
@@ -233,6 +248,7 @@
             </div>
           </div>
         </div>
+        {{ bonus_notice() }}
       </div>
     </div>
 

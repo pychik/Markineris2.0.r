@@ -1,4 +1,63 @@
 <style>
+  .avg-report-layout {
+    align-items: start;
+    display: grid;
+    gap: 20px;
+    grid-template-columns: minmax(0, 1fr) 250px;
+    margin-top: 16px;
+  }
+
+  .avg-report-table-content {
+    min-width: 0;
+    overflow-x: auto;
+  }
+
+  .avg-report-table-content > .faded,
+  .avg-report-table-content .table-result {
+    margin-top: 0 !important;
+  }
+
+  .avg-report-bonus-notice {
+    animation: avg-report-notice-appear 700ms ease-out 150ms both;
+    background: #fff0f0;
+    border: 1px solid #efb3b8;
+    border-left: 4px solid #c84550;
+    border-radius: 10px;
+    color: #922b35;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.6;
+    margin: 0;
+    padding: 16px;
+  }
+
+  @keyframes avg-report-notice-appear {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .avg-report-bonus-notice {
+      animation: none;
+    }
+  }
+
+  @media (max-width: 1199px) {
+    .avg-report-layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .avg-report-bonus-notice {
+      order: -1;
+    }
+  }
+
   .avg-report-header {
     align-items: center;
     display: flex;
