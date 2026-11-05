@@ -1,6 +1,6 @@
 {% set is_linen_kpb = card.category == 'linen' and main and main.type == 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ' %}
-{# В корзину можно только в пользовательском режиме #}
-{% set can_card_to_cart = (not is_operator_view) and (card.data_status == 'approved') and card.processing_company_label %}
+{# В корзину добавляет только клиент, и только если у карточки везде указан вес #}
+{% set can_card_to_cart = (not is_operator_view) and (card.data_status == 'approved') and card.processing_company_label and not weight_missing %}
 
 {% set subcat_title = '' %}
 {% if cfg.has_subcategory and main and main.subcategory not in [None, '', 'common'] %}
@@ -127,7 +127,8 @@
 
       {% if can_card_to_cart %}
         <div class="d-flex align-items-center gap-2">
-          <input type="number" id="pc-kpb-qty" class="o-b-qty pc-kpb-qty" min="0" value="0">
+          <input type="number" id="pc-kpb-qty" class="o-b-qty pc-kpb-qty" min="0" value="0"
+                 data-unit-weight="{{ main.weight_grams or 0 }}">
           <button id="pc-kpb-add"
                   class="pc-btn pc-btn-yellow pc-btn--sm pc-kpb-add"
                   title="Применить количество в корзину"
@@ -147,8 +148,16 @@
     </div>
   {% elif sizes %}
 
-    <div class="pc-card-view__block mb-3">
-      <h6 class="fw-semibold mb-2">Размеры</h6>
+    <div class="pc-card-view__block mb-3 pc-weight-block"
+         data-weights-url="{{ url_for('user_product_cards.card_weights', card_id=card.id) }}"
+         data-view-url="{{ url_for('user_product_cards.card_view', card_id=card.id) }}">
+      <h6 class="fw-semibold mb-2">Размер и вес</h6>
+      {% if weight_missing and not is_operator_view %}
+        <div class="alert alert-warning py-2 small mb-2">
+          По новым правилам экосбора для заказа нужен вес каждого товара.
+          Нажмите «Указать вес»: поменяется только вес, повторная модерация не понадобится.
+        </div>
+      {% endif %}
 
       <div class="table-responsive">
         <table class="table table-sm align-middle">
@@ -163,8 +172,7 @@
               <th>Модерация</th>
 
               {% if can_card_to_cart %}
-<!--                <th style="width:140px;">Кол-во</th>-->
-                <th style="width:160px;"></th>
+                <th colspan="2"></th>
               {% endif %}
             </tr>
           </thead>
@@ -172,7 +180,17 @@
           <tbody>
             {% for s in sizes %}
               <tr>
-                <td>{{ s.size }}</td>
+                <td>
+                  {{ s.size }}
+                  <div class="pc-weight-view small text-muted text-nowrap">{% if s.weight %}{{ s.weight }} г / шт.{% else %}вес не указан{% endif %}</div>
+                  {% if not is_operator_view %}
+                    <span class="pc-weight-edit d-none d-inline-flex align-items-center gap-1">
+                      <input type="number" class="form-control form-control-sm" style="width:100px;" min="1" max="100000" step="1"
+                             placeholder="Пример 100" value="{{ s.weight or '' }}" data-unit-id="{{ s.id }}"
+                             aria-label="Вес {{ s.size }}, граммы"> г
+                    </span>
+                  {% endif %}
+                </td>
 
                 {% if card.category in ['clothes', 'socks'] %}
                   <td>{{ s.size_type }}</td>
@@ -195,10 +213,12 @@
                            class="o-b-qty pc-size-qty"
                            min="0"
                            value="0"
+                           data-unit-weight="{{ s.weight or 0 }}"
                            {% if not s.is_approved %}disabled{% endif %}
                            data-size="{{ s.size }}"
                            data-size-type="{{ s.size_type if s.size_type is defined else '' }}"
                            data-unit="{{ s.unit if s.unit is defined else '' }}">
+                    <div class="small text-muted text-nowrap">Всего: <span data-pc-row-weight>0 г</span></div>
                   </td>
                   <td style="width:160px;">
                     <button type="button"
@@ -221,7 +241,17 @@
           </tbody>
         </table>
       </div>
+      {% if not is_operator_view %}
+        <div class="pc-weight-error text-danger small mb-2" role="alert"></div>
+        <button type="button" class="pc-btn pc-btn-gray pc-btn--sm pc-weight-edit-btn pc-weight-view">{{ 'Указать вес' if weight_missing else 'Изменить вес' }}</button>
+        <button type="button" class="pc-btn pc-btn-yellow pc-btn--sm pc-weight-save-btn pc-weight-edit d-none">Сохранить вес</button>
+      {% endif %}
     </div>
+  {% endif %}
+
+  {# у размеров вес в таблице выше, отдельный блок только для позиций без размеров и КПБ #}
+  {% if is_linen_kpb or not sizes %}
+    {% include 'product_cards/user/helpers/_card_view_weight_block.html' %}
   {% endif %}
 
   {% if card.category in ['parfum', 'cosmetics', 'toys'] and can_card_to_cart %}
@@ -232,7 +262,8 @@
       {% set single_card_article = main.article or '' %}
     {% endif %}
     <div class="d-flex align-items-center gap-2">
-      <input type="number" id="pc-single-qty" class="o-b-qty pc-single-qty" min="0" value="0">
+      <input type="number" id="pc-single-qty" class="o-b-qty pc-single-qty" min="0" value="0"
+             data-unit-weight="{{ main.weight_grams or 0 }}">
       <button id="pc-single-add"
               class="pc-btn pc-btn-yellow pc-btn--sm pc-single-add"
               title="Применить количество в корзину"
@@ -252,6 +283,10 @@
         ✓
       </button>
     </div>
+  {% endif %}
+
+  {% if can_card_to_cart %}
+    <div class="small text-muted my-2" aria-live="polite">Общий вес по введённому количеству: <span data-pc-total-weight>0 г</span></div>
   {% endif %}
 
   <div class="pc-card-view__meta small text-muted">

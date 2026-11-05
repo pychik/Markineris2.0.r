@@ -1,0 +1,47 @@
+{# Вес одной штуки по размерам карточки. Клиент может поправить только вес, без модерации, оператор только смотрит.
+   JS: static/product_cards/users/pc_weight.js, сохранение: user_product_cards.card_weights. #}
+{% if weight_units %}
+<div class="pc-card-view__block mb-3 pc-weight-block"
+     data-weights-url="{{ url_for('user_product_cards.card_weights', card_id=card.id) }}"
+     data-view-url="{{ url_for('user_product_cards.card_view', card_id=card.id) }}">
+  <h6 class="fw-semibold mb-2">Вес 1 шт.</h6>
+
+  {% if weight_missing and not is_operator_view %}
+    <div class="alert alert-warning py-2 small mb-2">
+      По новым правилам экосбора для заказа нужен вес каждого товара.
+      Нажмите «Указать вес»: поменяется только вес, повторная модерация не понадобится.
+    </div>
+  {% endif %}
+
+  <table class="table table-sm align-middle mb-2">
+    <tbody>
+      {% for unit in weight_units %}
+        <tr>
+          <td>{{ unit.label }}</td>
+          <td class="text-end" style="width:170px;">
+            <span class="pc-weight-view">{% if unit.weight %}{{ unit.weight }} г{% else %}не указан{% endif %}</span>
+            {% if not is_operator_view %}
+              <span class="pc-weight-edit d-none d-inline-flex align-items-center gap-1">
+                <input type="number" class="form-control form-control-sm" style="width:120px;" min="1" max="100000" step="1"
+                       placeholder="Пример 100" value="{{ unit.weight or '' }}" data-unit-id="{{ unit.id }}"
+                       aria-label="Вес {{ unit.label }}, граммы">
+                г
+              </span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if not is_operator_view %}
+    <div class="pc-weight-error text-danger small mb-2" role="alert"></div>
+    <button type="button" class="pc-btn pc-btn-gray pc-btn--sm pc-weight-edit-btn pc-weight-view">
+      {{ 'Указать вес' if weight_missing else 'Изменить вес' }}
+    </button>
+    <button type="button" class="pc-btn pc-btn-yellow pc-btn--sm pc-weight-save-btn pc-weight-edit d-none">
+      Сохранить вес
+    </button>
+  {% endif %}
+</div>
+{% endif %}

@@ -1003,6 +1003,7 @@ function oBCartSyncOpenCardModalInputsFromCart() {
     // ВАЖНО: если нет в корзине — показываем 0 (не добавлено)
     inp.value = String(qty || 0);
   });
+  if (typeof pcWeightUpdateSelectedTotals === "function") pcWeightUpdateSelectedTotals();
 }
 
 function oBCartGetSingleUnitQtyFromCart() {
@@ -1038,6 +1039,7 @@ function oBCartSyncSingleUnitQtyFromCart() {
   if (!inp) return;
 
   inp.value = String(oBCartGetSingleUnitQtyFromCart() || 0);
+  if (typeof pcWeightUpdateSelectedTotals === "function") pcWeightUpdateSelectedTotals();
 }
 
 function oBCartSyncParfumQtyFromCart() {

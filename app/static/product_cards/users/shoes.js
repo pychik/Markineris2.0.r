@@ -54,8 +54,8 @@ function setShoes(){
     document.querySelectorAll('[id=quantity_info]').forEach(el=>total+=+parseInt(el.innerText, 10));
     // document.getElementById('shoes_in_pos_info').innerHTML = '';
     // document.getElementById('shoes_in_pos_info').innerText= q_box*total;
-    document.getElementById('shoes_in_box_info').innerHTML = '';
-    document.getElementById('shoes_in_box_info').innerText = total;
+    const inBoxInfo = document.getElementById('shoes_in_box_info');
+    if (inBoxInfo) inBoxInfo.innerText = total;
 }
 
 
@@ -116,8 +116,8 @@ function addShoeCell(){
         // `<div class="row mb-3" id="container_element"><div class="col-md-6 col-xs-12 mt-1"><input type="text" name="size" id="size" minlength="2" maxlength="5" class="form-control mb-1" placeholder="Размер 16 - 56.5" autocomplete="off" oninput="check_shoes_size(value)||(value='');" value="${size}" required></div><div class="col-md-6 col-xs-12 mt-1"><input type="number" name="quantity" id="quantity" class="form-control ms-1" value="1" min="1"  oninput="validity.valid||(value='');javascript:setShoes();" max="${max_param}" placeholder="${placeholder_param}" required></div></div>`);
 
     var total = countShoes();
-    document.getElementById('shoes_in_box_info').innerHTML = '';
-    document.getElementById('shoes_in_box_info').innerText = total;
+    const inBoxInfo = document.getElementById('shoes_in_box_info');
+    if (inBoxInfo) inBoxInfo.innerText = total;
     document.getElementById('size_order').value = '';
     document.getElementById('quantity_order').value = '1';
 
