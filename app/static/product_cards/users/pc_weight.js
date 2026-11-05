@@ -8,6 +8,7 @@ const PC_WEIGHT_FORMAT_ERROR = `Вес: нужно целое число гра�
 // вес по подписи размера: скрипты категорий пересобирают строки (носки каждый раз целиком), и вес надо вернуть
 const pcWeightByRow = new Map();
 let pcWeightModalItems = [];
+let pcWeightBulkEdited = false;
 
 function pcWeightValid(value) {
     const s = String(value ?? "").trim();
@@ -144,8 +145,31 @@ function pcWeightOpen() {
     }
     const list = document.getElementById("pcWeightModalList");
     list.replaceChildren(...pcWeightModalItems.map((item, i) => pcWeightField(item.label, item.value, i)));
+    document.getElementById("pcWeightBulk").classList.toggle("d-none", pcWeightIsSingle() || pcWeightModalItems.length < 2);
+    pcWeightBulkEdited = false;
+    pcWeightSyncBulk();
     document.getElementById("pcWeightModalError").textContent = "";
     bootstrap.Modal.getOrCreateInstance(document.getElementById("pcWeightModal")).show();
+}
+
+function pcWeightSyncBulk() {
+    const input = document.getElementById("pcWeightBulkInput");
+    if (!pcWeightBulkEdited) {
+        const first = Array.from(document.querySelectorAll("#pcWeightModalList .pc-weight-input"))
+            .find(rowInput => pcWeightValid(rowInput.value));
+        input.value = first?.value || "";
+    }
+    document.getElementById("pcWeightBulkApply").disabled = !pcWeightValid(input.value);
+}
+
+function pcWeightApplyAll() {
+    if (pcWeightIsSingle() || pcWeightModalItems.length < 2) return;
+    const input = document.getElementById("pcWeightBulkInput");
+    if (!pcWeightValid(input.value)) return;
+    const inputs = Array.from(document.querySelectorAll("#pcWeightModalList .pc-weight-input"));
+    inputs.forEach(rowInput => { rowInput.value = input.value.trim(); });
+    pcWeightMarkInputs(inputs);
+    document.getElementById("pcWeightModalError").textContent = "";
 }
 
 function pcWeightSave() {
@@ -175,6 +199,7 @@ function pcWeightSave() {
 // иначе бэк не сопоставит size и weight. Возвращает текст ошибки или null.
 // При редактировании вес можно не трогать: пустое значение сохранённый вес не меняет.
 function pcWeightCheck() {
+    if (document.getElementById("pc-config")?.dataset.crmFlag === "1") return null;
     const required = document.getElementById("pc-config")?.dataset.editMode !== "1";
     pcWeightRenderAll();
     const values = pcWeightIsSingle()
@@ -206,7 +231,20 @@ document.addEventListener("DOMContentLoaded", function () {
     if (window.jQuery) jQuery(document).on("change", "#type", pcWeightRenderAll);
 
     modalEl.addEventListener("shown.bs.modal", () => modalEl.querySelector(".pc-weight-input")?.focus());
+    modalEl.addEventListener("input", e => {
+        if (e.target.id === "pcWeightBulkInput") {
+            pcWeightBulkEdited = true;
+            pcWeightSyncBulk();
+        } else if (e.target.classList.contains("pc-weight-input")) {
+            pcWeightSyncBulk();
+        }
+    });
     modalEl.addEventListener("keydown", e => {
+        if (e.key === "Enter" && e.target.id === "pcWeightBulkInput") {
+            e.preventDefault();
+            pcWeightApplyAll();
+            return;
+        }
         if (e.key === "Enter" && e.target.classList.contains("pc-weight-input")) {
             e.preventDefault();
             pcWeightSave();
@@ -215,6 +253,27 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // ---------- модалка просмотра карточки: правка только веса ----------
+
+function pcWeightUpdateSelectedTotals() {
+    const body = document.getElementById("pcCardViewModalBody");
+    if (!body) return;
+    const format = grams => Number.isSafeInteger(grams) ? `${grams.toLocaleString("ru-RU")} г` : "—";
+    let total = 0;
+    body.querySelectorAll("input[data-unit-weight]").forEach(input => {
+        const qty = input.disabled ? 0 : Math.max(0, parseInt(input.value, 10) || 0);
+        const weight = Number(input.dataset.unitWeight) * qty;
+        total += weight;
+        const rowTotal = input.closest("tr")?.querySelector("[data-pc-row-weight]");
+        if (rowTotal) rowTotal.textContent = format(weight);
+    });
+    body.querySelectorAll("[data-pc-total-weight]").forEach(el => { el.textContent = format(total); });
+}
+
+for (const eventName of ["input", "change"]) {
+    document.addEventListener(eventName, e => {
+        if (e.target.matches("#pcCardViewModalBody input[data-unit-weight]")) pcWeightUpdateSelectedTotals();
+    });
+}
 
 function pcWeightCsrf() {
     return document.querySelector('meta[name="csrf-token"]')?.content

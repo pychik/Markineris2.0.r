@@ -143,7 +143,7 @@
                                     </div>
                                 </div>
                                 <div class="important-card__val"><span id="quantity_info">{{sq.quantity}}</span> <span>шт.</span></div>
-                                <input type="hidden" id="size" name="size" value="{{sq.size}}"><input type="hidden" id="quantity" name="quantity" value="{{sq.quantity}}"><input type="hidden" id="size_type" name="size_type" value="{{sq.size_type}}"><input type="hidden" name="weight" value="{{ sq.weight_grams or '' }}">
+                                <input type="hidden" id="size" name="size" value="{{sq.size}}"><input type="hidden" id="quantity" name="quantity" value="{{sq.quantity}}"><input type="hidden" id="size_type" name="size_type" value="{{sq.size_type}}">{% if not crm_ %}<input type="hidden" name="weight" value="{{ sq.weight_grams or '' }}">{% endif %}
                             </div>
                         {% endfor %}
                     {% endif %}

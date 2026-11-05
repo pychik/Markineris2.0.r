@@ -127,7 +127,8 @@
 
       {% if can_card_to_cart %}
         <div class="d-flex align-items-center gap-2">
-          <input type="number" id="pc-kpb-qty" class="o-b-qty pc-kpb-qty" min="0" value="0">
+          <input type="number" id="pc-kpb-qty" class="o-b-qty pc-kpb-qty" min="0" value="0"
+                 data-unit-weight="{{ main.weight_grams or 0 }}">
           <button id="pc-kpb-add"
                   class="pc-btn pc-btn-yellow pc-btn--sm pc-kpb-add"
                   title="Применить количество в корзину"
@@ -168,12 +169,10 @@
               {% elif card.category == 'linen' %}
                 <th>Ед.</th>
               {% endif %}
-              <th>Вес</th>
               <th>Модерация</th>
 
               {% if can_card_to_cart %}
-<!--                <th style="width:140px;">Кол-во</th>-->
-                <th style="width:160px;"></th>
+                <th colspan="2"></th>
               {% endif %}
             </tr>
           </thead>
@@ -181,16 +180,9 @@
           <tbody>
             {% for s in sizes %}
               <tr>
-                <td>{{ s.size }}</td>
-
-                {% if card.category in ['clothes', 'socks'] %}
-                  <td>{{ s.size_type }}</td>
-                {% elif card.category == 'linen' %}
-                  <td>{{ s.unit }}</td>
-                {% endif %}
-
-                <td style="white-space:nowrap;">
-                  <span class="pc-weight-view">{% if s.weight %}{{ s.weight }} г{% else %}не указан{% endif %}</span>
+                <td>
+                  {{ s.size }}
+                  <div class="pc-weight-view small text-muted text-nowrap">{% if s.weight %}{{ s.weight }} г / шт.{% else %}вес не указан{% endif %}</div>
                   {% if not is_operator_view %}
                     <span class="pc-weight-edit d-none d-inline-flex align-items-center gap-1">
                       <input type="number" class="form-control form-control-sm" style="width:100px;" min="1" max="100000" step="1"
@@ -199,6 +191,12 @@
                     </span>
                   {% endif %}
                 </td>
+
+                {% if card.category in ['clothes', 'socks'] %}
+                  <td>{{ s.size_type }}</td>
+                {% elif card.category == 'linen' %}
+                  <td>{{ s.unit }}</td>
+                {% endif %}
 
                 <td>
                   {% if s.is_approved %}
@@ -215,10 +213,12 @@
                            class="o-b-qty pc-size-qty"
                            min="0"
                            value="0"
+                           data-unit-weight="{{ s.weight or 0 }}"
                            {% if not s.is_approved %}disabled{% endif %}
                            data-size="{{ s.size }}"
                            data-size-type="{{ s.size_type if s.size_type is defined else '' }}"
                            data-unit="{{ s.unit if s.unit is defined else '' }}">
+                    <div class="small text-muted text-nowrap">Всего: <span data-pc-row-weight>0 г</span></div>
                   </td>
                   <td style="width:160px;">
                     <button type="button"
@@ -243,7 +243,7 @@
       </div>
       {% if not is_operator_view %}
         <div class="pc-weight-error text-danger small mb-2" role="alert"></div>
-        <button type="button" class="pc-btn pc-btn-yellow pc-btn--sm pc-weight-edit-btn pc-weight-view">{{ 'Указать вес' if weight_missing else 'Изменить вес' }}</button>
+        <button type="button" class="pc-btn pc-btn-gray pc-btn--sm pc-weight-edit-btn pc-weight-view">{{ 'Указать вес' if weight_missing else 'Изменить вес' }}</button>
         <button type="button" class="pc-btn pc-btn-yellow pc-btn--sm pc-weight-save-btn pc-weight-edit d-none">Сохранить вес</button>
       {% endif %}
     </div>
@@ -262,7 +262,8 @@
       {% set single_card_article = main.article or '' %}
     {% endif %}
     <div class="d-flex align-items-center gap-2">
-      <input type="number" id="pc-single-qty" class="o-b-qty pc-single-qty" min="0" value="0">
+      <input type="number" id="pc-single-qty" class="o-b-qty pc-single-qty" min="0" value="0"
+             data-unit-weight="{{ main.weight_grams or 0 }}">
       <button id="pc-single-add"
               class="pc-btn pc-btn-yellow pc-btn--sm pc-single-add"
               title="Применить количество в корзину"
@@ -282,6 +283,10 @@
         ✓
       </button>
     </div>
+  {% endif %}
+
+  {% if can_card_to_cart %}
+    <div class="small text-muted my-2" aria-live="polite">Общий вес по введённому количеству: <span data-pc-total-weight>0 г</span></div>
   {% endif %}
 
   <div class="pc-card-view__meta small text-muted">

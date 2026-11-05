@@ -1,3 +1,4 @@
+{% if not crm_ %}
 {# Вес 1 шт. (экосбор): кнопка открывает #pcWeightModal из main_card.html, логика в static/product_cards/users/pc_weight.js #}
 <div class="mt-3 text-center">
     <div class="small mb-2" style="color:#ffe000;">
@@ -16,3 +17,4 @@
     <input type="hidden" id="weight_grams" name="weight_grams"
            value="{{ copied_order.weight_grams if copied_order and copied_order.weight_grams else '' }}">
 </div>
+{% endif %}

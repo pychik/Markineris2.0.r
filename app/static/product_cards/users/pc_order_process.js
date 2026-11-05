@@ -263,6 +263,16 @@
     if (box) box.innerHTML = html || "";
   }
 
+  function setCheckError(message) {
+    const box = document.getElementById("data_order_check_insert");
+    if (!box) return;
+    const notice = document.createElement("div");
+    notice.className = "alert alert-danger border-0 rounded-3 py-2 px-3 mb-0 small";
+    notice.setAttribute("role", "alert");
+    notice.textContent = message;
+    box.replaceChildren(notice);
+  }
+
   function performProcess() {
     const textarea = document.getElementById("order_comment_after");
     const hidden = document.getElementById("order_comment");
@@ -322,7 +332,7 @@
   async function runCheck() {
     const c = cfg();
     if (!c || !c.checkUrl) {
-      setCheckMessage(`<span style="color:red"><b>Не задан URL проверки</b></span>`);
+      setCheckError("Не задан URL проверки");
       setFooterOkOnly();
       return;
     }
@@ -342,13 +352,13 @@
       const modalCnt = document.querySelector("#modal_orders_pos_count span");
       if (modalCnt) modalCnt.textContent = String(data.marks_count ?? 0);
     } catch (e) {
-      setCheckMessage(`<span style="color:red"><b>Ошибка проверки</b></span>`);
+      setCheckError("Ошибка проверки");
       setFooterOkOnly();
       return;
     }
 
     if (!data || data.status !== "success") {
-      setCheckMessage(`<span style="color:red"><b>${(data && data.message) ? data.message : "Ошибка проверки"}</b></span>`);
+      setCheckError((data && data.message) ? data.message : "Ошибка проверки");
       setFooterOkOnly();
       return;
     }
@@ -398,7 +408,7 @@
       return;
     }
 
-    setCheckMessage(`<span style="color:red"><b>Неизвестная ошибка</b></span><br>`);
+    setCheckError("Неизвестная ошибка");
     setFooterOkOnly();
   }
 

@@ -185,7 +185,7 @@
 
                                 <!-- Hidden inputs for form submission -->
                                 <input type="hidden" id="size" name="size" value="{{sq.size}}">
-                                <input type="hidden" id="quantity" name="quantity" value="{{sq.quantity}}"><input type="hidden" name="weight" value="{{ sq.weight_grams or '' }}">
+                                <input type="hidden" id="quantity" name="quantity" value="{{sq.quantity}}">{% if not crm_ %}<input type="hidden" name="weight" value="{{ sq.weight_grams or '' }}">{% endif %}
                             </div>
 
                         {% endfor %}

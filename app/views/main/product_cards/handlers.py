@@ -529,6 +529,8 @@ def h_new_product_card():
 
 
 def h_save_product_card():
+    if current_user.role != settings.ORD_USER:
+        return _json_error("Создание карточек с весом доступно только клиентам.", 403)
     form_data = request.form
     form_dict = form_data.to_dict()
     single_unit_categories = {
@@ -821,10 +823,13 @@ def h_update_product_card(crm_: bool = False):
         assert_frozen_fields_unchanged(card=card, form_data=form_data)
     except Exception as e:
         return jsonify(status="error", message=str(e))
-    try:
-        form_weights = parse_card_form_weights(category, form_data, required=False)
-    except ValueError as e:
-        return jsonify(status="error", message=str(e))
+    # В CRM вес принадлежит клиенту: не проверяем и не применяем поля из запроса.
+    form_weights = None
+    if not crm_:
+        try:
+            form_weights = parse_card_form_weights(category, form_data, required=False)
+        except ValueError as e:
+            return jsonify(status="error", message=str(e))
 
     # 3) обновляем только разрешённые поля; identity-поля уже проверены выше
     try:
@@ -838,8 +843,9 @@ def h_update_product_card(crm_: bool = False):
         old_rd_replacement_consent = card.rd_replacement_consent
         update_card_allowed_fields(card=card, form_dict=form_dict, form_data=form_data)
         card.rd_replacement_consent = rd_replacement_consent
-        weight_changes = apply_card_weights(card, form_weights)
-        _log_card_weight_changes(card, weight_changes)
+        if form_weights is not None:
+            weight_changes = apply_card_weights(card, form_weights)
+            _log_card_weight_changes(card, weight_changes)
         entity_after = get_card_entity_for_prefill(card)
         new_identity = ""
         processing_company_reassigned = False
@@ -918,9 +924,9 @@ def h_update_product_card(crm_: bool = False):
                 card.card_log,
                 f"\n{dt_str} {actor} изменил согласие на использование нашей РД: {value_label};"
             )
-        # вес не модерируется: если оператор поменял только его, карточка остаётся одобренной
-        only_weight_changed = not changes and old_identity == new_identity and not processing_company_reassigned
-        if crm_ and original_status == ModerationStatus.APPROVED and not only_weight_changed:
+        # Повторная модерация нужна только при изменении данных карточки; вес в CRM не редактируется.
+        card_data_unchanged = not changes and old_identity == new_identity and not processing_company_reassigned
+        if crm_ and original_status == ModerationStatus.APPROVED and not card_data_unchanged:
             _send_approved_card_to_repeat_moderation(card, dt=datetime.now())
         db.session.commit()
     except RuntimeError as e:
@@ -1326,7 +1332,7 @@ def h_card_view(card_id: int, crm_: bool = False):
         fields=fields.items(),
         rd_description=rd_description,
         rd_types_list=rd_types_list,
-        is_operator_view=crm_,
+        is_operator_view=crm_ or current_user.role != settings.ORD_USER,
         can_change_processing_company=can_change_processing_company,
         processing_companies=get_processing_companies() if crm_ else [],
     )
@@ -1352,6 +1358,8 @@ def h_card_weights(card_id: int):
     карточка не уходит. Нужна одобренным карточкам, которые создали до того, как вес стал обязательным.
     payload: {"weights": {"<id единицы карточки>": "<граммы>"}}
     """
+    if current_user.role != settings.ORD_USER:
+        return _json_error("Указывать и изменять вес может только клиент.", 403)
     card = ProductCard.query.filter_by(id=card_id, user_id=current_user.id).first()
     if not card:
         return _json_error("Карточка не найдена", 404)

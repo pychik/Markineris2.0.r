@@ -181,7 +181,7 @@
 
                                 <input type="hidden" id="sizeX" name="sizeX" value="{{sq_list[0]}}">
                                 <input type="hidden" id="sizeY" name="sizeY" value="{{sq_list[1]}}">
-                                <input type="hidden" id="sizeUnit" name="sizeUnit" value="{{sq.unit}}"><input type="hidden" name="weight" value="{{ sq.weight_grams or '' }}">
+                                <input type="hidden" id="sizeUnit" name="sizeUnit" value="{{sq.unit}}">{% if not crm_ %}<input type="hidden" name="weight" value="{{ sq.weight_grams or '' }}">{% endif %}
                                 <input type="hidden" id="quantity" name="quantity" value="{{sq.quantity}}">
                             </div>
 
