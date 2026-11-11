@@ -1195,6 +1195,7 @@ class Settings(BaseSettings):
         UPLOAD_STANDART_ROW: int = 7
         MAX_QUANTITY: int = 100000000
         MIN_QUANTITY: int = 1
+        CHILDREN_NUMBER_STANDART: str = 'ТР ТС 007/2011 «О безопасности продукции, предназначенной для детей и подростков»'
         NUMBER_STANDART: str = "ТР ТС 017/2011 \"О безопасности продукции легкой промышленности\""
 
         UPLOAD_TYPE_ERROR: str = "Проверьте правильность выбора типа одежды (посмотрите вкладку справочник)"

@@ -1,5 +1,16 @@
 <div class="form-group">
-  <label class="control-label">Пол</label>
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-1">
+    <label class="control-label mb-0" for="gender">Пол</label>
+    <div class="form-check form-switch mb-0">
+      <input class="form-check-input{% if copied_order and copied_order.is_children %} bg-warning border-warning{% endif %}"
+             type="checkbox" role="switch" id="is_children" name="is_children" value="yes"
+             data-bs-toggle="tooltip" data-bs-placement="top"
+             title="Укажите, если это детская одежда"
+             onchange="this.classList.toggle('bg-warning', this.checked); this.classList.toggle('border-warning', this.checked)"
+             {% if copied_order and copied_order.is_children %}checked{% endif %}>
+      <label class="form-check-label fw-bold text-secondary" for="is_children">Детская одежда</label>
+    </div>
+  </div>
   <select class="form-control search-select" id="gender" name="gender" required>
     <option disabled value="" {% if not copied_order or not copied_order.gender %}selected{% endif %}>Выберите пол...</option>
         {% for el in genders %}

@@ -207,6 +207,7 @@ def build_pc_category_search_index() -> list[dict[str, Any]]:
 
 CARD_FIELDS = {
     "clothes": {
+        "is_children": "Детская одежда",
         "article": "Артикул",
         "trademark": "Товарный знак",
         "type": "Тип",
@@ -1115,6 +1116,7 @@ def save_clothes_card(
         trademark=process_input_str(form_dict.get("trademark") or ""),
         article=article,
         type=clothes_type,
+        is_children=form_dict.get("is_children") == "yes",
         color=form_dict.get("color"),
         content=(form_dict.get("content") or "")[:101],
         box_quantity=form_dict.get("box_quantity"),
@@ -1761,7 +1763,9 @@ def check_same_fields_if_exists(*, category: str, subcategory: str | None, form_
     for field in fields_to_lock:
         label = CARD_FIELDS[category][field]
 
-        if field == "article":
+        if field == "is_children":
+            form_val = _norm(form_dict.get(field) == "yes")
+        elif field == "article":
             form_val = _norm(normalize_article_for_category(category, form_dict))
         else:
             form_val = _norm(form_dict.get(field))
@@ -2196,6 +2200,7 @@ def _card_merge_key(card: ProductCard) -> tuple | None:
 
     if card.category == settings.Clothes.CATEGORY_PROCESS:
         key.append(getattr(main, "subcategory", None) or ClothesSubcategories.common.value)
+        key.append(bool(main.is_children))
 
     return tuple(key)
 
@@ -2232,6 +2237,9 @@ def find_approved_wear_card_for_size_extension(card: ProductCard) -> ProductCard
 
     if cfg.get("has_subcategory") and hasattr(model, "subcategory"):
         q = q.filter(model.subcategory == getattr(main, "subcategory", None))
+
+    if card.category == settings.Clothes.CATEGORY_PROCESS:
+        q = q.filter(model.is_children == main.is_children)
 
     return q.first()
 
@@ -2462,7 +2470,9 @@ def assert_frozen_fields_unchanged(card: ProductCard, form_data):
     for existing in existing_items:
         diffs = []
         for field, label in CARD_FIELDS[category].items():
-            if field == "article":
+            if field == "is_children":
+                form_val = _norm(form_data.get(field) == "yes")
+            elif field == "article":
                 form_val = _norm(incoming_article_norm)
             elif field == "color":
                 form_val = _norm(db_color)
@@ -2524,6 +2534,9 @@ def update_card_allowed_fields(card: ProductCard, form_dict: dict, form_data):
     for field in CARD_FIELDS[category].keys():
         if field in frozen:
             continue
+        if field == "is_children":
+            entity.is_children = form_dict.get(field) == "yes"
+            continue
         if hasattr(entity, field) and field in form_dict:
             if field == "article":
                 setattr(entity, field, normalize_article_for_category(category, form_dict))
@@ -2579,9 +2592,11 @@ def get_card_allowed_field_changes(card: ProductCard, form_dict: dict) -> list[s
         return value
 
     for field, label in CARD_FIELDS[category].items():
-        if field in frozen or not hasattr(entity, field) or field not in form_dict:
+        if field in frozen or not hasattr(entity, field) or (field not in form_dict and field != "is_children"):
             continue
-        if field == "for_children":
+        if field == "is_children":
+            form_value = form_dict.get(field) == "yes"
+        elif field == "for_children":
             form_value = form_dict.get(field) == "yes"
         elif field == "model_article":
             value = normalize_article_placeholder(form_dict.get(field))

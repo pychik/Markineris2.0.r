@@ -92,7 +92,7 @@ class OrderLogTests(unittest.TestCase):
         client.to_delete = True
         self.assertFalse(can_view(client, agent))
 
-    def test_history_template_escapes_html(self):
+    def test_description_omits_inline_history(self):
         from jinja2 import DictLoader, Environment
 
         root = Path(__file__).resolve().parents[1]
@@ -107,7 +107,9 @@ class OrderLogTests(unittest.TestCase):
             n=SimpleNamespace(order_log='<script>alert("x")</script>'),
         )
         self.assertNotIn('<script>', html)
-        self.assertIn('&lt;script&gt;', html)
+        self.assertNotIn('&lt;script&gt;', html)
+        self.assertNotIn('История действий с заказом', html)
+        self.assertNotIn('order-history', html)
 
     def test_stage_names_distinguish_crm_columns(self):
         with patch("app.utilities.order_log.append_order_log") as append:

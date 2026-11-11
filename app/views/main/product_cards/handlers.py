@@ -529,8 +529,8 @@ def h_new_product_card():
 
 
 def h_save_product_card():
-    if current_user.role != settings.ORD_USER:
-        return _json_error("Создание карточек с весом доступно только клиентам.", 403)
+    if current_user.role not in (settings.ORD_USER, settings.ADMIN_USER, settings.SUPER_USER):
+        return _json_error("Создание карточек с весом доступно клиентам, агентам и суперадминистратору.", 403)
     form_data = request.form
     form_dict = form_data.to_dict()
     single_unit_categories = {
@@ -1926,6 +1926,8 @@ def h_pc_order_pos_view(o_id: int, pos_id: int):
         if field == "subcategory":
             continue
         val = getattr(pos, field, None)
+        if field == "is_children":
+            val = "Да" if val else "Нет"
         if val is None or val == "":
             val = "-"
         fields_prepared.append((label, val))

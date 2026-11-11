@@ -69,7 +69,7 @@ function clothes_perform_pos_add(async_flag, url) {
 
 
 function show_clothes_pos(index, trademark, type, color, pos_quantity, box_quantity, all_quantity, sq_list, content,
-                          gender, country, edit_link, copy_link, delete_link, csrf_token) {
+                          gender, country, edit_link, copy_link, delete_link, csrf_token, is_children = false) {
     let main = document.getElementById('ShowModalTable');
     main.innerHTML = '';
     let sq_block = ''
@@ -205,7 +205,7 @@ function show_clothes_pos(index, trademark, type, color, pos_quantity, box_quant
                         <div class="important-card__prop">
                           Пол
                         </div>
-                        <div class="important-card__val">${gender}</div>
+                        <div class="important-card__val">${gender}${is_children ? '<br><strong>Детская одежда</strong>' : ''}</div>
                     </div>
                     <div class="important-card__item">
                         <div class="important-card__prop">
@@ -380,6 +380,7 @@ async function clothes_update_table(page) {
 
 
 function clothes_clear_pos() {
+    $('#is_children').prop('checked', false).removeClass('bg-warning border-warning');
     window.__silenceReset = true;
     $('#article').val("");
     $('#trademark').val("");

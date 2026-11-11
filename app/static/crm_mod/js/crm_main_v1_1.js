@@ -1,6 +1,6 @@
 function init_tooltip(document){
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(tooltipTriggerEl => {
-            new bootstrap.Tooltip(tooltipTriggerEl);
+            bootstrap.Tooltip.getOrCreateInstance(tooltipTriggerEl);
         });
 }
 function getCrmConfig(document) {
@@ -703,7 +703,7 @@ function update_spec_block_info(url, block, stage, csrf, clicked_block, order_id
 
 function init_tooltip(document){
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(tooltipTriggerEl => {
-            new bootstrap.Tooltip(tooltipTriggerEl);
+            bootstrap.Tooltip.getOrCreateInstance(tooltipTriggerEl);
         });
 }
 

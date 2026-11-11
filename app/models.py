@@ -1209,6 +1209,7 @@ class CQSMixin(db.Model, UserMixin):
 
 class Clothes(ClothesMixin):
     __tablename__ = "clothes"
+    is_children = db.Column(db.Boolean, nullable=False, default=False, server_default="false")
     __table_args__ = (
         Index("ix_clothes_article_color", "article", "color"),
     )

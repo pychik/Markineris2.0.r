@@ -3,7 +3,7 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <img class="icons__item" src="{{url_for('static', filename='crm_mod/img/icons/table.svg')}}"
              width="24" height="24" data-bs-toggle="tooltip"
-             data-bs-placement="top" data-bs-title="Скачать таблицу заказа формат 029" onclick="this.closest('form').submit();">
+             data-bs-placement="top" data-bs-title="Скачать таблицу заказа формат 029" onclick="downloadCrmOrderTable(event, this.closest('form'));">
     </form>
 
     {% if n.category in ['одежда', 'обувь'] %}
@@ -11,7 +11,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <img class="icons__item" src="{{url_for('static', filename='crm_mod/img/icons/table_046.svg')}}"
                  width="24" height="24" data-bs-toggle="tooltip"
-                 data-bs-placement="top" data-bs-title="Скачать таблицу заказа  формат 046" onclick="this.closest('form').submit();">
+                 data-bs-placement="top" data-bs-title="Скачать таблицу заказа  формат 046" onclick="downloadCrmOrderTable(event, this.closest('form'));">
         </form>
     {% endif %}
 

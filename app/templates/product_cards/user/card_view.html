@@ -47,7 +47,7 @@
         {% set value = main[field] %}
         {% if value not in [None, '', 0] %}
           <dt class="col-4">{{ label }}</dt>
-          <dd class="col-8">{{ value }}</dd>
+          <dd class="col-8">{% if field == "is_children" %}<strong>Да</strong>{% else %}{{ value }}{% endif %}</dd>
         {% endif %}
       {% endfor %}
     </dl>

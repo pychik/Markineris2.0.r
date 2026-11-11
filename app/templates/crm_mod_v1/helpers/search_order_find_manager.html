@@ -1,6 +1,6 @@
 <div class="d-flex flex-column ">
     <div class="header__form mb-2">
-        <div class="input-group" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Введите номер заказа и нажмите кнопку поиск. Для очистки результата, нажмите Очистить">
+        <div class="input-group" id="searchOrderHelp" data-bs-toggle="tooltip" data-bs-trigger="hover" data-bs-placement="bottom" data-bs-title="Введите номер заказа и нажмите кнопку поиск. Для очистки результата, нажмите Очистить">
             <input type="text" id="searchOrdertext" name="search_order_idn" class="form-control" placeholder="Введите номер заказа">
             <div class="input-group-append no-user-activity-block">
                 <span class="input-group-text bg-warning" id="searchOrderButton" style="cursor:pointer" onclick="search_crm_order(`${SEARCH_ORDER_URL}`,`{{csrf_token()}}`);">Поиск</span>
@@ -48,6 +48,20 @@
 
 
 <script>
+    (() => {
+        const searchInput = document.getElementById('searchOrdertext');
+        const searchHelp = document.getElementById('searchOrderHelp');
+        const hideSearchHelp = () => bootstrap.Tooltip.getInstance(searchHelp)?.hide();
+
+        searchHelp.addEventListener('show.bs.tooltip', event => {
+            if (searchInput.value) event.preventDefault();
+        });
+        searchInput.addEventListener('input', hideSearchHelp);
+        searchHelp.addEventListener('focusin', hideSearchHelp);
+        searchHelp.addEventListener('keydown', hideSearchHelp);
+        searchHelp.addEventListener('click', hideSearchHelp);
+    })();
+
     // set this vars to prevent multiple code processings on keypress
     var enterActionPerformed = false;
     var escapeActionPerformed = false;

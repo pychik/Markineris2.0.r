@@ -1349,7 +1349,8 @@ class ClothesProcessor(OrdersProcessor):
 
                 temp_list = [tnved, category_code, full_name,
                              trademark, 'Артикул', article, el.type, el.color, gender, size_type, size,
-                             content, tnved, settings.Clothes.NUMBER_STANDART,
+                             content, tnved, (settings.Clothes.CHILDREN_NUMBER_STANDART if el.is_children
+                                              else settings.Clothes.NUMBER_STANDART),
                              '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,
                              declar_doc, ] if not flag_046 else \
                             ['', '', article, actual_date, full_name, trademark, settings.COUNTRIES_CODES.get(el.country), '',

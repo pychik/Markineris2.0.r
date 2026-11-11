@@ -327,6 +327,7 @@ def build_position_key(item: Any, category: str) -> tuple:
                 normalize_key_value(item.gender),
                 normalize_key_value(item.content),
                 normalize_key_value(item.subcategory),
+                bool(getattr(item, "is_children", False)),
             )
         case settings.Socks.CATEGORY:
             return common + (

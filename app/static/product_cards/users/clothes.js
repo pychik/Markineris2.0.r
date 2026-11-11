@@ -6,6 +6,7 @@ function clothes_check_sizes_quantity_valid() {
 
 
 function clothes_clear_pos() {
+    $('#is_children').prop('checked', false).removeClass('bg-warning border-warning');
     window.__silenceReset = true;
     $('#article').val("");
     $('#trademark').val("");

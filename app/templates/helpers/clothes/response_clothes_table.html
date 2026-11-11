@@ -59,7 +59,7 @@
                         '{{t.content}}', '{{t.gender}}', '{{t.country}}',
                         `{{ url_for('clothes.copy_order', o_id=o_id, p_id=t.id, edit_order='edit_order', subcategory=subcategory) }}`,
                         `{{ url_for('clothes.copy_order', o_id=o_id, p_id=t.id, subcategory=subcategory) }}`,
-                        `{{url_for('clothes.delete_order_pos', o_id=o_id, c_id=t.id, subcategory=subcategory)}}`, '{{ csrf_token() }}')"
+                        `{{url_for('clothes.delete_order_pos', o_id=o_id, c_id=t.id, subcategory=subcategory)}}`, '{{ csrf_token() }}', {{ 'true' if t.is_children else 'false' }})"
                             class="btn btn-dark btn-sm btn-watch ms-md-auto">
                             Смотреть
                         </button>
