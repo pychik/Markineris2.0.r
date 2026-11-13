@@ -1,7 +1,7 @@
 {% if not crm_ %}
 {# Вес 1 шт. (экосбор): кнопка открывает #pcWeightModal из main_card.html, логика в static/product_cards/users/pc_weight.js #}
-<div class="mt-3 text-center">
-    <div class="small mb-2" style="color:#ffe000;">
+<div class="pc-card-weight text-center">
+    <div class="pc-card-weight__hint">
         {% if category_process_name in ['parfum', 'cosmetics', 'toys'] %}
             Не забудьте указать вес 1 шт.
         {% elif category_process_name == 'linen' %}
@@ -10,7 +10,7 @@
             Не забудьте указать вес каждого размера
         {% endif %}
     </div>
-    <button type="button" class="btn btn-sm btn-outline-light px-3" style="min-width:0;" onclick="pcWeightOpen()">
+    <button type="button" class="btn btn-sm btn-outline-light pc-card-weight__button" onclick="pcWeightOpen()">
         Указать вес
     </button>
     <div id="pc-weight-single-info" class="small mt-2" aria-live="polite"></div>
