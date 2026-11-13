@@ -1332,7 +1332,7 @@ def h_card_view(card_id: int, crm_: bool = False):
         fields=fields.items(),
         rd_description=rd_description,
         rd_types_list=rd_types_list,
-        is_operator_view=crm_ or current_user.role != settings.ORD_USER,
+        is_operator_view=crm_ or current_user.role not in (settings.ORD_USER, settings.ADMIN_USER, settings.SUPER_USER),
         can_change_processing_company=can_change_processing_company,
         processing_companies=get_processing_companies() if crm_ else [],
     )
@@ -1358,8 +1358,8 @@ def h_card_weights(card_id: int):
     карточка не уходит. Нужна одобренным карточкам, которые создали до того, как вес стал обязательным.
     payload: {"weights": {"<id единицы карточки>": "<граммы>"}}
     """
-    if current_user.role != settings.ORD_USER:
-        return _json_error("Указывать и изменять вес может только клиент.", 403)
+    if current_user.role not in (settings.ORD_USER, settings.ADMIN_USER, settings.SUPER_USER):
+        return _json_error("Указывать и изменять вес может только клиент, агент или суперадминистратор.", 403)
     card = ProductCard.query.filter_by(id=card_id, user_id=current_user.id).first()
     if not card:
         return _json_error("Карточка не найдена", 404)
