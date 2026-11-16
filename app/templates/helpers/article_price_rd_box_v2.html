@@ -159,3 +159,31 @@
         </div>
     </div>
 </div>
+<script id="optional-price-block-script">
+(() => {
+    const block = document.getElementById('collapsePrice');
+    const price = document.getElementById('article_price');
+    const tax = document.getElementById('tax');
+    const initial = {priceRequired: price.required, min: price.min, taxRequired: tax.required};
+
+    block.addEventListener('hide.bs.collapse', event => {
+        if (event.target !== block) return;
+        price.value = '0';
+        tax.value = '0';
+        price.required = false;
+        price.min = '0';
+        tax.required = false;
+        for (const field of [price, tax]) {
+            field.setCustomValidity('');
+            field.classList.remove('is-valid', 'is-invalid');
+        }
+    });
+
+    block.addEventListener('show.bs.collapse', event => {
+        if (event.target !== block) return;
+        price.required = initial.priceRequired;
+        price.min = initial.min;
+        tax.required = initial.taxRequired;
+    });
+})();
+</script>

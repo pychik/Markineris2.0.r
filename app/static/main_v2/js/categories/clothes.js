@@ -71,7 +71,15 @@ function clothes_perform_pos_add(async_flag, url) {
 
 
 function show_clothes_pos(index, trademark, type, color, pos_quantity, box_quantity, all_quantity, sq_list, content,
-                          gender, country, edit_link, copy_link, delete_link, csrf_token, is_children = false) {
+                          gender, country, edit_link, copy_link, delete_link, csrf_token, is_children = false,
+                          article_price = 0, tax = 0) {
+    const priceValue = Number(article_price);
+    const hasPrice = Number.isFinite(priceValue) && priceValue > 0;
+    const priceText = hasPrice
+        ? priceValue.toLocaleString('ru-RU', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ₽'
+        : 'Не указана';
+    const taxValue = Number(tax);
+    const taxText = Number.isFinite(taxValue) ? taxValue + ' %' : 'Не указан';
     let main = document.getElementById('ShowModalTable');
     main.innerHTML = '';
     let sq_block = ''
@@ -215,6 +223,14 @@ function show_clothes_pos(index, trademark, type, color, pos_quantity, box_quant
                         </div>
                         <div class="important-card__val">${country}</div>
                     </div>
+                    ${hasPrice ? `<div class="important-card__item">
+                        <div class="important-card__prop">Цена, р</div>
+                        <div class="important-card__val">${priceText}</div>
+                    </div>
+                    <div class="important-card__item">
+                        <div class="important-card__prop">НДС,%</div>
+                        <div class="important-card__val">${taxText}</div>
+                    </div>` : ''}
                 </div>
 
             </div>
