@@ -23,6 +23,7 @@ from .helpers import (helper_get_agent_orders, helper_get_manager_orders, helper
                       helpers_problem_order_response,
                       helper_get_processing_order_info, helper_update_processing_order_info, h_order_details, h_order_logs, )
 from .helpers_mo import h_all_new_multi_pool
+from .account_search import search_orders_by_account
 from .order_chat import (
     h_order_chat_download_attachment,
     h_order_chat_get_messages,
@@ -436,6 +437,13 @@ def move_from_sent_orders():
     :return:
     """
     return helpers_move_orders_to_processed()
+
+
+@crm_d.route('/search_orders_email', methods=['POST'])
+@login_required
+@user_activated
+def search_orders_email():
+    return search_orders_by_account(current_user)
 
 
 @crm_d.route('/search_crma_order', methods=['POST'])

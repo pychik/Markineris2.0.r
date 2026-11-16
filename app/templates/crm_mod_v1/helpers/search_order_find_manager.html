@@ -9,6 +9,14 @@
                 <span class="input-group-text bg-secondary text-white" id="clearSearchOrder" style="cursor:pointer" onclick="clear_search_order_res();">Очистить</span>
             </div>
         </div>
+        {% if not current_user.is_at2 and (current_user.role == 'superuser' or (current_user.role == 'm2r_admin' and 'manager' not in request.path)) %}
+        <div class="form-check form-switch crm-account-search-switch mt-2">
+            <input class="form-check-input" type="checkbox" role="switch" id="searchOrderAccountMode"
+                   data-search-url="{{ url_for('crm_d.search_orders_email') }}"
+                   onchange="CrmAccountSearch.toggle(this)" aria-labelledby="searchOrderModeLabel">
+            <label class="form-check-label" for="searchOrderAccountMode" id="searchOrderModeLabel">Поиск по номеру заказа</label>
+        </div>
+        {% endif %}
         <div id="OrderSearchResult"></div>
     </div>
 

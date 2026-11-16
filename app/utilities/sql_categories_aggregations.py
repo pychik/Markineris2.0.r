@@ -50,6 +50,7 @@ class SQLQueryCategoriesAll:
                 "category_pos_type_max": "MAX(COALESCE(sh.type, cl.type, sk.type, l.type, p.type, co.type, ty.type))",
                 "category_pos_type": "COALESCE(sh.type, cl.type, sk.type, l.type, p.type, co.type, ty.type)",
                 "declar_doc": "COUNT(coalesce(sh.rd_date, cl.rd_date, sk.rd_date, l.rd_date, p.rd_date, co.rd_date, ty.rd_date))",
+                "has_children": "COALESCE(BOOL_OR(cl.is_children), FALSE)",
                 "orders_count_utm": "COUNT(DISTINCT CASE WHEN o.stage >= 8 AND o.stage != 9 THEN o.id END)",
                 "marks_count_utm": f"""SUM(COALESCE(
                     CASE

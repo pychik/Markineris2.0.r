@@ -537,11 +537,16 @@ function make_connection_error_message(message) {
 
 
 function clear_search_order_res(){
+        window.CrmAccountSearch?.clear();
         $('#OrderSearchResult').html('');
     }
 
 
 function search_crm_order(url, csrf){
+    if (window.CrmAccountSearch?.isAccountMode()) {
+        window.CrmAccountSearch.search(csrf);
+        return;
+    }
     // clear_search_order_res();
     let search = document.getElementById('searchOrdertext').value;
 
@@ -560,6 +565,8 @@ function search_crm_order(url, csrf){
     data: {'search_order_idn': search},
     success:function(data)
     {
+        if (window.CrmAccountSearch?.isAccountMode()
+            || document.getElementById('searchOrdertext').value !== search) return;
         // make_message(data.message, data.status);
 
         // update_crm_info(update_agents_url);

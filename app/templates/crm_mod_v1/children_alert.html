@@ -1,0 +1,5 @@
+<img class="icons__item{% if n.has_children %} active{% endif %}"
+     src="{{ url_for('static', filename='crm_mod/img/icons/pacifier.svg', v='3') }}"
+     width="24" height="24" alt="Детские позиции"
+     data-bs-toggle="tooltip" data-bs-placement="top"
+     data-bs-title="{% if n.has_children %}Есть детские позиции{% else %}Нет детских позиций{% endif %}">

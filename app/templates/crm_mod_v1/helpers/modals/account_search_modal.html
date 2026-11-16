@@ -1,0 +1,13 @@
+{% if not current_user.is_at2 and (current_user.role == 'superuser' or (current_user.role == 'm2r_admin' and 'manager' not in request.path)) %}
+<div class="modal fade" id="accountOrdersModal" tabindex="-1" aria-labelledby="accountOrdersModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="accountOrdersModalLabel">Заказы пользователя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body" id="accountOrdersResults" aria-live="polite"></div>
+        </div>
+    </div>
+</div>
+{% endif %}

@@ -170,7 +170,6 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   o.edo_type as edo_type,
                                   o.mark_type as mark_type,
                                   o.user_comment as user_comment,
-                                  o.has_new_tnveds as has_new_tnveds,
                                   o.manager_id as manager_id,
                                   o.to_delete as to_delete,
                                   o.crm_created_at as crm_created_at,
@@ -185,6 +184,7 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                   {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                   {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
+                                  {SQLQueryCategoriesAll.get_stmt(field='has_children')} as has_children,
                                   {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id
@@ -212,7 +212,6 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   o.edo_type as edo_type,
                                   o.mark_type as mark_type,
                                   o.user_comment as user_comment,
-                                  o.has_new_tnveds as has_new_tnveds,
                                   o.manager_id as manager_id,
                                   o.to_delete as to_delete,
                                   o.crm_created_at as crm_created_at,
@@ -227,6 +226,7 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                   {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                   {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
+                                  {SQLQueryCategoriesAll.get_stmt(field='has_children')} as has_children,
                                   {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id  
@@ -280,7 +280,6 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                           o.edo_type as edo_type,
                                           o.mark_type as mark_type,
                                           o.user_comment as user_comment,
-                                          o.has_new_tnveds as has_new_tnveds,
                                           o.manager_id as manager_id,
                                           o.to_delete as to_delete,
                                           o.crm_created_at as crm_created_at,
@@ -304,6 +303,7 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                           {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                           {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                           {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
+                                          {SQLQueryCategoriesAll.get_stmt(field='has_children')} as has_children,
                                           {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                                       FROM public.users u
                                           JOIN public.orders o ON o.user_id = u.id
@@ -332,7 +332,6 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                   o.edo_type as edo_type,
                                   o.mark_type as mark_type,
                                   o.user_comment as user_comment,
-                                  o.has_new_tnveds as has_new_tnveds,
                                   o.manager_id as manager_id,
                                   o.to_delete as to_delete,
                                   o.crm_created_at as crm_created_at,
@@ -356,6 +355,7 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                   {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                   {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                   {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
+                                  {SQLQueryCategoriesAll.get_stmt(field='has_children')} as has_children,
                                   {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id  
@@ -411,7 +411,6 @@ def helper_get_manager_orders(
                                  o.edo_type as edo_type,
                                  o.mark_type as mark_type,
                                  o.user_comment as user_comment,
-                                 o.has_new_tnveds as has_new_tnveds,
                                  o.to_delete as to_delete,
                                  o.processing_info as processing_info,
                                  o.is_moderation as is_moderation,
@@ -425,6 +424,7 @@ def helper_get_manager_orders(
                                  {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                  {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                  {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
+                                 {SQLQueryCategoriesAll.get_stmt(field='has_children')} as has_children,
                                  {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                              FROM public.users u
                                  JOIN public.orders o ON o.user_id = u.id
@@ -455,7 +455,6 @@ def helper_get_manager_orders(
                                   o.edo_type as edo_type,
                                   o.mark_type as mark_type,
                                   o.user_comment as user_comment,
-                                  o.has_new_tnveds as has_new_tnveds,
                                   o.to_delete as to_delete,
                                   o.processing_info as processing_info,
                                   o.is_moderation as is_moderation,
@@ -469,6 +468,7 @@ def helper_get_manager_orders(
                                   {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                   {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                   {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
+                                  {SQLQueryCategoriesAll.get_stmt(field='has_children')} as has_children,
                                   {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                               FROM public.users u
                                   JOIN public.orders o ON o.user_id = u.id
@@ -1886,7 +1886,6 @@ def h_get_agent_order_info(search_order_idn):
                                       o.edo_type as edo_type,
                                       o.mark_type as mark_type,
                                       o.user_comment as user_comment,
-                                      o.has_new_tnveds as has_new_tnveds,
                                       o.manager_id as manager_id,
                                       o.crm_created_at as crm_created_at,
                                       o.to_delete as to_delete,
@@ -1901,6 +1900,7 @@ def h_get_agent_order_info(search_order_idn):
                                       {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                       {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                       {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
+                                      {SQLQueryCategoriesAll.get_stmt(field='has_children')} as has_children,
                                       {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                                   FROM public.users u
                                       JOIN public.orders o ON o.user_id = u.id  
@@ -1950,7 +1950,6 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                      o.edo_type as edo_type,
                                      o.mark_type as mark_type,
                                      o.user_comment as user_comment,
-                                     o.has_new_tnveds as has_new_tnveds,
                                      o.to_delete as to_delete,
                                      o.processing_info as processing_info,
                                      o.is_moderation as is_moderation,
@@ -1964,6 +1963,7 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                      {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                      {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                      {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
+                                     {SQLQueryCategoriesAll.get_stmt(field='has_children')} as has_children,
                                      {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                                  FROM public.users u
                                      JOIN public.orders o ON o.user_id = u.id
@@ -1994,7 +1994,6 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                       o.mark_type as mark_type,
                                       o.to_delete as to_delete,
                                       o.user_comment as user_comment,
-                                      o.has_new_tnveds as has_new_tnveds,
                                       o.to_delete as to_delete,
                                       o.processing_info as processing_info,
                                       o.is_moderation as is_moderation,
@@ -2008,6 +2007,7 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                       {SQLQueryCategoriesAll.get_stmt(field='subcategory')} as subcategory,
                                       {SQLQueryCategoriesAll.get_stmt(field='declar_doc')} as declar_doc,
                                       {SQLQueryCategoriesAll.get_stmt(field='is_rf_order')} as is_rf_order,
+                                      {SQLQueryCategoriesAll.get_stmt(field='has_children')} as has_children,
                                   {SQLQueryCategoriesAll.get_stmt(field='marks_count')} as pos_count
                                   FROM public.users u
                                       JOIN public.orders o ON o.user_id = u.id

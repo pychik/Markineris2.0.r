@@ -1,10 +1,4 @@
-{% if n.has_new_tnveds %}
-    <img class="icons__item active" src="{{url_for('static', filename='crm_mod/img/icons/t.svg')}}" width="24" height="24"
-        data-bs-toggle="tooltip" data-bs-placement="top"
-        data-bs-title="Есть позиции со новыми ТНВЭД категории одежда">
-{%else%}
-    <img class="icons__item" src="{{url_for('static', filename='crm_mod/img/icons/t.svg')}}" width="24" height="24">
-{% endif %}
+{% include 'crm_mod_v1/children_alert.html' %}
 {% if n.declar_doc %}
     <img class="icons__item active" src="{{url_for('static', filename='crm_mod/img/icons/d.svg')}}" width="24" height="24"
         data-bs-toggle="tooltip" data-bs-placement="top"

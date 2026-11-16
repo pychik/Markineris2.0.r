@@ -362,7 +362,6 @@ class Order(db.Model, UserMixin):
     mark_type = db.Column(db.String(100), default='МАРКИРОВКА НЕ ВЫБРАНА')
     user_comment = db.Column(db.String(450), default="")
     rd_replacement_consent = db.Column(db.Boolean, nullable=True)
-    has_new_tnveds = db.Column(db.Boolean, default=False)
 
     payment = db.Column(db.Boolean(), default=False)
     processed = db.Column(db.Boolean(), default=False)

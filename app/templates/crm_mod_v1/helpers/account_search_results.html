@@ -1,0 +1,38 @@
+<p class="text-muted text-break">Email: {{ account }} · Найдено заказов: {{ total }}</p>
+{% for group in groups if group.orders %}
+<section class="crm-account-stage mb-4" aria-labelledby="accountOrdersStage{{ group.stage }}">
+    <h6 class="crm-account-stage__title" id="accountOrdersStage{{ group.stage }}">
+        {{ group.label }} <span class="badge bg-warning text-dark">{{ group.orders|length }}</span>
+    </h6>
+    <div class="crm-account-orders-grid">
+        {% for n in group.orders %}
+        <div class="order orders__item{% if n.is_moderation %} order--moderation{% endif %}{% if n.stage == 6 %} order--warning{% endif %}"
+             id="accountSearchOrder_{{ n.id }}" data-order-id="{{ n.id }}">
+            <div class="order__header">
+                <div class="order__name">{{ n.order_idn }}</div>
+                {% include 'crm_mod_v1/helpers/order_category.html' %}
+            </div>
+            <div class="order__body">
+                <div class="order__info">
+                    <div class="order__small-text">
+                        <div class="order__num">КС: {{ n.row_count }} КМ: {{ n.pos_count or 0 }}</div>
+                        <div class="order__time">{{ n.crm_created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+                    </div>
+                    <div class="order__icons icons">
+                        {% include 'crm_mod_v1/crma/special_alerts.html' %}
+                    </div>
+                </div>
+                <div class="small mt-2 text-break">{{ n.company_type or '' }} {{ n.company_name or '' }} · {{ n.company_idn or '' }}</div>
+                <div class="small text-muted text-break">Оператор: {{ n.manager or 'Не назначен' }}</div>
+                <div class="order__all">
+                    <div class="order__details" data-loaded="0"></div>
+                    <div class="order__roll">Свернуть</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% else %}
+<div class="text-muted py-4 text-center" role="status">Заказы в обработке для этого пользователя не найдены.</div>
+{% endfor %}

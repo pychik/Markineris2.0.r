@@ -39,6 +39,8 @@ function clothes_perform_pos_add(async_flag, url) {
         var errors_list = [];
 
         allInputs.each(function (index) {
+            // readonly-поле ТН ВЭД проверяется отдельно от checkValidity().
+            if (allInputs[index].id === 'tnved_code') return;
             // console.log(allInputs[index]);
             let error_field_id = check_valid(allInputs[index]);
             if (error_field_id !== true) {
@@ -392,17 +394,16 @@ function clothes_clear_pos() {
     $('#multi_content').val('').trigger("change");
     $('#country').val('').trigger("change");
     $('#rd_type').val('').trigger("change");
-    $('#tax').val('').trigger("change");
+    $('#tax').val('0').trigger("change");
 
     $('#content').val("");
-    $('#tnved_code').val("");
-    // $('#article_price').val("");
+    clear_tnved_input();
+    $('#article_price').val('0');
     $('#rd_name').val("");
     $('#rd_date').val("");
 
     $('#sizes_quantity').empty();
-    check_valid(document.getElementById('tax'));
-    check_valid(document.getElementById('article_price'));
+    $('#tax, #article_price').removeClass('is-valid is-invalid');
     window.__silenceReset = false;
     // check_valid(document.getElementById('trademark'));
     // check_valid(document.getElementById('article'));
@@ -1036,19 +1037,18 @@ function deleteCell() {
 
 
 function check_tnved(submit){
-  if (window.ClothesTnvedContent?.check(document.getElementById('tnved_code').value) === false) return false;
-
-    if (submit === 'submit'){
-        if (document.getElementById('tnved_code').value.length < 10){
-            show_form_errors(['Заполните тнвэд',]);
-            $('#form_errorModal').modal('show');
-            return false
-        }
-        else{
-
-            return true
-        }
-    }
+  const field = document.getElementById('tnved_code');
+  const code = (field.value || '').trim();
+  const contentValid = window.ClothesTnvedContent?.check(code) !== false;
+  const valid = /^\d{10}$/.test(code) && contentValid;
+  field.classList.toggle('is-valid', valid);
+  field.classList.toggle('is-invalid', !valid);
+  if (!contentValid) return false;
+  if (submit === 'submit' && !valid) {
+    show_form_errors(['Заполните ТНВЭД: 10 цифр']);
+    $('#form_errorModal').modal('show');
+  }
+  return valid;
 }
 
 
@@ -1352,6 +1352,7 @@ function clothes_manual_tnved(){
 
     // 4. Всё прошло → пишем в поле формы и закрываем
     document.getElementById('tnved_code').value = m_tnved;
+    check_tnved('not_submit');
     clear_manual_tnved();
     $('#manualTnvedModal').modal('hide');
 }
@@ -1377,7 +1378,9 @@ function clear_gender_select(){
 }
 
 function clear_tnved_input(){
-    document.getElementById('tnved_code').value='';
+    const field = document.getElementById('tnved_code');
+    field.value = '';
+    field.classList.remove('is-valid', 'is-invalid');
 }
 
 function renderAllowedTable(){
@@ -1416,6 +1419,7 @@ function selectTnved(code){
 
     // иначе принимаем
     document.getElementById('tnved_code').value = code;
+    check_tnved('not_submit');
     clear_manual_tnved();
     $('#manualTnvedModal').modal('hide');
 }

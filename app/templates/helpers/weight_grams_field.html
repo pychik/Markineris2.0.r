@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (sizeIcon) tooltip.replaceChildren(sizeIcon.cloneNode(true));
     if (window.bootstrap && bootstrap.Tooltip) bootstrap.Tooltip.getOrCreateInstance(tooltip);
     const input = block.querySelector('input');
+    input.addEventListener('input', () => check_valid(input));
+    input.addEventListener('change', () => check_valid(input));
     const summary = step.querySelector('.important-card.text-light');
     if (summary) {
         const line = document.createElement('div');

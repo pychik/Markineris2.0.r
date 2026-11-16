@@ -1150,12 +1150,6 @@ def get_process_stage(o_id: int, category: str) -> int:
 
 
 def process_order_start(user: User, category: str, o_id: int, order_idn: str, order_comment: str = "") -> Optional[int]:
-    def check_new_tnved_in_list() -> Optional[bool]:
-        if category == settings.Clothes.CATEGORY:
-            tnveds = list(map(lambda x: True if x.tnved_code not in settings.Clothes.OLD_TNVEDS else False,
-                              order.clothes))
-            return any(tnveds)
-
     order = user.orders.filter(Order.category == category, Order.id == o_id, Order.stage == settings.OrderStage.CREATING,
                                ~Order.processed,  ~Order.to_delete).first()
 
@@ -1180,8 +1174,6 @@ def process_order_start(user: User, category: str, o_id: int, order_idn: str, or
 
         _stage = get_process_stage(o_id=o_id, category=category)
         try:
-            if check_new_tnved_in_list():
-                order.has_new_tnveds = True
             mark_type = order.mark_type
             order.mark_type = mark_type if mark_type else 'МАРКИРОВКА НЕ УКАЗАНА'
             dt = datetime.now()
