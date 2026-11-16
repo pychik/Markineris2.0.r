@@ -852,6 +852,16 @@ def get_rows_marks(o_id: int, category: str) -> tuple[int, int]:
                     """).bindparams(category=settings.Cosmetics.CATEGORY, o_id=o_id))
             row_count, mark_count = _fetch_counts(res)
 
+        case settings.Toys.CATEGORY:
+            res = db.session.execute(text("""
+                SELECT COUNT(toys.id), COALESCE(SUM(public.toys.quantity), 0)
+                    FROM public.orders
+                        JOIN public.toys ON public.orders.id = public.toys.order_id
+                    WHERE public.orders.category=:category AND public.orders.id=:o_id
+                    GROUP BY public.orders.id
+                    """).bindparams(category=settings.Toys.CATEGORY, o_id=o_id))
+            row_count, mark_count = _fetch_counts(res)
+
         case _:
             row_count, mark_count = 0, 0
     return row_count, mark_count
