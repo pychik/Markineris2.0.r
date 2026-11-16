@@ -267,6 +267,11 @@
     }
 }
 
+.order__text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
 .manager {
     cursor: pointer;
     display: flex;

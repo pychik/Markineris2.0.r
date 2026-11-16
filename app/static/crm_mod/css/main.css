@@ -453,6 +453,10 @@ body {
     background-color: #ffac0a;
   }
 }
+.order__text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .manager {
   cursor: pointer;
   display: flex;
