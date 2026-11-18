@@ -17,7 +17,7 @@ from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll, SQLQueryFactory
 from utilities.support import check_forbidden_words, helper_preload_common, helper_check_uoabm, \
     check_order_pos, process_admin_order_num, process_order_start, \
-    parse_rd_replacement_consent
+    parse_rd_replacement_consent, category_order_load_options
 from utilities.telegram import MarkinerisInform
 from utilities.validators import ValidatorProcessor, validate_and_build_contact_info, validate_order_comment_length, \
     is_valid_mark_type_full, normalize_mark_type_full, validate_and_normalize_company_fields
@@ -2148,6 +2148,22 @@ def h_pc_order_check_before_process(o_id: int):
     )), 200
 
 
+def _get_pc_order_for_process(o_id: int):
+    header = _get_pc_order_header(o_id, require_unprocessed=True)
+    if not header:
+        return None
+    return (Order.query.options(*category_order_load_options(header.category))
+            .filter(
+                Order.id == o_id,
+                Order.category == header.category,
+                Order.user_id == current_user.id,
+                Order.stage == settings.OrderStage.CREATING,
+                Order.is_moderation.is_(True),
+                Order.processed.is_(False),
+                Order.to_delete.is_(False),
+            ).first())
+
+
 def h_pc_order_process(o_id: int):
     # куда редиректить при ошибках/успехе
     def _back_to_order_view():
@@ -2162,16 +2178,7 @@ def h_pc_order_process(o_id: int):
 
     order_comment = (request.form.to_dict().get("order_comment") or "").strip()
 
-    order = (Order.query
-             .filter(
-        Order.id == o_id,
-        Order.user_id == current_user.id,
-        Order.stage == settings.OrderStage.CREATING,  # 0
-        Order.is_moderation.is_(True),  # ✅ только pc-заказы
-        Order.processed.is_(False),
-        Order.to_delete.is_(False),
-    )
-             .first())
+    order = _get_pc_order_for_process(o_id)
 
     if not order:
         flash(message=settings.Messages.EMPTY_ORDER, category="error")
@@ -2187,7 +2194,7 @@ def h_pc_order_process(o_id: int):
     order.company_name = company_fields["company_name"]
     order.company_idn = company_fields["company_idn"]
 
-    order_items = _get_pc_order_rows_by_category(category, order.id)
+    order_items = list(getattr(order, settings.CATEGORIES_DICT[category]))
     card_errors = validate_pc_order_items_ready_for_process(category, order_items)
     if card_errors:
         flash(message="Заказ не отправлен в обработку: " + " ".join(card_errors), category="error")
@@ -2224,14 +2231,14 @@ def h_pc_order_process(o_id: int):
     #     return _back_to_order_view()
     user = current_user
     # 4) баланс
-    status_balance, total_order_price, agent_at2, message_balance = helper_check_uoabm(user=user, o_id=order.id)
+    status_balance, total_order_price, agent_at2, message_balance = helper_check_uoabm(user=user, o_id=order.id, lock=True)
     if status_balance == 0:
         flash(message=Markup(message_balance), category="error")
         return _back_to_order_view()
 
     try:
         # 5) генерим order_idn
-        order_num, order_idn, is_crm, is_at2 = process_admin_order_num(user=user)
+        order_num, order_idn, is_crm, is_at2 = process_admin_order_num(user=user, commit=False)
 
         if not order_idn:
             db.session.rollback()
@@ -2240,23 +2247,11 @@ def h_pc_order_process(o_id: int):
 
         # 6) переводим заказ из stage=0 в нужный stage, пишем idn, comment
         _stage = process_order_start(user=user, category=category, o_id=order.id, order_idn=order_idn,
-                                     order_comment=order_comment)
+                                     order_comment=order_comment, order=order)
         if not _stage:
             db.session.rollback()
             flash(message=f"{settings.Messages.PROCESS_ERROR}: Такого заказа нет в бд", category="error")
             return _back_to_order_view()
-
-        if is_at2:
-            sent_flag = orders_process_send_order(
-                o_id=order.id, user=user,
-                order_comment=order_comment,
-                order_idn=order_idn,
-                flag_046=False,
-            )
-            if sent_flag:
-                flash(message=Markup(f"{settings.Messages.PROCESS_SUCCESS}<b>{order_idn}</b>!"))
-        else:
-            flash(message=Markup(f"{settings.Messages.PROCESS_SUCCESS}<b>{order_idn}</b>!"))
 
         db.session.commit()
 
@@ -2266,6 +2261,16 @@ def h_pc_order_process(o_id: int):
         flash(message=message, category="error")
         logger.error(message)
         return _back_to_order_view()
+
+    flash(message=Markup(f"{settings.Messages.PROCESS_SUCCESS}<b>{order_idn}</b>!"))
+    if is_at2:
+        try:
+            orders_process_send_order(
+                o_id=o_id, user=user, order_comment=order_comment,
+                order_idn=order_idn, flag_046=False,
+            )
+        except Exception:
+            logger.exception("Заказ %s сохранён, но отправка Excel в Telegram не поставлена в очередь", order_idn)
 
     # уведомления как у вас
     try:

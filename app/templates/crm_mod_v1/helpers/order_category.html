@@ -1,4 +1,15 @@
-
+    {% if n.is_gtin_order %}
+        {% set gtin_tooltip = 'Заказ с готовыми GTIN' ~ (': ' ~ n.processing_company_label if n.processing_company_label else '') %}
+        <span class="order-gtin-badge" data-bs-toggle="tooltip" data-bs-placement="top"
+              data-bs-title="{{ gtin_tooltip }}" role="img" aria-label="{{ gtin_tooltip }}">
+            <svg class="order-gtin-badge__icon" viewBox="0 0 36 36" aria-hidden="true"
+                 focusable="false" preserveAspectRatio="none">
+                <circle cx="18" cy="18" r="18" fill="#777777"/>
+                <text x="18" y="18" fill="#FFD700" font-size="10.5" font-weight="700"
+                      font-family="Arial, sans-serif" text-anchor="middle" dominant-baseline="central">GTIN</text>
+            </svg>
+        </span>
+    {% endif %}
     {% if n.category == 'обувь' %}
         <div class="order__img order__img--green" data-bs-toggle="tooltip" style="user-select: none;"
                             data-bs-placement="top" data-bs-title="{{n.category}}">

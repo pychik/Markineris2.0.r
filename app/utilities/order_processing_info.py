@@ -14,3 +14,10 @@ def parse_single_processing_info(value: str | None) -> tuple[str, str] | None:
         return None
     company, upd = (unescape(part).strip() for part in match.groups())
     return (company, upd) if company and upd else None
+
+
+def split_processing_company_label(value: str | None) -> tuple[str, str]:
+    """Split the saved 'company title (INN)' label, preserving historical names."""
+    label = (value or "").strip()
+    match = re.fullmatch(r"(.+)\s+\(([0-9]{10}|[0-9]{12})\)", label)
+    return (match[1].strip(), match[2]) if match else (label, "")

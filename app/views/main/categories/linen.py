@@ -2,6 +2,7 @@ from flask import Blueprint, flash, redirect, url_for, request
 from flask_login import current_user, login_required
 
 from config import settings
+from sqlalchemy.orm import lazyload
 from models import Linen, Order
 from utilities.download import orders_download_common
 from utilities.helpers.h_categories import h_category_sba
@@ -91,7 +92,7 @@ def process_order(o_id: int):
     user = current_user
     order_comment = request.form.to_dict().get("order_comment", "")
 
-    order = user.orders.filter_by(
+    order = user.orders.options(lazyload("*")).filter_by(
         category=settings.Linen.CATEGORY,
         processed=False,
         id=o_id,

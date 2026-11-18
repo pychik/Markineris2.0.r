@@ -836,7 +836,10 @@ function oBCartBuildPayloadOrError() {
 }
 
 
+let oBCartSubmitting = false;
+
 async function oBCartSubmitToBackend(postUrl, csrfToken) {
+  if (oBCartSubmitting) return;
   const order = oBCartGetSingleOrder();
 
   // ✅ если корзина пуста — просто сообщение, без модалки
@@ -862,6 +865,11 @@ async function oBCartSubmitToBackend(postUrl, csrfToken) {
     return;
   }
 
+  const checkoutButton = document.getElementById("o-b-cart-checkout");
+  let redirecting = false;
+  oBCartSubmitting = true;
+  if (checkoutButton) checkoutButton.disabled = true;
+  loadingCircle();
   try {
     const resp = await fetch(postUrl, {
       method: "POST",
@@ -879,6 +887,7 @@ async function oBCartSubmitToBackend(postUrl, csrfToken) {
         oBCartClearAll();
 
         if (data.redirect_url) {
+          redirecting = true;
           setTimeout(() => {
             window.location.href = data.redirect_url;
           }, 1000); // 1 секунда
@@ -897,8 +906,22 @@ async function oBCartSubmitToBackend(postUrl, csrfToken) {
   } catch (e) {
     console.error(e);
     make_cart_message("Ошибка сети при создании заказа", "error");
+  } finally {
+    if (!redirecting) {
+      oBCartSubmitting = false;
+      if (checkoutButton) checkoutButton.disabled = false;
+      close_Loading_circle();
+    }
   }
 }
+
+window.addEventListener("pageshow", (event) => {
+  if (!event.persisted) return;
+  oBCartSubmitting = false;
+  const button = document.getElementById("o-b-cart-checkout");
+  if (button) button.disabled = false;
+  close_Loading_circle();
+});
 
 function oBIsCompanyFilled(order) {
   const c = order?.company || {};

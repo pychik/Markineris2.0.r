@@ -354,6 +354,7 @@ class Order(db.Model, UserMixin):
 
     category = db.Column(db.String(100), nullable=False, default='')
     is_moderation = db.Column(db.Boolean, default=False, nullable=False, server_default=text("false"), index=True)
+    is_gtin_order = db.Column(db.Boolean, default=False, nullable=False, server_default=text("false"))
     company_idn = db.Column(db.String(100))
     company_type = db.Column(db.String(100))
     company_name = db.Column(db.String(100))
@@ -908,6 +909,8 @@ class CommonMixin:
     id = db.Column(db.BigInteger, primary_key=True)
     type = db.Column(db.String(100))
     weight_grams = db.Column(db.Integer(), nullable=True)
+    gtin = db.Column(db.String(14), nullable=True)
+    gtin_company_key = db.Column(db.String(100), nullable=True)
 
     article_price = db.Column(db.Float(), default=0)
     tnved_code = db.Column(db.String(50), default='')

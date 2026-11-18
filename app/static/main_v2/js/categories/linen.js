@@ -364,7 +364,7 @@ async function async_linen_delete_pos(url, csrf,block){
            if (typeof window.clearPendingStep3TransitionAfterAsyncAdd === 'function') {
              window.clearPendingStep3TransitionAfterAsyncAdd();
            }
-           message = 'Произошла ошибка во время сохранения позиции';
+           message = data.message || 'Произошла ошибка во время сохранения позиции';
            message_type = 'danger';
            make_message(message, message_type);
         }

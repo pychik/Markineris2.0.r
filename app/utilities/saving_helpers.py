@@ -308,6 +308,8 @@ def build_position_key(item: Any, category: str) -> tuple:
         normalize_key_value(item.type),
         getattr(item, "weight_grams", None) is None,
         normalize_int_key(getattr(item, "fast_order_company_id", None)),
+        normalize_key_value(getattr(item, "gtin", None)),
+        normalize_key_value(getattr(item, "gtin_company_key", None)),
     )
 
     match category:

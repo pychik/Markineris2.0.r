@@ -271,6 +271,79 @@ body {
   padding-bottom: 10px;
   cursor: pointer;
 }
+.order .order__header--grouped {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+.order__header--grouped > .order__name {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  min-width: 0;
+}
+.order__header--grouped > .order__name > span {
+  flex-basis: 100%;
+  order: 1;
+  font-size: 11px;
+}
+.order__header--grouped > .order__name > img {
+  flex-shrink: 0;
+}
+.order__header-actions {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 5px;
+  border: 1px solid rgba(98, 105, 112, .12);
+  border-radius: 999px;
+  background: rgba(98, 105, 112, .06);
+}
+.order__header-actions .order-chat-btn,
+.order__header-actions .order-logs-btn img {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+.order__header-tags {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.order__header-tags .order__img,
+.order__header-tags .order-rf-badge,
+.order__header-tags .order-gtin-badge {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+}
+.order__header-tags .order-rf-badge__flag,
+.order__header-tags .order-gtin-badge__icon {
+  width: 32px;
+  height: 32px;
+}
+
+.order__client-pii {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid #dfe2e6;
+  border-radius: 8px;
+  background: transparent;
+  line-height: 1.35;
+}
+
+
 .order__name {
   font-weight: 600;
   font-size: 19px;
@@ -365,7 +438,8 @@ body {
 .order__img--toys-competition-cars img {
   transform: scale(1.33);
 }
-.order-rf-badge {
+.order-rf-badge,
+.order-gtin-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -377,7 +451,8 @@ body {
   overflow: hidden;
   user-select: none;
 }
-.order-rf-badge__flag {
+.order-rf-badge__flag,
+.order-gtin-badge__icon {
   display: block;
   width: 32px;
   height: 32px;
@@ -472,6 +547,10 @@ body {
 .comment__title {
   font-weight: 700;
 }
+.order .order__comment {
+  gap: 6px;
+  margin-bottom: 12px;
+}
 .comment__text {
   border-radius: 5px;
   padding: 15px;
@@ -479,6 +558,71 @@ body {
   word-wrap: break-word; /* Breaks long words to fit within the container */
   overflow-wrap: break-word; /* Ensures that long words are wrapped to the next line */
   overflow: hidden;
+}
+
+.order .order-comment-badge,
+#modal-process-order .order-process-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 1px solid #ffd36a;
+  border-radius: 12px;
+  background: #fff8dc;
+  color: #66552c;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.order .order-comment-badge > .comment__title {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  opacity: .75;
+}
+.order .order-comment-badge__text {
+  white-space: pre-line;
+}
+.order .order-comment-badge--problem,
+#modal-process-order .order-process-notice {
+  background: #fff6f6;
+  border-color: #f3dddd;
+  color: #865a5a;
+}
+.order .order-comment-badge--cancel {
+  background: #fdeaea;
+  border-color: #efc4c4;
+  color: #934b4b;
+}
+
+.order .order-processing-company-badge {
+  margin-top: 8px;
+  border-color: #dfe2e6;
+  background: #f1f2f4;
+  color: #626970;
+}
+.order .order-processing-company-copy {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.order .order-processing-company-copy:hover,
+.order .order-processing-company-copy:focus-visible {
+  text-decoration: underline;
 }
 
 .file {
@@ -546,6 +690,18 @@ body {
 
 .order--moderation {
     background-color: rgb(236, 253, 236); /* очень легкий зелёный */
+}
+
+.order.order--gtin,
+.order.order--gtin .order__body,
+.order.order--gtin .order__footer {
+    background-color: #fff6cf;
+}
+
+.order.order--gtin .order__header {
+    background-color: #fff;
+    margin: -15px -23px 0;
+    padding: 15px 23px 10px;
 }
 
 .crm-uoc-page {

@@ -1,0 +1,58 @@
+<style>
+  #gtin-position-block {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  #gtin-position-block > .gtin-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 16px;
+    color: #ffc107;
+    background: transparent;
+    border: 0;
+    font-weight: 600;
+    list-style: none;
+    cursor: pointer;
+  }
+  #gtin-position-block > .gtin-toggle::after { content: '+'; }
+  #gtin-position-block > .gtin-toggle[aria-expanded="true"]::after { content: '−'; }
+  #gtin-position-block > .gtin-toggle:hover,
+  #gtin-position-block > .gtin-toggle:focus-visible { background: rgba(255, 193, 7, .12); }
+  #gtin-position-block > .gtin-toggle:focus-visible { outline: 2px solid #ffc107; outline-offset: -3px; }
+  #gtin-position-block .gtin-position-fields { padding: 16px; border-top: 1px solid #ffc107; }
+</style>
+<template id="gtin-position-template">
+  {% set gtin_is_open = copied_order and copied_order.gtin %}
+  <div class="form-group mt-3 mb-3" id="gtin-position-block">
+    <button type="button" class="gtin-toggle{% if not gtin_is_open %} collapsed{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#gtin-position-fields"
+            aria-expanded="{{ 'true' if gtin_is_open else 'false' }}" aria-controls="gtin-position-fields">GTIN</button>
+    <div class="collapse{% if gtin_is_open %} show{% endif %}" id="gtin-position-fields">
+      <div class="gtin-position-fields">
+      <div class="form-group mb-2">
+        <label for="gtin">GTIN товара</label>
+        <input id="gtin" name="gtin" class="form-control" type="text" inputmode="numeric"
+               minlength="14" maxlength="14" pattern="046[0-9]{11}"
+               placeholder="Пример 04640735105562" title="14 цифр, начиная с 046. Например: 04640735105562"
+               value="{{ copied_order.gtin if copied_order and copied_order.gtin else '' }}">
+      </div>
+      <div class="form-group">
+        <label for="gtin_company_key">Проводящая компания GTIN</label>
+        <select id="gtin_company_key" name="gtin_company_key" class="form-control">
+          <option value="">Выберите компанию</option>
+          {% for company in gtin_company_options %}
+            <option value="{{ company.value }}" {% if copied_order and copied_order.gtin_company_key == company.value %}selected{% endif %}>{{ company.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <p class="small mt-2">Для позиции с GTIN заполните оба поля. Позиции разных проводящих компаний будут оформлены отдельными заказами.</p>
+      </div>
+    </div>
+  </div>
+</template>
+<script src="{{ url_for('static', filename='main_v2/js/gtin_position.js', v='2') }}" defer></script>

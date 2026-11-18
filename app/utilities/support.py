@@ -17,13 +17,14 @@ from flask_sqlalchemy.pagination import QueryPagination
 from sqlalchemy import asc, create_engine, desc, text, or_, not_, select, UnaryExpression, func
 from sqlalchemy.engine.row import Row
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import Session, aliased, lazyload, selectinload
 from sqlalchemy.sql.elements import TextClause
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
 from utilities.order_log import CRM_STAGE_LABELS, h_append_order_log, order_log_line
 from config import settings
 from utilities.clothes_tnved_content import clothes_tnved_content_error
+from utilities.gtin_orders import GTINCompanyConflict
 from logger import logger
 from models import (
     Order,
@@ -346,6 +347,11 @@ def check_order_pos(category: str, order: Order) -> Optional[int]:
 
 def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Response, str]:
     form_data_raw = request.form
+    from utilities.gtin_orders import validate_gtin_fields
+    try:
+        validate_gtin_fields(form_data_raw.get("gtin"), form_data_raw.get("gtin_company_key"))
+    except ValueError as exc:
+        return jsonify(status="error", message=str(exc)), 400
 
     # validate clothes TNVED is in CLOTHES tnveds(only clothes and socks tnveds have dicts to check)
     # clothes_tnved_condition = category == settings.Clothes.CATEGORY and \
@@ -442,12 +448,18 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
         except (ArticlesException, ValueError) as exc:
             return jsonify(dict(status='error', field='trademark', message=str(exc)))
 
-    order_id, sort_type, sort_order = preprocess_order_common(user=current_user, form_data_raw=form_data_raw,
-                                                              category=category, subcategory=subcategory,
-                                                              o_id=o_id, p_id=p_id) \
-        if category != settings.Parfum.CATEGORY else parfum_preprocess_order(user=current_user,
-                                                                             form_dict=form_data_raw.to_dict(),
-                                                                             o_id=o_id, p_id=p_id)
+    try:
+        order_id, sort_type, sort_order = preprocess_order_common(user=current_user, form_data_raw=form_data_raw,
+                                                                  category=category, subcategory=subcategory,
+                                                                  o_id=o_id, p_id=p_id) \
+            if category != settings.Parfum.CATEGORY else parfum_preprocess_order(user=current_user,
+                                                                                 form_dict=form_data_raw.to_dict(),
+                                                                                 o_id=o_id, p_id=p_id)
+    except GTINCompanyConflict as exc:
+        if o_id and not p_id:
+            return jsonify(status="error", message=str(exc))
+        flash(message=str(exc), category='warning')
+        return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=o_id, subcategory=subcategory))
     if not order_id:
         flash(message=settings.Messages.ORDER_ADD_POS_ERROR, category='error')
 
@@ -465,6 +477,18 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
         redirect_kwargs["page"] = 1
 
     return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', **redirect_kwargs))
+
+
+def category_order_load_options(category: str) -> list:
+    """Load the category being edited, with sizes and aggregate links in batches."""
+    relation_name = settings.CATEGORIES_DICT[category]
+    relation = getattr(Order, relation_name)
+    model = relation.property.mapper.class_
+    options = [lazyload("*"), selectinload(relation).lazyload("*")]
+    for child in ("sizes_quantities", "set_items"):
+        if hasattr(model, child):
+            options.append(selectinload(relation).selectinload(getattr(model, child)))
+    return options
 
 
 def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
@@ -490,14 +514,14 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
     #     return o_id, None, None
 
     if o_id:
-        order = user.orders.filter(
+        order = user.orders.options(*category_order_load_options(category)).filter(
             Order.category == category,
             Order.id == o_id,
             Order.stage == settings.OrderStage.CREATING,
             Order.is_moderation.is_(False),
             ~Order.processed,
             ~Order.to_delete,
-        ).first()
+        ).with_for_update(of=Order).first()
         if not order:
             flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
             return (None,) * 3
@@ -506,6 +530,7 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
         if p_id:
             if process_delete_order_pos(o_id=o_id, m_id=p_id, category=category, edit=True) != 'success':
                 return (None,) * 3
+            db.session.expire(order, [settings.CATEGORIES_DICT[category]])
 
     else:
         ok_company, company_fields, company_error = validate_and_normalize_company_fields(
@@ -567,6 +592,8 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
 
         user.orders.append(updated_order)
 
+        db.session.flush()
+        order_id = updated_order.id
         db.session.commit()
     except SizeTypeException as ste:
         logger.error(ste)
@@ -582,12 +609,15 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
         logger.error(e)
         db.session.rollback()
         return (None,)*3
+    except GTINCompanyConflict:
+        db.session.rollback()
+        raise
     except ValueError as ve:
         logger.error(ve)
         db.session.rollback()
         return (None,) * 3
     sort_type, sort_order = helper_get_sort_order(sort_type_order=form_dict.get("sort_type_order"))
-    o_id = updated_order.id
+    o_id = order_id
 
     return o_id,  sort_type, sort_order
 
@@ -630,6 +660,8 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
             updated_order = common_save_db(order=order, form_dict=form_dict,
                                            category=settings.Parfum.CATEGORY)
             user.orders.append(updated_order)
+            db.session.flush()
+            order_id = updated_order.id
             db.session.commit()
 
         except ArticlesException as ae:
@@ -637,6 +669,9 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
             flash(message=str(ae), category='error')
             db.session.rollback()
             return (None,) * 3
+        except GTINCompanyConflict:
+            db.session.rollback()
+            raise
         except ValueError as ve:
             logger.error(ve)
             flash(message=str(ve), category='error')
@@ -648,14 +683,14 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
             return (None, )*3
     else:
         try:
-            order = user.orders.filter(
+            order = user.orders.options(*category_order_load_options(settings.Parfum.CATEGORY)).filter(
                 Order.category == settings.Parfum.CATEGORY,
                 Order.id == o_id,
                 Order.stage == settings.OrderStage.CREATING,
                 Order.is_moderation.is_(False),
                 ~Order.processed,
                 ~Order.to_delete,
-            ).first()
+            ).with_for_update(of=Order).first()
 
             if not order:
                 flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
@@ -672,17 +707,23 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
                     edit=True,
                 ) != 'success':
                     return (None,) * 3
+                db.session.expire(order, [settings.Parfum.CATEGORY_PROCESS])
 
             updated_order = common_save_db(order=order, form_dict=form_dict,
                                            category=settings.Parfum.CATEGORY)
             user.orders.append(updated_order)
 
+            db.session.flush()
+            order_id = updated_order.id
             db.session.commit()
         except ArticlesException as ae:
             logger.error(ae)
             flash(message=str(ae), category='error')
             db.session.rollback()
             return (None,) * 3
+        except GTINCompanyConflict:
+            db.session.rollback()
+            raise
         except ValueError as ve:
             logger.error(ve)
             flash(message=str(ve), category='error')
@@ -693,7 +734,7 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
             db.session.rollback()
             return (None, )*3
     sort_type, sort_order = helper_get_sort_order(sort_type_order=form_dict.get("sort_type_order"))
-    o_id = updated_order.id
+    o_id = order_id
     return o_id, sort_type, sort_order
 
 
@@ -973,11 +1014,8 @@ def order_has_user_rd(order: Order) -> bool:
     if not order:
         return False
 
-    for relation_name in ("shoes", "clothes", "socks", "linen", "parfum", "cosmetics", "toys"):
-        for item in getattr(order, relation_name, []) or []:
-            if getattr(item, "rd_date", None):
-                return True
-    return False
+    relation_name = settings.CATEGORIES_DICT.get(order.category)
+    return any(item.rd_date for item in getattr(order, relation_name, ())) if relation_name else False
 
 
 def order_has_user_rd_by_id(o_id: int, category: str | None = None) -> bool:
@@ -1124,7 +1162,7 @@ def helper_get_clothes_divided_list(order_id: int) -> tuple[list, list, list]:
     return old_t_list + new_t_list, old_t_list, new_t_list
 
 
-def process_admin_order_num(user: User) -> tuple[Optional[int], Optional[str], Optional[bool], Optional[bool]]:
+def process_admin_order_num(user: User, commit: bool = True) -> tuple[Optional[int], Optional[str], Optional[bool], Optional[bool]]:
     if user.role == settings.ORD_USER:
         admin_id = User.query.with_entities(User.id).filter_by(id=user.admin_parent_id).order_by(
             desc(User.id)).first().id
@@ -1136,22 +1174,25 @@ def process_admin_order_num(user: User) -> tuple[Optional[int], Optional[str], O
            WHERE id=:admin_id RETURNING admin_order_num, is_crm, is_at2;""").bindparams(admin_id=admin_id)
     res = db.session.execute(stmt).fetchone()
 
-    db.session.commit()  # make commit to fix order_num
+    if commit:
+        db.session.commit()  # Legacy callers keep their existing commit behavior.
     return (res.admin_order_num, "{admin_id}_{admin_order_num}".format(admin_id=admin_id, admin_order_num=res.admin_order_num), res.is_crm,
             res.is_at2)
 
 
-def get_process_stage(o_id: int, category: str) -> int:
-    row_count, mark_count = get_rows_marks(o_id=o_id, category=category)
+def get_process_stage(o_id: int, category: str, counts: tuple | None = None) -> int:
+    row_count, mark_count = counts if counts is not None else get_rows_marks(o_id=o_id, category=category)
     stage_defaults = helper_get_limits()
     min_rows, min_marks = stage_defaults.ap_rows, stage_defaults.ap_marks
 
     return settings.OrderStage.POOL if row_count <= min_rows and mark_count <= min_marks else settings.OrderStage.NEW
 
 
-def process_order_start(user: User, category: str, o_id: int, order_idn: str, order_comment: str = "") -> Optional[int]:
-    order = user.orders.filter(Order.category == category, Order.id == o_id, Order.stage == settings.OrderStage.CREATING,
-                               ~Order.processed,  ~Order.to_delete).first()
+def process_order_start(user: User, category: str, o_id: int, order_idn: str, order_comment: str = "",
+                        order: Order | None = None) -> Optional[int]:
+    if order is None:
+        order = user.orders.filter(Order.category == category, Order.id == o_id, Order.stage == settings.OrderStage.CREATING,
+                                   ~Order.processed, ~Order.to_delete).first()
 
     if order:
         # row_count, mark_count = get_rows_marks(o_id=o_id, category=category)
@@ -1172,7 +1213,8 @@ def process_order_start(user: User, category: str, o_id: int, order_idn: str, or
         #         order.stage = settings.OrderStage.NEW
         #         order.crm_created_at = datetime.now()
 
-        _stage = get_process_stage(o_id=o_id, category=category)
+        counts = get_rows_marks(o_id=o_id, category=category)
+        _stage = get_process_stage(o_id=o_id, category=category, counts=counts)
         try:
             mark_type = order.mark_type
             order.mark_type = mark_type if mark_type else 'МАРКИРОВКА НЕ УКАЗАНА'
@@ -1186,7 +1228,7 @@ def process_order_start(user: User, category: str, o_id: int, order_idn: str, or
             order.order_idn = order_idn
             order.user_comment = order_comment
             if _stage == settings.OrderStage.POOL:
-                create_order_stats(order_info=order)
+                create_order_stats(order_info=order, counts=counts)
                 order.p_started = dt
             return _stage
         except IntegrityError:
@@ -1198,10 +1240,10 @@ def process_order_start(user: User, category: str, o_id: int, order_idn: str, or
         flash(message=settings.Messages.STRANGE_REQUESTS, category='error')
 
 
-def create_order_stats(order_info: Order) -> None:
+def create_order_stats(order_info: Order, counts: tuple | None = None) -> None:
     # no commit
 
-    row_count, mark_count = get_rows_marks(o_id=order_info.id, category=order_info.category)
+    row_count, mark_count = counts if counts is not None else get_rows_marks(o_id=order_info.id, category=order_info.category)
     new_stat = OrderStat(category=order_info.category, company_idn=order_info.company_idn,
                          company_type=order_info.company_type,
                          company_name=order_info.company_name, order_idn=order_info.order_idn,
@@ -1229,7 +1271,7 @@ def common_process_delete_order(o_id: int, stage: int,) -> Optional[str]:
     order = current_user.orders.with_entities(Order.id, Order.category, Order.company_type,
                                               Order.company_name, Order.created_at, Order.stage,
                                               Order.is_moderation)\
-                        .filter(Order.id == o_id, Order.stage == stage, ~Order.to_delete).first()
+                        .filter(Order.id == o_id, Order.stage == stage, ~Order.to_delete).with_for_update(of=Order).first()
     if order:
         if order.is_moderation:
             flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
@@ -1275,7 +1317,7 @@ def process_delete_order_pos(category: str, o_id: int, m_id: int, edit: bool = F
                              async_type: int = None) -> Optional[str]:
     order = current_user.orders.with_entities(Order.id, Order.category, Order.company_type,
                                               Order.company_name, Order.created_at, Order.is_moderation) \
-        .filter(Order.id == o_id, Order.stage == settings.OrderStage.CREATING, ~Order.to_delete).first()
+        .filter(Order.id == o_id, Order.stage == settings.OrderStage.CREATING, ~Order.to_delete).with_for_update(of=Order).first()
     if not order:
         flash(message=settings.Messages.CLEAN_EMPTY, category='error')
         return settings.Messages.CLEAN_EMPTY
@@ -1287,7 +1329,8 @@ def process_delete_order_pos(category: str, o_id: int, m_id: int, edit: bool = F
         try:
             stmt = get_delete_pos_stmts(category=category, m_id=m_id, o_id=o_id)
             db.session.execute(text(stmt))
-            db.session.commit()
+            if not edit:
+                db.session.commit()
             if not edit and not async_type:
                 flash(message=f"{settings.Messages.ORDER_DELETE_POS_SUCCESS} ")
             return 'success'
@@ -1302,7 +1345,6 @@ def process_delete_order_pos(category: str, o_id: int, m_id: int, edit: bool = F
 
 def helper_delete_order_pos(o_id: int, m_id: int, category: str, model: db.Model,
                             async_type: int = None) -> Union[tuple, Response]:
-    cat_list = model.query.with_entities(model.id).filter_by(order_id=o_id).all()
     pos_exists = model.query.with_entities(model.id).filter_by(id=m_id, order_id=o_id).first()
     subcategory = (request.view_args or {}).get('subcategory') or request.args.get('subcategory', '')
     if not Category.check_subcategory(category=category, subcategory=subcategory):
@@ -1312,6 +1354,17 @@ def helper_delete_order_pos(o_id: int, m_id: int, category: str, model: db.Model
         if async_type:
             return jsonify(dict(status='error', message=settings.Messages.NO_SUCH_ORDER))
         return _redirect_product_card_order(o_id=o_id)
+
+    order = (current_user.orders.with_entities(Order.id)
+             .filter(Order.id == o_id, Order.category == category,
+                     Order.stage == settings.OrderStage.CREATING, ~Order.to_delete)
+             .with_for_update(of=Order).first())
+    if not order:
+        if async_type:
+            return jsonify(status='error', message=settings.Messages.NO_SUCH_ORDER)
+        flash(message=settings.Messages.NO_SUCH_ORDER, category='error')
+        return redirect(url_for(f'{settings.CATEGORIES_DICT.get(category)}.index', subcategory=subcategory))
+    cat_list = model.query.with_entities(model.id).filter_by(order_id=o_id).all()
 
     if not pos_exists:
         if async_type:
@@ -1932,19 +1985,24 @@ def helper_process_category_order(user: User, order: Order, category: str, order
     if getattr(order, "is_moderation", False):
         return _redirect_product_card_order(o_id=order.id)
 
-    o_id = order.id
-    subcategory = get_subcategory(order_id=o_id, category=category)
+    subcategory = get_subcategory(order_id=order.id, category=category)
     redirect_kwargs = {'subcategory': subcategory} if subcategory else {}
 
-    relation = {
-        settings.Shoes.CATEGORY: order.shoes,
-        settings.Clothes.CATEGORY: order.clothes,
-        settings.Socks.CATEGORY: order.socks,
-        settings.Linen.CATEGORY: order.linen,
-        settings.Parfum.CATEGORY: order.parfum,
-        settings.Cosmetics.CATEGORY: order.cosmetics,
-        settings.Toys.CATEGORY: order.toys,
-    }.get(category, ())
+    # Serialize duplicate submissions before changing or splitting the draft.
+    with db.session.no_autoflush:
+        locked_order = (db.session.query(Order)
+            .options(*category_order_load_options(category))
+            .filter(Order.id == order.id, Order.user_id == user.id,
+                    Order.stage == settings.OrderStage.CREATING,
+                    Order.processed.is_(False), Order.to_delete.is_(False))
+            .populate_existing().with_for_update(of=Order).first())
+    if locked_order is None:
+        flash(message="Заказ уже оформлен или недоступен.", category='error')
+        return redirect(url_for(f'{_category_name}.index', **redirect_kwargs))
+    order = locked_order
+    o_id = order.id
+
+    relation = getattr(order, _category_name, ())
     if any(not position.weight_grams or position.weight_grams <= 0 for position in relation):
         flash("Для оформления заказа укажите общий вес каждой позиции в граммах (целое число больше 0).", "error")
         return redirect(url_for(f'{_category_name}.index', o_id=o_id, **redirect_kwargs))
@@ -1991,50 +2049,53 @@ def helper_process_category_order(user: User, order: Order, category: str, order
         flash(str(exc), "error")
         return redirect(url_for(f'{_category_name}.index', o_id=o_id, **redirect_kwargs))
 
-    status_balance, total_order_price, agent_at2, message_balance = helper_check_uoabm(user=current_user, o_id=o_id)
+    status_balance, total_order_price, agent_at2, message_balance = helper_check_uoabm(user=current_user, o_id=o_id, lock=True)
     if status_balance == 0:
         flash(message=Markup(message_balance), category='error')
         return redirect(url_for(f'{_category_name}.index'))
 
     try:
-
-        order_num, order_idn, is_crm, is_at2 = process_admin_order_num(user=user)
-
-        if not order_idn:
-            db.session.rollback()
-            flash(message=f"{settings.Messages.PROCESS_ERROR}: Ошибка БД", category='error')
-            return redirect(url_for(f'{_category_name}.index'))
-
-        _stage = process_order_start(user=user, category=category, o_id=o_id, order_idn=order_idn, order_comment=order_comment)
-        if not _stage:
-            db.session.rollback()
-            flash(message=f"{settings.Messages.PROCESS_ERROR}: Такого заказа нет в бд", category='error')
-            return redirect(url_for(f'{_category_name}.index'))
-
-        if is_at2:
-            sent_flag = orders_process_send_order(
-                o_id=o_id, user=user,
-                order_comment=order_comment,
-                order_idn=order_idn,
-                flag_046=False,
+        from utilities.gtin_orders import split_order, reserve_order_numbers
+        submitted_orders = split_order(order, _category_name)
+        numbers = reserve_order_numbers(user, len(submitted_orders))
+        completed = []
+        for submitted_order, order_idn in zip(submitted_orders, numbers):
+            _stage = process_order_start(
+                user=user, category=category, o_id=submitted_order.id,
+                order_idn=order_idn, order_comment=order_comment, order=submitted_order,
             )
-
-            flash(message=Markup(f"{settings.Messages.PROCESS_SUCCESS}<b>{order_idn}</b>!")) if sent_flag else None
-        else:
-            flash(message=Markup(f"{settings.Messages.PROCESS_SUCCESS}<b>{order_idn}</b>!"))
+            if not _stage:
+                raise ValueError("Не удалось оформить заказ.")
+            completed.append((submitted_order.id, order_idn, _stage))
         db.session.commit()
-
-    except Exception as e:
+    except Exception as exc:
         db.session.rollback()
-        message = f"{settings.Messages.ORDER_ADD_ERROR} {e}"
-        flash(message=message, category='error')
-        logger.error(message)
-    else:
-        # notify client
-        helper_send_user_order_tg_notify(user_id=user.id, order_idn=order_idn, order_stage=_stage)
+        flash(message=f"{settings.Messages.ORDER_ADD_ERROR} {exc}", category='error')
+        logger.exception("Ошибка оформления заказа %s", o_id)
+        return redirect(url_for(f'{_category_name}.index', o_id=o_id, **redirect_kwargs))
 
-        # notify markineris common group
-        MarkinerisInform.send_message_tg.delay(order_idn=order_idn)
+    if len(completed) > 1:
+        order_numbers = "<br>".join(f"<b>{number}</b>" for _, number, _ in completed)
+        flash(message=Markup(
+            f"Заказ разделён на несколько заказов (всего: {len(completed)}). "
+            "Все заказы успешно оформлены.<br>Номера заказов:<br>"
+            f"{order_numbers}<br>Проверяйте статус в истории заказов."
+        ))
+    else:
+        flash(message=Markup(f"{settings.Messages.PROCESS_SUCCESS}<b>{completed[0][1]}</b>!"))
+
+    for submitted_id, order_idn, _stage in completed:
+        # External side effects run only after every resulting order is saved.
+        try:
+            if user.is_at2:
+                orders_process_send_order(
+                    o_id=submitted_id, user=user, order_comment=order_comment,
+                    order_idn=order_idn, flag_046=False,
+                )
+            helper_send_user_order_tg_notify(user_id=user.id, order_idn=order_idn, order_stage=_stage)
+            MarkinerisInform.send_message_tg.delay(order_idn=order_idn)
+        except Exception:
+            logger.exception("Заказ %s сохранён, но уведомление не отправлено", order_idn)
 
     return redirect(url_for(f'{_category_name}.index', subcategory=subcategory))
 
@@ -3153,7 +3214,7 @@ def helper_check_useroragent_balance(user: User, o_id: int = None) -> tuple[int,
         return 1, round(current_price * prev_marks), is_at2, ''
 
 
-def helper_check_uoabm(user: User, o_id: int = None):
+def helper_check_uoabm(user: User, o_id: int = None, lock: bool = False):
     """
         helper_check_useroragent_balance_mod
     :param user:
@@ -3162,9 +3223,24 @@ def helper_check_uoabm(user: User, o_id: int = None):
     """
     # from utilities.daily_price import get_cocmd
 
-    agent_info = User.query.filter(User.id == user.admin_parent_id) \
-        .with_entities(User.is_at2, User.login_name, User.role, User.balance, User.trust_limit, User.price_id).first() \
-        if user.role == settings.ORD_USER else user
+    if lock:
+        # Keep account/counter locks through the final order commit; previews remain read-only.
+        account_ids = {user.id}
+        if user.role == settings.ORD_USER and user.admin_parent_id:
+            account_ids.add(user.admin_parent_id)
+        with db.session.no_autoflush:
+            rows = (User.query.with_entities(User.id, User.is_at2, User.role, User.balance,
+                                            User.trust_limit, User.price_id)
+                    .filter(User.id.in_(account_ids)).order_by(User.id)
+                    .with_for_update(key_share=True).all())  # PostgreSQL FOR NO KEY UPDATE
+        accounts = {row.id: row for row in rows}
+        account = accounts[user.id]
+        agent_info = accounts.get(user.admin_parent_id) if user.role == settings.ORD_USER else account
+    else:
+        account = user
+        agent_info = User.query.filter(User.id == user.admin_parent_id) \
+            .with_entities(User.is_at2, User.login_name, User.role, User.balance, User.trust_limit, User.price_id).first() \
+            if user.role == settings.ORD_USER else user
     if agent_info and agent_info.role == settings.ADMIN_USER and agent_info.is_at2:
         # balance = agent_info.balance + agent_info.trust_limit
 
@@ -3173,9 +3249,9 @@ def helper_check_uoabm(user: User, o_id: int = None):
         is_at2 = True
     else:
         is_at2 = False
-        balance = user.balance
+        balance = account.balance
 
-    data_res = get_cocmd(user_id=user.id, price_id=user.price_id, order_id=o_id)
+    data_res = get_cocmd(user_id=user.id, price_id=account.price_id, order_id=o_id)
 
     # check balance for ordinary users and  make defense against huge orders for agent type 2
 
