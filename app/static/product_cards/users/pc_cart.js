@@ -883,14 +883,13 @@ async function oBCartSubmitToBackend(postUrl, csrfToken) {
 
     const data = await resp.json().catch(() => ({}));
     if (data.status === "success") {
-        make_cart_message(data.message, "success");
         oBCartClearAll();
 
         if (data.redirect_url) {
           redirecting = true;
-          setTimeout(() => {
-            window.location.href = data.redirect_url;
-          }, 1000); // 1 секунда
+          window.location.href = data.redirect_url;
+        } else {
+          make_cart_message(data.message, "success");
         }
       }
     else {

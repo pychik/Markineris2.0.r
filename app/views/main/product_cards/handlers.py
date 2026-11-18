@@ -1624,8 +1624,11 @@ def h_make_pc_basket_order():
         logger.exception("make_pc_basket_order failed")
         return _json_error(f"Ошибка при создании заказа: {e}", 500)
 
-    sub = f" / {subcategory}" if subcategory else ""
-    message = f"Создан заказ: {category}{sub}"
+    category_config = CATEGORIES_COMMON.get(category, {})
+    subcategory_title = (category_config.get("subcategories") or {}).get(subcategory, subcategory)
+    sub = f" / {subcategory_title}" if subcategory else ""
+    message = f"Создан заказ: {category_ru}{sub}"
+    flash(message, "success")
 
     return jsonify(
         status="success",
