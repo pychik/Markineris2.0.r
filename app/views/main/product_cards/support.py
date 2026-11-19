@@ -11,6 +11,7 @@ from sqlalchemy import event
 from werkzeug.datastructures import ImmutableMultiDict
 
 from config import settings
+from utilities.socks_children import normalize_socks_size, validate_socks_sizes
 from utilities.clothes_tnved_content import LEATHER_TNVED_CONTENT_RULE, clothes_tnved_content_error
 from logger import logger
 from models import db, Clothes, LinenSizesUnits, ProductCard, ClothesQuantitySize, Shoe, ShoeQuantitySize, Socks, \
@@ -220,6 +221,7 @@ CARD_FIELDS = {
     },
 
     "socks": {
+        "is_children": "Детский товар",
         "article": "Артикул",
         "trademark": "Товарный знак",
         "type": "Тип",
@@ -729,10 +731,17 @@ def parse_sizes_for_category(category: str, form_data_raw, subcategory: str | No
         quantities = form_data_raw.getlist("quantity")
         size_types = form_data_raw.getlist("size_type")
 
+        if not (len(sizes) == len(quantities) == len(size_types)):
+            raise ValueError("Размеры, типы и количества должны соответствовать друг другу.")
+
         sizes_quantities = sorted(
-            list(zip(sizes, quantities, size_types)),
+            [(normalize_socks_size(size, kind), qty, get_socks_size_type(size, kind))
+             for size, qty, kind in zip(sizes, quantities, size_types)],
             key=lambda x: x[0]
         )
+
+        validate_socks_sizes(sizes_quantities, form_data_raw.get("is_children") == "yes",
+                             form_data_raw.get("gender"))
 
     elif category_process == settings.Shoes.CATEGORY:
         sizes = form_data_raw.getlist("size")
@@ -806,6 +815,8 @@ def parse_card_form_weights(category: str, form_data, *, required: bool) -> dict
 
     if category in (settings.Clothes.CATEGORY_PROCESS, settings.Socks.CATEGORY_PROCESS):
         keys = list(zip(form_data.getlist("size"), form_data.getlist("size_type")))
+        if category == settings.Socks.CATEGORY_PROCESS:
+            keys = [(normalize_socks_size(size, kind), get_socks_size_type(size, kind)) for size, kind in keys]
     elif category == settings.Shoes.CATEGORY_PROCESS:
         keys = form_data.getlist("size")
     elif category == settings.Linen.CATEGORY_PROCESS:
@@ -887,7 +898,7 @@ def normalize_color_for_category(form_dict: dict) -> str:
 
 def collect_existing_size_keys(user_id: int, category: str, subcategory: str | None,
                                article: str, color: str | None = None, crm_: bool = False,
-                               exclude_card_id: int | None = None) -> tuple[set, set]:
+                               exclude_card_id: int | None = None, is_children: bool | None = None) -> tuple[set, set]:
     """
     Возвращает:
       - set ключей размеров
@@ -915,6 +926,9 @@ def collect_existing_size_keys(user_id: int, category: str, subcategory: str | N
     if has_subcategory and subcategory:
         # только для одежды
         q = q.filter(Clothes.subcategory == subcategory)
+
+    if category == settings.Socks.CATEGORY_PROCESS and is_children is not None:
+        q = q.filter(model.is_children == is_children)
 
     cards = q.all()
 
@@ -1166,7 +1180,13 @@ def save_socks_card(
 
     article = normalize_article_placeholder(form_dict.get("article"))
 
+    is_children = form_dict.get("is_children") == "yes"
+    sizes_quantities = [(normalize_socks_size(size, kind), qty, get_socks_size_type(size, kind))
+                        for size, qty, kind in sizes_quantities]
+    validate_socks_sizes(sizes_quantities, is_children, form_dict.get("gender"))
+
     socks = Socks(
+        is_children=is_children,
         trademark=process_input_str(form_dict.get("trademark") or ""),
         article=article,
         type=form_dict.get("type"),
@@ -1755,6 +1775,9 @@ def check_same_fields_if_exists(*, category: str, subcategory: str | None, form_
     if cfg.get("has_subcategory") and hasattr(model, "subcategory"):
         q = q.filter(model.subcategory == subcategory)
 
+    if category == settings.Socks.CATEGORY_PROCESS:
+        q = q.filter(model.is_children == (form_dict.get("is_children") == "yes"))
+
     existing = q.first()
     if not existing:
         return
@@ -2201,6 +2224,8 @@ def _card_merge_key(card: ProductCard) -> tuple | None:
     if card.category == settings.Clothes.CATEGORY_PROCESS:
         key.append(getattr(main, "subcategory", None) or ClothesSubcategories.common.value)
         key.append(bool(main.is_children))
+    elif card.category == settings.Socks.CATEGORY_PROCESS:
+        key.append(bool(main.is_children))
 
     return tuple(key)
 
@@ -2238,7 +2263,7 @@ def find_approved_wear_card_for_size_extension(card: ProductCard) -> ProductCard
     if cfg.get("has_subcategory") and hasattr(model, "subcategory"):
         q = q.filter(model.subcategory == getattr(main, "subcategory", None))
 
-    if card.category == settings.Clothes.CATEGORY_PROCESS:
+    if card.category in (settings.Clothes.CATEGORY_PROCESS, settings.Socks.CATEGORY_PROCESS):
         q = q.filter(model.is_children == main.is_children)
 
     return q.first()
@@ -2402,6 +2427,10 @@ def assert_frozen_fields_unchanged(card: ProductCard, form_data):
     if not entity:
         raise ValueError("Не удалось прочитать данные карточки для сравнения.")
 
+    if category == settings.Socks.CATEGORY_PROCESS:
+        if entity.is_children != (form_data.get("is_children") == "yes"):
+            raise ValueError("Нельзя менять признак детского товара в карточке на уточнении.")
+
     incoming_article_norm = normalize_article_for_category(category, form_data)
 
     incoming_color = (form_data.get("color") or "").strip()
@@ -2460,6 +2489,9 @@ def assert_frozen_fields_unchanged(card: ProductCard, form_data):
     if cfg.get("has_subcategory") and hasattr(model, "subcategory"):
         q = q.filter(model.subcategory == getattr(entity, "subcategory", None))
 
+    if category == settings.Socks.CATEGORY_PROCESS:
+        q = q.filter(model.is_children == entity.is_children)
+
     existing_items = q.all()
     if not existing_items:
         return
@@ -2499,6 +2531,7 @@ def assert_frozen_fields_unchanged(card: ProductCard, form_data):
         article=incoming_article_norm,
         color=db_color,
         exclude_card_id=card.id,
+        is_children=getattr(entity, "is_children", None),
     )
     duplicates = incoming_keys & existing_keys
     if duplicates:

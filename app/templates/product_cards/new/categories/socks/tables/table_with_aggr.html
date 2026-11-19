@@ -75,6 +75,7 @@
                 <td style="font-size: 13px;">
                     <div><strong>Цвет:</strong> {{ t.color }}</div>
                     <div><strong>Пол:</strong> {{ t.gender }}</div>
+                    {% if t.is_children %}<div><strong>Детский товар</strong></div>{% endif %}
                     <div><strong>Состав:</strong> {{ t.content }}</div>
                 </td>
                 <td class="text-end actions">

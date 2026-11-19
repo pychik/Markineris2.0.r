@@ -1,0 +1,25 @@
+<div class="form-group">
+    <div class="d-flex align-items-center justify-content-between gap-2 mb-1 w-100"
+         style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+        <label class="control-label mb-0" for="gender">Пол</label>
+        <div class="form-check form-switch mb-0 ms-auto" style="margin-left:auto; flex-shrink:0;">
+            <input class="form-check-input{% if copied_order and copied_order.is_children %} bg-warning border-warning{% endif %}"
+                   type="checkbox" role="switch" id="is_children" name="is_children" value="yes"
+                   data-bs-toggle="tooltip" data-bs-placement="top"
+                   title="Укажите, если это детский товар"
+                   onchange="socksChildrenChanged()"
+                   {% if copied_order and copied_order.is_children %}checked{% endif %}
+                   {% if edit_mode %}disabled{% endif %}>
+            {% if edit_mode and copied_order and copied_order.is_children %}
+                <input type="hidden" name="is_children" value="yes">
+            {% endif %}
+            <label class="form-check-label fw-bold text-secondary" style="font-weight:700;" for="is_children">Детский товар</label>
+        </div>
+    </div>
+    <select class="form-control search-select" id="gender" name="gender" required>
+        <option disabled value="" {% if not copied_order or not copied_order.gender %}selected{% endif %}>Выберите пол...</option>
+        {% for el in genders %}
+            <option value="{{ el }}" {% if copied_order and copied_order.gender == el %}selected{% endif %}>{{ el }}</option>
+        {% endfor %}
+    </select>
+</div>

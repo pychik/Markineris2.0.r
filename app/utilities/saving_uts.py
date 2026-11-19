@@ -8,6 +8,7 @@ from flask import flash
 from sqlalchemy.sql import desc, text
 
 from config import settings
+from utilities.socks_children import normalize_socks_size, validate_socks_sizes
 from logger import logger
 from models import User, Order, Shoe, ShoeQuantitySize, Socks, SocksQuantitySize, Linen, LinenQuantitySize, LinenSetItem, Parfum, \
     Clothes, ClothesQuantitySize, Cosmetics, Toys, db
@@ -94,10 +95,14 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcateg
 
 
 def save_socks(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
+    is_children = form_dict.get("is_children") == "yes"
+    sizes_quantities = [(normalize_socks_size(size, kind), qty, get_socks_size_type(size, kind))
+                        for size, qty, kind in sizes_quantities]
+    validate_socks_sizes(sizes_quantities, is_children, form_dict.get("gender"))
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
     article = normalize_article_placeholder(form_dict.get("article"))
 
-    new_socks_order = Socks(weight_grams=form_dict["weight_grams"], trademark=process_input_str(form_dict.get("trademark")),
+    new_socks_order = Socks(is_children=is_children, weight_grams=form_dict["weight_grams"], trademark=process_input_str(form_dict.get("trademark")),
                               article=article,
                               type=form_dict.get("type"),
                               color=form_dict.get("color"),
@@ -536,7 +541,7 @@ def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) ->
             )
             new_sizes.append(new_sq)
 
-        new_socks = Socks(weight_grams=sock.weight_grams,
+        new_socks = Socks(is_children=sock.is_children, weight_grams=sock.weight_grams,
             trademark=normalize_trademark_placeholder(sock.trademark),
             article=normalize_article_placeholder(sock.article), type=sock.type,
             color=sock.color, content=sock.content, box_quantity=sock.box_quantity,

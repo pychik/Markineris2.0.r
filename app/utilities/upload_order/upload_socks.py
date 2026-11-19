@@ -7,6 +7,9 @@ from typing import Optional, Union
 
 
 from config import settings
+from utilities.exceptions import SizeTypeException
+from utilities.saving_helpers import get_socks_size_type
+from utilities.socks_children import normalize_socks_size, parse_socks_children, validate_socks_sizes
 from logger import logger
 from tezaurus.runtime_catalogs import is_allowed_color, is_allowed_country_for_rd
 from utilities.check_tnved import TnvedChecker
@@ -61,28 +64,23 @@ class ValidateSocksMixin:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Socks.UPLOAD_COLOR_ERROR}"
 
     @staticmethod
-    def _size_type(size_value: str, row_num: int, pos: int, order_list: list) -> None:
-        """
-        Утсанавливает тип размера по его значению
-            :param size_value: Значение размера (например: 25, S, M-L)
-        """
-
-        # allowed_types = ["МЕЖДУНАРОДНЫЙ", "РОССИЯ"]
-        #
-        # # Проверка что тип размера один из разрешённых
-        # if size_type_value not in allowed_types:
-        #     return f"{val_error_start(row_num=row_num, col=size_col)} Такого типа размера нет"
-
-        # Если в размере есть латиница — тип должен быть только 'МЕЖДУНАРОДНЫЙ'
-        if re.search(r"[A-Za-z]", size_value):
-            order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = 'МЕЖДУНАРОДНЫЙ'
-        else:
-            order_list[row_num - settings.Clothes.UPLOAD_STANDART_ROW][pos] = 'РОССИЯ'
+    def _size_type(size_value: str, row_num: int, pos: int, order_list: list) -> Optional[str]:
+        row = order_list[row_num - settings.Socks.UPLOAD_STANDART_ROW]
+        provided = row[pos].strip()
+        kind = provided.lower() if provided.lower() in {'month', 'years'} else provided.upper()
+        if kind in {'', 'NAN', 'NONE'}:
+            kind = 'МЕЖДУНАРОДНЫЙ' if re.search(r'[A-Za-z]', size_value) else 'РОССИЯ'
+        try:
+            row[pos] = get_socks_size_type(size_value, kind)
+        except SizeTypeException as exc:
+            return f"{val_error_start(row_num=row_num, col='I')} {exc}"
 
     @staticmethod
     @empty_value
     def _size(value: str, row_num: int, col: str, pos: int, order_list: list) -> Optional[str]:
-        order_list[row_num - settings.Socks.UPLOAD_STANDART_ROW][pos] = value
+        row = order_list[row_num - settings.Socks.UPLOAD_STANDART_ROW]
+        value = normalize_socks_size(value, row[5])
+        row[pos] = value
 
         if value.upper() == settings.Socks.UNITE_SIZE_VALUE:
             order_list[row_num - settings.Socks.UPLOAD_STANDART_ROW][pos] = settings.Socks.UNITE_SIZE_VALUE
@@ -91,8 +89,8 @@ class ValidateSocksMixin:
         if len(value) > 100:
             return f"{val_error_start(row_num=row_num, col=col)} {settings.Socks.UPLOAD_SIZE_ERROR}"
         # Проверка только латиница, цифры, дефис, точка для дробных
-        if not re.fullmatch(r'[A-Za-z0-9.-]{1,8}', value):
-            return f"{val_error_start(row_num=row_num, col=col)} Размер должен содержать только латиницу, цифры, дефис и точку для дробных."
+        if not re.fullmatch(r'[A-Za-z0-9.,-]{1,8}', value):
+            return f"{val_error_start(row_num=row_num, col=col)} Размер должен содержать только латиницу, цифры, дефис, точку или запятую для дробных."
 
     @staticmethod
     def _content(order_list: list, socks_material: str, row_num: int, col: str, pos: int,
@@ -217,6 +215,10 @@ class UploadSocks(UploadCategory):
 
         self.data_row_indexes = list(process_df.index)
         res_list = list(process_df.values.tolist())
+        children_column = next((column for column in self.df.columns
+                                if str(column).strip() == 'Детский товар'), None)
+        for index, row in zip(self.data_row_indexes, res_list):
+            row.append(str(self.df.loc[index, children_column]) if children_column is not None else '')
         if len(res_list) > settings.ORDER_LIMIT_ARTICLES:
             return (settings.ORDER_LIMIT_ARTICLES, len(res_list),), None
 
@@ -233,6 +235,8 @@ class UploadSocks(UploadCategory):
             rz_condition = ((current_user.role == 'ordinary_user' and current_user.admin_parent_id == 2)
                             or current_user.id == 2)
             for data_group in order_list:
+                if len(data_group) == 14:
+                    data_group.append('')
                 gender = data_group[4].strip()
 
                 gender_condition = gender not in settings.RZ_GENDERS_RD_LIST
@@ -259,6 +263,13 @@ class UploadSocks(UploadCategory):
                 size_error = self._size(value=data_group[6].strip(), row_num=row_num, col='J', pos=6,
                                         order_list=order_list)
                 # print(size_error)
+                children_error = None
+                try:
+                    child = parse_socks_children(data_group[14], data_group[4], data_group[5])
+                    data_group[14] = 'yes' if child else 'no'
+                    validate_socks_sizes([(data_group[6], data_group[9], data_group[5])], child, data_group[4])
+                except SizeTypeException as exc:
+                    children_error = f"{val_error_start(row_num=row_num, col='S')} {exc}"
                 content_error = self._content(order_list=order_list, socks_material=data_group[7].strip(),
                                               row_num=row_num, col='K', pos=7)
                 # print(content_error)
@@ -277,7 +288,7 @@ class UploadSocks(UploadCategory):
                                                                     row_num=row_num, order_list=order_list,
                                                                     cols=('O', 'P', 'Q',))
                 # print(rd_general_error)
-                error_tuple = (trademark_error, article_error, type_error, color_error, size_type_error, size_error,
+                error_tuple = (trademark_error, article_error, type_error, color_error, size_type_error, size_error, children_error,
                                content_error, tnved_error, gender_error, quantity_error, country_error,
                                rd_general_error, rd_type_error, rd_name_error, rd_date_error )
                 for e in error_tuple:

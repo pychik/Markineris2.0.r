@@ -51,22 +51,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <div class="form-group">
-                        <label class="control-label">Пол</label>
-                        <select class="form-control search-select" id="gender" name="gender"
-                            required>
-{#                            onchange="javascript:set_tnved();" required>#}
-                            <option disabled selected value="">Выберите пол...</option>
-                              {% for el in genders%}
-                                <option value="{{el}}" {% if copied_order %}
-                                                                {% if copied_order.gender == el %}
-                                                                    selected
-                                                                {% endif %}
-                                                            {% endif %}>{{el}}
-                                </option>
-                              {%endfor%}
-                        </select>
-                    </div>
+                    {% include 'helpers/socks/genders_block.html' %}
                 </div>
                 <div class="col-md-4">
                     {% include 'helpers/countries_block_v2.html' %}

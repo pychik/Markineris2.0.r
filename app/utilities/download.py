@@ -12,6 +12,7 @@ from xlsxwriter import Workbook
 from xlsxwriter.worksheet import Worksheet
 
 from config import settings
+from utilities.socks_children import socks_size_for_export
 from models import FastOrderCompanies, Order, db, User
 from .categories_data.accessories_data import HATS_DEC_DICT, GLOVES_DEC_DICT, SHAWLS_DEC_DICT
 from .categories_data.categories_codes.clothes_category_code_mapper import resolve_clothes_category_code
@@ -1437,6 +1438,7 @@ class SocksProcessor(OrdersProcessor):
                 article = OrdersProcessor.placeholder_export_value(el.article, "article")
                 size_type = OrdersProcessor.normalize_length_width_size_type_for_export(sq.size_type)
                 size = OrdersProcessor.normalize_length_width_size_for_export(sq.size, sq.size_type)
+                size, size_type = socks_size_for_export(size, size_type, flag_046)
                 content = OrdersProcessor.normalize_export_content(el.content)
 
                 gender_dec = SocksProcessor.get_gender_dec(clothes_type=el.type, gender=el.gender)
@@ -1447,7 +1449,8 @@ class SocksProcessor(OrdersProcessor):
 
                 temp_list = [tnved, category_code, full_name,
                              trademark, 'Артикул', article, el.type, el.color, gender, size_type, size,
-                             content, tnved, settings.Clothes.NUMBER_STANDART,
+                             content, tnved, (settings.Socks.CHILDREN_NUMBER_STANDART if getattr(el, "is_children", False)
+                                              else settings.Socks.NUMBER_STANDART),
                              '', '', el.article_price, el.tax, sq.quantity * el.box_quantity, '', '', el.country,
                              declar_doc, ] if not flag_046 else \
                             ['', '', article, actual_date, full_name, trademark, settings.COUNTRIES_CODES.get(el.country), '',

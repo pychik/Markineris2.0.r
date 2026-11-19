@@ -1245,6 +1245,7 @@ class ClothesQuantitySize(CQSMixin):
 
 class Socks(ClothesMixin):
     __tablename__ = "socks"
+    is_children = db.Column(db.Boolean, nullable=False, default=False, server_default="false")
     __table_args__ = (
         Index("ix_socks_article_color", "article", "color"),
     )

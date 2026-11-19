@@ -1,3 +1,6 @@
+from utilities.socks_children import CHILDREN_AGE_SIZES, CHILDREN_INTERNATIONAL
+
+
 SHOE_START: list = [
                     ['Код ТНВЭД', 'Полное наименование товара', 'Товарный знак', 'Модель / артикул производителя', '',
                      'Вид обуви', 'Цвет', 'Размер в штихмассовой системе', 'Материал верха', 'Материал подкладки',
@@ -903,6 +906,9 @@ SOCKS_SIZES_MEN: dict = {
     }
 
 SOCKS_SIZES_CHILDREN: dict = {
+        'МЕЖДУНАРОДНЫЙ': tuple((value, '') for value in CHILDREN_INTERNATIONAL),
+        **{kind: tuple((value, '') for value, _international in sizes)
+           for kind, sizes in CHILDREN_AGE_SIZES.items()},
         'РОССИЯ': (
             ('7', '14'), ('8-10', '16'),
             ('12', '18,19,20'),
@@ -953,7 +959,7 @@ for _socks_sizes_dict in (
 SOCKS_TYPES_SIZES_DICT: dict = {'Жен.': SOCKS_SIZES_WOMEN, "Унисекс": SOCKS_SIZES_WOMEN, 'Муж.': SOCKS_SIZES_MEN,
                                 'Детск.': SOCKS_SIZES_CHILDREN, 'Без указания пола': SOCKS_SIZES_NO_GENDER }
 
-SOCKS_SIZE_TYPES: list = ['РОССИЯ', 'МЕЖДУНАРОДНЫЙ', ]
+SOCKS_SIZE_TYPES: list = ['РОССИЯ', 'МЕЖДУНАРОДНЫЙ', 'month', 'years']
 SOCKS_ST_DICT: dict = {'РОССИЯ': '<1764000029> РОССИЯ', 'МЕЖДУНАРОДНЫЙ': '<1764000037> МЕЖДУНАРОДНЫЙ', }
 
 

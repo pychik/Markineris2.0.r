@@ -1,10 +1,50 @@
+function socksChildrenSelected() {
+    return Boolean(document.getElementById('is_children')?.checked);
+}
+
+function socksSyncChildrenSwitch() {
+    const toggle = document.getElementById('is_children');
+    if (!toggle) return;
+    toggle.classList.toggle('bg-warning', toggle.checked);
+    toggle.classList.toggle('border-warning', toggle.checked);
+}
+
+function socksClearSelectedSizes() {
+    const block = document.getElementById('sizes_quantity');
+    const hadSizes = Boolean(block?.querySelector('[name="size"]'));
+    if (block) block.innerHTML = '';
+    const modal = document.getElementById('sizesSocksDiv');
+    if (modal) modal.innerHTML = '';
+    if (typeof setSocks === 'function') setSocks();
+    if (hadSizes) make_message('Размеры текущей позиции очищены. Выберите размеры для нового типа товара.', 'warning');
+}
+
+function socksChildrenChanged() {
+    if (document.getElementById('is_children')?.disabled) return;
+    socksSyncChildrenSwitch();
+    socksClearSelectedSizes();
+    if (!socksChildrenSelected() && document.getElementById('gender')?.value === 'Детск.') {
+        $('#gender').val('').trigger('change');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    socksSyncChildrenSwitch();
+    $('#gender').on('change.socksChildren', function () {
+        if (document.getElementById('is_children')?.disabled) return;
+        if (this.value === 'Детск.') document.getElementById('is_children').checked = true;
+        socksSyncChildrenSwitch();
+        socksClearSelectedSizes();
+    });
+});
+
 function socks_check_sizes_quantity_valid() {
     var sizes = document.querySelectorAll('[id=size_info]');
     return sizes.length >= 1;
 }
 
-function socksSizeInputId(size) {
-    return `size_${String(size).replace(/[^0-9A-Za-zА-Яа-яЁё_-]/g, '_')}`;
+function socksSizeInputId(size, sizeType) {
+    return `size_${String(`${sizeType || ''}_${size}`).replace(/[^0-9A-Za-zА-Яа-яЁё_-]/g, '_')}`;
 }
 
 function normalizeSocksSizeType(size, sizeType) {
@@ -80,7 +120,7 @@ function socks_perform_pos_add(async_flag, url) {
 
 
 function show_socks_pos(index, trademark, type, color, pos_quantity, box_quantity, all_quantity, sq_list, content,
-                          gender, country, edit_link, copy_link, delete_link, csrf_token) {
+                          gender, country, edit_link, copy_link, delete_link, csrf_token, is_children = false) {
     let main = document.getElementById('ShowModalTable');
     main.innerHTML = '';
     let sq_block = ''
@@ -216,7 +256,7 @@ function show_socks_pos(index, trademark, type, color, pos_quantity, box_quantit
                         <div class="important-card__prop">
                           Пол
                         </div>
-                        <div class="important-card__val">${gender}</div>
+                        <div class="important-card__val">${gender}${is_children ? '<br><strong>Детский товар</strong>' : ''}</div>
                     </div>
                     <div class="important-card__item">
                         <div class="important-card__prop">
@@ -397,6 +437,8 @@ function socks_clear_pos() {
     $('#type').val('').trigger("change");
     $('#customColor').val("");
     $('#color').val('').trigger("change");
+    $('#is_children').prop('checked', false);
+    socksSyncChildrenSwitch();
     $('#gender').val('').trigger("change");
     $('#multi_content').val('').trigger("change");
     $('#country').val('').trigger("change");
@@ -649,7 +691,12 @@ function chooseSizeSocks() {
     if (!socks_types_sizes_dict.hasOwnProperty(gender_value)){
         make_message('Указан некорректный пол', 'error');
     }
-    let socks_operation_dict = socks_types_sizes_dict[gender_value];
+    let socks_operation_dict = socksChildrenSelected()
+        ? socks_types_sizes_dict['Детск.'] : socks_types_sizes_dict[gender_value];
+    if (!socksChildrenSelected() && gender_value === 'Без указания пола') {
+        socks_operation_dict = {...socks_operation_dict, 'РОССИЯ': socks_operation_dict['РОССИЯ'].filter(
+            entry => !['7', '8-10', '12', '14', '16', '18', '20', '22'].includes(entry[0]))};
+    }
     // Iterate over each clothing type and its sizes
     for (let clothingType in socks_operation_dict) {
         console.log(socks_operation_dict);
@@ -666,7 +713,7 @@ function chooseSizeSocks() {
                 <div class="accordion-item">
                     <h2 class="accordion-header" id="heading_${clothingType}">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_${clothingType}" aria-expanded="false" aria-controls="collapse_${clothingType}">
-                            ${clothingType}
+                            ${clothingType === 'month' ? 'ВОЗРАСТ — МЕСЯЦЫ' : clothingType === 'years' ? 'ВОЗРАСТ — ГОДЫ' : clothingType}
                         </button>
                     </h2>
                     <div id="collapse_${clothingType}" class="accordion-collapse collapse" aria-labelledby="heading_${clothingType}">
@@ -702,8 +749,8 @@ function chooseSizeSocks() {
     enableAllTooltips();
 }
 
-function setQuantitySize(size) {
- let quantityInput = document.getElementById(socksSizeInputId(size));
+function setQuantitySize(size, sizeType) {
+ let quantityInput = document.getElementById(socksSizeInputId(size, sizeType));
 
     if (quantityInput.disabled) {
         quantityInput.classList.remove('input-light-grey');
@@ -792,7 +839,7 @@ function create_size_blocks(sizes, clothingType){
     let sizesBlock = '';
     for (let i = 0; i < sizes.length; i++) {
         let size = sizes[i];
-        let inputId = socksSizeInputId(size[0]);
+        let inputId = socksSizeInputId(size[0], clothingType);
         let sizeAlreadyExists = false;
         let quantity = 0;
         let effectiveSizeType = normalizeSocksSizeType(size[0], clothingType);
@@ -816,7 +863,7 @@ function create_size_blocks(sizes, clothingType){
                 <div class="col-md-5 border-bottom border-0 border-warning text-center mt-1" >
 
                     <div class="row">
-                        <div class="col-4 my-2" onclick="setQuantitySize('${size[0]}');">
+                        <div class="col-4 my-2" onclick="setQuantitySize('${size[0]}', '${clothingType}');">
                             <span style="cursor: pointer">${size[0]}</span>
                         </div>
                         <div class="col-6">
@@ -842,7 +889,7 @@ function create_size_blocks(sizes, clothingType){
             sizesBlock += `
                 <div class="col-md-5 border-bottom border-0 border-warning text-center mt-1" >
                     <div class="row">
-                        <div class="col-4 my-2" onclick="setQuantitySize('${size[0]}');"><span style="cursor: pointer">${size[0]}</span></div>
+                        <div class="col-4 my-2" onclick="setQuantitySize('${size[0]}', '${clothingType}');"><span style="cursor: pointer">${size[0]}</span></div>
                         <div class="col-6"><input type="number" class="form-control ms-1"
                          min="1" max="50000" id="${inputId}" name="${inputId}" value="${quantity}" placeholder="0"
                          data-size-value="${size[0]}" data-size-type="${clothingType}" onchange="check_socks_quantity_input(this);updateSizesQuantityBlock()"></div>

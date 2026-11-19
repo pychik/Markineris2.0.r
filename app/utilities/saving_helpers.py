@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from config import settings
+from utilities.socks_children import CHILDREN_AGE_SIZES, normalize_socks_size
 from utilities.exceptions import SizeTypeException
 
 NO_TRADEMARK_VALUE = 'без товарного знака'
@@ -288,6 +289,10 @@ def get_socks_size_type(size: str, provided_type: str) -> str:
     if normalized_type == settings.Socks.SPECIAL_SIZE_TYPE:
         return settings.Socks.INTERNATIONAL_SIZE_TYPE
 
+    if normalized_type in CHILDREN_AGE_SIZES:
+        if normalize_socks_size(size, normalized_type) not in dict(CHILDREN_AGE_SIZES[normalized_type]):
+            raise SizeTypeException("Выберите возрастной размер из детского справочника.")
+
     if normalized_type in settings.Socks.SIZE_TYPES_ALL:
         return normalized_type
 
@@ -335,6 +340,7 @@ def build_position_key(item: Any, category: str) -> tuple:
                 normalize_key_value(item.color),
                 normalize_key_value(item.gender),
                 normalize_key_value(item.content),
+                bool(getattr(item, "is_children", False)),
             )
         case settings.Linen.CATEGORY:
             linen_set_marker = ("regular_linen",)

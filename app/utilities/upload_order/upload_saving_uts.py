@@ -84,7 +84,7 @@ def upload_clothes_st(order_list: list, order: Order, subcategory: str = None) -
 def upload_socks_st(order_list: list, order: Order) -> Order:
     for el in order_list:
         rd_date = datetime.strptime(el[13].strip(), '%d.%m.%Y').date() if (el[13].strip() and el[13] != 'nan') else None
-        new_socks_order = Socks(weight_grams=el[-1], trademark=el[0].strip(),
+        new_socks_order = Socks(is_children=el[14] == "yes", weight_grams=el[-1], trademark=el[0].strip(),
                                 article=el[1].strip(), type=el[2].strip(),
                                 color=el[3].strip(), box_quantity=1,
                                 gender=el[4].strip(),

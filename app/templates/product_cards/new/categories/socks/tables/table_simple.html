@@ -49,6 +49,7 @@
                     </td>
                     <td>
                         {{t.trademark}}
+                        {% if t.is_children %}<div class="small">Детский товар</div>{% endif %}
                     </td>
                     <td class="text-end actions">
                         {% include 'helpers/socks/tables/table_actions.html' %}

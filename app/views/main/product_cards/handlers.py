@@ -627,6 +627,7 @@ def h_save_product_card():
                 subcategory=subcategory,
                 article=article_norm,
                 color=color_norm,
+                is_children=form_dict.get("is_children") == "yes",
             )
 
             # 2.2 Фильтруем дублирующиеся размеры
