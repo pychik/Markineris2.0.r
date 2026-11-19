@@ -18,6 +18,15 @@
         </div>
     </button>
     <ul class="dropdown-menu mt-2" aria-labelledby="dropdownMenuLink">
+        {% if current_user.role == 'superuser' %}
+            <li>
+                <a class="dropdown-item d-flex align-items-center py-2" href="{{ url_for('crm_uoc.index') }}">
+                    <img src="{{ url_for('static', filename='main_v2/img/icons/settings_icon.svg') }}"
+                         class="me-2" width="24" height="24" alt="">
+                    Панель управления CRM
+                </a>
+            </li>
+        {% endif %}
         {% if current_user.role == 'superuser' or (current_user.role =='admin' and current_user.is_at2)%}
              <li><a class="dropdown-item d-flex align-items-center py-2" href="{{url_for('main.enter')}}">
                 <img src="{{url_for('static', filename='main_v2/img/icons/home.svg')}}" class="me-2" width="32"

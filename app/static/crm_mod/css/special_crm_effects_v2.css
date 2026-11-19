@@ -358,3 +358,41 @@ border-style:solid;
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Always visible order CRM header panels. */
+.crm-header-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px;
+  width: 744.475px;
+  max-width: 100%;
+  flex: 0 1 744.475px;
+}
+.crm-header-tool-group {
+  width: 330px;
+  max-width: 100%;
+  flex: 0 1 330px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+}
+.crm-header-tool-group:first-child {
+  width: 398.475px;
+  flex-basis: 398.475px;
+}
+.crm-header-tool-group > legend {
+  float: none;
+  width: auto;
+  margin: 0 0 0 6px;
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #495057;
+}
+.crm-header-tool-content { padding: 4px 12px 12px; }
+.crm-header-tool-content .header__form { width: 100%; margin: 0 !important; }
+.crm-header-tool-content .filter-manager,
+.crm-header-tool-content .filter__select { width: 100%; max-width: 100%; min-width: 0; }

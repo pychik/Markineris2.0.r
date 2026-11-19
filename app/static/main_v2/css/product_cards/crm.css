@@ -309,12 +309,39 @@
 }
 
 .pc-crm-search-tools {
-  max-width: 480px;
+  width: 676px;
+  max-width: 100%;
+  flex: 0 1 676px;
+  flex-direction: row;
+}
+
+.pc-crm-tool-group {
+  width: 330px;
+  max-width: 100%;
+  flex: 0 1 330px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+}
+
+.pc-crm-tool-group > legend {
+  float: none;
+  width: auto;
+  margin: 0 0 0 6px;
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.pc-crm-tool-content {
+  padding: 4px 12px 12px;
 }
 
 .pc-crm-search-form {
-  width: 240px;
-  flex: 0 0 240px;
+  width: 100%;
 }
 
 .pc-crm-search-form .input-group {
@@ -322,6 +349,7 @@
 }
 
 .pc-crm-search-mode-toggle {
+  font-size: 12px;
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -329,12 +357,18 @@
 }
 
 .pc-crm-search-mode-toggle .form-check-input {
+  width: 2em;
   flex: 0 0 auto;
   margin: 2px 0 0;
 }
 
+.pc-crm-search-mode-toggle .form-check-input {
+  cursor: pointer;
+}
+
 .pc-crm-search-mode-toggle .form-check-label {
-  font-size: 13px;
+  white-space: nowrap;
+  font-size: 12px;
   line-height: 1.25;
 }
 
@@ -357,8 +391,64 @@
 }
 
 .pc-crm-manager-tools {
-  width: 220px;
-  flex: 0 0 220px;
+  width: 100%;
+  gap: 6px;
+}
+
+.pc-crm-manager-group .pc-crm-tool-content {
+  padding: 4px 10px 8px;
+}
+
+.pc-crm-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pc-crm-filter-row select {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.pc-crm-manager-tools .form-control,
+.pc-crm-manager-tools .btn {
+  font-size: 12px;
+  padding: 3px 8px;
+}
+
+
+.pc-crm-tool-label {
+  display: block;
+  margin: 0;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.pc-crm-assignment-section {
+  padding-top: 6px;
+  border-top: 1px solid #dee2e6;
+}
+
+.pc-crm-assignment-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pc-crm-assignment-row select {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.pc-crm-assignment-row > button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+#pc-bulk-assign-panel:not(.d-none) {
+  margin-top: 8px;
 }
 
 .pc-crm-manager-tools select {

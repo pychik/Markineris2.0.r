@@ -1214,10 +1214,10 @@ function crmSearchModeChanged() {
   const input = document.getElementById('crm-search-card-input');
 
   if (cb.checked) {
-    label.textContent = 'Режим: поиск по артикулу / ТМ';
+    label.textContent = 'По артикулу / ТМ';
     input.placeholder = 'Артикул или торговая марка';
   } else {
-    label.textContent = 'Режим: поиск по ID';
+    label.textContent = 'По номеру карточки';
     input.placeholder = 'Номер карточки';
   }
 }
