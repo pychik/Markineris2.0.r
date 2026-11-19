@@ -396,3 +396,20 @@ border-style:solid;
 .crm-header-tool-content .header__form { width: 100%; margin: 0 !important; }
 .crm-header-tool-content .filter-manager,
 .crm-header-tool-content .filter__select { width: 100%; max-width: 100%; min-width: 0; }
+
+.crm-header-tool-content .crm-header-filter-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.crm-header-filter-row > label {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6c757d;
+}
+.crm-header-filter-row > select {
+  flex: 1 1 0;
+  min-width: 0;
+}
