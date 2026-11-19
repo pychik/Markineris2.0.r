@@ -652,6 +652,7 @@ function pcSetBulkAssignMode(enabled) {
 
   if (enabled && typeof pcSetBulkMode === "function") {
     pcSetBulkMode("clarification", false);
+    pcSetBulkMode("in_moderation", false);
   }
 
   if (enabled && !managerSelect?.value) {

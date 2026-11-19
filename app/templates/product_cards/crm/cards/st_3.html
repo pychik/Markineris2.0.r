@@ -22,7 +22,35 @@
        data-bs-toggle="tooltip"
        data-bs-title="Скачать на модерации (по фирмам)"
        onclick="pcDownloadCompaniesByStatus('in_moderation')">
+    <button type="button"
+              class="btn btn-sm btn-outline-secondary ms-2 px-2 py-0"
+              id="pc-bulk-start-in_moderation"
+              data-bs-toggle="tooltip"
+              data-bs-title="Выбрать несколько"
+              onclick="pcToggleBulkMode('in_moderation')">
+        ✓✓
+      </button>
     </h2>
+    <div class="d-none mb-2"
+         id="pc-bulk-panel-in_moderation"
+         style="display:flex; align-items:center; justify-content:center; gap:.5rem;">
+      <span class="text-muted small me-2">
+        Выбрано: <b id="pc-bulk-count-in_moderation">0</b>
+      </span>
+      <span role="button"
+            class="text-muted"
+            style="font-size:24px; line-height:1;"
+            data-bs-toggle="tooltip"
+            data-bs-title="Одобрить выбранные карточки"
+            onclick="pcBulkMoveSelected('in_moderation', 'approved')">✓</span>
+      <span role="button"
+            class="text-muted"
+            style="font-size:26px; line-height:1;"
+            data-bs-toggle="tooltip"
+            data-bs-title="Отмена"
+            onclick="pcSetBulkMode('in_moderation', false)">×</span>
+    </div>
+
     <div style="width:335px"></div>
 
     <div id="in_moderation_cards_main">
