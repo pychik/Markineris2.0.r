@@ -376,8 +376,12 @@ body {
   overflow: hidden;
 }
 .order__img img {
+  display: block;
+  flex-shrink: 0;
   width: 70%;
   height: 70%;
+  object-fit: contain;
+  object-position: center;
   filter: brightness(0) invert(1);
 }
 .order__img--toys img {
