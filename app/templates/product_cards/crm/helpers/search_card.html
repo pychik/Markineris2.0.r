@@ -1,4 +1,7 @@
-  <div class="pc-crm-search-tools d-flex align-items-start gap-2 flex-wrap">
+  <div class="pc-crm-search-tools d-flex align-items-stretch gap-3 flex-wrap">
+    <fieldset class="pc-crm-tool-group pc-crm-search-group">
+      <legend>Поиск</legend>
+      <div class="pc-crm-tool-content">
     <form onsubmit="return crmSearchCardSubmit(event)" class="pc-crm-search-form">
       <div class="input-group">
         <input
@@ -30,35 +33,46 @@
       </div>
 
       <!-- режим поиска -->
-      <div class="form-check pc-crm-search-mode-toggle mt-2">
+      <div class="form-check form-switch crm-account-search-switch pc-crm-search-mode-toggle mt-2">
         <input
           class="form-check-input"
           type="checkbox"
+          role="switch"
           id="crm-search-by-article"
           onchange="crmSearchModeChanged()"
         >
-        <label class="form-check-label" for="crm-search-by-article">
-          По артикулу (парфюм — по торговому знаку)
+        <label class="form-check-label" for="crm-search-by-article" id="crm-search-mode-label"
+               title="Переключить поиск по номеру карточки или артикулу; для парфюма — по торговой марке">
+          По номеру карточки
         </label>
       </div>
 
-      <div class="small text-muted mt-1" id="crm-search-mode-label">
-        Режим: поиск по ID
-      </div>
     </form>
+      </div>
+    </fieldset>
 
     {% if current_user.role == "supermanager" or current_user.role == "superuser" %}
-      <div class="pc-crm-manager-tools d-flex flex-column align-items-stretch gap-2">
+      <fieldset class="pc-crm-tool-group pc-crm-manager-group">
+        <legend>Работа с операторами</legend>
+        <div class="pc-crm-tool-content">
+      <div class="pc-crm-manager-tools d-flex flex-column align-items-stretch">
+        <div class="pc-crm-filter-row">
+        <label class="pc-crm-tool-label" for="selectManager">Фильтр</label>
         <select class="form-control form-control-sm" id="selectManager" onchange="pcFilterManager()"
                 title="Фильтр карточек по оператору">
-          <option value="" {% if not filtered_manager_id %}selected{% endif %}>Все карточки</option>
+          <option value="" {% if not filtered_manager_id %}selected{% endif %}>Все операторы</option>
           {% for m in managers_list %}
             <option value="{{ m[0] }}" {% if filtered_manager_id == m[0] %}selected{% endif %}>
-              Карточки {{ m[1] }}
+              {{ m[1] }}
             </option>
           {% endfor %}
         </select>
 
+        </div>
+
+        <div class="pc-crm-assignment-section">
+        <label class="visually-hidden" for="pc-bulk-assign-manager-select">Оператор для назначения карточек</label>
+        <div class="pc-crm-assignment-row">
         <select class="form-control form-control-sm" id="pc-bulk-assign-manager-select"
                 onchange="pcBulkAssignManagerChanged()"
                 title="Оператор для назначения">
@@ -68,13 +82,13 @@
           {% endfor %}
         </select>
 
-        <div class="d-flex align-items-center gap-2 flex-wrap">
           <button type="button"
                   class="btn btn-sm btn-outline-warning"
                   id="pc-bulk-assign-start"
                   onclick="pcSetBulkAssignMode(true)">
             Назначить
           </button>
+        </div>
 
           <div id="pc-bulk-assign-panel" class="d-none d-flex align-items-center gap-2 flex-wrap">
             <span class="small text-muted">Выбрано: <b id="pc-bulk-assign-count">0</b></span>
@@ -83,6 +97,8 @@
           </div>
         </div>
       </div>
+        </div>
+      </fieldset>
     {% endif %}
 
   </div>

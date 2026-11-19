@@ -1,4 +1,7 @@
-<div class="d-flex flex-column ">
+<div class="crm-header-tools">
+    <fieldset class="crm-header-tool-group">
+        <legend>Поиск</legend>
+        <div class="crm-header-tool-content">
     <div class="header__form mb-2">
         <div class="input-group" id="searchOrderHelp" data-bs-toggle="tooltip" data-bs-trigger="hover" data-bs-placement="bottom" data-bs-title="Введите номер заказа и нажмите кнопку поиск. Для очистки результата, нажмите Очистить">
             <input type="text" id="searchOrdertext" name="search_order_idn" class="form-control" placeholder="Введите номер заказа">
@@ -19,6 +22,8 @@
         {% endif %}
         <div id="OrderSearchResult"></div>
     </div>
+        </div>
+    </fieldset>
 
 
 <!--  {% if current_user.role == 'superuser' %}-->
@@ -34,11 +39,14 @@
 <!--                {% endif %}-->
 <!--          {% endif %}  -->
 
-    <div class="top__filter" {% if 'manager' in request.path and user.role in ['superuser', 'supermanager', 'm2r_admin'] %} {%else%}style="display:none"{%endif%}>
-        <div class="filter filter-manager">
+    <fieldset class="crm-header-tool-group" {% if 'manager' in request.path and user.role in ['superuser', 'supermanager', 'm2r_admin'] %} {%else%}style="display:none"{%endif%}>
+        <legend>Работа с операторами</legend>
+        <div class="crm-header-tool-content top__filter">
+        <div class="filter filter-manager crm-header-filter-row">
+          <label for="selectManager">Фильтр</label>
           <select class="form-select filter__select" id="selectManager" onchange="filter_category_manager('{{url_for('crm_d.managers')}}?bck=1');"
-              aria-label="Выберите менеджера" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Фильтр по менеджерам"
-              style="width: 220px;">
+              aria-label="Фильтр по операторам"
+              style="width: 100%;">
               <option value="" {% if not filtered_manager_id%}selected{% endif %}>
                     Все заказы
               </option>
@@ -49,7 +57,8 @@
               {% endfor %}
           </select>
         </div>
-    </div>
+        </div>
+    </fieldset>
 </div>
 
 

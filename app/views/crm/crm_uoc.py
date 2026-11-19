@@ -3,7 +3,7 @@ import urllib
 from decimal import Decimal
 from datetime import date, timedelta, datetime
 
-from flask import Blueprint, flash, render_template, redirect, url_for, request, make_response, jsonify
+from flask import abort, Blueprint, flash, render_template, redirect, url_for, request, make_response, jsonify
 from flask_login import current_user, login_required
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
@@ -102,6 +102,8 @@ def _xlsx_report_response(records, filters: dict, columns_name: list[str], outpu
 @user_activated
 @susmumu_required
 def index():
+    if current_user.role == settings.SUPER_MANAGER:
+        abort(403)
     user = current_user
     workers_list = [w for w in User.query.filter(User.role.in_([settings.SUPER_MANAGER, settings.MANAGER_USER,
                                                                 settings.MARKINERIS_ADMIN_USER]))

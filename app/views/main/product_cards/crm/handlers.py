@@ -1470,14 +1470,9 @@ def h_pc_take_card_to_processing(pc_id: int):
         return json_response(message="Неизвестная ошибка", status="error", code=500)
 
 
-def h_pc_move_card(pc_id: int):
-    target = (request.form.get("target") or "").strip()
-    reject_reason = (request.form.get("reject_reason") or "").strip()
-
-    # фильтры (протаскиваем!)
-    category = (request.form.get("category") or "").strip() or None
-    subcategory = (request.form.get("subcategory") or "").strip() or None
-    filtered_manager_id = request.form.get("filtered_manager_id", None, type=int)
+def h_pc_move_finalize_approval(card: ProductCard):
+    """Одобряет позиции и объединяет размеры; транзакцию завершает вызывающий код."""
+    pc_id = card.id
 
     def _dt():
         dt = datetime.now()
@@ -1623,6 +1618,71 @@ def h_pc_move_card(pc_id: int):
         db.session.delete(card)
         return added
 
+    merge_info = None
+    wear_categories = {
+        settings.Clothes.CATEGORY_PROCESS,
+        settings.Shoes.CATEGORY_PROCESS,
+        settings.Linen.CATEGORY_PROCESS,
+        settings.Socks.CATEGORY_PROCESS,
+    }
+    if card.category in wear_categories:
+        base = _find_base_card_same_article(card)
+
+        # условие: "если по артикулу есть уже какие-то размеры" -> base существует и у неё есть размеры
+        if base and _card_has_any_sizes(base):
+            dt, dt_str = _dt()
+            mgr = _manager_login()
+
+            added = _merge_sizes_into_base_and_delete(card, base)
+
+            # лог в base
+            base.card_log = h_append_card_log(
+                base.card_log,
+                f"\n{dt_str} добавлены размеры из карточки №{pc_id} (перенесено: {added}) оператором {mgr};"
+            )
+
+            # лог в card (успеваем записать до delete) — полезно для аудита
+            # card.card_log = h_append_card_log(
+            #     card.card_log,
+            #     f"\n{dt_str} карточка объединена с карточкой №{base.id} и удалена оператором {mgr};"
+            # )
+
+            merge_info = {"base_id": base.id, "added": added}
+        else:
+            # нет base с размерами -> просто approve sizes на этой карточке
+            dt, dt_str = _dt()
+            mgr = _manager_login()
+
+            _set_all_sizes_approved(card)
+            card.card_log = h_append_card_log(
+                card.card_log,
+                f"\n{dt_str} все размеры помечены как одобренные оператором {mgr};"
+            )
+    else:
+        cfg = CATEGORIES_COMMON.get(card.category)
+        rel_name = cfg.get("rel_name") if cfg else ""
+        for unit in getattr(card, rel_name, []) or []:
+            if hasattr(unit, "is_approved"):
+                unit.is_approved = True
+        dt, dt_str = _dt()
+        mgr = _manager_login()
+        card.card_log = h_append_card_log(
+            card.card_log,
+            f"\n{dt_str} позиция карточки помечена как одобренная оператором {mgr};"
+        )
+
+    return merge_info
+
+
+def h_pc_move_card(pc_id: int):
+    target = (request.form.get("target") or "").strip()
+    reject_reason = (request.form.get("reject_reason") or "").strip()
+
+    # фильтры (протаскиваем!)
+    category = (request.form.get("category") or "").strip() or None
+    subcategory = (request.form.get("subcategory") or "").strip() or None
+    filtered_manager_id = request.form.get("filtered_manager_id", None, type=int)
+
     try:
         card = ProductCard.query.filter_by(id=pc_id).first()
         if not card:
@@ -1686,57 +1746,7 @@ def h_pc_move_card(pc_id: int):
         # 5) спец-логика при APPROVED: merge sizes или approve sizes
         merge_info = None
         if target == ModerationStatus.APPROVED.value:
-            wear_categories = {
-                settings.Clothes.CATEGORY_PROCESS,
-                settings.Shoes.CATEGORY_PROCESS,
-                settings.Linen.CATEGORY_PROCESS,
-                settings.Socks.CATEGORY_PROCESS,
-            }
-            if card.category in wear_categories:
-                base = _find_base_card_same_article(card)
-
-                # условие: "если по артикулу есть уже какие-то размеры" -> base существует и у неё есть размеры
-                if base and _card_has_any_sizes(base):
-                    dt, dt_str = _dt()
-                    mgr = _manager_login()
-
-                    added = _merge_sizes_into_base_and_delete(card, base)
-
-                    # лог в base
-                    base.card_log = h_append_card_log(
-                        base.card_log,
-                        f"\n{dt_str} добавлены размеры из карточки №{pc_id} (перенесено: {added}) оператором {mgr};"
-                    )
-
-                    # лог в card (успеваем записать до delete) — полезно для аудита
-                    # card.card_log = h_append_card_log(
-                    #     card.card_log,
-                    #     f"\n{dt_str} карточка объединена с карточкой №{base.id} и удалена оператором {mgr};"
-                    # )
-
-                    merge_info = {"base_id": base.id, "added": added}
-                else:
-                    # нет base с размерами -> просто approve sizes на этой карточке
-                    dt, dt_str = _dt()
-                    mgr = _manager_login()
-
-                    _set_all_sizes_approved(card)
-                    card.card_log = h_append_card_log(
-                        card.card_log,
-                        f"\n{dt_str} все размеры помечены как одобренные оператором {mgr};"
-                    )
-            else:
-                cfg = CATEGORIES_COMMON.get(card.category)
-                rel_name = cfg.get("rel_name") if cfg else ""
-                for unit in getattr(card, rel_name, []) or []:
-                    if hasattr(unit, "is_approved"):
-                        unit.is_approved = True
-                dt, dt_str = _dt()
-                mgr = _manager_login()
-                card.card_log = h_append_card_log(
-                    card.card_log,
-                    f"\n{dt_str} позиция карточки помечена как одобренная оператором {mgr};"
-                )
+            merge_info = h_pc_move_finalize_approval(card)
 
         db.session.commit()
 
@@ -1801,6 +1811,7 @@ def h_pc_bulk_move_cards():
 
     allowed_bulk_transitions = {
         (ModerationStatus.CLARIFICATION.value, ModerationStatus.IN_MODERATION.value),
+        (ModerationStatus.IN_MODERATION.value, ModerationStatus.APPROVED.value),
     }
 
     try:
@@ -1863,7 +1874,11 @@ def h_pc_bulk_move_cards():
                 return jsonify({"status": "error", "message": f"#{card.id}: {err.message}"}), err.status_code
 
         for card_id in card_ids:
-            h_pc_move_apply_status_transition(cards_by_id[card_id], target, reject_reason=reject_reason)
+            card = cards_by_id[card_id]
+            h_pc_move_apply_status_transition(card, target, reject_reason=reject_reason)
+            if target == ModerationStatus.APPROVED.value:
+                h_pc_move_finalize_approval(card)
+                db.session.flush()
 
         db.session.commit()
 
@@ -1882,13 +1897,20 @@ def h_pc_bulk_move_cards():
 
         return jsonify({
             "status": "success",
-            "message": f"Перенесено на модерацию: {len(card_ids)}",
+            "message": (f"Одобрено карточек: {len(card_ids)}" if target == ModerationStatus.APPROVED.value
+                        else f"Перенесено на модерацию: {len(card_ids)}"),
             "moved_count": len(card_ids),
             "from_statuses": sorted(from_statuses),
             "to": target,
             "updated_columns": updated_columns,
         })
 
+    except PermissionError as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 403
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 400
     except SQLAlchemyError:
         db.session.rollback()
         logger.exception("pc_bulk_move_cards db error")
