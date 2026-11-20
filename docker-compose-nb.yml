@@ -2,7 +2,8 @@ version: "3.8"
 
 services:
   nginx:
-    image: nginx:1.25.2
+    # Mainline security release; official Docker Hub linux/amd64 manifest.
+    image: nginx:1.31.9@sha256:5b9ebb95001cc4f5242fbc3e1a9ac76d313c8ba197c7e5803a77d3f7879f0cda
     container_name: nginx
     volumes:
       - ./app/static:/app/static

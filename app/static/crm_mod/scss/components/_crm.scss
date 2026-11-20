@@ -5,7 +5,6 @@
     max-height: 100%;
     &__col {
         max-width: 335px;
-        height:  90vh;
     }
     &__wrapper {
         display: flex;
@@ -27,7 +26,6 @@
     white-space: normal;
     scroll-margin: 8px;
     max-height: 100%;
-    overflow-y: scroll;
     background-color: var(--grey);
     border-radius: 15px;
     padding-bottom: 15px;
@@ -42,11 +40,10 @@
         z-index: 1;
         flex: 1 1 auto;
         flex-direction: column;
-        height: 100%;
+        height: auto;
         margin: 0 4px;
         padding: 0px 4px;
-        overflow-x: hidden;
-        overflow-y: auto;
+        overflow: visible;
         list-style: none;
         gap: 14px;
         // max-height: 80vh;
@@ -98,6 +95,7 @@
                 opacity 0.5s ease;
             max-height: unset;
             opacity: 1;
+            padding-top: 15px;
         }
     }
     &__header {
@@ -145,8 +143,12 @@
             overflow: hidden;
         }
         & img {
+            display: block;
+            flex-shrink: 0;
             width: 70%;
             height: 70%;
+            object-fit: contain;
+            object-position: center;
             filter: brightness(0) invert(1);
         }
         &--toys img {
@@ -195,7 +197,7 @@
             opacity 0.5s ease;
         flex-direction: column;
         gap: 15px;
-        padding-top: 15px;
+        padding-top: 0;
     }
 
     &__footer {
@@ -551,4 +553,73 @@
     & img {
         cursor: pointer;
     }
+}
+
+.order .order__header--grouped {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+.order__header--grouped > .order__name {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  min-width: 0;
+}
+.order__header--grouped > .order__name > span {
+  flex-basis: 100%;
+  order: 1;
+  font-size: 11px;
+}
+.order__header--grouped > .order__name > img {
+  flex-shrink: 0;
+}
+.order__number-line {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+  white-space: nowrap;
+}
+.order__number-line > img {
+  flex-shrink: 0;
+}
+.order__header-actions {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 5px;
+  border: 1px solid rgba(98, 105, 112, .12);
+  border-radius: 999px;
+  background: rgba(98, 105, 112, .06);
+}
+.order__header-actions .order-chat-btn,
+.order__header-actions .order-logs-btn img {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+.order__header-tags {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+.order__header-tags .order__img,
+.order__header-tags .order-rf-badge {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+}
+.order__header-tags .order-rf-badge__flag {
+  width: 32px;
+  height: 32px;
 }

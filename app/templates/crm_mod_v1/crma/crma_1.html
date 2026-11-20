@@ -15,10 +15,10 @@
         <div style="width:335px"></div>
         <div class="orders__list" id="new_ordersMainDiv">
             {% for n in new_orders %}
-                <div class=" orders__item order{% if n.to_delete %} div-disabled {%endif%}{% if n.is_moderation %} order--moderation {% endif %}{% if n.is_gtin_order %} order--gtin {% endif %}" data-order-id="{{ n.id }}" id="cardCommonBlock_{{n.id}}">
+                <div class="orders__item order {% if n.to_delete %} div-disabled {%endif%}{% if n.is_moderation %} order--moderation {% endif %}{% if n.is_gtin_order %} order--gtin {% endif %}" data-order-id="{{ n.id }}" id="cardCommonBlock_{{n.id}}">
                     <div class="order__header order__header--grouped">
                         <div class="order__name">{{n.order_idn}} {%if n.is_at2%}<span>(Агент тип 2)</span>{%endif%} </div>
-            {% include 'crm_mod_v1/helpers/order_header_icons.html' %}
+                        {% include 'crm_mod_v1/helpers/order_header_icons.html' %}
                     </div>
                     <div class="order__body">
                         <div class="order__info">
