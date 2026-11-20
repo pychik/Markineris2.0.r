@@ -27,7 +27,7 @@ from utilities.helpers.h_tg_notify import helper_send_user_order_tg_notify, help
 from utilities.minio_service.services import get_s3_service, download_file_from_minio
 from utilities.pdf_processor import helper_check_attached_file
 from utilities.saving_uts import get_rows_marks
-from utilities.order_processing_info import parse_single_processing_info
+from utilities.order_processing_info import parse_single_processing_info, split_processing_company_label
 from utilities.sql_categories_aggregations import SQLQueryCategoriesAll
 from utilities.support import (helper_get_at2_pending_balance, helper_get_limits, orders_list_common)
 from utilities.telegram import MarkinerisInform
@@ -83,6 +83,7 @@ def _processing_order_query():
             Order.processing_company_label,
             Order.upd_number,
             Order.is_moderation,
+            Order.is_gtin_order,
             Order.manager_id,
             Order.user_id,
         ),
@@ -175,6 +176,8 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   o.crm_created_at as crm_created_at,
                                   o.processing_info as processing_info,
                                   o.is_moderation as is_moderation,
+                                  o.is_gtin_order as is_gtin_order,
+                                  o.processing_company_label as processing_company_label,
                                   MAX(orf.origin_name) as order_file,
                                   MAX(orf.file_link) as order_file_link,
                                   MAX(managers.login_name) as manager,
@@ -217,6 +220,8 @@ def helper_get_agent_orders(user: User, category: str | None = None) -> list:
                                   o.crm_created_at as crm_created_at,
                                   o.processing_info as processing_info,
                                   o.is_moderation as is_moderation,
+                                  o.is_gtin_order as is_gtin_order,
+                                  o.processing_company_label as processing_company_label,
                                   MAX(orf.origin_name) as order_file,
                                   MAX(orf.file_link) as order_file_link,
                                   MAX(managers.login_name) as manager,
@@ -285,6 +290,8 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                           o.crm_created_at as crm_created_at,
                                           o.processing_info as processing_info,
                                           o.is_moderation as is_moderation,
+                                          o.is_gtin_order as is_gtin_order,
+                                          o.processing_company_label as processing_company_label,
                                           MAX(orf.origin_name) as order_file,
                                           MAX(orf.file_link) as order_file_link,
                                           MAX(managers.login_name) as manager,
@@ -337,6 +344,8 @@ def helper_get_agent_stage_orders(stage: int, user: User, category: str = 'all')
                                   o.crm_created_at as crm_created_at,
                                   o.processing_info as processing_info,
                                   o.is_moderation as is_moderation,
+                                  o.is_gtin_order as is_gtin_order,
+                                  o.processing_company_label as processing_company_label,
                                   MAX(orf.origin_name) as order_file,
                                   MAX(orf.file_link) as order_file_link,
                                   MAX(managers.login_name) as manager,
@@ -414,6 +423,8 @@ def helper_get_manager_orders(
                                  o.to_delete as to_delete,
                                  o.processing_info as processing_info,
                                  o.is_moderation as is_moderation,
+                                 o.is_gtin_order as is_gtin_order,
+                                 o.processing_company_label as processing_company_label,
                                  MAX(orf.origin_name) as order_file,
                                  MAX(orf.file_link) as order_file_link,
                                  o.manager_id as manager_id,
@@ -458,6 +469,8 @@ def helper_get_manager_orders(
                                   o.to_delete as to_delete,
                                   o.processing_info as processing_info,
                                   o.is_moderation as is_moderation,
+                                  o.is_gtin_order as is_gtin_order,
+                                  o.processing_company_label as processing_company_label,
                                   MAX(orf.origin_name) as order_file,
                                   MAX(orf.file_link) as order_file_link,
                                   o.manager_id as manager_id,
@@ -1220,6 +1233,8 @@ def helper_change_agent_stage(o_id: int, stage: int, user: User):
                             o.to_delete as to_delete,
                             o.processing_info as processing_info,
                             o.is_moderation as is_moderation,
+                              o.is_gtin_order as is_gtin_order,
+                              o.processing_company_label as processing_company_label,
                             ({stmt_get_agent}) as agent_id,
                             orf.id as of_id,
                             orf.file_system_name as file_system_name
@@ -1327,6 +1342,8 @@ def helper_change_agent_stage_bck(o_id: int, stage: int, user: User) -> tuple[bo
                             o.to_delete as to_delete,
                             o.processing_info as processing_info,
                             o.is_moderation as is_moderation,
+                              o.is_gtin_order as is_gtin_order,
+                              o.processing_company_label as processing_company_label,
                             ({stmt_get_agent}) as agent_id,
                             orf.id as of_id,
                             orf.file_system_name as file_system_name
@@ -1891,6 +1908,8 @@ def h_get_agent_order_info(search_order_idn):
                                       o.to_delete as to_delete,
                                       o.processing_info as processing_info,
                                       o.is_moderation as is_moderation,
+                                      o.is_gtin_order as is_gtin_order,
+                                      o.processing_company_label as processing_company_label,
                                       MAX(orf.origin_name) as order_file,
                                       MAX(orf.file_link) as order_file_link,
                                       {stmt_get_manager} as manager,
@@ -1953,6 +1972,8 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                      o.to_delete as to_delete,
                                      o.processing_info as processing_info,
                                      o.is_moderation as is_moderation,
+                                     o.is_gtin_order as is_gtin_order,
+                                     o.processing_company_label as processing_company_label,
                                      MAX(orf.origin_name) as order_file,
                                      MAX(orf.file_link) as order_file_link,
                                      o.manager_id as manager_id,
@@ -1997,6 +2018,8 @@ def h_get_manager_order_info(user: User, search_order_idn: str):
                                       o.to_delete as to_delete,
                                       o.processing_info as processing_info,
                                       o.is_moderation as is_moderation,
+                                      o.is_gtin_order as is_gtin_order,
+                                      o.processing_company_label as processing_company_label,
                                       MAX(orf.origin_name) as order_file,
                                       MAX(orf.file_link) as order_file_link,
                                       o.manager_id as manager_id,
@@ -2128,6 +2151,8 @@ def helper_get_processing_order_info() -> Response:
     if is_pc_order:
         companies_operators = _order_processing_company_options(
             order_info, show_upd=bool(processing_info_display))
+        if companies_operators:
+            message = "УПД не указан"
     else:
         legacy_info = parse_single_processing_info(order_info.processing_info)
         company_label = order_info.processing_company_label or (legacy_info[0] if legacy_info else "")
@@ -2144,6 +2169,8 @@ def helper_get_processing_order_info() -> Response:
             companies_operators.append({"value": f"g:{c.name}", "label": label})
         if selected_company_key not in {item["value"] for item in companies_operators}:
             selected_company_key = ""
+        if selected_company_key or company_label:
+            message = "УПД не указан"
 
     if not companies_operators:
         message = "Данные по организации не установлены"
@@ -2166,7 +2193,7 @@ def helper_update_processing_order_info() -> tuple[Response, int]:
     if not order_id:
         return jsonify({"status": "error", "message": "Все поля обязательны к заполнению"}), 400
 
-    order = _processing_order_query().filter(Order.id == order_id).first()
+    order = _processing_order_query().filter(Order.id == order_id).with_for_update(of=Order).populate_existing().first()
     loaded = perf_counter()
     if not order:
         return jsonify({"status": "error", "message": "Заказ не найден"}), 404
@@ -2224,6 +2251,9 @@ def helper_update_processing_order_info() -> tuple[Response, int]:
 
     if not all([company_value, upd_number]):
         return jsonify({"status": "error", "message": "Все поля обязательны к заполнению"}), 400
+
+    if order.is_gtin_order and company_value != order.processing_company_key:
+        return jsonify({"status": "error", "message": "Для смены компании GTIN-заказа используйте кнопку «Изменить» в блоке GTIN-компании."}), 400
 
     try:
         kind, raw = company_value.split(":", 1)
@@ -2571,6 +2601,8 @@ def _get_order_desc_row(order_id: int):
             Order.user_comment,
             Order.order_log,
             Order.is_moderation,
+            Order.is_gtin_order,
+            Order.processing_company_label,
             Order.rd_replacement_consent,
 
             User.client_code,
@@ -2648,12 +2680,17 @@ def h_order_details():
 
     n = _sanitize_order_desc_pii(n, current_user)
     user_companies = _order_fast_companies_for_details(order_id) if n.is_moderation else []
+    processing_company_title, processing_company_inn = split_processing_company_label(
+        n.processing_company_label if n.is_gtin_order else None
+    )
 
     html = render_template(
         "crm_mod_v1/helpers/order_description.html",
         src=src,
         n=n,
         user_companies=user_companies,
+        processing_company_title=processing_company_title,
+        processing_company_inn=processing_company_inn,
     )
     return jsonify(status="success", html=html)
 

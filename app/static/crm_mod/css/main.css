@@ -339,6 +339,15 @@ body {
   width: 32px;
   height: 32px;
 }
+
+.order__client-pii {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid #dfe2e6;
+  border-radius: 8px;
+  background: transparent;
+  line-height: 1.35;
+}
 .order__name {
   font-weight: 600;
   font-size: 19px;
@@ -437,7 +446,8 @@ body {
 .order__img--toys-competition-cars img {
   transform: scale(1.33);
 }
-.order-rf-badge {
+.order-rf-badge,
+.order-gtin-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -449,7 +459,8 @@ body {
   overflow: hidden;
   user-select: none;
 }
-.order-rf-badge__flag {
+.order-rf-badge__flag,
+.order-gtin-badge__icon {
   display: block;
   width: 32px;
   height: 32px;
@@ -544,6 +555,10 @@ body {
 .comment__title {
   font-weight: 700;
 }
+.order .order__comment {
+  gap: 6px;
+  margin-bottom: 12px;
+}
 .comment__text {
   border-radius: 5px;
   padding: 15px;
@@ -551,6 +566,98 @@ body {
   word-wrap: break-word; /* Breaks long words to fit within the container */
   overflow-wrap: break-word; /* Ensures that long words are wrapped to the next line */
   overflow: hidden;
+}
+
+.order .order-comment-badge,
+#modal-process-order .order-process-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 1px solid #ffd36a;
+  border-radius: 12px;
+  background: #fff8dc;
+  color: #66552c;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.order .order-comment-badge > .comment__title {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  opacity: .75;
+}
+.order .order-comment-badge__text {
+  white-space: pre-line;
+}
+.order .order-comment-badge--problem,
+#modal-process-order .order-process-notice {
+  background: #fff6f6;
+  border-color: #f3dddd;
+  color: #865a5a;
+}
+.order .order-comment-badge--cancel {
+  background: #fdeaea;
+  border-color: #efc4c4;
+  color: #934b4b;
+}
+
+.order .order-processing-company-badge {
+  margin-top: 8px;
+  border-color: #dfe2e6;
+  background: #f1f2f4;
+  color: #626970;
+}
+.order .order-processing-company-name {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+.order .order-processing-company-name > .order-processing-company-copy {
+  flex: 1;
+  min-width: 0;
+}
+.order .order-processing-company-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.order .order-processing-company-edit:hover {background: rgba(98, 105, 112, .12);}
+.order .order-processing-company-edit:focus-visible {outline: 2px solid currentColor; outline-offset: 2px;}
+
+.order .order-processing-company-copy {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.order .order-processing-company-copy:hover,
+.order .order-processing-company-copy:focus-visible {
+  text-decoration: underline;
 }
 
 .file {
@@ -618,6 +725,18 @@ body {
 
 .order--moderation {
     background-color: rgb(236, 253, 236); /* очень легкий зелёный */
+}
+
+.order.order--gtin,
+.order.order--gtin .order__body,
+.order.order--gtin .order__footer {
+    background-color: #fff6cf;
+}
+
+.order.order--gtin .order__header {
+    background-color: #fff;
+    margin: -15px -23px 0;
+    padding: 15px 23px 10px;
 }
 
 .crm-uoc-page {

@@ -165,6 +165,15 @@ class OrdersProcessor(ProcessorInterface, ABC):
 
             # Some data we want to write to the worksheet.
             main_data = self.get_excel_start_data_ext() if hasattr(self, 'get_excel_start_data_ext') else self.excel_start_data_ext(category=self.category, flag_046=self.flag_046)
+            if (any(
+                    getattr(position, "gtin", None)
+                    or any(getattr(sq, "gtin", None) for sq in getattr(position, "sizes_quantities", ()))
+                    for position in self.source_orders_list)
+                    and self.category not in {settings.Cosmetics.CATEGORY, settings.Toys.CATEGORY}
+                    and not self.flag_046):
+                prefixes = ("GTIN", "gtin", "value", "Штрихкод товара")
+                main_data = [[prefixes[index] if index < len(prefixes) else "", *row]
+                             for index, row in enumerate(main_data)]
             main_data.extend(el[0])
             OrdersProcessor.add_to_excel(worksheet=worksheet_1, data=main_data, row=0, col=0)
 
@@ -450,6 +459,9 @@ class OrdersProcessor(ProcessorInterface, ABC):
                 )
             return OrdersProcessor.archive_excels(excel_files=excel_files, filename=self.path)
 
+        if getattr(order, "is_gtin_order", False):
+            e_name = f"{e_name}_GTIN"
+
         excel_files = self.process_to_excel(list_of_orders=OrdersProcessor
                                             .prepare_batches(orders_divided=[(self.orders_list_outer, f"{e_name}_ВВЕЗЕН"),
                                                                              (self.orders_list_inner, f"{e_name}_РФ_ВНУТР")]))
@@ -459,6 +471,19 @@ class OrdersProcessor(ProcessorInterface, ABC):
             excel_files.append((aggr_table, aggr_filename))
 
         return OrdersProcessor.archive_excels(excel_files=excel_files, filename=self.path)
+
+    @staticmethod
+    def export_gtin_row(row, position, category, flag_046, include_gtin, size=None):
+        if not include_gtin:
+            return row
+        gtin = getattr(size, "gtin", None) or getattr(position, "gtin", None) or ""
+        if category in {settings.Cosmetics.CATEGORY, settings.Toys.CATEGORY}:
+            row[0] = gtin
+        elif flag_046:
+            row[1] = gtin
+        else:
+            row.insert(0, gtin)
+        return row
 
     @staticmethod
     def eatp(value: str, field_type: str) -> str:
@@ -524,7 +549,12 @@ class OrdersProcessor(ProcessorInterface, ABC):
 class ShoesProcessor(OrdersProcessor):
 
     @staticmethod
-    def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list, ]:
+    def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
+        include_gtin = any(
+            getattr(position, "gtin", None)
+            or any(getattr(sq, "gtin", None) for sq in getattr(position, "sizes_quantities", ()))
+            for position in orders_list
+        )
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
@@ -553,6 +583,8 @@ class ShoesProcessor(OrdersProcessor):
                              el.material_lining, el.material_bottom, el.color, settings.Shoes.SIZES_CODES.get(sq.size),
                      '' if sq.size in settings.Shoes.SIZES_ND else sq.size, tnved, '', sq.quantity, declar_doc, ]
 
+                if include_gtin:
+                    temp_list = OrdersProcessor.export_gtin_row(temp_list, el, settings.Shoes.CATEGORY, flag_046, include_gtin, size=sq)
                 res_list_common.append(temp_list)
                 if el.country.upper() in settings.COUNTRIES_INNER:
                     res_list_inner.append(temp_list)
@@ -596,6 +628,11 @@ class LinenProcessor(OrdersProcessor):
 
     @staticmethod
     def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
+        include_gtin = any(
+            getattr(position, "gtin", None)
+            or any(getattr(sq, "gtin", None) for sq in getattr(position, "sizes_quantities", ()))
+            for position in orders_list
+        )
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
@@ -617,6 +654,8 @@ class LinenProcessor(OrdersProcessor):
                              table_type, el.color, el.customer_age, el.textile_type, content, set_description,
                              tnved, settings.Linen.NUMBER_STANDART, '', '', el.article_price, el.tax,
                              fin_quantity, '', '', el.country, declar_doc, ]
+                if include_gtin:
+                    temp_list = OrdersProcessor.export_gtin_row(temp_list, el, settings.Linen.CATEGORY, flag_046, include_gtin)
                 res_list_common.append(temp_list)
                 if el.country.upper() in settings.COUNTRIES_INNER:
                     res_list_inner.append(temp_list)
@@ -641,6 +680,8 @@ class LinenProcessor(OrdersProcessor):
                              table_type, el.color, el.customer_age, el.textile_type, content, sq.size,
                              tnved, settings.Linen.NUMBER_STANDART, '', '', el.article_price, el.tax,
                              fin_quantity, '', '', el.country, declar_doc, ]
+                if include_gtin:
+                    temp_list = OrdersProcessor.export_gtin_row(temp_list, el, settings.Linen.CATEGORY, flag_046, include_gtin, size=sq)
                 res_list_common.append(temp_list)
                 if el.country.upper() in settings.COUNTRIES_INNER:
                     res_list_inner.append(temp_list)
@@ -654,6 +695,11 @@ class ParfumProcessor(OrdersProcessor):
 
     @staticmethod
     def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
+        include_gtin = any(
+            getattr(position, "gtin", None)
+            or any(getattr(sq, "gtin", None) for sq in getattr(position, "sizes_quantities", ()))
+            for position in orders_list
+        )
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
@@ -678,6 +724,8 @@ class ParfumProcessor(OrdersProcessor):
                          settings.Parfum.STATUS, '',
                          el.article_price, el.tax, fin_quantity, '', '', el.country,
                          declar_doc, ]
+            if include_gtin:
+                temp_list = OrdersProcessor.export_gtin_row(temp_list, el, settings.Parfum.CATEGORY, flag_046, include_gtin)
             res_list_common.append(temp_list)
             if el.country.upper() in settings.COUNTRIES_INNER:
                 res_list_inner.append(temp_list)
@@ -990,6 +1038,11 @@ class CosmeticsProcessor(OrdersProcessor):
 
     @staticmethod
     def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
+        include_gtin = any(
+            getattr(position, "gtin", None)
+            or any(getattr(sq, "gtin", None) for sq in getattr(position, "sizes_quantities", ()))
+            for position in orders_list
+        )
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
@@ -1187,6 +1240,8 @@ class CosmeticsProcessor(OrdersProcessor):
                     el.country,
                     certification,
                 ]
+            if include_gtin:
+                temp_list = OrdersProcessor.export_gtin_row(temp_list, el, settings.Cosmetics.CATEGORY, flag_046, include_gtin)
             res_list_common.append(temp_list)
             if (el.country or '').upper() in settings.COUNTRIES_INNER:
                 res_list_inner.append(temp_list)
@@ -1268,6 +1323,11 @@ class ToysProcessor(OrdersProcessor):
 
     @staticmethod
     def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
+        include_gtin = any(
+            getattr(position, "gtin", None)
+            or any(getattr(sq, "gtin", None) for sq in getattr(position, "sizes_quantities", ()))
+            for position in orders_list
+        )
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
@@ -1310,6 +1370,8 @@ class ToysProcessor(OrdersProcessor):
                 el.country,
                 certification,
             ])
+            if include_gtin:
+                temp_list = OrdersProcessor.export_gtin_row(temp_list, el, settings.Toys.CATEGORY, flag_046, include_gtin)
             res_list_common.append(temp_list)
             if (el.country or '').upper() in settings.COUNTRIES_INNER:
                 res_list_inner.append(temp_list)
@@ -1323,6 +1385,11 @@ class ClothesProcessor(OrdersProcessor):
 
     @staticmethod
     def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
+        include_gtin = any(
+            getattr(position, "gtin", None)
+            or any(getattr(sq, "gtin", None) for sq in getattr(position, "sizes_quantities", ()))
+            for position in orders_list
+        )
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
@@ -1358,6 +1425,8 @@ class ClothesProcessor(OrdersProcessor):
                              settings.Clothes.SYZE_TYPES_CODES.get(size_type), size, '', el.color, '', gender,
                              content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
                              sq.quantity * el.box_quantity, declar_doc, ]
+                if include_gtin:
+                    temp_list = OrdersProcessor.export_gtin_row(temp_list, el, settings.Clothes.CATEGORY, flag_046, include_gtin, size=sq)
                 res_list_common.append(temp_list)
                 if el.country.upper() in settings.COUNTRIES_INNER:
                     res_list_inner.append(temp_list)
@@ -1420,6 +1489,11 @@ class SocksProcessor(OrdersProcessor):
 
     @staticmethod
     def prepare_ext_data(orders_list: list, flag_046: bool = False, has_aggr: bool = False) -> tuple[list, list, list]:
+        include_gtin = any(
+            getattr(position, "gtin", None)
+            or any(getattr(sq, "gtin", None) for sq in getattr(position, "sizes_quantities", ()))
+            for position in orders_list
+        )
         res_list_common = []
         res_list_outer = []
         res_list_inner = []
@@ -1455,6 +1529,8 @@ class SocksProcessor(OrdersProcessor):
                              settings.Socks.SYZE_TYPES_CODES.get(size_type), size, '', el.color, '', gender,
                              content, 'НЕТ', 'ДА', 'НЕТ', 'НЕТ', 'НЕТ', '', 'НЕТ', '', '', '',
                              sq.quantity * el.box_quantity, declar_doc, ]
+                if include_gtin:
+                    temp_list = OrdersProcessor.export_gtin_row(temp_list, el, settings.Socks.CATEGORY, flag_046, include_gtin, size=sq)
                 res_list_common.append(temp_list)
                 if el.country.upper() in settings.COUNTRIES_INNER:
                     res_list_inner.append(temp_list)
@@ -1686,12 +1762,12 @@ def orders_process_send_order(o_id: int, user: User, order_comment: str, order_i
                                                 rd_exist=rd_exist, tg_order_num=order_idn
                                                 )
 
-    TelegramProcessor.send_message_tg(
+    TelegramProcessor.send_message_tg.delay(
         message=message,
         group_id=telegram_id,
         files_list=files_list,
     ) if user.admin_parent_id != 2\
-        else TelegramProcessor.send_message_text(message=message, chat_id=telegram_id)
+        else TelegramProcessor.send_message_text.delay(message=message, chat_id=telegram_id)
     # если клиент ruznak то не отправляем файл
 
     return True
@@ -1918,6 +1994,13 @@ def orders_common_preload(category: str, company_idn: str, orders_list: list) ->
         start_list = copy(settings.Shoes.START_CRM_PRELOAD)
         sp = ShoesProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
         res_list_raw = sp.orders_list
+        if any(
+            getattr(position, "gtin", None)
+            or any(getattr(sq, "gtin", None) for sq in getattr(position, "sizes_quantities", ()))
+            for position in orders_list
+        ):
+            # Preview columns use the original category layout.
+            res_list_raw = [row[1:] for row in res_list_raw]
         # res_list = list(map(lambda x: x[:12] + x[14:], res_list_raw))
         res_list = list(map(lambda x: x[1:11] + x[14:], res_list_raw))
     elif category == settings.Clothes.CATEGORY:
@@ -1925,18 +2008,39 @@ def orders_common_preload(category: str, company_idn: str, orders_list: list) ->
         start_list = copy(settings.Clothes.START_CRM_PRELOAD)
         cp = ClothesProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
         res_list_raw = cp.orders_list
+        if any(
+            getattr(position, "gtin", None)
+            or any(getattr(sq, "gtin", None) for sq in getattr(position, "sizes_quantities", ()))
+            for position in orders_list
+        ):
+            # Preview columns use the original category layout.
+            res_list_raw = [row[1:] for row in res_list_raw]
         # res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
         res_list = list(map(lambda x: x[1:11] + x[15:18] + x[20:], res_list_raw))
     elif category == settings.Socks.CATEGORY:
         start_list = copy(settings.Socks.START_PRELOAD)
         cp = SocksProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
         res_list_raw = cp.orders_list
+        if any(
+            getattr(position, "gtin", None)
+            or any(getattr(sq, "gtin", None) for sq in getattr(position, "sizes_quantities", ()))
+            for position in orders_list
+        ):
+            # Preview columns use the original category layout.
+            res_list_raw = [row[1:] for row in res_list_raw]
         res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
     elif category == settings.Linen.CATEGORY:
         # start_list = copy(settings.Linen.START_PRELOAD)
         start_list = copy(settings.Linen.START_CRM_PRELOAD)
         lp = LinenProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
         res_list_raw = lp.orders_list
+        if any(
+            getattr(position, "gtin", None)
+            or any(getattr(sq, "gtin", None) for sq in getattr(position, "sizes_quantities", ()))
+            for position in orders_list
+        ):
+            # Preview columns use the original category layout.
+            res_list_raw = [row[1:] for row in res_list_raw]
         # res_list = list(map(lambda x: x[:12] + x[15:18] + x[20:], res_list_raw))
         res_list = list(map(lambda x: x[1:11] + x[15:18] + x[20:], res_list_raw))
     elif category == settings.Parfum.CATEGORY:
@@ -1944,6 +2048,13 @@ def orders_common_preload(category: str, company_idn: str, orders_list: list) ->
         start_list = copy(settings.Parfum.START_CRM_PRELOAD)
         p_proc = ParfumProcessor(company_idn=company_idn, category=category, orders_list=orders_list)
         res_list_raw = p_proc.orders_list
+        if any(
+            getattr(position, "gtin", None)
+            or any(getattr(sq, "gtin", None) for sq in getattr(position, "sizes_quantities", ()))
+            for position in orders_list
+        ):
+            # Preview columns use the original category layout.
+            res_list_raw = [row[1:] for row in res_list_raw]
         # res_list = list(map(lambda x: x[:9] + x[12:15] + x[17:], res_list_raw))
         res_list = list(map(lambda x: x[1:8] + x[12:15] + x[17:], res_list_raw))
     elif category == settings.Cosmetics.CATEGORY:

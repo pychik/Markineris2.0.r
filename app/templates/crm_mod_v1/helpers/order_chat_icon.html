@@ -1,4 +1,4 @@
-<span class="me-1 pc-chat-wrap position-relative" style="display:inline-block;">
+<span class="pc-chat-wrap position-relative" style="display:inline-block;">
   <img src="{{ url_for('static', filename='crm_mod/img/icons/chat.svg') }}"
        role="button"
     class="pc-chat-btn order-chat-btn"
@@ -11,7 +11,7 @@
   {% set unread = n.unread_chat_count | default(0, true) %}
   {% if unread and unread > 0 %}
     <span class="badge rounded-pill bg-warning text-dark position-absolute"
-          style="top:-8px; right:-10px; font-size:11px;">
+          style="top:-6px; right:-6px; font-size:10px;">
       +{{ unread }}
     </span>
   {% endif %}

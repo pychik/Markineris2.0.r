@@ -1,0 +1,5 @@
+{% set gtin_sizes = namespace(rows=[]) %}
+{% for sq in t.sizes_quantities %}
+  {% set gtin_sizes.rows = gtin_sizes.rows + [{'size': sq.size, 'size_type': sq.size_type|default('') or '', 'unit': sq.unit|default('') or '', 'gtin': sq.gtin or t.gtin or '', 'company': sq.gtin_company_key or t.gtin_company_key or ''}] %}
+{% endfor %}
+data-size-gtins='{{ gtin_sizes.rows|tojson }}'

@@ -76,6 +76,7 @@
             {% include 'categories/categories_1st_step.html' %}
             {% include step_2_template %}
             {% include 'helpers/weight_grams_field.html' %}
+            {% include 'helpers/gtin_position_field.html' %}
         </form>
 
         {% include step_3_template %}
@@ -92,6 +93,6 @@
     <div id="modals-container"></div>
 
     <script src="{{ url_for('static', filename='main_v2/js/perform_order.js', v='10') }}"></script>
-    <script src="{{ url_for('static', filename='main_v2/js/categories/cosmetics.js', v='14') }}"></script>
+    <script src="{{ url_for('static', filename='main_v2/js/categories/cosmetics.js', v='15') }}"></script>
     <script src="{{ url_for('static', filename='main_v2/js/ordinary_order_test_fill.js', v='4') }}"></script>
 {% endblock %}
