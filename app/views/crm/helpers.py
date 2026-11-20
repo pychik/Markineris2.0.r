@@ -2193,7 +2193,7 @@ def helper_update_processing_order_info() -> tuple[Response, int]:
     if not order_id:
         return jsonify({"status": "error", "message": "Все поля обязательны к заполнению"}), 400
 
-    order = _processing_order_query().filter(Order.id == order_id).first()
+    order = _processing_order_query().filter(Order.id == order_id).with_for_update(of=Order).populate_existing().first()
     loaded = perf_counter()
     if not order:
         return jsonify({"status": "error", "message": "Заказ не найден"}), 404
@@ -2253,7 +2253,7 @@ def helper_update_processing_order_info() -> tuple[Response, int]:
         return jsonify({"status": "error", "message": "Все поля обязательны к заполнению"}), 400
 
     if order.is_gtin_order and company_value != order.processing_company_key:
-        return jsonify({"status": "error", "message": "Проводящая компания GTIN-заказа выбрана клиентом и не может быть изменена"}), 400
+        return jsonify({"status": "error", "message": "Для смены компании GTIN-заказа используйте кнопку «Изменить» в блоке GTIN-компании."}), 400
 
     try:
         kind, raw = company_value.split(":", 1)

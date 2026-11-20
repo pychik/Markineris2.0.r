@@ -1,0 +1,29 @@
+<div class="modal fade" id="gtin-company-modal" tabindex="-1" aria-labelledby="gtin-company-title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="gtin-company-title">GTIN-компания заказа № {{ order.order_idn }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <form action="{{ url_for('crm_d.gtin_company', order_id=order.id) }}" method="post" id="gtin-company-form">
+        <div class="modal-body">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="expected_company" value="{{ order.processing_company_key or '' }}">
+          <label for="gtin-company-select" class="form-label">Проводящая компания</label>
+          <select name="company" id="gtin-company-select" class="form-select" required>
+            <option value="" disabled {% if not order.processing_company_key %}selected{% endif %}>Выберите компанию</option>
+            {% for company in companies %}
+              <option value="{{ company.value }}" {% if company.value == order.processing_company_key %}selected{% endif %}>{{ company.label }}</option>
+            {% endfor %}
+          </select>
+          <p class="small text-muted mt-3 mb-0">Компания изменится для всего заказа. При выборе другой компании прежний УПД будет сброшен.</p>
+          <div class="alert alert-danger mt-3 mb-0 d-none" data-gtin-company-error role="alert"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-warning">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

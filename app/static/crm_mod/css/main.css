@@ -606,6 +606,33 @@ body {
   background: #f1f2f4;
   color: #626970;
 }
+.order .order-processing-company-name {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+.order .order-processing-company-name > .order-processing-company-copy {
+  flex: 1;
+  min-width: 0;
+}
+.order .order-processing-company-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.order .order-processing-company-edit:hover {background: rgba(98, 105, 112, .12);}
+.order .order-processing-company-edit:focus-visible {outline: 2px solid currentColor; outline-offset: 2px;}
+
 .order .order-processing-company-copy {
   max-width: 100%;
   padding: 0;

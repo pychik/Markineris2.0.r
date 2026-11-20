@@ -41,14 +41,26 @@
 {% if n.is_gtin_order and n.processing_company_label %}
   <div class="comment order__comment order-comment-badge order-processing-company-badge">
     <div class="comment__title">GTIN компания</div>
-    <button type="button" class="order-processing-company-copy"
-            data-copy-value="{{ processing_company_title }}" onclick="copy_buffer(this.dataset.copyValue)"
-            title="Скопировать название проводящей компании">{{ processing_company_title }}</button>
-    {% if processing_company_inn %}
-      <div>ИНН: <button type="button" class="order-processing-company-copy"
-                       data-copy-value="{{ processing_company_inn }}" onclick="copy_buffer(this.dataset.copyValue)"
-                       title="Скопировать ИНН проводящей компании">{{ processing_company_inn }}</button></div>
-    {% endif %}
+    <div class="order-processing-company-name">
+      <button type="button" class="order-processing-company-copy" data-gtin-company-title
+              data-copy-value="{{ processing_company_title }}" onclick="copy_buffer(this.dataset.copyValue)"
+              title="Скопировать название проводящей компании">{{ processing_company_title }}</button>
+      {% set gtin_operator_crm = (src|default('')).split('?', 1)[0].rstrip('/') == url_for('crm_d.managers').rstrip('/') %}
+      {% if gtin_operator_crm and current_user.role in ['manager', 'supermanager', 'superuser'] and not n.is_moderation %}
+        <button type="button" class="order-processing-company-edit"
+                data-gtin-company-url="{{ url_for('crm_d.gtin_company', order_id=n.id) }}"
+                data-operator-crm-path="{{ url_for('crm_d.managers') }}"
+                onclick="window.gtinCompanyOpen(event, this)"
+                title="Изменить GTIN-компанию" aria-label="Изменить GTIN-компанию">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="m16 3 5 5M4 20l4.5-1L21 6.5a2.1 2.1 0 0 0-3-3L5.5 16 4 20Z"/>
+          </svg>
+        </button>
+      {% endif %}
+    </div>
+    <div data-gtin-company-inn-row {% if not processing_company_inn %}hidden{% endif %}>ИНН: <button type="button" class="order-processing-company-copy" data-gtin-company-inn
+                     data-copy-value="{{ processing_company_inn }}" onclick="copy_buffer(this.dataset.copyValue)"
+                     title="Скопировать ИНН проводящей компании">{{ processing_company_inn }}</button></div>
   </div>
 {% endif %}
 

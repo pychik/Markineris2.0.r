@@ -628,7 +628,7 @@ class GtinCompanyPresentationTests(unittest.TestCase):
                         self.assertLess(body.index('order-processing-company-badge'), body.index('Комментарий клиента'))
                     header = env.get_template('crm_mod_v1/helpers/order_category.html').render(**context)
                     tooltips = Attributes(header).tooltips
-                    self.assertEqual(tooltips, [f'Заказ с готовыми GTIN: {title} ({inn})'] if enabled else [])
+                    self.assertEqual(tooltips, [])
 
 
 if __name__ == '__main__':

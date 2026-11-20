@@ -24,6 +24,7 @@ from .helpers import (helper_get_agent_orders, helper_get_manager_orders, helper
                       helper_get_processing_order_info, helper_update_processing_order_info, h_order_details, h_order_logs, )
 from .helpers_mo import h_all_new_multi_pool
 from .account_search import search_orders_by_account
+from .gtin_company import h_gtin_company
 from .order_chat import (
     h_order_chat_download_attachment,
     h_order_chat_get_messages,
@@ -493,3 +494,10 @@ def order_details():
 @bck_not_ordinary_user_required
 def order_logs(o_id: int):
     return h_order_logs(o_id)
+
+
+@crm_d.route('/managers/orders/<int:order_id>/gtin-company', methods=['GET', 'POST'])
+@login_required
+@user_activated
+def gtin_company(order_id: int):
+    return h_gtin_company(order_id)
