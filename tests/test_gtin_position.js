@@ -1,50 +1,17 @@
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
-const listeners = {};
-const field = () => ({value: '', required: false, addEventListener(event, callback) { this[event] = callback; }});
-const gtin = field();
-const company = field();
-const collapsePanel = {shown: false};
-const block = {querySelector: id => id === '#gtin' ? gtin : id === '#gtin_company_key' ? company : collapsePanel};
-let attached = false;
-let ajaxSuccess;
-const elements = {
-    'step-2': {querySelector: () => ({before(element) { attached = element === block; }})},
-    'gtin-position-template': {content: {firstElementChild: {cloneNode: () => block}}},
-    'form_process_main': {addEventListener() {}},
-};
-const context = {
-    document: {getElementById: id => elements[id], addEventListener: (event, callback) => { listeners[event] = callback; }},
-    window: {jQuery: true, location: {href: 'https://example.test/shoes/1/'}},
-    jQuery: () => ({ajaxSuccess: callback => { ajaxSuccess = callback; }}),
-    bootstrap: {Collapse: {getOrCreateInstance(panel, options) {
-        assert.equal(panel, collapsePanel);
-        assert.equal(options.toggle, false);
-        return {show() { panel.shown = true; }, hide() { panel.shown = false; }};
-    }}},
-    URL,
-};
-vm.runInNewContext(fs.readFileSync('app/static/main_v2/js/gtin_position.js', 'utf8'), context);
-listeners.DOMContentLoaded();
-assert.ok(attached);
-assert.equal(gtin.required, false);
-assert.equal(company.required, false);
-gtin.value = '04640735105562';
-gtin.input();
-assert.equal(company.required, true);
-assert.equal(collapsePanel.shown, true);
-company.value = 'g:GRENADA';
-company.change();
-assert.equal(gtin.required, true);
-gtin.value = '';
-gtin.input();
-assert.equal(gtin.required, true);
-assert.equal(company.required, false);
-ajaxSuccess(null, null, {url: '/shoes/preprocess_order/1'}, {status: 'error'});
-assert.equal(company.value, 'g:GRENADA');
-ajaxSuccess(null, null, {url: '/shoes/preprocess_order/1'}, {status: 'success'});
-assert.equal(company.value, '');
-assert.equal(gtin.required, false);
-assert.equal(collapsePanel.shown, false);
-console.log('GTIN form pairing and AJAX reset OK');
+const {identity, validateRows} = require('../app/static/main_v2/js/gtin_position.js');
+const rows = [
+    {size: '42', size_type: 'РОССИЯ', gtin: '04640735105562', company: 'g:GRENADA'},
+    {size: '44', size_type: 'РОССИЯ', gtin: '04640735105579', company: 'g:GRENADA'},
+    {size: '46', size_type: 'РОССИЯ', gtin: '', company: ''},
+];
+assert.deepEqual(validateRows(rows), ['', '', '']);
+assert.deepEqual(validateRows(rows.map((row, index) => index === 1 ? {...row, company: 'g:AVRORA'} : row)), ['', '', '']);
+assert.match(validateRows([{...rows[0], company: ''}])[0], /вместе/);
+assert.match(validateRows([{...rows[0], gtin: ''}])[0], /вместе/);
+assert.match(validateRows([{...rows[0], gtin: '123'}])[0], /14 цифр/);
+assert.match(validateRows([rows[0], {...rows[1], gtin: rows[0].gtin}])[1], /разные GTIN/);
+assert.equal(identity({...rows[0], quantity: 99}), identity(rows[0]));
+assert.notEqual(identity(rows[0]), identity({...rows[0], size_type: 'МЕЖДУНАРОДНЫЙ'}));
+assert.notEqual(identity({size: '100*200', unit: 'см'}), identity({size: '100*200', unit: 'мм'}));
+console.log('GTIN per-size validation and stable identities OK');

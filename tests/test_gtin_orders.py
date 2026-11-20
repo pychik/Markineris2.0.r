@@ -1,5 +1,6 @@
 """GTIN grouping runs against an isolated SQLite database, without application services."""
 import ast
+import json
 from copy import copy
 from datetime import datetime
 from enum import Enum
@@ -71,6 +72,19 @@ class Position(Base):
     gtin_company_key = Column(String)
     quantity = Column(Integer, default=2)
     weight_grams = Column(Integer, default=100)
+    sizes_quantities = relationship('Size', back_populates='clothes', cascade='all,delete')
+
+
+class Size(Base):
+    __tablename__ = 'sizes'
+    id = Column(Integer, primary_key=True)
+    position_id = Column(Integer, ForeignKey('positions.id'))
+    clothes = relationship(Position, back_populates='sizes_quantities')
+    size = Column(String)
+    size_type = Column(String, default='РОССИЯ')
+    quantity = Column(Integer)
+    gtin = Column(String)
+    gtin_company_key = Column(String)
 
 
 class GtinOrderTests(unittest.TestCase):
@@ -95,6 +109,148 @@ class GtinOrderTests(unittest.TestCase):
         self.session.commit()
         return order
 
+    def size_draft(self):
+        order = Order(user_id=4, company_name='Клиент')
+        position = Position(weight_grams=101)
+        position.sizes_quantities = [
+            Size(size='42', quantity=2, gtin='04640735105562', gtin_company_key='g:GRENADA'),
+            Size(size='44', quantity=3, gtin='04640735105579', gtin_company_key='g:AVRORA'),
+            Size(size='46', quantity=5),
+            Size(size='48', quantity=1, gtin='04640735105586', gtin_company_key='g:GRENADA'),
+        ]
+        order.clothes = [position]
+        self.session.add(order)
+        self.session.commit()
+        return order
+
+    def test_partial_size_gtins_split_by_company_preserves_size_ids_quantity_and_weight(self):
+        order = self.size_draft()
+        original_ids = {sq.id for sq in order.clothes[0].sizes_quantities}
+        result = namespace['split_order'](order, 'clothes')
+        self.session.commit()
+        self.assertEqual([row.processing_company_key for row in result], ['g:GRENADA', 'g:AVRORA', None])
+        self.assertEqual([len(row.clothes) for row in result], [2, 1, 1])
+        all_positions = [position for row in result for position in row.clothes]
+        self.assertEqual(sum(position.weight_grams for position in all_positions), 101)
+        self.assertEqual(sum(sq.quantity for position in all_positions for sq in position.sizes_quantities), 11)
+        self.assertEqual({sq.id for position in all_positions for sq in position.sizes_quantities}, original_ids)
+        for position in all_positions:
+            sq, = position.sizes_quantities
+            self.assertEqual(position.gtin or '', sq.gtin or '')
+            self.assertEqual(position.gtin_company_key or '', sq.gtin_company_key or '')
+
+    def test_size_split_rollback_restores_original_position(self):
+        order = self.size_draft()
+        namespace['split_order'](order, 'clothes')
+        self.session.rollback()
+        self.assertEqual(self.session.query(Order).count(), 1)
+        self.assertEqual(len(order.clothes), 1)
+        self.assertEqual(len(order.clothes[0].sizes_quantities), 4)
+        self.assertEqual(order.clothes[0].weight_grams, 101)
+        self.assertIsNone(order.clothes[0].gtin)
+
+
+
+    def test_merging_multiple_new_sizes_moves_every_size_with_its_metadata(self):
+        order = self.draft([None])
+        existing = order.clothes[0]
+        existing.sizes_quantities = [Size(size='42', quantity=2)]
+        incoming = Position(sizes_quantities=[
+            Size(size='44', quantity=3, gtin='04640735105562', gtin_company_key='g:GRENADA'),
+            Size(size='46', quantity=4, gtin='04640735105579', gtin_company_key='g:AVRORA')])
+        context = dict(Any=object, build_size_key=lambda sq, category: (sq.size,), normalize_int_key=lambda value: int(value or 0))
+        merge = load_function('app/utilities/saving_helpers.py', 'merge_size_quantities', context)
+        merge(existing, incoming, 'clothes')
+        self.session.commit()
+        self.assertEqual([sq.size for sq in existing.sizes_quantities], ['42', '44', '46'])
+        self.assertEqual([sq.gtin for sq in existing.sizes_quantities], [None, '04640735105562', '04640735105579'])
+        self.assertEqual(sum(sq.quantity for sq in existing.sizes_quantities), 9)
+
+    def test_size_gtin_conflicts_are_checked_against_other_positions(self):
+        order = self.size_draft()
+        with self.assertRaises(namespace['GTINCompanyConflict']):
+            namespace['validate_gtin_company'](order.clothes, '04640735105562', 'g:AVRORA')
+
+    def test_size_mapping_validation_and_normalized_size_types(self):
+        parse = namespace['parse_size_gtins']
+        rows = [dict(size='42', size_type='РОССИЯ', gtin='04640735105562', company='g:GRENADA'),
+                dict(size='44', size_type='ОСОБЫЕ_РАЗМЕРЫ', gtin='', company='')]
+        mapping = parse(json.dumps(rows))
+        self.assertEqual(mapping[('42', 'РОССИЯ', '')], ('04640735105562', 'g:GRENADA'))
+        position = NS(gtin=None, gtin_company_key=None, sizes_quantities=[
+            NS(size='42', size_type='РОССИЯ'), NS(size='44', size_type='МЕЖДУНАРОДНЫЙ')])
+        namespace['apply_size_gtins'](position, json.dumps(rows), [('42', 2, 'РОССИЯ'), ('44', 3, 'ОСОБЫЕ_РАЗМЕРЫ')])
+        self.assertEqual(position.sizes_quantities[0].gtin, '04640735105562')
+        self.assertEqual(position.sizes_quantities[1].gtin, '')
+        with self.assertRaises(namespace['GTINSizeValidationError']):
+            namespace['apply_size_gtins'](position, json.dumps(rows[:1]), [('42', 2, 'РОССИЯ'), ('44', 3, 'ОСОБЫЕ_РАЗМЕРЫ')])
+        invalid = [dict(rows[0], company=''), dict(rows[0], gtin=''), dict(rows[0], gtin='123'),
+                   dict(rows[0], company='g:UNKNOWN')]
+        for row in invalid:
+            with self.subTest(row=row), self.assertRaises(namespace['GTINSizeValidationError']):
+                parse(json.dumps([row]))
+        for raw in ('null', '{}', '[1]', '{', json.dumps([rows[0], rows[0]]),
+                    json.dumps([rows[0], dict(rows[0], size='44')])):
+            with self.subTest(raw=raw), self.assertRaises(namespace['GTINSizeValidationError']):
+                parse(raw)
+
+    def test_category_savers_attach_gtins_to_sizes_and_keep_ordinary_sizes(self):
+        settings = NS(**{name: NS(CATEGORY=name.lower()) for name in ('Shoes', 'Clothes', 'Socks', 'Linen')})
+        settings.Linen.KPB_TYPE = 'КОМПЛЕКТ ПОСТЕЛЬНОГО БЕЛЬЯ'
+        def position_factory(**kwargs):
+            fields = dict(sizes_quantities=[], set_items=[])
+            fields.update(kwargs)
+            return NS(**fields)
+        context = dict(Order=Order, settings=settings, datetime=datetime,
+                       normalize_article_placeholder=lambda value: value,
+                       normalize_clothes_type_for_subcategory=lambda value, category: value,
+                       process_input_str=lambda value: value, rd_name_clean=lambda value: value,
+                       ClothesSubcategories=NS(common=NS(value='common')),
+                       get_clothes_size_type=lambda *args, **kwargs: 'NORMALIZED',
+                       get_socks_size_type=lambda *args: 'NORMALIZED',
+                       validate_gtin_fields=namespace['validate_gtin_fields'],
+                       apply_size_gtins=namespace['apply_size_gtins'],
+                       append_or_merge_position=lambda positions, position, category, **kwargs: positions.append(position),
+                       AggrOrder=object, normalize_trademark_placeholder=lambda value: value,
+                       normalize_length_width_size_type=lambda value: value,
+                       normalize_length_width_size_value=lambda value, kind: value,
+                       validate_clothes_size_type_for_subcategory=lambda *args: None,
+                       SizeTypeException=ValueError, _copy_pc_approval_flag=lambda *args: False,
+                       _check_shoes_compatibility=lambda value: None, _check_clothes_compatibility=lambda value: None,
+                       _check_socks_compatibility=lambda value: None, _check_linen_compatibility=lambda value: None,
+                       Shoe=position_factory, Clothes=position_factory, Socks=position_factory, Linen=position_factory,
+                       ShoeQuantitySize=NS, ClothesQuantitySize=NS, SocksQuantitySize=NS, LinenQuantitySize=NS)
+        for category in ('shoes', 'clothes', 'socks', 'linen'):
+            with self.subTest(category=category):
+                raw_sizes = [('100*200', 'см', 2), ('120*200', 'см', 3)] if category == 'linen' else (
+                    [('42', 2), ('44', 3)] if category == 'shoes' else [('42', 2, 'РОССИЯ'), ('44', 3, 'ОСОБЫЕ_РАЗМЕРЫ')])
+                rows = [dict(size=row[0],
+                             size_type=row[2] if category in ('clothes', 'socks') else '',
+                             unit=row[1] if category == 'linen' else '',
+                             gtin='04640735105562' if index == 0 else '',
+                             company='g:GRENADA' if index == 0 else '') for index, row in enumerate(raw_sizes)]
+                form = dict(weight_grams=100, article='A1', type='ТОВАР', content='ХЛОПОК', rd_name='', size_gtins=json.dumps(rows))
+                order = NS(**{category: []})
+                save = load_function('app/utilities/saving_uts.py', 'save_' + category, context)
+                self.assertIs(save(order, form, raw_sizes), order)
+                position, = getattr(order, category)
+                self.assertIsNone(position.gtin)
+                self.assertIsNone(position.gtin_company_key)
+                self.assertEqual(position.sizes_quantities[0].gtin, '04640735105562')
+                self.assertEqual(position.sizes_quantities[0].gtin_company_key, 'g:GRENADA')
+                self.assertEqual(position.sizes_quantities[1].gtin, '')
+                self.assertEqual(position.sizes_quantities[1].gtin_company_key, '')
+                self.assertEqual([sq.quantity for sq in position.sizes_quantities], [2, 3])
+                position.fast_order_company_id = None
+                for index, sq in enumerate(position.sizes_quantities):
+                    sq.id = index + 1
+                target = NS(**{category: []})
+                copier = load_function('app/utilities/saving_uts.py', 'save_copy_order_' + category, context)
+                self.assertIs(copier([position], target), target)
+                copied, = getattr(target, category)
+                self.assertEqual([(sq.size, sq.quantity, sq.gtin, sq.gtin_company_key) for sq in copied.sizes_quantities],
+                                 [(sq.size, sq.quantity, sq.gtin, sq.gtin_company_key) for sq in position.sizes_quantities])
+
     def test_fields_are_paired_and_only_catalog_companies_are_accepted(self):
         validate = namespace['validate_gtin_fields']
         self.assertEqual(validate(None, None), ('', ''))
@@ -114,7 +270,7 @@ class GtinOrderTests(unittest.TestCase):
                       **{name: NS(CATEGORY='одежда' if name == 'Clothes' else name.lower())
                          for name in ('Shoes', 'Clothes', 'Socks', 'Linen', 'Parfum', 'Cosmetics', 'Toys')})
         context = dict(Order=Order, settings=settings, validate_gtin_fields=namespace['validate_gtin_fields'],
-                       validate_gtin_company=namespace['validate_gtin_company'],
+                       validate_gtin_company=namespace['validate_gtin_company'], parse_size_gtins=namespace['parse_size_gtins'],
                        save_clothes=lambda **kwargs: saved.append(kwargs) or kwargs['order'])
         save = load_function('app/utilities/saving_uts.py', 'common_save_db', context)
         form = dict(gtin='04640735105562', gtin_company_key='g:AVRORA', weight_grams='100')
@@ -143,7 +299,7 @@ class GtinOrderTests(unittest.TestCase):
         def reject(**kwargs):
             raise namespace['GTINCompanyConflict']('04640735105562')
         context = dict(Union=Union, Response=object, settings=settings,
-                       GTINCompanyConflict=namespace['GTINCompanyConflict'], current_user=NS(id=4),
+                       GTINCompanyConflict=namespace['GTINCompanyConflict'], GTINSizeValidationError=namespace['GTINSizeValidationError'], current_user=NS(id=4),
                        request=NS(form=dict(gtin='04640735105562', gtin_company_key='g:AVRORA'),
                                   args={}, view_args={'subcategory': 'common'}),
                        Category=NS(check_subcategory=lambda **kwargs: True),
@@ -304,6 +460,24 @@ class GtinOrderTests(unittest.TestCase):
         ns['append_or_merge_position'](items, position('g:AVRORA'), 'shoes')
         ns['append_or_merge_position'](items, position(gtin='04640735105579'), 'shoes')
         self.assertEqual(len(items), 3)
+        size_positions = []
+        first = position(gtin=None, company=None)
+        first.sizes_quantities[0].gtin = '04640735105562'
+        first.sizes_quantities[0].gtin_company_key = 'g:GRENADA'
+        ns['append_or_merge_position'](size_positions, first, 'shoes')
+        second = copy(first)
+        second.sizes_quantities = [copy(first.sizes_quantities[0])]
+        ns['append_or_merge_position'](size_positions, second, 'shoes')
+        self.assertEqual(len(size_positions), 1)
+        self.assertEqual(size_positions[0].sizes_quantities[0].quantity, 4)
+        different = position(gtin=None, company=None)
+        ns['append_or_merge_position'](size_positions, different, 'shoes')
+        self.assertEqual(len(size_positions), 2)  # Same size without GTIN must remain distinct.
+        other_size = position(gtin=None, company=None)
+        other_size.sizes_quantities = [NS(size='44', quantity=1, gtin='04640735105562', gtin_company_key='g:GRENADA')]
+        ns['append_or_merge_position'](size_positions, other_size, 'shoes')
+        self.assertEqual(len(size_positions), 2)  # It may merge with the ordinary position, but not with the other GTIN size.
+        self.assertEqual(len(size_positions[0].sizes_quantities), 1)
 
     def test_failed_edit_can_roll_back_the_original_position_deletion(self):
         from sqlalchemy import text
@@ -336,6 +510,8 @@ class GtinExportTests(unittest.TestCase):
         categories = NS(**{name: NS(CATEGORY=name.lower()) for name in ('Cosmetics', 'Toys')})
         fn = load_function('app/utilities/download.py', 'export_gtin_row', {'settings': categories}, 'OrdersProcessor')
         position = NS(gtin='04640735105562')
+        self.assertEqual(fn(['tnved'], position, 'clothes', False, True, size=NS(gtin='04640735105579')), ['04640735105579', 'tnved'])
+        self.assertEqual(fn(['tnved'], NS(gtin=None), 'clothes', False, True, size=NS(gtin=None)), ['', 'tnved'])
         for category in ('shoes', 'linen', 'parfum', 'clothes', 'socks'):
             with self.subTest(category=category):
                 self.assertEqual(fn(['tnved', 'name'], position, category, False, True), [position.gtin, 'tnved', 'name'])

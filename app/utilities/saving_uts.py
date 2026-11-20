@@ -17,7 +17,7 @@ from utilities.categories_data.accessories_data import normalize_clothes_type_fo
 from utilities.helpers.helpers_checks import _check_linen_compatibility, _check_clothes_compatibility, \
     _check_shoes_compatibility, _check_socks_compatibility, _check_parfum_compatibility, _check_country_by_rd, rd_name_clean
 from utilities.exceptions import SizeTypeException
-from utilities.gtin_orders import validate_gtin_fields, validate_gtin_company
+from utilities.gtin_orders import validate_gtin_fields, validate_gtin_company, apply_size_gtins, parse_size_gtins
 from utilities.saving_helpers import append_or_merge_position, get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, \
     normalize_length_width_size_type, normalize_length_width_size_value, normalize_trademark_placeholder, process_input_str, \
     validate_clothes_size_type_for_subcategory, validate_parfum_trademark
@@ -60,6 +60,7 @@ def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     new_shoe_order.sizes_quantities.extend(extend_sq)
     new_shoe_order.gtin, new_shoe_order.gtin_company_key = validate_gtin_fields(
         form_dict.get("gtin"), form_dict.get("gtin_company_key"))
+    apply_size_gtins(new_shoe_order, form_dict.get("size_gtins"), sizes_quantities)
     append_or_merge_position(order.shoes, new_shoe_order, settings.Shoes.CATEGORY)
 
     return order
@@ -94,6 +95,7 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcateg
     new_clothes_order.sizes_quantities.extend(extend_sq)
     new_clothes_order.gtin, new_clothes_order.gtin_company_key = validate_gtin_fields(
         form_dict.get("gtin"), form_dict.get("gtin_company_key"))
+    apply_size_gtins(new_clothes_order, form_dict.get("size_gtins"), sizes_quantities)
     append_or_merge_position(order.clothes, new_clothes_order, settings.Clothes.CATEGORY)
     return order
 
@@ -119,6 +121,7 @@ def save_socks(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
     new_socks_order.sizes_quantities.extend(extend_sq)
     new_socks_order.gtin, new_socks_order.gtin_company_key = validate_gtin_fields(
         form_dict.get("gtin"), form_dict.get("gtin_company_key"))
+    apply_size_gtins(new_socks_order, form_dict.get("size_gtins"), sizes_quantities)
     append_or_merge_position(order.socks, new_socks_order, settings.Socks.CATEGORY)
     return order
 
@@ -160,6 +163,7 @@ def save_linen(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
 
     new_linen_order.gtin, new_linen_order.gtin_company_key = validate_gtin_fields(
         form_dict.get("gtin"), form_dict.get("gtin_company_key"))
+    apply_size_gtins(new_linen_order, form_dict.get("size_gtins"), sizes_quantities)
     append_or_merge_position(order.linen, new_linen_order, settings.Linen.CATEGORY)
     return order
 
@@ -343,6 +347,9 @@ def common_save_db(order: Order, form_dict: dict, category: str, subcategory: st
     gtin, company_key = validate_gtin_fields(form_dict.get("gtin"), form_dict.get("gtin_company_key"))
     if gtin:
         validate_gtin_company(getattr(order, settings.CATEGORIES_DICT[category]), gtin, company_key)
+    size_mapping = parse_size_gtins(form_dict.get("size_gtins"))
+    for size_gtin, size_key in (size_mapping or {}).values():
+        validate_gtin_company(getattr(order, settings.CATEGORIES_DICT[category]), size_gtin, size_key)
     weight_raw = str(form_dict.get("weight_grams") or "").strip()
     if not weight_raw.isdecimal() or int(weight_raw) <= 0:
         raise ValueError("Укажите общий вес позиции в граммах: целое число больше 0")
@@ -464,6 +471,7 @@ def save_copy_order_shoes(order_category_list: list[Shoe], new_order: Order) -> 
             gtin=getattr(shoe, "gtin", None), gtin_company_key=getattr(shoe, "gtin_company_key", None),
                                 sizes_quantities=list((ShoeQuantitySize(
                                     size=sq.size,
+                                    gtin=getattr(sq, "gtin", None), gtin_company_key=getattr(sq, "gtin_company_key", None),
                                     quantity=sq.quantity,
                                     is_approved=_copy_pc_approval_flag(new_order, sq),
                                 )
@@ -502,6 +510,7 @@ def save_copy_order_clothes(order_category_list: list[Clothes], new_order: Order
                 continue
             new_sq = ClothesQuantitySize(
                 size=normalize_length_width_size_value(sq.size, sq.size_type),
+                gtin=getattr(sq, "gtin", None), gtin_company_key=getattr(sq, "gtin_company_key", None),
                 quantity=sq.quantity,
                 size_type=normalized_size_type,
                 is_approved=_copy_pc_approval_flag(new_order, sq),
@@ -552,6 +561,7 @@ def save_copy_order_socks(order_category_list: list[Socks], new_order: Order) ->
         for sq in sock.sizes_quantities:
             new_sq = SocksQuantitySize(
                 size=normalize_length_width_size_value(sq.size, sq.size_type),
+                gtin=getattr(sq, "gtin", None), gtin_company_key=getattr(sq, "gtin_company_key", None),
                 quantity=sq.quantity,
                 size_type=normalize_length_width_size_type(sq.size_type),
                 is_approved=_copy_pc_approval_flag(new_order, sq),
@@ -616,6 +626,7 @@ def save_copy_order_linen(order_category_list: list[Linen], new_order: Order) ->
                                      sizes_quantities=[
                 LinenQuantitySize(
                     size=sq.size,
+                    gtin=getattr(sq, "gtin", None), gtin_company_key=getattr(sq, "gtin_company_key", None),
                     unit=sq.unit,
                     quantity=sq.quantity,
                     is_approved=_copy_pc_approval_flag(new_order, sq),

@@ -435,7 +435,7 @@ def merge_size_quantities(existing_item: Any, new_item: Any, category: str, old_
     existing_by_key = {build_size_key(size_obj, category): size_obj for size_obj in existing_item.sizes_quantities}
     source_old_ids = {id(size_obj): old_id for old_id, size_obj in (source_size_pairs or [])}
 
-    for new_size_obj in new_item.sizes_quantities:
+    for new_size_obj in list(new_item.sizes_quantities):
         key = build_size_key(new_size_obj, category)
         existing_size_obj = existing_by_key.get(key)
         target_size_obj = new_size_obj
@@ -461,6 +461,16 @@ def append_or_merge_position(order_positions: Any, new_item: Any, category: str,
         existing_key = build_position_key(existing_item, category)
         # logger.info(f"merge compare category={category} existing_key={existing_key}")
         if existing_key != new_key:
+            continue
+        existing_sizes = {build_size_key(sq, category): sq for sq in getattr(existing_item, "sizes_quantities", ())}
+        incoming_sizes = {build_size_key(sq, category): sq for sq in getattr(new_item, "sizes_quantities", ())}
+        metadata = lambda sq: (getattr(sq, "gtin", None) or "", getattr(sq, "gtin_company_key", None) or "")
+        if any(metadata(existing_sizes[key]) != metadata(incoming_sizes[key])
+               for key in existing_sizes.keys() & incoming_sizes.keys()):
+            continue
+        existing_gtins = {metadata(sq)[0]: key for key, sq in existing_sizes.items() if metadata(sq)[0]}
+        if any(metadata(sq)[0] in existing_gtins and existing_gtins[metadata(sq)[0]] != key
+               for key, sq in incoming_sizes.items() if metadata(sq)[0]):
             continue
 
         if new_item.weight_grams is not None:

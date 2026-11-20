@@ -24,7 +24,7 @@ from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 from utilities.order_log import CRM_STAGE_LABELS, h_append_order_log, order_log_line
 from config import settings
 from utilities.clothes_tnved_content import clothes_tnved_content_error
-from utilities.gtin_orders import GTINCompanyConflict
+from utilities.gtin_orders import GTINCompanyConflict, GTINSizeValidationError
 from logger import logger
 from models import (
     Order,
@@ -347,9 +347,10 @@ def check_order_pos(category: str, order: Order) -> Optional[int]:
 
 def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Response, str]:
     form_data_raw = request.form
-    from utilities.gtin_orders import validate_gtin_fields
+    from utilities.gtin_orders import validate_gtin_fields, parse_size_gtins
     try:
         validate_gtin_fields(form_data_raw.get("gtin"), form_data_raw.get("gtin_company_key"))
+        parse_size_gtins(form_data_raw.get("size_gtins"))
     except ValueError as exc:
         return jsonify(status="error", message=str(exc)), 400
 
@@ -455,7 +456,7 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
             if category != settings.Parfum.CATEGORY else parfum_preprocess_order(user=current_user,
                                                                                  form_dict=form_data_raw.to_dict(),
                                                                                  o_id=o_id, p_id=p_id)
-    except GTINCompanyConflict as exc:
+    except (GTINCompanyConflict, GTINSizeValidationError) as exc:
         if o_id and not p_id:
             return jsonify(status="error", message=str(exc))
         flash(message=str(exc), category='warning')
@@ -609,7 +610,7 @@ def preprocess_order_common(user: User, form_data_raw: ImmutableMultiDict,
         logger.error(e)
         db.session.rollback()
         return (None,)*3
-    except GTINCompanyConflict:
+    except (GTINCompanyConflict, GTINSizeValidationError):
         db.session.rollback()
         raise
     except ValueError as ve:
@@ -669,7 +670,7 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
             flash(message=str(ae), category='error')
             db.session.rollback()
             return (None,) * 3
-        except GTINCompanyConflict:
+        except (GTINCompanyConflict, GTINSizeValidationError):
             db.session.rollback()
             raise
         except ValueError as ve:
@@ -721,7 +722,7 @@ def parfum_preprocess_order(user: User, form_dict: dict, o_id: int = None, p_id:
             flash(message=str(ae), category='error')
             db.session.rollback()
             return (None,) * 3
-        except GTINCompanyConflict:
+        except (GTINCompanyConflict, GTINSizeValidationError):
             db.session.rollback()
             raise
         except ValueError as ve:

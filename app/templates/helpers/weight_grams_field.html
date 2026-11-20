@@ -22,6 +22,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const input = block.querySelector('input');
     input.addEventListener('input', () => check_valid(input));
     input.addEventListener('change', () => check_valid(input));
+    if (window.jQuery) {
+        jQuery(document).ajaxSuccess(function (_event, _xhr, options, data) {
+            const path = new URL(options.url, window.location.href).pathname;
+            if (!path.includes('/preprocess_order/') || !data || data.status !== 'success') return;
+            input.value = '';
+            input.classList.remove('is-valid', 'is-invalid');
+            const summaryValue = document.getElementById('weight_grams_summary');
+            if (summaryValue) summaryValue.textContent = '—';
+        });
+    }
     const summary = step.querySelector('.important-card.text-light');
     if (summary) {
         const line = document.createElement('div');
