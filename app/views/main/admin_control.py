@@ -9,6 +9,7 @@ from data_migrations.utils import make_password
 from loguru import logger
 from models import CardChatRead, ModerationStatus, Order, ProductCard, User, db
 from utilities.admin.eco_sbor_report import eco_sbor_report as render_eco_sbor_report
+from utilities.admin.average_price_report import average_price_report as render_average_price_report
 from utilities.admin.first_order_report import first_order_report as render_first_order_report
 from tezaurus.exceptions import TezaurusApiError, TezaurusConfigurationError
 from tezaurus.processing_companies import ProcessingCompaniesClient
@@ -588,6 +589,13 @@ def cross_user_search():
 @su_mod_required
 def su_control_finance():
     return h_su_control_finance()
+
+
+@admin_control.route('/average-price', methods=['GET'])
+@login_required
+@su_required
+def average_price_report():
+    return render_average_price_report()
 
 
 @admin_control.route('/su_bck_promo', methods=['GET', ])
