@@ -109,9 +109,10 @@
                   </div>
 
                   <div class="col">
-                    <a href="{{ url_for('admin_control.average_price_report') }}" class="d-inline-flex flex-column gap-1 px-3 py-2 rounded-3 border text-decoration-none" style="background:#f3f0eb;border-color:#ddd4c8 !important;color:#695542;" title="Отчет по средней цене за период">
-                      <span class="fw-semibold text-uppercase" style="font-size: 13px;">Ср. цена ↗</span>
-                      <span class="fw-semibold">{{ stat_paid.avg_price }} р.</span>
+                    <a href="{{ url_for('admin_control.average_price_report') }}" class="position-relative d-block text-decoration-none" title="Отчет по средней цене за период">
+                      <span class="position-absolute border rounded-3 pe-none" style="inset:-6px -10px;" aria-hidden="true"></span>
+                      <span class="d-block fw-semibold text-muted text-uppercase" style="font-size:15px;">Ср. цена ↗</span>
+                      <span class="d-block fw-semibold text-warning">{{ stat_paid.avg_price }} р.</span>
                     </a>
                   </div>
 

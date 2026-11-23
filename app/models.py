@@ -8,6 +8,7 @@ from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func, Index, text
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import deferred
 
 from config import settings
 from utilities.categories_data.subcategories_data import ClothesSubcategories
@@ -270,6 +271,11 @@ class UserTransaction(db.Model, UserMixin):
     status = db.Column(db.Integer, default=TransactionStatuses.pending.value)
     bill_path = db.Column(db.String(150), unique=True)
     created_at = db.Column(db.DateTime(), default=datetime.now)
+
+    # Partial agent withdrawals: link the remainder to its source and retain audit text.
+    parent_transaction_id = deferred(db.Column(db.BigInteger, db.ForeignKey('user_transactions.id'), nullable=True, index=True))
+    original_amount = deferred(db.Column(db.Integer, nullable=True))
+    transaction_comment = deferred(db.Column(db.Text, nullable=True))
 
     cancel_comment = db.Column(db.Text(), default='')
 

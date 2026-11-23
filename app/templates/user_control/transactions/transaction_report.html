@@ -3,6 +3,9 @@
     <div><b>Дата формирования:</b> {{ transaction.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</div>
     <div><b>Статус:</b> {{ transaction_statuses[transaction.status] }}</div>
 
+    {% if transaction.transaction_comment is defined and transaction.transaction_comment %}
+        <div class="mt-2"><b>История вывода:</b><div class="small text-muted" style="white-space:pre-line">{{ transaction.transaction_comment }}</div></div>
+    {% endif %}
     {% if transaction.promo_info %}
     <div><b>Промо:</b> {{ transaction.promo_info | safe}}</div>
     {%endif%}

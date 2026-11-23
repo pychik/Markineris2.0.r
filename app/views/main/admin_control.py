@@ -66,6 +66,7 @@ from utilities.admin.h_admin_control import (
 )
 from utilities.admin.h_finance_control import (
     h_su_control_finance,
+    h_su_partial_withdrawal,
     h_su_bck_promo,
     h_su_add_promo,
     h_su_delete_promo,
@@ -947,6 +948,13 @@ def bck_su_pending_transaction_update(u_id: int, t_id: int):
     :return:
     """
     return h_su_pending_transaction_update(u_id=u_id, t_id=t_id)
+
+
+@admin_control.route('/partial_withdrawal/<int:u_id>/<int:t_id>', methods=['POST'])
+@login_required
+@bck_su_mod_required
+def partial_withdrawal(u_id: int, t_id: int):
+    return h_su_partial_withdrawal(u_id=u_id, t_id=t_id)
 
 
 @admin_control.route('bck_wo_transactions', methods=['POST', ])

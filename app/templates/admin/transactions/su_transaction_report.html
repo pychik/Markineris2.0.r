@@ -1,25 +1,52 @@
-<div class="container">
-    <div><b>Логин:</b> {{ transaction.login_name }}</div>
-    <div><b>Почта:</b> {{ transaction.email }}</div>
-    <div><b>Телефон:</b> {{ transaction.phone }}</div>
-    <div><b>Номер:</b> {{ transaction.id }}</div>
-    <div><b>Дата формирования:</b> {{ transaction.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</div>
-    <div><b>Статус:</b> <span class="badge bg-warning text-black">{{ transaction_statuses[transaction.status] }}</span></div>
+{% set transaction_type = 'БОНУС КОД' if transaction.is_bonus else transaction_types.get(transaction.transaction_type, transaction.transaction_type) %}
+{% set tr_enum = transaction_type_enum %}
+{% set amount_unit = 'MC' if transaction.transaction_type in ['at2_client_mc_refill', 'marka_coin_service'] else '₽' %}
+{% set status_style = {0:'cancelled', 1:'pending', 2:'success'}.get(transaction.status, 'neutral') %}
+<div class="transaction-detail">
+    <header class="td-summary">
+        <div class="td-type">{{ transaction_type }}</div>
+        <div class="td-summary-top">
+            <div class="td-amount">{{ '{:,.0f}'.format(transaction.amount).replace(',', ' ') if transaction.amount is not none else '—' }} <small>{{ amount_unit }}</small></div>
+            <span class="td-status td-status--{{ status_style }}">{{ transaction_statuses[transaction.status] }}</span>
+        </div>
+        <div class="td-reference"><span>№ {{ transaction.id }}</span><span>{{ transaction.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</span></div>
+    </header>
 
+    <section class="td-section" aria-label="Пользователь">
+        <h3 class="td-section-title">Пользователь</h3>
+        <dl class="td-fields">
+            <div class="td-field"><dt>Логин</dt><dd>{{ transaction.login_name or '—' }}</dd></div>
+            <div class="td-field"><dt>Почта</dt><dd>{{ transaction.email or '—' }}</dd></div>
+            <div class="td-field"><dt>Телефон</dt><dd>{{ transaction.phone or '—' }}</dd></div>
+        </dl>
+    </section>
+    {% if transaction.cancel_comment and not transaction.type %}
+    <section class="td-section td-note td-note--cancel">
+        <h3 class="td-section-title">Описание</h3>
+        <div class="td-richtext">{{ transaction.cancel_comment }}</div>
+    </section>
+    {% endif %}
     {% if transaction.promo_info %}
-        <div><b>Промо:</b> {{ transaction.promo_info | safe }}</div>
-    {%endif%}
-
-    {% set transaction_type = transaction_types.get(transaction.transaction_type) %}
-
-    {% if transaction.is_bonus %}
-        {% set transaction_type = "БОНУС КОД" %}
+    <section class="td-section td-note"><h3 class="td-section-title">Промо</h3><div>{{ transaction.promo_info | safe }}</div></section>
+    {% endif %}
+    {% if (transaction.original_amount is defined and transaction.original_amount is not none) or (transaction.parent_transaction_id is defined and transaction.parent_transaction_id) %}
+    <section class="td-section">
+        <h3 class="td-section-title">Разделение вывода</h3>
+        <dl class="td-fields">
+            {% if transaction.original_amount is defined and transaction.original_amount is not none %}<div class="td-field"><dt>Сумма до разделения</dt><dd>{{ '{:,}'.format(transaction.original_amount).replace(',', ' ') }} ₽</dd></div>{% endif %}
+            {% if transaction.parent_transaction_id is defined and transaction.parent_transaction_id %}<div class="td-field"><dt>Исходная транзакция</dt><dd>№{{ transaction.parent_transaction_id }}</dd></div>{% endif %}
+        </dl>
+    </section>
+    {% endif %}
+    {% if transaction.transaction_comment is defined and transaction.transaction_comment %}
+    <details class="td-section">
+        <summary>История вывода</summary>
+        <div class="td-richtext td-history-text">{{ transaction.transaction_comment }}</div>
+    </details>
     {% endif %}
 
-    <div><b>Тип транзакции:</b> {{ transaction_type }}</div>
-
-    {% set tr_enum  = transaction_type_enum %}
-
+    {% if transaction.type and transaction.transaction_type in [tr_enum.refill_balance.value, tr_enum.promo.value, tr_enum.refund_funds.value] %}
+    <section class="td-section">
     {% if transaction.type %}
         {% if transaction.transaction_type in [tr_enum.refill_balance.value, tr_enum.promo.value] %}
             <div>
@@ -32,42 +59,64 @@
 
             </div>
         {% endif %}
-    {% else %}
-        {% if transaction.wo_account_info%}<div><b>Реквизиты счета:</b> {{ transaction.wo_account_info | safe }}</div>{% endif %}
-        {% if transaction.cancel_comment%}<div><b>Описание:</b> {{ transaction.cancel_comment}}</div>{% endif %}
-        {%if order_prices_marks%}
-            <div class="my-1"><b>Заказы</b>: <!--<a href="{{url_for('orders_archive.index')}}" target="_blank" style="text-decoration: none">-->
-
-            {% for o in order_prices_marks %}
-                {% if not loop.index==1%}
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                {%endif%}
-                <span class="text-warning">{{o.order_idn}}</span> - {{o.category}}<span style="font-size:10px">{{' ['+subcategories_dict.get(o.subcategory) + ']' if o.subcategory else ''}}</span>, {{o.marks_count}} шт. - {{o.marks_count * transaction.op_cost}} р.{% if not loop.last %},<br>{% endif %}
-            {% endfor %}
-            </div>
-
-            <b>Цена за марку</b>: {{transaction.op_cost}} р.<br>
-
-            <b>Всего</b>: {{total_marks}} шт.
-        {% endif %}
-
     {% endif %}
-    <div><b>Сумма:</b> {{ transaction.amount }} р.</div>
-    {# 2 - успешная; баланс до и после пишется только при изменении баланса #}
+    </section>
+    {% endif %}
+    {% if not transaction.type and transaction.wo_account_info %}
+    <section class="td-section td-requisites"><h3 class="td-section-title">Реквизиты счёта</h3><div class="td-richtext">{{ transaction.wo_account_info | safe }}</div></section>
+    {% endif %}
+    {% if not transaction.type and order_prices_marks %}
+    <details class="td-section" open>
+        <summary>Заказы · {{ total_marks }} марок</summary>
+        <div class="table-responsive">
+            <table class="td-order-table">
+                <thead><tr><th>Заказ / категория</th><th class="td-number">Марок</th><th class="td-number">Сумма, ₽</th></tr></thead>
+                <tbody>{% for o in order_prices_marks %}<tr>
+                    <td><span>{{ o.order_idn }}</span><small>{{ o.category }}{% if o.subcategory %} [{{ subcategories_dict.get(o.subcategory, o.subcategory) }}]{% endif %}</small></td>
+                    <td class="td-number">{{ o.marks_count }}</td><td class="td-number">{{ o.marks_count * transaction.op_cost }}</td>
+                </tr>{% endfor %}</tbody>
+            </table>
+        </div>
+        <div class="td-order-total"><span>Цена за марку: {{ transaction.op_cost }} ₽</span><span>Всего: {{ total_marks }} шт.</span></div>
+    </details>
+    {% endif %}
     {% if transaction.status == 2 and transaction.balance_after is not none %}
-        <div><b>Баланс до:</b> {{ transaction.balance_before }} р.</div>
-        <div><b>Баланс после:</b> {{ transaction.balance_after }} р.</div>
+    <section class="td-section td-balance" aria-label="Изменение баланса">
+        <div><small>Баланс до</small><strong>{{ transaction.balance_before }} ₽</strong></div>
+        <span aria-hidden="true">→</span>
+        <div><small>Баланс после</small><strong>{{ transaction.balance_after }} ₽</strong></div>
+    </section>
     {% endif %}
-    <div class="col mt-3" title="Скрин транзакции">{{transaction_image | safe}}</div>
+    {% if transaction_image is defined and transaction_image %}
+    <details class="td-section td-proof" open><summary>Чек / подтверждение</summary><div>{{ transaction_image | safe }}</div></details>
+    {% endif %}
     {% if transaction.status == 1 %}
-        <div class="text-center mt-5">
-            <div class="d-flex my-3">
-                <div class="col-10">
+        <section class="td-actions">
+            <h3 class="td-section-title">Действия</h3>
+        {% if partial_withdrawal_enabled|default(false) and current_user.role in ['superuser', 'm2r_admin'] and not transaction.type and transaction.transaction_type == transaction_type_enum.agent_withdrawal.value and transaction.amount > 1 %}
+            <div class="td-partial">
+                <div class="d-flex justify-content-center">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="togglePartialWithdrawal(this)" aria-expanded="false" aria-controls="partial_withdrawal_form">Частичное одобрение</button>
+                </div>
+                <form id="partial_withdrawal_form" class="mt-3" hidden
+                      data-url="{{ url_for('admin_control.partial_withdrawal', u_id=transaction.user_id, t_id=transaction.id, bck=1) }}"
+                      data-csrf="{{ csrf_token() }}" data-amount="{{ transaction.amount }}"
+                      onsubmit="submitPartialWithdrawal(event, this)">
+                    <label class="form-label" for="partial_withdrawal_amount">Сумма к одобрению, руб.</label>
+                    <input class="form-control" type="number" id="partial_withdrawal_amount" name="amount" min="1" max="{{ transaction.amount - 1 }}" step="1" required inputmode="numeric">
+                    <div class="form-text">Введите целое число от 1 до {{ transaction.amount - 1 }} руб. Остаток останется в ожидании.</div>
+                    <button class="btn btn-sm btn-outline-success mt-3" type="submit">Одобрить указанную сумму</button>
+                </form>
+            </div>
+        {% endif %}
+        <div class="td-action-buttons">
+            <div class="td-action-row">
+                <div class="td-action-main">
                     <button class="btn btn-sm btn-outline-danger disabled" id="cancel_transaction_btn" data-bs-dismiss="modal"
                         onclick="bck_pending_transaction_change_status(`{{url_for('admin_control.bck_su_pending_transaction_update', u_id = transaction.user_id, t_id=transaction.id)}}`,
                         `{{url_for('admin_control.su_bck_control_ut')}}?bck=1`, {{1 if transaction.type else 0}}, 0, `{{csrf_token()}}`)">Отменить транзакцию</button>
                 </div>
-                <div class="col-2" onclick="uncheck_transaction_switch('cancel_transaction_switchbox', 'cancel_transaction_btn')">
+                <div class="td-action-unlock" onclick="uncheck_transaction_switch('cancel_transaction_switchbox', 'cancel_transaction_btn')">
                     <div class=" form-check form-switch ms-3">
                         <input type="checkbox" class="form-check-input border border-danger" role="switch" title="Разблокировка отмены транзакции"
                             id="cancel_transaction_switchbox" >
@@ -75,13 +124,13 @@
                     </div>
                 </div>
             </div>
-            <div class="d-flex">
-                <div class="col-10">
+            <div class="td-action-row">
+                <div class="td-action-main">
                     <button class="btn btn-sm btn-outline-success disabled" data-bs-dismiss="modal" id="confirm_transaction_btn"
                         onclick="bck_pending_transaction_change_status(`{{url_for('admin_control.bck_su_pending_transaction_update', u_id = transaction.user_id, t_id=transaction.id)}}`,
                         `{{url_for('admin_control.su_bck_control_ut')}}?bck=1`, {{1 if transaction.type else 0}}, 2, `{{csrf_token()}}`)">Подтвердить транзакцию</button>
                 </div>
-                <div class="col-2" onclick="uncheck_transaction_switch('confirm_transaction_switchbox', 'confirm_transaction_btn')">
+                <div class="td-action-unlock" onclick="uncheck_transaction_switch('confirm_transaction_switchbox', 'confirm_transaction_btn')">
                     <div class=" form-check form-switch ms-3">
                         <input type="checkbox" class="form-check-input border border-success" role="switch" title="Разблокировка подтверждения транзакции"
                             id="confirm_transaction_switchbox">
@@ -90,5 +139,6 @@
                 </div>
             </div>
         </div>
+        </section>
     {% endif %}
 </div>

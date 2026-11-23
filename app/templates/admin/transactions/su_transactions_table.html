@@ -19,7 +19,7 @@
 
         </div>
 
-        <table class="table mt-3 table-result"  id="transactions_table_info" >
+        <table class="table mt-3 table-result"  id="transactions_table_info" data-refresh-url="{{ url_for('admin_control.su_bck_control_ut') }}?bck=1{{ transaction_filters.link_filters }}page={{ page }}" >
             <thead class="text-dark">
                 <tr>
                     <th scope="col">Дата</th>
