@@ -94,11 +94,27 @@ class PersonalTransactionDetailTests(unittest.TestCase):
         self.tx.transaction_comment = 'Первое разделение\nВторое <script>alert(1)</script>'
         self.tx.wo_account_info = '<i>Иван Иванов</i>\n<b>Банк 123</b>'
         markup = self.render()
-        self.assertIn('История вывода', markup)
+        self.assertIn('История транзакции', markup)
         self.assertIn('Первое разделение\nВторое &lt;script&gt;', markup)
         self.assertNotIn('<script>alert(1)</script>', markup)
         self.assertIn('<i>Иван Иванов</i>', markup)
         self.assertIn('<b>Банк 123</b>', markup)
+
+    def test_service_history_visible_in_collapsed_section(self):
+        for external in (False, True):
+            self.tx.is_external = external
+            self.tx.transaction_comment = '[Служебное событие] Отмена вручную. Исполнитель: SuperMarkineris.'
+            markup = self.render()
+            self.assertIn('SuperMarkineris', markup)
+            self.assertIn('Отмена вручную', markup)
+            self.assertNotIn('[Служебное событие]', markup)
+            self.assertIn('<details class="td-section"><summary>История транзакции</summary>', markup)
+
+    def test_service_history_preserves_existing_split_history(self):
+        self.tx.transaction_comment = 'Первое разделение\n[Служебное событие] Одобрение вручную'
+        markup = self.render()
+        self.assertIn('Первое разделение', markup)
+        self.assertIn('Одобрение вручную', markup)
 
     def test_missing_optional_sections_and_balance_snapshots_stay_hidden(self):
         self.tx.balance_before = self.tx.balance_after = None

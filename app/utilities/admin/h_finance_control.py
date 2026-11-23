@@ -1482,7 +1482,9 @@ def h_su_pending_transaction_update(u_id: int, t_id: int,):
 
     process_transaction = helper_update_pending_rf_transaction_status(u_id=u_id, t_id=t_id,
                                                                       amount=transaction_updated.amount,
-                                                                      operation_type=operation_type, tr_status=tr_status)
+                                                                      operation_type=operation_type, tr_status=tr_status,
+                                                                      history_source="Одобрение вручную" if tr_status == TransactionStatuses.success.value else "Отмена вручную",
+                                                                      history_actor=current_user.login_name)
     if process_transaction[0]:
         status = 'success'
         message = settings.Messages.SU_TRANSACTION_CHANGE

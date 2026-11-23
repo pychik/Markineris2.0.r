@@ -17,7 +17,7 @@
     <section class="td-section td-note"><h3 class="td-section-title">Промо</h3><div>{{ transaction.promo_info | safe }}</div></section>
     {% endif %}
     {% if transaction.transaction_comment is defined and transaction.transaction_comment %}
-    <details class="td-section"><summary>История вывода</summary><div class="td-richtext td-history-text">{{ transaction.transaction_comment }}</div></details>
+    <details class="td-section"><summary>История транзакции</summary><div class="td-richtext td-history-text">{{ transaction.transaction_comment | replace('[Служебное событие] ', '') }}</div></details>
     {% endif %}
 
 

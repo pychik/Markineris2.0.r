@@ -225,6 +225,7 @@ class PartialWithdrawalTests(unittest.TestCase):
                          TransactionTypes=SimpleNamespace(agent_withdrawal=SimpleNamespace(value='agent_withdrawal')),
                          TransactionStatuses=SimpleNamespace(**{key:SimpleNamespace(value=value) for key,value in
                                                                  [('cancelled',0),('pending',1),('success',2)]}),
+                         current_user=SimpleNamespace(id=99, login_name="Moderator"),
                          helper_update_pending_rf_transaction_status=processor,
                          helper_get_promo_on_cancel_transaction=Mock(),
                          send_tg_message_with_transaction_updated_status=Mock(),
@@ -274,7 +275,8 @@ class PartialWithdrawalTests(unittest.TestCase):
             try:
                 response = client.post('/full/1/1', data={'operation_type':operation,'tr_status':2})
                 self.assertEqual(response.json['status'], 'success')
-                self.assertEqual(processor.call_args.kwargs, dict(u_id=1,t_id=1,amount=50000,operation_type=operation,tr_status=2))
+                self.assertEqual(processor.call_args.kwargs, dict(u_id=1,t_id=1,amount=50000,operation_type=operation,tr_status=2,
+                                                                   history_source="Одобрение вручную", history_actor="Moderator"))
                 self.assertFalse(any('FOR UPDATE' in stmt for stmt in statements))
                 self.assertEqual(tx.amount,50000)
                 self.assertEqual(self.session.get(User,1).balance,100000)

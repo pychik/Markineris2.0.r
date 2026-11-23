@@ -1,3 +1,4 @@
+from utilities.transaction_history import append_event, lock_transaction
 import calendar
 import dataclasses
 import re
@@ -2839,7 +2840,18 @@ def helper_agent_wo_transaction(amount: int, status: int, user_id: int, bill_pat
 
 
 def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: int, operation_type: int,
-                                                tr_status: int) -> tuple[bool, str]:
+                                                tr_status: int, *, history_source: str = "Изменение статуса системой",
+                                                history_actor: str | None = None) -> tuple[bool, str]:
+
+    transaction = lock_transaction(db.session, UserTransaction, t_id)
+    if transaction is None or transaction.user_id != u_id:
+        return False, 'Транзакция не найдена'
+    if transaction.status != TransactionStatuses.pending.value:
+        append_event(db.session, t_id, history_source, actor=history_actor,
+                     before=transaction.status, after=transaction.status)
+        db.session.commit()
+        return False, 'Транзакция уже обработана'
+    previous_status = transaction.status
 
     sp_query = ''  # server params
     u_query = ''  # user
@@ -2876,6 +2888,8 @@ def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: in
     t_query =f"""UPDATE public.user_transactions SET status={tr_status} WHERE id={t_id};"""
 
     try:
+        append_event(db.session, t_id, history_source, actor=history_actor,
+                     before=previous_status, after=tr_status)
         db.session.execute(text(f"{sp_query}{u_query}{sa_query}{t_query}"))
         db.session.commit()
 
