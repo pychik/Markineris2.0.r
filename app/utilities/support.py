@@ -2225,6 +2225,7 @@ def helper_get_filters_transactions(
         f'&service_account={service_account}'
         f'&date_from={date_from_raw}'
         f'&date_to={date_to_raw}'
+        f'&sort_type={sort_type}'
         f'&agent_id={agent_id}&'
     )
 

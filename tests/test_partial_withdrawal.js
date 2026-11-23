@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 
-function setup(value = '20000', responses = []) {
+function setup(value = '20000', responses = [], sortType = '1') {
     const calls = [], messages = [], controls = [{disabled: false}, {disabled: true}];
     const input = {value, validity: '', setCustomValidity(text) { this.validity = text; }};
     const form = {
@@ -12,7 +12,7 @@ function setup(value = '20000', responses = []) {
         closest() { return {querySelectorAll: () => controls}; },
         querySelector() { return controls[0]; }
     };
-    const list = {dataset: {refreshUrl: '/su_bck_control_ut?tr_status=1&operation_type=0&agent_id=42&page=3'}};
+    const list = {dataset: {refreshUrl: `/su_bck_control_ut?tr_status=1&operation_type=0&agent_id=42&page=3&sort_type=${sortType}`}};
     const table = {innerHTML: ''};
     let loading = 0, closed = 0;
     const context = {
@@ -50,12 +50,21 @@ function setup(value = '20000', responses = []) {
     assert.equal(state.calls[0].method, 'POST');
     assert.equal(state.calls[0].data.amount, '20000');
     assert.equal(state.calls[0].headers['X-CSRFToken'], 'test-token');
-    assert.equal(state.calls[1].url, '/su_bck_control_ut?tr_status=1&operation_type=0&agent_id=42&page=3');
+    assert.equal(state.calls[1].url, '/su_bck_control_ut?tr_status=1&operation_type=0&agent_id=42&page=3&sort_type=1');
     assert.equal(state.table.innerHTML, '<table>Updated</table>');
     assert.equal(state.messages[0].status, 'success');
     assert.equal(state.loading(), 1);
     assert.equal(state.closed(), 1);
     assert(state.controls[0].disabled);
+
+    for (const sortType of ['0', '1']) {
+        const sorted = setup('20000', [{status: 'success', message: 'Одобрено'}, {htmlresponse: '<table>Updated</table>'}], sortType);
+        await sorted.submit();
+        const query = new URLSearchParams(sorted.calls[1].url.split('?')[1]);
+        assert.equal(query.get('sort_type'), sortType);
+        assert.equal(query.get('page'), '3');
+        assert.equal(query.get('agent_id'), '42');
+    }
 
     const error = new Error('Bad request');
     error.responseJSON = {message: 'Заявка уже подтверждена'};

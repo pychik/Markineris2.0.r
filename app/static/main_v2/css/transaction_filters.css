@@ -1,0 +1,31 @@
+.transaction-filter-toggle.btn {width:auto;max-width:none;height:auto;min-height:38px;padding:8px 14px;font-size:13px;border-radius:8px;margin-bottom:12px}
+.transaction-filters {padding:18px;border:1px solid #e1e5e9;border-radius:12px;background:#fff;color:#575757;margin-bottom:18px}
+.transaction-filters .tf-period-heading {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.transaction-filters .tf-heading {margin:0;color:#858b92;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.transaction-filters .tf-today {background:#fff;border:1px solid #e1e5e9;border-radius:6px;color:#69717a;padding:4px 10px;font-size:12px;line-height:1.4}
+.transaction-filters .tf-today:hover {background:#fff9d9;border-color:#e5cc71}
+.transaction-filters .tf-period-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:end}
+.transaction-filters .tf-date-source {grid-column:span 2}
+.transaction-filters .tf-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:end;padding-top:16px;margin-top:16px;border-top:1px solid #eef0f2}
+.transaction-filters .tf-agent {grid-column:span 2}
+.transaction-filters .tf-grid--moderator {grid-template-columns:repeat(3,minmax(0,1fr))}
+.transaction-filters .tf-grid--moderator .tf-agent {grid-column:auto}
+.transaction-filters .tf-field {min-width:0}
+.transaction-filters .tf-label {display:block;margin:0 0 5px;font-size:12px;line-height:1.4;color:#737b83;font-weight:500}
+.transaction-filters .form-control,.transaction-filters .form-select {width:100%;height:40px;min-height:40px;border:1px solid #dce0e4;border-radius:7px;font-size:13px;color:#575757;background-color:#fff;padding:8px 11px}
+.transaction-filters .form-select {padding-right:30px;text-overflow:ellipsis}
+.transaction-filters .form-control:focus,.transaction-filters .form-select:focus {border-color:#d3b535;box-shadow:0 0 0 2px #ffd60026}
+.transaction-filters .input-group {flex-wrap:nowrap}
+.transaction-filters .input-group .form-control {min-width:0;border-radius:7px 0 0 7px}
+.transaction-filters .eco-date-toggle {flex:0 0 40px;padding:0;border-radius:0 7px 7px 0;border-color:#dce0e4}
+.transaction-filters .tf-segment {display:flex;gap:3px;background:#f5f6f7;border:1px solid #e6e9ec;border-radius:8px;padding:3px;min-height:40px}
+.transaction-filters .tf-choice {position:relative;display:flex;flex:1;min-width:0}
+.transaction-filters .tf-choice input {position:absolute;width:1px;height:1px;margin:0;opacity:0}
+.transaction-filters .tf-choice label {display:flex;align-items:center;justify-content:center;width:100%;padding:5px 7px;margin:0;border:1px solid transparent;border-radius:5px;color:#7b8289;font-size:11px;line-height:1.25;text-align:center;cursor:pointer}
+.transaction-filters .tf-choice input:checked + label {background:#fff;border-color:#e0e4e8;color:#4f565e;font-weight:600}
+.transaction-filters .tf-choice input:focus-visible + label {outline:2px solid #d3b535;outline-offset:1px}
+.transaction-filters .tf-actions {display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid #eef0f2;margin-top:16px;padding-top:14px}
+.transaction-filters .tf-actions .btn {width:auto;min-width:140px;max-width:none;min-height:40px;height:auto;font-size:13px;line-height:1.4;padding:9px 16px;border-radius:8px;box-shadow:none}
+@media(max-width:991px){.transaction-filters .tf-grid,.transaction-filters .tf-grid--moderator {grid-template-columns:repeat(2,minmax(0,1fr))}.transaction-filters .tf-agent {grid-column:auto}.transaction-filters .tf-period-grid {grid-template-columns:repeat(2,minmax(0,1fr))}.transaction-filters .tf-date-source {grid-column:1/-1}}
+@media(max-width:575px){.transaction-filters {padding:13px}.transaction-filters .tf-grid,.transaction-filters .tf-grid--moderator {grid-template-columns:1fr;gap:10px}.transaction-filters .tf-actions .btn {flex:1;min-width:0}.transaction-filters .tf-period-grid {gap:10px}.transaction-filters .tf-label {font-size:11px}}
+.transaction-filters .tf-period-grid--dates-only {grid-template-columns:repeat(2,minmax(0,1fr))}

@@ -1,173 +1,81 @@
-<div class="collapse border border-1 p-3" id="form_filters_collapse">
-    <form action="" class="me-3">
-
-        <script>
-
-            $( function() {
-                let max_date = new Date();
-                max_date.setDate(max_date.getDate() - 1);
-            var dateFormat = "dd.mm.yy",
-              from = $( "#date_from" )
-                .datepicker({
-                  defaultDate: "-1w",
-                  changeMonth: true,
-                  changeYear: true,
-                  maxDate: max_date,
-                  numberOfMonths: 3
-                })
-                .on( "change", function() {
-                  to.datepicker( "option", "minDate", getDate( this ) );
-                }),
-              to = $( "#date_to" ).datepicker({
-                defaultDate: new Date(),
-                changeMonth: true,
-                changeYear: true,
-                maxDate: new Date(),
-                numberOfMonths: 3
-              })
-              .on( "change", function() {
-                from.datepicker( "option", "maxDate", getDate( this ) );
-              });
-
-            function getDate( element ) {
-              var date;
-              try {
-                date = $.datepicker.parseDate( dateFormat, element.value );
-              } catch( error ) {
-                date = null;
-              }
-
-              return date;
-            }
-          } );
-
-        </script>
-        <div class="row">
-              <div class="col-md-6">
-                  <label for="date_from"
-                          class="col-form-label text-right">Дата "C"</label>
-                  <input type="text" placeholder="Выберите дату"
-                      class="form-control" id="date_from"
+<div class="collapse transaction-filters" id="form_filters_collapse">
+    <form action="" id="transaction_filters_form">
+        <div class="tf-period-heading">
+            <h2 class="tf-heading">Период</h2>
+            <button class="tf-today" type="button" data-transaction-today onclick="set_current_date_su_filters();">За сегодня</button>
+        </div>
+        <div class="tf-period-grid tf-period-grid--dates-only">
+            <div class="tf-field"><label class="tf-label" for="date_from">Дата от</label><div class="input-group"><input type="text" placeholder="ДД.ММ.ГГГГ"
+                      class="form-control eco-date-input" id="date_from"
                       onpaste="return false;" oncopy="return false"
                       oncut="return false" ondrag="return false"
                       ondrop="return false" autocomplete="off" name="rd_date"
                          aria-describedby="date_from_input_btn"
                       readonly
-                         value="">
-              </div>
-
-              <div class="col-md-6">
-
-                <label for="date_to"
-                          class=" col-form-label text-right">Дата "По"</label>
-                <input type="text" placeholder="Выберите дату"
-                      class="form-control" id="date_to"
+                         value=""><button class="eco-date-toggle" type="button" id="date_from_input_btn" data-transaction-calendar="date_from" aria-label="Дата от: открыть календарь" aria-expanded="false" aria-controls="ui-datepicker-div"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3" stroke="currentColor" stroke-width="1.6"/><path d="M7 3v4m10-4v4M3 11h18M7 15h2m3 0h2m3 0h1M7 18h2m3 0h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div></div>
+            <div class="tf-field"><label class="tf-label" for="date_to">Дата до</label><div class="input-group"><input type="text" placeholder="ДД.ММ.ГГГГ"
+                      class="form-control eco-date-input" id="date_to"
                       onpaste="return false;" oncopy="return false"
                       oncut="return false" ondrag="return false"
                       ondrop="return false" autocomplete="off" name="rd_date"
-                         aria-describedby="date_from_input_btn"
+                         aria-describedby="date_to_input_btn"
                       readonly
-                         value="{{ date_to.strftime('%d.%m.%Y') }}">
+                         value="{{ date_to.strftime('%d.%m.%Y') }}"><button class="eco-date-toggle" type="button" id="date_to_input_btn" data-transaction-calendar="date_to" aria-label="Дата до: открыть календарь" aria-expanded="false" aria-controls="ui-datepicker-div"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3" stroke="currentColor" stroke-width="1.6"/><path d="M7 3v4m10-4v4M3 11h18M7 15h2m3 0h2m3 0h1M7 18h2m3 0h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div></div>
 
-
-              </div>
         </div>
-        <div>
-            <span class="badge bg-light text-secondary" style="cursor:pointer" onclick="set_current_date_su_filters();"> За сегодня</span>
-        </div>
-        <div class="row">
+        <div class="tf-grid {% if current_user.role == 'm2r_admin' %}tf-grid--moderator{% endif %}">
             {% if current_user.role == 'm2r_admin' %}
                 <input type="hidden" id="operation_type" name="operation_type" value="1">
             {% else %}
-                <div class="col-md-2">
-                    <label for="transaction_type" class="col-form-label text-right">Тип операции</label><br>
-                    <select class="form-select" id="operation_type" name="operation_type">
+                <div class="tf-field"><label class="tf-label" for="operation_type">Тип операции</label><select class="form-select" id="operation_type" name="operation_type">
                         <option value="" {% if transaction_filters.operation_type is not none %}selected{% endif %}>Все</option>
                         {% for k, v in operation_types.items() %}
                             <option value="{{ k }}" {% if k == transaction_filters.operation_type %} selected {% endif %}>
                                 {{ v }}
                             </option>
                         {% endfor %}
-                    </select>
-                </div>
+                    </select></div>
             {% endif %}
-            <div class="col-md-2" style="width:max-content">
-                <label class="col-form-label" for="transaction_type">Тип транзакции</label><br>
-                <select class="form-select" id="transaction_type" name="transaction_type" required>
+            <div class="tf-field"><label class="tf-label" for="transaction_type">Тип транзакции</label><select class="form-select" id="transaction_type" name="transaction_type" required>
                      <option value="" {% if transaction_filters.transaction_type is not none %} selected {% endif %}>Все</option>
                     {% for k, v in transaction_types.items() %}
                         <option value="{{ k }}" {% if k == transaction_filters.transaction_type %} selected {% endif %}>
                             {{ v }}
                         </option>
                     {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-2" style="width:max-content">
-                <label class="col-form-label" for="transaction_status">Статус</label><br>
-                <select class="form-select" id="transaction_status" name="transaction_status" required>
+                </select></div>
+            <div class="tf-field"><label class="tf-label" for="transaction_status">Статус</label><select class="form-select" id="transaction_status" name="transaction_status" required>
                     {% for k,v in transaction_statuses.items() %}
                         <option value="{{ k }}"{% if k == transaction_filters.status %} selected {% endif %}>{{ v }}</option>
                     {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-2" style="width:max-content">
-                <label class="col-form-label" for="service_account">Счет</label><br>
-                <select class="form-select" id="service_account" name="service_account" required>
+                </select></div>
+            <div class="tf-field"><label class="tf-label" for="service_account">Счёт</label><select class="form-select" id="service_account" name="service_account" required>
                     <option value="" {% if transaction_filters.service_account is not none %}selected{% endif %}>Все</option>
                     {% for service_account in service_accounts %}
                         <option value="{{ service_account.id }}" {% if service_account.id == transaction_filters.service_account %} selected {% endif %}>
                             {{ service_account.sa_name }}
                         </option>
                     {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-2" style="width:max-content">
-                <label class="col-form-label" for="user_filter">Агент</label><br>
-                <select class="form-select" id="user_filter" name="user_filter" required>
+                </select></div>
+            <div class="tf-field tf-agent"><label class="tf-label" for="user_filter">Агент</label><select class="form-select" id="user_filter" name="user_filter" required>
                     <option selected value="">Выберите агента</option>
                     {% for id,login_name in users_filter %}
                         <option value="{{ id }}">{{ login_name }}</option>
                     {% endfor %}
 
-                </select>
-            </div>
-
-        </div>
-
-
-        <div class="row mt-3">
-            <div class="col-md-6" title="Введите сумму транзакции или оставьте поле пустым">
-                <label class="col-form-label" for="transaction_amount">Сумма транзакции (целое число)</label><br>
-                <input class="form-control" type="number" onpaste="return false;" oninput="if (!admin_uc_isValid(this)){ this.value=''; }" name="transaction_amount" id="transaction_amount" step="1" min="0" max="100000000" placeholder="Введите сумму транзакции или оставьте поле пустым">
-
-            </div>
-            <div class="col-md-6  mt-md-3">
-                  <div class="form-check">
-                      <input class="form-check-input" type="radio" name="sort_type" id="asc_type">
-                      <label class="form-check-label" for="asc_type">
-                        &uarr; По возрастанию (дата)
-                      </label>
-                  </div>
-                  <div class="form-check">
-                      <input class="form-check-input" type="radio" name="sort_type" id="desc_type" checked>
-                      <label class="form-check-label" for="desc_type">
-                        &darr; По убыванию (дата)
-                      </label>
-                  </div>
-            </div>
-
-        </div>
-        <div class="row mt-3">
-            <div class="col-md-6 mb-1" title="Подгрузить транзакции">
-                <a href="javascript:bck_get_transactions_wp(`{{url_for('admin_control.su_bck_control_ut')}}?bck=1`)" class="btn btn-accent">Обновить</a>
-            </div>
-            <div class="col-md-6" title="Скачать отчет excel">
-                <a href="javascript:bck_get_transactions_excel_report(`{{url_for('admin_control.su_bck_ut_report')}}?bck=1`, `{{ csrf_token() }}`)" class="btn btn-secondary">Скачать отчет</a>
+                </select></div>
+            <div class="tf-field" title="Введите сумму транзакции или оставьте поле пустым"><label class="tf-label" for="transaction_amount">Сумма, ₽</label><input class="form-control" type="number" onpaste="return false;" oninput="if (!admin_uc_isValid(this)){ this.value=''; }" name="transaction_amount" id="transaction_amount" step="1" min="0" max="100000000" placeholder="Любая сумма"></div>
+            <div class="tf-field">
+                <span class="tf-label">Сортировка по дате</span>
+                <div class="tf-segment" role="group" aria-label="Сортировка по дате">
+                    <span class="tf-choice"><input class="form-check-input" type="radio" name="sort_type" id="asc_type"><label for="asc_type">↑ Сначала старые</label></span>
+                    <span class="tf-choice"><input class="form-check-input" type="radio" name="sort_type" id="desc_type" checked><label for="desc_type">↓ Сначала новые</label></span>
+                </div>
             </div>
         </div>
-
-
-
-
+        <div class="tf-actions">
+            <a href="javascript:bck_get_transactions_wp(`{{ url_for('admin_control.su_bck_control_ut') }}?bck=1`)" class="btn btn-accent">Обновить</a>
+            <a href="javascript:bck_get_transactions_excel_report(`{{ url_for('admin_control.su_bck_ut_report') }}?bck=1`, `{{ csrf_token() }}`)" class="btn btn-secondary">Скачать отчёт</a>
+        </div>
     </form>
 </div>
