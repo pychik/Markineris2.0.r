@@ -2843,51 +2843,54 @@ def helper_update_pending_rf_transaction_status(u_id: int, t_id: int, amount: in
                                                 tr_status: int, *, history_source: str = "Изменение статуса системой",
                                                 history_actor: str | None = None) -> tuple[bool, str]:
 
-    transaction = lock_transaction(db.session, UserTransaction, t_id)
-    if transaction is None or transaction.user_id != u_id:
-        return False, 'Транзакция не найдена'
-    if transaction.status != TransactionStatuses.pending.value:
-        append_event(db.session, t_id, history_source, actor=history_actor,
-                     before=transaction.status, after=transaction.status)
-        db.session.commit()
-        return False, 'Транзакция уже обработана'
-    previous_status = transaction.status
-
-    sp_query = ''  # server params
-    u_query = ''  # user
-    sa_query = ''  # service accounts
-    sa_id = None
-
-    match tr_status:
-        case TransactionStatuses.cancelled.value:
-            sp_query = f"""UPDATE public.server_params SET pending_balance_rf=pending_balance_rf - 
-                       {amount};""" if operation_type else ' '
-            u_query = f"""UPDATE public.users SET pending_balance_rf=pending_balance_rf - 
-               {amount} WHERE id={u_id};""" if operation_type else ' '
-
-        case TransactionStatuses.success.value:
-            if operation_type:
-                sp_query = f"""UPDATE public.server_params SET pending_balance_rf=pending_balance_rf - 
-                       {amount};"""
-                u_query = f"""UPDATE public.users SET pending_balance_rf=pending_balance_rf - {amount} WHERE id={u_id};
-                """ + balance_change_sql(u_id, amount, tr_id=t_id)
-
-                sa_id_request = UserTransaction.query.with_entities(UserTransaction.sa_id).filter(
-                    UserTransaction.id == t_id, UserTransaction.sa_id.isnot(None)).first()
-                if not sa_id_request:
-                    return False, 'Возникло исключение- счета на который нужно зарегистрировать пополнение не существует. обратитесь к администратору'
-                sa_id = sa_id_request.sa_id
-                sa_query = f"""UPDATE public.service_accounts SET summ_transfer=summ_transfer + {amount} WHERE id = {sa_id};"""
-
-            else:
-
-                # check if agent balance is ok
-                if helper_get_user_balance(u_id=u_id)[0] < amount:
-                    return False, settings.Messages.WO_TRANSACTION_BALANCE_ERROR_2
-                u_query = balance_change_sql(u_id, -amount, tr_id=t_id)
-    t_query =f"""UPDATE public.user_transactions SET status={tr_status} WHERE id={t_id};"""
-
     try:
+        transaction = lock_transaction(db.session, UserTransaction, t_id)
+        if transaction is None or transaction.user_id != u_id:
+            db.session.rollback()
+            return False, 'Транзакция не найдена'
+        if transaction.status != TransactionStatuses.pending.value:
+            append_event(db.session, t_id, history_source, actor=history_actor,
+                         before=transaction.status, after=transaction.status)
+            db.session.commit()
+            return False, 'Транзакция уже обработана'
+        previous_status = transaction.status
+
+        sp_query = ''  # server params
+        u_query = ''  # user
+        sa_query = ''  # service accounts
+        sa_id = None
+
+        match tr_status:
+            case TransactionStatuses.cancelled.value:
+                sp_query = f"""UPDATE public.server_params SET pending_balance_rf=pending_balance_rf -
+                           {amount};""" if operation_type else ' '
+                u_query = f"""UPDATE public.users SET pending_balance_rf=pending_balance_rf -
+                   {amount} WHERE id={u_id};""" if operation_type else ' '
+
+            case TransactionStatuses.success.value:
+                if operation_type:
+                    sp_query = f"""UPDATE public.server_params SET pending_balance_rf=pending_balance_rf -
+                           {amount};"""
+                    u_query = f"""UPDATE public.users SET pending_balance_rf=pending_balance_rf - {amount} WHERE id={u_id};
+                    """ + balance_change_sql(u_id, amount, tr_id=t_id)
+
+                    sa_id_request = UserTransaction.query.with_entities(UserTransaction.sa_id).filter(
+                        UserTransaction.id == t_id, UserTransaction.sa_id.isnot(None)).first()
+                    if not sa_id_request:
+                        db.session.rollback()
+                        return False, 'Возникло исключение- счета на который нужно зарегистрировать пополнение не существует. обратитесь к администратору'
+                    sa_id = sa_id_request.sa_id
+                    sa_query = f"""UPDATE public.service_accounts SET summ_transfer=summ_transfer + {amount} WHERE id = {sa_id};"""
+
+                else:
+
+                    # check if agent balance is ok
+                    if helper_get_user_balance(u_id=u_id)[0] < amount:
+                        db.session.rollback()
+                        return False, settings.Messages.WO_TRANSACTION_BALANCE_ERROR_2
+                    u_query = balance_change_sql(u_id, -amount, tr_id=t_id)
+        t_query =f"""UPDATE public.user_transactions SET status={tr_status} WHERE id={t_id};"""
+
         append_event(db.session, t_id, history_source, actor=history_actor,
                      before=previous_status, after=tr_status)
         db.session.execute(text(f"{sp_query}{u_query}{sa_query}{t_query}"))

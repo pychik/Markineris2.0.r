@@ -101,3 +101,44 @@ class CallbackHistoryTests(unittest.TestCase):
         for provider, status in [('platega','confirmed'), ('mulen_pay','success')]:
             with self.subTest(provider=provider), self.assertRaises(ValueError):
                 self.callback(provider, status, update_ok=False)
+
+
+class StatusFailureTests(unittest.TestCase):
+    def run_failure(self, *, lock_error=False, existing_status=1, fail_append=True):
+        import ast
+        from types import SimpleNamespace as NS
+        from unittest.mock import Mock
+        path = Path(__file__).resolve().parents[1] / 'app/utilities/support.py'
+        tree = ast.parse(path.read_text())
+        method = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                      and node.name == 'helper_update_pending_rf_transaction_status')
+        session = Mock()
+        transaction = NS(user_id=2, status=existing_status)
+        lock = Mock(side_effect=RuntimeError('lock failed')) if lock_error else Mock(return_value=transaction)
+        append = Mock(side_effect=RuntimeError('audit failed')) if fail_append else Mock()
+        enums = NS(cancelled=NS(value=0), pending=NS(value=1), success=NS(value=2))
+        namespace = dict(db=NS(session=session), UserTransaction=object,
+                         TransactionStatuses=enums, lock_transaction=lock, append_event=append,
+                         ReferralService=Mock(), logger=Mock(), text=text)
+        exec(compile(ast.Module(body=[method], type_ignores=[]), str(path), 'exec'), namespace)
+        result = namespace[method.name](2, 1, 75000, True, 0)
+        return result, session
+
+    def test_lock_failure_rolls_back(self):
+        result, session = self.run_failure(lock_error=True)
+        self.assertFalse(result[0])
+        session.rollback.assert_called_once()
+        session.commit.assert_not_called()
+
+    def test_audit_failure_before_status_update_rolls_back(self):
+        result, session = self.run_failure()
+        self.assertFalse(result[0])
+        session.rollback.assert_called_once()
+        session.execute.assert_not_called()
+        session.commit.assert_not_called()
+
+    def test_audit_failure_on_completed_transaction_rolls_back(self):
+        result, session = self.run_failure(existing_status=0)
+        self.assertFalse(result[0])
+        session.rollback.assert_called_once()
+        session.commit.assert_not_called()
