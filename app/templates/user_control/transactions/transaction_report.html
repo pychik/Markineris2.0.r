@@ -1,25 +1,28 @@
-<div class="container">
-    <div><b>Номер:</b> {{ transaction.id }}</div>
-    <div><b>Дата формирования:</b> {{ transaction.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</div>
-    <div><b>Статус:</b> {{ transaction_statuses[transaction.status] }}</div>
+{% set transaction_type = 'БОНУС КОД' if transaction.is_bonus else transaction_types.get(transaction.transaction_type, transaction.transaction_type) %}
+{% set tr_enum = transaction_type_enum %}
+{% set amount_unit = '₽' %}
+{% set status_style = {0:'cancelled', 1:'pending', 2:'success'}.get(transaction.status, 'neutral') %}
+<div class="transaction-detail">
+    <header class="td-summary">
+        <div class="td-type">{{ transaction_type }}</div>
+        <div class="td-summary-top">
+            {% if not is_at2 %}<div class="td-amount">{{ '{:,.0f}'.format(transaction.amount).replace(',', ' ') if transaction.amount is not none else '—' }} <small>{{ amount_unit }}</small></div>{% endif %}
+            <span class="td-status td-status--{{ status_style }}">{{ transaction_statuses[transaction.status] }}</span>
+        </div>
+        <div class="td-reference"><span>№ {{ transaction.id }}</span><span>{{ transaction.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</span></div>
+    </header>
 
-    {% if transaction.transaction_comment is defined and transaction.transaction_comment %}
-        <div class="mt-2"><b>История вывода:</b><div class="small text-muted" style="white-space:pre-line">{{ transaction.transaction_comment }}</div></div>
-    {% endif %}
+
     {% if transaction.promo_info %}
-    <div><b>Промо:</b> {{ transaction.promo_info | safe}}</div>
-    {%endif%}
-
-    {% set transaction_type = transaction_types.get(transaction.transaction_type) %}
-
-    {% if transaction.is_bonus %}
-        {% set transaction_type = "БОНУС КОД" %}
+    <section class="td-section td-note"><h3 class="td-section-title">Промо</h3><div>{{ transaction.promo_info | safe }}</div></section>
+    {% endif %}
+    {% if transaction.transaction_comment is defined and transaction.transaction_comment %}
+    <details class="td-section"><summary>История вывода</summary><div class="td-richtext td-history-text">{{ transaction.transaction_comment }}</div></details>
     {% endif %}
 
-    <div><b>Тип транзакции:</b> {{ transaction_type }}</div>
 
-    {% set tr_enum  = transaction_type_enum %}
-
+    {% if transaction.type and transaction.transaction_type in [tr_enum.refill_balance.value, tr_enum.promo.value, tr_enum.refund_funds.value] %}
+    <section class="td-section">
     {% if transaction.type %}
         {% if transaction.transaction_type in [tr_enum.refill_balance.value, tr_enum.promo.value] %}
             <div>
@@ -33,30 +36,33 @@
             </div>
         {% endif %}
 
-    {% else %}
-        {% if transaction.wo_account_info%}<div><b>Реквизиты счета:</b> {{ transaction.wo_account_info | safe }}</div>{% endif %}
-        {% if order_prices_marks %}
-            <div class="my-1"><b>Заказы</b>: <!--<a href="{{url_for('orders_archive.index')}}" target="_blank" style="text-decoration: none">-->
-                {% for o in order_prices_marks %}
-                    {% if not loop.index==1%}
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                    {%endif%}
-                    <span class="text-warning">{{o.order_idn}}</span> - {{o.category}}<span style="font-size:10px">{{' ['+subcategories_dict.get(o.subcategory) + ']' if o.subcategory else ''}}</span>, {{o.marks_count}} шт.{% if not is_at2 %} - {{o.marks_count * transaction.op_cost}} р.{%endif%}{% if not loop.last %},<br>{% endif %}
-                {% endfor %}<!--</a>-->
-            </div>
-            {% if not is_at2 %}
-                <b>Цена за марку</b>: {{transaction.op_cost}} р.<br>
-            {% endif %}
-            <b>Всего </b>: {{total_marks}} шт.
-        {% endif %}
     {% endif %}
-    {% if not is_at2 %}
-        <div><b>Сумма:</b> {{ transaction.amount }} р.</div>
-        {# 2 - успешная; баланс до и после пишется только при изменении баланса #}
-        {% if transaction.status == 2 and transaction.balance_after is not none %}
-            <div><b>Баланс до:</b> {{ transaction.balance_before }} р.</div>
-            <div><b>Баланс после:</b> {{ transaction.balance_after }} р.</div>
-        {% endif %}
-    {%endif%}
-    <div class="col mt-3" title="Скрин транзакции">{{transaction_image | safe}}</div>
+    </section>
+    {% endif %}
+    {% if not transaction.type and transaction.wo_account_info %}
+    <section class="td-section td-requisites"><h3 class="td-section-title">Реквизиты счёта</h3><div class="td-richtext">{{ transaction.wo_account_info | safe }}</div></section>
+    {% endif %}
+    {% if not transaction.type and order_prices_marks %}
+    <details class="td-section" open>
+        <summary>Заказы · {{ total_marks }} марок</summary>
+        <div class="table-responsive">
+            <table class="td-order-table">
+                <thead><tr><th>Заказ / категория</th><th class="td-number">Марок</th>{% if not is_at2 %}<th class="td-number">Сумма, ₽</th>{% endif %}</tr></thead>
+                <tbody>{% for o in order_prices_marks %}<tr>
+                    <td><span>{{ o.order_idn }}</span><small>{{ o.category }}{% if o.subcategory %} [{{ subcategories_dict.get(o.subcategory, o.subcategory) }}]{% endif %}</small></td>
+                    <td class="td-number">{{ o.marks_count }}</td>{% if not is_at2 %}<td class="td-number">{{ o.marks_count * transaction.op_cost }}</td>{% endif %}
+                </tr>{% endfor %}</tbody>
+            </table>
+        </div>
+        <div class="td-order-total">{% if not is_at2 %}<span>Цена за марку: {{ transaction.op_cost }} ₽</span>{% endif %}<span>Всего: {{ total_marks }} шт.</span></div>
+    </details>
+    {% endif %}
+    {% if not is_at2 and transaction.status == 2 and transaction.balance_after is not none %}
+    <section class="td-section td-balance" aria-label="Изменение баланса">
+        <div><small>Баланс до</small><strong>{{ transaction.balance_before }} ₽</strong></div><span aria-hidden="true">→</span><div><small>Баланс после</small><strong>{{ transaction.balance_after }} ₽</strong></div>
+    </section>
+    {% endif %}
+    {% if transaction_image is defined and transaction_image %}
+    <details class="td-section td-proof" open><summary>Чек / подтверждение</summary><div>{{ transaction_image | safe }}</div></details>
+    {% endif %}
 </div>
