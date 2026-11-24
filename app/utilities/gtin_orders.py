@@ -16,6 +16,27 @@ def company_options():
             for company in CompaniesOperators]
 
 
+def validate_order_copy_companies(order, positions):
+    """Reject retired conductors before creating a copy of an ordinary GTIN order."""
+    if getattr(order, "is_moderation", False):
+        return
+    allowed = {option["value"] for option in company_options()}
+    keys = []
+    if getattr(order, "is_gtin_order", False):
+        keys.append(getattr(order, "processing_company_key", None))
+    for position in positions:
+        for item in (position, *getattr(position, "sizes_quantities", ())):
+            if getattr(item, "gtin", None) or getattr(item, "gtin_company_key", None):
+                keys.append(getattr(item, "gtin_company_key", None))
+    if any(key not in allowed for key in keys):
+        raise ValueError(
+            "Не удалось скопировать GTIN-заказ: проводящая компания больше не входит "
+            "в список разрешённых. Связанные с ней GTIN больше не поддерживаются "
+            "для проверки в системе «Честный ЗНАК». Создайте новый заказ с актуальными "
+            "GTIN и доступной проводящей компанией."
+        )
+
+
 def validate_gtin_fields(gtin, company_key):
     gtin = str(gtin or "").strip()
     company_key = str(company_key or "").strip()

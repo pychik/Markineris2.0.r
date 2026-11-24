@@ -17,7 +17,7 @@ from utilities.categories_data.accessories_data import normalize_clothes_type_fo
 from utilities.helpers.helpers_checks import _check_linen_compatibility, _check_clothes_compatibility, \
     _check_shoes_compatibility, _check_socks_compatibility, _check_parfum_compatibility, _check_country_by_rd, rd_name_clean
 from utilities.exceptions import SizeTypeException
-from utilities.gtin_orders import validate_gtin_fields, validate_gtin_company, apply_size_gtins, parse_size_gtins
+from utilities.gtin_orders import validate_order_copy_companies, validate_gtin_fields, validate_gtin_company, apply_size_gtins, parse_size_gtins
 from utilities.saving_helpers import append_or_merge_position, get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, \
     normalize_length_width_size_type, normalize_length_width_size_value, normalize_trademark_placeholder, process_input_str, \
     validate_clothes_size_type_for_subcategory, validate_parfum_trademark
@@ -399,6 +399,7 @@ def common_save_copy_order(u_id: int, user: User, category: str, order: Order) -
             settings.Toys.CATEGORY: 'toys',
         }
         source_positions = getattr(order, category_position_attribute.get(category, ''), ())
+        validate_order_copy_companies(order, source_positions)
         copyable_positions = [position for position in source_positions if position.weight_grams and position.weight_grams > 0]
         skipped_count = len(source_positions) - len(copyable_positions)
         if skipped_count:
