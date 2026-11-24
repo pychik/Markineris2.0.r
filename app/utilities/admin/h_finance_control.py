@@ -23,6 +23,7 @@ from models import (
     TransactionTypes,
     TransactionOperations
 )
+from utilities.admin.partial_withdrawal import PartialWithdrawalError, approve_partial_withdrawal
 from utilities.admin.excel_report import ExcelReportProcessor, ExcelReport, ExcelReportWithSheets
 from utilities.exceptions import UserNotFoundError, NegativeBalanceError, BalanceUpdateError
 from utilities.minio_service.services import get_s3_service
@@ -1324,6 +1325,9 @@ def h_su_transaction_detail(u_id: int, t_id: int):
         UserTransaction.user_id,
         UserTransaction.promo_info,
         UserTransaction.wo_account_info,
+        UserTransaction.parent_transaction_id,
+        UserTransaction.original_amount,
+        UserTransaction.transaction_comment,
         UserTransaction.cancel_comment,
         UserTransaction.transaction_type,
         UserTransaction.sa_id,
@@ -1343,6 +1347,7 @@ def h_su_transaction_detail(u_id: int, t_id: int):
 
     transaction_statuses = settings.Transactions.TRANSACTIONS
     transaction_types = settings.Transactions.TRANSACTION_TYPES
+    partial_withdrawal_enabled = True
     transaction_type_enum = TransactionTypes
     sa_types = settings.ServiceAccounts.TYPES_DICT
 
@@ -1382,6 +1387,9 @@ def h_aus_transaction_detail(u_id: int, t_id: int):
         UserTransaction.user_id,
         UserTransaction.promo_info,
         UserTransaction.wo_account_info,
+        UserTransaction.parent_transaction_id,
+        UserTransaction.original_amount,
+        UserTransaction.transaction_comment,
         UserTransaction.cancel_comment,
         UserTransaction.transaction_type,
         UserTransaction.sa_id,
@@ -1447,17 +1455,25 @@ def h_su_pending_transaction_update(u_id: int, t_id: int,):
     if operation_type not in [0, 1, ] or tr_status not in settings.Transactions.TRANSACTIONS.keys():
         return jsonify(dict(status=status, message=f"{message} ошибка ввода"))
 
-    # check for tricksters
-    transaction_updated = UserTransaction.query.with_entities(UserTransaction.id,
-                                                              UserTransaction.amount,
-                                                              UserTransaction.promo_info,
-                                                              UserTransaction.status) \
-        .filter(UserTransaction.user_id == u_id,
-                UserTransaction.id == t_id,
-                UserTransaction.status == TransactionStatuses.pending.value).first()
+    # Only agent withdrawals share the user-first lock order with partial approval.
+    candidate = UserTransaction.query.with_entities(UserTransaction.transaction_type).filter(
+        UserTransaction.user_id == u_id, UserTransaction.id == t_id).first()
+    is_agent_withdrawal = bool(candidate and candidate.transaction_type == TransactionTypes.agent_withdrawal.value)
+    if is_agent_withdrawal:
+        if operation_type != 0 or tr_status not in (TransactionStatuses.cancelled.value, TransactionStatuses.success.value):
+            return jsonify(dict(status=status, message=f"{message} некорректная операция для вывода агента"))
+        db.session.execute(select(User.id).where(User.id == u_id).with_for_update(of=User)).first()
+    transaction_query = UserTransaction.query.with_entities(
+        UserTransaction.id, UserTransaction.amount, UserTransaction.promo_info, UserTransaction.status,
+    ).filter(UserTransaction.user_id == u_id, UserTransaction.id == t_id,
+             UserTransaction.status == TransactionStatuses.pending.value)
+    if is_agent_withdrawal:
+        transaction_query = transaction_query.with_for_update(of=UserTransaction)
+    transaction_updated = transaction_query.first()
     user = User.query.with_entities(User.id).filter(User.id == u_id).first()
 
     if not user or not transaction_updated:
+        db.session.rollback()
         return jsonify(dict(status=status, message=f"{message} нет такого пользователя или транзакции"))
 
     # remove cancelled transaction promo used
@@ -1466,7 +1482,9 @@ def h_su_pending_transaction_update(u_id: int, t_id: int,):
 
     process_transaction = helper_update_pending_rf_transaction_status(u_id=u_id, t_id=t_id,
                                                                       amount=transaction_updated.amount,
-                                                                      operation_type=operation_type, tr_status=tr_status)
+                                                                      operation_type=operation_type, tr_status=tr_status,
+                                                                      history_source="Одобрение вручную" if tr_status == TransactionStatuses.success.value else "Отмена вручную",
+                                                                      history_actor=current_user.login_name)
     if process_transaction[0]:
         status = 'success'
         message = settings.Messages.SU_TRANSACTION_CHANGE
@@ -1588,3 +1606,28 @@ def update_user_balance(user_id: int, data: UpdateBalanceSchema):
         db.session.rollback()
         logger.exception("Ошибка при обновлении баланса пользователя")
         raise BalanceUpdateError()
+
+
+def h_su_partial_withdrawal(u_id: int, t_id: int):
+    try:
+        approved, remainder = approve_partial_withdrawal(
+            db.session, UserTransaction, User, user_id=u_id, transaction_id=t_id,
+            amount=request.form.get('amount', ''), actor=f'{current_user.login_name} (ID {current_user.id})')
+        approved_id, remainder_id = approved.id, remainder.id
+        approved_amount, remainder_amount = approved.amount, remainder.amount
+        db.session.commit()
+    except PartialWithdrawalError as error:
+        db.session.rollback()
+        return jsonify(status=settings.ERROR, message=str(error)), 400
+    except Exception:
+        db.session.rollback()
+        logger.exception('Ошибка частичного одобрения вывода агента')
+        return jsonify(status=settings.ERROR, message='Не удалось выполнить частичное одобрение. Обновите данные и повторите попытку.'), 500
+    # Notification failures must not turn an already committed approval into a failed request.
+    try:
+        send_tg_message_with_transaction_updated_status(u_id, approved_id)
+    except Exception:
+        logger.exception('Не удалось уведомить о частичном одобрении вывода')
+    return jsonify(status=settings.SUCCESS,
+                   message=f'Вывод №{approved_id}: одобрено {approved_amount} руб. Остаток {remainder_amount} руб. ожидает подтверждения в заявке №{remainder_id}.',
+                   approved_id=approved_id, remainder_id=remainder_id)

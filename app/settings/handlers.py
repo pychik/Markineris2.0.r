@@ -23,6 +23,7 @@ def register_handlers(app: Flask) -> None:
 
     @app.context_processor
     def pass_arguments_to_templates() -> dict:
+        from utilities.gtin_orders import company_options
         contacts = dict(telegramm_group_link=settings.TELEGRAMM_GROUP_LINK,
                         mail_link=settings.MAIL_LINK,
                         whatsapp_link=settings.WHATSAPP_LINK,
@@ -31,7 +32,8 @@ def register_handlers(app: Flask) -> None:
                     subcategories_dict=settings.SUB_CATEGORIES_DICT,
                     user_translate_dict=settings.USER_TRANSLATE,
                     order_stages=settings.OrderStage, contacts=contacts,
-                    excepted_articles=settings.ExceptionOrders.EXCEPTED_ARTICLES)
+                    excepted_articles=settings.ExceptionOrders.EXCEPTED_ARTICLES,
+                    gtin_company_options=company_options())
 
     @app.before_request
     def manager_forbidden_handler():

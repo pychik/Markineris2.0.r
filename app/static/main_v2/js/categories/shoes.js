@@ -5,6 +5,7 @@ function shoe_check_sizes_quantity_valid(){
 }
 
 function shoe_perform_pos_add(async_flag, url){
+    if (window.validatePositionGTIN && !window.validatePositionGTIN()) return;
 
     var pos_form =document.getElementById('form_process_main');
     if (!window.validateTrademarkProductType(pos_form)) return;
@@ -350,7 +351,7 @@ async function async_shoe_delete_pos(url, csrf,block){
            if (typeof window.clearPendingStep3TransitionAfterAsyncAdd === 'function') {
              window.clearPendingStep3TransitionAfterAsyncAdd();
            }
-           message = 'Произошла ошибка во время сохранения позиции';
+           message = data.message || 'Произошла ошибка во время сохранения позиции';
            message_type = 'danger';
            make_message(message, message_type);
         }

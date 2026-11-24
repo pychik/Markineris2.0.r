@@ -4,6 +4,8 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/service/jquery-ui.min.css')}}" integrity="sha512-ELV+xyi8IhEApPS/pSj66+Jiw+sOT1Mqkzlh8ExXihe4zfqbWkxPRi8wptXIO9g73FSlhmquFlUOuMSoXz5IRw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <script src="{{ url_for('static', filename='main_v2/js/assets/jquery-ui.min.js')}}" integrity="sha512-57oZ/vW8ANMjR/KQ6Be9v/+/h6bq9/l3f0Oc7vn6qMqyhvPd1cvKBRWWpzu0QoneImqr2SkmO4MSqU+RpHom3Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="{{ url_for('static', filename='main_v2/js/datepicker-ru.js') }}"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/eco_sbor_report.css', v='1') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/transaction_filters.css', v='1') }}">
 
 <div class="container">
     {% if current_user.role != 'm2r_admin' %}
@@ -19,7 +21,7 @@
 
     {% endif %}
 
-    <a class="btn btn-outline-secondary" data-bs-toggle="collapse" href="#form_filters_collapse" role="button" aria-expanded="false" aria-controls="collapseExample">
+    <a class="btn btn-outline-secondary transaction-filter-toggle" data-bs-toggle="collapse" href="#form_filters_collapse" role="button" aria-expanded="false" aria-controls="form_filters_collapse">
         Фильтры транзакций
     </a>
 
@@ -44,4 +46,6 @@
 
 {% include 'admin/transactions/su_transaction_modal.html' %}
 <script src="{{url_for('static',filename='main_v2/js/admin/admin_uc.js')}}"></script>
+<script src="{{ url_for('static', filename='main_v2/js/admin/partial_withdrawal.js', v='1') }}"></script>
+<script src="{{ url_for('static', filename='main_v2/js/admin/transaction_filters.js', v='1') }}"></script>
 {% endblock %}

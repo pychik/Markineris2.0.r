@@ -55,7 +55,7 @@
                         {{t.trademark}}
                     </td>
                     <td class="text-end actions">
-                        <button type="button" data-weight-grams="{{ t.weight_grams if t.weight_grams is not none else '' }}" onclick="show_linen_pos('{{loop.index}}', '{{t.trademark}}',
+                        <button type="button" data-weight-grams="{{ t.weight_grams if t.weight_grams is not none else '' }}" {% include 'helpers/gtin_size_data.html' %} data-gtin="{{ t.gtin or '' }}" data-gtin-company="{{ t.gtin_company_key or '' }}" onclick="show_linen_pos('{{loop.index}}', '{{t.trademark}}',
                          '{{t.type}}', '{{t.color}}', '{{ linen_pos_quantity }}',
                         '{{t.box_quantity}}', '{{ linen_all_quantity }}',
                         [{% if t.set_items %}{%for sq in t.set_items%}'{{sq.position_type}}##{{sq.size}}##{{sq.unit}}##{{sq.quantity}}', {%endfor%}{% else %}{%for sq in t.sizes_quantities%}'{{sq.size}}##{{sq.unit}}##{{sq.quantity}}', {%endfor%}{% endif %}],

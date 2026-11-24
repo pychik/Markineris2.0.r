@@ -1,0 +1,34 @@
+{% extends 'main/base_v2.html' %}
+{% block admin_panel %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/service/jquery-ui.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/eco_sbor_report.css', v='1') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/average_price_report.css', v='5') }}">
+<script src="{{ url_for('static', filename='main_v2/js/assets/jquery-ui.min.js') }}"></script>
+<script src="{{ url_for('static', filename='main_v2/js/datepicker-ru.js') }}"></script>
+<div class="container-fluid py-4" id="average_price_report">
+    <nav aria-label="Навигация" class="mb-3"><a href="{{ url_for('admin_control.index') }}">Панель администратора</a> / <a href="{{ url_for('admin_control.su_control_finance') }}">Контроль финансов</a> / <span>Средняя цена</span></nav>
+    <h1 class="h3 mb-4">Отчет по средней цене</h1>
+    <form id="price_filters" class="mb-4">
+        <div class="row g-3 align-items-end">
+            {% for name, label in [('date_from', 'Дата от'), ('date_to', 'Дата до')] %}
+            <div class="col-md-3">
+                <label class="form-label" for="price_{{ name }}">{{ label }}</label>
+                <div class="input-group">
+                    <input class="form-control eco-date-input" id="price_{{ name }}" type="text" name="{{ name }}" value="{{ filters[name].strftime('%d.%m.%Y') }}" placeholder="ДД.ММ.ГГГГ" readonly autocomplete="off" required>
+                    <button class="eco-date-toggle" type="button" data-calendar="price_{{ name }}" aria-label="{{ label }}: открыть календарь" aria-expanded="false" aria-controls="ui-datepicker-div">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3" stroke="currentColor" stroke-width="1.6"/><path d="M7 3v4m10-4v4M3 11h18M7 15h2m3 0h2m3 0h1M7 18h2m3 0h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+            <div class="col-md-auto d-flex flex-wrap gap-2"><button class="btn btn-accent" type="submit">Обновить</button><button class="btn btn-secondary" id="price_export" type="button">Скачать в Excel</button></div>
+        </div>
+        <input type="hidden" name="sort" value="{{ filters.sort }}">
+    </form>
+    <p class="text-muted small">Средняя цена марки за день = сумма списаний за заказы / количество марок. Дата — день списания. Дни без списаний обозначены «—». Максимальный период отчета и Excel — 12 месяцев.</p>
+    <div id="price_error" class="alert alert-danger" role="alert" hidden></div>
+    <div id="price_chart" class="price-chart mb-4" aria-live="polite"></div>
+    <div id="price_results" aria-live="polite">Загрузка отчета…</div>
+</div>
+<script src="{{ url_for('static', filename='main_v2/js/admin/average_price_report.js', v='5') }}"></script>
+{% endblock %}

@@ -109,12 +109,11 @@
                   </div>
 
                   <div class="col">
-                    <div class="fw-semibold text-muted text-uppercase" style="font-size: 15px;">
-                      Ср. цена
-                    </div>
-                    <div class="fw-semibold text-warning">
-                      {{ stat_paid.avg_price }} р.
-                    </div>
+                    <a href="{{ url_for('admin_control.average_price_report') }}" class="position-relative d-block text-decoration-none" title="Отчет по средней цене за период">
+                      <span class="position-absolute border rounded-3 pe-none" style="inset:-6px -10px;" aria-hidden="true"></span>
+                      <span class="d-block fw-semibold text-muted text-uppercase" style="font-size:15px;">Ср. цена ↗</span>
+                      <span class="d-block fw-semibold text-warning">{{ stat_paid.avg_price }} р.</span>
+                    </a>
                   </div>
 
                 </div>

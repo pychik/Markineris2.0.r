@@ -15,6 +15,7 @@
 // ===============================
 
   let __order_contact = { type: null, value: "" };
+  let processing = false;
 
   function validate_contact_value(type, value) {
     value = (value || "").trim();
@@ -274,25 +275,39 @@
   }
 
   function performProcess() {
+    if (processing) return;
+    const form = document.getElementById("form_process");
+    if (!form) {
+      setCheckError("Форма не найдена");
+      return;
+    }
     const textarea = document.getElementById("order_comment_after");
     const hidden = document.getElementById("order_comment");
     if (hidden && textarea) hidden.value = textarea.value || "";
 
-    const f = document.getElementById("process_modal_footer");
-    if (f) {
-      f.innerHTML = `<div class="col text-center">
-        <b>Производится обработка</b><br>
-        <div class="spinner-border text-warning" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>`;
+    processing = true;
+    const button = document.getElementById("btn_process") || document.getElementById("btn_force") || document.getElementById("btn_contact_submit");
+    if (button) button.disabled = true;
+    loadingCircle();
+    try {
+      form.submit();
+    } catch (error) {
+      processing = false;
+      if (button) button.disabled = false;
+      close_Loading_circle();
+      const errBox = document.getElementById("contact_error");
+      if (errBox) errBox.textContent = "Не удалось отправить заказ. Попробуйте ещё раз.";
+      else setCheckError("Не удалось отправить заказ. Попробуйте ещё раз.");
     }
-
-    setTimeout(() => {
-      const form = document.getElementById("form_process");
-      if (form) form.submit();
-    }, 500);
   }
+
+  window.addEventListener("pageshow", (event) => {
+    if (!event.persisted) return;
+    processing = false;
+    close_Loading_circle();
+    const button = document.getElementById("btn_process") || document.getElementById("btn_force") || document.getElementById("btn_contact_submit");
+    if (button) button.disabled = false;
+  });
   function setFooterOkOnly() {
     const f = document.getElementById("process_modal_footer");
     if (!f) return;

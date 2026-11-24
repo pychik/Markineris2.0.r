@@ -9,6 +9,7 @@ from data_migrations.utils import make_password
 from loguru import logger
 from models import CardChatRead, ModerationStatus, Order, ProductCard, User, db
 from utilities.admin.eco_sbor_report import eco_sbor_report as render_eco_sbor_report
+from utilities.admin.average_price_report import average_price_report as render_average_price_report
 from utilities.admin.first_order_report import first_order_report as render_first_order_report
 from tezaurus.exceptions import TezaurusApiError, TezaurusConfigurationError
 from tezaurus.processing_companies import ProcessingCompaniesClient
@@ -65,6 +66,7 @@ from utilities.admin.h_admin_control import (
 )
 from utilities.admin.h_finance_control import (
     h_su_control_finance,
+    h_su_partial_withdrawal,
     h_su_bck_promo,
     h_su_add_promo,
     h_su_delete_promo,
@@ -590,6 +592,13 @@ def su_control_finance():
     return h_su_control_finance()
 
 
+@admin_control.route('/average-price', methods=['GET'])
+@login_required
+@su_required
+def average_price_report():
+    return render_average_price_report()
+
+
 @admin_control.route('/su_bck_promo', methods=['GET', ])
 @login_required
 @su_mod_required
@@ -939,6 +948,13 @@ def bck_su_pending_transaction_update(u_id: int, t_id: int):
     :return:
     """
     return h_su_pending_transaction_update(u_id=u_id, t_id=t_id)
+
+
+@admin_control.route('/partial_withdrawal/<int:u_id>/<int:t_id>', methods=['POST'])
+@login_required
+@bck_su_mod_required
+def partial_withdrawal(u_id: int, t_id: int):
+    return h_su_partial_withdrawal(u_id=u_id, t_id=t_id)
 
 
 @admin_control.route('bck_wo_transactions', methods=['POST', ])

@@ -34,6 +34,7 @@ function parfum_show_field_error(fieldId, message) {
 }
 
 function parfum_perform_pos_add(async_flag, url){
+    if (window.validatePositionGTIN && !window.validatePositionGTIN()) return;
 
     var pos_form =document.getElementById('form_process_main');
     if (!window.validateTrademarkProductType(pos_form)) return;
