@@ -198,3 +198,32 @@
     outline-offset: 3px;
     border-radius: 2px;
 }
+
+#form_filters {
+    width: 100%;
+    max-width: 760px;
+    min-width: 0;
+}
+
+#form_filters .reanimate-empty-switch {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding-left: 0;
+}
+
+#form_filters .reanimate-empty-switch .form-check-input {
+    float: none;
+    flex-shrink: 0;
+    margin: 0;
+    cursor: pointer;
+}
+
+#form_filters .reanimate-empty-switch .form-check-input:checked {
+    background-color: #ffdf00;
+    border-color: #ffdf00;
+}
+
+#form_filters .reanimate-empty-switch label { cursor: pointer; }
+
+#users_table_search { overflow-x: auto; }

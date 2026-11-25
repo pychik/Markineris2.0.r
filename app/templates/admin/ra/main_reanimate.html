@@ -1,7 +1,7 @@
 {% extends "main/base_v2.html" %}
 
 {% block fc_panel %}
-<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/reanimate.css', v='5') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/reanimate.css', v='6') }}">
 
 
 <div>
@@ -42,7 +42,7 @@
     const prices_array = [{% for p in all_prices %}[{{ p.id }},'{{ p.price_code }}'],{% endfor %}];
 </script>
 <script src="{{ url_for('static',filename='main_v2/js/admin/admin_uc.js', v='31') }}"></script>
-<script src="{{ url_for('static', filename='main_v2/js/admin/admin_common.js', v='4') }}"></script>
+<script src="{{ url_for('static', filename='main_v2/js/admin/admin_common.js', v='5') }}"></script>
 <script src="{{url_for('static',filename='main_v2/js/admin/admin_main.js')}}"></script>
 <script src="{{ url_for('static',filename='main_v2/js/admin/prices_block.js', v='2') }}"></script>
 

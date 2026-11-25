@@ -54,6 +54,20 @@ class FilterAndLoadingTests(unittest.TestCase):
                 self.assertEqual(shown[0], expected)
                 self.assertIn('sort_type=0', shown[2])
 
+    def test_without_orders_switch_is_shared_by_table_and_excel(self):
+        app = Flask(__name__)
+        get_filters = filter_function()
+        for raw, expected in [('0', False), ('1', True), ('unexpected', True)]:
+            params = dict(include_without_orders=raw)
+            with app.test_request_context('/', query_string=params):
+                table = get_filters()
+            with app.test_request_context('/', method='POST', data=params):
+                excel = get_filters(excel_report=True)
+            self.assertEqual(table, excel)
+            self.assertIs(table[4], expected)
+            self.assertIn(f'include_without_orders={int(expected)}', table[2])
+
+
     def test_initial_shell_does_not_query_client_statistics(self):
         app = Flask(__name__)
         price = NS(id=1, price_code='basic', price_at2=0, created_at=None, query=Mock())
@@ -204,6 +218,10 @@ class ReanimateSQLTests(unittest.TestCase):
             self.assertNotIn(3, [r.id for r in rows])
             alpha = next(r for r in rows if r.id == 2)
             self.assertEqual((alpha.orders_count, alpha.total_refill, alpha.total_write_off), (0, 0, 0))
+
+    def test_without_orders_switch_excludes_only_zero_history_clients(self):
+        self.assertEqual([r.id for r in self.query(30, 'Дней', 1)], [2,1])
+        self.assertEqual([r.id for r in self.query(30, 'Дней', 1, include_without_orders=False)], [1])
 
 
 if __name__ == '__main__':

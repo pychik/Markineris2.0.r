@@ -306,7 +306,8 @@ def helper_prev_day_orders_marks() -> Row:
     return db.session.execute(stmt).fetchone()
 
 
-def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: int, u_id: int = None) -> None | list:
+def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: int, u_id: int = None,
+                               include_without_orders: bool = True) -> None | list:
     if sort_type == 0:
         order_clause = desc('u.login_name')
     else:
@@ -315,6 +316,9 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: in
     user_filter = ''
     if u_id:
         user_filter = f'and u.admin_parent_id = :u_id'
+
+    if not include_without_orders:
+        user_filter += ' AND EXISTS (SELECT 1 FROM public.orders_stats os_any WHERE os_any.user_id = u.id)'
 
     # cutoff: дата/время "отсечки" (всё считаем ДО неё)
     cutoff_expr = f"CURRENT_DATE - INTERVAL '{settings.Users.FILTER_MAX_QUANTITY} days'"

@@ -1490,7 +1490,7 @@ def h_bck_reanimate():
     :return:
     """
 
-    date_quantity, date_type, link_filters, sort_type = helper_get_filter_users()
+    date_quantity, date_type, link_filters, sort_type, include_without_orders = helper_get_filter_users()
 
     link = f'javascript:bck_get_users_reanimate(\'' + url_for(
         'admin_control.bck_control_reanimate') + f'?bck=1&{link_filters}' + 'page={0}\');'
@@ -1503,7 +1503,8 @@ def h_bck_reanimate():
             .order_by(desc(Price.created_at)).all()
         return render_template('admin/ra/main_reanimate.html', **locals())
 
-    users = helper_get_users_reanimate(date_quantity=date_quantity, date_type=date_type, sort_type=sort_type)
+    users = helper_get_users_reanimate(date_quantity=date_quantity, date_type=date_type, sort_type=sort_type,
+                                       include_without_orders=include_without_orders)
     numrows = len(users)
 
     basic_prices = settings.Prices.BASIC_PRICES
@@ -1517,15 +1518,17 @@ def h_bck_reanimate():
 
     return jsonify({
         'htmlresponse': render_template('admin/ra/user_reanimate_response.html', **locals()),
-        'filters': {'date_quantity': date_quantity, 'date_type': date_type, 'sort_type': sort_type},
+        'filters': {'date_quantity': date_quantity, 'date_type': date_type, 'sort_type': sort_type,
+                    'include_without_orders': int(include_without_orders)},
     })
 
 
 def h_bck_su_control_reanimate_excel():
     # set manually type and status for render page case
-    date_quantity, date_type, link_filters, sort_type = helper_get_filter_users(excel_report=True)
+    date_quantity, date_type, link_filters, sort_type, include_without_orders = helper_get_filter_users(excel_report=True)
 
-    users = helper_get_users_reanimate(date_quantity=date_quantity, date_type=date_type, sort_type=sort_type)
+    users = helper_get_users_reanimate(date_quantity=date_quantity, date_type=date_type, sort_type=sort_type,
+                                       include_without_orders=include_without_orders)
 
     users_processed = list(map(lambda x: (x.created_at.date() if x.created_at else None,
                                           x.os_created_at.date() if x.os_created_at else None,
@@ -1535,6 +1538,7 @@ def h_bck_su_control_reanimate_excel():
     excel_filters = {
         'Временная единица': date_type,
         'Количество временных единиц': date_quantity,
+        'Клиенты без заказов': 'Включены' if include_without_orders else 'Исключены',
         'Период показателей': 'За всё время',
         'Списания': 'Успешные оплаты заказов с баланса клиента, без вычета возвратов',
         'Средний чек': 'Списания / количество заказов',
@@ -1578,7 +1582,7 @@ def h_bck_agent_reanimate(u_id: int):
     if current_user.role == 'superuser' and u_id:
         agent = User.query.with_entities(User.login_name).filter(User.id == u_id).first()
 
-    date_quantity, date_type, link_filters, sort_type = helper_get_filter_users()
+    date_quantity, date_type, link_filters, sort_type, include_without_orders = helper_get_filter_users()
 
     link = f'javascript:bck_get_users_reanimate(\'' + url_for(
         'admin_control.bck_agent_control_reanimate', u_id=u_id) + f'?bck=1&{link_filters}' + 'page={0}\');'
@@ -1591,7 +1595,8 @@ def h_bck_agent_reanimate(u_id: int):
             .order_by(desc(Price.created_at)).all()
         return render_template('admin/ra/agent/main_reanimate.html', **locals())
 
-    users = helper_get_users_reanimate(date_quantity=date_quantity, date_type=date_type, sort_type=sort_type, u_id=u_id)
+    users = helper_get_users_reanimate(date_quantity=date_quantity, date_type=date_type, sort_type=sort_type, u_id=u_id,
+                                       include_without_orders=include_without_orders)
     numrows = len(users)
 
     basic_prices = settings.Prices.BASIC_PRICES
@@ -1605,7 +1610,8 @@ def h_bck_agent_reanimate(u_id: int):
 
     return jsonify({
         'htmlresponse': render_template('admin/ra/agent/user_reanimate_response.html', **locals()),
-        'filters': {'date_quantity': date_quantity, 'date_type': date_type, 'sort_type': sort_type},
+        'filters': {'date_quantity': date_quantity, 'date_type': date_type, 'sort_type': sort_type,
+                    'include_without_orders': int(include_without_orders)},
     })
 
 

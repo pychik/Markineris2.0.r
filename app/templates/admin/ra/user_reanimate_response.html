@@ -9,6 +9,7 @@
 
     <h5>Найдено: {{numrows}}</h5>
     <h5>Представлены пользователи не сделавшие заказ за : <b>{{date_quantity}} {{converted_date_type}}</b></h5>
+    <div class="small text-secondary mb-2">{{ 'Включая клиентов без заказов за всё время' if include_without_orders else 'Только клиенты с заказами в статистике' }}</div>
     {%if users%}
 
         <div id="users_table_search" class="col" align="left">

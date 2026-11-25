@@ -129,7 +129,8 @@ function getReanimateFilters() {
     return {
         date_quantity: $('#date_quantity').val(),
         date_type: $('#date_type').val(),
-        sort_type: $('#reanimate_sort').val()
+        sort_type: $('#reanimate_sort').val(),
+        include_without_orders: $('#include_without_orders').is(':checked') ? 1 : 0
     };
 }
 
@@ -145,7 +146,8 @@ function bck_get_users_reanimate(url, filters) {
     const params = filters || (target.searchParams.has('date_quantity') ? {
         date_quantity: target.searchParams.get('date_quantity'),
         date_type: target.searchParams.get('date_type'),
-        sort_type: target.searchParams.get('sort_type') || $('#reanimate_sort').val()
+        sort_type: target.searchParams.get('sort_type') || $('#reanimate_sort').val(),
+        include_without_orders: target.searchParams.get('include_without_orders') || '1'
     } : getReanimateFilters());
     Object.keys(params).forEach(key => target.searchParams.set(key, params[key]));
     target.searchParams.set('bck', '1');
@@ -164,6 +166,7 @@ function bck_get_users_reanimate(url, filters) {
             $('#date_quantity').val(data.filters.date_quantity);
             $('#date_type').val(data.filters.date_type);
             $('#reanimate_sort').val(data.filters.sort_type);
+            $('#include_without_orders').prop('checked', Number(data.filters.include_without_orders) === 1);
             container.css('opacity', 1).html(data.htmlresponse).addClass('reanimate-table-enter');
             setTimeout(() => container.removeClass('reanimate-table-enter'), 220);
         },

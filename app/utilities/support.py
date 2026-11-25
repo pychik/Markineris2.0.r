@@ -2296,9 +2296,12 @@ def helper_get_filter_users(excel_report: bool = False) -> tuple:
     date_quantity = max(1, min(date_quantity, settings.Users.FILTER_MAX_QUANTITY))
     date_type = date_type_raw if date_type_raw in settings.Users.FILTER_DATE_TYPES else settings.Users.FILTER_DATE_DAYS
     sort_type = 0 if sort_type == 0 else 1
-    link_filters = f'date_quantity={date_quantity}&date_type={date_type}&sort_type={sort_type}&'
+    source = request.form if excel_report else request.args
+    include_without_orders = source.get('include_without_orders', '1') != '0'
+    link_filters = (f'date_quantity={date_quantity}&date_type={date_type}&sort_type={sort_type}&'
+                    f'include_without_orders={int(include_without_orders)}&')
 
-    return date_quantity, date_type, link_filters, sort_type
+    return date_quantity, date_type, link_filters, sort_type, include_without_orders
 
 
 def helper_get_filter_fin_order_report(report: bool = False):
