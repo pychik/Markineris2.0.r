@@ -1,36 +1,31 @@
-<div class="input-group">
-    <input title="комментарий"
-           class="form-control"
-           type="text"
-           id="comment_{{ user.id }}"
-           value="{{ user.comment }}"
-           placeholder="Комментарий"
-           style="margin: 0px;padding: 0px; width: 250px;min-width: 250px;!important;">
-    <select class="form-control" id="selected_call_status_{{ user.id }}"
-            style="min-width:50px;width:50px;background-color: {{ reanimate_call_result[user.call_result] | safe }} !important"
-            title="выберите статус звонка">
-        {% if not user.call_result %}
-            <option selected value="">Результат звонка</option>
-        {% else %}
-            <option selected value="{{ user.call_result }}"> {{ user.call_result }}</option>
-        {% endif %}
-        {% for description in reanimate_call_result.keys() %}
-            {% if description != user.call_result %}
-                <option value="{{ description }}">{{ description }}</option>
-            {% endif %}
-        {% endfor %}
-    </select>
-</div>
-<div class="input-group flex-nowrap">
-    <input title="дата последнего обновления"
-               class="form-control"
-               disabled
-               id="last_call_update{{ user.id }}" value="{{ user.last_call_update }}"
-               style="margin: 0px;padding: 0px; width: 10px;min-width: 140px;!important;font-size: 15px;text-align: center">
-        <a href="javascript:saveCallResultAndComment('{{ url_for('admin_control.bck_reanimate_save_call_result') }}?bck=1', '{{ user.id }}', '{{ csrf_token() }}')"
-           class="btn btn-sm btn-outline-secondary"
-            title="Сохранить комментарий и результат звонка"  style="width: 100px;min-width: 100px;padding-left: 10px;!important;"
-           type="submit">
+<div class="reanimate-call">
+    <textarea class="form-control" id="comment_{{ user.id }}" rows="2" maxlength="255"
+              aria-label="Комментарий к звонку клиенту {{ user.login_name }}"
+              placeholder="Комментарий к звонку">{{ user.comment or '' }}</textarea>
+    <div class="reanimate-call-controls">
+        <select class="form-select form-control" id="selected_call_status_{{ user.id }}"
+                style="background-color: {{ reanimate_call_result.get(user.call_result, '#f8f9fa') }}"
+                aria-label="Результат звонка клиенту {{ user.login_name }}"
+                onchange="this.style.backgroundColor = this.options[this.selectedIndex].dataset.color || '#f8f9fa'">
+            <option value="" data-color="#f8f9fa" {% if not user.call_result %}selected{% endif %}>Результат звонка</option>
+            {% for description, color in reanimate_call_result.items() %}
+                <option value="{{ description }}" data-color="{{ color }}"
+                        {% if description == user.call_result %}selected{% endif %}>{{ description|capitalize }}</option>
+            {% endfor %}
+        </select>
+        <button type="button" class="btn btn-outline-secondary reanimate-call-save"
+                onclick="saveCallResultAndComment('{{ url_for('admin_control.bck_reanimate_save_call_result') }}?bck=1', '{{ user.id }}', '{{ csrf_token() }}')"
+                title="Сохранить комментарий и результат звонка">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M13.8 3.6a.75.75 0 0 1 0 1.1l-7 7a.75.75 0 0 1-1.1 0L2.2 8.2a.75.75 0 0 1 1.1-1.1l3 3 6.4-6.5a.75.75 0 0 1 1.1 0Z"/>
+            </svg>
             Сохранить
-        </a>
+        </button>
+    </div>
+    <div class="reanimate-call-updated" title="Последнее сохранение результата звонка">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm0 1a6 6 0 1 1 0 12A6 6 0 0 1 8 2Zm.5 2h-1v4.2l3 1.8.5-.9-2.5-1.5V4Z"/>
+        </svg>
+        <span id="last_call_update{{ user.id }}">{{ user.last_call_update if user.last_call_update and user.last_call_update != '-' else 'Ещё не сохраняли' }}</span>
+    </div>
 </div>

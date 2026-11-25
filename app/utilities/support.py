@@ -2289,11 +2289,14 @@ def helper_get_filter_users(excel_report: bool = False) -> tuple:
         date_type_raw = request.form.get('date_type', '', type=str)
         sort_type = request.form.get('sort_type', 1, type=int)
 
-    link_filters = f'date_quantity={date_quantity_raw}&date_type={date_type_raw}&'
-
-    date_quantity = int(date_quantity_raw) if date_quantity_raw else settings.Users.DEFAULT_DAYS_RANGE
-    date_type = date_type_raw if date_type_raw and date_type_raw in settings.Users.FILTER_DATE_TYPES \
-        else settings.Users.FILTER_DATE_DAYS
+    try:
+        date_quantity = int(date_quantity_raw) if date_quantity_raw else settings.Users.DEFAULT_DAYS_RANGE
+    except (TypeError, ValueError):
+        date_quantity = settings.Users.DEFAULT_DAYS_RANGE
+    date_quantity = max(1, min(date_quantity, settings.Users.FILTER_MAX_QUANTITY))
+    date_type = date_type_raw if date_type_raw in settings.Users.FILTER_DATE_TYPES else settings.Users.FILTER_DATE_DAYS
+    sort_type = 0 if sort_type == 0 else 1
+    link_filters = f'date_quantity={date_quantity}&date_type={date_type}&sort_type={sort_type}&'
 
     return date_quantity, date_type, link_filters, sort_type
 

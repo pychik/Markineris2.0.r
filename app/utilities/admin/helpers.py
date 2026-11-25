@@ -306,7 +306,7 @@ def helper_prev_day_orders_marks() -> Row:
     return db.session.execute(stmt).fetchone()
 
 
-def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: str, u_id: int = None) -> None | list:
+def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: int, u_id: int = None) -> None | list:
     if sort_type == 0:
         order_clause = desc('u.login_name')
     else:
@@ -336,9 +336,7 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
     )
     """
 
-    # все агрегаты считаем ДО cutoff
-    os_date_cond = f"os.saved_at <= {cutoff_expr}"
-    tx_date_cond = f"ut.created_at <= {cutoff_expr}"
+    # Период ограничивает только неактивность. Показатели — за всю историю.
 
     query = text(f"""
         WITH oa AS (
@@ -349,32 +347,32 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
                 COALESCE(SUM(os.marks_count), 0) AS total_marks_count,
                 COALESCE(SUM(os.rows_count), 0)  AS total_rows_count,
 
-                -- Итого списано (целое, округлённое) ДО cutoff
-                COALESCE(ROUND(SUM(os.op_cost * os.marks_count)), 0)::BIGINT AS total_write_off,
-
-                -- Средний чек (целое, округлённое) ДО cutoff
-                CASE
-                    WHEN COUNT(*) > 0 THEN ROUND(SUM(os.op_cost * os.marks_count) / COUNT(*))
-                    ELSE 0
-                END::BIGINT AS avg_check,
-
                 MAX(os.saved_at)   AS last_saved_at,
                 MAX(os.created_at) AS os_created_at
             FROM public.orders_stats os
-            WHERE {os_date_cond}
             GROUP BY os.user_id
         ),
 
         ta AS (
             SELECT
                 ut.user_id,
-                COALESCE(SUM(ut.amount), 0)::BIGINT AS total_refill
+                COALESCE(SUM(ut.amount) FILTER (
+                    WHERE ut.type = true
+                      AND ut.transaction_type = '{TransactionTypes.refill_balance.value}'
+                ), 0)::BIGINT AS total_refill,
+                COALESCE(SUM(ut.amount) FILTER (
+                    WHERE ut.type = false
+                      AND ut.transaction_type IN (
+                          '{TransactionTypes.order_payment.value}',
+                          '{TransactionTypes.users_order_payment.value}'
+                      )
+                ), 0)::BIGINT AS total_write_off,
+                COALESCE(SUM(ut.amount) FILTER (
+                    WHERE ut.type = true
+                      AND ut.transaction_type = '{TransactionTypes.promo.value}'
+                ), 0)::BIGINT AS total_promo_used
             FROM public.user_transactions ut
-            WHERE
-                ut.status = {int(TransactionStatuses.success.value)}
-                AND ut.type = true
-                AND ut.transaction_type = '{TransactionTypes.refill_balance.value}'
-                AND {tx_date_cond}
+            WHERE ut.status = {int(TransactionStatuses.success.value)}
             GROUP BY ut.user_id
         ),
 
@@ -392,7 +390,7 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
                 rs.user_id,
                 COALESCE(MAX(rs.comment), '') AS comment,
                 MAX(rs.call_result) AS call_result,
-                COALESCE(to_char(MAX(rs.updated_at),'dd-mm-yyyy hh24:mi'), '-') as last_call_update
+                COALESCE(to_char(MAX(rs.updated_at),'dd.mm.yyyy hh24:mi'), '-') as last_call_update
             FROM public.reanimate_status rs
             GROUP BY rs.user_id
         )
@@ -428,13 +426,15 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
 
             pa.partners_code as partners_code,
 
-            -- метрики ДО cutoff:
+
+            -- показатели за всю историю:
             COALESCE(oa.orders_count, 0)       as orders_count,
             COALESCE(oa.total_marks_count, 0) as total_marks_count,
             COALESCE(oa.total_rows_count, 0)  as total_rows_count,
             COALESCE(ta.total_refill, 0)      as total_refill,
-            COALESCE(oa.total_write_off, 0)   as total_write_off,
-            COALESCE(oa.avg_check, 0)         as avg_check,
+            COALESCE(ta.total_write_off, 0)   as total_write_off,
+            COALESCE(ta.total_promo_used, 0) as total_promo_used,
+            COALESCE(ROUND(ta.total_write_off::numeric / NULLIF(oa.orders_count, 0)), 0)::BIGINT as avg_check,
 
             oa.os_created_at as os_created_at,
 
@@ -456,7 +456,7 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
             {user_filter}
             AND {no_recent_orders_cond}
 
-        ORDER BY {str(order_clause)}
+        ORDER BY {str(order_clause)}, u.id ASC
         ;
     """)
 
@@ -465,7 +465,7 @@ def helper_get_users_reanimate(date_quantity: int, date_type: str, sort_type: st
 
 
 def helper_get_reanimate_call_result() -> tuple[int, str, str]:
-    user_id = request.json.get('user_id', None)
-    comment = request.json.get('comment', None)
-    call_result = request.json.get('call_result', None)
-    return user_id, comment, call_result
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return None, None, None
+    return payload.get('user_id'), payload.get('comment'), payload.get('call_result')

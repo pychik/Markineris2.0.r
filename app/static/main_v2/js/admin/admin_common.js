@@ -122,70 +122,107 @@ function bck_change_user_password(url, csrf) {
 
 
 
-function bck_get_users_reanimate(url) {
+let reanimateTableRequest = null;
+let reanimateAppliedFilters = null;
 
-    let sort_mode = 0;
-    if (document.getElementById("asc_type").checked) {
-        sort_mode = 1;
-    }
-    $.ajax({
-        url: url,
-        method: "GET",
-        data: {
-            date_quantity: $('#date_quantity').val(),
-            date_type: $('#date_type').val(),
-            sort_type: sort_mode
-        },
+function getReanimateFilters() {
+    return {
+        date_quantity: $('#date_quantity').val(),
+        date_type: $('#date_type').val(),
+        sort_type: $('#reanimate_sort').val()
+    };
+}
+
+function sortReanimateUsers(direction) {
+    const filters = Object.assign({}, reanimateAppliedFilters || getReanimateFilters(), {sort_type: direction});
+    bck_get_users_reanimate(document.getElementById('user_response').dataset.url, filters);
+}
+
+function bck_get_users_reanimate(url, filters) {
+    const form = document.getElementById('reanimate_filters');
+    if (!form.reportValidity()) return;
+    const target = new URL(url, window.location.href);
+    const params = filters || (target.searchParams.has('date_quantity') ? {
+        date_quantity: target.searchParams.get('date_quantity'),
+        date_type: target.searchParams.get('date_type'),
+        sort_type: target.searchParams.get('sort_type') || $('#reanimate_sort').val()
+    } : getReanimateFilters());
+    Object.keys(params).forEach(key => target.searchParams.set(key, params[key]));
+    target.searchParams.set('bck', '1');
+    if (reanimateTableRequest) reanimateTableRequest.abort();
+    const container = $('#user_response');
+    container.stop(true, true).css('opacity', 1).attr('aria-busy', 'true');
+    reanimateTableRequest = $.ajax({
+        url: target.href,
+        method: 'GET',
         success: function (data) {
-            $('#user_response').html(data);
-            $("#user_response").append(data.htmlresponse);
-
+            if (typeof data.htmlresponse !== 'string') {
+                showReanimateError();
+                return;
+            }
+            reanimateAppliedFilters = Object.assign({}, data.filters);
+            $('#date_quantity').val(data.filters.date_quantity);
+            $('#date_type').val(data.filters.date_type);
+            $('#reanimate_sort').val(data.filters.sort_type);
+            container.css('opacity', 1).html(data.htmlresponse).addClass('reanimate-table-enter');
+            setTimeout(() => container.removeClass('reanimate-table-enter'), 220);
+        },
+        error: function (xhr, status) {
+            if (status !== 'abort') showReanimateError();
+        },
+        complete: function () {
+            container.attr('aria-busy', 'false');
         }
     });
+    return reanimateTableRequest;
+}
 
+function showReanimateError() {
+    const container = $('#user_response');
+    container.find('[data-reanimate-error], [role="status"]').remove();
+    container.stop(true, true).css('opacity', 1).prepend(
+        $('<div class="alert alert-danger" role="alert" data-reanimate-error></div>')
+            .text('Не удалось загрузить клиентов. Нажмите «Показать клиентов», чтобы повторить.')
+    );
 }
 
 function get_users_reanimate_report_excel(url, csrf) {
-    let sort_mode = 0;
-    if (document.getElementById("asc_type").checked) {
-        sort_mode = 1;
-    }
-
+    const filters = getReanimateFilters();
+    // Apply the same filter snapshot to the visible table before exporting it.
+    const tableRequest = bck_get_users_reanimate(document.getElementById('user_response').dataset.url, filters);
+    if (!tableRequest) return;
     $('#overlay_loading').show();
-    $.ajax({
-        url: url,
-        headers: { "X-CSRFToken": csrf },
-        method: "POST",
-        data: {date_quantity: $('#date_quantity').val(),
-               date_type: $('#date_type').val(),
-               sort_type: sort_mode},
-        xhrFields: {
-            responseType: 'blob' // Set response type to blob
-        },
-        success: function(response, status, xhr) {
+    tableRequest.done(function (data) {
+        if (typeof data.htmlresponse !== 'string') {
             $('#overlay_loading').hide();
-            if (xhr.status === 200) {
-                var blob = new Blob([response], { type: 'application/xlsx' });
-                var link = document.createElement('a');
-
-                var dataName = xhr.getResponseHeader('data_file_name');
-
-                link.href = window.URL.createObjectURL(blob);
-                // console.log()
-                link.download = decodeURIComponent(dataName) || 'отчет_реанимация_пользователей.xlsx'; //
-                link.click();
-            } else {
-                // Handle other status codes
-                console.error('Error:', xhr.status);
-            }
-        },
-        error: function(xhr, status, error) {
-            $('#overlay_loading').hide();
-            // Error handling
-            console.error('Error:', error);
+            return;
         }
-    });
-
+        $.ajax({
+            url: url,
+            headers: {'X-CSRFToken': csrf},
+            method: 'POST',
+            data: filters,
+            xhrFields: {responseType: 'blob'},
+            success: function (response, status, xhr) {
+                if (xhr.getResponseHeader('data_status') !== 'success') {
+                    make_message('Не удалось скачать отчёт. Обновите страницу и попробуйте снова.', 'danger');
+                    return;
+                }
+                const blobUrl = window.URL.createObjectURL(response);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = decodeURIComponent(xhr.getResponseHeader('data_file_name') || 'отчет_реанимация_пользователей.xlsx');
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(blobUrl);
+            },
+            error: function () {
+                make_message('Не удалось скачать отчёт. Попробуйте ещё раз.', 'danger');
+            },
+            complete: function () { $('#overlay_loading').hide(); }
+        });
+    }).fail(function () { $('#overlay_loading').hide(); });
 }
 
 function check_ra_filter_Validity(input) {
@@ -218,4 +255,38 @@ function uncheck_agent_type_switch(switch_id, button_id){
         document.getElementById(button_id).classList.add('disabled');
         document.getElementById(switch_id).classList.remove(bg_color)
     }
+}
+
+function copy_to_buffer(str) {
+    let focus = document.activeElement; // Сохраняем элемент, который в фокусе
+
+    // Проверяем поддержку Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(str)
+            .then(() => {
+                var text = `Текст "${str}" скопирован в буфер`;
+                make_message(text, 'success'); // Вызываем вашу функцию для уведомления
+            })
+            .catch(err => {
+                var text = `Ошибка копирования текста: ${err}`;
+                make_message(text, 'error');
+            });
+    } else {
+        // Фолбек для старых браузеров, использующих execCommand
+        let tmp = document.createElement('INPUT'); // Создаем временный input
+        tmp.value = str; // Вставляем текст
+        document.body.appendChild(tmp); // Добавляем input в DOM
+        tmp.select(); // Выделяем текст
+        try {
+            document.execCommand('copy'); // Пытаемся скопировать текст
+            var text = `Текст "${str}" скопирован в буфер`;
+            make_message(text, 'success');
+        } catch (err) {
+            var text = `Ошибка копирования текста: ${err}`;
+            make_message(text, 'error');
+        }
+        document.body.removeChild(tmp); // Удаляем временный input
+    }
+
+    if (focus) focus.focus(); // Возвращаем фокус на предыдущий элемент
 }

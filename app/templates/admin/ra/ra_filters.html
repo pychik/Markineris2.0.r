@@ -1,53 +1,38 @@
-<div class="border border-1 p-3" id="form_filters">
-    <form action="" class="me-3">
-
-        <div class="row">
-            <div class="col-md-6">
-                <label for="date_quantity" class="col-form-label text-right">Количество временных единиц (1 - 30)</label>
-                <div class="input-group">
-                    <input type="number" placeholder="Укажите число от 1 до 30" class="form-control" id="date_quantity" autocomplete="off"
-                           name="date_quantity" min="1" max="{{date_quant_max}}" value=""
-                           oninput="check_ra_filter_Validity(this)">
-                </div>
+<div class="card border-0 shadow-sm mb-4" id="form_filters">
+    <form class="card-body" id="reanimate_filters"
+          onsubmit="event.preventDefault(); bck_get_users_reanimate(document.getElementById('user_response').dataset.url);">
+        <div class="mb-3">
+            <h5 class="mb-1">Период неактивности</h5>
+            <p class="text-secondary mb-0">Показать клиентов без заказов за выбранный срок, включая клиентов без заказов вообще.</p>
+        </div>
+        <input type="hidden" id="reanimate_sort" name="sort_type" value="{{ sort_type }}">
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-sm-6">
+                <label for="date_quantity" class="form-label">Количество</label>
+                <input type="number" class="form-control" id="date_quantity" name="date_quantity"
+                       min="1" max="{{ date_quant_max }}" value="{{ date_quantity }}" required
+                       oninput="check_ra_filter_Validity(this)" aria-describedby="reanimate_quantity_hint">
+                <div class="form-text" id="reanimate_quantity_hint">От 1 до {{ date_quant_max }}</div>
             </div>
-            <div class="col-md-6">
-                <label for="date_type" class="col-form-label text-right">Тип временной единицы</label>
-                <div class="input-group">
-                    <select class="form-control search-select" id="date_type" name="date_type" required>
-                        <!-- <option disabled selected value="">Выберите из списка..</option> -->
-                        {% for t in date_range_types %}
-                            <option value="{{t}}">{{t}}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+            <div class="col-12 col-sm-6">
+                <label for="date_type" class="form-label">Единица времени</label>
+                <select class="form-select form-control" id="date_type" name="date_type" required>
+                    {% for t in date_range_types %}
+                    <option value="{{ t }}" {% if t == date_type %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">Срок с последнего заказа</div>
             </div>
         </div>
-
-        <div class="mt-3">
-          <div class="form-check">
-              <input class="form-check-input" type="radio" name="sort_type" id="asc_type" checked>
-              <label class="form-check-label" for="asc_type">
-                &uarr; По возрастанию (дата)
-              </label>
-          </div>
-          <div class="form-check">
-              <input class="form-check-input" type="radio" name="sort_type" id="desc_type">
-              <label class="form-check-label" for="desc_type">
-                &darr; По убыванию (дата)
-              </label>
-              </div>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+                <button type="submit" class="btn btn-accent">Показать клиентов</button>
+                {% if current_user.role in ['superuser', 'm2r_admin'] and not u_id %}
+                <button type="button" class="btn btn-outline-secondary"
+                        onclick="get_users_reanimate_report_excel('{{ url_for('admin_control.bck_su_control_reanimate_excel') }}', '{{ csrf_token() }}')">
+                    Скачать Excel
+                </button>
+                {% endif %}
         </div>
-        <div class="row mt-3">
-            <div class="col-md-6 mb-1" title="Подгрузить заказы">
-                <a href="javascript:bck_get_users_reanimate(`{{url_for('admin_control.bck_control_reanimate')}}?bck=1`)" class="btn btn-accent">Обновить</a>
-            </div>
-            <div class="col-md-6" title="Скачать отчет excel">
-                <a href="javascript:get_users_reanimate_report_excel(`{{ url_for('admin_control.bck_su_control_reanimate_excel') }}`, `{{ csrf_token() }}`)" class="btn btn-secondary">Скачать отчет</a>
-            </div>
-        </div>
-
-
-
-
+        <div class="small text-secondary mt-3" title="Списания — успешные оплаты заказов с баланса клиента, без вычета возвратов. Средний чек — списания / количество заказов.">Показатели заказов и транзакций — за всё время.</div>
     </form>
 </div>

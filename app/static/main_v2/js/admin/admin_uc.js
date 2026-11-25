@@ -1652,11 +1652,13 @@ function saveCallResultAndComment(url, u_id, csrf) {
             make_message(data.message, 'danger');
             return
         }
-        $(`#call_comment_and_result_${u_id}`).html(data);
-        $(`#call_comment_and_result_${u_id}`).append(data.htmlresponse);
+        $(`#call_comment_and_result_${u_id}`).html(data.htmlresponse);
+        const resultLabel = selectedCallStatus || 'Не указан';
+        make_message(`Результат звонка изменён на «${resultLabel}»`, 'success');
     },
-    error: function() {
-         make_message('Не удалось сохранить комментарий', 'danger');
+    error: function(xhr) {
+         const message = xhr.responseJSON && xhr.responseJSON.message;
+         make_message(message || 'Не удалось сохранить комментарий', 'danger');
      }
    });
 }

@@ -1,0 +1,49 @@
+{% macro number(value) -%}
+    {{ '{:,.0f}'.format(value or 0).replace(',', '\u00a0') }}
+{%- endmacro %}
+<div class="reanimate-client">
+    <div class="reanimate-client-heading">
+        <button type="button" class="reanimate-client-login" data-login="{{ u.login_name }}"
+                onclick="copy_to_buffer(this.dataset.login)"
+                title="Скопировать логин · Баланс: {{ number(u.balance) }} ₽"
+                aria-label="Скопировать логин {{ u.login_name }}">{{ u.login_name }}</button>
+        <span class="reanimate-client-actions">
+            <a class="badge bg-secondary" href="{{ url_for('admin_control.client_orders_stats', admin_id=u.admin_id, client_id=u.id) }}"
+               title="Посмотреть историю заказов клиента" aria-label="Заказы клиента {{ u.login_name }}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cart-check" viewBox="0 0 16 16" aria-hidden="true">
+                                  <path d="M11.354 6.354a.5.5 0 0 0-.708-.708L8 8.293 6.854 7.146a.5.5 0 1 0-.708.708l1.5 1.5a.5.5 0 0 0 .708 0z"/>
+                                  <path d="M.5 1a.5.5 0 0 0 0 1h1.11l.401 1.607 1.498 7.985A.5.5 0 0 0 4 12h1a2 2 0 1 0 0 4 2 2 0 0 0 0-4h7a2 2 0 1 0 0 4 2 2 0 0 0 0-4h1a.5.5 0 0 0 .491-.408l1.5-8A.5.5 0 0 0 14.5 3H2.89l-.405-1.621A.5.5 0 0 0 2 1zm3.915 10L3.102 4h10.796l-1.313 7zM6 14a1 1 0 1 1-2 0 1 1 0 0 1 2 0m7 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                                </svg>
+            </a>
+        </span>
+    </div>
+    <div class="reanimate-client-dates">
+        <div{% if u.created_at %} title="Регистрация: {{ u.created_at.strftime('%d.%m.%Y %H:%M:%S') }}"{% endif %}>
+            <span>Регистрация</span>
+            <time>{{ u.created_at.strftime('%d.%m.%Y') if u.created_at else '—' }}</time>
+        </div>
+        <div{% if u.os_created_at %} title="Последний заказ в статистике: {{ u.os_created_at.strftime('%d.%m.%Y %H:%M:%S') }}"{% endif %}>
+            <span>Последний заказ</span>
+            <time>{{ u.os_created_at.strftime('%d.%m.%Y') if u.os_created_at else 'Нет заказов' }}</time>
+        </div>
+    </div>
+    <div class="reanimate-client-counts" aria-label="Статистика заказов за всё время">
+        <span>Заказы <strong>{{ number(u.orders_count) }}</strong></span>
+        <span>Марки <strong>{{ number(u.total_marks_count) }}</strong></span>
+        <span>Строки <strong>{{ number(u.total_rows_count) }}</strong></span>
+    </div>
+    <dl class="reanimate-client-finance">
+        <div title="Успешные пополнения баланса за всё время">
+            <dt>Пополнено</dt><dd>{{ number(u.total_refill) }} <span>₽</span></dd>
+        </div>
+        <div title="Успешные оплаты заказов с баланса клиента за всё время, без вычета возвратов">
+            <dt>Списано</dt><dd>{{ number(u.total_write_off) }} <span>₽</span></dd>
+        </div>
+        <div title="Сумма успешных зачислений по промокодам за всё время">
+            <dt>Промокоды</dt><dd>{{ number(u.total_promo_used) }} <span>₽</span></dd>
+        </div>
+        <div title="Списания за заказы / количество заказов в статистике, с округлением до рубля">
+            <dt>Средний чек</dt><dd>{{ number(u.avg_check) }} <span>₽</span></dd>
+        </div>
+    </dl>
+</div>

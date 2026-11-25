@@ -1,6 +1,7 @@
 {% extends "main/base_v2.html" %}
 
 {% block fc_panel %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main_v2/css/reanimate.css', v='5') }}">
 
 
 <div>
@@ -18,8 +19,11 @@
 
 {% include 'admin/ra/ra_filters.html' %}
 
-<div id="user_response">
-{% include 'admin/ra/user_reanimate_response.html' %}
+<div id="user_response" aria-live="polite" aria-busy="true"
+     data-url="{{ url_for('admin_control.bck_control_reanimate') }}?bck=1">
+    <div class="text-center text-secondary py-5" role="status">
+        <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Загрузка клиентов…
+    </div>
 </div>
 
 <div id="copy_link_modals">
@@ -37,9 +41,14 @@
     const currentUserRole = `{{current_user.role}}`;
     const prices_array = [{% for p in all_prices %}[{{ p.id }},'{{ p.price_code }}'],{% endfor %}];
 </script>
-<script src="{{url_for('static',filename='main_v2/js/admin/admin_uc.js')}}"></script>
-<script src="{{url_for('static',filename='main_v2/js/admin/admin_common.js')}}"></script>
+<script src="{{ url_for('static',filename='main_v2/js/admin/admin_uc.js', v='31') }}"></script>
+<script src="{{ url_for('static', filename='main_v2/js/admin/admin_common.js', v='4') }}"></script>
 <script src="{{url_for('static',filename='main_v2/js/admin/admin_main.js')}}"></script>
-<script src="{{url_for('static',filename='main_v2/js/admin/prices_block.js')}}"></script>
+<script src="{{ url_for('static',filename='main_v2/js/admin/prices_block.js', v='2') }}"></script>
 
+<script>
+    $(function () {
+        bck_get_users_reanimate(document.getElementById('user_response').dataset.url);
+    });
+</script>
 {% endblock %}

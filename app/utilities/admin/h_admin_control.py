@@ -1458,6 +1458,8 @@ def h_bck_change_user_password(u_id: int) -> Response:
 
 def h_bck_save_call_result():
     u_id, comment, call_result = helper_get_reanimate_call_result()
+    if not isinstance(call_result, str) or (call_result and call_result not in settings.REANIMATE_CALL_RESULT):
+        return jsonify(status='danger', message='Недопустимый результат звонка. Выберите значение из списка.'), 400
     stmt = select(
         ReanimateStatus
     ).where(ReanimateStatus.user_id == u_id)
@@ -1477,7 +1479,7 @@ def h_bck_save_call_result():
     # swap ReanimateStatus.id and ReanimateStatus.user_id for correct handling in template
     user = rec
     user.id = rec.user_id
-    user.last_call_update = rec.updated_at.strftime('%d-%m-%Y %H:%M')
+    user.last_call_update = rec.updated_at.strftime('%d.%m.%Y %H:%M')
     reanimate_call_result = settings.REANIMATE_CALL_RESULT
     return jsonify({'htmlresponse': render_template(f'admin/ra/reanimate_comment.html', **locals())})
 
@@ -1488,40 +1490,40 @@ def h_bck_reanimate():
     :return:
     """
 
-    # set manually type and status for render page case
     date_quantity, date_type, link_filters, sort_type = helper_get_filter_users()
 
     link = f'javascript:bck_get_users_reanimate(\'' + url_for(
         'admin_control.bck_control_reanimate') + f'?bck=1&{link_filters}' + 'page={0}\');'
 
+    bck = request.args.get('bck', 0, type=int)
+    date_range_types = settings.Users.FILTER_DATE_TYPES
+    date_quant_max = settings.Users.FILTER_MAX_QUANTITY
+    if not bck:
+        all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2) \
+            .order_by(desc(Price.created_at)).all()
+        return render_template('admin/ra/main_reanimate.html', **locals())
+
     users = helper_get_users_reanimate(date_quantity=date_quantity, date_type=date_type, sort_type=sort_type)
     numrows = len(users)
 
     basic_prices = settings.Prices.BASIC_PRICES
-    all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2) \
-        .order_by(desc(Price.created_at)).all()
-
 
     page, per_page, \
         offset, pagination, \
         users_list = helper_paginate_data(data=users, per_page=settings.PAGINATION_PER_PAGE, href=link)
 
-    bck = request.args.get('bck', 0, type=int)
-    basic_prices = settings.Prices.BASIC_PRICES
-    date_range_types = settings.Users.FILTER_DATE_TYPES
-    date_quant_max = settings.Users.FILTER_MAX_QUANTITY
     converted_date_type = settings.Users.FILTER_DATE_DICT.get(date_type)
     reanimate_call_result = settings.REANIMATE_CALL_RESULT
-    return jsonify({'htmlresponse': render_template(f'admin/ra/user_reanimate_response.html', **locals())}) \
-        if bck else render_template('admin/ra/main_reanimate.html', **locals())
+
+    return jsonify({
+        'htmlresponse': render_template('admin/ra/user_reanimate_response.html', **locals()),
+        'filters': {'date_quantity': date_quantity, 'date_type': date_type, 'sort_type': sort_type},
+    })
 
 
 def h_bck_su_control_reanimate_excel():
     # set manually type and status for render page case
     date_quantity, date_type, link_filters, sort_type = helper_get_filter_users(excel_report=True)
-
-    # link = f'javascript:bck_get_users_reanimate(\'' + url_for(
-    #     'admin_control.bck_control_reanimate') + f'?bck=1&{link_filters}' + 'page={0}\');'
 
     users = helper_get_users_reanimate(date_quantity=date_quantity, date_type=date_type, sort_type=sort_type)
 
@@ -1529,17 +1531,20 @@ def h_bck_su_control_reanimate_excel():
                                           x.os_created_at.date() if x.os_created_at else None,
                                           x.login_name, x.phone, x.email,
                                           x.partners_code, x.orders_count, x.total_marks_count, x.total_rows_count,
-                                          x.total_refill, x.total_write_off, x.avg_check), users))
+                                          x.total_refill, x.total_write_off, x.total_promo_used, x.avg_check), users))
     excel_filters = {
         'Временная единица': date_type,
         'Количество временных единиц': date_quantity,
+        'Период показателей': 'За всё время',
+        'Списания': 'Успешные оплаты заказов с баланса клиента, без вычета возвратов',
+        'Средний чек': 'Списания / количество заказов',
     }
 
     excel = ExcelReport(
         data=users_processed,
         filters=excel_filters,
         columns_name=['дата регистрации', 'Дата крайнего заказа', 'Логин', 'Телефон', 'Email', 'Код партнера',
-                      'Кол-во заказов', 'Сумма марок', 'Сумма строк', 'Итого пополнено, р.', 'Итого списано р.',
+                      'Кол-во заказов', 'Сумма марок',	'Сумма строк', 'Итого пополнено, р.', 'Итого списано р.', 'Использовано промокодов, р.',
                       'Средний чек, р.'],
         sheet_name='Отчет реанимации пользователей',
         output_file_name=f'реанимация клиентов({datetime.today().strftime("%d.%m.%y %H-%M")})',
@@ -1557,7 +1562,7 @@ def h_bck_su_control_reanimate_excel():
 
 def h_bck_agent_reanimate(u_id: int):
     """
-       background update of agent users transactions  write_off for agent commission counter
+       background update of users to reanimate(users that don't make orders for a while) of specific agent
     :return:
     """
     bck = request.args.get('bck', 0, type=int)
@@ -1573,31 +1578,35 @@ def h_bck_agent_reanimate(u_id: int):
     if current_user.role == 'superuser' and u_id:
         agent = User.query.with_entities(User.login_name).filter(User.id == u_id).first()
 
-    # set manually type and status for render page case
     date_quantity, date_type, link_filters, sort_type = helper_get_filter_users()
 
     link = f'javascript:bck_get_users_reanimate(\'' + url_for(
         'admin_control.bck_agent_control_reanimate', u_id=u_id) + f'?bck=1&{link_filters}' + 'page={0}\');'
 
+    bck = request.args.get('bck', 0, type=int)
+    date_range_types = settings.Users.FILTER_DATE_TYPES
+    date_quant_max = settings.Users.FILTER_MAX_QUANTITY
+    if not bck:
+        all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2) \
+            .order_by(desc(Price.created_at)).all()
+        return render_template('admin/ra/agent/main_reanimate.html', **locals())
+
     users = helper_get_users_reanimate(date_quantity=date_quantity, date_type=date_type, sort_type=sort_type, u_id=u_id)
     numrows = len(users)
 
     basic_prices = settings.Prices.BASIC_PRICES
-    all_prices = Price.query.with_entities(Price.id, Price.price_code, Price.price_at2) \
-        .order_by(desc(Price.created_at)).all()
-
 
     page, per_page, \
         offset, pagination, \
         users_list = helper_paginate_data(data=users, per_page=settings.PAGINATION_PER_PAGE, href=link)
 
-
-    date_range_types = settings.Users.FILTER_DATE_TYPES
-    date_quant_max = settings.Users.FILTER_MAX_QUANTITY
     converted_date_type = settings.Users.FILTER_DATE_DICT.get(date_type)
     reanimate_call_result = settings.REANIMATE_CALL_RESULT
-    return jsonify({'htmlresponse': render_template(f'admin/ra/agent/user_reanimate_response.html', **locals())}) \
-        if bck else render_template('admin/ra/agent/main_reanimate.html', **locals())
+
+    return jsonify({
+        'htmlresponse': render_template('admin/ra/agent/user_reanimate_response.html', **locals()),
+        'filters': {'date_quantity': date_quantity, 'date_type': date_type, 'sort_type': sort_type},
+    })
 
 
 def helper_get_ar_orders_stat(ar_schema: AROrdersSchema, u_id: int) -> tuple:

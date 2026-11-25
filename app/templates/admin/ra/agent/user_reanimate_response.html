@@ -1,4 +1,4 @@
-<div class="mt-3 faded">
+<div class="mt-3">
     {% if current_user.role == 'superuser' and u_id %}
       <h5>Пользователи агента {{ agent.login_name }} для реанимации</h5>
     {% elif current_user.role == 'superuser'%}
@@ -16,18 +16,23 @@
               <thead class="thead table-secondary text-white">
                 <tr>
                   <th scope="col">#</th>
-                  <th scope="col" style="width:200px"><font size="2">Логин</font></th>
+                  <th scope="col" class="text-nowrap" aria-sort="{{ 'ascending' if sort_type == 1 else 'descending' }}">
+                      <span class="d-inline-flex align-items-center gap-1 me-1">
+                          <a href="#" class="text-decoration-none {{ 'text-dark' if sort_type == 1 else 'text-secondary' }}"
+                             onclick="event.preventDefault(); sortReanimateUsers(1)" title="Логин по возрастанию" aria-label="Логин по возрастанию">↑</a>
+                          <a href="#" class="text-decoration-none {{ 'text-dark' if sort_type == 0 else 'text-secondary' }}"
+                             onclick="event.preventDefault(); sortReanimateUsers(0)" title="Логин по убыванию" aria-label="Логин по убыванию">↓</a>
+                      </span><font size="2">Логин</font>
+                  </th>
                   <th scope="col" style="width:150px"><font size="2">Телефон</font></th>
                   <th scope="col"><font size="2">Email</font></th>
                   <th scope="col"><font size="2">Код партнера</font></th>
                   <th scope="col"><font size="2">Код клиента</font></th>
+                  <th scope="col"><font size="2">Промокоды,&nbsp;р.</font></th>
                   {% if not (current_user.role == 'admin' and current_user.is_at2) %}
                       <th scope="col"><font size="2">Ценовой пакет</font></th>
                   {% endif %}                  <th scope="col"><font size="2">Статусы</font></th>
-                  <th scope="col"><font size="2">Запрос&nbsp;создания<br>&nbsp; нового&nbsp; пароля</font></th>
-                  <th scope="col"><font size="2">Управление пользователем</font></th>
 {#                  <th scope="col" style="text-align: center"><font size="2">Результат звонка</font></th>#}
-                  <th scope="col"><font size="2"></font></th>
                   <th scope="col"><font size="2"></font></th>
                 </tr>
               </thead>
@@ -40,19 +45,7 @@
                       </th>
 
                       <td>
-                          <span title="Баланс пользователя {{u.balance}} р.">
-                              <a href="{{url_for('admin_control.client_orders_stats', admin_id=u.admin_id, client_id=u.id)}}" title="Посмотреть историю заказов клиента">
-                                          {{u.login_name}}
-                                      </a>
-                          </span>
-                          {% if u.created_at %}
-                            <div class="font-10 text-secondary" title="Дата и время регистрации" style="font-size:12px">{{ u.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
-                          {% endif %}
-                          <div style="font-size: 8px" title="Количество заказов, количество этикеток и дата крайнего заказа">
-                              <span style="background-color: #dbf8b6;">{{ u.orders_count if u.orders_count else '_'}}</span> |
-                              <span title="крайний заказ зарегистрирован {{ u.os_created_at.strftime('%d.%m.%Y %H:%M:%S ') if u.os_created_at else '_'}}" style="background-color: #fcf0b5;">{{ u.total_marks_count if u.total_marks_count else '_' }}</span> |
-                              <span>{{ u.os_created_at.strftime('%d.%m.%Y %H:%M:%S ') if u.os_created_at else '_'}}</span>
-                          </div>
+                          {% include 'admin/ra/client_summary.html' %}
                       </td>
                       <td>
                           {{u.phone}}
@@ -73,18 +66,25 @@
                       <td>
                           {% if u.client_code %}{{ u.client_code }}{% endif %}
                       </td>
+                      <td>
+                          {% if u.total_promo_used %}
+                              <a href="{{ url_for('admin_control.su_control_specific_ut', u_id=u.id) }}" title="Открыть отчет по транзакциям пользователя">
+                                  {{ u.total_promo_used }}
+                              </a>
+                          {% else %}
+                              _
+                          {% endif %}
+                      </td>
                       {% if not (current_user.role == 'admin' and current_user.is_at2) %}
                           <td>
                               <div id="user_price{{u.id}}">
                               {% if u.price_code %}
-                                    <span class="badge bg-{%if not u.price_at2%}warning text-black{% else %}secondary{% endif %}" style="cursor:pointer"
-                                        onclick="perform_modal_prices('{{u.id}}', '{{u.login_name}}', '{{ u.price_code }}', '{{ u.price_1 }}', '{{ u.price_2 }}', '{{ u.price_3 }}', '{{ u.price_4 }}', '{{ u.price_5 }}',
-                                         '{{ u.price_6 }}', '{{ u.price_7 }}', '{{ u.price_8 }}', '{{ u.price_9 }}', '{{ u.price_10 }}', '{{ u.price_11 }}', '{{url_for('admin_control.bck_set_user_price', u_id=u.id)}}?bck=1', '{{csrf_token()}}')">{{ u.price_code }}</span>
-                                  {% else %}
-                                    <span class="badge bg-warning text-black" style="cursor:pointer"
-                                        onclick="perform_modal_prices('{{u.id}}', '{{u.login_name}}', '{{basic_prices[0]}}', '{{basic_prices[1]}}', '{{basic_prices[2]}}', '{{basic_prices[3]}}', '{{basic_prices[4]}}', '{{basic_prices[5]}}',
-                                        '{{basic_prices[6]}}', '{{basic_prices[7]}}', '{{basic_prices[8]}}', '{{basic_prices[9]}}', '{{basic_prices[10]}}', '{{basic_prices[11]}}', '{{url_for('admin_control.bck_set_user_price', u_id=u.id)}}?bck=1', '{{csrf_token()}}')">{{basic_prices[0]}}</span>
-                                  {% endif %}
+                                <span class="badge bg-warning text-black" style="cursor:pointer"
+                                    onclick="perform_modal_prices('{{u.id}}', '{{u.login_name}}', '{{ u.price_code }}', '{{ u.price_1 }}', '{{ u.price_2 }}', '{{ u.price_3 }}', '{{ u.price_4 }}', '{{ u.price_5 }}', '{{ u.price_6 }}', '{{ u.price_7 }}', '{{ u.price_8 }}', '{{ u.price_9 }}', '{{ u.price_10 }}', '{{ u.price_11 }}', `{{url_for('admin_control.bck_set_user_price', u_id=u.id)}}?bck=1`, '{{csrf_token()}}')">{{ u.price_code }}</span>
+                              {% else %}
+                                <span class="badge bg-warning text-black" style="cursor:pointer"
+                                    onclick="perform_modal_prices('{{u.id}}', '{{u.login_name}}', '{{basic_prices[0]}}', '{{basic_prices[1]}}', '{{basic_prices[2]}}', '{{basic_prices[3]}}', '{{basic_prices[4]}}', '{{basic_prices[5]}}', '{{basic_prices[6]}}', '{{basic_prices[7]}}', '{{basic_prices[8]}}', '{{basic_prices[9]}}', '{{basic_prices[10]}}', '{{basic_prices[11]}}', '{{url_for('admin_control.bck_set_user_price', u_id=u.id)}}?bck=1', '{{csrf_token()}}')">{{basic_prices[0]}}</span>
+                              {% endif %}
                               </div>
                           </td>
                       {% endif %}
@@ -94,76 +94,8 @@
                           {% else %}
                               <span class="badge bg-secondary">user не активирован</span>
                           {% endif %}
-                          <br>
-                          {% if u.is_send_excel %}
-                              <span class="badge bg-warning text-black">excel активирован</span>
-                          {% else %}
-                              <span class="badge bg-secondary text-white">excel не активирован</span>
-                          {% endif %}
-                      </td>
-                      <td>
-
-                          <h5><span class="btn btn-sm btn-outline-warning btn-outline"
-                                    onclick="perform_modal_copy_link(`{{ u.id }}`, `{{ u.login_name }}`); get_information(`{{ url_for('admin_control.create_link_new_password', u_id=u.id) }}`, function(text) {
-                                        var text_block = document.getElementById(`user_link{{ u.id }}`);
-                                            text_block.value=text;
-                                         // Do something with the div here, like inserting it into the page
-                             $('#user_linkModal{{ u.id }}').modal('show');})">Запрос на ссылку</span>
-
-                          </h5>
 
                       </td>
-                      <td>
-                          {% if not u.status %}
-
-                              <form method="post" action="{{url_for('admin_control.set_user',
-                                type_set='activate_user', u_id=u.id)}}">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                <input class="btn btn-sm btn-outline-success btn-block"
-                                     type="submit" name="activate"
-                                    onclick="if (document.getElementById('set_user_{{ u.id }}').validity.valid){loadingCircle();}"
-                                     value="Активировать">
-                                <input type="text" class="form-control mt-1" id="set_user_{{ u.id }}"
-                                         placeholder="Введите код клиента"
-                                     name="client_code"
-                                     {% if u.client_code %}value="{{ u.client_code }}"{% endif %} required>
-                              </form>
-
-                          {% else %}
-                              <form method="post" action="{{url_for('admin_control.deactivate_user',
-                                    type_set='deactivate_user', u_id=u.id)}}">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                    <input class="btn btn-sm btn-outline-danger btn-block"
-                                         type="submit" name="activate" value="Деактивировать"
-                                         onclick="loadingCircle()"
-                                         {% if u.role == 'superuser' %}disabled{% endif %}>
-                              </form>
-                          {% endif %}
-                            <br>
-                          {% if not u.is_send_excel %}
-                              <form method="post" action="{{url_for('admin_control.set_user',
-                                  type_set='activate_is_send', u_id=u.id)}}">
-                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                  <input class="btn btn-sm btn-outline-info btn-block"
-                                         title="Включить возможность отправки таблиц Excel"
-                                         type="submit" name="activate"
-                 onclick="{loadingCircle();}"
-                                         value="Вкл. EXCEL">
-
-                              </form>
-                          {% else %}
-                              <form method="post" action="{{url_for('admin_control.deactivate_user',
-                                    type_set='deactivate_is_send', u_id=u.id)}}">
-                                          <input class="btn btn-sm btn-outline-secondary btn-block"
-                                                 title="Оключить возможность отправки таблиц Excel"
-                                                 type="submit" name="activate" value="Откл. EXCEL"
-                                                 onclick="loadingCircle()"
-                                                 {% if u.role == 'superuser' %}disabled{% endif %}>
-                              </form>
-                          {% endif %}
-
-                      </td>
-
 {#                      <td>#}
 {#                        <div id="call_comment_and_result_{{ u.id }}" style="width: 400px;!important;">#}
                         {# for using user instead of u in reanimate_comment.html #}
@@ -172,12 +104,10 @@
 {#                        </div>#}
 {##}
 {#                      </td>#}
-                    <td>
-
-                    </td>
                       <td>
-                          <form method="post" action="{{ url_for('admin_control.delete_user', u_id=u.id)}}">
-                              <button type="submit" class="btn btn-sm btn-outline-danger"
+                          <form method="post" class="d-inline" action="{{ url_for('admin_control.delete_user', u_id=u.id)}}">
+                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                              <button type="submit" class="border-0 bg-transparent text-danger p-1" aria-label="Удалить пользователя {{ u.login_name }}"
                                   title="Удалить пользователя {{ u.login_name }}"
                                   onclick="loadingCircle()" {% if u.role == 'superuser' %}disabled{% endif %}>
                                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
@@ -205,5 +135,7 @@
                 </div>
             </div>
         </div>
+    {% else %}
+        <div class="alert alert-light border mt-3">Клиентов с выбранным сроком неактивности не найдено.</div>
     {%endif%}
 </div>
