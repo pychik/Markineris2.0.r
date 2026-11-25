@@ -443,7 +443,7 @@ function clothes_content_add() {
     }
 
     content_box.value += add_content;
-    content_box.value = content_box.value.slice(0, 101);
+    content_box.value = content_box.value.slice(0, 100);
     window.ClothesTnvedContent?.sync();
 }
 

@@ -69,6 +69,8 @@ def save_shoes(order: Order, form_dict: dict, sizes_quantities: list) -> Order:
 def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcategory: str = None) -> Order:
     rd_date = datetime.strptime(form_dict.get("rd_date"), '%d.%m.%Y').date() if form_dict.get("rd_date") else None
     article = normalize_article_placeholder(form_dict.get("article"))
+    # Browser form submissions encode textarea line breaks as CRLF.
+    content = (form_dict.get("content") or "").replace('\r\n', ' ').replace('\r', ' ').replace('\n', ' ')[:100]
     normalized_subcategory = subcategory if subcategory else ClothesSubcategories.common.value
     clothes_type = normalize_clothes_type_for_subcategory(form_dict.get("type"), normalized_subcategory)
 
@@ -77,7 +79,7 @@ def save_clothes(order: Order, form_dict: dict, sizes_quantities: list, subcateg
                                 type=clothes_type,
                                 is_children=form_dict.get("is_children") == "yes",
                                 color=form_dict.get("color"),
-                                content=form_dict.get("content")[:101], box_quantity=form_dict.get("box_quantity"),
+                                content=content, box_quantity=form_dict.get("box_quantity"),
                                 gender=form_dict.get("gender"), country=form_dict.get("country"),
                                 tnved_code=form_dict.get("tnved_code"), article_price=form_dict.get("article_price"),
                                 tax=form_dict.get("tax"), rd_type=form_dict.get("rd_type"),
