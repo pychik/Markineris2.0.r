@@ -1,10 +1,11 @@
 from flask import Blueprint, jsonify, render_template, redirect, url_for, flash, Response, make_response, request
 from flask_login import current_user
 from sqlalchemy import desc, func, or_
+from sqlalchemy.orm import lazyload, selectinload
 
 from loguru import logger
 from config import settings
-from models import Clothes, Cosmetics, Order, OrderFile, Toys
+from models import Clothes, Cosmetics, Linen, Order, OrderFile, Shoe, Socks, Toys
 from utilities.categories_data.subcategories_data import ClothesSubcategories, Category
 from utilities.categories_data.subcategories_logic import get_subcategory
 from utilities.minio_service.services import download_file_from_minio, get_s3_service
@@ -266,7 +267,19 @@ def h_copy_order(o_id: int, category: str) -> Response:
     u_id = user.id
     orders_id = [o.id for o in user.orders.with_entities(Order.id).filter(~Order.to_delete).all()]
 
-    order = (Order.query.filter_by(id=o_id, category=category, user_id=user.id)
+    # Avoid joining every category and its sizes when loading one source order.
+    category_loaders = {
+        settings.Shoes.CATEGORY: selectinload(Order.shoes).selectinload(Shoe.sizes_quantities),
+        settings.Clothes.CATEGORY: selectinload(Order.clothes).selectinload(Clothes.sizes_quantities),
+        settings.Socks.CATEGORY: selectinload(Order.socks).selectinload(Socks.sizes_quantities),
+        settings.Linen.CATEGORY: selectinload(Order.linen).options(
+            selectinload(Linen.sizes_quantities), selectinload(Linen.set_items)),
+        settings.Parfum.CATEGORY: selectinload(Order.parfum),
+        settings.Cosmetics.CATEGORY: selectinload(Order.cosmetics),
+        settings.Toys.CATEGORY: selectinload(Order.toys),
+    }
+    order = (Order.query.options(lazyload('*'), category_loaders[category])
+             .filter_by(id=o_id, category=category, user_id=u_id)
              .filter(~Order.to_delete).first())
 
     if not order or order.id not in orders_id:

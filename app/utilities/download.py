@@ -17,7 +17,7 @@ from .categories_data.accessories_data import HATS_DEC_DICT, GLOVES_DEC_DICT, SH
 from .categories_data.categories_codes.clothes_category_code_mapper import resolve_clothes_category_code
 from .categories_data.subcategories_data import ClothesSubcategories, Category
 from .abstract import ProcessorInterface
-from .support import order_count, helper_paginate_data, check_leather
+from .support import order_count, helper_paginate_data, check_leather, category_order_load_options
 from .categories_data.underwear_data import UNDERWEAR_DEC_DICT, UNDERWEAR_TNVEDS
 from .categories_data.swimming_accessories_data import SWIMMING_ACCESSORIES_DEC_DICT
 from .categories_data.subcategories_logic import get_subcategory
@@ -1570,7 +1570,13 @@ def orders_list_get(model: db.Model) -> Optional[Union[tuple, list]]:
 def get_download_info(o_id, user: User, flag_046: bool = False) -> Union[Response, tuple]:
     category_name_excel = ''  # for filename if we got subcategory
 
-    order = Order.query.filter(Order.id == o_id, ~Order.to_delete).first()
+    # Read the category without triggering joined loads of all position tables.
+    category = (Order.query.with_entities(Order.category)
+                .filter(Order.id == o_id, ~Order.to_delete).scalar())
+    load_options = (category_order_load_options(category)
+                    if category in settings.CATEGORIES_UPLOAD else [lazyload("*")])
+    order = (Order.query.options(*load_options)
+             .filter(Order.id == o_id, ~Order.to_delete).first())
     if not order:
         flash(message=settings.Messages.EMPTY_ORDER, category='error')
         # return redirect(url_for('main.enter'))
