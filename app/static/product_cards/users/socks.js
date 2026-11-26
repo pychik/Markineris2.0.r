@@ -21,18 +21,23 @@ function socksClearSelectedSizes() {
 
 function socksChildrenChanged() {
     if (document.getElementById('is_children')?.disabled) return;
+    if (socksChildrenSelected()) {
+        $('#gender').val('Без указания пола').trigger('change.select2');
+    } else if (document.getElementById('gender')?.value === 'Детск.') {
+        $('#gender').val('').trigger('change.select2');
+    }
     socksSyncChildrenSwitch();
     socksClearSelectedSizes();
-    if (!socksChildrenSelected() && document.getElementById('gender')?.value === 'Детск.') {
-        $('#gender').val('').trigger('change');
-    }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
     socksSyncChildrenSwitch();
     $('#gender').on('change.socksChildren', function () {
         if (document.getElementById('is_children')?.disabled) return;
-        if (this.value === 'Детск.') document.getElementById('is_children').checked = true;
+        if (this.value === 'Детск.') {
+            document.getElementById('is_children').checked = true;
+            $(this).val('Без указания пола').trigger('change.select2');
+        }
         socksSyncChildrenSwitch();
         socksClearSelectedSizes();
     });
@@ -323,15 +328,12 @@ function chooseSizeSocks() {
     }
     let socks_operation_dict = socksChildrenSelected()
         ? socks_types_sizes_dict['Детск.'] : socks_types_sizes_dict[gender_value];
-    if (!socksChildrenSelected() && gender_value === 'Без указания пола') {
-        socks_operation_dict = {...socks_operation_dict, 'РОССИЯ': socks_operation_dict['РОССИЯ'].filter(
-            entry => !['7', '8-10', '12', '14', '16', '18', '20', '22'].includes(entry[0]))};
-    }
     // Iterate over each clothing type and its sizes
     for (let clothingType in socks_operation_dict) {
         // console.log(socks_operation_dict);
         if (socks_operation_dict.hasOwnProperty(clothingType)) {
             let sizes = socks_operation_dict[clothingType];
+            const groupId = `socks_size_group_${Object.keys(socks_operation_dict).indexOf(clothingType)}`;
 
 
 
@@ -341,12 +343,12 @@ function chooseSizeSocks() {
             // Create HTML for collapsible div
             content += `
                 <div class="accordion-item">
-                    <h2 class="accordion-header" id="heading_${clothingType}">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_${clothingType}" aria-expanded="false" aria-controls="collapse_${clothingType}">
+                    <h2 class="accordion-header" id="heading_${groupId}">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_${groupId}" aria-expanded="false" aria-controls="collapse_${groupId}">
                             ${clothingType === 'month' ? 'ВОЗРАСТ — МЕСЯЦЫ' : clothingType === 'years' ? 'ВОЗРАСТ — ГОДЫ' : clothingType}
                         </button>
                     </h2>
-                    <div id="collapse_${clothingType}" class="accordion-collapse collapse" aria-labelledby="heading_${clothingType}">
+                    <div id="collapse_${groupId}" class="accordion-collapse collapse" aria-labelledby="heading_${groupId}">
                         <div class="accordion-body">
                             <div class="row">${sizesBlock}</div>
                         </div>

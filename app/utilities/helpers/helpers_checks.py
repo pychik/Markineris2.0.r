@@ -1,5 +1,7 @@
 from config import settings
 from utilities.clothes_tnved_content import clothes_tnved_content_error
+from utilities.exceptions import SizeTypeException
+from utilities.socks_children import validate_socks_sizes
 from models import Shoe, Linen, Parfum, Socks, Clothes, Cosmetics, Toys
 from tezaurus.runtime_catalogs import (
     get_all_countries,
@@ -189,10 +191,13 @@ def _check_clothes_compatibility(clothes) -> str | bool:
     return base
 
 def _check_socks_compatibility(sock: Socks) -> str | bool:
-    country_err = _check_country_by_rd(sock)
-    if not country_err:
-        return False
-    return country_err
+    error = _check_country_by_rd(sock)
+    try:
+        validate_socks_sizes([(sq.size, sq.quantity, sq.size_type) for sq in sock.sizes_quantities],
+                             bool(getattr(sock, 'is_children', False)), sock.gender)
+    except SizeTypeException as exc:
+        error = _append_err(error, str(exc)) if error else str(exc)
+    return error or False
 
 
 def _check_linen_compatibility(linen) -> str | bool:

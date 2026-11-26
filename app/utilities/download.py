@@ -1441,7 +1441,8 @@ class SocksProcessor(OrdersProcessor):
                 size, size_type = socks_size_for_export(size, size_type, flag_046)
                 content = OrdersProcessor.normalize_export_content(el.content)
 
-                gender_dec = SocksProcessor.get_gender_dec(clothes_type=el.type, gender=el.gender)
+                gender_dec = 'детские' if getattr(el, 'is_children', False) else (
+                    SocksProcessor.get_gender_dec(clothes_type=el.type, gender=el.gender) or '')
                 gender = SocksProcessor.get_gender(gender=el.gender) if not flag_046 \
                     else SocksProcessor.get_gender_046(gender=el.gender)
                 full_name = f'{el.type} {gender_dec} ' \

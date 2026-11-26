@@ -6,7 +6,7 @@ import re
 from typing import Any
 
 from config import settings
-from utilities.socks_children import CHILDREN_AGE_SIZES, normalize_socks_size
+from utilities.socks_children import CHILDREN_AGE_SIZES, validate_socks_age
 from utilities.exceptions import SizeTypeException
 
 NO_TRADEMARK_VALUE = 'без товарного знака'
@@ -290,8 +290,7 @@ def get_socks_size_type(size: str, provided_type: str) -> str:
         return settings.Socks.INTERNATIONAL_SIZE_TYPE
 
     if normalized_type in CHILDREN_AGE_SIZES:
-        if normalize_socks_size(size, normalized_type) not in dict(CHILDREN_AGE_SIZES[normalized_type]):
-            raise SizeTypeException("Выберите возрастной размер из детского справочника.")
+        validate_socks_age(size, normalized_type)
 
     if normalized_type in settings.Socks.SIZE_TYPES_ALL:
         return normalized_type

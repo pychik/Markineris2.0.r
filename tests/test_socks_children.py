@@ -16,8 +16,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'app'))
 from utilities.exceptions import SizeTypeException
 from utilities.socks_children import (
-    CHILDREN_AGE_SIZES, normalize_socks_size, parse_socks_children,
-    socks_size_for_export, validate_socks_sizes,
+    CHILDREN_AGE_SIZES, CHILDREN_INTERNATIONAL, FOOT_LENGTH_SIZE_TYPE, FOOT_LENGTH_SIZES,
+    normalize_socks_size, parse_socks_children, socks_size_for_export, validate_socks_age,
+    validate_socks_sizes,
 )
 
 
@@ -48,20 +49,48 @@ class SocksChildrenTests(unittest.TestCase):
         self.settings = NS(Socks=socks_config())
         self.get_type = load_node('app/utilities/saving_helpers.py', 'get_socks_size_type', dict(
             settings=self.settings, SizeTypeException=SizeTypeException,
-            CHILDREN_AGE_SIZES=CHILDREN_AGE_SIZES, normalize_socks_size=normalize_socks_size))
+            CHILDREN_AGE_SIZES=CHILDREN_AGE_SIZES, validate_socks_age=validate_socks_age))
 
-    def test_all_nine_ages_keep_units_and_convert_to_international_for_046(self):
-        expected = [('0-3', 'month', '6'), ('3-6', 'month', '8'), ('6-9', 'month', '10'),
-                    ('1,5', 'years', '12'), ('2-3', 'years', '14'), ('4-5', 'years', '16'),
-                    ('6-7', 'years', '18'), ('8-9', 'years', '20'), ('10-12', 'years', '22')]
-        for age, kind, international in expected:
+    def test_ages_keep_values_in_both_export_formats(self):
+        expected = [(str(year), 'years') for year in range(1, 15)] + [
+            ('0-3', 'month'), ('3-6', 'month'), ('6-9', 'month'),
+            ('1-2', 'years'), ('2-3', 'years'), ('3-4', 'years'), ('1-3', 'years'),
+            ('1,5', 'years'), ('4-5', 'years'), ('6-7', 'years'), ('8-9', 'years'), ('10-12', 'years')]
+        for age, kind in expected:
             with self.subTest(age=age):
                 self.assertEqual(self.get_type(age, kind), kind)
                 validate_socks_sizes([(age, 2, kind)], True, 'Унисекс')
-                self.assertEqual(socks_size_for_export(age, kind), (age, kind))
-                self.assertEqual(socks_size_for_export(age, kind, True), (international, 'МЕЖДУНАРОДНЫЙ'))
+                exported = f'{age} years' if kind == 'years' else age
+                self.assertEqual(socks_size_for_export(age, kind), (exported, 'МЕЖДУНАРОДНЫЙ'))
+                self.assertEqual(socks_size_for_export(age, kind, True), (exported, 'МЕЖДУНАРОДНЫЙ'))
         self.assertEqual(normalize_socks_size('1.5', 'years'), '1,5')
         self.assertEqual(normalize_socks_size('12.0', 'МЕЖДУНАРОДНЫЙ'), '12')
+        self.assertEqual(normalize_socks_size('2-3 years', 'years'), '2-3')
+
+    def test_new_grids_are_available_only_in_their_mode(self):
+        expected = [str(n) for n in range(6, 29, 2)] + [f'{n}-{n+2}' for n in range(6, 27, 2)]
+        self.assertEqual(list(CHILDREN_INTERNATIONAL), expected)
+        child_grid = self.settings.Socks.SIZE_ALL_DICT['Детск.']
+        for kind in ['РОССИЯ', 'МЕЖДУНАРОДНЫЙ']:
+            self.assertEqual([entry[0] for entry in child_grid[kind]], expected)
+            for size in expected:
+                validate_socks_sizes([(size, 1, kind)], True, 'Без указания пола')
+                self.assertTrue(parse_socks_children('', '', kind, size))
+                with self.assertRaises(SizeTypeException):
+                    validate_socks_sizes([(size, 1, kind)], False, 'Без указания пола')
+        self.assertEqual(list(FOOT_LENGTH_SIZES), [f'{n}-{n+2}' for n in range(6, 32)])
+        for gender in ['Жен.', 'Муж.', 'Унисекс', 'Без указания пола']:
+            self.assertEqual([entry[0] for entry in self.settings.Socks.SIZE_ALL_DICT[gender][FOOT_LENGTH_SIZE_TYPE]],
+                             list(FOOT_LENGTH_SIZES))
+        self.assertNotIn(FOOT_LENGTH_SIZE_TYPE, child_grid)
+        for size in FOOT_LENGTH_SIZES:
+            self.assertFalse(parse_socks_children('', '', FOOT_LENGTH_SIZE_TYPE, size))
+            validate_socks_sizes([(size, 1, FOOT_LENGTH_SIZE_TYPE)], False, 'Унисекс')
+            with self.assertRaises(SizeTypeException):
+                validate_socks_sizes([(size, 1, FOOT_LENGTH_SIZE_TYPE)], True, 'Без указания пола')
+        for size in ['5-7', '32-34', '6-9', '23', '23-25 см']:
+            with self.assertRaises(SizeTypeException):
+                validate_socks_sizes([(size, 1, FOOT_LENGTH_SIZE_TYPE)], False, 'Унисекс')
 
     def test_server_rejects_mixed_grids_and_unknown_ages(self):
         for size, kind, child, gender in [
@@ -70,6 +99,8 @@ class SocksChildrenTests(unittest.TestCase):
             ('XL', 'МЕЖДУНАРОДНЫЙ', True, 'Муж.'), ('25', 'РОССИЯ', True, 'Унисекс'),
             ('0-3', 'years', True, 'Детск.'), ('2-3', 'month', True, 'Детск.'),
             ('25', 'РОССИЯ', False, 'Детск.'),
+            ('15', 'years', True, 'Без указания пола'), ('4-6', 'years', True, 'Без указания пола'),
+            ('30', 'МЕЖДУНАРОДНЫЙ', True, 'Без указания пола'),
         ]:
             with self.subTest(size=size, kind=kind, child=child):
                 with self.assertRaises(SizeTypeException):
@@ -84,6 +115,8 @@ class SocksChildrenTests(unittest.TestCase):
         self.assertFalse(parse_socks_children('', 'Жен.', 'РОССИЯ'))
         self.assertTrue(parse_socks_children('Да', 'Унисекс', 'МЕЖДУНАРОДНЫЙ'))
         self.assertFalse(parse_socks_children('Нет', 'Детск.', 'years'))
+        self.assertFalse(parse_socks_children('', 'Без указания пола', 'МЕЖДУНАРОДНЫЙ', 'ONE SIZE'))
+        self.assertTrue(parse_socks_children('Да', 'Без указания пола', 'МЕЖДУНАРОДНЫЙ', 'ONE SIZE'))
         with self.assertRaises(SizeTypeException):
             parse_socks_children('возможно', 'Унисекс', 'РОССИЯ')
 
@@ -96,6 +129,9 @@ class SocksChildrenTests(unittest.TestCase):
         for size, supplied, expected, normalized in [
             ('12', 'МЕЖДУНАРОДНЫЙ', 'МЕЖДУНАРОДНЫЙ', '12'),
             ('0-3', 'MONTH', 'month', '0-3'), ('1.5', 'years', 'years', '1,5'),
+            ('14 years', 'МЕЖДУНАРОДНЫЙ', 'years', '14'), ('1-3 years', '', 'years', '1-3'),
+            ('0-3', 'МЕЖДУНАРОДНЫЙ', 'month', '0-3'), ('3-6', '', 'month', '3-6'),
+            ('31-33', 'длина стопы', 'ДЛИНА СТОПЫ', '31-33'),
             ('25', '', 'РОССИЯ', '25'), ('XL', 'nan', 'МЕЖДУНАРОДНЫЙ', 'XL'),
         ]:
             rows = [[''] * 15]
@@ -121,6 +157,24 @@ class SocksChildrenTests(unittest.TestCase):
         form.add('size', '2-3')
         with self.assertRaises(ValueError):
             parse('socks', form)
+
+    def test_saved_position_validator_checks_sizes_and_country(self):
+        country_error = ''
+        ns = dict(validate_socks_sizes=validate_socks_sizes, SizeTypeException=SizeTypeException,
+                  _check_country_by_rd=lambda item: country_error)
+        load_node('app/utilities/helpers/helpers_checks.py', '_append_err', ns)
+        check = load_node('app/utilities/helpers/helpers_checks.py', '_check_socks_compatibility', ns)
+        item = NS(is_children=False, gender='Унисекс',
+                  sizes_quantities=[NS(size='31-33', size_type=FOOT_LENGTH_SIZE_TYPE, quantity=1)])
+        self.assertFalse(check(item))
+        item.is_children = True
+        self.assertIn('только для взрослых', check(item))
+        country_error = 'Ошибка страны'
+        self.assertTrue(check(item).startswith('Ошибка страны; '))
+        item.sizes_quantities = [NS(size='2-3', size_type='years', quantity=1)]
+        self.assertEqual(check(item), country_error)
+        country_error = ''
+        self.assertFalse(check(item))
 
     def test_order_merge_separates_adult_and_child_with_same_article(self):
         ns = dict(Any=object, settings=NS(**{name: NS(CATEGORY=name.lower()) for name in ['Shoes', 'Clothes', 'Socks']}),
@@ -198,12 +252,12 @@ class SocksChildrenTests(unittest.TestCase):
 
     def test_full_excel_validation_and_save_keep_mode_size_and_weight(self):
         from pandas import isna
-        self.settings.Socks.__dict__.update(TYPES=['НОСКИ'], GENDERS=['Унисекс', 'Детск.'],
+        self.settings.Socks.__dict__.update(TYPES=['НОСКИ'], GENDERS=['Унисекс', 'Детск.', 'Без указания пола'],
                                             MAX_QUANTITY=100000, MIN_QUANTITY=1)
         self.settings.Clothes = NS(UPLOAD_STANDART_ROW=7)
         self.settings.ORDER_LIMIT_ARTICLES = 1600
         self.settings.Messages = NS(UPLOAD_EMPTY_FILE_ERROR='empty')
-        self.settings.RZ_GENDERS_RD_LIST = ['Унисекс', 'Детск.']
+        self.settings.RZ_GENDERS_RD_LIST = ['Унисекс', 'Детск.', 'Без указания пола']
         ns = dict(settings=self.settings, re=re, copy=copy, isna=isna, datetime=datetime,
                   get_socks_size_type=self.get_type, SizeTypeException=SizeTypeException,
                   normalize_socks_size=normalize_socks_size, parse_socks_children=parse_socks_children,
@@ -216,12 +270,21 @@ class SocksChildrenTests(unittest.TestCase):
         upload = load_node('app/utilities/upload_order/upload_socks.py', 'UploadSocks', ns)
         rows = [['Бренд', 'A1', 'НОСКИ', 'БЕЛЫЙ', 'Унисекс', kind, size,
                  'Хлопок', '6115950000', '2', 'РОССИЯ', '', '', '', flag]
-                for kind, size, flag in [('years', '1.5', 'Да'), ('МЕЖДУНАРОДНЫЙ', '6', 'Да'),
-                                          ('РОССИЯ', '25', 'Нет')]]
+                for kind, size, flag in [('years', '1.5', 'Да'), ('МЕЖДУНАРОДНЫЙ', '6', ''),
+                                          ('РОССИЯ', '25', 'Нет'), ('РОССИЯ', '28', ''),
+                                          ('МЕЖДУНАРОДНЫЙ', '1-3 years', ''),
+                                          ('МЕЖДУНАРОДНЫЙ', '0-3', ''),
+                                          ('ДЛИНА СТОПЫ', '6-8', ''),
+                                          ('МЕЖДУНАРОДНЫЙ', 'ONE SIZE', 'Да'),
+                                          ('МЕЖДУНАРОДНЫЙ', 'ONE SIZE', '')]]
         validated, errors = upload.ValidateStandart().full_validate_standart(rows)
         self.assertEqual(errors, [])
-        self.assertEqual([row[14] for row in validated], ['yes', 'yes', 'no'])
+        modes = [True, True, False, True, True, True, False, True, False]
+        self.assertEqual([row[14] for row in validated], ['yes' if child else 'no' for child in modes])
         self.assertEqual(validated[0][5:7], ['years', '1,5'])
+        self.assertEqual(validated[4][5:7], ['years', '1-3'])
+        self.assertEqual(validated[5][5:7], ['month', '0-3'])
+        self.assertEqual([row[4] for row in validated], ['Без указания пола' if child else 'Унисекс' for child in modes])
         self.settings.Socks.CATEGORY = 'socks'
         ns.update(Socks=lambda **kw: NS(sizes_quantities=[], **kw), SocksQuantitySize=lambda **kw: NS(**kw),
                   append_or_merge_position=lambda items, item, *args: items.append(item))
@@ -230,26 +293,58 @@ class SocksChildrenTests(unittest.TestCase):
             row.append(100)
         order = NS(socks=[])
         save(validated, order)
-        self.assertEqual([item.is_children for item in order.socks], [True, True, False])
-        self.assertEqual([item.weight_grams for item in order.socks], [100, 100, 100])
+        self.assertEqual([item.is_children for item in order.socks], modes)
+        self.assertEqual([item.weight_grams for item in order.socks], [100] * len(modes))
         self.assertEqual(order.socks[0].sizes_quantities[0].size, '1,5')
+        for kind, size, flag in [('ДЛИНА СТОПЫ', '6-8', 'Да'), ('ДЛИНА СТОПЫ', '32-34', ''),
+                                 ('РОССИЯ', '28', 'Нет'), ('years', '15', '')]:
+            with self.subTest(kind=kind, size=size, flag=flag):
+                invalid = [['Бренд', 'A1', 'НОСКИ', 'БЕЛЫЙ', 'Унисекс', kind, size,
+                            'Хлопок', '6115950000', '2', 'РОССИЯ', '', '', '', flag]]
+                _, errors = upload.ValidateStandart().full_validate_standart(invalid)
+                self.assertTrue(errors)
 
     def test_workbook_flag_dropdown_types_and_age_reference(self):
+        from contextlib import closing
+        from openpyxl import load_workbook
+        from openpyxl.formula.translate import Translator
+
         ns = {'m': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
-        with ZipFile(ROOT/'app/download_dir/system_files/носки_по каждому размеру.xlsx') as book:
+        path = ROOT/'app/download_dir/system_files/носки_по каждому размеру.xlsx'
+        with ZipFile(path) as book:
             data = ET.fromstring(book.read('xl/worksheets/sheet1.xml'))
-            catalog = ET.fromstring(book.read('xl/worksheets/sheet2.xml'))
-            sizes = ET.fromstring(book.read('xl/worksheets/sheet3.xml'))
-        cells = lambda tree: {c.get('r'): ''.join(c.itertext()) for c in tree.findall('.//m:c', ns)}
-        self.assertEqual(cells(data)['S1'], 'Детский товар')
-        self.assertEqual([cells(catalog)[coord] for coord in ['D4', 'D5', 'G2', 'G3']], ['month', 'years', 'Да', 'Нет'])
         validations = {v.get('sqref'): v.findtext('m:formula1', namespaces=ns) for v in data.findall('.//m:dataValidation', ns)}
         self.assertEqual(validations['S7:S1045'], 'Справочники!$G$2:$G$3')
-        self.assertEqual(validations['I7:I1045'], 'Справочники!$D$2:$D$5')
-        self.assertEqual([cells(sizes)[f'I{row}'] for row in range(116, 125)],
-                         ['0-3', '3-6', '6-9', '1,5', '2-3', '4-5', '6-7', '8-9', '10-12'])
+        self.assertEqual(validations['I7:I1045'], 'Справочники!$D$2:$D$6')
+        with closing(load_workbook(path, read_only=True)) as book:
+            data, catalog, reference = book.worksheets[:3]
+            self.assertEqual(data['S1'].value, 'Детский товар')
+            self.assertEqual([catalog[coord].value for coord in ['D4', 'D5', 'G2', 'G3']],
+                             ['month', 'years', 'Да', 'Нет'])
+            self.assertEqual(catalog['D6'].value, FOOT_LENGTH_SIZE_TYPE)
+            entries = list(reference.iter_rows(min_row=2, min_col=7, max_col=10, values_only=True))
+            for kind, values in [('РОССИЯ', CHILDREN_INTERNATIONAL), ('МЕЖДУНАРОДНЫЙ', CHILDREN_INTERNATIONAL),
+                                 *CHILDREN_AGE_SIZES.items()]:
+                actual = [size for mode, entry_kind, size, _ in entries
+                          if mode == 'Детский' and entry_kind == kind and size != 'ONE SIZE']
+                self.assertEqual(actual, list(values))
+            self.assertEqual([size for _, kind, size, _ in entries if kind == FOOT_LENGTH_SIZE_TYPE],
+                             list(FOOT_LENGTH_SIZES))
+            self.assertEqual([mode for mode, _, size, _ in entries if size == 'ONE SIZE'],
+                             ['Детский', 'Взрослый — любой пол'])
+            for name, expected in [('SocksChildNumeric', CHILDREN_INTERNATIONAL),
+                                   ('SocksChildMonths', CHILDREN_AGE_SIZES['month'])]:
+                sheet, coords = next(book.defined_names[name].destinations)
+                self.assertEqual([row[0].value for row in book[sheet][coords]], list(expected))
+            first_formula = data['B7'].value
+            self.assertEqual(data['B1045'].value,
+                             Translator(first_formula, origin='B7').translate_formula('B1045'))
+            self.assertTrue(all(row[0].data_type == 'f' for row in data.iter_rows(
+                min_row=7, max_row=1045, min_col=2, max_col=2)))
+            self.assertTrue(all(row[0].number_format == '@' for row in data.iter_rows(
+                min_row=7, max_row=1045, min_col=10, max_col=10)))
 
-    def test_export_regulation_per_position_and_046_size_conversion(self):
+    def test_export_regulation_per_position_and_046_preserves_age(self):
         tree = ast.parse((ROOT/'app/config.py').read_text())
         settings_node = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'Settings')
         socks = next(n for n in settings_node.body if isinstance(n, ast.ClassDef) and n.name == 'Socks')
@@ -276,13 +371,31 @@ class SocksChildrenTests(unittest.TestCase):
         self.assertEqual([len(row) for row in rows], [23, 23])
         self.assertIn('017/2011', rows[0][13])
         self.assertIn('007/2011', rows[1][13])
-        self.assertEqual(rows[1][9:11], ['years', '1,5'])
+        self.assertEqual(rows[1][9:11], ['МЕЖДУНАРОДНЫЙ', '1,5 years'])
+        self.assertIn('НОСКИ детские', rows[1][2])
         self.assertEqual([row[18] for row in rows], [6, 6])
         self.assertEqual(inner, rows)
         self.assertEqual(outer, [])
         rows, _, _ = export(items, flag_046=True)
-        self.assertEqual(rows[1][12:14], ['<1764000037> МЕЖДУНАРОДНЫЙ', '12'])
+        self.assertEqual(rows[1][12:14], ['<1764000037> МЕЖДУНАРОДНЫЙ', '1,5 years'])
+        self.assertTrue(rows[1][4].endswith('р. 1,5 years'))
         self.assertNotIn(None, rows[1][12:14])
+        for kind, size, child, expected_type, expected_size in [
+            ('years', '2-3', True, 'МЕЖДУНАРОДНЫЙ', '2-3 years'),
+            ('month', '0-3', True, 'МЕЖДУНАРОДНЫЙ', '0-3'),
+            ('МЕЖДУНАРОДНЫЙ', '28', True, 'МЕЖДУНАРОДНЫЙ', '28'),
+            ('РОССИЯ', '26-28', True, 'РОССИЯ', '26-28'),
+            ('ДЛИНА СТОПЫ', '31-33', False, 'ДЛИНА СТОПЫ', '31-33'),
+        ]:
+            with self.subTest(kind=kind, size=size):
+                item = copy(items[1])
+                item.is_children, item.gender = child, 'Без указания пола'
+                item.sizes_quantities = [NS(size=size, size_type=kind, quantity=1)]
+                rows, _, _ = export([item])
+                self.assertEqual(rows[0][9:11], [expected_type, expected_size])
+                self.assertEqual('детские' in rows[0][2], child)
+                self.assertTrue(rows[0][2].endswith(f'р. {expected_size}'))
+                self.assertNotIn('None', rows[0][2])
 
 
 if __name__ == '__main__':

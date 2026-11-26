@@ -68,6 +68,11 @@ class ValidateSocksMixin:
         row = order_list[row_num - settings.Socks.UPLOAD_STANDART_ROW]
         provided = row[pos].strip()
         kind = provided.lower() if provided.lower() in {'month', 'years'} else provided.upper()
+        if kind in {'', 'NAN', 'NONE', 'МЕЖДУНАРОДНЫЙ'}:
+            if re.fullmatch(r'\d+(?:[.,]\d+|-\d+)?\s*years', size_value, re.IGNORECASE):
+                kind = 'years'
+            elif size_value in {'0-3', '3-6', '6-9'}:
+                kind = 'month'
         if kind in {'', 'NAN', 'NONE'}:
             kind = 'МЕЖДУНАРОДНЫЙ' if re.search(r'[A-Za-z]', size_value) else 'РОССИЯ'
         try:
@@ -237,10 +242,6 @@ class UploadSocks(UploadCategory):
             for data_group in order_list:
                 if len(data_group) == 14:
                     data_group.append('')
-                gender = data_group[4].strip()
-
-                gender_condition = gender not in settings.RZ_GENDERS_RD_LIST
-                rz_gender_condition = rz_condition and gender_condition
                 # print(data_group)
                 rd_values = [x.strip() for x in data_group[11:14]]
                 has_rd = any(v not in ("", "nan", "None") for v in rd_values)
@@ -255,8 +256,6 @@ class UploadSocks(UploadCategory):
                 color_error = self._color(value=data_group[3].strip(), row_num=row_num, col='G', pos=3,
                                           order_list=order_list)
                 # print(color_error)
-                gender_error = self._gender(value=gender, row_num=row_num, col='H')
-                # print(gender_error)
                 size_type_error = self._size_type(size_value=data_group[6].strip(),
                                                   row_num=row_num, pos=5, order_list=order_list)
                 # print(size_type_error)
@@ -265,11 +264,17 @@ class UploadSocks(UploadCategory):
                 # print(size_error)
                 children_error = None
                 try:
-                    child = parse_socks_children(data_group[14], data_group[4], data_group[5])
+                    child = parse_socks_children(data_group[14], data_group[4], data_group[5], data_group[6])
                     data_group[14] = 'yes' if child else 'no'
+                    if child:
+                        data_group[4] = 'Без указания пола'
                     validate_socks_sizes([(data_group[6], data_group[9], data_group[5])], child, data_group[4])
                 except SizeTypeException as exc:
                     children_error = f"{val_error_start(row_num=row_num, col='S')} {exc}"
+                gender = data_group[4].strip()
+                gender_condition = gender not in settings.RZ_GENDERS_RD_LIST
+                rz_gender_condition = rz_condition and gender_condition
+                gender_error = self._gender(value=gender, row_num=row_num, col='H')
                 content_error = self._content(order_list=order_list, socks_material=data_group[7].strip(),
                                               row_num=row_num, col='K', pos=7)
                 # print(content_error)

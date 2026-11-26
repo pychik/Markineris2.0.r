@@ -1,4 +1,6 @@
-from utilities.socks_children import CHILDREN_AGE_SIZES, CHILDREN_INTERNATIONAL
+from utilities.socks_children import (
+    CHILDREN_AGE_SIZES, CHILDREN_INTERNATIONAL, FOOT_LENGTH_SIZE_TYPE, FOOT_LENGTH_SIZES,
+)
 
 
 SHOE_START: list = [
@@ -907,28 +909,13 @@ SOCKS_SIZES_MEN: dict = {
 
 SOCKS_SIZES_CHILDREN: dict = {
         'МЕЖДУНАРОДНЫЙ': tuple((value, '') for value in CHILDREN_INTERNATIONAL),
-        **{kind: tuple((value, '') for value, _international in sizes)
+        **{kind: tuple((value, '') for value in sizes)
            for kind, sizes in CHILDREN_AGE_SIZES.items()},
-        'РОССИЯ': (
-            ('7', '14'), ('8-10', '16'),
-            ('12', '18,19,20'),
-            ('14', '21,22,23'),
-            ('16', '24,25,26'),
-            ('18', '27,28,29'),
-            ('20', '30,31,32'),
-            ('22', '33,34,35')
-        ),
+        'РОССИЯ': tuple((value, '') for value in CHILDREN_INTERNATIONAL),
     }
 
 SOCKS_SIZES_NO_GENDER: dict = {
         'РОССИЯ': (
-            ('7', '14'), ('8-10', '16'),
-            ('12', '18,19,20'),
-            ('14', '21,22,23'),
-            ('16', '24,25,26'),
-            ('18', '27,28,29'),
-            ('20', '30,31,32'),
-            ('22', '33,34,35'),
             ('23', '36,37'),
             ('25', '38,39,40'),
             ('27', '41,42,43'),
@@ -948,6 +935,9 @@ SOCKS_SIZES_NO_GENDER: dict = {
 
 SOCKS_ST_SPECIAL: tuple = (('ONE SIZE', ''), )
 
+for _adult_socks_sizes in (SOCKS_SIZES_WOMEN, SOCKS_SIZES_MEN, SOCKS_SIZES_NO_GENDER):
+    _adult_socks_sizes[FOOT_LENGTH_SIZE_TYPE] = tuple((value, '') for value in FOOT_LENGTH_SIZES)
+
 for _socks_sizes_dict in (
     SOCKS_SIZES_WOMEN,
     SOCKS_SIZES_MEN,
@@ -959,7 +949,7 @@ for _socks_sizes_dict in (
 SOCKS_TYPES_SIZES_DICT: dict = {'Жен.': SOCKS_SIZES_WOMEN, "Унисекс": SOCKS_SIZES_WOMEN, 'Муж.': SOCKS_SIZES_MEN,
                                 'Детск.': SOCKS_SIZES_CHILDREN, 'Без указания пола': SOCKS_SIZES_NO_GENDER }
 
-SOCKS_SIZE_TYPES: list = ['РОССИЯ', 'МЕЖДУНАРОДНЫЙ', 'month', 'years']
+SOCKS_SIZE_TYPES: list = ['РОССИЯ', 'МЕЖДУНАРОДНЫЙ', 'month', 'years', FOOT_LENGTH_SIZE_TYPE]
 SOCKS_ST_DICT: dict = {'РОССИЯ': '<1764000029> РОССИЯ', 'МЕЖДУНАРОДНЫЙ': '<1764000037> МЕЖДУНАРОДНЫЙ', }
 
 
