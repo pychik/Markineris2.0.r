@@ -37,6 +37,7 @@ function parfum_perform_pos_add(async_flag, url){
     if (window.validatePositionGTIN && !window.validatePositionGTIN()) return;
 
     var pos_form =document.getElementById('form_process_main');
+    if (!window.OrderQuantity.validateForm(pos_form)) return;
     if (!window.validateTrademarkProductType(pos_form)) return;
     // let isValid = pos_form.reportValidity(); // не подходит
 

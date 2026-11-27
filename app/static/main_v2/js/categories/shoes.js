@@ -8,6 +8,7 @@ function shoe_perform_pos_add(async_flag, url){
     if (window.validatePositionGTIN && !window.validatePositionGTIN()) return;
 
     var pos_form =document.getElementById('form_process_main');
+    if (!window.OrderQuantity.validateForm(pos_form)) return;
     if (!window.validateTrademarkProductType(pos_form)) return;
     // let isValid = pos_form.reportValidity(); // не подходит
 
@@ -449,8 +450,8 @@ function addShoeCell(){
     if(check_shoes_size(size)!==true){
         return false
     }
-    var quantity = parseInt(quantity_val,10);
-    if(isNaN(quantity)){
+    var quantity = Number(quantity_val);
+    if(!window.OrderQuantity.isValid(quantity_val)){
         // alert('некорректное количество');
         show_form_errors(['некорректное количество размеров обуви',]);
         $('#form_errorModal').modal('show');
@@ -516,14 +517,8 @@ function shoes_edit_size(el) {
         quantityInput.show().focus();  // Show and focus on input field
     }
 
-    // Input validation for quantity
     quantityInput.on('input', function() {
-        let value = parseInt(quantityInput.val(), 10);
-        if (isNaN(value) || value < 1) {
-            quantityInput.attr('placeholder', '0');  // Placeholder for invalid input
-        } else if (value > 50000) {
-            quantityInput.val(50000);  // Limit the value to 50000
-        }
+        this.setCustomValidity(window.OrderQuantity.isValid(this.value, 50000) ? '' : 'Укажите целое количество от 1 до 50000.');
     });
 
     // When the input loses focus or Enter is pressed, save the value and switch back to span
@@ -531,10 +526,8 @@ function shoes_edit_size(el) {
         if (e.type === 'blur' || (e.type === 'keypress' && e.key === 'Enter')) {
             let newQuantity = quantityInput.val();
 
-            // If the input is empty or invalid, set it to 1 (auto-correct)
-            if (newQuantity === '' || parseInt(newQuantity) < 1) {
-                newQuantity = 1;
-                quantityInput.val(1);
+            if (!window.OrderQuantity.checkInput(quantityInput[0], 50000)) {
+                return;
             }
 
             // Update hidden input, visible span, and the quantity info
@@ -561,7 +554,11 @@ function check_add_same_size(size, quantity){
           let quantity_block = quantities[i];
           let quantity_block_hidden = quantities_hidden[i];
           // console.log(`обнаружен похожий размер ${size}`);
-          let quantity_pre = parseInt(quantity_block.innerText, 10);
+          if (!window.OrderQuantity.isValid(quantity_block.innerText)) {
+                make_message('Исправьте количество существующего размера: требуется целое число.', 'warning');
+                return true;
+            }
+            let quantity_pre = Number(quantity_block.innerText);
           let quantity_val = quantity_pre + quantity;
           quantity_block.innerHTML = '';
           quantity_block.innerText = quantity_val;

@@ -26,6 +26,7 @@ from utilities.order_log import CRM_STAGE_LABELS, h_append_order_log, order_log_
 from config import settings
 from utilities.clothes_tnved_content import clothes_tnved_content_error
 from utilities.gtin_orders import GTINCompanyConflict, GTINSizeValidationError
+from utilities.order_quantity import validate_order_quantities
 from logger import logger
 from models import (
     Order,
@@ -365,6 +366,17 @@ def preprocess_order_category(o_id: int, p_id: int, category: str) -> Union[Resp
         subcategory = request.view_args.get('subcategory', '')
     if not Category.check_subcategory(category=category, subcategory=subcategory):
         return jsonify(dict(status='error', message=settings.Messages.STRANGE_REQUESTS + 'нет такой подкатегории'))
+
+    try:
+        validate_order_quantities(
+            form_data_raw, settings.CATEGORIES_DICT[category],
+            is_kpb=category == settings.Linen.CATEGORY and is_linen_kpb_type(form_data_raw.get('type')),
+        )
+    except ValueError as exc:
+        if o_id and not p_id:
+            return jsonify(status='error', message=str(exc))
+        flash(message=str(exc), category='error')
+        return redirect(url_for(f'{settings.CATEGORIES_DICT[category]}.index', o_id=o_id, subcategory=subcategory))
 
     if trademark_matches_product_type(form_data_raw.get('trademark'), form_data_raw.get('type')):
         if o_id and not p_id:

@@ -21,7 +21,7 @@ const tnved = field('tnved_code');
 field('article_price', '100');
 field('tax', '22');
 const context = {
-    window: {validateTrademarkProductType: () => true},
+    window: {validateTrademarkProductType: () => true, OrderQuantity: {validateForm: () => true}},
     document: {getElementById: id => elements[id]},
     show_form_errors: () => {}, close_Loading_circle: () => {},
     check_rd_docs: () => true, clothes_check_sizes_quantity_valid: () => false,

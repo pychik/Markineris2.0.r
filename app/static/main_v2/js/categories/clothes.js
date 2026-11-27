@@ -7,6 +7,7 @@ function clothes_perform_pos_add(async_flag, url) {
     if (window.validatePositionGTIN && !window.validatePositionGTIN()) return;
 
     var pos_form = document.getElementById('form_process_main');
+    if (!window.OrderQuantity.validateForm(pos_form)) return;
     if (!window.validateTrademarkProductType(pos_form)) return;
     // let isValid = pos_form.reportValidity(); // не подходит
 
@@ -519,7 +520,11 @@ function check_add_same_size(size, quantity) {
             let quantity_block = quantities[i];
             let quantity_block_hidden = quantities_hidden[i];
             // console.log(`обнаружен похожий размер ${size}`);
-            let quantity_pre = parseInt(quantity_block.innerText, 10);
+            if (!window.OrderQuantity.isValid(quantity_block.innerText)) {
+                make_message('Исправьте количество существующего размера: требуется целое число.', 'warning');
+                return true;
+            }
+            let quantity_pre = Number(quantity_block.innerText);
             let quantity_val = quantity_pre + quantity;
             quantity_block.innerHTML = '';
             quantity_block.innerText = quantity_val;
@@ -654,7 +659,7 @@ function addLengthWidthClothesSize(clothingType) {
 
     const lengthValue = lengthInput.value.trim();
     const widthValue = widthInput.value.trim();
-    const quantityValue = parseInt(quantityInput.value, 10);
+    const quantityValue = Number(quantityInput.value);
     const dimensionPattern = /^\d+(?:[.,]\d+)?$/;
 
     if (
@@ -662,7 +667,7 @@ function addLengthWidthClothesSize(clothingType) {
         !dimensionPattern.test(widthValue) ||
         Number(lengthValue.replace(',', '.')) <= 0 ||
         Number(widthValue.replace(',', '.')) <= 0 ||
-        !Number.isInteger(quantityValue) ||
+        !window.OrderQuantity.isValid(quantityInput.value) ||
         quantityValue < 1
     ) {
         errorBlock.textContent = "Введите длину, ширину и количество числами больше 0.";
@@ -681,7 +686,11 @@ function addLengthWidthClothesSize(clothingType) {
         if (sizeSpan && typeSpan && sizeSpan.textContent.trim() === size && typeSpan.textContent.trim() === clothingType) {
             let quantitySpan = block.querySelector('#quantity_info');
             let hiddenQuantityInput = block.querySelector('input[name="quantity"]');
-            let newQuantity = parseInt(quantitySpan.textContent, 10) + quantityValue;
+            if (!window.OrderQuantity.isValid(quantitySpan.textContent)) {
+                errorBlock.textContent = 'Исправьте количество существующего размера: требуется целое число.';
+                return;
+            }
+            let newQuantity = Number(quantitySpan.textContent) + quantityValue;
             quantitySpan.textContent = newQuantity;
             hiddenQuantityInput.value = newQuantity;
             lengthInput.value = '';
@@ -826,7 +835,7 @@ function updateSizesQuantityBlock() {
     let existingSizes = {};
     sizesQuantityBlock.querySelectorAll('.important-card__item').forEach(item => {
         let size = item.querySelector('#size_info').textContent.trim();
-        let quantity = parseInt(item.querySelector('#quantity_info').textContent.trim(), 10);
+        let quantity = item.querySelector('#quantity_info').textContent.trim();
         let sizeType = item.querySelector('#size_type_info').textContent.trim();
         existingSizes[size] = { quantity, sizeType, element: item };
     });
@@ -836,10 +845,10 @@ function updateSizesQuantityBlock() {
     let newSizes = {};
     selectedSizes.forEach(input => {
         let size = input.getAttribute('id').replace('size_', '').trim();
-        let quantity = parseInt(input.value.trim(), 10);
+        let quantity = input.value.trim();
         let sizeType = input.getAttribute('data-size-type') || "";
 
-        if (size.startsWith('subcategorySize') || isNaN(quantity)) return;
+        if (size.startsWith('subcategorySize')) return;
         if (special_clothes_sizes.includes(size)) {
             sizeType = 'МЕЖДУНАРОДНЫЙ';
         }
@@ -895,7 +904,7 @@ function subcategory_size_add(clothingType) {
     let errorBlock = document.getElementById(`subcategorySizeError${clothingType}`);
 
     let size = sizeInput.value.trim();
-    let quantity = parseInt(quantityInput.value.trim(), 10);
+    let quantity = quantityInput.value;
 
     let sizePattern = /^[A-Za-z0-9]([-]?[A-Za-z0-9]|[.,]?[0-9]){0,7}$/;
 
@@ -922,8 +931,8 @@ function subcategory_size_add(clothingType) {
         errorBlock.textContent = "Размер должен содержать только латиницу, цифры и знак дефиса между ними (1-8 символов). Допускаются дробные размеры";
         return;
     }
-    if (isNaN(quantity) || quantity < 1) {
-        errorBlock.textContent = "Введите корректное количество (минимум 1).";
+    if (!window.OrderQuantity.isValid(quantity)) {
+        errorBlock.textContent = "Укажите целое количество от 1 до 100000000.";
         return;
     }
 
@@ -983,18 +992,9 @@ function clear_clothesSizes_modal() {
     document.getElementById('sizesClothesDiv').innerHTML = '';
 }
 
-function check_clothes_quantity_input(block){
-    var value = parseFloat(block.value);
-    var min = parseFloat(block.min);
-    var max = parseFloat(block.max);
-
-    // Check if the input value falls outside the specified range
-    if (value < min || value > max || isNaN(value)) {
-        // If so, set the input value to 0
-        block.value = 1;
-    }
+function check_clothes_quantity_input(block) {
+    return window.OrderQuantity.checkInput(block, Number(block.max) || 100000000);
 }
-
 
 function create_size_blocks(sizes, clothingType) {
     let sizesBlock = '';
@@ -1005,7 +1005,7 @@ function create_size_blocks(sizes, clothingType) {
     document.querySelectorAll('#sizes_quantity .important-card__size').forEach(item => {
         let sizeTypeInCard = item.querySelector('#size_type_info').textContent;
         let sizeInCard = item.querySelector('#size_info').textContent;
-        let quantity = parseInt(item.querySelector('#quantity_info').textContent);
+        let quantity = item.querySelector('#quantity_info').textContent.trim();
 
         // Если это специальный размер, добавляем его в карту (объект)
         if (clothingType === 'ОСОБЫЕ_РАЗМЕРЫ' && sizeTypeInCard === 'МЕЖДУНАРОДНЫЙ' && special_clothes_sizes.includes(sizeInCard)) {

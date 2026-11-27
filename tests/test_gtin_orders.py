@@ -303,6 +303,7 @@ class GtinOrderTests(unittest.TestCase):
                        request=NS(form=dict(gtin='04640735105562', gtin_company_key='g:AVRORA'),
                                   args={}, view_args={'subcategory': 'common'}),
                        Category=NS(check_subcategory=lambda **kwargs: True),
+                       validate_order_quantities=lambda *args, **kwargs: None,
                        trademark_matches_product_type=lambda *args: False,
                        ValidatorProcessor=NS(check_tnveds=lambda **kwargs: False,
                                              validate_toys_subcategory_payload=lambda **kwargs: None),

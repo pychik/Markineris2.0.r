@@ -1,6 +1,12 @@
 function socks_check_sizes_quantity_valid() {
     var sizes = document.querySelectorAll('[id=size_info]');
-    return sizes.length >= 1;
+    const quantities = document.querySelectorAll('#sizes_quantity input[name="quantity"]');
+    return sizes.length >= 1 && quantities.length === sizes.length &&
+        Array.from(quantities).every(input => isValidSocksQuantity(input.value));
+}
+
+function isValidSocksQuantity(value) {
+    return /^[0-9]+$/.test(value) && Number(value) >= 1 && Number(value) <= 50000;
 }
 
 function socksSizeInputId(size) {
@@ -18,6 +24,7 @@ function socks_perform_pos_add(async_flag, url) {
     if (window.validatePositionGTIN && !window.validatePositionGTIN()) return;
 
     var pos_form = document.getElementById('form_process_main');
+    if (!window.OrderQuantity.validateForm(pos_form)) return;
     if (!window.validateTrademarkProductType(pos_form)) return;
     // let isValid = pos_form.reportValidity(); // не подходит
 
@@ -66,7 +73,7 @@ function socks_perform_pos_add(async_flag, url) {
             errors_list.push("Блок состав чулочно-носочных ихделий! Заполните!");
         }
         if (scsq === false) {
-            errors_list.push("Размер чулочно-носочных ихделий. Добавьте хотя бы один");
+            errors_list.push("Выберите хотя бы один размер и укажите для каждого целое количество от 1 до 50000");
         }
         if (crd === false) {
             errors_list.push("Разрешительная документация. Должны быть заполнены все поля формы разрешительной документации, либо все должны быть пусты!");
@@ -508,7 +515,11 @@ function check_add_same_size(size, quantity) {
             let quantity_block = quantities[i];
             let quantity_block_hidden = quantities_hidden[i];
             // console.log(`обнаружен похожий размер ${size}`);
-            let quantity_pre = parseInt(quantity_block.innerText, 10);
+            if (!window.OrderQuantity.isValid(quantity_block.innerText)) {
+                make_message('Исправьте количество существующего размера: требуется целое число.', 'warning');
+                return true;
+            }
+            let quantity_pre = Number(quantity_block.innerText);
             let quantity_val = quantity_pre + quantity;
             quantity_block.innerHTML = '';
             quantity_block.innerText = quantity_val;
@@ -777,15 +788,12 @@ function clear_socksSizes_modal() {
 }
 
 function check_socks_quantity_input(block){
-    var value = parseFloat(block.value);
-    var min = parseFloat(block.min);
-    var max = parseFloat(block.max);
-
-    // Check if the input value falls outside the specified range
-    if (value < min || value > max || isNaN(value)) {
-        // If so, set the input value to 0
-        block.value = 1;
+    const valid = isValidSocksQuantity(block.value);
+    block.setCustomValidity(valid ? '' : 'Укажите целое количество от 1 до 50000.');
+    if (!valid) {
+        block.reportValidity();
     }
+    return valid;
 }
 
 
@@ -806,7 +814,7 @@ function create_size_blocks(sizes, clothingType){
             // If the size type and size are already present in the item card, set sizeAlreadyExists to true and retrieve the quantity
             if (sizeTypeInCard === effectiveSizeType && sizeInCard === size[0]) {
                 sizeAlreadyExists = true;
-                quantity = parseInt(item.querySelector('#quantity_info').textContent);
+                quantity = item.querySelector('#quantity_info').textContent.trim();
             }
 
         });
@@ -822,7 +830,7 @@ function create_size_blocks(sizes, clothingType){
                         </div>
                         <div class="col-6">
                             <input type="number" class="form-control ms-1 input-light-grey"
-                                min="1" max="50000" id="${inputId}" name="${inputId}" style="display: none;"  placeholder="0"
+                                min="1" max="50000" step="1" id="${inputId}" name="${inputId}" style="display: none;"  placeholder="0"
                                 data-size-value="${size[0]}" data-size-type="${clothingType}" disabled  onchange="check_socks_quantity_input(this);updateSizesQuantityBlock()">
                         </div>
                         <div class="col-2">
@@ -845,7 +853,7 @@ function create_size_blocks(sizes, clothingType){
                     <div class="row">
                         <div class="col-4 my-2" onclick="setQuantitySize('${size[0]}');"><span style="cursor: pointer">${size[0]}</span></div>
                         <div class="col-6"><input type="number" class="form-control ms-1"
-                         min="1" max="50000" id="${inputId}" name="${inputId}" value="${quantity}" placeholder="0"
+                         min="1" max="50000" step="1" id="${inputId}" name="${inputId}" value="${quantity}" placeholder="0"
                          data-size-value="${size[0]}" data-size-type="${clothingType}" onchange="check_socks_quantity_input(this);updateSizesQuantityBlock()"></div>
                          <div class="col-2">
                             <div data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Размер по &#34;обуви&#34; ${size[1]}">
@@ -893,8 +901,8 @@ function addSocksCell(){
     if(check_socks_size(size)!==true){
         return false
     }
-    var quantity = parseInt(quantity_val,10);
-    if(isNaN(quantity)){
+    var quantity = Number(quantity_val);
+    if(!isValidSocksQuantity(quantity_val)){
         // alert('некорректное количество');
         show_form_errors(['некорректное количество размеров обуви',]);
         $('#form_errorModal').modal('show');
@@ -956,14 +964,8 @@ function socks_edit_size(el) {
         quantityInput.show().focus();  // Show and focus on input field
     }
 
-    // Input validation for quantity
     quantityInput.on('input', function() {
-        let value = parseInt(quantityInput.val(), 10);
-        if (isNaN(value) || value < 1) {
-            quantityInput.attr('placeholder', '0');  // Placeholder for invalid input
-        } else if (value > 50000) {
-            quantityInput.val(50000);  // Limit the value to 50000
-        }
+        this.setCustomValidity(isValidSocksQuantity(this.value) ? '' : 'Укажите целое количество от 1 до 50000.');
     });
 
     // When the input loses focus or Enter is pressed, save the value and switch back to span
@@ -971,10 +973,8 @@ function socks_edit_size(el) {
         if (e.type === 'blur' || (e.type === 'keypress' && e.key === 'Enter')) {
             let newQuantity = quantityInput.val();
 
-            // If the input is empty or invalid, set it to 1 (auto-correct)
-            if (newQuantity === '' || parseInt(newQuantity) < 1) {
-                newQuantity = 1;
-                quantityInput.val(1);
+            if (!window.OrderQuantity.checkInput(quantityInput[0], 50000)) {
+                return;
             }
 
             // Update hidden input, visible span, and the quantity info
@@ -1001,7 +1001,11 @@ function check_add_same_size(size, quantity){
           let quantity_block = quantities[i];
           let quantity_block_hidden = quantities_hidden[i];
           // console.log(`обнаружен похожий размер ${size}`);
-          let quantity_pre = parseInt(quantity_block.innerText, 10);
+          if (!window.OrderQuantity.isValid(quantity_block.innerText)) {
+                make_message('Исправьте количество существующего размера: требуется целое число.', 'warning');
+                return true;
+            }
+            let quantity_pre = Number(quantity_block.innerText);
           let quantity_val = quantity_pre + quantity;
           quantity_block.innerHTML = '';
           quantity_block.innerText = quantity_val;

@@ -17,6 +17,7 @@ from utilities.categories_data.accessories_data import normalize_clothes_type_fo
 from utilities.helpers.helpers_checks import _check_linen_compatibility, _check_clothes_compatibility, \
     _check_shoes_compatibility, _check_socks_compatibility, _check_parfum_compatibility, _check_country_by_rd, rd_name_clean
 from utilities.exceptions import SizeTypeException
+from utilities.order_quantity import parse_quantity
 from utilities.gtin_orders import validate_order_copy_companies, validate_gtin_fields, validate_gtin_company, apply_size_gtins, parse_size_gtins
 from utilities.saving_helpers import append_or_merge_position, get_clothes_size_type, get_socks_size_type, normalize_article_placeholder, \
     normalize_length_width_size_type, normalize_length_width_size_value, normalize_trademark_placeholder, process_input_str, \
@@ -207,12 +208,7 @@ def save_cosmetics(order: Order, form_dict: dict, subcategory: str) -> Order:
     if complectation.lower() in {"none", "null", "undefined"}:
         complectation = ""
 
-    try:
-        quantity = int(quantity_raw)
-    except (TypeError, ValueError):
-        quantity = 1
-    if quantity < 1:
-        quantity = 1
+    quantity = parse_quantity(quantity_raw)
 
     try:
         nominal_quantity = int(nominal_quantity_raw) if nominal_quantity_raw not in (None, "") else None
@@ -271,12 +267,7 @@ def save_cosmetics(order: Order, form_dict: dict, subcategory: str) -> Order:
 def save_toys(order: Order, form_dict: dict, subcategory: str) -> Order:
     quantity_raw = form_dict.get("quantity")
     service_life_raw = form_dict.get("service_life")
-    try:
-        quantity = int(quantity_raw)
-    except (TypeError, ValueError):
-        quantity = 1
-    if quantity < 1:
-        quantity = 1
+    quantity = parse_quantity(quantity_raw)
 
     try:
         service_life = int(service_life_raw) if service_life_raw not in (None, "") else None

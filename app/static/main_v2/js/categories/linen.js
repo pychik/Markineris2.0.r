@@ -11,6 +11,7 @@ function linen_perform_pos_add(async_flag, url){
     if (window.validatePositionGTIN && !window.validatePositionGTIN()) return;
 
     var pos_form =document.getElementById('form_process_main');
+    if (!window.OrderQuantity.validateForm(pos_form)) return;
     if (!window.validateTrademarkProductType(pos_form)) return;
     // let isValid = pos_form.reportValidity(); // не подходит
 
@@ -500,8 +501,8 @@ function linenResetSetItemForm() {
 }
 
 function linenGetKpbQuantity() {
-    const quantity = parseInt(document.getElementById('kpb_quantity_order')?.value || '1', 10);
-    return isNaN(quantity) || quantity < 1 ? 0 : quantity;
+    const raw = document.getElementById('kpb_quantity_order')?.value || '';
+    return window.OrderQuantity.isValid(raw) ? Number(raw) : 0;
 }
 
 function linenSetItemDisplayQuantity(type, quantity) {
@@ -604,7 +605,7 @@ function addLinenSetItem() {
     const sizeY = document.getElementById('linen_set_sizeY_order')?.value || '';
     const sizeUnit = document.getElementById('linen_set_sizeUnit_order')?.value || '';
     const quantityRaw = document.getElementById('linen_set_quantity_order')?.value || '';
-    const quantity = parseInt(quantityRaw, 10);
+    const quantity = Number(quantityRaw);
 
     if (!LINEN_SET_ITEM_TYPES.includes(type)) {
         linenShowFormErrors(['Выберите позицию комплекта']);
@@ -618,7 +619,7 @@ function addLinenSetItem() {
         linenShowFormErrors(['Не выбраны единицы измерения для позиции комплекта']);
         return false;
     }
-    if (isNaN(quantity) || quantity < 1 || quantity > 5) {
+    if (!window.OrderQuantity.isValid(quantityRaw, 5)) {
         linenShowFormErrors(['Количество позиции комплекта должно быть от 1 до 5']);
         return false;
     }
@@ -754,8 +755,8 @@ function addLinenCell(){
     // if(check_linen_size(size)!==true){
     //     return false
     // }
-    var quantity = parseInt(quantity_val,10);
-    if(isNaN(quantity)){
+    var quantity = Number(quantity_val);
+    if(!window.OrderQuantity.isValid(quantity_val)){
         // alert('некорректное количество');
         show_form_errors(['некорректное количество единиц товара белья',]);
         $('#form_errorModal').modal('show');
@@ -845,14 +846,8 @@ function linen_edit_size(el) {
         quantityInput.show().focus();  // Show and focus on input field
     }
 
-    // Input validation for quantity
     quantityInput.on('input', function() {
-        let value = parseInt(quantityInput.val(), 10);
-        if (isNaN(value) || value < 1) {
-            quantityInput.attr('placeholder', '0');
-        } else if (value > 50000) {
-            quantityInput.val(50000);  // Limit the value to 50000
-        }
+        this.setCustomValidity(window.OrderQuantity.isValid(this.value, 50000) ? '' : 'Укажите целое количество от 1 до 50000.');
     });
 
     // When the input loses focus or Enter is pressed, save the value and switch back to span
@@ -860,14 +855,12 @@ function linen_edit_size(el) {
         if (e.type === 'blur' || (e.type === 'keypress' && e.key === 'Enter')) {
             let newQuantity = quantityInput.val();
 
-            // If the input is empty, set it to 1 (auto-correct)
-            if (newQuantity === '' || parseInt(newQuantity) < 1) {
-                newQuantity = 1;
-                quantityInput.val(1);
+            if (!window.OrderQuantity.checkInput(quantityInput[0], 50000)) {
+                return;
             }
 
             // Update the hidden input and quantity span
-            $('#quantity').val(newQuantity);
+            $(el).closest('.important-card__size').find('input[name="quantity"]').val(newQuantity);
             quantitySpan.text(newQuantity);
 
             // Hide input and show quantity span
@@ -891,7 +884,11 @@ function check_add_same_size(sizeX, sizeY, sizeUnit, quantity){
           let quantity_block = quantities[i];
           let quantity_block_hidden = quantities_hidden[i];
           // console.log(`обнаружен похожий размер ${size}`);
-          let quantity_pre = parseInt(quantity_block.innerText, 10);
+          if (!window.OrderQuantity.isValid(quantity_block.innerText)) {
+                make_message('Исправьте количество существующего размера: требуется целое число.', 'warning');
+                return true;
+            }
+            let quantity_pre = Number(quantity_block.innerText);
           let quantity_val = quantity_pre + quantity;
           quantity_block.innerHTML = '';
           quantity_block.innerText = quantity_val;

@@ -1,6 +1,7 @@
 function cosmetics_perform_pos_add(async_flag, url) {
     if (window.validatePositionGTIN && !window.validatePositionGTIN()) return;
     var pos_form = document.getElementById('form_process_main');
+    if (!window.OrderQuantity.validateForm(pos_form)) return;
     if (!window.validateTrademarkProductType(pos_form)) return;
     var crd = cosmetics_check_rd_docs();
     var serviceLifePeriodValid = cosmetics_check_service_life_period();
