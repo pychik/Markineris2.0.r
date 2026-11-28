@@ -25,7 +25,7 @@ def validate_order_quantities(form_data, category, *, is_kpb=False):
             size_keys = ("sizeX", "sizeY", "sizeUnit") if category == "linen" else ("size",)
             if category in {"clothes", "socks"}:
                 size_keys += ("size_type",)
-            maximum = 50000 if category == "socks" else MAX_ORDER_QUANTITY
+            maximum = MAX_ORDER_QUANTITY
         quantities = form_data.getlist(quantity_key)
         if not quantities or any(len(form_data.getlist(key)) != len(quantities) for key in size_keys):
             raise ValueError("Выберите размеры и укажите целое количество для каждого размера.")

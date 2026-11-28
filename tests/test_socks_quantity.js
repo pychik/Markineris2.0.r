@@ -12,7 +12,7 @@ for (const [start, end] of [
 ]) {
     vm.runInContext(source.slice(source.indexOf(start), source.indexOf(end)), context);
 }
-for (const value of ['37.42', '37,42', '', '0', '-1', '50001', '1e2', 'NaN', ' 37 ']) {
+for (const value of ['37.42', '37,42', '', '0', '-1', '100000001', '1e2', 'NaN', ' 37 ']) {
     let message = '', reported = false;
     const input = {value, setCustomValidity: text => {message = text;}, reportValidity: () => {reported = true;}};
     assert.equal(context.check_socks_quantity_input(input), false, value);
@@ -22,7 +22,7 @@ for (const value of ['37.42', '37,42', '', '0', '-1', '50001', '1e2', 'NaN', ' 3
     quantities = [input];
     assert.equal(context.socks_check_sizes_quantity_valid(), false, 'Hidden quantity cannot bypass validation');
 }
-for (const value of ['1', '37', '50000']) {
+for (const value of ['1', '37', '50000', '50001', '100000000']) {
     let message = 'old error';
     const input = {value, setCustomValidity: text => {message = text;}, reportValidity: () => assert.fail()};
     assert.equal(context.check_socks_quantity_input(input), true);

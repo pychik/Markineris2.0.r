@@ -6,7 +6,7 @@ function socks_check_sizes_quantity_valid() {
 }
 
 function isValidSocksQuantity(value) {
-    return /^[0-9]+$/.test(value) && Number(value) >= 1 && Number(value) <= 50000;
+    return /^[0-9]+$/.test(value) && Number(value) >= 1 && Number(value) <= 100000000;
 }
 
 function socksSizeInputId(size) {
@@ -73,7 +73,7 @@ function socks_perform_pos_add(async_flag, url) {
             errors_list.push("Блок состав чулочно-носочных ихделий! Заполните!");
         }
         if (scsq === false) {
-            errors_list.push("Выберите хотя бы один размер и укажите для каждого целое количество от 1 до 50000");
+            errors_list.push("Выберите хотя бы один размер и укажите для каждого целое количество от 1 до 100000000");
         }
         if (crd === false) {
             errors_list.push("Разрешительная документация. Должны быть заполнены все поля формы разрешительной документации, либо все должны быть пусты!");
@@ -789,7 +789,7 @@ function clear_socksSizes_modal() {
 
 function check_socks_quantity_input(block){
     const valid = isValidSocksQuantity(block.value);
-    block.setCustomValidity(valid ? '' : 'Укажите целое количество от 1 до 50000.');
+    block.setCustomValidity(valid ? '' : 'Укажите целое количество от 1 до 100000000.');
     if (!valid) {
         block.reportValidity();
     }
@@ -830,7 +830,7 @@ function create_size_blocks(sizes, clothingType){
                         </div>
                         <div class="col-6">
                             <input type="number" class="form-control ms-1 input-light-grey"
-                                min="1" max="50000" step="1" id="${inputId}" name="${inputId}" style="display: none;"  placeholder="0"
+                                min="1" max="100000000" step="1" id="${inputId}" name="${inputId}" style="display: none;"  placeholder="0"
                                 data-size-value="${size[0]}" data-size-type="${clothingType}" disabled  onchange="check_socks_quantity_input(this);updateSizesQuantityBlock()">
                         </div>
                         <div class="col-2">
@@ -853,7 +853,7 @@ function create_size_blocks(sizes, clothingType){
                     <div class="row">
                         <div class="col-4 my-2" onclick="setQuantitySize('${size[0]}');"><span style="cursor: pointer">${size[0]}</span></div>
                         <div class="col-6"><input type="number" class="form-control ms-1"
-                         min="1" max="50000" step="1" id="${inputId}" name="${inputId}" value="${quantity}" placeholder="0"
+                         min="1" max="100000000" step="1" id="${inputId}" name="${inputId}" value="${quantity}" placeholder="0"
                          data-size-value="${size[0]}" data-size-type="${clothingType}" onchange="check_socks_quantity_input(this);updateSizesQuantityBlock()"></div>
                          <div class="col-2">
                             <div data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Размер по &#34;обуви&#34; ${size[1]}">
@@ -965,7 +965,7 @@ function socks_edit_size(el) {
     }
 
     quantityInput.on('input', function() {
-        this.setCustomValidity(isValidSocksQuantity(this.value) ? '' : 'Укажите целое количество от 1 до 50000.');
+        this.setCustomValidity(isValidSocksQuantity(this.value) ? '' : 'Укажите целое количество от 1 до 100000000.');
     });
 
     // When the input loses focus or Enter is pressed, save the value and switch back to span
@@ -973,7 +973,7 @@ function socks_edit_size(el) {
         if (e.type === 'blur' || (e.type === 'keypress' && e.key === 'Enter')) {
             let newQuantity = quantityInput.val();
 
-            if (!window.OrderQuantity.checkInput(quantityInput[0], 50000)) {
+            if (!window.OrderQuantity.checkInput(quantityInput[0], 100000000)) {
                 return;
             }
 

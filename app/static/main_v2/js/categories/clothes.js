@@ -1027,7 +1027,7 @@ function create_size_blocks(sizes, clothingType) {
                     <div class="row">
                         <div class="col-5 my-2" onclick="setQuantitySize('${size}');"><span style="cursor: pointer">${size}</span></div>
                         <div class=" col-7"><input type="number" class="form-control ms-1 input-light-grey"
-                         min="1" max="50000" id="size_${size}" name="size_${size}" style="display: none;" placeholder="0"
+                         min="1" max="100000000" id="size_${size}" name="size_${size}" style="display: none;" placeholder="0"
                          data-size-type="${clothingType}" disabled onchange="check_clothes_quantity_input(this);updateSizesQuantityBlock()"></div>
                     </div>  
                 </div>`;
@@ -1037,7 +1037,7 @@ function create_size_blocks(sizes, clothingType) {
                     <div class="row">
                         <div class="col-5 my-2" onclick="setQuantitySize('${size}');"><span style="cursor: pointer">${size}</span></div>
                         <div class=" col-7"><input type="number" class="form-control ms-1"
-                         min="1" max="50000" id="size_${size}" name="size_${size}" value="${quantity}" placeholder="0"
+                         min="1" max="100000000" id="size_${size}" name="size_${size}" value="${quantity}" placeholder="0"
                          data-size-type="${clothingType}" onchange="check_clothes_quantity_input(this);updateSizesQuantityBlock()"></div>
                     </div>  
                 </div>`;

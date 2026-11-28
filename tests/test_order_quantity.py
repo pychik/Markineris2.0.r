@@ -54,9 +54,9 @@ class OrderQuantityTests(unittest.TestCase):
 
     def test_boundaries_and_leading_zeroes(self):
         for category in CATEGORIES:
-            for value in ['1', '0002', '50000' if category == 'socks' else '100000000']:
+            for value in ['1', '0002', '50000', '50001', '100000000']:
                 quantity.validate_order_quantities(payload(category, value), category)
-            maximum = 50000 if category == 'socks' else 100000000
+            maximum = 100000000
             with self.assertRaises(ValueError):
                 quantity.validate_order_quantities(payload(category, str(maximum + 1)), category)
         quantity.validate_order_quantities(payload('linen', '5', True), 'linen', is_kpb=True)

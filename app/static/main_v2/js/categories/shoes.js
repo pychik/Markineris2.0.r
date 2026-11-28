@@ -518,7 +518,7 @@ function shoes_edit_size(el) {
     }
 
     quantityInput.on('input', function() {
-        this.setCustomValidity(window.OrderQuantity.isValid(this.value, 50000) ? '' : 'Укажите целое количество от 1 до 50000.');
+        this.setCustomValidity(window.OrderQuantity.isValid(this.value, 100000000) ? '' : 'Укажите целое количество от 1 до 100000000.');
     });
 
     // When the input loses focus or Enter is pressed, save the value and switch back to span
@@ -526,7 +526,7 @@ function shoes_edit_size(el) {
         if (e.type === 'blur' || (e.type === 'keypress' && e.key === 'Enter')) {
             let newQuantity = quantityInput.val();
 
-            if (!window.OrderQuantity.checkInput(quantityInput[0], 50000)) {
+            if (!window.OrderQuantity.checkInput(quantityInput[0], 100000000)) {
                 return;
             }
 

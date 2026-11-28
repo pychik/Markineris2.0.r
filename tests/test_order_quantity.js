@@ -51,18 +51,20 @@ for (const [category, fn, total] of [['shoes', 'shoes_edit_size', 'setShoes'], [
     loadFunction(context, category, fn);
     context[fn]({});
     const hidden = field(category === 'linen' ? 'input[name="quantity"]' : '#quantity');
-    for (const value of invalid.concat('50001')) {
+    for (const value of invalid) {
         field('#quantity_input').value = value;
         handlers.input.call(field('#quantity_input'));
         handlers['blur keypress']({type: 'blur'});
         assert.equal(hidden.value, '5', category + ' preserves prior count');
         assert.equal(recalculated, 0);
     }
-    field('#quantity_input').value = '3';
-    handlers.input.call(field('#quantity_input'));
-    handlers['blur keypress']({type: 'blur'});
-    assert.equal(hidden.value, '3');
-    assert.equal(recalculated, 1);
+    for (const [index, value] of ['3', '50001', '100000000'].entries()) {
+        field('#quantity_input').value = value;
+        handlers.input.call(field('#quantity_input'));
+        handlers['blur keypress']({type: 'blur'});
+        assert.equal(hidden.value, value, category + ' accepts quantities above 50000');
+        assert.equal(recalculated, index + 1);
+    }
 }
 // Clothing modal must carry raw invalid counts to the guard, never truncate them.
 {
